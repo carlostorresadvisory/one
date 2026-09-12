@@ -640,8 +640,6 @@ main#app {
   flex-wrap: wrap;
 }
 
-.preguntar-a:empty { display: none; }
-
 .preguntar-a-etiqueta {
   font-size: 13px;
   color: var(--texto-suave);
@@ -697,6 +695,16 @@ main#app {
 .respuesta-compacta-linea--tachada {
   color: var(--texto-suave);
   text-decoration: line-through;
+}
+
+/* Rótulo sobre la lista de "ordenar" (ronda de corrección 1): deja claro que
+   la lista de abajo es el orden CORRECTO incluso cuando no lleva ninguna
+   marca (todo mal, ver construirRespuestaCompacta). */
+.respuesta-compacta-orden-rotulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-suave);
 }
 
 .respuesta-compacta-orden {
@@ -1052,23 +1060,41 @@ main#app {
    aparte. Tarjeta 0 (resumen-cifras), tarjetas de repaso (reutilizan .tarjeta/
    .tarjeta-contenido de la partida vía construirTarjetaRespondida) y la
    tarjeta final (.tarjeta-cierre, ya existente para el cierre de la partida). */
+/* Aciertos y XP como dos cifras destacadas, una junto a la otra, centradas
+   (ronda de corrección 1: antes dos líneas de texto planas sin jerarquía). */
 .resumen-resultado {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
+  justify-content: center;
+  gap: 36px;
 }
 
-.resumen-resultado-linea {
+.resumen-cifra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.resumen-cifra-numero {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
+.resumen-cifra-etiqueta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+/* Nombres de área legibles (nombreArea), no sus ids (ronda de corrección 1).
+   Centrada como el resto del bloque de cifras. */
 .resumen-areas-linea {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--texto-suave);
+  text-align: center;
 }
 
 /* Pie de la tarjeta de cifras: la pista de deslizar para repasar (permanente,
@@ -1078,16 +1104,21 @@ main#app {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--texto-suave);
+  text-align: center;
 }
 
+/* En columna, no en fila (ronda de corrección 1): "Otra partida" partía en
+   dos líneas junto a "Inicio" en una sola, con el ancho a medias que deja la
+   columna de puntos del mazo. Apilados a ancho completo ninguno de los dos
+   corre riesgo de partirse, igual que ya hacía .mazo-cierre-acciones. */
 .resumen-acciones {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   width: 100%;
 }
 
 .resumen-acciones .boton {
-  flex: 1;
   min-height: 56px;
 }
 

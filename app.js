@@ -1360,7 +1360,11 @@ function construirTarjetaSinResponder(hueco) {
 
 /** Respuesta ya fija en su forma compacta (spec v0.1c §4.1 punto 4): vf una
  * línea; test4/error la fila correcta con ✓ y, si falló, la suya tachada
- * encima; ordenar la lista completa numerada con ✓/✗ por posición. */
+ * encima; ordenar la lista completa CORRECTA con un rótulo encima y ✓/✗ por
+ * posición SOLO si al menos una posición acertó (ronda de corrección 1: con
+ * TODO mal — p. ej. el orden invertido del todo — marcar cada línea con ✗
+ * sobre el propio orden correcto leía como "esto está mal", cuando es
+ * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende). */
 function construirRespuestaCompacta(pregunta, hueco) {
   const contenedor = document.createElement('div');
   contenedor.className = 'respuesta-compacta';
@@ -1402,13 +1406,24 @@ function construirRespuestaCompacta(pregunta, hueco) {
       break;
     }
     case 'ordenar': {
+      const rotulo = document.createElement('p');
+      rotulo.className = 'respuesta-compacta-orden-rotulo';
+      rotulo.textContent = 'Orden correcto';
+      contenedor.appendChild(rotulo);
+
       const lista = document.createElement('ol');
       lista.className = 'respuesta-compacta-orden';
       const respuestaUsuario = Array.isArray(hueco.respuesta) ? hueco.respuesta : [];
+      // Si el jugador no acertó NI UNA posición, marcar cada línea con ✗ sobre
+      // el orden correcto confunde (lee como si la lista en sí estuviera mal).
+      // En ese caso se deja limpia, sin marcas: el rótulo de arriba ya dice
+      // que esto es lo correcto.
+      const algunaAcertada = respuestaUsuario.some((original, posicion) => original === posicion);
       pregunta.items.forEach((texto, posicion) => {
         const li = document.createElement('li');
-        const marca = respuestaUsuario[posicion] === posicion ? '✓' : '✗';
-        li.textContent = `${texto} ${marca}`;
+        li.textContent = algunaAcertada
+          ? `${texto} ${respuestaUsuario[posicion] === posicion ? '✓' : '✗'}`
+          : texto;
         lista.appendChild(li);
       });
       contenedor.appendChild(lista);
@@ -1665,11 +1680,11 @@ function construirBloqueFeedback(pregunta, hueco) {
 }
 
 /**
- * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para Task 3/repaso):
+ * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
  * cabecera, enunciado, confianza (activa, salvo soloLectura), respuesta
  * compacta + resumen a una línea (para tarjeta--compacta-1), feedback y, en la
- * zona de acción, el ancla "Preguntar a" (vacía: la rellena otra tarea) y,
- * salvo soloLectura, "esta pregunta está mal" + Siguiente.
+ * zona de acción, la fila "Preguntar a" (construirPreguntarA) y, salvo
+ * soloLectura, "esta pregunta está mal" + Siguiente.
  */
 function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {}) {
   const tarjeta = document.createElement('div');
@@ -1883,10 +1898,28 @@ function construirAccionesResumen() {
   return acciones;
 }
 
-/** Tarjeta 0 del resumen (spec v0.1c §6): cifras de la partida (aciertos, XP,
- * áreas) y, según haya o no algo que repasar, la pista de deslizar o el
+/** Una cifra destacada (spec v0.1c §6, ronda de corrección 1): número grande
+ * arriba, etiqueta pequeña debajo. `animarConteo` sigue animando solo el
+ * número (sin la etiqueta dentro del mismo texto, a diferencia de antes). */
+function construirCifraDestacada(etiquetaTexto) {
+  const cifra = document.createElement('div');
+  cifra.className = 'resumen-cifra';
+  const numero = document.createElement('p');
+  numero.className = 'resumen-cifra-numero';
+  const etiqueta = document.createElement('p');
+  etiqueta.className = 'resumen-cifra-etiqueta';
+  etiqueta.textContent = etiquetaTexto;
+  cifra.append(numero, etiqueta);
+  return { cifra, numero };
+}
+
+/** Tarjeta 0 del resumen (spec v0.1c §6): cifras de la partida (aciertos y XP
+ * como dos cifras destacadas, áreas en una línea pequeña con sus nombres
+ * legibles) y, según haya o no algo que repasar, la pista de deslizar o el
  * mensaje vacío con los botones directos (sin deslizar a ningún sitio, ya que
- * en ese caso esta es también la última tarjeta del mazo). */
+ * en ese caso esta es también la última tarjeta del mazo). Todo centrado como
+ * un solo bloque (ronda de corrección 1: antes eran dos líneas de texto
+ * planas, sin jerarquía, y las áreas salían con su id sin traducir). */
 function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta';
@@ -1897,15 +1930,14 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
 
   const resultado = document.createElement('div');
   resultado.className = 'resumen-resultado';
-  const aciertosNodo = document.createElement('p');
-  aciertosNodo.className = 'resumen-resultado-linea';
-  const xpNodo = document.createElement('p');
-  xpNodo.className = 'resumen-resultado-linea';
-  resultado.append(aciertosNodo, xpNodo);
+  const { cifra: cifraAciertos, numero: numeroAciertos } = construirCifraDestacada('Aciertos');
+  const { cifra: cifraXp, numero: numeroXp } = construirCifraDestacada('XP ganado');
+  resultado.append(cifraAciertos, cifraXp);
 
   const areasNodo = document.createElement('p');
   areasNodo.className = 'resumen-areas-linea';
-  areasNodo.textContent = `Áreas: ${[...areas].join(', ') || '—'}`;
+  const nombresAreas = [...areas].map(nombreArea);
+  areasNodo.textContent = `Áreas: ${nombresAreas.join(', ') || '—'}`;
 
   const pieN = repasoPartida.length;
   const pie = document.createElement('p');
@@ -1922,8 +1954,8 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
     tarjeta.appendChild(zonaAccion);
   }
 
-  animarConteo(aciertosNodo, 'Aciertos: ', aciertos, `/${totalPreguntas}`);
-  animarConteo(xpNodo, 'XP ganado: ', xpTotal);
+  animarConteo(numeroAciertos, '', aciertos, `/${totalPreguntas}`);
+  animarConteo(numeroXp, '', xpTotal);
 
   return tarjeta;
 }
