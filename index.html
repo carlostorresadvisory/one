@@ -99,10 +99,15 @@
     </section>
 
     <section class="vista vista-resumen" data-vista="resumen" data-test="resumen" hidden>
-      <h2>Resumen</h2>
-      <p id="resumen-aciertos" class="resumen-linea"></p>
-      <p id="resumen-xp" class="resumen-linea"></p>
-      <p id="resumen-areas" class="resumen-linea"></p>
+      <!-- Cabecera de resultado (spec "pantalla completa" 12-sep): aciertos y XP en
+           una línea grande, áreas en 13px debajo. -->
+      <div class="resumen-cabecera">
+        <div class="resumen-resultado">
+          <p id="resumen-aciertos" class="resumen-resultado-linea"></p>
+          <p id="resumen-xp" class="resumen-resultado-linea"></p>
+        </div>
+        <p id="resumen-areas" class="resumen-areas-linea"></p>
+      </div>
       <!-- "Para repasar" (spec "que se note"): carrusel horizontal de las preguntas
            falladas o acertadas con confianza Baja de esta partida (ver renderRepaso
            en app.js). Ocupa el espacio restante (flex:1) para que el resumen quepa
@@ -133,7 +138,6 @@
         <p class="radar-vacio" id="radar-vacio" hidden>Juega para dibujar tu perfil</p>
       </div>
       <div class="hub-kpis">
-        <span class="hub-chip" data-test="kpi-racha">🔥 0</span>
         <span class="hub-chip" data-test="kpi-aciertos-hoy">Hoy: 0/0</span>
         <span class="hub-chip" data-test="recuperadas">Recuperadas 0</span>
         <span class="hub-chip" data-test="calibracion" hidden></span>
@@ -145,8 +149,8 @@
       <div id="progreso-areas" class="hub-grid"></div>
       <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>
       <div class="hub-pie">
-        <button class="enlace" data-test="exportar">Exportar</button>
-        <label class="enlace boton-archivo">
+        <button class="hub-pie-enlace" data-test="exportar">Exportar</button>
+        <label class="hub-pie-enlace boton-archivo">
           Importar
           <input type="file" id="importar-archivo" accept="application/json" hidden>
         </label>

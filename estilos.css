@@ -183,6 +183,9 @@ main#app {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Los emojis caen en el tercio medio-bajo de la pantalla, no en el centro
+     exacto: más cerca del pulgar (spec "pantalla completa" 12-sep). */
+  padding-top: 12vh;
   gap: 20px;
 }
 
@@ -301,25 +304,23 @@ main#app {
   color: #04121a;
 }
 
-/* Pastilla con borde sutil (Exportar/Importar en el pie del HUB). "¿por qué?" y
-   "esta pregunta está mal" ya NO usan esta clase: ver .boton-accion-cuadrado y
-   .enlace-discreto más abajo. */
-.enlace {
+/* Exportar/Importar en el pie del HUB: texto discreto, sin pastilla (spec
+   "pantalla completa" 12-sep). */
+.hub-pie-enlace {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
-  padding: 8px 14px;
-  border: 1px solid var(--tarjeta);
-  border-radius: 999px;
-  background: var(--tarjeta);
+  padding: 4px 6px;
+  border: none;
+  background: none;
   color: var(--texto-suave);
-  font-size: var(--tam-1);
+  font-size: 13px;
   text-decoration: none;
   transition: transform 0.1s ease;
 }
 
-.enlace:active {
+.hub-pie-enlace:active {
   transform: scale(0.97);
 }
 
@@ -482,8 +483,16 @@ main#app {
 }
 
 .titulo-tarjeta {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
+  margin: 0;
+}
+
+/* Sustituye al enunciado genérico "Encuentra el dato erróneo en la tarjeta."
+   cuando el banco trae exactamente ese texto (ver construirError en app.js). */
+.instruccion-error {
+  font-size: 13px;
+  color: var(--texto-suave);
   margin: 0;
 }
 
@@ -596,7 +605,36 @@ main#app {
    items todavía sin tocar. */
 .items .numero[hidden] { display: none; }
 
-.fila-etiqueta { color: var(--texto-suave); }
+/* "Encuentra el error": tabla de dos columnas, etiqueta con ancho fijo del 34%
+   alineada arriba, valor a la izquierda (nunca a la derecha). Especificidad
+   igual a la regla compartida de arriba (0,1,1): gana por ir después. */
+.filas { gap: 6px; }
+
+.filas button {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.fila-etiqueta {
+  flex: 0 0 34%;
+  color: var(--texto-suave);
+  text-align: left;
+}
+
+.fila-valor {
+  flex: 1 1 auto;
+  color: var(--texto);
+  text-align: left;
+}
+
+/* Fila elegida/correcta tras responder (ver marcarFilasError en app.js): mismo
+   relleno al 15% que ya usan los botones vf. */
+.filas button.fila-ok { background: rgba(61, 220, 132, 0.15); }
+.filas button.fila-ko { background: rgba(255, 93, 93, 0.15); }
 
 .tarjeta.correcto { outline: 2px solid var(--ok); animation: tarjeta-pulso 0.35s ease; }
 .tarjeta.incorrecto { outline: 2px solid var(--ko); animation: tarjeta-sacude 0.4s ease; }
@@ -704,18 +742,43 @@ main#app {
 
 /* --- resumen / progreso --- */
 .vista-resumen {
-  gap: 2px;
+  gap: 8px;
 }
 
-.resumen-linea {
-  font-size: 15px;
-  margin: 3px 0;
+/* Cabecera de resultado (spec "pantalla completa" 12-sep): aciertos y XP en una
+   línea grande, áreas en 13px debajo. */
+.resumen-cabecera {
+  margin-top: 2px;
+}
+
+.resumen-resultado {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resumen-resultado-linea {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.resumen-areas-linea {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
 }
 
 .resumen-acciones {
   display: flex;
   gap: 12px;
   margin-top: 10px;
+}
+
+.resumen-acciones .boton {
+  flex: 1;
+  min-height: 56px;
 }
 
 /* "Para repasar": ocupa el espacio restante del resumen (flex:1, contra la regla
@@ -750,7 +813,7 @@ main#app {
 .resumen-repaso-carrusel[hidden] { display: none; }
 
 .resumen-repaso-tarjeta {
-  flex: 0 0 82%;
+  flex: 0 0 84%;
   scroll-snap-align: start;
   background: var(--tarjeta);
   border-radius: 14px;
@@ -815,11 +878,22 @@ main#app {
   background: var(--acento);
 }
 
+/* Sin nada que repasar: el mensaje se centra en el espacio libre en vez de
+   quedarse pegado arriba (si no, medio resumen queda vacío debajo — el mismo
+   defecto que motivó esta spec, reaparecido aquí). */
 .resumen-repaso-vacio {
   margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   color: var(--texto-suave);
   font-size: 13px;
 }
+
+.resumen-repaso-vacio[hidden] { display: none; }
 
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
 .vista-hub {
@@ -828,19 +902,28 @@ main#app {
 
 /* Radar tipo "panel de stats de videojuego": un eje por área. Contorno cian =
    puntuación (.radar-dato, como antes); relleno más opaco = solidez
-   (.radar-solido, nuevo). Ver renderRadar() en app.js. */
+   (.radar-solido, nuevo). Ver renderRadar() en app.js.
+   Absorbe el espacio libre del HUB (spec "pantalla completa" 12-sep): flex:1
+   entre min y max, así no queda hueco vacío entre la rejilla y "Comenzar".
+   Especificidad igual a ".vista > *" (0,1,0): gana por ir después en la hoja. */
 .hub-radar-envoltorio {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
+  flex: 1 1 auto;
+  min-height: 150px;
+  max-height: 280px;
   margin-top: 2px;
 }
 
+/* preserveAspectRatio="xMidYMid meet" (por defecto en SVG) escala el radar sin
+   deformarlo dentro de la caja disponible, sea cual sea su proporción. */
 .hub-radar {
-  width: 150px;
-  max-width: 100%;
-  height: auto;
+  width: 100%;
+  height: 100%;
+  max-width: 280px;
 }
 
 .radar-anillo {
@@ -925,7 +1008,7 @@ main#app {
 
 .boton-comenzar {
   width: 100%;
-  margin-top: auto;
+  min-height: 56px;
   padding: 14px;
   font-size: var(--tam-2);
 }
@@ -1022,7 +1105,6 @@ main#app {
   gap: 12px;
   margin-top: 4px;
   font-size: 13px;
-  opacity: 0.75;
 }
 
 /* --- accesibilidad de movimiento ---

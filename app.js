@@ -100,7 +100,6 @@ const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
-const nodoKpiRacha = document.querySelector('[data-test="kpi-racha"]');
 const nodoKpiAciertosHoy = document.querySelector('[data-test="kpi-aciertos-hoy"]');
 const nodoRecuperadas = document.querySelector('[data-test="recuperadas"]');
 const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
@@ -699,6 +698,12 @@ function construirOrdenar(pregunta) {
   return tarjeta;
 }
 
+// Enunciado genérico del banco para "encuentra el error": cuando es exactamente
+// este, la tarjeta muestra en su lugar la instrucción corta "Toca la fila que
+// está mal" (spec "pantalla completa" 12-sep); si el banco trae uno propio, se
+// respeta tal cual.
+const ENUNCIADO_ERROR_GENERICO = 'Encuentra el dato erróneo en la tarjeta.';
+
 function construirError(pregunta) {
   const tarjeta = crearTarjetaBase();
 
@@ -708,8 +713,13 @@ function construirError(pregunta) {
   tarjeta.appendChild(titulo);
 
   const enunciado = document.createElement('p');
-  enunciado.className = 'enunciado';
-  enunciado.textContent = pregunta.enunciado;
+  if (pregunta.enunciado === ENUNCIADO_ERROR_GENERICO) {
+    enunciado.className = 'instruccion-error';
+    enunciado.textContent = 'Toca la fila que está mal';
+  } else {
+    enunciado.className = 'enunciado';
+    enunciado.textContent = pregunta.enunciado;
+  }
   tarjeta.appendChild(enunciado);
 
   const filas = document.createElement('div');
@@ -723,6 +733,7 @@ function construirError(pregunta) {
     etiqueta.textContent = fila.etiqueta;
 
     const valor = document.createElement('span');
+    valor.className = 'fila-valor';
     valor.textContent = fila.valor;
 
     boton.appendChild(etiqueta);
@@ -735,6 +746,20 @@ function construirError(pregunta) {
   return tarjeta;
 }
 
+/** Tras responder una pregunta "error": tiñe la fila correcta de ok y, si el
+ * jugador se equivocó, también la fila elegida de ko (spec "pantalla completa"
+ * 12-sep: "la fila elegida/correcta tras responder"). */
+function marcarFilasError(pregunta, respuestaIndice) {
+  const tarjeta = contenedorPregunta.querySelector('.tarjeta');
+  if (!tarjeta) return;
+  const filas = tarjeta.querySelectorAll('.filas button');
+  filas.forEach((boton, i) => {
+    boton.classList.remove('fila-ok', 'fila-ko');
+    if (i === pregunta.sospechoso) boton.classList.add('fila-ok');
+    else if (i === respuestaIndice) boton.classList.add('fila-ko');
+  });
+}
+
 let preguntaRespondida = false;
 
 function manejarRespuesta(pregunta, respuesta) {
@@ -742,6 +767,7 @@ function manejarRespuesta(pregunta, respuesta) {
   if (preguntaRespondida) return;
   preguntaRespondida = true;
   const correcta = evaluar(pregunta, respuesta);
+  if (pregunta.tipo === 'error') marcarFilasError(pregunta, respuesta);
   const resultado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: confianzaActual });
   aplicarResultado(pregunta, resultado, correcta);
 }
@@ -993,7 +1019,8 @@ function renderHub() {
 
   renderRadar(resumen.porArea);
 
-  nodoKpiRacha.textContent = `🔥 ${estado.racha.dias}`;
+  // El 🔥 ya está en la cabecera: la fila KPI no lo repite (spec "pantalla
+  // completa" 12-sep).
   nodoKpiAciertosHoy.textContent = `Hoy: ${resumen.hoy.aciertos}/${resumen.hoy.respondidas}`;
   nodoRecuperadas.textContent = `Recuperadas ${resumen.recuperadas}`;
   if (resumen.confianza.calibracion === null) {
