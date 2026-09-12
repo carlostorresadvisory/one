@@ -97,6 +97,59 @@ export function validarPregunta(p) {
   return errores;
 }
 
+// Mismo criterio de licencia que tools/buscar-imagenes.js (Public domain, CC0, CC BY*, CC BY-SA*;
+// nunca NC ni ND). Duplicado a propósito: son ~10 líneas y no merece la pena una dependencia
+// cruzada entre el validador y el buscador de imágenes.
+function licenciaImagenPermitida(nombre) {
+  if (!nombre) return false;
+  const n = String(nombre).trim();
+  if (/^public domain/i.test(n)) return true;
+  if (/^cc0/i.test(n)) return true;
+  if (/^cc[\s-]?by/i.test(n)) {
+    if (/nc/i.test(n)) return false;
+    if (/\bnd\b/i.test(n)) return false;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Valida datos/imagenes.json contra el banco: cada id debe existir en el banco, la url debe
+ * ser de upload.wikimedia.org por https y la licencia debe estar en la lista permitida.
+ * @param {object[]} banco
+ * @param {object} imagenes objeto {id: {...}}
+ * @returns {{errores: string[], avisos: string[]}}
+ */
+export function validarImagenes(banco, imagenes) {
+  const errores = [];
+  const avisos = [];
+  if (!imagenes || typeof imagenes !== 'object' || Array.isArray(imagenes)) {
+    return { errores: ['datos/imagenes.json debe ser un objeto {id: {...}}'], avisos };
+  }
+  const idsBanco = new Set(banco.filter((p) => p && esTexto(p.id)).map((p) => p.id));
+
+  for (const [id, img] of Object.entries(imagenes)) {
+    if (!idsBanco.has(id)) {
+      errores.push(`imagenes.json: id ${id} no existe en el banco`);
+      continue;
+    }
+    if (!img || typeof img !== 'object') {
+      errores.push(`imagenes.json[${id}]: no es un objeto`);
+      continue;
+    }
+    if (!esTexto(img.url) || !img.url.startsWith('https://upload.wikimedia.org/')) {
+      errores.push(`imagenes.json[${id}]: url no es https de upload.wikimedia.org: ${img.url}`);
+    }
+    if (!licenciaImagenPermitida(img.licencia)) {
+      errores.push(`imagenes.json[${id}]: licencia no permitida: ${img.licencia}`);
+    }
+    if (!esTexto(img.titulo)) avisos.push(`imagenes.json[${id}]: falta titulo`);
+    if (!esTexto(img.pagina)) avisos.push(`imagenes.json[${id}]: falta pagina (enlace a Commons)`);
+  }
+
+  return { errores, avisos };
+}
+
 /**
  * Valida el banco completo: cada pregunta, ids únicos y cobertura por área.
  * @param {object[]} banco
@@ -168,6 +221,30 @@ async function main() {
     for (const e of errores) console.log(`  - ${e}`);
     process.exit(1);
     return;
+  }
+
+  // datos/imagenes.json es opcional (lo genera tools/buscar-imagenes.js): si existe, se valida
+  // también contra el banco (ids, url de upload.wikimedia.org, licencia permitida).
+  let imagenes;
+  try {
+    imagenes = JSON.parse(await readFile('datos/imagenes.json', 'utf8'));
+  } catch {
+    imagenes = null;
+  }
+  if (imagenes) {
+    const resultado = validarImagenes(banco, imagenes);
+    console.log(`\ndatos/imagenes.json: ${Object.keys(imagenes).length} imágenes`);
+    if (resultado.avisos.length > 0) {
+      console.log(`Avisos de imágenes (${resultado.avisos.length}):`);
+      for (const a of resultado.avisos) console.log(`  - ${a}`);
+    }
+    if (resultado.errores.length > 0) {
+      console.log(`Errores de imágenes (${resultado.errores.length}):`);
+      for (const e of resultado.errores) console.log(`  - ${e}`);
+      process.exit(1);
+      return;
+    }
+    console.log('datos/imagenes.json válido.');
   }
 
   console.log('Banco válido.');

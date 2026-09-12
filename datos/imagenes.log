@@ -1,0 +1,317 @@
+
+=== buscar-imagenes 2026-09-12T21:44:14.345Z — 295 preguntas candidatas ===
+paso A arte lote 1/3: 20 juzgadas, 18 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A arte lote 2/3: 20 juzgadas, 12 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A arte lote 3/3: 8 juzgadas, 4 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A ciencia lote 1/2: 20 juzgadas, 17 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A ciencia lote 2/2: 15 juzgadas, 15 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A economia lote 1/3: 20 juzgadas, 5 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A economia lote 2/3: 20 juzgadas, 3 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A economia lote 3/3: 3 juzgadas, 2 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A filosofia lote 1/3: 20 juzgadas, 13 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A filosofia lote 2/3: respuesta vacía (intento 1, nvidia/nemotron-3-super-120b-a12b:free), reintentando
+paso A filosofia lote 2/3: 20 juzgadas, 9 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A filosofia lote 3/3: 2 juzgadas, 0 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A geografia lote 1/2: 20 juzgadas, 20 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A geografia lote 2/2: 14 juzgadas, 12 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 1/3: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Unexpected end of JSON input) | nvidia/nemotron-3-super-120b-a12b:free: respuesta no es JSON (The operation was aborted due to timeout) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429
+paso A historia lote 1/3: 20 juzgadas, 15 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 2/3: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: respuesta no es JSON (The operation was aborted due to timeout) | nvidia/nemotron-3-super-120b-a12b:free: respuesta no es JSON (The operation was aborted due to timeout) | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | google/gemma-4-31b-it:free: HTTP 429
+paso A historia lote 2/3: respuesta vacía (intento 2, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A historia lote 2/3: 0 juzgadas, 0 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 3/3: 2 juzgadas, 2 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A logica lote 1/2: 20 juzgadas, 7 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A logica lote 2/2: 4 juzgadas, 3 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A tecnologia lote 1/2: respuesta vacía (intento 1, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A tecnologia lote 1/2: FALLO paso A (intento 2) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Unexpected end of JSON input) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Expected property name or '}' in JSON at position 2 (line 2 column 1)) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429
+paso A tecnologia lote 1/2: 0 juzgadas, 0 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A tecnologia lote 2/2: 7 juzgadas, 5 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+
+Aportan imagen según el modelo: 162/295
+Con candidato de Commons: 99/162
+paso C lote 1/5: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 2/5: 20 comprobadas, 5 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+paso C lote 3/5: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 4/5: 20 comprobadas, 4 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 5/5: 19 comprobadas, 15 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+
+=== Resumen por área ===
+  economia: 43 preguntas, 10 aportan, 5 con imagen, 5 sin imagen
+  historia: 42 preguntas, 17 aportan, 6 con imagen, 11 sin imagen
+  ciencia: 35 preguntas, 32 aportan, 10 con imagen, 22 sin imagen
+  tecnologia: 27 preguntas, 5 aportan, 0 con imagen, 5 sin imagen
+  geografia: 34 preguntas, 32 aportan, 14 con imagen, 18 sin imagen
+  filosofia: 42 preguntas, 22 aportan, 13 con imagen, 9 sin imagen
+  arte: 48 preguntas, 34 aportan, 25 con imagen, 9 sin imagen
+  logica: 24 preguntas, 10 aportan, 2 con imagen, 8 sin imagen
+
+Total candidatas: 295
+Aportan (paso A): 162
+Con imagen final: 75
+Descartadas por licencia/tamaño/tipo (paso B): 63
+Descartadas por relevancia (paso C): 24
+
+Detalle sin imagen (paso B):
+  art-019: "Golden ratio spiral art composition": sin resultados
+  art-046: "Starry Night Van Gogh painting": HTTP 429
+  art-064: "Starry Night Van Gogh painting": HTTP 429
+  art-065: "Guernica Picasso painting": HTTP 429
+  art-071: "Sagrada Familia Barcelona Gaudi": HTTP 429
+  art-084: "Everydays The First 5000 Days Beeple": sin resultados
+  cie-002: "Photosynthesis diagram chloroplast": HTTP 429; "Photosynthesis process illustration": HTTP 429
+  cie-008: "Abundance of elements in Earth's crust chart": HTTP 429
+  cie-009: "Water molecule polar covalent bond diagram": sin resultados; "H2O dipole moment illustration": sin resultados
+  cie-010: "Boyle's law pressure volume graph": ningún resultado con licencia/tamaño/tipo válidos; "Boyle's law J-tube experiment": sin resultados
+  cie-030: "States of matter diagram solid liquid gas plasma particle arrangement": sin resultados
+  cie-034: "Sun G2V star NASA SDO": sin resultados; "Solar spectrum G2V classification": sin resultados
+  cie-036: "Planck constant blackbody radiation curve": HTTP 429; "Photoelectric effect diagram Planck constant": HTTP 429
+  cie-038: "Dry air composition pie chart oxygen 21 percent": HTTP 429
+  cie-058: "States of matter particle motion kinetic energy diagram solid liquid gas plasma": sin resultados
+  cie-073: "Glymphatic system brain sleep clearance beta-amyloid": sin resultados; "Slow wave sleep brain waves EEG": sin resultados
+  cie-075: "airplane wing downwash diagram": sin resultados
+  cie-077: "vitamin D synthesis skin UVB diagram": HTTP 429
+  cie-081: "hypothalamus fever set point diagram": HTTP 429
+  cie-082: "greenhouse effect infrared absorption diagram": HTTP 429
+  cie-083: "Rayleigh scattering sky blue diagram": HTTP 429
+  cie-085: "glymphatic system sleep diagram": sin resultados
+  cie-086: "airplane lift Newton third law diagram": sin resultados
+  cie-088: "Wrights law solar PV cost learning curve": sin resultados
+  cie-091: "lifecycle CO2 emissions electricity sources bar chart": sin resultados
+  cie-094: "sleep stages REM vs deep sleep diagram": sin resultados
+  eco-018: "Phillips curve 1958 original graph": HTTP 429; "A.W. Phillips curve scatter plot": HTTP 429
+  eco-030: "Supply curve upward sloping graph": HTTP 429; "Law of supply diagram": HTTP 429
+  eco-069: "Central bank rate vs mortgage rates chart": sin resultados; "Monetary policy transmission mortgage rates": sin resultados
+  eco-094: "Bond price yield relationship graph": ningún resultado con licencia/tamaño/tipo válidos
+  eco-096: "World trade volume chart 2019 2023": sin resultados; "WTO world merchandise trade volume graph": HTTP 429
+  fil-002: "Jean-Paul Sartre portrait": HTTP 429
+  fil-003: "René Descartes portrait": HTTP 429
+  fil-004: "Edmund Husserl portrait": HTTP 429
+  fil-024: "Saul Kripke portrait": sin resultados
+  fil-031: "Philippa Foot philosopher": HTTP 429
+  fil-038: "Hannah Arendt portrait": HTTP 429
+  fil-040: "Isaiah Berlin portrait": HTTP 429
+  fil-041: "Black box machine learning diagram": HTTP 429; "Neural network opacity illustration": sin resultados
+  fil-042: "Motte and bailey castle diagram": sin resultados
+  geo-007: "Himalaya range map": HTTP 429
+  geo-009: "Rio Grande river map": HTTP 429
+  geo-010: "Antarctica desert map": HTTP 429
+  geo-011: "Ural Mountains map": HTTP 429
+  geo-022: "Lisbon Copenhagen Helsinki Tromso latitude map": sin resultados
+  geo-033: "Wallace line Bali Lombok map": ningún resultado con licencia/tamaño/tipo válidos
+  geo-035: "Portugal map Atlantic coast": HTTP 429
+  geo-038: "Indian Ocean east Africa coast map": HTTP 429
+  geo-039: "Sierra Madre Occidental Mexico map": HTTP 429
+  geo-043: "South America capitals map Bogotá Quito Lima Buenos Aires": sin resultados
+  geo-044: "Rhine Danube Volga Nile rivers map length comparison": sin resultados
+  geo-062: "Strait of Malacca map oil shipping route": sin resultados
+  geo-065: "Strait of Hormuz map oil tankers": HTTP 429
+  geo-066: "Japan population pyramid 2023 aging": HTTP 429
+  his-005: "Storming of the Bastille painting": HTTP 429
+  his-006: "Treaty of Versailles signing": HTTP 429
+  his-035: "Battle of Waterloo painting": HTTP 429
+  his-036: "Steam engine James Watt": HTTP 429
+  his-038: "Gutenberg printing press": HTTP 429
+  log-042: "Probability comparison chart": HTTP 429; "Birthday paradox graph": HTTP 429
+  log-046: "Financial bubble chart": HTTP 429; "Minsky cycle phases": HTTP 429
+  log-050: "Ad hominem cartoon": sin resultados
+  log-051: "ice cream drowning correlation graph": sin resultados
+
+Detalle descartadas por relevancia (paso C):
+  art-074: La imagen muestra una repisa de hormigón con bloques de madera, no ejemplifica el hormigón expuesto como característica del brutalismo ni su honestidad estructural.
+  art-082: La imagen corresponde a un concurso de fotografía del ejército y no tiene relación con la estructura narrativa no lineal de 'Ciudadano Kane'.
+  art-083: Aunque muestra a maestros de la Bauhaus, no ilustra el principio 'la forma sigue a la función'.
+  cie-068: La imagen trata sobre la respuesta al daño de ADN mediante TopBP1 y ATR, no sobre el modo conservativo o semiconservativo de la replicación del ADN.
+  cie-087: La captura de pantalla de ΔFosB.svg no muestra claramente metilación del ADN ni modificaciones de histonas que expliquen la regulación epigenética.
+  geo-012: La imagen muestra el Imperio Británico, no a Francia (la respuesta correcta) ni sus territorios de ultramar.
+  geo-023: La imagen muestra la Antártida, pero no ilustra el dato erróneo concreto ("Antártida: Australia").
+  geo-046: El mapa muestra el índice EPI 2020, no el número de fronteras terrestres de Canadá, México, Brasil y China.
+  geo-053: La imagen es un corte genérico de una ventana de placa, no ilustra la subducción de Nazca bajo la placa Sudamericana.
+  his-018: La imagen es un retrato de Nicolás Copérnico, pero no muestra el modelo heliocéntrico que propuso.
+  his-031: La imagen muestra soldados japoneses en Nueva Guinea (Pacífico), no la afirmación errónea de que Japón fue aliado de los Aliados en el teatro europeo.
+  his-032: El monumento a José de San Martín está relacionado con la independencia de Perú, no con la afirmación errónea de que Perú nunca tuvo un movimiento de independencia.
+  his-033: La pintura representa la Paz de Westfalia, que limitó la autoridad papal, no la afirmación errónea de que le otorgó autoridad suprema sobre territorios protestantes.
+  his-062: La Galería de los Espejos de Versalles no tiene relación con el Tratado de Verdún de 843, que estableció la frontera franco-alemana.
+  his-064: La foto muestra a Gandhi durante la Marcha de la Sal, pero no muestra la afirmación errónea de que dicha marcha provocó la independencia inmediata de la India.
+  log-032: La imagen es una bombilla genérica; no ilustra el razonamiento del acertijo de los tres interruptores y una bombilla.
+  log-033: La foto muestra una sala de prensa en un salón de videojuegos, sin relación con el problema de Monty Hall.
+  log-040: El diagrama de sesgos cognitivos no muestra el cálculo de probabilidad positivo falso para una enfermedad rara.
+  log-048: El retrato de Sócrates no muestra la afirmación errónea de que es inmortal.
+  tec-051: La estructura FinFET no muestra el orden de nodos de fabricación (28 nm → 14 nm → 7 nm → 3 nm).
+  tec-053: La foto de una batería de automóvil no ilustra el orden de densidad de energía específica de los tipos de baterías indicados.
+  tec-054: La torre de telefonía celular muestra una conexión terrestre, no la afirmación errónea de que la conexión directa a satélites es habitual en la mayoría de ciudades.
+  tec-055: El diagrama de la arquitectura Transformer no aborda la afirmación errónea sobre la fiabilidad factual de los modelos.
+  tec-056: El gráfico sobre la polarización en litografía EUV muestra la importancia de la litografía avanzada, no la afirmación errónea de que no es necesaria.
+--solo-pendientes: 75 ya tenían entrada, 220 pendientes.
+
+=== buscar-imagenes 2026-09-12T22:40:23.033Z — 220 preguntas candidatas ===
+paso A arte lote 1/2: 20 juzgadas, 11 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A arte lote 2/2: 3 juzgadas, 0 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A ciencia lote 1/2: 20 juzgadas, 19 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A ciencia lote 2/2: respuesta vacía (intento 1, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A ciencia lote 2/2: 5 juzgadas, 5 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A economia lote 1/2: 20 juzgadas, 9 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A economia lote 2/2: respuesta vacía (intento 1, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A economia lote 2/2: respuesta vacía (intento 2, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A economia lote 2/2: 0 juzgadas, 0 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A filosofia lote 1/2: 20 juzgadas, 2 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A filosofia lote 2/2: respuesta vacía (intento 1, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A filosofia lote 2/2: 9 juzgadas, 9 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A geografia lote 1/1: 20 juzgadas, 16 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 1/2: 20 juzgadas, 14 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 2/2: 16 juzgadas, 14 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A logica lote 1/2: respuesta vacía (intento 1, nvidia/nemotron-3-ultra-550b-a55b:free), reintentando
+paso A logica lote 1/2: 20 juzgadas, 3 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A logica lote 2/2: 2 juzgadas, 1 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A tecnologia lote 1/2: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Expected ':' after property name in JSON at position 4 (line 1 column 5)) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Unexpected non-whitespace character after JSON at position 79 (line 1 column 80)) | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | google/gemma-4-31b-it:free: HTTP 429
+paso A tecnologia lote 1/2: 20 juzgadas, 20 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A tecnologia lote 2/2: respuesta vacía (intento 1, nvidia/nemotron-3-super-120b-a12b:free), reintentando
+paso A tecnologia lote 2/2: 7 juzgadas, 6 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+
+Aportan imagen según el modelo: 129/220
+Con candidato de Commons: 75/129
+paso C lote 1/4: 20 comprobadas, 3 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 2/4: 20 comprobadas, 14 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 3/4: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 4/4: 15 comprobadas, 4 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+
+=== Resumen por área ===
+  economia: 38 preguntas, 9 aportan, 1 con imagen, 8 sin imagen
+  historia: 36 preguntas, 28 aportan, 22 con imagen, 6 sin imagen
+  ciencia: 25 preguntas, 24 aportan, 10 con imagen, 14 sin imagen
+  tecnologia: 27 preguntas, 26 aportan, 5 con imagen, 21 sin imagen
+  geografia: 20 preguntas, 16 aportan, 8 con imagen, 8 sin imagen
+  filosofia: 29 preguntas, 11 aportan, 0 con imagen, 11 sin imagen
+  arte: 23 preguntas, 11 aportan, 7 con imagen, 4 sin imagen
+  logica: 22 preguntas, 4 aportan, 1 con imagen, 3 sin imagen
+
+Total candidatas: 220
+Aportan (paso A): 129
+Con imagen final: 54
+Descartadas por licencia/tamaño/tipo (paso B): 54
+Descartadas por relevancia (paso C): 21
+
+Detalle sin imagen (paso B):
+  art-084: "Everydays The First 5000 Days Beeple": sin resultados
+  art-087: "Citizen Kane 1941 film frame": HTTP 429; "Parasite 2019 film frame": sin resultados
+  cie-008: "Earth crust composition pie chart": sin resultados
+  cie-009: "water molecule polar covalent bond": sin resultados
+  cie-010: "Boyle's law pressure volume graph": ningún resultado con licencia/tamaño/tipo válidos
+  cie-038: "dry air composition pie chart": HTTP 429
+  cie-058: "states of matter particle motion diagram": sin resultados
+  cie-073: "glymphatic system brain sleep diagram": sin resultados
+  cie-075: "airplane lift diagram downwash": sin resultados
+  cie-077: "vitamin D synthesis skin UVB": sin resultados
+  cie-081: "fever mechanism hypothalamus diagram": sin resultados
+  cie-085: "slow wave sleep memory consolidation diagram": sin resultados
+  cie-088: "Solar photovoltaic learning curve graph": sin resultados; "Wright law solar cost decline": sin resultados
+  cie-091: "Lifecycle greenhouse gas emissions electricity sources chart": sin resultados; "CO2 emissions per kWh coal gas solar nuclear": sin resultados
+  eco-030: "Supply curve graph upward sloping": ningún resultado con licencia/tamaño/tipo válidos; "Law of supply diagram": HTTP 429
+  eco-048: "David Ricardo comparative advantage table": sin resultados; "Ricardo wine cloth England Portugal example": sin resultados
+  eco-069: "Interest rate transmission mechanism graph": sin resultados; "Policy rate vs lending rate chart": sin resultados
+  eco-072: "Anchoring bias experiment results chart": sin resultados; "Tversky Kahneman anchoring heuristic graph": sin resultados
+  eco-073: "Euribor vs ECB interest rate chart 2022": HTTP 429; "Eurozone mortgage rate transmission graph": sin resultados
+  fil-024: "Saul Kripke portrait": sin resultados
+  fil-031: "Trolley problem diagram": ningún resultado con licencia/tamaño/tipo válidos
+  fil-039: "Trolley problem diagram": ningún resultado con licencia/tamaño/tipo válidos
+  fil-041: "Neural network black box diagram": sin resultados
+  fil-042: "Motte and bailey castle diagram": sin resultados
+  fil-048: "Timeline Ockham trolley Rawls precaution principle": sin resultados
+  fil-056: "Algorithmic bias data flowchart": sin resultados
+  fil-057: "Immanuel Kant portrait": HTTP 429
+  geo-033: "Wallace Line map Bali Lombok": ningún resultado con licencia/tamaño/tipo válidos; "Wallace Line biogeography": ningún resultado con licencia/tamaño/tipo válidos
+  his-004: "Fernand Braudel portrait": ningún resultado con licencia/tamaño/tipo válidos; "The Mediterranean Braudel book cover": sin resultados
+  his-036: "Spinning jenny 1764": sin resultados; "Watt steam engine 1776": HTTP 429
+  his-062: "France Germany border evolution map": HTTP 429; "Treaty of Versailles 1919 map Alsace Lorraine": sin resultados
+  log-032: "three switches bulb puzzle": sin resultados
+  log-048: "Socrates mortal syllogism": sin resultados
+  log-051: "Spurious correlation ice cream drowning": sin resultados; "Ice cream sales drowning deaths graph": sin resultados
+  tec-007: "Bitcoin mining proof of work diagram": sin resultados
+  tec-010: "SFTP protocol diagram": sin resultados
+  tec-015: "DNS resolver diagram": HTTP 429
+  tec-018: "computer abstraction layers hardware firmware OS application diagram": sin resultados
+  tec-020: "programming language abstraction hierarchy diagram": sin resultados
+  tec-022: "digital storage units KB MB GB TB diagram": sin resultados
+  tec-040: "solid state battery cross section diagram": sin resultados
+  tec-041: "iPhone 2007 multitouch screen": sin resultados
+  tec-042: "large language model token prediction diagram": sin resultados
+  tec-043: "ASML EUV lithography machine": sin resultados
+  tec-044: "lithium dendrite battery illustration": HTTP 429
+  tec-045: "LLM next token prediction diagram": sin resultados
+  tec-047: "ASML EUV lithography machine": sin resultados
+  tec-048: "end-to-end encryption public key diagram": sin resultados
+  tec-050: "internet latency comparison fiber 5G LEO GEO satellite diagram": sin resultados
+  tec-051: "semiconductor process node comparison 28nm 14nm 7nm 3nm diagram": sin resultados
+  tec-052: "key size bits exponential growth chart": sin resultados
+  tec-053: "battery energy density Wh/kg lead-acid NiMH LFP NMC chart": sin resultados
+  tec-056: "EUV lithography machine ASML": sin resultados
+  tec-057: "encryption backdoor diagram": HTTP 429
+
+Detalle descartadas por relevancia (paso C):
+  art-074: La imagen muestra bloques de madera sobre una estantería de hormigón en una escuela de arquitectura, no un edificio brutalista ni la 'honestidad estructural' del movimiento.
+  art-082: La imagen es una foto de un concurso de fotografía del ejército de EE. UU. de 2007, sin ninguna relación con 'Ciudadano Kane' ni su estructura narrativa.
+  cie-030: La imagen es una clasificación de instrumentos musicales por organología física, ajena a los estados de la materia y al error sobre el plasma.
+  cie-094: La imagen muestra un diseño de estación espacial (Habitat Wheel), nada que ver con las fases del sueño ni con el error "Fase REM: sueño profundo".
+  eco-037: La imagen es la tumba de Ronald Coase; no explica ni ilustra el teorema de Coase.
+  eco-043: El mapa muestra los países PIIGS de la zona euro, no instrumentos de política monetaria como el tipo de interés de referencia.
+  eco-070: El diagrama muestra las capas de internet, no la estrategia de subvención cruzada en plataformas de dos caras.
+  fil-038: Es un retrato genérico de Hannah Arendt; no ilustra el concepto de "banalidad del mal" ni el juicio a Eichmann.
+  fil-040: Fotomontaje de personalidades alemanas del s. XIX; no representa a Isaiah Berlin ni el concepto de libertad negativa.
+  fil-058: La imagen trata sobre biología circadiana de homínidos arcaicos, sin relación con la falacia de apelación a la autoridad.
+  geo-010: Simulación de fracción de hierba hace 24 000 años; no muestra el desierto antártico ni su extensión.
+  geo-022: Mapa antiguo de Escandinavia; no muestra las cuatro ciudades ni su ordenación por latitud.
+  geo-023: Imagen satelital de la Antártida; no ilustra el error geopolítico "Antártida: Australia".
+  geo-035: Foto de un ciprés mediterráneo en Lisboa; Portugal no tiene costa mediterránea, la imagen no demuestra ese hecho.
+  geo-043: Marcador histórico de una casa en Texas; sin relación con capitales sudamericanas.
+  geo-044: Grabado de 1848 comparando longitudes de ríos (Rin, Danubio, Volga, Ganges, Elba, Ródano); falta el Nilo y el conjunto no coincide con el orden pedido.
+  geo-053: Mapa de la placa de los Andes del Norte; no corrige ni ilustra la subducción de Nazca bajo Sudamérica (no bajo el Pacífico).
+  his-054: La imagen es un retrato genérico de Bismarck anterior a 1870; no ilustra la decisión concreta de 1862 (reforma del ejército y política de sangre y hierro).
+  his-058: El mapa muestra el territorio de la compra de Luisiana, pero no la causa (necesidad de fondos para las guerras europeas de Napoleón).
+  his-059: La imagen muestra una ficha/token falsa de la Compañía con figuras yainas, no la emisión de acciones negociables en bolsa que financiaba sus operaciones.
+  tec-037: El gráfico muestra costes de entrenamiento y cómputo de modelos, no las fuentes de datos (dominio público vs. copyright) que es el concepto evaluado.
+
+=== buscar-imagenes --revalidar 2026-09-12T23:27:06.246Z — 129 imágenes a revisar ===
+revalidar lote 1/7: 20 comprobadas, 3 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+revalidar lote 2/7: 20 comprobadas, 2 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+revalidar lote 3/7: 20 comprobadas, 10 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+revalidar lote 4/7: 20 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+revalidar lote 5/7: 20 comprobadas, 6 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+revalidar lote 6/7: FALLO paso C — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Unexpected end of JSON input) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Expected property name or '}' in JSON at position 2 (line 2 column 1)) | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | google/gemma-4-31b-it:free: HTTP 429 (se conservan las imágenes de este lote sin comprobar)
+revalidar lote 7/7: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+
+Revisadas: 129. Descartadas ahora: 21. Quedan: 108.
+Detalle de las descartadas en la revalidación:
+  art-006: La obra mostrada es de Amadeo de Souza-Cardoso, no ejemplifica claramente el Futurismo italiano.
+  art-013: El artículo de periódico no muestra específicamente a Pablo Picasso como padre del cubismo.
+  art-020: Muestra un grafiti de dripping genérico, no la obra de Jackson Pollock.
+  cie-090: El título 'FFI Diagrams' no indica que la imagen muestre las fases del sueño; no hay evidencia de que ilustre N1 → N2 → N3 → REM.
+  eco-067: El gráfico de gasto anual en salud no muestra relación entre PIB nominal y real ni el efecto de la inflación, por lo que no ilustra el concepto.
+  fil-005: La imagen muestra un busto de Aristotelis Valaoritis, no de Aristóteles.
+  fil-021: La imagen muestra a Platón, no el dato erróneo sobre Sócrates y "La República".
+  fil-023: La imagen muestra a Ludwig Wittgenstein, no el dato erróneo sobre su postura posterior.
+  fil-045: La imagen muestra a Hannah Arendt, no la idea central sobre la acción política.
+  fil-047: La imagen muestra oficiales de artillería, no el velo de la ignorancia.
+  fil-055: La imagen muestra la tetera de Russell, no la afirmación sobre la navaja de Ockham.
+  geo-004: La imagen muestra una sección transversal de una ventana de placa, no la subducción de la placa Nazca.
+  geo-024: La imagen muestra el río Mississippi, no el dato erróneo que lo sitúa en Canadá.
+  geo-025: La imagen muestra el Monte Kilimanjaro, no el dato erróneo que lo ubica en la Cordillera Oriental.
+  geo-031: La imagen muestra la Antártida, no el desierto del Sahara ni su extensión.
+  art-083: La imagen muestra a los maestros de la Bauhaus en el techo, no ilustra el principio 'la forma sigue a la función'.
+  art-085: La imagen muestra Las Meninas, pero el concepto correcto es el orden cronológico de varias obras; la imagen no transmite ese orden.
+  cie-007: Es un retrato de Werner Heisenberg; no muestra ni explica el principio de incertidumbre.
+  cie-036: Es un retrato de Max Planck; no ilustra la relación entre energía de fotón y frecuencia dada por la constante de Planck.
+  cie-068: La imagen muestra un instrumento Beckman, sin relación con la replicación del ADN ni con el modelo conservativo.
+  geo-060: La imagen muestra un mapa del metro de Tokio, pero no proporciona información sobre el número de pasajeros del metro de Seúl ni compara ambas redes.
+
+=== buscar-imagenes --revalidar 2026-09-12T23:35:02.991Z — 108 imágenes a revisar ===
+revalidar lote 1/6: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+revalidar lote 2/6: 20 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+revalidar lote 3/6: 20 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+revalidar lote 4/6: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+revalidar lote 5/6: FALLO paso C — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Expected ':' after property name in JSON at position 4 (line 1 column 5)) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Unexpected token 'W', "We need to"... is not valid JSON) | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | google/gemma-4-31b-it:free: HTTP 429 (se conservan las imágenes de este lote sin comprobar)
+revalidar lote 6/6: 8 comprobadas, 3 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+
+Revisadas: 108. Descartadas ahora: 3. Quedan: 105.
+Detalle de las descartadas en la revalidación:
+  his-061: La imagen muestra un sólido de Teodosio I, no representa la afirmación errónea sobre Constantino y el cristianismo como religión oficial en 313.
+  his-064: La imagen probablemente muestra la Marcha de la Sal, pero no ilustra la afirmación errónea de que dicha marcha provocó la independencia inmediata de la India.
+  tec-054: La imagen muestra una torre de radio celular, no una conexión directa a satélites, y por lo tanto no ilustra la afirmación errónea sobre el uso habitual de satélites en la mayoría de ciudades.

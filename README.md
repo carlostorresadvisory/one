@@ -36,6 +36,18 @@ node tools/revisar-muestra.js --n 30                                            
 
 Por defecto solo se usan modelos `:free`. La cola de pago barato de la cascada (`tools/openrouter.js`, `MODELOS`) solo se recorre con `--permitir-pago --tope-eur N`; el gasto queda en `datos/llamadas.log` (ignorado por git).
 
+## Imágenes (Wikimedia Commons)
+
+`datos/imagenes.json` (`{id: {...}}`) da una imagen de apoyo a las preguntas donde de verdad aporta: la obra en arte, un mapa o foto del lugar en geografía, la persona/lugar/documento en historia, el fenómeno visible en ciencia. Nunca decoración, y nunca en preguntas abstractas (definiciones, lógica formal, economía conceptual) salvo que haya algo concreto que mostrar.
+
+```
+node tools/buscar-imagenes.js [--area X] [--solo-pendientes] [--limite N] [--aplicar]
+```
+
+Sin `--aplicar` solo informa (no toca disco). Tres pasos, sin ningún dato confidencial: (A) un modelo `:free` decide si la pregunta se beneficia de imagen y propone términos de búsqueda en inglés; (B) la API pública de Commons (sin clave) busca esos términos y se queda con el primer resultado con licencia libre, tamaño mínimo y tipo de fichero válidos; (C) un modelo `:free` comprueba que la imagen encontrada ilustra de verdad la respuesta correcta, no solo el tema general, y descarta las que no.
+
+**Licencias admitidas**: Public domain, CC0, CC BY (cualquier versión) y CC BY-SA (cualquier versión). Se rechazan siempre: NC (no comercial), ND (sin obra derivada), "fair use" y cualquier imagen sin licencia clara. Cada entrada guarda `autor`, `licencia` y `pagina` (el enlace a la página de Commons): la interfaz debe mostrar esa atribución (autor · licencia · enlace) junto a la imagen. `tools/validar-banco.js` comprueba, si existe `datos/imagenes.json`, que cada id está en el banco, que la url es https de `upload.wikimedia.org` y que la licencia es una de las permitidas.
+
 ## Documentos
 
 - Spec v0 y hoja de ruta: `docs/superpowers/specs/2026-09-12-one-v0-design.md`
