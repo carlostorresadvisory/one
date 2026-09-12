@@ -70,8 +70,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  padding-top: max(12px, env(safe-area-inset-top));
+  padding: 8px 16px;
+  padding-top: max(8px, env(safe-area-inset-top));
 }
 
 /* Flecha de "volver a inicio" en la cabecera fija: visible en pregunta, resumen y
@@ -125,7 +125,7 @@ main#app {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 0 16px 24px;
+  padding: 0 16px 12px;
 }
 
 .vista {
@@ -322,9 +322,8 @@ main#app {
   justify-content: center;
 }
 
-/* Fila de acciones bajo la tarjeta de pregunta: "No lo sé" (IDK) antes de
-   responder; "¿por qué?" + "esta pregunta está mal" después (ver index.html:
-   son dos filas con la misma clase, una dentro de #contenedor-feedback). */
+/* Fila de "¿por qué?" + "esta pregunta está mal", dentro de #contenedor-feedback:
+   solo aparece tras responder. */
 .fila-acciones-pregunta {
   display: flex;
   align-items: center;
@@ -332,7 +331,36 @@ main#app {
   margin-top: 4px;
 }
 
-/* "No lo sé" (IDK) y "¿por qué?" (?): botones cuadrados de verdad, no texto. */
+/* Selector de confianza (spec "que se note" 12-sep, sustituye a IDK): control
+   segmentado de 3, ancho completo, 44px de alto. Media por defecto; el segmento
+   activo lleva relleno cian y texto oscuro (selección visible pero sobria). */
+.confianza {
+  display: flex;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--tarjeta);
+  margin-top: 10px;
+}
+
+.confianza[hidden] { display: none; }
+
+.confianza-opcion {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--texto-suave);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.confianza-opcion--activa {
+  background: var(--acento);
+  color: #04121a;
+}
+
+/* "¿por qué?" (?): botón cuadrado de verdad, no texto. */
 .boton-accion-cuadrado {
   width: 48px;
   height: 48px;
@@ -381,7 +409,7 @@ main#app {
   height: 4px;
   background: var(--tarjeta);
   border-radius: 2px;
-  margin: 8px 0 24px;
+  margin: 6px 0 10px;
   overflow: hidden;
 }
 
@@ -397,10 +425,10 @@ main#app {
 .tarjeta {
   background: var(--tarjeta);
   border-radius: 16px;
-  padding: 24px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
   touch-action: pan-y;
   transition: transform 0.15s ease, opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
@@ -414,21 +442,33 @@ main#app {
   margin: 0;
 }
 
+/* Tipografía fluida (clamp) y recorte elegante a 5 líneas: un enunciado largo
+   nunca empuja la vista a hacer scroll. Un toque expande si estaba recortado
+   (ver el listener en renderPreguntaActual, app.js). */
 .enunciado {
-  font-size: var(--tam-3);
-  line-height: 1.35;
+  font-size: clamp(18px, 5.4vw, 26px);
+  line-height: 1.3;
   margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.enunciado--expandido {
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 .titulo-tarjeta {
-  font-size: var(--tam-2);
+  font-size: 17px;
   font-weight: 600;
   margin: 0;
 }
 
 .botones-vf {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .botones-vf button {
@@ -447,18 +487,18 @@ main#app {
 .opciones, .items, .filas {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .opciones button, .items button, .filas button {
   min-height: 44px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: none;
   border-radius: 12px;
   background: var(--fondo);
   color: var(--texto);
   text-align: left;
-  font-size: var(--tam-1);
+  font-size: clamp(13px, 3.8vw, 15px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -491,6 +531,12 @@ main#app {
   font-size: 14px;
 }
 
+/* Hallazgo al revisar 05-ordenar.png (spec "que se note"): con display:inline-flex
+   arriba, el atributo hidden del navegador quedaba sin efecto (mismo patrón que
+   .feedback[hidden] más abajo) y los círculos numerados se veían vacíos en los
+   items todavía sin tocar. */
+.items .numero[hidden] { display: none; }
+
 .fila-etiqueta { color: var(--texto-suave); }
 
 .tarjeta.correcto { outline: 2px solid var(--ok); animation: tarjeta-pulso 0.35s ease; }
@@ -518,10 +564,10 @@ main#app {
 }
 
 .feedback {
-  margin-top: 20px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
 }
 
 /* Fallo previo a este cambio (ya en el código base, no introducido ahora): al
@@ -535,7 +581,7 @@ main#app {
 .feedback[hidden] { display: none; }
 
 .feedback-texto {
-  font-size: var(--tam-3);
+  font-size: var(--tam-2);
   font-weight: 700;
   margin: 0;
 }
@@ -544,11 +590,13 @@ main#app {
   color: var(--acento);
   font-weight: 600;
   margin: 0;
+  font-size: 13px;
 }
 
 .cambio-nivel {
   font-weight: 600;
   margin: 0;
+  font-size: 13px;
 }
 
 .cambio-nivel-subida { color: var(--ok); }
@@ -556,45 +604,177 @@ main#app {
 
 .cambio-nivel-area {
   color: var(--texto-suave);
-  font-size: var(--tam-1);
+  font-size: 12px;
   margin: 0;
 }
+
+/* Chips de feedback compacto (Recuperada, Estabas seguro, Misión completada,
+   Frágil): una fila que se ajusta a los que apliquen, sin hueco cuando no hay
+   ninguno visible. */
+.feedback-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feedback-chip {
+  display: inline-flex;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--fondo);
+  color: var(--texto-suave);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.feedback-chip[hidden] { display: none; }
 
 .explicacion, .reportada {
   color: var(--texto-suave);
-  font-size: var(--tam-1);
+  font-size: 14px;
   margin: 0;
 }
 
+/* Explicación compacta: si no cabe, hace scroll interno propio en vez de
+   empujar el resto del feedback (y con él, la vista) fuera de pantalla. */
+.explicacion {
+  max-height: 84px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* --- resumen / progreso --- */
+.vista-resumen {
+  gap: 2px;
+}
+
 .resumen-linea {
-  font-size: var(--tam-2);
-  margin: 6px 0;
+  font-size: 15px;
+  margin: 3px 0;
 }
 
 .resumen-acciones {
   display: flex;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 10px;
+}
+
+/* "Para repasar": ocupa el espacio restante del resumen (flex:1, contra la regla
+   general ".vista > * { flex-shrink: 0 }": misma especificidad, gana por ir
+   después en la hoja) para que el resumen entero quepa sin scroll vertical. */
+.resumen-repaso {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.resumen-repaso-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.resumen-repaso-carrusel {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.resumen-repaso-carrusel[hidden] { display: none; }
+
+.resumen-repaso-tarjeta {
+  flex: 0 0 82%;
+  scroll-snap-align: start;
+  background: var(--tarjeta);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.resumen-repaso-marca {
+  margin: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.resumen-repaso-marca--fallo { color: var(--ko); }
+.resumen-repaso-marca--fragil { color: var(--texto-suave); }
+
+.resumen-repaso-enunciado {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.resumen-repaso-respuesta {
+  margin: 0;
+  color: var(--acento);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resumen-repaso-explicacion {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.resumen-repaso-puntos {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.resumen-repaso-puntos[hidden] { display: none; }
+
+.resumen-repaso-punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tarjeta);
+}
+
+.resumen-repaso-vacio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
 }
 
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
 .vista-hub {
-  gap: 16px;
+  gap: 10px;
 }
 
-/* Radar tipo "panel de stats de videojuego": un eje por área, con la puntuación
-   0..1 que calcula resumenProgreso(). Ver renderRadar() en app.js. */
+/* Radar tipo "panel de stats de videojuego": un eje por área. Contorno cian =
+   puntuación (.radar-dato, como antes); relleno más opaco = solidez
+   (.radar-solido, nuevo). Ver renderRadar() en app.js. */
 .hub-radar-envoltorio {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .hub-radar {
-  width: 220px;
+  width: 150px;
   max-width: 100%;
   height: auto;
 }
@@ -616,6 +796,11 @@ main#app {
   stroke-width: 1.5;
 }
 
+.radar-solido {
+  fill: rgba(76, 201, 240, 0.55);
+  stroke: none;
+}
+
 .radar-etiqueta {
   fill: var(--texto-suave);
   font-size: 13px;
@@ -633,7 +818,6 @@ main#app {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin: 4px 0 8px;
 }
 
 .hub-chip {
@@ -641,33 +825,64 @@ main#app {
   border-radius: 999px;
   background: var(--tarjeta);
   color: var(--texto-suave);
-  font-size: 13px;
+  font-size: 12.5px;
+}
+
+/* Misión de hoy / Pendientes: fila de dos tarjetas tocables (o atenuadas +
+   aria-disabled cuando no aplican, ver actualizarDestacados en app.js). */
+.hub-destacados {
+  display: flex;
+  gap: 8px;
+}
+
+.hub-destacado {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 12px;
+  background: var(--tarjeta);
+  color: var(--texto);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  transition: transform 0.1s ease;
+}
+
+.hub-destacado:not(.hub-destacado--inactivo):active {
+  transform: scale(0.97);
+}
+
+.hub-destacado--inactivo {
+  color: var(--texto-suave);
+  opacity: 0.5;
 }
 
 .boton-comenzar {
   width: 100%;
-  margin: 4px 0 8px;
-  padding: 18px;
-  font-size: var(--tam-3);
+  margin-top: auto;
+  padding: 14px;
+  font-size: var(--tam-2);
 }
 
-/* Los 8 niveles del videojuego: cuadrícula de 2 columnas, tarjetas pequeñas y
-   tocables (tap target >= 44px por el padding + contenido). */
+/* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas
+   (hub "que se note"), tarjetas pequeñas y tocables (tap target >= 64px de alto). */
 .hub-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 }
 
 .tarjeta-area {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  min-height: 44px;
-  padding: 14px;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px 8px 7px;
   border: none;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--tarjeta);
   color: var(--texto);
   text-align: left;
@@ -685,29 +900,27 @@ main#app {
 .tarjeta-area-cabecera {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
   width: 100%;
 }
 
 .tarjeta-area-emoji {
-  font-size: 26px;
+  font-size: 18px;
 }
 
 .tarjeta-area-nombre {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--tam-1);
+  width: 100%;
+  font-size: 10.5px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Nota tipo videojuego (S+/S/A/B/C/D), grande, a la derecha de la cabecera.
-   Paleta ya existente: nada de colores nuevos. */
+/* Nota tipo videojuego (S+/S/A/B/C/D). Paleta ya existente: nada de colores nuevos. */
 .tarjeta-area-nota {
   flex: none;
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 800;
 }
 
@@ -716,15 +929,11 @@ main#app {
 .tarjeta-area-nota--baja { color: var(--texto-suave); }
 .tarjeta-area-nota--vacia { color: var(--texto-suave); opacity: 0.5; }
 
-.tarjeta-area-nivel {
-  color: var(--texto-suave);
-  font-size: 12px;
-}
-
-/* Barra de progreso FINA (4px), como la de la partida, no la gruesa de antes. */
+/* Barra de progreso FINA con la puntuación 0..1 del área (antes era el acierto
+   reciente; ahora es la misma métrica que alimenta el radar y la nota). */
 .tarjeta-area-track {
   width: 100%;
-  height: 4px;
+  height: 3px;
   border-radius: 2px;
   background: var(--fondo);
   overflow: hidden;
@@ -736,9 +945,10 @@ main#app {
   background: var(--acento);
 }
 
-.tarjeta-area-estables {
+/* "S N · R M": sólidas (caja >= 3) y recientes (respondidas hoy o ayer). */
+.tarjeta-area-solido {
   color: var(--texto-suave);
-  font-size: 11px;
+  font-size: 9.5px;
 }
 
 /* Exportar/Importar: pie discreto, ya no son la acción principal del HUB. */
@@ -746,7 +956,7 @@ main#app {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
   font-size: 13px;
   opacity: 0.75;
 }

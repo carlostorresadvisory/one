@@ -54,33 +54,53 @@
         <div class="barra-progreso-relleno" id="barra-progreso-relleno"></div>
       </div>
       <div id="contenedor-pregunta"></div>
-      <!-- "No lo sé" (IDK): botón cuadrado, visible en las 4 mecánicas porque vive
-           fuera de la tarjeta de cada tipo. Se oculta en cuanto se responde. -->
-      <div class="fila-acciones-pregunta">
-        <button class="boton-accion-cuadrado" data-test="no-lo-se" aria-label="No lo sé">IDK</button>
+      <!-- Selector de confianza (sustituye a IDK, spec "que se note" 12-sep): tres
+           segmentos, Media por defecto, se reinicia en cada pregunta y desaparece
+           al responder (ver renderPreguntaActual/mostrarFeedback en app.js). -->
+      <div class="confianza" data-test="confianza" role="group" aria-label="Nivel de confianza">
+        <button type="button" class="confianza-opcion" data-test="confianza-baja" aria-pressed="false">Baja</button>
+        <button type="button" class="confianza-opcion confianza-opcion--activa" data-test="confianza-media" aria-pressed="true">Media</button>
+        <button type="button" class="confianza-opcion" data-test="confianza-alta" aria-pressed="false">Alta</button>
       </div>
       <div id="contenedor-feedback" class="feedback" hidden>
         <p id="feedback-texto" class="feedback-texto"></p>
         <p id="feedback-combo" class="feedback-combo" hidden></p>
         <p id="cambio-nivel-texto" class="cambio-nivel" data-test="cambio-nivel" hidden></p>
         <p id="cambio-nivel-area-texto" class="cambio-nivel-area" data-test="cambio-nivel-area" hidden></p>
-        <!-- "¿por qué?": solo existe dentro del feedback, así que solo aparece tras
-             responder (en las 4 mecánicas, por el mismo motivo que "No lo sé"). -->
+        <!-- Chips de feedback compacto: cada uno oculto salvo que aplique (ver
+             mostrarFeedback en app.js). -->
+        <div class="feedback-chips" id="feedback-chips">
+          <span class="feedback-chip" id="chip-recuperada" data-test="recuperada" hidden></span>
+          <span class="feedback-chip" id="chip-alta-fallo" data-test="confianza-alta-fallo" hidden>Estabas seguro → Pendientes</span>
+          <span class="feedback-chip" id="chip-mision-completada" data-test="mision-completada" hidden>Misión completada</span>
+          <span class="feedback-chip" id="chip-fragil" data-test="fragil" hidden>Frágil: volverá pronto</span>
+        </div>
+        <p id="explicacion-texto" class="explicacion" hidden></p>
+        <p id="reportada-texto" class="reportada" hidden>Anotado</p>
+        <!-- "¿por qué?": solo existe dentro del feedback, así que solo aparece tras responder. -->
         <div class="fila-acciones-pregunta">
           <button class="boton-accion-cuadrado boton-accion-cuadrado--signo" data-test="porque" aria-label="¿Por qué?">?</button>
           <button class="enlace-discreto" data-test="esta-mal">esta pregunta está mal</button>
         </div>
-        <p id="explicacion-texto" class="explicacion" hidden></p>
-        <p id="reportada-texto" class="reportada" hidden>Anotado</p>
         <button class="boton boton-principal" data-test="siguiente">Siguiente</button>
       </div>
     </section>
 
-    <section class="vista" data-vista="resumen" data-test="resumen" hidden>
+    <section class="vista vista-resumen" data-vista="resumen" data-test="resumen" hidden>
       <h2>Resumen</h2>
       <p id="resumen-aciertos" class="resumen-linea"></p>
       <p id="resumen-xp" class="resumen-linea"></p>
       <p id="resumen-areas" class="resumen-linea"></p>
+      <!-- "Para repasar" (spec "que se note"): carrusel horizontal de las preguntas
+           falladas o acertadas con confianza Baja de esta partida (ver renderRepaso
+           en app.js). Ocupa el espacio restante (flex:1) para que el resumen quepa
+           entero sin scroll vertical. -->
+      <div class="resumen-repaso" data-test="repaso">
+        <p class="resumen-repaso-titulo">Para repasar</p>
+        <div class="resumen-repaso-carrusel" id="repaso-carrusel"></div>
+        <div class="resumen-repaso-puntos" id="repaso-puntos" data-test="repaso-puntos"></div>
+        <p class="resumen-repaso-vacio" id="repaso-vacio" data-test="repaso-vacio" hidden>Sin fallos. Nada que repasar.</p>
+      </div>
       <div class="resumen-acciones">
         <button class="boton boton-principal" data-test="otra">Otra</button>
         <button class="boton" data-test="inicio">Inicio</button>
@@ -90,10 +110,12 @@
     <!-- HUB: sustituye a "Progreso". Se conservan data-vista="progreso" y
          data-test="progreso" en la sección para no romper referencias, aunque el
          título ya no es "Progreso": es la pantalla desde la que SIEMPRE se
-         empieza a jugar (Comenzar al azar, o una tarjeta de área = un nivel). -->
+         empieza a jugar (Comenzar al azar, la Misión de hoy, Pendientes, o una
+         tarjeta de área = un nivel). Orden de arriba abajo: radar, KPIs, misión +
+         pendientes, áreas (4×2), Comenzar (anclado abajo) y el pie. -->
     <section class="vista vista-hub" data-vista="progreso" data-test="progreso" hidden>
-      <!-- Radar de las 8 áreas (estilo panel de stats de videojuego): un eje por
-           área, con la puntuación 0..1 que ya calcula el motor. -->
+      <!-- Radar de las 8 áreas (150px, estilo panel de stats de videojuego): un eje
+           por área, contorno = puntuación, relleno más opaco = solidez. -->
       <div class="hub-radar-envoltorio">
         <svg class="hub-radar" data-test="radar" viewBox="0 0 220 220" aria-hidden="true"></svg>
         <p class="radar-vacio" id="radar-vacio" hidden>Juega para dibujar tu perfil</p>
@@ -101,10 +123,15 @@
       <div class="hub-kpis">
         <span class="hub-chip" data-test="kpi-racha">🔥 0</span>
         <span class="hub-chip" data-test="kpi-aciertos-hoy">Hoy: 0/0</span>
-        <span class="hub-chip" data-test="kpi-no-se">No sé: —</span>
+        <span class="hub-chip" data-test="recuperadas">Recuperadas 0</span>
+        <span class="hub-chip" data-test="calibracion" hidden></span>
       </div>
-      <button class="boton boton-principal boton-comenzar" data-test="jugar">Comenzar</button>
+      <div class="hub-destacados">
+        <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
+        <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>
+      </div>
       <div id="progreso-areas" class="hub-grid"></div>
+      <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>
       <div class="hub-pie">
         <button class="enlace" data-test="exportar">Exportar</button>
         <label class="enlace boton-archivo">

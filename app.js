@@ -6,6 +6,8 @@ import {
   registrarRespuesta,
   actualizarRacha,
   resumenProgreso,
+  pendientes,
+  misionDelDia,
   exportar,
   importar,
   evaluar,
@@ -43,6 +45,7 @@ function guardarEstado(estado) {
 function hoy() { return hoyLocal(); }
 let estado = cargarEstado(hoy());
 let banco = [];
+let bancoPorId = new Map();
 
 // La partida ya no es una lista fija de 10 ids: se pide una pregunta a la vez a
 // siguientePregunta() (escalera inmediata) hasta llegar a 10 o hasta que no quede
@@ -56,6 +59,12 @@ let xpPartida = 0;
 let aciertosPartida = 0;
 let areasPartida = new Set();
 let reportadaEnActual = false;
+// Nivel de confianza declarado en la pregunta actual (selector de 3 segmentos,
+// "que se note" 12-sep): se reinicia a 'media' en cada pregunta.
+let confianzaActual = 'media';
+// Preguntas falladas o acertadas con confianza Baja ("frágil") de la partida en
+// curso, en orden de aparición: alimentan el carrusel "Para repasar" del resumen.
+let repasoPartida = [];
 // Tras un acierto (no "no lo sé") la partida avanza sola a los ~1,4s; se guarda el
 // id para poder cancelarlo si el jugador toca "Siguiente" o la tarjeta antes.
 let avanceAutomaticoId = null;
@@ -75,7 +84,17 @@ const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
-const nodoNoLoSe = document.querySelector('[data-test="no-lo-se"]');
+// Selector de confianza (sustituye a IDK): 3 segmentos + el contenedor que se
+// oculta al responder.
+const nodoConfianza = document.querySelector('[data-test="confianza"]');
+const nodoConfianzaBaja = document.querySelector('[data-test="confianza-baja"]');
+const nodoConfianzaMedia = document.querySelector('[data-test="confianza-media"]');
+const nodoConfianzaAlta = document.querySelector('[data-test="confianza-alta"]');
+// Chips de feedback compacto: cada uno se muestra solo si aplica (ver mostrarFeedback).
+const chipRecuperada = document.getElementById('chip-recuperada');
+const chipAltaFallo = document.getElementById('chip-alta-fallo');
+const chipMisionCompletada = document.getElementById('chip-mision-completada');
+const chipFragil = document.getElementById('chip-fragil');
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
 // grande" y visibles sin tener que fijarse en la esquina.
 const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
@@ -87,7 +106,10 @@ const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
 const nodoKpiRacha = document.querySelector('[data-test="kpi-racha"]');
 const nodoKpiAciertosHoy = document.querySelector('[data-test="kpi-aciertos-hoy"]');
-const nodoKpiNoSe = document.querySelector('[data-test="kpi-no-se"]');
+const nodoRecuperadas = document.querySelector('[data-test="recuperadas"]');
+const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
+const nodoMision = document.querySelector('[data-test="mision"]');
+const nodoPendientes = document.querySelector('[data-test="pendientes"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorPregunta = document.getElementById('contenedor-pregunta');
 const contenedorFeedback = document.getElementById('contenedor-feedback');
@@ -102,6 +124,9 @@ const reportadaTexto = document.getElementById('reportada-texto');
 const resumenAciertos = document.getElementById('resumen-aciertos');
 const resumenXp = document.getElementById('resumen-xp');
 const resumenAreas = document.getElementById('resumen-areas');
+const repasoCarrusel = document.getElementById('repaso-carrusel');
+const repasoPuntos = document.getElementById('repaso-puntos');
+const repasoVacio = document.getElementById('repaso-vacio');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 
@@ -193,6 +218,20 @@ function renderRadar(porArea) {
     })
     .join('');
 
+  // Relleno de solidez (más opaco, debajo del contorno de puntuación): no se
+  // dibuja si todas las áreas están a 0 solidez (nada consolidado todavía).
+  let poligonoSolidez = '';
+  if (porArea.some((fila) => fila.solidez > 0)) {
+    const puntosSolidez = porArea
+      .map((fila, i) => {
+        const fraccion = Math.max(0.04, Math.min(1, fila.solidez));
+        const p = puntoRadar(i, total, fraccion, RADAR_RADIO);
+        return `${p.x},${p.y}`;
+      })
+      .join(' ');
+    poligonoSolidez = `<polygon points="${puntosSolidez}" class="radar-solido" data-test="radar-solido" />`;
+  }
+
   // Mínimo visible (4%) para que un área en 0 no colapse el polígono en el centro.
   const puntosDato = porArea
     .map((fila, i) => {
@@ -210,7 +249,8 @@ function renderRadar(porArea) {
     })
     .join('');
 
-  radarSvg.innerHTML = `${anillos}${ejes}<polygon points="${puntosDato}" class="radar-dato" />${etiquetas}`;
+  radarSvg.innerHTML =
+    `${anillos}${ejes}${poligonoSolidez}<polygon points="${puntosDato}" class="radar-dato" />${etiquetas}`;
   radarVacio.hidden = !porArea.every((fila) => fila.puntuacion === 0);
 }
 
@@ -229,6 +269,10 @@ function actualizarCabecera() {
   if (filtroPartida && filtroPartida.area) {
     nodoModoArea.hidden = false;
     nodoModoArea.textContent = `Solo ${nombreArea(filtroPartida.area)}`;
+  } else if (filtroPartida && filtroPartida.etiqueta) {
+    // Misión de hoy / Pendientes: partidas filtradas por lista de ids concreta.
+    nodoModoArea.hidden = false;
+    nodoModoArea.textContent = filtroPartida.etiqueta;
   } else {
     nodoModoArea.hidden = true;
   }
@@ -289,23 +333,34 @@ async function iniciar() {
   const rutaBanco = params.get('ejemplo') === '1' ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
   const respuesta = await fetch(rutaBanco);
   banco = await respuesta.json();
+  bancoPorId = new Map(banco.map((p) => [p.id, p]));
   actualizarCabecera();
   mostrarVista('inicio');
 }
 
 // --- flujo de partida ---
-/** `filtro` opcional ({ area }) arranca una partida SOLO de esa área ("Practicar"
- * desde Progreso). Sin filtro, partida normal (todas las áreas). */
+/** `filtro` opcional arranca una partida restringida:
+ * - `{ area }`: solo esa área ("Practicar" desde el hub).
+ * - `{ ids, etiqueta }`: solo esos ids, en ese orden, sin relleno (Misión de hoy
+ *   o Pendientes desde el hub); `etiqueta` es el texto que ve la cabecera.
+ * Sin filtro, partida normal (todas las áreas). */
 function empezarPartida(filtro = null) {
-  filtroPartida = filtro && filtro.area ? { area: filtro.area } : null;
+  if (filtro && filtro.area) {
+    filtroPartida = { area: filtro.area };
+  } else if (filtro && Array.isArray(filtro.ids)) {
+    filtroPartida = { ids: filtro.ids, etiqueta: filtro.etiqueta || null };
+  } else {
+    filtroPartida = null;
+  }
   indicePartida = 0;
   xpPartida = 0;
   aciertosPartida = 0;
   areasPartida = new Set();
+  repasoPartida = [];
   partidaUsados = new Set();
   partidaUltima = null;
   preguntaEnPantalla = null;
-  actualizarCabecera(); // pinta "Solo <Área>" desde la primera pregunta, si toca.
+  actualizarCabecera(); // pinta "Solo <Área>" / "Misión de hoy" / "Pendientes" desde la primera pregunta.
   mostrarVista('pregunta');
   avanzarPregunta();
 }
@@ -347,12 +402,41 @@ function renderPreguntaActual(pregunta) {
   explicacionTexto.hidden = true;
   reportadaTexto.hidden = true;
   reportadaEnActual = false;
-  nodoNoLoSe.hidden = false; // visible de nuevo para la pregunta que entra
+  chipRecuperada.hidden = true;
+  chipAltaFallo.hidden = true;
+  chipMisionCompletada.hidden = true;
+  chipFragil.hidden = true;
+
+  // Selector de confianza: Media por defecto en cada pregunta, visible de nuevo.
+  seleccionarConfianza('media');
+  nodoConfianza.hidden = false;
 
   contenedorPregunta.innerHTML = '';
   const tarjeta = construirTarjetaPregunta(pregunta);
   tarjeta.insertBefore(construirCabeceraPregunta(pregunta), tarjeta.firstChild);
   contenedorPregunta.appendChild(tarjeta);
+
+  // Enunciado recortado a 5 líneas (CSS): un toque lo expande. stopPropagation
+  // evita que el toque también intente "adelantar" el avance automático tras acertar.
+  const enunciadoEl = tarjeta.querySelector('.enunciado');
+  if (enunciadoEl) {
+    enunciadoEl.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      enunciadoEl.classList.toggle('enunciado--expandido');
+    });
+  }
+}
+
+/** Selecciona un segmento de confianza (Baja/Media/Alta): actualiza el estado
+ * interno y el aria-pressed/clase visual de los 3 botones. */
+function seleccionarConfianza(valor) {
+  confianzaActual = valor;
+  const nodos = { baja: nodoConfianzaBaja, media: nodoConfianzaMedia, alta: nodoConfianzaAlta };
+  for (const [clave, nodo] of Object.entries(nodos)) {
+    const activo = clave === valor;
+    nodo.classList.toggle('confianza-opcion--activa', activo);
+    nodo.setAttribute('aria-pressed', String(activo));
+  }
 }
 
 function construirTarjetaPregunta(pregunta) {
@@ -599,24 +683,13 @@ function manejarRespuesta(pregunta, respuesta) {
   if (preguntaRespondida) return;
   preguntaRespondida = true;
   const correcta = evaluar(pregunta, respuesta);
-  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy());
-  aplicarResultado(pregunta, resultado, correcta, false);
-}
-
-/** Botón "No lo sé": no se evalúa ninguna respuesta, se trata como fallo a todos los
- * efectos de motor (Leitner, nivel de área, escalera), pero queda marcado aparte. */
-function manejarNoLoSe() {
-  if (preguntaRespondida) return;
-  const pregunta = preguntaEnPantalla;
-  if (!pregunta) return;
-  preguntaRespondida = true;
-  const resultado = registrarRespuesta(estado, pregunta, false, hoy(), { noLoSe: true });
-  aplicarResultado(pregunta, resultado, false, true);
+  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: confianzaActual });
+  aplicarResultado(pregunta, resultado, correcta);
 }
 
 /** Aplica el resultado de registrarRespuesta a la sesión de UI: guarda estado,
- * actualiza contadores de la partida y pinta el feedback (normal o "no lo sé"). */
-function aplicarResultado(pregunta, resultado, correcta, noLoSe) {
+ * actualiza contadores de la partida (incluido "Para repasar") y pinta el feedback. */
+function aplicarResultado(pregunta, resultado, correcta) {
   estado = resultado.estado;
   guardarEstado(estado);
   actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo, no solo al volver a Inicio.
@@ -625,20 +698,51 @@ function aplicarResultado(pregunta, resultado, correcta, noLoSe) {
   if (correcta) aciertosPartida += 1;
   areasPartida.add(pregunta.area);
 
-  mostrarFeedback(pregunta, correcta, resultado.delta, noLoSe);
+  // "Para repasar" del resumen: falladas, o acertadas con confianza Baja (frágiles,
+  // delta.fragil ya implica correcta === true: en un fallo el motor siempre lo deja en false).
+  if (!correcta || resultado.delta.fragil) {
+    repasoPartida.push({ pregunta, correcta });
+  }
+
+  mostrarFeedback(pregunta, correcta, resultado.delta);
 }
 
-function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
-  nodoNoLoSe.hidden = true; // ya se ha respondido (de una forma u otra): no tiene sentido seguir ofreciéndolo.
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+/** 'YYYY-MM-DD' -> "9 sep" (sin ceros a la izquierda), para el chip de Recuperada. */
+function formatearFechaCorta(fechaISO) {
+  if (!fechaISO) return '';
+  const [, mes, dia] = fechaISO.split('-').map(Number);
+  return `${dia} ${MESES_CORTOS[mes - 1]}`;
+}
+
+/** Respuesta correcta como texto, para la tarjeta del carrusel "Para repasar". */
+function respuestaCorrectaTexto(pregunta) {
+  switch (pregunta.tipo) {
+    case 'vf':
+      return pregunta.respuesta ? 'Verdadero' : 'Falso';
+    case 'test4':
+      return pregunta.opciones[pregunta.correcta];
+    case 'ordenar':
+      return pregunta.items.join(' → ');
+    case 'error':
+      return pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta;
+    default:
+      return '';
+  }
+}
+
+function mostrarFeedback(pregunta, correcta, delta) {
+  nodoConfianza.hidden = true; // ya se ha respondido: el selector no tiene sentido hasta la próxima pregunta.
 
   const tarjeta = contenedorPregunta.querySelector('.tarjeta');
   if (tarjeta) {
     tarjeta.classList.remove('correcto', 'incorrecto');
-    // "No lo sé" es un fallo a efectos de motor, pero visualmente es neutro: ni ✓ ni ✗.
-    if (!noLoSe) tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
+    tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
   }
 
-  feedbackTexto.textContent = noLoSe ? 'No pasa nada: mañana vuelve' : (correcta ? `✓ +${delta.xp} XP` : '✗');
+  let textoResultado = correcta ? `✓ +${delta.xp} XP` : '✗';
+  if (correcta && delta.confianza === 'alta') textoResultado += ' · confianza alta ×1,5';
+  feedbackTexto.textContent = textoResultado;
 
   if (delta.combo >= 3) {
     feedbackCombo.hidden = false;
@@ -673,10 +777,19 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
     cambioNivelAreaTexto.hidden = true;
   }
 
-  // Con "no lo sé" o al fallar, la explicación se despliega sola: no tiene sentido
-  // pedirle que toque "¿por qué?" para ver por qué ha fallado o ha dicho no saber.
-  // Al acertar se queda oculta (sigue disponible bajo "¿por qué?" si quiere verla).
-  explicacionTexto.hidden = correcta && !noLoSe;
+  // Chips compactos (spec "que se note"): cada uno solo si aplica.
+  const hayRecuperada = Boolean(delta.recuperada);
+  chipRecuperada.hidden = !hayRecuperada;
+  if (hayRecuperada) {
+    chipRecuperada.textContent = `Recuperada · la fallaste el ${formatearFechaCorta(delta.recuperada.fechaFallo)}`;
+  }
+  chipAltaFallo.hidden = !(delta.confianza === 'alta' && !correcta);
+  chipMisionCompletada.hidden = !delta.misionCompletada;
+  chipFragil.hidden = !delta.fragil;
+
+  // Al fallar, la explicación se despliega sola: no tiene sentido pedir "¿por qué?"
+  // para ver por qué se ha fallado. Al acertar se queda oculta (disponible bajo "?").
+  explicacionTexto.hidden = correcta;
   explicacionTexto.textContent = pregunta.explicacion;
   reportadaTexto.hidden = true;
 
@@ -689,18 +802,20 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
     if (vista) vista.scrollTo({ top: vista.scrollHeight, behavior: 'auto' });
   });
 
-  // Acierto (no "no lo sé"): avanza sola a los ~1,4s; tocar "Siguiente" o la propia
-  // tarjeta antes cancela este temporizador y adelanta el avance (ver más abajo,
-  // listener de contenedorPregunta, y irASiguiente que siempre lo limpia primero).
-  // Fallo o "no lo sé": nunca avanza sola, siempre espera a "Siguiente".
+  // Acierto: avanza sola; tocar "Siguiente" o la propia tarjeta antes cancela este
+  // temporizador y adelanta el avance (ver más abajo, listener de contenedorPregunta,
+  // y irASiguiente que siempre lo limpia primero). Con Recuperada o Misión completada
+  // el tiempo sube a 2,2s para dar tiempo a leer el chip. Fallo: nunca avanza sola,
+  // siempre espera a "Siguiente".
   limpiarAvanceAutomatico();
-  if (correcta && !noLoSe) {
+  if (correcta) {
+    const duracion = hayRecuperada || delta.misionCompletada ? 2200 : 1400;
     avanceAutomaticoId = setTimeout(() => {
       avanceAutomaticoId = null;
       puedeAdelantarConToque = false;
       // Guarda extra: solo avanza si el feedback sigue en pantalla.
       if (!contenedorFeedback.hidden) irASiguiente();
-    }, 1400);
+    }, duracion);
     // Un tick después: el click que acaba de responder ya ha terminado de
     // burbujear, así que a partir de ahora sí es seguro adelantar con un toque.
     setTimeout(() => { puedeAdelantarConToque = true; }, 0);
@@ -771,22 +886,84 @@ function finalizarPartida() {
   animarConteo(resumenXp, 'XP ganado: ', xpPartida);
   resumenAreas.textContent = `Áreas: ${[...areasPartida].join(', ') || '—'}`;
 
+  renderRepaso();
+
   mostrarVista('resumen');
 }
 
-/** El HUB: radar de las 8 áreas, 3 KPIs, "Comenzar" y la cuadrícula de niveles
- * (una tarjeta tocable por área, con emoji, nivel, barra fina y nota). */
+/** "Para repasar" del resumen: un carrusel horizontal (scroll-snap) con una
+ * tarjeta por pregunta fallada o acertada con confianza Baja de la partida que
+ * acaba de terminar, en orden de aparición. Sin nada que repasar, el mensaje
+ * vacío ("Sin fallos. Nada que repasar."). */
+function renderRepaso() {
+  repasoCarrusel.innerHTML = '';
+  repasoPuntos.innerHTML = '';
+
+  const vacio = repasoPartida.length === 0;
+  repasoVacio.hidden = !vacio;
+  repasoCarrusel.hidden = vacio;
+  repasoPuntos.hidden = vacio;
+  if (vacio) return;
+
+  repasoPartida.forEach((item) => {
+    const { pregunta, correcta } = item;
+
+    const tarjetaRepaso = document.createElement('div');
+    tarjetaRepaso.className = 'resumen-repaso-tarjeta';
+
+    const marca = document.createElement('p');
+    marca.className = `resumen-repaso-marca ${correcta ? 'resumen-repaso-marca--fragil' : 'resumen-repaso-marca--fallo'}`;
+    marca.textContent = correcta ? '✓ frágil' : '✗';
+
+    const enunciado = document.createElement('p');
+    enunciado.className = 'resumen-repaso-enunciado';
+    enunciado.textContent = pregunta.enunciado;
+
+    const respuesta = document.createElement('p');
+    respuesta.className = 'resumen-repaso-respuesta';
+    respuesta.textContent = respuestaCorrectaTexto(pregunta);
+
+    const explicacionRepaso = document.createElement('p');
+    explicacionRepaso.className = 'resumen-repaso-explicacion';
+    explicacionRepaso.textContent = pregunta.explicacion;
+
+    tarjetaRepaso.appendChild(marca);
+    tarjetaRepaso.appendChild(enunciado);
+    tarjetaRepaso.appendChild(respuesta);
+    tarjetaRepaso.appendChild(explicacionRepaso);
+    repasoCarrusel.appendChild(tarjetaRepaso);
+
+    const punto = document.createElement('span');
+    punto.className = 'resumen-repaso-punto';
+    repasoPuntos.appendChild(punto);
+  });
+}
+
+/** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y
+ * la cuadrícula 4×2 de áreas (una tarjeta tocable por área, con emoji, nota,
+ * barra fina de puntuación y "S · R"). Al entrar se genera (o recupera) la
+ * misión de hoy: `misionDelDia` es idempotente el mismo día. */
 function renderHub() {
-  const resumen = resumenProgreso(estado, banco);
+  const resultadoMision = misionDelDia(estado, banco, hoy());
+  estado = resultadoMision.estado;
+  guardarEstado(estado);
+
+  const resumen = resumenProgreso(estado, banco, hoy());
   actualizarCabecera();
 
   renderRadar(resumen.porArea);
 
   nodoKpiRacha.textContent = `🔥 ${estado.racha.dias}`;
   nodoKpiAciertosHoy.textContent = `Hoy: ${resumen.hoy.aciertos}/${resumen.hoy.respondidas}`;
-  nodoKpiNoSe.textContent = resumen.global.respondidas === 0
-    ? 'No sé: —'
-    : `No sé: ${Math.round((resumen.global.noLoSe / resumen.global.respondidas) * 100)}%`;
+  nodoRecuperadas.textContent = `Recuperadas ${resumen.recuperadas}`;
+  if (resumen.confianza.calibracion === null) {
+    nodoCalibracion.hidden = true;
+  } else {
+    nodoCalibracion.hidden = false;
+    nodoCalibracion.textContent = `Confianza ${Math.round(resumen.confianza.calibracion * 100)}%`;
+  }
+
+  actualizarDestacados(resumen);
 
   progresoAreas.innerHTML = '';
   resumen.porArea.forEach((fila) => {
@@ -802,46 +979,80 @@ function renderHub() {
     emoji.className = 'tarjeta-area-emoji';
     emoji.textContent = EMOJI_AREA[fila.area] || '❔';
 
-    const nombre = document.createElement('span');
-    nombre.className = 'tarjeta-area-nombre';
-    nombre.textContent = nombreArea(fila.area);
-
     const nota = document.createElement('span');
     nota.className = `tarjeta-area-nota ${claseNota(fila.nota)}`;
     nota.dataset.test = `nota-${fila.area}`;
     nota.textContent = fila.nota;
 
     cabeceraTarjeta.appendChild(emoji);
-    cabeceraTarjeta.appendChild(nombre);
     cabeceraTarjeta.appendChild(nota);
 
-    const nivel = document.createElement('span');
-    nivel.className = 'tarjeta-area-nivel';
-    nivel.textContent = `Nv ${fila.nivel}`;
+    const nombre = document.createElement('span');
+    nombre.className = 'tarjeta-area-nombre';
+    nombre.textContent = nombreArea(fila.area);
 
     const track = document.createElement('div');
     track.className = 'tarjeta-area-track';
     const relleno = document.createElement('div');
     relleno.className = 'tarjeta-area-relleno';
     relleno.dataset.test = `barra-${fila.area}`;
-    const ancho = fila.aciertoReciente === null ? 0 : fila.aciertoReciente * 100;
-    relleno.style.width = `${ancho}%`;
+    relleno.style.width = `${fila.puntuacion * 100}%`;
     track.appendChild(relleno);
 
-    const estables = document.createElement('span');
-    estables.className = 'tarjeta-area-estables';
-    estables.textContent = `${fila.estables} estables`;
+    const solido = document.createElement('span');
+    solido.className = 'tarjeta-area-solido';
+    solido.dataset.test = `solido-${fila.area}`;
+    solido.textContent = `S ${fila.solidas} · R ${fila.recientes}`;
 
     // Tocar la tarjeta entera arranca una partida SOLO de esa área (como un nivel
     // de videojuego): nada de un botón "Practicar" aparte.
     tarjeta.addEventListener('click', () => empezarPartida({ area: fila.area }));
 
     tarjeta.appendChild(cabeceraTarjeta);
-    tarjeta.appendChild(nivel);
+    tarjeta.appendChild(nombre);
     tarjeta.appendChild(track);
-    tarjeta.appendChild(estables);
+    tarjeta.appendChild(solido);
     progresoAreas.appendChild(tarjeta);
   });
+}
+
+/** Pinta las dos tarjetas destacadas del hub (Misión de hoy y Pendientes):
+ * texto, y si son tocables (aria-disabled + dataset.tocable cuando no). */
+function actualizarDestacados(resumen) {
+  const mision = estado.mision;
+  if (!mision || mision.ids.length === 0) {
+    nodoMision.textContent = 'Misión de hoy · —';
+    marcarNoTocable(nodoMision);
+  } else if (mision.completada) {
+    nodoMision.textContent = 'Misión de hoy ✓';
+    marcarNoTocable(nodoMision);
+  } else {
+    const areasUnicas = [];
+    for (const id of mision.ids) {
+      const pregunta = bancoPorId.get(id);
+      const nombre = pregunta ? nombreArea(pregunta.area) : null;
+      if (nombre && !areasUnicas.includes(nombre)) areasUnicas.push(nombre);
+    }
+    nodoMision.textContent = `Misión de hoy · ${areasUnicas.join(' y ')} · ${mision.hechas.length}/${mision.ids.length}`;
+    marcarTocable(nodoMision);
+  }
+
+  const nPendientes = resumen.pendientes;
+  nodoPendientes.textContent = `Pendientes · ${nPendientes}`;
+  if (nPendientes === 0) marcarNoTocable(nodoPendientes);
+  else marcarTocable(nodoPendientes);
+}
+
+function marcarTocable(nodo) {
+  nodo.classList.remove('hub-destacado--inactivo');
+  nodo.setAttribute('aria-disabled', 'false');
+  nodo.dataset.tocable = 'true';
+}
+
+function marcarNoTocable(nodo) {
+  nodo.classList.add('hub-destacado--inactivo');
+  nodo.setAttribute('aria-disabled', 'true');
+  nodo.dataset.tocable = 'false';
 }
 
 function exportarEstado() {
@@ -875,14 +1086,14 @@ function importarEstadoDesdeArchivo(archivo) {
 // "Comenzar" (en el HUB) siempre arranca sin filtro (aunque quedara uno de una
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
-document.querySelector('[data-test="jugar"]').addEventListener('click', () => empezarPartida(null));
+document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
 document.querySelector('[data-test="siguiente"]').addEventListener('click', irASiguiente);
 // Tocar la tarjeta mientras el acierto está avanzando solo adelanta ese avance;
-// antes de responder, o tras un fallo/"no lo sé", no hace nada (puedeAdelantarConToque
-// es false), así que no interfiere con los botones de cada mecánica.
+// antes de responder, o tras un fallo, no hace nada (puedeAdelantarConToque es
+// false), así que no interfiere con los botones de cada mecánica.
 contenedorPregunta.addEventListener('click', () => {
   if (puedeAdelantarConToque) irASiguiente();
 });
@@ -890,7 +1101,21 @@ document.querySelector('[data-test="porque"]').addEventListener('click', () => {
   explicacionTexto.hidden = false;
 });
 document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
-document.querySelector('[data-test="no-lo-se"]').addEventListener('click', manejarNoLoSe);
+nodoConfianzaBaja.addEventListener('click', () => seleccionarConfianza('baja'));
+nodoConfianzaMedia.addEventListener('click', () => seleccionarConfianza('media'));
+nodoConfianzaAlta.addEventListener('click', () => seleccionarConfianza('alta'));
+// Misión de hoy / Pendientes: tocables solo cuando dataset.tocable === 'true'
+// (ver actualizarDestacados). Partida cerrada a esos ids concretos, sin relleno.
+nodoMision.addEventListener('click', () => {
+  if (nodoMision.dataset.tocable !== 'true') return;
+  const ids = estado.mision.ids.filter((id) => !estado.mision.hechas.includes(id));
+  empezarPartida({ ids, etiqueta: 'Misión de hoy' });
+});
+nodoPendientes.addEventListener('click', () => {
+  if (nodoPendientes.dataset.tocable !== 'true') return;
+  const ids = pendientes(estado, banco).slice(0, 5).map((p) => p.id);
+  empezarPartida({ ids, etiqueta: 'Pendientes' });
+});
 document.querySelector('[data-test="otra"]').addEventListener('click', () => empezarPartida(filtroPartida));
 // "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
 // "Inicio" (resumen): siempre al HUB, nunca a los emojis (ver manejarVolver/irAlHub).
