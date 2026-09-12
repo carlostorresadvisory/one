@@ -119,7 +119,7 @@ test.describe('ONE · integración e2e', () => {
 
     // La segunda (y última) pregunta de economía del banco de ejemplo: se responde
     // normal y, al agotarse el área, la partida filtrada termina sola en el resumen.
-    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economia');
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
     await responderPreguntaActual(page, sospechosoPorTitulo);
     await page.locator('[data-test="siguiente"]').click();
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
