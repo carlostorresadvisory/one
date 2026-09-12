@@ -960,19 +960,27 @@ main#app {
   text-align: center;
 }
 
+/* Línea única "Hoy 11/20 · Recuperadas 0 · Confianza 82 %" (spec "pantalla
+   completa" 12-sep): sin pastillas, cada segmento separado por "·" salvo el
+   primero; "Confianza" se une solo cuando hay dato (queda oculto si no). */
 .hub-kpis {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
+  color: var(--texto-suave);
+  font-size: 12.5px;
 }
 
 .hub-chip {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--tarjeta);
-  color: var(--texto-suave);
-  font-size: 12.5px;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+.hub-chip + .hub-chip::before {
+  content: '· ';
 }
 
 /* Misión de hoy / Pendientes: fila de dos tarjetas tocables (o atenuadas +
