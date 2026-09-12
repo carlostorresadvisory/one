@@ -34,12 +34,14 @@ Opciones:
   --umbral <n>        Confianza mínima para aprobar (por defecto 0.7).
   --permitir-pago     Permite usar modelos de pago de la cascada si todos los gratis fallan.
   --tope-eur <n>      Tope de gasto en euros (solo con --permitir-pago).
+  --solo-pendientes   Conserva datos/banco.json y datos/rechazadas.json y verifica solo los borradores
+                      que no estén ya aprobados ni rechazados con motivo real (los 'lote fallido' se reintentan).
   --ayuda             Muestra esta ayuda y sale.
 `);
 }
 
 function parsearArgs(argv) {
-  const args = { entrada: 'datos/borradores', umbral: 0.7, permitirPago: false, topeEur: 0, ayuda: false };
+  const args = { entrada: 'datos/borradores', umbral: 0.7, permitirPago: false, topeEur: 0, ayuda: false, soloPendientes: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
@@ -47,6 +49,7 @@ function parsearArgs(argv) {
     else if (a === '--umbral') args.umbral = Number(argv[++i]);
     else if (a === '--permitir-pago') args.permitirPago = true;
     else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
+    else if (a === '--solo-pendientes') args.soloPendientes = true;
   }
   return args;
 }
@@ -126,15 +129,31 @@ async function main() {
     return;
   }
 
-  const borradores = await leerBorradores(args.entrada);
+  let borradores = await leerBorradores(args.entrada);
   if (borradores.length === 0) {
     console.log(`Sin borradores en ${args.entrada}.`);
   }
 
-  const lotes = partirEnLotes(borradores, TAMANO_LOTE);
-  const porId = new Map(borradores.map((p) => [p.id, p]));
+  // Modo incremental: parte del banco y las rechazadas ya existentes y solo verifica lo nuevo
+  // (o lo que quedó como 'lote fallido', que nunca llegó a verificarse de verdad).
   const aprobadas = [];
   const rechazadas = [];
+  if (args.soloPendientes) {
+    const leerJson = async (ruta) => {
+      try { return JSON.parse(await readFile(ruta, 'utf8')); } catch { return []; }
+    };
+    const bancoPrevio = await leerJson('datos/banco.json');
+    const rechazadasPrevias = await leerJson('datos/rechazadas.json');
+    aprobadas.push(...bancoPrevio);
+    rechazadas.push(...rechazadasPrevias.filter((p) => !String(p.motivo || '').startsWith('lote fallido')));
+    const yaVistos = new Set([...aprobadas, ...rechazadas].map((p) => p.id));
+    const total = borradores.length;
+    borradores = borradores.filter((p) => !yaVistos.has(p.id));
+    console.log(`--solo-pendientes: ${total - borradores.length} ya verificadas, ${borradores.length} pendientes.`);
+  }
+
+  const lotes = partirEnLotes(borradores, TAMANO_LOTE);
+  const porId = new Map(borradores.map((p) => [p.id, p]));
 
   for (const lote of lotes) {
     let salida;
