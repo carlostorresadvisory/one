@@ -2,7 +2,7 @@
 // este fichero solo pinta pantallas y traduce interacción del usuario en llamadas al motor.
 import {
   crearEstado,
-  seleccionarPartida,
+  siguientePregunta,
   registrarRespuesta,
   actualizarRacha,
   resumenProgreso,
@@ -44,7 +44,13 @@ function hoy() { return hoyLocal(); }
 let estado = cargarEstado(hoy());
 let banco = [];
 
-let partidaIds = [];
+// La partida ya no es una lista fija de 10 ids: se pide una pregunta a la vez a
+// siguientePregunta() (escalera inmediata) hasta llegar a 10 o hasta que no quede
+// ninguna elegible. `partidaUltima` es la última pregunta ya respondida, para que
+// el motor pueda variar tipo/área; `partidaUsados` son los ids ya servidos hoy.
+let preguntaEnPantalla = null;
+let partidaUsados = new Set();
+let partidaUltima = null;
 let indicePartida = 0;
 let xpPartida = 0;
 let aciertosPartida = 0;
@@ -53,12 +59,15 @@ let reportadaEnActual = false;
 
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
+const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorPregunta = document.getElementById('contenedor-pregunta');
 const contenedorFeedback = document.getElementById('contenedor-feedback');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
 const feedbackTexto = document.getElementById('feedback-texto');
 const feedbackCombo = document.getElementById('feedback-combo');
+const cambioNivelTexto = document.getElementById('cambio-nivel-texto');
+const cambioNivelAreaTexto = document.getElementById('cambio-nivel-area-texto');
 const explicacionTexto = document.getElementById('explicacion-texto');
 const reportadaTexto = document.getElementById('reportada-texto');
 const resumenAciertos = document.getElementById('resumen-aciertos');
@@ -74,8 +83,14 @@ function mostrarVista(nombre) {
   });
 }
 
-function actualizarRachaNodo() {
+/** Primera letra en mayúscula (para nombres de área en textos). */
+function capitalizar(texto) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+function actualizarCabecera() {
   nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
+  nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
 }
 
 // --- carga del banco y arranque ---
@@ -84,49 +99,63 @@ async function iniciar() {
   const rutaBanco = params.get('ejemplo') === '1' ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
   const respuesta = await fetch(rutaBanco);
   banco = await respuesta.json();
-  actualizarRachaNodo();
+  actualizarCabecera();
   mostrarVista('inicio');
 }
 
 // --- flujo de partida ---
 function empezarPartida() {
-  partidaIds = seleccionarPartida(estado, banco, hoy(), N_PARTIDA, Math.random);
   indicePartida = 0;
   xpPartida = 0;
   aciertosPartida = 0;
   areasPartida = new Set();
+  partidaUsados = new Set();
+  partidaUltima = null;
+  preguntaEnPantalla = null;
   mostrarVista('pregunta');
-  renderPreguntaActual();
+  avanzarPregunta();
 }
 
-function preguntaActual() {
-  const id = partidaIds[indicePartida];
-  return banco.find((p) => p.id === id) || null;
-}
-
-function renderPreguntaActual() {
-  if (indicePartida >= partidaIds.length) {
+/** Pide la siguiente pregunta al motor (o termina la partida si no queda ninguna). */
+function avanzarPregunta() {
+  if (indicePartida >= N_PARTIDA) {
     finalizarPartida();
     return;
   }
-  preguntaRespondida = false;
-  const pregunta = preguntaActual();
+  const pregunta = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima);
   if (!pregunta) {
-    // Id de la partida no encontrado en el banco: se salta a la siguiente.
-    indicePartida += 1;
-    renderPreguntaActual();
+    // Banco agotado (reportadas/usadas incluidas): se termina con las que haya.
+    finalizarPartida();
     return;
   }
+  partidaUsados.add(pregunta.id);
+  preguntaEnPantalla = pregunta;
+  renderPreguntaActual(pregunta);
+}
 
-  barraProgresoRelleno.style.transform = `scaleX(${indicePartida / partidaIds.length})`;
+function construirCabeceraPregunta(pregunta) {
+  const cabecera = document.createElement('p');
+  cabecera.className = 'pregunta-cabecera';
+  cabecera.dataset.test = 'nivel-pregunta';
+  cabecera.textContent = `${capitalizar(pregunta.area)} · nivel ${pregunta.nivel}`;
+  return cabecera;
+}
+
+function renderPreguntaActual(pregunta) {
+  preguntaRespondida = false;
+
+  barraProgresoRelleno.style.transform = `scaleX(${indicePartida / N_PARTIDA})`;
   contenedorFeedback.hidden = true;
   feedbackCombo.hidden = true;
+  cambioNivelTexto.hidden = true;
+  cambioNivelAreaTexto.hidden = true;
   explicacionTexto.hidden = true;
   reportadaTexto.hidden = true;
   reportadaEnActual = false;
 
   contenedorPregunta.innerHTML = '';
   const tarjeta = construirTarjetaPregunta(pregunta);
+  tarjeta.insertBefore(construirCabeceraPregunta(pregunta), tarjeta.firstChild);
   contenedorPregunta.appendChild(tarjeta);
 }
 
@@ -377,6 +406,7 @@ function manejarRespuesta(pregunta, respuesta) {
   const resultado = registrarRespuesta(estado, pregunta, correcta, hoy());
   estado = resultado.estado;
   guardarEstado(estado);
+  actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo, no solo al volver a Inicio.
 
   xpPartida += resultado.delta.xp;
   if (correcta) aciertosPartida += 1;
@@ -398,6 +428,32 @@ function mostrarFeedback(pregunta, correcta, delta) {
     feedbackCombo.hidden = true;
   }
 
+  // Escalera inmediata: se ve subir o bajar en cada respuesta.
+  if (delta.cambioNivelPartida > 0) {
+    cambioNivelTexto.hidden = false;
+    cambioNivelTexto.textContent = `Nivel ${delta.nivelPartida} ↑`;
+    cambioNivelTexto.classList.remove('cambio-nivel-bajada');
+    cambioNivelTexto.classList.add('cambio-nivel-subida');
+  } else if (delta.cambioNivelPartida < 0) {
+    cambioNivelTexto.hidden = false;
+    cambioNivelTexto.textContent = `Nivel ${delta.nivelPartida} ↓`;
+    cambioNivelTexto.classList.remove('cambio-nivel-subida');
+    cambioNivelTexto.classList.add('cambio-nivel-bajada');
+  } else {
+    cambioNivelTexto.hidden = true;
+  }
+
+  // Nivel por área (más lento, solo se anuncia cuando de verdad cambia).
+  if (delta.cambioNivelArea !== 0) {
+    cambioNivelAreaTexto.hidden = false;
+    const nombreArea = capitalizar(pregunta.area);
+    cambioNivelAreaTexto.textContent = delta.cambioNivelArea > 0
+      ? `${nombreArea} sube a nivel ${delta.nivelArea}`
+      : `${nombreArea} baja a nivel ${delta.nivelArea}`;
+  } else {
+    cambioNivelAreaTexto.hidden = true;
+  }
+
   explicacionTexto.hidden = true;
   explicacionTexto.textContent = pregunta.explicacion;
   reportadaTexto.hidden = true;
@@ -406,13 +462,15 @@ function mostrarFeedback(pregunta, correcta, delta) {
 }
 
 function irASiguiente() {
-  if (indicePartida >= partidaIds.length) return;
+  if (!preguntaEnPantalla) return;
+  partidaUltima = preguntaEnPantalla;
+  preguntaEnPantalla = null;
   indicePartida += 1;
-  renderPreguntaActual();
+  avanzarPregunta();
 }
 
 function marcarPreguntaMal() {
-  const pregunta = preguntaActual();
+  const pregunta = preguntaEnPantalla;
   if (!pregunta || reportadaEnActual) return;
   if (!estado.reportadas.includes(pregunta.id)) {
     estado = { ...estado, reportadas: [...estado.reportadas, pregunta.id] };
@@ -425,9 +483,9 @@ function marcarPreguntaMal() {
 function finalizarPartida() {
   estado = actualizarRacha(estado, hoy());
   guardarEstado(estado);
-  actualizarRachaNodo();
+  actualizarCabecera();
 
-  resumenAciertos.textContent = `Aciertos: ${aciertosPartida}/${partidaIds.length}`;
+  resumenAciertos.textContent = `Aciertos: ${aciertosPartida}/${indicePartida}`;
   resumenXp.textContent = `XP ganado: ${xpPartida}`;
   resumenAreas.textContent = `Áreas: ${[...areasPartida].join(', ') || '—'}`;
 
@@ -436,7 +494,7 @@ function finalizarPartida() {
 
 function renderProgreso() {
   const resumen = resumenProgreso(estado, banco);
-  actualizarRachaNodo();
+  actualizarCabecera();
   progresoHoy.textContent = `Hoy: ${resumen.hoy.respondidas} preguntas, ${resumen.hoy.aciertos} aciertos`;
 
   progresoAreas.innerHTML = '';
@@ -493,7 +551,7 @@ function importarEstadoDesdeArchivo(archivo) {
     try {
       estado = importar(String(lector.result));
       guardarEstado(estado);
-      actualizarRachaNodo();
+      actualizarCabecera();
       renderProgreso();
     } catch (err) {
       console.error('No se pudo importar el estado:', err.message);
@@ -515,7 +573,7 @@ document.querySelector('[data-test="porque"]').addEventListener('click', () => {
 document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
 document.querySelector('[data-test="otra"]').addEventListener('click', empezarPartida);
 document.querySelector('[data-test="inicio"]').addEventListener('click', () => {
-  actualizarRachaNodo();
+  actualizarCabecera();
   mostrarVista('inicio');
 });
 document.querySelector('[data-test="exportar"]').addEventListener('click', exportarEstado);

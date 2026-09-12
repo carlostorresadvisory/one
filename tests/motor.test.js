@@ -9,6 +9,7 @@ import {
   crearEstado,
   evaluar,
   seleccionarPartida,
+  siguientePregunta,
   registrarRespuesta,
   actualizarRacha,
   resumenProgreso,
@@ -96,6 +97,7 @@ describe('crearEstado', () => {
     assert.equal(est.version, 1);
     assert.equal(est.xp, 0);
     assert.equal(est.combo, 0);
+    assert.equal(est.nivelPartida, 1); // escalera inmediata: arranca en 1
     assert.equal(Object.keys(est.areas).length, 8);
     for (const area of AREAS) {
       assert.deepStrictEqual(est.areas[area], { nivel: 1, seguidosOk: 0, seguidosKo: 0, ultimas: [] });
@@ -239,6 +241,73 @@ describe('seleccionarPartida', () => {
 });
 
 // ---------------------------------------------------------------------------
+describe('siguientePregunta', () => {
+  const banco = crearBancoPrueba();
+
+  test('devuelve una pregunta de nivel == nivelPartida cuando hay disponible', () => {
+    const estado = crearEstado(HOY);
+    const p = siguientePregunta(estado, banco, HOY, new Set(), rngDeterminista());
+    assert.ok(p);
+    assert.equal(p.nivel, estado.nivelPartida);
+  });
+
+  test('si no hay del nivel exacto, amplía a ±1', () => {
+    const sinNivel3 = banco.filter((p) => p.nivel !== 3);
+    const estado = crearEstado(HOY);
+    estado.nivelPartida = 3;
+    const p = siguientePregunta(estado, sinNivel3, HOY, new Set(), rngDeterminista());
+    assert.ok(p);
+    assert.ok([2, 4].includes(p.nivel));
+  });
+
+  test('banco agotado devuelve null, nunca lanza', () => {
+    const estado = crearEstado(HOY);
+    let p;
+    assert.doesNotThrow(() => {
+      p = siguientePregunta(estado, [], HOY, new Set());
+    });
+    assert.equal(p, null);
+  });
+
+  test('no repite usados ni reportadas', () => {
+    const tres = banco.filter((p) => p.area === 'economia' && p.tipo === 'test4').slice(0, 3);
+    const estado = crearEstado(HOY);
+    estado.reportadas = [tres[0].id];
+    const usados = new Set([tres[1].id]);
+    const p = siguientePregunta(estado, tres, HOY, usados, rngDeterminista());
+    assert.ok(p);
+    assert.equal(p.id, tres[2].id);
+  });
+
+  test('prefiere un repaso vencido cuando hay 5 o más pendientes (aunque el azar no lo pida)', () => {
+    const estado = crearEstado(HOY);
+    const idsRepaso = [
+      'economia-test4-1',
+      'historia-test4-1',
+      'ciencia-test4-1',
+      'tecnologia-test4-1',
+      'geografia-test4-1',
+    ];
+    idsRepaso.forEach((id, i) => {
+      estado.tarjetas[id] = { caja: 1, proximo: sumarDias(HOY, -(i + 1)), aciertos: 1, fallos: 0 };
+    });
+    const p = siguientePregunta(estado, banco, HOY, new Set(), () => 0.99);
+    assert.ok(p);
+    assert.ok(idsRepaso.includes(p.id));
+    assert.equal(p.id, 'geografia-test4-1'); // el más atrasado (hoy - 5 días)
+  });
+
+  test('no repite tipo ni área de "ultima" cuando hay alternativa', () => {
+    const estado = crearEstado(HOY);
+    const ultima = banco.find((p) => p.area === 'economia' && p.tipo === 'test4' && p.nivel === 1);
+    const p = siguientePregunta(estado, banco, HOY, new Set(), rngDeterminista(), ultima);
+    assert.ok(p);
+    assert.notEqual(p.tipo, ultima.tipo);
+    assert.notEqual(p.area, ultima.area);
+  });
+});
+
+// ---------------------------------------------------------------------------
 describe('registrarRespuesta', () => {
   test('acierto test4 nivel 1 desde estado nuevo', () => {
     const estado = crearEstado(HOY);
@@ -341,6 +410,57 @@ describe('registrarRespuesta', () => {
       estadoHist = r.estado;
     }
     assert.equal(estadoHist.historial.length, 500);
+  });
+
+  test('nivelPartida sube con acierto y baja con fallo, con topes 1 y 5', () => {
+    let estado = crearEstado(HOY);
+    const r1 = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, '-np1'), true, HOY);
+    assert.equal(r1.estado.nivelPartida, 2);
+    assert.equal(r1.delta.nivelPartida, 2);
+    assert.equal(r1.delta.cambioNivelPartida, 1);
+
+    const r2 = registrarRespuesta(r1.estado, crearPregunta('economia', 'test4', 1, '-np2'), false, HOY);
+    assert.equal(r2.estado.nivelPartida, 1);
+    assert.equal(r2.delta.cambioNivelPartida, -1);
+
+    // Tope inferior: ya en 1, un fallo más no baja de 1.
+    const r3 = registrarRespuesta(r2.estado, crearPregunta('economia', 'test4', 1, '-np3'), false, HOY);
+    assert.equal(r3.estado.nivelPartida, 1);
+    assert.equal(r3.delta.cambioNivelPartida, 0);
+
+    // Tope superior: sube hasta 5 y no lo pasa.
+    let estadoMax = crearEstado(HOY);
+    for (let i = 0; i < 4; i++) {
+      const r = registrarRespuesta(estadoMax, crearPregunta('economia', 'test4', 1, `-npmax${i}`), true, HOY);
+      estadoMax = r.estado;
+    }
+    assert.equal(estadoMax.nivelPartida, 5);
+    const r5 = registrarRespuesta(estadoMax, crearPregunta('economia', 'test4', 1, '-npmax4'), true, HOY);
+    assert.equal(r5.estado.nivelPartida, 5);
+    assert.equal(r5.delta.cambioNivelPartida, 0);
+  });
+
+  test('V/F también mueve la escalera de nivelPartida (aunque no mueva el nivel del área)', () => {
+    const estado = crearEstado(HOY);
+    const r1 = registrarRespuesta(estado, crearPregunta('economia', 'vf', 1, '-vfnp1'), true, HOY);
+    assert.equal(r1.estado.nivelPartida, 2);
+    const r2 = registrarRespuesta(r1.estado, crearPregunta('economia', 'vf', 1, '-vfnp2'), false, HOY);
+    assert.equal(r2.estado.nivelPartida, 1);
+  });
+
+  test('delta incluye nivelPartida, cambioNivelPartida, nivelArea y cambioNivelArea; cambioNivelArea es +1 en el tercer acierto no-vf', () => {
+    let estado = crearEstado(HOY);
+    let ultimoDelta;
+    for (let i = 0; i < 3; i++) {
+      const r = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, `-nv${i}`), true, HOY);
+      estado = r.estado;
+      ultimoDelta = r.delta;
+    }
+    assert.equal(estado.areas.economia.nivel, 2); // sube en el 3er acierto
+    assert.equal(ultimoDelta.nivelPartida, 4); // 1 -> 2 -> 3 -> 4, un +1 por acierto
+    assert.equal(ultimoDelta.cambioNivelPartida, 1);
+    assert.equal(ultimoDelta.nivelArea, 2);
+    assert.equal(ultimoDelta.cambioNivelArea, 1);
   });
 
   test('no muta el estado de entrada', () => {
@@ -447,5 +567,17 @@ describe('exportar / importar', () => {
   test('importar con version distinta de 1 lanza', () => {
     const estado = { ...crearEstado(HOY), version: 2 };
     assert.throws(() => importar(JSON.stringify(estado)));
+  });
+
+  test('importar sanea nivelPartida inválido (falta, fuera de rango o no entero) a 1', () => {
+    const base = {
+      version: 1, xp: 0, combo: 0, racha: { dias: 0, ultimaFecha: null },
+      hoy: { fecha: HOY, respondidas: 0, aciertos: 0 },
+      areas: {}, tarjetas: {}, reportadas: [], historial: [],
+    };
+    assert.equal(importar(JSON.stringify(base)).nivelPartida, 1); // falta el campo
+    assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 9 })).nivelPartida, 1); // fuera de rango
+    assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 'x' })).nivelPartida, 1); // no es entero
+    assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 3 })).nivelPartida, 3); // válido: se respeta
   });
 });

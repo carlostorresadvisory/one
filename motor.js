@@ -41,6 +41,10 @@ export function crearEstado(hoy) {
     version: 1,
     xp: 0,
     combo: 0,
+    // Escalera inmediata (1..5): sube/baja con cada respuesta, se ve en cada pregunta
+    // y persiste entre partidas. Distinta del nivel por área, que solo sube con 3
+    // aciertos seguidos no-vf y es más lento a propósito.
+    nivelPartida: 1,
     racha: { dias: 0, ultimaFecha: null },
     hoy: { fecha: hoy, respondidas: 0, aciertos: 0 },
     areas,
@@ -237,6 +241,57 @@ export function seleccionarPartida(estado, banco, hoy, n = 10, rng = Math.random
 }
 
 /**
+ * Elige UNA pregunta para la escalera inmediata: una a la vez, en función de
+ * `nivelPartida`, con repasos vencidos intercalados. Excluye reportadas y `usados`
+ * (ids ya servidos en esta partida). Nunca lanza; devuelve `null` si no queda ninguna.
+ *
+ * Con probabilidad 0.3 (o siempre que haya ≥5 repasos vencidos pendientes) elige el
+ * repaso más atrasado. Si no, una pregunta nueva (sin tarjeta) del nivel de la partida,
+ * ampliando la distancia de nivel admitida (0, ±1, ±2…) hasta encontrar alguna.
+ * Entre candidatas del mismo nivel, prioriza (si hay alternativa) un tipo distinto y
+ * luego un área distinta de `ultima`; los empates se resuelven con `rng`.
+ */
+export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random, ultima = null) {
+  const reportadas = new Set(estado.reportadas);
+  const idsEnBanco = new Set(banco.map((p) => p.id));
+  const bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  const elegible = (id) => !usados.has(id) && !reportadas.has(id) && idsEnBanco.has(id);
+
+  // Repasos vencidos pendientes (no usados ni reportados), el más atrasado primero.
+  const repasosPendientes = Object.entries(estado.tarjetas)
+    .filter(([id, t]) => t.proximo <= hoy && elegible(id))
+    .sort((a, b) => (a[1].proximo < b[1].proximo ? -1 : a[1].proximo > b[1].proximo ? 1 : 0));
+
+  function tomarRepaso() {
+    if (repasosPendientes.length === 0) return null;
+    return bancoPorId.get(repasosPendientes[0][0]) || null;
+  }
+
+  function tomarNueva() {
+    const disponibles = banco.filter((p) => !estado.tarjetas[p.id] && elegible(p.id));
+    if (disponibles.length === 0) return null;
+
+    let candidatos = [];
+    for (let distancia = 0; distancia <= 4; distancia++) {
+      candidatos = disponibles.filter((p) => Math.abs(p.nivel - estado.nivelPartida) <= distancia);
+      if (candidatos.length > 0) break;
+    }
+    if (candidatos.length === 0) return null;
+
+    if (ultima) {
+      const tipoDistinto = candidatos.filter((p) => p.tipo !== ultima.tipo);
+      if (tipoDistinto.length > 0) candidatos = tipoDistinto;
+      const areaDistinta = candidatos.filter((p) => p.area !== ultima.area);
+      if (areaDistinta.length > 0) candidatos = areaDistinta;
+    }
+    return candidatos[Math.floor(rng() * candidatos.length)];
+  }
+
+  const quiereRepaso = repasosPendientes.length >= 5 || rng() < 0.3;
+  return (quiereRepaso ? tomarRepaso() : null) || tomarNueva() || tomarRepaso() || null;
+}
+
+/**
  * Registra la respuesta a `pregunta` (acierto/fallo) en el día `hoy`.
  * Devuelve { estado nuevo, delta: { xp, combo, correcta } }. No muta `estado`.
  */
@@ -249,6 +304,15 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy) {
   }
   nuevo.hoy.respondidas += 1;
   if (correcta) nuevo.hoy.aciertos += 1;
+
+  // Escalera inmediata: sube con cualquier acierto (incluido vf) y baja con cualquier
+  // fallo. A diferencia del nivel por área, aquí vf sí cuenta: es lo que se siente
+  // jugar, aunque el nivel por área lo siga ignorando para subir.
+  const nivelPartidaAntes = nuevo.nivelPartida;
+  nuevo.nivelPartida = correcta
+    ? Math.min(5, nivelPartidaAntes + 1)
+    : Math.max(1, nivelPartidaAntes - 1);
+  const cambioNivelPartida = nuevo.nivelPartida - nivelPartidaAntes;
 
   // Combo y XP (el nivel usado para el XP es el de ANTES de aplicar la subida/bajada de este turno).
   const combo = correcta ? nuevo.combo + 1 : 0;
@@ -292,10 +356,22 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy) {
     }
   }
   areaState.ultimas = [...areaState.ultimas, correcta].slice(-20);
+  const cambioNivelArea = areaState.nivel - nivelAntes;
 
   nuevo.historial = [...nuevo.historial, { id: pregunta.id, fecha: hoy, correcta }].slice(-500);
 
-  return { estado: nuevo, delta: { xp, combo, correcta } };
+  return {
+    estado: nuevo,
+    delta: {
+      xp,
+      combo,
+      correcta,
+      nivelPartida: nuevo.nivelPartida,
+      cambioNivelPartida,
+      nivelArea: areaState.nivel,
+      cambioNivelArea,
+    },
+  };
 }
 
 /** Actualiza la racha de días al completar la primera partida del día. Resetea el combo. */
@@ -386,6 +462,10 @@ function normalizarEstado(obj) {
   const estado = { ...base, version: 1 };
   estado.xp = Number.isFinite(obj.xp) && obj.xp >= 0 ? obj.xp : 0;
   estado.combo = Number.isInteger(obj.combo) && obj.combo >= 0 ? obj.combo : 0;
+  estado.nivelPartida =
+    Number.isInteger(obj.nivelPartida) && obj.nivelPartida >= 1 && obj.nivelPartida <= 5
+      ? obj.nivelPartida
+      : 1;
   if (esObjeto(obj.racha) && Number.isInteger(obj.racha.dias) && obj.racha.dias >= 0) {
     estado.racha = {
       dias: obj.racha.dias,

@@ -5,8 +5,11 @@ import { test, expect } from '@playwright/test';
 const CAPTURAS = 'docs/capturas';
 
 /** Detecta el tipo de la pregunta actual por sus selectores data-test y responde.
- * Devuelve el tipo detectado ('vf' | 'test4' | 'ordenar' | 'error'). */
-async function responderPreguntaActual(page) {
+ * Devuelve el tipo detectado ('vf' | 'test4' | 'ordenar' | 'error').
+ * `sospechosoPorTitulo` (opcional, Map título -> índice) permite acertar siempre
+ * las preguntas de tipo "error" sea cual sea la que toque; sin él se limita a
+ * tocar la primera fila, como antes. */
+async function responderPreguntaActual(page, sospechosoPorTitulo) {
   if (await page.locator('[data-test="vf-verdadero"]').count()) {
     await page.locator('[data-test="vf-verdadero"]').click();
     return 'vf';
@@ -16,16 +19,21 @@ async function responderPreguntaActual(page) {
     return 'test4';
   }
   if (await page.locator('[data-test="item-0"]').count()) {
-    // Tocar las 4 tarjetas en el orden en que aparecen (no hace falta acertar
-    // el orden real para completar la partida).
-    await page.locator('[data-test="item-0"]').click();
-    await page.locator('[data-test="item-1"]').click();
-    await page.locator('[data-test="item-2"]').click();
-    await page.locator('[data-test="item-3"]').click();
+    // Tocar por el índice ORIGINAL (data-original), no por la posición mostrada
+    // tras barajar: así siempre se acierta el orden correcto, sea cual sea la
+    // pregunta (evaluar() de motor.js exige [0,1,2,3] en índices originales).
+    for (let i = 0; i < 4; i++) {
+      await page.locator(`[data-original="${i}"]`).click();
+    }
     return 'ordenar';
   }
   if (await page.locator('[data-test="fila-0"]').count()) {
-    await page.locator('[data-test="fila-0"]').click();
+    let indice = 0;
+    if (sospechosoPorTitulo) {
+      const titulo = (await page.locator('.titulo-tarjeta').textContent())?.trim();
+      if (sospechosoPorTitulo.has(titulo)) indice = sospechosoPorTitulo.get(titulo);
+    }
+    await page.locator(`[data-test="fila-${indice}"]`).click();
     return 'error';
   }
   throw new Error('No se reconoce el tipo de la pregunta actual (ningún selector conocido presente)');
@@ -33,8 +41,9 @@ async function responderPreguntaActual(page) {
 
 /** Juega hasta que aparece el resumen, avanzando con "siguiente" tras cada
  * respuesta. `alDetectarTipo` (opcional) se llama la primera vez que aparece
- * cada tipo, y `alVerFeedback` la primera vez que se ve el feedback. */
-async function jugarPartida(page, { alDetectarTipo, alVerFeedback } = {}) {
+ * cada tipo, y `alVerFeedback` la primera vez que se ve el feedback.
+ * `sospechosoPorTitulo` se reenvía a responderPreguntaActual. */
+async function jugarPartida(page, { alDetectarTipo, alVerFeedback, sospechosoPorTitulo } = {}) {
   const tiposVistos = new Set();
   let feedbackVisto = false;
 
@@ -42,7 +51,7 @@ async function jugarPartida(page, { alDetectarTipo, alVerFeedback } = {}) {
   for (let vueltas = 0; vueltas < 25; vueltas += 1) {
     if (await page.locator('[data-test="resumen"]').isVisible()) return;
 
-    const tipo = await responderPreguntaActual(page);
+    const tipo = await responderPreguntaActual(page, sospechosoPorTitulo);
     if (!tiposVistos.has(tipo)) {
       tiposVistos.add(tipo);
       if (alDetectarTipo) await alDetectarTipo(tipo);
@@ -71,16 +80,33 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
     await page.screenshot({ path: `${CAPTURAS}/01-inicio.png` });
 
+    // Mapa título -> índice sospechoso del banco de ejemplo: permite acertar siempre
+    // las preguntas de tipo "error" (junto con el acierto garantizado de vf/test4/
+    // ordenar) para que la comprobación de "sube en la 1ª respuesta" no dependa del
+    // azar de qué pregunta le toca primero al jugador.
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(
+      bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
+    );
+
     // 2. Jugar: recorrer la partida capturando la primera vez de cada mecánica
     // y del feedback.
     await page.locator('[data-test="jugar"]').click();
 
+    // La escalera inmediata: el nivel de la pregunta se ve desde la primera tarjeta.
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toBeVisible();
+
     const nombreCaptura = { vf: '02-vf.png', test4: '03-test4.png', ordenar: '04-ordenar.png', error: '05-error.png' };
     await jugarPartida(page, {
+      sospechosoPorTitulo,
       alDetectarTipo: async (tipo) => {
         await page.screenshot({ path: `${CAPTURAS}/${nombreCaptura[tipo]}` });
       },
       alVerFeedback: async () => {
+        // Tras la primera respuesta debe verse el cambio de la escalera (sube o baja).
+        const cambioNivel = page.locator('[data-test="cambio-nivel"]');
+        await expect(cambioNivel).toBeVisible();
+        await expect(cambioNivel).toContainText(/↑|↓/);
         await page.screenshot({ path: `${CAPTURAS}/06-feedback.png` });
       },
     });

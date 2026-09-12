@@ -55,8 +55,20 @@ button {
   font-weight: 600;
 }
 
+.cabecera-estado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .cabecera-racha {
   font-size: var(--tam-1);
+  color: var(--texto-suave);
+}
+
+.cabecera-nivel {
+  font-size: 13px;
   color: var(--texto-suave);
 }
 
@@ -145,6 +157,12 @@ main#app {
   gap: 20px;
   touch-action: pan-y;
   transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.pregunta-cabecera {
+  font-size: 13px;
+  color: var(--texto-suave);
+  margin: 0;
 }
 
 .enunciado {
@@ -236,6 +254,20 @@ main#app {
 .feedback-combo {
   color: var(--acento);
   font-weight: 600;
+  margin: 0;
+}
+
+.cambio-nivel {
+  font-weight: 600;
+  margin: 0;
+}
+
+.cambio-nivel-subida { color: var(--ok); }
+.cambio-nivel-bajada { color: var(--ko); }
+
+.cambio-nivel-area {
+  color: var(--texto-suave);
+  font-size: var(--tam-1);
   margin: 0;
 }
 

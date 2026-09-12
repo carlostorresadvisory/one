@@ -15,7 +15,10 @@
 <body>
   <header class="cabecera">
     <span class="cabecera-logo">🧠 ONE</span>
-    <span class="cabecera-racha" data-test="racha">🔥 0</span>
+    <div class="cabecera-estado">
+      <span class="cabecera-racha" data-test="racha">🔥 0</span>
+      <span class="cabecera-nivel" data-test="nivel-partida">Nivel 1</span>
+    </div>
   </header>
 
   <main id="app">
@@ -35,6 +38,8 @@
       <div id="contenedor-feedback" class="feedback" hidden>
         <p id="feedback-texto" class="feedback-texto"></p>
         <p id="feedback-combo" class="feedback-combo" hidden></p>
+        <p id="cambio-nivel-texto" class="cambio-nivel" data-test="cambio-nivel" hidden></p>
+        <p id="cambio-nivel-area-texto" class="cambio-nivel-area" data-test="cambio-nivel-area" hidden></p>
         <div class="feedback-acciones">
           <button class="enlace" data-test="porque">¿por qué?</button>
           <button class="enlace" data-test="esta-mal">esta pregunta está mal</button>
