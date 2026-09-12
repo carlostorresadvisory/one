@@ -65,14 +65,6 @@ let confianzaActual = 'media';
 // Preguntas falladas o acertadas con confianza Baja ("frágil") de la partida en
 // curso, en orden de aparición: alimentan el carrusel "Para repasar" del resumen.
 let repasoPartida = [];
-// Tras un acierto (no "no lo sé") la partida avanza sola a los ~1,4s; se guarda el
-// id para poder cancelarlo si el jugador toca "Siguiente" o la tarjeta antes.
-let avanceAutomaticoId = null;
-// Solo true mientras hay un avance automático pendiente Y ya ha pasado un tick
-// desde que se armó: así el click que ACABA de responder (que burbujea hasta
-// contenedorPregunta en la misma fase de evento) nunca se confunde con un toque
-// del jugador para adelantar el avance. Ver mostrarFeedback/limpiarAvanceAutomatico.
-let puedeAdelantarConToque = false;
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
 // desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
@@ -84,12 +76,16 @@ const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
-// Selector de confianza (sustituye a IDK): 3 segmentos + el contenedor que se
-// oculta al responder.
-const nodoConfianza = document.querySelector('[data-test="confianza"]');
+// Selector de confianza (sustituye a IDK): 3 segmentos + la fila (etiqueta +
+// control) que se oculta entera al responder (el propio control, data-test
+// "confianza", no necesita referencia propia: solo se leen sus 3 segmentos).
+const nodoConfianzaFila = document.getElementById('confianza-fila');
 const nodoConfianzaBaja = document.querySelector('[data-test="confianza-baja"]');
 const nodoConfianzaMedia = document.querySelector('[data-test="confianza-media"]');
 const nodoConfianzaAlta = document.querySelector('[data-test="confianza-alta"]');
+// FALSO/VERDADERO (vf): viven en la zona de acción, no en la tarjeta (spec
+// "pantalla completa" 12-sep). Se reconstruyen en cada pregunta vf (construirVf).
+const nodoBotonesVfAccion = document.getElementById('botones-vf-accion');
 // Chips de feedback compacto: cada uno se muestra solo si aplica (ver mostrarFeedback).
 const chipRecuperada = document.getElementById('chip-recuperada');
 const chipAltaFallo = document.getElementById('chip-alta-fallo');
@@ -131,10 +127,6 @@ const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 
 function mostrarVista(nombre) {
-  // Cambiar de vista (p. ej. "←" al hub durante el feedback) cancela cualquier avance
-  // automático pendiente: si no, el temporizador dispararía irASiguiente() fuera de la
-  // partida (hallazgo de la pasada adversarial del 12-sep).
-  limpiarAvanceAutomatico();
   vistas.forEach((v) => {
     const activa = v.dataset.vista === nombre;
     v.hidden = !activa;
@@ -289,7 +281,6 @@ function vistaActual() {
 function limpiarPartidaEnCurso() {
   filtroPartida = null;
   preguntaEnPantalla = null;
-  limpiarAvanceAutomatico();
   actualizarCabecera();
 }
 
@@ -368,7 +359,6 @@ function empezarPartida(filtro = null) {
 
 /** Pide la siguiente pregunta al motor (o termina la partida si no queda ninguna). */
 function avanzarPregunta() {
-  limpiarAvanceAutomatico(); // por si quedara uno pendiente (defensivo)
   if (indicePartida >= N_PARTIDA) {
     finalizarPartida();
     return;
@@ -410,7 +400,11 @@ function renderPreguntaActual(pregunta) {
 
   // Selector de confianza: Media por defecto en cada pregunta, visible de nuevo.
   seleccionarConfianza('media');
-  nodoConfianza.hidden = false;
+  nodoConfianzaFila.hidden = false;
+  // Los botones vf se reconstruyen desde cero en construirVf; en cualquier otro
+  // tipo la fila se queda vacía y oculta (solo confianza en la zona de acción).
+  nodoBotonesVfAccion.hidden = true;
+  nodoBotonesVfAccion.innerHTML = '';
 
   contenedorPregunta.innerHTML = '';
   const tarjeta = construirTarjetaPregunta(pregunta);
@@ -418,7 +412,7 @@ function renderPreguntaActual(pregunta) {
   contenedorPregunta.appendChild(tarjeta);
 
   // Enunciado recortado a 5 líneas (CSS): un toque lo expande. stopPropagation
-  // evita que el toque también intente "adelantar" el avance automático tras acertar.
+  // evita que el toque se propague más allá (p. ej. al gesto de swipe de la tarjeta).
   const enunciadoEl = tarjeta.querySelector('.enunciado');
   if (enunciadoEl) {
     enunciadoEl.addEventListener('click', (ev) => {
@@ -461,6 +455,28 @@ function crearTarjetaBase() {
   return tarjeta;
 }
 
+// Pista de deslizamiento (vf): los chevrones se quedan siempre; la frase solo
+// las primeras 5 preguntas vf del dispositivo (contador en localStorage).
+const CLAVE_PISTA_SWIPE = 'one.pistaSwipe';
+const LIMITE_PISTA_SWIPE = 5;
+
+function contarPistaSwipeMostrada() {
+  try {
+    return Number(localStorage.getItem(CLAVE_PISTA_SWIPE)) || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+function registrarPistaSwipeMostrada(veces) {
+  try {
+    localStorage.setItem(CLAVE_PISTA_SWIPE, String(veces));
+  } catch (err) {
+    // localStorage no disponible: sin contador persistente, la pista se ve siempre
+    // (mejor de más que de menos).
+  }
+}
+
 function construirVf(pregunta) {
   const tarjeta = crearTarjetaBase();
   tarjeta.id = 'tarjeta-vf';
@@ -470,8 +486,37 @@ function construirVf(pregunta) {
   enunciado.textContent = pregunta.enunciado;
   tarjeta.appendChild(enunciado);
 
-  const botones = document.createElement('div');
-  botones.className = 'botones-vf';
+  const vecesMostrada = contarPistaSwipeMostrada();
+  const pista = document.createElement('div');
+  pista.className = 'pista-swipe';
+  pista.dataset.test = 'pista-swipe';
+
+  const chevronIzq = document.createElement('span');
+  chevronIzq.className = 'pista-swipe-chevron pista-swipe-chevron--izq';
+  chevronIzq.textContent = '‹';
+  chevronIzq.setAttribute('aria-hidden', 'true');
+
+  const textoPista = document.createElement('span');
+  textoPista.className = 'pista-swipe-texto';
+  textoPista.textContent = 'Desliza la tarjeta o toca';
+  textoPista.hidden = vecesMostrada >= LIMITE_PISTA_SWIPE;
+
+  const chevronDer = document.createElement('span');
+  chevronDer.className = 'pista-swipe-chevron pista-swipe-chevron--der';
+  chevronDer.textContent = '›';
+  chevronDer.setAttribute('aria-hidden', 'true');
+
+  pista.appendChild(chevronIzq);
+  pista.appendChild(textoPista);
+  pista.appendChild(chevronDer);
+  tarjeta.appendChild(pista);
+  registrarPistaSwipeMostrada(vecesMostrada + 1);
+
+  activarSwipeVf(tarjeta, pregunta);
+
+  // FALSO/VERDADERO viven en la zona de acción (donde llega el pulgar), no en
+  // la tarjeta: se reconstruyen en cada pregunta vf.
+  nodoBotonesVfAccion.innerHTML = '';
 
   const falso = document.createElement('button');
   falso.className = 'boton-ko';
@@ -485,11 +530,9 @@ function construirVf(pregunta) {
   verdadero.textContent = 'VERDADERO';
   verdadero.addEventListener('click', () => manejarRespuesta(pregunta, true));
 
-  botones.appendChild(falso);
-  botones.appendChild(verdadero);
-  tarjeta.appendChild(botones);
-
-  activarSwipeVf(tarjeta, pregunta);
+  nodoBotonesVfAccion.appendChild(falso);
+  nodoBotonesVfAccion.appendChild(verdadero);
+  nodoBotonesVfAccion.hidden = false;
 
   return tarjeta;
 }
@@ -503,9 +546,20 @@ function activarSwipeVf(tarjeta, pregunta) {
   const ARRANQUE = 8; // px de movimiento antes de considerar que es un swipe y no un tap
   let capturado = false;
 
+  const chevronIzq = tarjeta.querySelector('.pista-swipe-chevron--izq');
+  const chevronDer = tarjeta.querySelector('.pista-swipe-chevron--der');
+
+  /** Tiñe el chevrón del lado hacia el que se arrastra de ko/ok, como ya hace
+   * la tarjeta (delta=0 limpia los dos, al soltar o cancelar). */
+  function tenirChevrones(delta) {
+    if (!chevronIzq || !chevronDer) return;
+    chevronIzq.classList.toggle('pista-swipe-chevron--ko', delta < 0);
+    chevronDer.classList.toggle('pista-swipe-chevron--ok', delta > 0);
+  }
+
   tarjeta.addEventListener('pointerdown', (ev) => {
-    // Un toque que empieza en un botón (FALSO/VERDADERO, ¿por qué?...) es del botón, no del gesto:
-    // si la tarjeta capturase el puntero, el click acabaría en la tarjeta y el botón no respondería.
+    // Un toque que empieza en un botón es del botón, no del gesto: si la tarjeta
+    // capturase el puntero, el click no llegaría a FALSO/VERDADERO.
     if (ev.target.closest('button')) return;
     activo = true;
     capturado = false;
@@ -521,13 +575,17 @@ function activarSwipeVf(tarjeta, pregunta) {
       capturado = true;
       tarjeta.setPointerCapture(ev.pointerId);
     }
-    if (capturado) tarjeta.style.transform = `translateX(${deltaX}px)`;
+    if (capturado) {
+      tarjeta.style.transform = `translateX(${deltaX}px)`;
+      tenirChevrones(deltaX);
+    }
   });
 
   function soltar() {
     if (!activo) return;
     activo = false;
     tarjeta.style.transform = '';
+    tenirChevrones(0);
     if (deltaX >= UMBRAL) {
       manejarRespuesta(pregunta, true);
     } else if (deltaX <= -UMBRAL) {
@@ -733,7 +791,9 @@ function respuestaCorrectaTexto(pregunta) {
 }
 
 function mostrarFeedback(pregunta, correcta, delta) {
-  nodoConfianza.hidden = true; // ya se ha respondido: el selector no tiene sentido hasta la próxima pregunta.
+  // Ya se ha respondido: la zona de acción pasa a ser el panel de feedback.
+  nodoConfianzaFila.hidden = true;
+  nodoBotonesVfAccion.hidden = true;
 
   const tarjeta = contenedorPregunta.querySelector('.tarjeta');
   if (tarjeta) {
@@ -741,9 +801,11 @@ function mostrarFeedback(pregunta, correcta, delta) {
     tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
   }
 
-  let textoResultado = correcta ? `✓ +${delta.xp} XP` : '✗';
+  let textoResultado = correcta ? `✓ +${delta.xp} XP` : '✗ Incorrecto';
   if (correcta && delta.confianza === 'alta') textoResultado += ' · confianza alta ×1,5';
   feedbackTexto.textContent = textoResultado;
+  feedbackTexto.classList.toggle('feedback-texto--ok', correcta);
+  feedbackTexto.classList.toggle('feedback-texto--ko', !correcta);
 
   if (delta.combo >= 3) {
     feedbackCombo.hidden = false;
@@ -788,39 +850,13 @@ function mostrarFeedback(pregunta, correcta, delta) {
   chipMisionCompletada.hidden = !delta.misionCompletada;
   chipFragil.hidden = !delta.fragil;
 
-  // Al fallar, la explicación se despliega sola: no tiene sentido pedir "¿por qué?"
-  // para ver por qué se ha fallado. Al acertar se queda oculta (disponible bajo "?").
-  explicacionTexto.hidden = correcta;
+  // La explicación se muestra siempre, abierta (spec "pantalla completa" 12-sep):
+  // ya no hace falta pedirla con "?", ni al acertar ni al fallar.
+  explicacionTexto.hidden = false;
   explicacionTexto.textContent = pregunta.explicacion;
   reportadaTexto.hidden = true;
 
   contenedorFeedback.hidden = false;
-  // La explicación desplegada puede empujar el botón fuera de la pantalla en el móvil.
-  // "Siguiente" es sticky (siempre visible), así que hay que llevar el scroll de la
-  // vista hasta el final: si no, tapa la fila de "?" y "esta pregunta está mal".
-  requestAnimationFrame(() => {
-    const vista = contenedorFeedback.closest('.vista');
-    if (vista) vista.scrollTo({ top: vista.scrollHeight, behavior: 'auto' });
-  });
-
-  // Acierto: avanza sola; tocar "Siguiente" o la propia tarjeta antes cancela este
-  // temporizador y adelanta el avance (ver más abajo, listener de contenedorPregunta,
-  // y irASiguiente que siempre lo limpia primero). Con Recuperada o Misión completada
-  // el tiempo sube a 2,2s para dar tiempo a leer el chip. Fallo: nunca avanza sola,
-  // siempre espera a "Siguiente".
-  limpiarAvanceAutomatico();
-  if (correcta) {
-    const duracion = hayRecuperada || delta.misionCompletada ? 2200 : 1400;
-    avanceAutomaticoId = setTimeout(() => {
-      avanceAutomaticoId = null;
-      puedeAdelantarConToque = false;
-      // Guarda extra: solo avanza si el feedback sigue en pantalla.
-      if (!contenedorFeedback.hidden) irASiguiente();
-    }, duracion);
-    // Un tick después: el click que acaba de responder ya ha terminado de
-    // burbujear, así que a partir de ahora sí es seguro adelantar con un toque.
-    setTimeout(() => { puedeAdelantarConToque = true; }, 0);
-  }
 }
 
 // El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
@@ -831,16 +867,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-function limpiarAvanceAutomatico() {
-  puedeAdelantarConToque = false;
-  if (avanceAutomaticoId !== null) {
-    clearTimeout(avanceAutomaticoId);
-    avanceAutomaticoId = null;
-  }
-}
-
 function irASiguiente() {
-  limpiarAvanceAutomatico();
   if (!preguntaEnPantalla) return;
   partidaUltima = preguntaEnPantalla;
   preguntaEnPantalla = null;
@@ -1104,15 +1131,6 @@ document.querySelector('[data-test="comenzar"]').addEventListener('click', () =>
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
 document.querySelector('[data-test="siguiente"]').addEventListener('click', irASiguiente);
-// Tocar la tarjeta mientras el acierto está avanzando solo adelanta ese avance;
-// antes de responder, o tras un fallo, no hace nada (puedeAdelantarConToque es
-// false), así que no interfiere con los botones de cada mecánica.
-contenedorPregunta.addEventListener('click', () => {
-  if (puedeAdelantarConToque) irASiguiente();
-});
-document.querySelector('[data-test="porque"]').addEventListener('click', () => {
-  explicacionTexto.hidden = false;
-});
 document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
 nodoConfianzaBaja.addEventListener('click', () => seleccionarConfianza('baja'));
 nodoConfianzaMedia.addEventListener('click', () => seleccionarConfianza('media'));

@@ -66,6 +66,13 @@ button {
   user-select: none;
 }
 
+/* Foco visible con teclado (spec "pantalla completa" 12-sep): igual en botones
+   sueltos que en cada segmento de un control segmentado. */
+button:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
 .cabecera {
   display: flex;
   align-items: center;
@@ -322,25 +329,40 @@ main#app {
   justify-content: center;
 }
 
-/* Fila de "¿por qué?" + "esta pregunta está mal", dentro de #contenedor-feedback:
-   solo aparece tras responder. */
-.fila-acciones-pregunta {
+/* Fila de "esta pregunta está mal", sola encima de "Siguiente": alineada a la
+   derecha, no al lado de nada (spec "pantalla completa" 12-sep, elimina "?"). */
+.fila-esta-mal {
   display: flex;
-  align-items: center;
-  gap: 12px;
   margin-top: 4px;
 }
 
+/* Fila de confianza: etiqueta a la izquierda, control segmentado ocupando el
+   resto (spec "pantalla completa" 12-sep). */
+.confianza-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.confianza-fila[hidden] { display: none; }
+
+.confianza-etiqueta {
+  flex: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--texto-suave);
+}
+
 /* Selector de confianza (spec "que se note" 12-sep, sustituye a IDK): control
-   segmentado de 3, ancho completo, 44px de alto. Media por defecto; el segmento
-   activo lleva relleno cian y texto oscuro (selección visible pero sobria). */
+   segmentado de 3, 44px de alto. Media por defecto; el segmento activo lleva
+   relleno cian y texto oscuro (selección visible pero sobria). */
 .confianza {
+  flex: 1;
   display: flex;
   height: 44px;
   border-radius: 10px;
   overflow: hidden;
   background: var(--tarjeta);
-  margin-top: 10px;
 }
 
 .confianza[hidden] { display: none; }
@@ -352,7 +374,11 @@ main#app {
   color: var(--texto-suave);
   font-size: 14px;
   font-weight: 600;
-  transition: background-color 0.1s ease, color 0.1s ease;
+  transition: transform 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+}
+
+.confianza-opcion:active {
+  transform: scale(0.97);
 }
 
 .confianza-opcion--activa {
@@ -360,37 +386,8 @@ main#app {
   color: #04121a;
 }
 
-/* "¿por qué?" (?): botón cuadrado de verdad, no texto. */
-.boton-accion-cuadrado {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--acento);
-  border-radius: 10px;
-  background: none;
-  color: var(--acento);
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  transition: transform 0.1s ease;
-}
-
-.boton-accion-cuadrado--signo {
-  font-size: 20px;
-  text-transform: none;
-}
-
-.boton-accion-cuadrado:active {
-  transform: scale(0.97);
-}
-
-.boton-accion-cuadrado[hidden] { display: none; }
-
-/* "esta pregunta está mal": queda como texto pequeño y discreto, a la derecha de
-   la fila junto a "?" (es solo para depurar el banco, no es la acción principal). */
+/* "esta pregunta está mal": texto pequeño y discreto (es solo para depurar el
+   banco, no es la acción principal). */
 .enlace-discreto {
   margin-left: auto;
   min-height: 44px;
@@ -420,6 +417,30 @@ main#app {
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.2s ease;
+}
+
+/* ZONA MEDIA: lo que se lee (la tarjeta), centrada verticalmente en el espacio
+   que quede (spec "pantalla completa" 12-sep). Especificidad igual a
+   ".vista > *" (0,1,0): gana por ir después en la hoja, mismo patrón que
+   .resumen-repaso más abajo. */
+.zona-media {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* ZONA DE ACCIÓN: lo que se toca, anclada al borde inferior (donde llega el
+   pulgar). El alto mínimo evita que la tarjeta salte entre preguntas con y sin
+   fila de botones vf. */
+.zona-accion {
+  margin-top: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 114px;
 }
 
 .tarjeta {
@@ -466,10 +487,48 @@ main#app {
   margin: 0;
 }
 
+/* Pista de deslizamiento (vf): chevrones a los lados, siempre visibles; la
+   frase central solo las primeras 5 preguntas vf del dispositivo (ver
+   construirVf en app.js). */
+.pista-swipe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: -2px;
+}
+
+.pista-swipe-texto {
+  flex: 1;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+.pista-swipe-texto[hidden] { display: none; }
+
+.pista-swipe-chevron {
+  flex: none;
+  color: var(--texto-suave);
+  font-size: 16px;
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+
+.pista-swipe-chevron--ok { color: var(--ok); }
+.pista-swipe-chevron--ko { color: var(--ko); }
+
+/* FALSO/VERDADERO viven en la zona de acción (ver #botones-vf-accion en
+   index.html), no en la tarjeta. Igual que .feedback/.vista/.boton-volver:
+   hace falta el override explícito de [hidden], si no la cascada de origen
+   "autor" (este display:flex) gana al "user agent" y el atributo no oculta
+   nada. */
 .botones-vf {
   display: flex;
   gap: 10px;
 }
+
+.botones-vf[hidden] { display: none; }
 
 .botones-vf button {
   flex: 1;
@@ -555,36 +614,28 @@ main#app {
   40%, 60% { transform: translateX(5px); }
 }
 
-/* "Siguiente" siempre alcanzable: pegado abajo aunque la explicación desplegada empuje el resto. */
-.feedback .boton-principal {
-  position: sticky;
-  bottom: calc(8px + env(safe-area-inset-bottom));
-  z-index: 2;
-  box-shadow: 0 -8px 16px var(--fondo);
-}
-
 .feedback {
-  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 /* Fallo previo a este cambio (ya en el código base, no introducido ahora): al
    declarar display:flex aquí, la regla [hidden] del navegador (display:none)
    quedaba sin efecto por precedencia de cascada (origen "autor" gana al "user
    agent" a igual especificidad) y #contenedor-feedback NUNCA llegaba a
-   ocultarse de verdad pese a tener el atributo. Con el feedback como texto
-   discreto pasaba desapercibido; con los botones cuadrados nuevos (IDK/¿?) se
-   veía "Siguiente" y "?" ANTES de responder. Mismo patrón que .vista[hidden]
+   ocultarse de verdad pese a tener el atributo. Mismo patrón que .vista[hidden]
    y .boton-volver[hidden], que ya lo tenían resuelto. */
 .feedback[hidden] { display: none; }
 
 .feedback-texto {
-  font-size: var(--tam-2);
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   margin: 0;
 }
+
+.feedback-texto--ok { color: var(--ok); }
+.feedback-texto--ko { color: var(--ko); }
 
 .feedback-combo {
   color: var(--acento);
@@ -629,19 +680,27 @@ main#app {
 
 .feedback-chip[hidden] { display: none; }
 
-.explicacion, .reportada {
+.reportada {
   color: var(--texto-suave);
   font-size: 14px;
   margin: 0;
 }
 
-/* Explicación compacta: si no cabe, hace scroll interno propio en vez de
-   empujar el resto del feedback (y con él, la vista) fuera de pantalla. */
+/* La explicación se muestra siempre, abierta (spec "pantalla completa"
+   12-sep): texto principal, no suave. Si no cabe en ~5 líneas, hace scroll
+   interno propio en vez de empujar el resto del feedback (y con él, la vista)
+   fuera de pantalla. */
 .explicacion {
-  max-height: 84px;
+  color: var(--texto);
+  font-size: 15px;
+  line-height: 1.45;
+  margin: 0;
+  max-height: 7.25em;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+.explicacion[hidden] { display: none; }
 
 /* --- resumen / progreso --- */
 .vista-resumen {
