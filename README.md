@@ -6,12 +6,12 @@ Proyecto independiente de CT Advisory: repo propio, sin datos de negocio. Conten
 
 **App publicada**: https://carlostorresadvisory.github.io/one/ (GitHub Pages, desde `main`).
 
-## Estado (12-sep-2026, v0 jugable)
+## Estado (13-sep-2026, v0.1c en rama `v0.1c-mazo-vertical`, pendiente de publicar)
 
-- **Qué hay**: PWA instalable desde Safari. Partida de 10 preguntas, 4 mecánicas sin teclado (swipe o botones V/F, test de 4, ordenar por taps, encuentra el error). Escalera adaptativa inmediata (`nivelPartida` 1-5: sube por acierto, baja por fallo, persiste), nivel por área como memoria lenta, repaso espaciado Leitner (1-3-7-14-30 días), racha, XP y combo. Nivel visible en cada tarjeta y en el feedback. Selector de confianza Baja/Media/Alta antes de responder (Alta acertada ×1,5 XP; Baja acertada cuenta pero no consolida; Alta fallada entra en Pendientes con prioridad), "esta pregunta está mal", practicar solo un área desde el hub, exportar/importar el estado. Flujo: inicio 🧠/💪 → hub (radar de 8 áreas, nota S+/S/A/B/C/D por área, KPIs, "Comenzar") → partida; acierto avanza solo en ~1,4 s, fallo muestra la explicación; chip "Recuperada" al acertar algo que fallaste, "Misión de hoy" (3 preguntas de tus 2 áreas flojas) y "Pendientes" en el hub, radar con relleno de conocimiento sólido, carrusel "Para repasar" al final de la partida; ninguna pantalla hace scroll (lo comprueba el e2e). Estado en `localStorage` del dispositivo; no hay servidor.
-- **Banco**: `datos/banco.json`, **323 preguntas verificadas y auditadas** en 8 áreas (economía, historia, ciencia, tecnología, geografía, filosofía, arte, lógica), niveles 1-5. Generadas por modelos gratuitos y verificadas por un segundo modelo de otra familia y auditadas al completo por un tercero (cascada gratis → de pago barato con tope), más revisión manual de los 77 ejercicios de ordenar. 77 rechazadas con motivo en `datos/rechazadas.json`. Coste total de la generación y verificación del 12-sep: 0,023 $.
-- **Verificación**: 121 tests del motor y del pipeline (`npm test`), 2 tests e2e con Playwright a 375×812 (`npm run e2e`) con capturas en `docs/capturas/`, dos pasadas adversariales con modelos gratuitos (motor y UI) con sus objeciones resueltas o declaradas en la sesión.
-- **Pendiente de Carlos**: revisar `docs/revision-muestra-2026-09-12.md` (30 preguntas al azar) para medir la tasa de error real del banco.
+- **Qué hay**: PWA instalable desde Safari. La partida es un **mazo vertical** de 10 tarjetas a pantalla completa: deslizas arriba para la siguiente y abajo para volver; puedes pasar una pregunta y volver a ella; la respuesta queda fija al darla, pero la **confianza** (Baja/Media/Alta, dentro de la tarjeta, tras el enunciado, opcional) se puede cambiar incluso después de responder y recalcula XP y consolidación. 4 mecánicas sin teclado (swipe o botones V/F, test de 4, ordenar por taps, encuentra el error). Al responder, la explicación aparece siempre dentro de la tarjeta (las respuestas se pliegan si no cabe; nunca hay scroll ni cambia el tamaño de letra), con botones **Preguntar a** ChatGPT / Claude / Gemini que abren la web con el prompt ya escrito, e **imagen de Wikimedia Commons** con atribución cuando la pregunta la tiene. Escalera adaptativa (`nivelPartida` 1-5: sube cada 2 aciertos seguidos, baja 1 por fallo), nivel por área, repaso espaciado Leitner (1-3-7-14-30 días), racha, XP y combo. Hub con radar de 8 áreas, nota S+…D, Misión de hoy y Pendientes. El resumen final es otro mazo vertical: cifras, una tarjeta por pregunta fallada o frágil (con Preguntar a e imagen) y Otra partida / Inicio. Estado en `localStorage`; no hay servidor.
+- **Banco**: `datos/banco.json`, **295 preguntas** en 8 áreas, generadas y verificadas con el criterio de utilidad de `tools/criterio.js` (entender el mundo, conversar con criterio, curiosidades memorables, enlace con la actualidad; nada de siglas, puertos, versiones ni fechas sueltas). Renovación del 12-sep: 482 verificadas → fuera 58 duplicadas y 158 de utilidad 1/5; distribución final de utilidad 2: 61 · 3: 39 · 4: 103 · 5: 92. Rechazadas con motivo en `datos/rechazadas.json`; puntuaciones en `datos/utilidad.json`. 105 preguntas con imagen en `datos/imagenes.json`. Coste acumulado del pipeline: < 0,15 $.
+
+- **Pendiente de Carlos**: revisar `docs/revision-utilidad-2026-09-12.md` (3 preguntas nuevas por área con su nota de utilidad) y probar v0.1c en el iPhone cuando esté publicada.
 
 ## Cómo instalarla en el iPhone
 
@@ -54,12 +54,13 @@ Sin `--aplicar` solo informa (no toca disco). Tres pasos, sin ningún dato confi
 - Plan de implementación: `docs/superpowers/plans/2026-09-12-one-v0.md`
 - Análisis del concepto (8-sep) y conversación de origen: `docs/2026-09-08-*.md`
 
-## Siguiente (v0.1, por orden)
+## Siguiente (v0.2, por orden)
 
-1. **Generación continua**: reposición automática por área y nivel cuando el pozo baja de 10 sin responder (con la escalera, ~5 preguntas por nivel y área se agotan en días).
-2. Boss semanal (idea de Carlos: estilo esfinge, por diseñar); FSRS en lugar de Leitner cuando haya datos; exportar las preguntas reportadas para depurar el banco.
+1. **Generación continua e inteligente** (el concepto central): dos modos. *Normal*: el motor pide por detrás preguntas nuevas para las áreas y niveles flojos. *Átomo*: al tocar un área se abre un núcleo con sus subtemas orbitando (primer anillo = hilos de `tools/criterio.js`), se afina anillo a anillo sin teclado y abajo siempre **Generar**. Servidor mínimo en el VPS de IONOS con la clave; **la verificación nunca se salta, se esconde** con un colchón verificado por delante (~30 preguntas) y una sola llamada que devuelve correcta / útil / nivel; mientras se genera, se juega banco o repaso. Detalle en la spec v0.1c §8.
+2. Imágenes: repetir `node tools/buscar-imagenes.js --revalidar --aplicar` cuando los modelos gratis respondan (unas 50 imágenes solo pasaron el filtro de relevancia básico); ampliar cobertura en economía y tecnología con gráficos y mapas.
+3. Boss estilo esfinge (por diseñar con Carlos); FSRS en lugar de Leitner cuando haya datos; extraer `montarMazo`/`ajustarEncaje` de `app.js` (~1.900 líneas) a un módulo propio.
 
-Después: v1 (servidor + Postgres en el VPS, fuentes propias, CUERPO mínimo) y v2 (feed vertical infinito tipo TikTok). Detalle en la spec.
+Después: v1 (servidor + Postgres en el VPS, fuentes propias, CUERPO mínimo) y v2 (feed vertical infinito tipo TikTok; el mazo de v0.1c es su germen). Detalle en la spec.
 
 ## Reglas heredadas
 
