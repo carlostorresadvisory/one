@@ -53,49 +53,12 @@
       <div class="barra-progreso">
         <div class="barra-progreso-relleno" id="barra-progreso-relleno"></div>
       </div>
-      <!-- ZONA MEDIA: lo que se lee. flex:1 centra la tarjeta en el espacio que
-           quede, nunca pegada arriba (spec "pantalla completa" 12-sep). -->
-      <div class="zona-media">
-        <div id="contenedor-pregunta"></div>
-      </div>
-      <!-- ZONA DE ACCIÓN: lo que se toca, anclada abajo (donde llega el pulgar).
-           Antes de responder: confianza (+ FALSO/VERDADERO en vf). Al responder,
-           este mismo espacio pasa a ser el panel de feedback. -->
-      <div class="zona-accion">
-        <div class="confianza-fila" id="confianza-fila">
-          <span class="confianza-etiqueta" data-test="confianza-etiqueta">Confianza</span>
-          <div class="confianza" data-test="confianza" role="group" aria-label="Nivel de confianza">
-            <button type="button" class="confianza-opcion" data-test="confianza-baja" aria-pressed="false">Baja</button>
-            <button type="button" class="confianza-opcion confianza-opcion--activa" data-test="confianza-media" aria-pressed="true">Media</button>
-            <button type="button" class="confianza-opcion" data-test="confianza-alta" aria-pressed="false">Alta</button>
-          </div>
-        </div>
-        <!-- Solo en vf: FALSO/VERDADERO viven aquí (donde llega el pulgar), no en
-             la tarjeta. Se reconstruyen en cada pregunta vf (ver construirVf). -->
-        <div class="botones-vf" id="botones-vf-accion" hidden></div>
-        <div id="contenedor-feedback" class="feedback" hidden>
-          <p id="feedback-texto" class="feedback-texto"></p>
-          <p id="feedback-combo" class="feedback-combo" hidden></p>
-          <p id="cambio-nivel-texto" class="cambio-nivel" data-test="cambio-nivel" hidden></p>
-          <p id="cambio-nivel-area-texto" class="cambio-nivel-area" data-test="cambio-nivel-area" hidden></p>
-          <!-- Chips de feedback compacto: cada uno oculto salvo que aplique (ver
-               mostrarFeedback en app.js). -->
-          <div class="feedback-chips" id="feedback-chips">
-            <span class="feedback-chip" id="chip-recuperada" data-test="recuperada" hidden></span>
-            <span class="feedback-chip" id="chip-alta-fallo" data-test="confianza-alta-fallo" hidden>Estabas seguro → Pendientes</span>
-            <span class="feedback-chip" id="chip-mision-completada" data-test="mision-completada" hidden>Misión completada</span>
-            <span class="feedback-chip" id="chip-fragil" data-test="fragil" hidden>Frágil: volverá pronto</span>
-          </div>
-          <!-- La explicación se muestra siempre, abierta (spec "pantalla completa"
-               12-sep): ya no hace falta el botón "?". -->
-          <p id="explicacion-texto" class="explicacion" hidden></p>
-          <p id="reportada-texto" class="reportada" hidden>Anotado</p>
-          <div class="fila-esta-mal">
-            <button class="enlace-discreto" data-test="esta-mal">esta pregunta está mal</button>
-          </div>
-          <button class="boton boton-principal" data-test="siguiente">Siguiente</button>
-        </div>
-      </div>
+      <!-- MAZO: la tarjeta ES la vista (spec v0.1c §1, §4). Un mazo vertical de
+           hasta 10 huecos, navegable deslizando arriba/abajo; montarMazo() (ver
+           app.js) gestiona el gesto, los puntos laterales, el chevrón y las
+           teclas. Cada tarjeta lleva su propia confianza y su propio feedback:
+           nada de esto vive ya fuera de la tarjeta. -->
+      <div id="mazo" class="mazo" data-test="mazo"></div>
     </section>
 
     <section class="vista vista-resumen" data-vista="resumen" data-test="resumen" hidden>
@@ -157,6 +120,19 @@
       </div>
     </section>
   </main>
+
+  <!-- Plantilla clonada por cada tarjeta del mazo (spec v0.1c §2.3): confianza
+       dentro de la tarjeta, tras el enunciado y antes de las opciones. -->
+  <template id="plantilla-confianza">
+    <div class="confianza-fila">
+      <span class="confianza-etiqueta" data-test="confianza-etiqueta">Confianza</span>
+      <div class="confianza" data-test="confianza" role="group" aria-label="Nivel de confianza">
+        <button type="button" class="confianza-opcion" data-test="confianza-baja" aria-pressed="false">Baja</button>
+        <button type="button" class="confianza-opcion confianza-opcion--activa" data-test="confianza-media" aria-pressed="true">Media</button>
+        <button type="button" class="confianza-opcion" data-test="confianza-alta" aria-pressed="false">Alta</button>
+      </div>
+    </div>
+  </template>
 
   <script type="module" src="app.js"></script>
 </body>

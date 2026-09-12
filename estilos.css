@@ -337,12 +337,15 @@ main#app {
   margin-top: 4px;
 }
 
-/* Fila de confianza: etiqueta a la izquierda, control segmentado ocupando el
-   resto (spec "pantalla completa" 12-sep). */
+/* Fila de confianza (spec v0.1c §2.3): ahora vive DENTRO de cada tarjeta del
+   mazo, tras el enunciado y antes de las opciones (una plantilla clonada por
+   tarjeta, ver plantilla-confianza en index.html / construirFilaConfianza en
+   app.js). Etiqueta a la izquierda, control segmentado ocupando el resto. */
 .confianza-fila {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: none;
 }
 
 .confianza-fila[hidden] { display: none; }
@@ -420,28 +423,17 @@ main#app {
   transition: transform 0.2s ease;
 }
 
-/* ZONA MEDIA: lo que se lee (la tarjeta), centrada verticalmente en el espacio
-   que quede (spec "pantalla completa" 12-sep). Especificidad igual a
-   ".vista > *" (0,1,0): gana por ir después en la hoja, mismo patrón que
-   .resumen-repaso más abajo. */
-.zona-media {
+/* --- Mazo vertical (spec v0.1c §1, §2, §4): la tarjeta ES la vista. #mazo
+   ocupa todo el espacio bajo la barra de progreso; cada .tarjeta-mazo se
+   posiciona en absoluto dentro de él y se desplaza con transform según su
+   posición relativa a la tarjeta actual (ver montarMazo en app.js). Nada
+   dentro del mazo hace scroll: lo que no cabe se pliega (ajustarEncaje). */
+.mazo {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-/* ZONA DE ACCIÓN: lo que se toca, anclada al borde inferior (donde llega el
-   pulgar). El alto mínimo evita que la tarjeta salte entre preguntas con y sin
-   fila de botones vf. */
-.zona-accion {
-  margin-top: auto;
-  padding-bottom: env(safe-area-inset-bottom);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 114px;
+  overflow: hidden;
+  touch-action: none;
 }
 
 .tarjeta {
@@ -452,17 +444,228 @@ main#app {
   flex-direction: column;
   gap: 10px;
   touch-action: pan-y;
-  transition: transform 0.15s ease, opacity 0.15s ease;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
 }
 
+/* Variante posicionada de .tarjeta cuando vive dentro de un mazo (montarMazo
+   añade esta clase a cada nodo que monta, incluida la tarjeta de cierre). */
+.tarjeta-mazo {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.2s var(--ease-suave);
+  padding-bottom: calc(30px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+
+/* Durante el arrastre no hay transición (sigue al dedo 1:1); al soltar, render()
+   la vuelve a activar para el asentamiento de 200ms. */
+.tarjeta-mazo--arrastrando { transition: none; }
+
+/* Solo la tarjeta actual puede tocarse: la anterior/siguiente ya están fuera
+   del área visible (overflow:hidden en #mazo las clipa), esto evita además
+   taps accidentales sobre ellas mientras asoman durante el arrastre. */
+.tarjeta-mazo:not(.tarjeta-mazo--actual) { pointer-events: none; }
+
+/* Columna de puntos del mazo, fija al borde derecho (spec v0.1c §2.2): uno por
+   hueco rellenado, relleno = respondida, aro = sin responder, cian = actual. */
+.mazo-puntos {
+  position: absolute;
+  top: 6px;
+  bottom: 34px;
+  right: 3px;
+  width: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.mazo-punto {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--texto-suave);
+  opacity: 0.55;
+}
+
+.mazo-punto--respondida {
+  background: var(--texto-suave);
+  border-color: var(--texto-suave);
+  opacity: 0.9;
+}
+
+.mazo-punto--actual {
+  background: var(--acento);
+  border-color: var(--acento);
+  opacity: 1;
+}
+
+/* Chevrón fijo bajo la tarjeta mientras exista una siguiente (rellenada o por
+   rellenar), para que el gesto siga indicado después de las 5 primeras
+   tarjetas (spec v0.1c §2.2). Animación sutil, desactivada con "reducir
+   movimiento" (regla general al final de la hoja). */
+.mazo-chevron {
+  position: absolute;
+  left: 50%;
+  bottom: calc(2px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  color: var(--texto-suave);
+  font-size: 15px;
+  line-height: 1;
+  z-index: 2;
+  pointer-events: none;
+  animation: mazo-chevron-flota 1.2s ease-in-out infinite;
+}
+
+.mazo-chevron[hidden] { display: none; }
+
+@keyframes mazo-chevron-flota {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(4px); }
+}
+
+/* Pista vertical (spec v0.1c §2.2): solo las 5 primeras tarjetas de la vida de
+   la app, sustituye a la antigua one.pistaSwipe para el gesto vertical. */
+.pista-mazo {
+  position: absolute;
+  left: 8px;
+  right: 16px;
+  bottom: calc(15px + env(safe-area-inset-bottom));
+  margin: 0;
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 12px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pista-mazo[hidden] { display: none; }
+
+/* Tarjeta de cierre (spec v0.1c §2.4): contenido centrado, sin las zonas de
+   pregunta habituales. */
+.tarjeta-cierre {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.mazo-cierre-titulo {
+  margin: 0;
+  font-size: var(--tam-2);
+  font-weight: 600;
+}
+
+.mazo-cierre-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.mazo-cierre-acciones .boton { min-height: 56px; }
+
+/* "Terminar igual" es un botón secundario DENTRO de una tarjeta (fondo
+   --tarjeta): el fondo por defecto de .boton es ese mismo color, así que sin
+   este ajuste queda sin contraste (texto suelto, sin pastilla visible). */
+.mazo-cierre-acciones .boton:not(.boton-principal) { background: var(--fondo); }
+
 .pregunta-cabecera {
   font-size: 13px;
   color: var(--texto-suave);
   margin: 0;
+  flex: none;
 }
+
+/* Zona de respuesta (spec v0.1c §4.1 punto 4): flex:1 para absorber el espacio
+   libre entre la confianza y el feedback/acción; centrada para que la pista de
+   vf (que no tiene controles propios aquí) no quede pegada arriba. */
+.zona-respuesta {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Zona de acción de CADA tarjeta, anclada a su borde inferior (spec v0.1c
+   §4.1 punto 6): antes de responder, FALSO/VERDADERO en vf; después, "Preguntar
+   a" (ancla vacía, la rellena otra tarea) + "esta pregunta está mal" + Siguiente. */
+.tarjeta-accion {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tarjeta-accion:empty { display: none; }
+
+/* Respuesta ya fija, vista compacta (spec v0.1c §4.1 punto 4: máximo 2 líneas
+   en test4/error, 4 en ordenar, 1 en vf). */
+.respuesta-compacta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.respuesta-compacta-linea {
+  margin: 0;
+  font-size: clamp(13px, 3.7vw, 15px);
+  font-weight: 600;
+}
+
+.respuesta-compacta-linea--ok { color: var(--ok); }
+
+.respuesta-compacta-linea--tachada {
+  color: var(--texto-suave);
+  text-decoration: line-through;
+}
+
+.respuesta-compacta-orden {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.respuesta-compacta-orden li { color: var(--texto); }
+
+/* Resumen a una sola línea (tarjeta--compacta-1, spec v0.1c §4.2): oculto salvo
+   que la tarjeta necesite el hueco de las respuestas para caber. Un toque
+   alterna con la vista completa (ver ajustarEncaje/manejarToqueAlternar). */
+.respuesta-resumen {
+  display: none;
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: clamp(13px, 3.7vw, 15px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- Regla de encaje sin scroll (spec v0.1c §4.2). Los tamaños de fuente NO
+   cambian en ningún paso: solo se pliega qué se ve. */
+.tarjeta--compacta-1 .respuesta-compacta { display: none; }
+.tarjeta--compacta-1 .respuesta-resumen { display: block; }
+.tarjeta--compacta-1 .zona-respuesta { gap: 6px; }
+
+/* Alternancia (un toque en la línea/explicación resumida despliega la otra,
+   nunca las dos a la vez ni scroll). */
+.tarjeta--compacta-1[data-expandido="respuesta"] .respuesta-compacta { display: flex; }
+.tarjeta--compacta-1[data-expandido="respuesta"] .respuesta-resumen { display: none; }
+.tarjeta--compacta-1[data-expandido="respuesta"] .explicacion { display: none; }
+
+.tarjeta--compacta-2[data-expandido="explicacion"] .respuesta-resumen { display: none; }
 
 /* Tipografía fluida (clamp) y recorte elegante a 5 líneas: un enunciado largo
    nunca empuja la vista a hacer scroll. Un toque expande si estaba recortado
@@ -527,11 +730,10 @@ main#app {
 .pista-swipe-chevron--ok { color: var(--ok); }
 .pista-swipe-chevron--ko { color: var(--ko); }
 
-/* FALSO/VERDADERO viven en la zona de acción (ver #botones-vf-accion en
-   index.html), no en la tarjeta. Igual que .feedback/.vista/.boton-volver:
-   hace falta el override explícito de [hidden], si no la cascada de origen
-   "autor" (este display:flex) gana al "user agent" y el atributo no oculta
-   nada. */
+/* FALSO/VERDADERO viven en la zona de acción DE LA PROPIA TARJETA (spec v0.1c
+   §4.1 punto 6, ver construirBotonesVf en app.js), no como fila aparte de la
+   vista. [hidden] no hace falta ya para ocultarlos (se construyen solo cuando
+   aplican), se deja el override por si algún día vuelven a alternar visibilidad. */
 .botones-vf {
   display: flex;
   gap: 10px;
@@ -658,12 +860,12 @@ main#app {
   gap: 8px;
 }
 
-/* Fallo previo a este cambio (ya en el código base, no introducido ahora): al
-   declarar display:flex aquí, la regla [hidden] del navegador (display:none)
-   quedaba sin efecto por precedencia de cascada (origen "autor" gana al "user
-   agent" a igual especificidad) y #contenedor-feedback NUNCA llegaba a
-   ocultarse de verdad pese a tener el atributo. Mismo patrón que .vista[hidden]
-   y .boton-volver[hidden], que ya lo tenían resuelto. */
+/* El bloque de feedback ahora se construye ya poblado dentro de cada tarjeta
+   respondida (construirBloqueFeedback en app.js) y no se oculta nunca tras
+   crearse, pero se deja el override [hidden] por el mismo motivo que
+   .vista[hidden]/.boton-volver[hidden]: con display:flex declarado arriba, la
+   regla del navegador (display:none) no ganaría por sí sola si algún día
+   volviera a alternarse. */
 .feedback[hidden] { display: none; }
 
 .feedback-texto {
@@ -674,6 +876,16 @@ main#app {
 
 .feedback-texto--ok { color: var(--ok); }
 .feedback-texto--ko { color: var(--ko); }
+
+/* Animación breve al cambiar la confianza tras responder (spec v0.1c §2.3):
+   el número de XP se recalcula y se nota, sin desplazar nada más. */
+.feedback-texto--pulso { animation: feedback-pulso 0.3s var(--ease-suave); }
+
+@keyframes feedback-pulso {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
 
 .feedback-combo {
   color: var(--acento);
@@ -724,21 +936,30 @@ main#app {
   margin: 0;
 }
 
-/* La explicación se muestra siempre, abierta (spec "pantalla completa"
-   12-sep): texto principal, no suave. Si no cabe en ~5 líneas, hace scroll
-   interno propio en vez de empujar el resto del feedback (y con él, la vista)
-   fuera de pantalla. */
+/* La explicación se muestra siempre, abierta: texto principal, no suave,
+   tipografía fluida (spec v0.1c §4.1 punto 5). Ninguna tarjeta hace scroll: si
+   no cabe, ajustarEncaje() (app.js) la recorta con line-clamp en vez de dejarla
+   desbordar (spec v0.1c §4.2, tarjeta--compacta-2); un toque la muestra entera
+   alternando con la línea de respuesta resumida. */
 .explicacion {
   color: var(--texto);
-  font-size: 15px;
+  font-size: clamp(13px, 3.7vw, 16px);
   line-height: 1.45;
   margin: 0;
-  max-height: 7.25em;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .explicacion[hidden] { display: none; }
+
+.tarjeta--compacta-2 .explicacion {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tarjeta--compacta-2[data-expandido="explicacion"] .explicacion {
+  -webkit-line-clamp: unset !important;
+  overflow: visible;
+}
 
 /* --- resumen / progreso --- */
 .vista-resumen {

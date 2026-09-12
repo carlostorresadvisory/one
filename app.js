@@ -4,6 +4,7 @@ import {
   crearEstado,
   siguientePregunta,
   registrarRespuesta,
+  cambiarConfianza,
   actualizarRacha,
   resumenProgreso,
   pendientes,
@@ -47,23 +48,27 @@ let estado = cargarEstado(hoy());
 let banco = [];
 let bancoPorId = new Map();
 
-// La partida ya no es una lista fija de 10 ids: se pide una pregunta a la vez a
-// siguientePregunta() (escalera inmediata) hasta llegar a 10 o hasta que no quede
-// ninguna elegible. `partidaUltima` es la última pregunta ya respondida, para que
-// el motor pueda variar tipo/área; `partidaUsados` son los ids ya servidos hoy.
-let preguntaEnPantalla = null;
+// --- mazo de la partida en curso (spec v0.1c §2.1) ---
+// `mazo` son los huecos ya alcanzados, en orden; máximo N_PARTIDA. Un hueco se
+// rellena la PRIMERA VEZ que se llega a él con siguientePregunta(...): así la
+// selección sigue dependiendo de lo respondido hasta ese momento. `indiceMazo`
+// es la tarjeta visible (puede ser también la tarjeta de cierre, un índice más
+// allá del último hueco real). `partidaUltima` es la última pregunta YA
+// RESPONDIDA (no la última rellenada: ver rellenarHueco), para que el motor
+// pueda seguir variando tipo/área. `nodoCierre` es la tarjeta de cierre (2.4)
+// cuando aplica; `bancoAgotado` evita reintentar siguientePregunta en vano
+// cuando ya ha devuelto null una vez en esta partida.
+let mazo = [];
+let indiceMazo = 0;
 let partidaUsados = new Set();
 let partidaUltima = null;
-let indicePartida = 0;
-let xpPartida = 0;
-let aciertosPartida = 0;
-let areasPartida = new Set();
-let reportadaEnActual = false;
-// Nivel de confianza declarado en la pregunta actual (selector de 3 segmentos,
-// "que se note" 12-sep): se reinicia a 'media' en cada pregunta.
-let confianzaActual = 'media';
-// Preguntas falladas o acertadas con confianza Baja ("frágil") de la partida en
-// curso, en orden de aparición: alimentan el carrusel "Para repasar" del resumen.
+let bancoAgotado = false;
+let nodoCierre = null;
+let mazoControlador = null;
+// "Para repasar" del resumen (falladas o acertadas con confianza Baja de la
+// partida que acaba de terminar): se recalcula en finalizarPartida() a partir
+// del mazo completo, así que refleja también un cambio de confianza hecho
+// justo antes de terminar. Task 3 lo reutiliza para el mazo de repaso.
 let repasoPartida = [];
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
@@ -71,32 +76,21 @@ let repasoPartida = [];
 // ("←" o "Inicio"); "Otra" en el resumen lo respeta para repetir el mismo filtro.
 let filtroPartida = null;
 
+// Mazos activos (partida y, más adelante, el del repaso): registro mínimo para
+// que window.__one.irA() (solo con ?test=1) alcance al que esté visible.
+const mazosActivos = [];
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
-// Selector de confianza (sustituye a IDK): 3 segmentos + la fila (etiqueta +
-// control) que se oculta entera al responder (el propio control, data-test
-// "confianza", no necesita referencia propia: solo se leen sus 3 segmentos).
-const nodoConfianzaFila = document.getElementById('confianza-fila');
-const nodoConfianzaBaja = document.querySelector('[data-test="confianza-baja"]');
-const nodoConfianzaMedia = document.querySelector('[data-test="confianza-media"]');
-const nodoConfianzaAlta = document.querySelector('[data-test="confianza-alta"]');
-// FALSO/VERDADERO (vf): viven en la zona de acción, no en la tarjeta (spec
-// "pantalla completa" 12-sep). Se reconstruyen en cada pregunta vf (construirVf).
-const nodoBotonesVfAccion = document.getElementById('botones-vf-accion');
-// Chips de feedback compacto: cada uno se muestra solo si aplica (ver mostrarFeedback).
-const chipRecuperada = document.getElementById('chip-recuperada');
-const chipAltaFallo = document.getElementById('chip-alta-fallo');
-const chipMisionCompletada = document.getElementById('chip-mision-completada');
-const chipFragil = document.getElementById('chip-fragil');
+const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
+const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
 // grande" y visibles sin tener que fijarse en la esquina.
 const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
 const nodoNivelInicio = document.querySelector('[data-test="nivel-inicio"]');
-const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
-const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
@@ -106,16 +100,8 @@ const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
 const nodoMision = document.querySelector('[data-test="mision"]');
 const nodoPendientes = document.querySelector('[data-test="pendientes"]');
 const vistas = document.querySelectorAll('[data-vista]');
-const contenedorPregunta = document.getElementById('contenedor-pregunta');
-const contenedorFeedback = document.getElementById('contenedor-feedback');
+const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
-const feedbackTexto = document.getElementById('feedback-texto');
-const botonSiguiente = document.querySelector('[data-test="siguiente"]');
-const feedbackCombo = document.getElementById('feedback-combo');
-const cambioNivelTexto = document.getElementById('cambio-nivel-texto');
-const cambioNivelAreaTexto = document.getElementById('cambio-nivel-area-texto');
-const explicacionTexto = document.getElementById('explicacion-texto');
-const reportadaTexto = document.getElementById('reportada-texto');
 const resumenAciertos = document.getElementById('resumen-aciertos');
 const resumenXp = document.getElementById('resumen-xp');
 const resumenAreas = document.getElementById('resumen-areas');
@@ -124,6 +110,7 @@ const repasoPuntos = document.getElementById('repaso-puntos');
 const repasoVacio = document.getElementById('repaso-vacio');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
+const plantillaConfianza = document.getElementById('plantilla-confianza');
 
 function mostrarVista(nombre) {
   vistas.forEach((v) => {
@@ -279,7 +266,13 @@ function vistaActual() {
  * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
 function limpiarPartidaEnCurso() {
   filtroPartida = null;
-  preguntaEnPantalla = null;
+  if (mazoControlador) {
+    mazoControlador.destruir();
+    mazoControlador = null;
+  }
+  mazo = [];
+  indiceMazo = 0;
+  nodoCierre = null;
   actualizarCabecera();
 }
 
@@ -329,7 +322,327 @@ async function iniciar() {
   mostrarVista('inicio');
 }
 
+// ============================================================================
+// --- MAZO: componente vertical reutilizable (spec v0.1c §1, §2.2, §6) ---
+// Monta un mazo vertical sobre una lista de nodos de tarjeta YA CONSTRUIDOS:
+// gestiona el gesto (pointerdown/move/up), las teclas (↑/↓, PageUp/PageDown),
+// la columna de puntos, el chevrón y la pista, y la ventana de 3 nodos en el
+// DOM (anterior/actual/siguiente). No sabe nada de preguntas ni de motor: la
+// partida (más abajo) y, en la siguiente tarea, el repaso, son quienes deciden
+// QUÉ tarjetas hay y cuándo hace falta una más (a través de `alCambiar` y
+// `actualizarTarjetas`). `test=1` en la URL expone window.__one.irA(indice)
+// sobre el mazo que esté visible en cada momento.
+// ============================================================================
+
+const CLAVE_PISTA_MAZO = 'one.pistaMazo';
+const LIMITE_PISTA_MAZO = 5;
+
+function contarPistaMazoMostrada() {
+  try {
+    return Number(localStorage.getItem(CLAVE_PISTA_MAZO)) || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+function registrarPistaMazoMostrada(veces) {
+  try {
+    localStorage.setItem(CLAVE_PISTA_MAZO, String(veces));
+  } catch (err) {
+    // Sin contador persistente la pista se ve siempre: mejor de más que de menos.
+  }
+}
+
+function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
+  let lista = tarjetasIniciales.slice();
+  let indice = 0;
+  let pistaVisibleActual = true;
+
+  const puntos = document.createElement('div');
+  puntos.className = 'mazo-puntos';
+  puntos.dataset.test = 'mazo-puntos';
+  contenedor.appendChild(puntos);
+
+  const chevron = document.createElement('div');
+  chevron.className = 'mazo-chevron';
+  chevron.dataset.test = 'mazo-siguiente-chevron';
+  chevron.textContent = '⌃';
+  chevron.setAttribute('aria-hidden', 'true');
+  contenedor.appendChild(chevron);
+
+  const pista = document.createElement('p');
+  pista.className = 'pista-mazo';
+  pista.dataset.test = 'pista-mazo';
+  pista.textContent = 'Desliza ↑ para la siguiente · ↓ para volver';
+  contenedor.appendChild(pista);
+
+  function estaVisible() {
+    const vista = contenedor.closest('.vista');
+    return Boolean(vista && !vista.hidden);
+  }
+
+  function pintarPuntos() {
+    puntos.innerHTML = '';
+    lista.forEach((nodo, i) => {
+      const punto = document.createElement('span');
+      punto.className = 'mazo-punto';
+      const respondida = Boolean(nodo.dataset && nodo.dataset.respondida === 'true');
+      punto.classList.toggle('mazo-punto--respondida', respondida);
+      punto.classList.toggle('mazo-punto--actual', i === indice);
+      puntos.appendChild(punto);
+    });
+  }
+
+  function pintarChevronYPista() {
+    const hayMas = indice + 1 < lista.length;
+    chevron.hidden = !hayMas;
+    pista.hidden = !hayMas || !pistaVisibleActual;
+  }
+
+  /** Se llama una vez por cada índice NUEVO mostrado (no en cada render): decide
+   * si esta vista cuenta para el límite de 5 y avanza el contador persistente. */
+  function contarVistaParaPista() {
+    const vistas = contarPistaMazoMostrada();
+    pistaVisibleActual = vistas < LIMITE_PISTA_MAZO;
+    registrarPistaMazoMostrada(vistas + 1);
+  }
+
+  function render(conTransicion) {
+    const enDom = new Set(contenedor.querySelectorAll('.tarjeta-mazo'));
+    for (let offset = -1; offset <= 1; offset += 1) {
+      const i = indice + offset;
+      if (i < 0 || i >= lista.length) continue;
+      const nodo = lista[i];
+      nodo.classList.add('tarjeta-mazo');
+      nodo.classList.toggle('tarjeta-mazo--actual', offset === 0);
+      nodo.classList.toggle('tarjeta-mazo--arrastrando', !conTransicion);
+      nodo.dataset.indice = String(i);
+      // +-1px de margen sobre el 100% exacto: dos cajas con inset:0 en el mismo
+      // contenedor deberían medir idéntico, pero el redondeo a píxel de
+      // dispositivo puede dejarlas a un pixel de distancia y asomar un borde de
+      // la vecina (visto en captura, 430×932). Un pixel extra las esconde del
+      // todo sin que se note el desplazamiento.
+      const colchon = offset === 0 ? 0 : offset > 0 ? 1 : -1;
+      nodo.style.transform = `translateY(calc(${offset * 100}% + ${colchon}px))`;
+      if (nodo.parentElement !== contenedor) contenedor.insertBefore(nodo, puntos);
+      enDom.delete(nodo);
+      ajustarEncaje(nodo);
+    }
+    // Solo se mantienen en el DOM la actual, la anterior y la siguiente (spec
+    // v0.1c §2.2): el resto se retira.
+    enDom.forEach((nodo) => nodo.remove());
+    pintarPuntos();
+    pintarChevronYPista();
+  }
+
+  function animarRebote(sentido) {
+    const nodo = lista[indice];
+    if (!nodo) return;
+    const desplazamiento = sentido === 'abajo' ? 14 : -14;
+    nodo.classList.remove('tarjeta-mazo--arrastrando');
+    nodo.style.transform = `translateY(${desplazamiento}px)`;
+    setTimeout(() => {
+      nodo.style.transform = 'translateY(0)';
+    }, 110);
+  }
+
+  function intentarIr(nuevo) {
+    if (nuevo < 0) {
+      animarRebote('abajo');
+      return;
+    }
+    if (nuevo >= lista.length) {
+      animarRebote('arriba');
+      return;
+    }
+    if (nuevo === indice) return;
+    indice = nuevo;
+    contarVistaParaPista();
+    render(true);
+    if (alCambiar) alCambiar(indice);
+  }
+
+  // --- gesto vertical sobre el propio contenedor (nunca sobre botones) ---
+  const UMBRAL_PX = 60;
+  const UMBRAL_VELOCIDAD = 0.5; // px/ms
+  const ARRANQUE = 10;
+  let gesto = null; // { id, x, y, capturado, ultimaY, ultimoT }
+  let deltaYActual = 0;
+  let velocidadActual = 0;
+
+  function alPointerDown(ev) {
+    if (ev.target.closest('button')) return;
+    gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, capturado: false, ultimaY: ev.clientY, ultimoT: performance.now() };
+    deltaYActual = 0;
+    velocidadActual = 0;
+  }
+
+  function alPointerMove(ev) {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    const dx = ev.clientX - gesto.x;
+    const dy = ev.clientY - gesto.y;
+    if (!gesto.capturado) {
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > ARRANQUE) {
+        gesto.capturado = true;
+        try { contenedor.setPointerCapture(ev.pointerId); } catch (err) { /* ya liberado */ }
+      } else if (Math.abs(dx) > ARRANQUE) {
+        // Horizontal dominante: no es el gesto del mazo (vf lo captura por su cuenta).
+        gesto = null;
+        return;
+      } else {
+        return;
+      }
+    }
+    const ahora = performance.now();
+    const dt = ahora - gesto.ultimoT;
+    if (dt > 0) velocidadActual = (ev.clientY - gesto.ultimaY) / dt;
+    gesto.ultimoT = ahora;
+    gesto.ultimaY = ev.clientY;
+    deltaYActual = dy;
+
+    const actual = lista[indice];
+    if (actual) {
+      actual.classList.add('tarjeta-mazo--arrastrando');
+      actual.style.transform = `translateY(${dy}px)`;
+    }
+    const vecino = dy < 0 ? lista[indice + 1] : lista[indice - 1];
+    if (vecino) {
+      vecino.classList.add('tarjeta-mazo--arrastrando');
+      const base = dy < 0 ? 100 : -100;
+      vecino.style.transform = `translateY(calc(${base}% + ${dy}px))`;
+    }
+  }
+
+  function alPointerFin(ev) {
+    if (!gesto || ev.pointerId !== gesto.id) return;
+    const fueCapturado = gesto.capturado;
+    gesto = null;
+    if (!fueCapturado) return;
+    const dy = deltaYActual;
+    const v = velocidadActual;
+    deltaYActual = 0;
+    if (dy < -UMBRAL_PX || v < -UMBRAL_VELOCIDAD) {
+      intentarIr(indice + 1);
+    } else if (dy > UMBRAL_PX || v > UMBRAL_VELOCIDAD) {
+      intentarIr(indice - 1);
+    } else {
+      render(true); // vuelve a la posición de reposo
+    }
+  }
+
+  contenedor.addEventListener('pointerdown', alPointerDown);
+  contenedor.addEventListener('pointermove', alPointerMove);
+  contenedor.addEventListener('pointerup', alPointerFin);
+  contenedor.addEventListener('pointercancel', alPointerFin);
+
+  function alKeydown(ev) {
+    if (!estaVisible()) return;
+    if (ev.key === 'ArrowUp' || ev.key === 'PageUp') {
+      ev.preventDefault();
+      intentarIr(indice + 1);
+    } else if (ev.key === 'ArrowDown' || ev.key === 'PageDown') {
+      ev.preventDefault();
+      intentarIr(indice - 1);
+    }
+  }
+  document.addEventListener('keydown', alKeydown);
+
+  function destruir() {
+    document.removeEventListener('keydown', alKeydown);
+    contenedor.removeEventListener('pointerdown', alPointerDown);
+    contenedor.removeEventListener('pointermove', alPointerMove);
+    contenedor.removeEventListener('pointerup', alPointerFin);
+    contenedor.removeEventListener('pointercancel', alPointerFin);
+    contenedor.innerHTML = '';
+    const pos = mazosActivos.indexOf(controlador);
+    if (pos !== -1) mazosActivos.splice(pos, 1);
+  }
+
+  const controlador = {
+    irA: intentarIr,
+    siguiente: () => intentarIr(indice + 1),
+    anterior: () => intentarIr(indice - 1),
+    indiceActual: () => indice,
+    total: () => lista.length,
+    actualizarTarjetas(nuevaLista) {
+      lista = nuevaLista.slice();
+      if (indice > lista.length - 1) indice = Math.max(0, lista.length - 1);
+      render(true);
+    },
+    reajustar() { render(true); },
+    estaVisible,
+    destruir,
+  };
+  mazosActivos.push(controlador);
+  contarVistaParaPista();
+  render(true);
+  // OJO: alCambiar NO se llama aquí en el montaje inicial (a diferencia de cada
+  // intentarIr posterior): quien llama a montarMazo todavía no tiene asignada su
+  // propia referencia al controlador devuelto (p. ej. `mazoControlador = montarMazo(...)`
+  // no se habrá completado), así que un alCambiar síncrono aquí vería esa
+  // referencia a `null`. El propio llamador dispara su lógica de arranque (p. ej.
+  // asegurarSiguienteDisponible) explícitamente después de recibir el controlador.
+  return controlador;
+}
+
+window.addEventListener('resize', () => {
+  mazosActivos.forEach((m) => m.reajustar());
+});
+window.addEventListener('orientationchange', () => {
+  mazosActivos.forEach((m) => m.reajustar());
+});
+
+if (new URLSearchParams(location.search).get('test') === '1') {
+  window.__one = {
+    irA(indice) {
+      const activo = mazosActivos.find((m) => m.estaVisible());
+      if (activo) activo.irA(indice);
+    },
+  };
+}
+
+/**
+ * Regla de encaje sin scroll (spec v0.1c §4.2). Ninguna tarjeta hace scroll ni
+ * cambia tamaños de letra: lo que cede espacio es la respuesta ya fija y, si
+ * aún no basta, la explicación (recortada con line-clamp calculado). Se llama
+ * tras cada render del mazo y en resize/orientationchange.
+ */
+function ajustarEncaje(tarjetaNodo) {
+  if (!tarjetaNodo) return;
+  tarjetaNodo.classList.remove('tarjeta--compacta-1', 'tarjeta--compacta-2');
+  delete tarjetaNodo.dataset.expandido;
+  const explicacionEl = tarjetaNodo.querySelector('.explicacion');
+  if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
+
+  if (tarjetaNodo.scrollHeight <= tarjetaNodo.clientHeight + 2) return;
+
+  // Paso 1: la respuesta compacta se reduce a una sola línea.
+  tarjetaNodo.classList.add('tarjeta--compacta-1');
+  if (tarjetaNodo.scrollHeight <= tarjetaNodo.clientHeight + 2) return;
+
+  // Paso 2: si aún no cabe, la explicación se recorta a las líneas que quepan.
+  tarjetaNodo.classList.add('tarjeta--compacta-2');
+  if (!explicacionEl) return;
+  const estilo = window.getComputedStyle(explicacionEl);
+  const lineHeight = parseFloat(estilo.lineHeight) || 18;
+  const restoAltura = tarjetaNodo.scrollHeight - explicacionEl.scrollHeight;
+  const alturaLibre = tarjetaNodo.clientHeight - restoAltura;
+  const lineas = Math.max(1, Math.floor(alturaLibre / lineHeight));
+  explicacionEl.style.webkitLineClamp = String(lineas);
+}
+
+/** Alterna, dentro de una tarjeta compactada, cuál de las dos piezas (respuesta
+ * completa / explicación completa) se ve entera — nunca las dos, nunca scroll
+ * (spec v0.1c §4.2). */
+function alternarEncaje(tarjetaNodo, cual) {
+  const actual = tarjetaNodo.dataset.expandido || '';
+  tarjetaNodo.dataset.expandido = actual === cual ? '' : cual;
+}
+
+// ============================================================================
 // --- flujo de partida ---
+// ============================================================================
+
 /** `filtro` opcional arranca una partida restringida:
  * - `{ area }`: solo esa área ("Practicar" desde el hub).
  * - `{ ids, etiqueta }`: solo esos ids, en ese orden, sin relleno (Misión de hoy
@@ -343,35 +656,147 @@ function empezarPartida(filtro = null) {
   } else {
     filtroPartida = null;
   }
-  indicePartida = 0;
-  xpPartida = 0;
-  aciertosPartida = 0;
-  areasPartida = new Set();
-  repasoPartida = [];
+  if (mazoControlador) {
+    mazoControlador.destruir();
+    mazoControlador = null;
+  }
+  mazo = [];
+  indiceMazo = 0;
   partidaUsados = new Set();
   partidaUltima = null;
-  preguntaEnPantalla = null;
+  bancoAgotado = false;
+  nodoCierre = null;
+  repasoPartida = [];
   actualizarCabecera(); // pinta "Solo <Área>" / "Misión de hoy" / "Pendientes" desde la primera pregunta.
   mostrarVista('pregunta');
-  avanzarPregunta();
+
+  contenedorMazo.innerHTML = '';
+  const primerHueco = rellenarHueco(0);
+  if (!primerHueco) {
+    // Banco vacío desde el principio (filtro sin nada elegible): defensivo, no
+    // debería pasar con los filtros que ofrece el hub.
+    finalizarPartida();
+    return;
+  }
+  actualizarBarraProgreso();
+  mazoControlador = montarMazo(contenedorMazo, listaActual(), { alCambiar: manejarCambioIndiceMazo });
+  manejarCambioIndiceMazo(0); // dispara el pre-relleno inicial (ver nota en montarMazo).
 }
 
-/** Pide la siguiente pregunta al motor (o termina la partida si no queda ninguna). */
-function avanzarPregunta() {
-  if (indicePartida >= N_PARTIDA) {
-    finalizarPartida();
-    return;
-  }
+/** Nodos que forman el mazo ahora mismo: uno por hueco (en su estado actual) y,
+ * si aplica, la tarjeta de cierre al final. Única fuente de verdad para lo que
+ * ve montarMazo: cualquier cambio se empuja con mazoControlador.actualizarTarjetas(). */
+function listaActual() {
+  const lista = mazo.map((h) => h.nodo);
+  if (nodoCierre) lista.push(nodoCierre);
+  return lista;
+}
+
+function actualizarBarraProgreso() {
+  const respondidas = mazo.filter((h) => h.respondida).length;
+  barraProgresoRelleno.style.transform = `scaleX(${respondidas / N_PARTIDA})`;
+}
+
+/** Rellena el hueco `i` la primera vez que se llega a él (spec v0.1c §2.1): solo
+ * avanza en orden (no se pueden "saltar" huecos) y usa `partidaUltima` (la
+ * última pregunta YA RESPONDIDA) para la variedad de tipo/área del motor. */
+function rellenarHueco(i) {
+  if (mazo[i]) return mazo[i];
+  if (i !== mazo.length || bancoAgotado) return null;
   const pregunta = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
   if (!pregunta) {
-    // Banco agotado (reportadas/usadas incluidas): se termina con las que haya.
-    finalizarPartida();
-    return;
+    bancoAgotado = true;
+    return null;
   }
   partidaUsados.add(pregunta.id);
-  preguntaEnPantalla = pregunta;
-  renderPreguntaActual(pregunta);
+  const hueco = {
+    pregunta,
+    confianza: 'media',
+    respondida: false,
+    respuesta: null,
+    correcta: null,
+    delta: null,
+    reportada: false,
+    nodo: null,
+  };
+  hueco.nodo = construirTarjetaSinResponder(hueco);
+  mazo.push(hueco);
+  return hueco;
 }
+
+/** Mantiene siempre una tarjeta más disponible que la que se está viendo:
+ * rellena el siguiente hueco si aún cabe en N_PARTIDA, o decide si hace falta
+ * la tarjeta de cierre (huecos agotados/banco agotado con pendientes) o si ya
+ * no hace falta nada más (todas respondidas: el botón Siguiente de la última
+ * lleva directo al resumen). Se llama tras cada cambio de índice y tras cada
+ * respuesta. */
+function asegurarSiguienteDisponible() {
+  if (listaActual().length <= indiceMazo + 1) {
+    if (mazo.length < N_PARTIDA && !bancoAgotado) {
+      if (rellenarHueco(mazo.length)) {
+        mazoControlador.actualizarTarjetas(listaActual());
+        return;
+      }
+    }
+  }
+  const hayHuecos = mazo.length > 0;
+  const puedeCerrar = hayHuecos && (mazo.length >= N_PARTIDA || bancoAgotado);
+  const todasRespondidas = hayHuecos && mazo.every((h) => h.respondida);
+  if (puedeCerrar && !todasRespondidas && !nodoCierre) {
+    nodoCierre = construirTarjetaCierre();
+    mazoControlador.actualizarTarjetas(listaActual());
+  } else if (todasRespondidas && nodoCierre) {
+    nodoCierre = null;
+    mazoControlador.actualizarTarjetas(listaActual());
+  }
+}
+
+function manejarCambioIndiceMazo(nuevoIndice) {
+  indiceMazo = nuevoIndice;
+  asegurarSiguienteDisponible();
+  actualizarBarraProgreso();
+}
+
+/** "Siguiente" (botón, en cada tarjeta ya respondida) y también el destino del
+ * gesto/tecla cuando ya no queda ninguna tarjeta más que mostrar: si la hay,
+ * navega; si no (las N_PARTIDA están respondidas, sin cierre), termina. */
+function irASiguienteHueco() {
+  const total = listaActual().length;
+  if (indiceMazo + 1 < total) {
+    mazoControlador.irA(indiceMazo + 1);
+  } else {
+    finalizarPartida();
+  }
+}
+
+function finalizarPartida() {
+  estado = actualizarRacha(estado, hoy());
+  guardarEstado(estado);
+  actualizarCabecera();
+
+  const respondidas = mazo.filter((h) => h.respondida);
+  const totalPreguntas = respondidas.length;
+  const aciertos = respondidas.filter((h) => h.correcta).length;
+  const xpTotal = respondidas.reduce((suma, h) => suma + h.delta.xp, 0);
+  const areas = new Set(respondidas.map((h) => h.pregunta.area));
+  // "Para repasar": falladas, o acertadas con confianza Baja (frágiles). Se
+  // recalcula aquí (no se acumula sobre la marcha) para reflejar también los
+  // cambios de confianza hechos en cualquier momento de la partida.
+  repasoPartida = respondidas
+    .filter((h) => !h.correcta || h.delta.fragil)
+    .map((h) => ({ pregunta: h.pregunta, correcta: h.correcta }));
+
+  animarConteo(resumenAciertos, 'Aciertos: ', aciertos, `/${totalPreguntas}`);
+  animarConteo(resumenXp, 'XP ganado: ', xpTotal);
+  resumenAreas.textContent = `Áreas: ${[...areas].join(', ') || '—'}`;
+
+  renderRepaso();
+  mostrarVista('resumen');
+}
+
+// ============================================================================
+// --- construcción de tarjetas ---
+// ============================================================================
 
 function construirCabeceraPregunta(pregunta) {
   const cabecera = document.createElement('p');
@@ -381,242 +806,132 @@ function construirCabeceraPregunta(pregunta) {
   return cabecera;
 }
 
-function renderPreguntaActual(pregunta) {
-  preguntaRespondida = false;
+// Enunciado genérico del banco para "encuentra el error": cuando es exactamente
+// este, la tarjeta muestra en su lugar la instrucción corta "Toca la fila que
+// está mal"; si el banco trae uno propio, se respeta tal cual.
+const ENUNCIADO_ERROR_GENERICO = 'Encuentra el dato erróneo en la tarjeta.';
 
-  barraProgresoRelleno.style.transform = `scaleX(${indicePartida / N_PARTIDA})`;
-  contenedorFeedback.hidden = true;
-  feedbackCombo.hidden = true;
-  cambioNivelTexto.hidden = true;
-  cambioNivelAreaTexto.hidden = true;
-  explicacionTexto.hidden = true;
-  reportadaTexto.hidden = true;
-  reportadaEnActual = false;
-  chipRecuperada.hidden = true;
-  chipAltaFallo.hidden = true;
-  chipMisionCompletada.hidden = true;
-  chipFragil.hidden = true;
+/** Bloque de enunciado (spec v0.1c §4.1 punto 2): en "error" incluye además el
+ * título de la tarjeta antes del enunciado/instrucción. Un solo `<p class="enunciado">`
+ * en el resto de tipos. */
+function construirBloqueEnunciado(pregunta) {
+  const frag = document.createDocumentFragment();
+  if (pregunta.tipo === 'error') {
+    const titulo = document.createElement('p');
+    titulo.className = 'titulo-tarjeta';
+    titulo.textContent = pregunta.tarjeta.titulo;
+    frag.appendChild(titulo);
+  }
+  const enunciado = document.createElement('p');
+  if (pregunta.tipo === 'error' && pregunta.enunciado === ENUNCIADO_ERROR_GENERICO) {
+    enunciado.className = 'instruccion-error';
+    enunciado.textContent = 'Toca la fila que está mal';
+  } else if (pregunta.tipo === 'ordenar') {
+    enunciado.className = 'enunciado';
+    // El banco suele traer ya la instrucción completa ("Ordena estos…"): no duplicarla.
+    enunciado.textContent = /^ordena/i.test(pregunta.enunciado.trim())
+      ? pregunta.enunciado
+      : `Ordena ${pregunta.criterio}: ${pregunta.enunciado}`;
+  } else {
+    enunciado.className = 'enunciado';
+    enunciado.textContent = pregunta.enunciado;
+  }
+  frag.appendChild(enunciado);
+  return frag;
+}
 
-  // Selector de confianza: Media por defecto en cada pregunta, visible de nuevo.
-  seleccionarConfianza('media');
-  nodoConfianzaFila.hidden = false;
-  // Los botones vf se reconstruyen desde cero en construirVf; en cualquier otro
-  // tipo la fila se queda vacía y oculta (solo confianza en la zona de acción).
-  nodoBotonesVfAccion.hidden = true;
-  nodoBotonesVfAccion.innerHTML = '';
-
-  contenedorPregunta.innerHTML = '';
-  const tarjeta = construirTarjetaPregunta(pregunta);
-  tarjeta.insertBefore(construirCabeceraPregunta(pregunta), tarjeta.firstChild);
-  contenedorPregunta.appendChild(tarjeta);
-
-  // Enunciado recortado a 5 líneas (CSS): un toque lo expande. stopPropagation
-  // evita que el toque se propague más allá (p. ej. al gesto de swipe de la tarjeta).
+/** Enunciado recortado a 5 líneas (CSS): un toque lo expande. stopPropagation
+ * evita que el toque se propague al gesto de arrastre del mazo. */
+function activarToqueEnunciado(tarjeta) {
   const enunciadoEl = tarjeta.querySelector('.enunciado');
-  if (enunciadoEl) {
-    enunciadoEl.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      enunciadoEl.classList.toggle('enunciado--expandido');
-    });
+  if (!enunciadoEl) return;
+  enunciadoEl.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    enunciadoEl.classList.toggle('enunciado--expandido');
+    ajustarEncaje(tarjeta);
+  });
+}
+
+/** Fila de confianza (spec v0.1c §2.3): clonada de la plantilla, con su propio
+ * segmentado. Antes de responder cambia hueco.confianza sin más; después de
+ * responder, cada cambio recorrige la respuesta ya registrada vía
+ * cambiarConfianza() del motor. */
+function construirFilaConfianza(hueco) {
+  const nodo = plantillaConfianza.content.firstElementChild.cloneNode(true);
+  const opciones = {
+    baja: nodo.querySelector('[data-test="confianza-baja"]'),
+    media: nodo.querySelector('[data-test="confianza-media"]'),
+    alta: nodo.querySelector('[data-test="confianza-alta"]'),
+  };
+  function pintar(valor) {
+    for (const [clave, boton] of Object.entries(opciones)) {
+      const activo = clave === valor;
+      boton.classList.toggle('confianza-opcion--activa', activo);
+      boton.setAttribute('aria-pressed', String(activo));
+    }
+  }
+  pintar(hueco.confianza);
+  for (const [clave, boton] of Object.entries(opciones)) {
+    boton.addEventListener('click', () => manejarClicConfianza(hueco, clave, pintar));
+  }
+  return nodo;
+}
+
+function manejarClicConfianza(hueco, valor, pintarLocal) {
+  hueco.confianza = valor;
+  pintarLocal(valor);
+  if (!hueco.respondida) return;
+  if (valor === hueco.delta.confianza) return; // sin cambios reales
+  const resultado = cambiarConfianza(estado, hueco.pregunta, hueco.delta, valor, hoy());
+  estado = resultado.estado;
+  guardarEstado(estado);
+  hueco.delta = resultado.delta;
+  actualizarCabecera();
+  if (hueco.nodo) {
+    const feedbackNodo = hueco.nodo.querySelector('.feedback');
+    if (feedbackNodo) pintarFeedback(feedbackNodo, hueco.pregunta, hueco.correcta, hueco.delta);
+    ajustarEncaje(hueco.nodo);
   }
 }
 
-/** Selecciona un segmento de confianza (Baja/Media/Alta): actualiza el estado
- * interno y el aria-pressed/clase visual de los 3 botones. */
-function seleccionarConfianza(valor) {
-  confianzaActual = valor;
-  const nodos = { baja: nodoConfianzaBaja, media: nodoConfianzaMedia, alta: nodoConfianzaAlta };
-  for (const [clave, nodo] of Object.entries(nodos)) {
-    const activo = clave === valor;
-    nodo.classList.toggle('confianza-opcion--activa', activo);
-    nodo.setAttribute('aria-pressed', String(activo));
-  }
-}
+// --- tarjeta SIN responder (por tipo) ---
 
-function construirTarjetaPregunta(pregunta) {
+function construirZonaRespuesta(hueco) {
+  const pregunta = hueco.pregunta;
+  const contenedor = document.createElement('div');
+  contenedor.className = 'zona-respuesta';
   switch (pregunta.tipo) {
     case 'vf':
-      return construirVf(pregunta);
+      // Nada aquí (spec v0.1c §4.1 punto 4): la pista de deslizamiento vive
+      // junto a FALSO/VERDADERO, en la zona de acción anclada abajo, para que
+      // el hueco vacío del medio no quede aislado del control que describe.
+      break;
     case 'test4':
-      return construirTest4(pregunta);
+      contenedor.appendChild(construirOpcionesTest4(hueco));
+      break;
     case 'ordenar':
-      return construirOrdenar(pregunta);
+      contenedor.appendChild(construirItemsOrdenar(hueco));
+      break;
     case 'error':
-      return construirError(pregunta);
+      contenedor.appendChild(construirFilasError(hueco));
+      break;
     default:
       throw new Error(`Tipo de pregunta desconocido: ${pregunta.tipo}`);
   }
+  return contenedor;
 }
 
-function crearTarjetaBase() {
-  const tarjeta = document.createElement('div');
-  tarjeta.className = 'tarjeta';
-  return tarjeta;
-}
-
-// Pista de deslizamiento (vf): los chevrones se quedan siempre; la frase solo
-// las primeras 5 preguntas vf del dispositivo (contador en localStorage).
-const CLAVE_PISTA_SWIPE = 'one.pistaSwipe';
-const LIMITE_PISTA_SWIPE = 5;
-
-function contarPistaSwipeMostrada() {
-  try {
-    return Number(localStorage.getItem(CLAVE_PISTA_SWIPE)) || 0;
-  } catch (err) {
-    return 0;
-  }
-}
-
-function registrarPistaSwipeMostrada(veces) {
-  try {
-    localStorage.setItem(CLAVE_PISTA_SWIPE, String(veces));
-  } catch (err) {
-    // localStorage no disponible: sin contador persistente, la pista se ve siempre
-    // (mejor de más que de menos).
-  }
-}
-
-function construirVf(pregunta) {
-  const tarjeta = crearTarjetaBase();
-  tarjeta.id = 'tarjeta-vf';
-
-  const enunciado = document.createElement('p');
-  enunciado.className = 'enunciado';
-  enunciado.textContent = pregunta.enunciado;
-  tarjeta.appendChild(enunciado);
-
-  const vecesMostrada = contarPistaSwipeMostrada();
-  const pista = document.createElement('div');
-  pista.className = 'pista-swipe';
-  pista.dataset.test = 'pista-swipe';
-
-  const chevronIzq = document.createElement('span');
-  chevronIzq.className = 'pista-swipe-chevron pista-swipe-chevron--izq';
-  chevronIzq.textContent = '‹';
-  chevronIzq.setAttribute('aria-hidden', 'true');
-
-  const textoPista = document.createElement('span');
-  textoPista.className = 'pista-swipe-texto';
-  textoPista.textContent = 'Desliza la tarjeta o toca';
-  textoPista.hidden = vecesMostrada >= LIMITE_PISTA_SWIPE;
-
-  const chevronDer = document.createElement('span');
-  chevronDer.className = 'pista-swipe-chevron pista-swipe-chevron--der';
-  chevronDer.textContent = '›';
-  chevronDer.setAttribute('aria-hidden', 'true');
-
-  pista.appendChild(chevronIzq);
-  pista.appendChild(textoPista);
-  pista.appendChild(chevronDer);
-  tarjeta.appendChild(pista);
-  registrarPistaSwipeMostrada(vecesMostrada + 1);
-
-  activarSwipeVf(tarjeta, pregunta);
-
-  // FALSO/VERDADERO viven en la zona de acción (donde llega el pulgar), no en
-  // la tarjeta: se reconstruyen en cada pregunta vf.
-  nodoBotonesVfAccion.innerHTML = '';
-
-  const falso = document.createElement('button');
-  falso.className = 'boton-ko';
-  falso.dataset.test = 'vf-falso';
-  falso.textContent = 'FALSO';
-  falso.addEventListener('click', () => manejarRespuesta(pregunta, false));
-
-  const verdadero = document.createElement('button');
-  verdadero.className = 'boton-ok';
-  verdadero.dataset.test = 'vf-verdadero';
-  verdadero.textContent = 'VERDADERO';
-  verdadero.addEventListener('click', () => manejarRespuesta(pregunta, true));
-
-  nodoBotonesVfAccion.appendChild(falso);
-  nodoBotonesVfAccion.appendChild(verdadero);
-  nodoBotonesVfAccion.hidden = false;
-
-  return tarjeta;
-}
-
-function activarSwipeVf(tarjeta, pregunta) {
-  const UMBRAL = 60;
-  let activo = false;
-  let inicioX = 0;
-  let deltaX = 0;
-
-  const ARRANQUE = 8; // px de movimiento antes de considerar que es un swipe y no un tap
-  let capturado = false;
-
-  const chevronIzq = tarjeta.querySelector('.pista-swipe-chevron--izq');
-  const chevronDer = tarjeta.querySelector('.pista-swipe-chevron--der');
-
-  /** Tiñe el chevrón del lado hacia el que se arrastra de ko/ok, como ya hace
-   * la tarjeta (delta=0 limpia los dos, al soltar o cancelar). */
-  function tenirChevrones(delta) {
-    if (!chevronIzq || !chevronDer) return;
-    chevronIzq.classList.toggle('pista-swipe-chevron--ko', delta < 0);
-    chevronDer.classList.toggle('pista-swipe-chevron--ok', delta > 0);
-  }
-
-  tarjeta.addEventListener('pointerdown', (ev) => {
-    // Un toque que empieza en un botón es del botón, no del gesto: si la tarjeta
-    // capturase el puntero, el click no llegaría a FALSO/VERDADERO.
-    if (ev.target.closest('button')) return;
-    activo = true;
-    capturado = false;
-    inicioX = ev.clientX;
-    deltaX = 0;
-  });
-
-  tarjeta.addEventListener('pointermove', (ev) => {
-    if (!activo) return;
-    deltaX = ev.clientX - inicioX;
-    if (!capturado && Math.abs(deltaX) > ARRANQUE) {
-      // Solo se captura el puntero cuando ya es un arrastre: un tap simple nunca lo secuestra.
-      capturado = true;
-      tarjeta.setPointerCapture(ev.pointerId);
-    }
-    if (capturado) {
-      tarjeta.style.transform = `translateX(${deltaX}px)`;
-      tenirChevrones(deltaX);
-    }
-  });
-
-  function soltar() {
-    if (!activo) return;
-    activo = false;
-    tarjeta.style.transform = '';
-    tenirChevrones(0);
-    if (deltaX >= UMBRAL) {
-      manejarRespuesta(pregunta, true);
-    } else if (deltaX <= -UMBRAL) {
-      manejarRespuesta(pregunta, false);
-    }
-    deltaX = 0;
-  }
-
-  tarjeta.addEventListener('pointerup', soltar);
-  tarjeta.addEventListener('pointercancel', soltar);
-}
-
-function construirTest4(pregunta) {
-  const tarjeta = crearTarjetaBase();
-
-  const enunciado = document.createElement('p');
-  enunciado.className = 'enunciado';
-  enunciado.textContent = pregunta.enunciado;
-  tarjeta.appendChild(enunciado);
-
+function construirOpcionesTest4(hueco) {
   const opciones = document.createElement('div');
   opciones.className = 'opciones';
-  pregunta.opciones.forEach((texto, i) => {
+  hueco.pregunta.opciones.forEach((texto, i) => {
     const boton = document.createElement('button');
     boton.dataset.test = `opcion-${i}`;
     boton.textContent = texto;
-    boton.addEventListener('click', () => manejarRespuesta(pregunta, i));
+    boton.addEventListener('click', () => manejarRespuesta(hueco, i));
     opciones.appendChild(boton);
   });
-  tarjeta.appendChild(opciones);
-
-  return tarjeta;
+  return opciones;
 }
 
 function barajar(indices) {
@@ -628,26 +943,16 @@ function barajar(indices) {
   return copia;
 }
 
-function construirOrdenar(pregunta) {
-  const tarjeta = crearTarjetaBase();
-
-  const enunciado = document.createElement('p');
-  enunciado.className = 'enunciado';
-  // El banco suele traer ya la instrucción completa ("Ordena estos…"): no duplicarla.
-  enunciado.textContent = /^ordena/i.test(pregunta.enunciado.trim())
-    ? pregunta.enunciado
-    : `Ordena ${pregunta.criterio}: ${pregunta.enunciado}`;
-  tarjeta.appendChild(enunciado);
-
+function construirItemsOrdenar(hueco) {
+  const pregunta = hueco.pregunta;
   const contenedorItems = document.createElement('div');
   contenedorItems.className = 'items';
 
   const ordenMostrado = barajar(pregunta.items.map((_, i) => i));
   const seleccion = []; // índices originales, en el orden en que se han tocado
 
-  const botones = ordenMostrado.map((indiceOriginal, posicion) => {
+  const botones = ordenMostrado.map((indiceOriginal) => {
     const boton = document.createElement('button');
-    boton.dataset.test = `item-${posicion}`;
     boton.dataset.original = String(indiceOriginal);
 
     const texto = document.createElement('span');
@@ -661,6 +966,12 @@ function construirOrdenar(pregunta) {
     boton.appendChild(numero);
     contenedorItems.appendChild(boton);
     return boton;
+  });
+
+  // El e2e clica por índice de posición mostrada (data-test="item-N"): se
+  // asigna tras barajar, en el orden en que quedan los botones en el DOM.
+  botones.forEach((boton, posicion) => {
+    boton.dataset.test = `item-${posicion}`;
   });
 
   function renumerar() {
@@ -692,39 +1003,16 @@ function construirOrdenar(pregunta) {
       seleccion.push(original);
       renumerar();
       if (seleccion.length === pregunta.items.length) {
-        manejarRespuesta(pregunta, [...seleccion]);
+        manejarRespuesta(hueco, [...seleccion]);
       }
     });
   });
 
-  tarjeta.appendChild(contenedorItems);
-  return tarjeta;
+  return contenedorItems;
 }
 
-// Enunciado genérico del banco para "encuentra el error": cuando es exactamente
-// este, la tarjeta muestra en su lugar la instrucción corta "Toca la fila que
-// está mal" (spec "pantalla completa" 12-sep); si el banco trae uno propio, se
-// respeta tal cual.
-const ENUNCIADO_ERROR_GENERICO = 'Encuentra el dato erróneo en la tarjeta.';
-
-function construirError(pregunta) {
-  const tarjeta = crearTarjetaBase();
-
-  const titulo = document.createElement('p');
-  titulo.className = 'titulo-tarjeta';
-  titulo.textContent = pregunta.tarjeta.titulo;
-  tarjeta.appendChild(titulo);
-
-  const enunciado = document.createElement('p');
-  if (pregunta.enunciado === ENUNCIADO_ERROR_GENERICO) {
-    enunciado.className = 'instruccion-error';
-    enunciado.textContent = 'Toca la fila que está mal';
-  } else {
-    enunciado.className = 'enunciado';
-    enunciado.textContent = pregunta.enunciado;
-  }
-  tarjeta.appendChild(enunciado);
-
+function construirFilasError(hueco) {
+  const pregunta = hueco.pregunta;
   const filas = document.createElement('div');
   filas.className = 'filas';
   pregunta.tarjeta.filas.forEach((fila, i) => {
@@ -741,58 +1029,264 @@ function construirError(pregunta) {
 
     boton.appendChild(etiqueta);
     boton.appendChild(valor);
-    boton.addEventListener('click', () => manejarRespuesta(pregunta, i));
+    boton.addEventListener('click', () => manejarRespuesta(hueco, i));
     filas.appendChild(boton);
   });
-  tarjeta.appendChild(filas);
+  return filas;
+}
+
+function construirBotonesVf(hueco) {
+  const contenedor = document.createElement('div');
+  contenedor.className = 'botones-vf';
+
+  const falso = document.createElement('button');
+  falso.className = 'boton-ko';
+  falso.dataset.test = 'vf-falso';
+  falso.textContent = 'FALSO';
+  falso.addEventListener('click', () => manejarRespuesta(hueco, false));
+
+  const verdadero = document.createElement('button');
+  verdadero.className = 'boton-ok';
+  verdadero.dataset.test = 'vf-verdadero';
+  verdadero.textContent = 'VERDADERO';
+  verdadero.addEventListener('click', () => manejarRespuesta(hueco, true));
+
+  contenedor.appendChild(falso);
+  contenedor.appendChild(verdadero);
+  return contenedor;
+}
+
+// Pista de deslizamiento horizontal (vf): los chevrones se quedan siempre; el
+// texto se acorta a "‹ Falso · Verdadero ›" (spec v0.1c §2.2) y solo se ve las
+// primeras 5 preguntas vf del dispositivo (contador propio, sin tocar).
+const CLAVE_PISTA_SWIPE_VF = 'one.pistaSwipe';
+const LIMITE_PISTA_SWIPE_VF = 5;
+
+function contarPistaSwipeVfMostrada() {
+  try {
+    return Number(localStorage.getItem(CLAVE_PISTA_SWIPE_VF)) || 0;
+  } catch (err) {
+    return 0;
+  }
+}
+
+function registrarPistaSwipeVfMostrada(veces) {
+  try {
+    localStorage.setItem(CLAVE_PISTA_SWIPE_VF, String(veces));
+  } catch (err) {
+    // Sin contador persistente: la pista se ve siempre (mejor de más que de menos).
+  }
+}
+
+function construirPistaSwipeVf() {
+  const vecesMostrada = contarPistaSwipeVfMostrada();
+  const pista = document.createElement('div');
+  pista.className = 'pista-swipe';
+  pista.dataset.test = 'pista-swipe';
+
+  const chevronIzq = document.createElement('span');
+  chevronIzq.className = 'pista-swipe-chevron pista-swipe-chevron--izq';
+  chevronIzq.textContent = '‹';
+  chevronIzq.setAttribute('aria-hidden', 'true');
+
+  const textoPista = document.createElement('span');
+  textoPista.className = 'pista-swipe-texto';
+  textoPista.textContent = 'Falso · Verdadero';
+  textoPista.hidden = vecesMostrada >= LIMITE_PISTA_SWIPE_VF;
+
+  const chevronDer = document.createElement('span');
+  chevronDer.className = 'pista-swipe-chevron pista-swipe-chevron--der';
+  chevronDer.textContent = '›';
+  chevronDer.setAttribute('aria-hidden', 'true');
+
+  pista.appendChild(chevronIzq);
+  pista.appendChild(textoPista);
+  pista.appendChild(chevronDer);
+  registrarPistaSwipeVfMostrada(vecesMostrada + 1);
+  return pista;
+}
+
+/** Swipe horizontal de vf (spec v0.1c §2.2: "las tarjetas vf conservan su swipe
+ * horizontal"). Comparte tarjeta con el gesto vertical del mazo: cada uno solo
+ * captura el puntero cuando su eje domina, así se dejan paso sin pisarse. */
+function activarSwipeVf(tarjeta, hueco) {
+  const UMBRAL = 60;
+  const ARRANQUE = 8;
+  let activo = false;
+  let inicioX = 0;
+  let inicioY = 0;
+  let deltaX = 0;
+  let capturado = false;
+
+  const chevronIzq = tarjeta.querySelector('.pista-swipe-chevron--izq');
+  const chevronDer = tarjeta.querySelector('.pista-swipe-chevron--der');
+
+  function tenirChevrones(delta) {
+    if (!chevronIzq || !chevronDer) return;
+    chevronIzq.classList.toggle('pista-swipe-chevron--ko', delta < 0);
+    chevronDer.classList.toggle('pista-swipe-chevron--ok', delta > 0);
+  }
+
+  tarjeta.addEventListener('pointerdown', (ev) => {
+    if (ev.target.closest('button')) return;
+    activo = true;
+    capturado = false;
+    inicioX = ev.clientX;
+    inicioY = ev.clientY;
+    deltaX = 0;
+  });
+
+  tarjeta.addEventListener('pointermove', (ev) => {
+    if (!activo) return;
+    deltaX = ev.clientX - inicioX;
+    const deltaY = ev.clientY - inicioY;
+    if (!capturado) {
+      // Solo se captura cuando el arrastre es horizontal Y ya supera el arranque:
+      // un gesto vertical (el del mazo) o un tap simple nunca lo secuestran.
+      if (Math.abs(deltaX) > ARRANQUE && Math.abs(deltaX) > Math.abs(deltaY)) {
+        capturado = true;
+        tarjeta.setPointerCapture(ev.pointerId);
+      } else {
+        return;
+      }
+    }
+    tarjeta.style.transform = `translateX(${deltaX}px)`;
+    tenirChevrones(deltaX);
+  });
+
+  function soltar() {
+    if (!activo) return;
+    activo = false;
+    tarjeta.style.transform = '';
+    tenirChevrones(0);
+    if (capturado) {
+      if (deltaX >= UMBRAL) manejarRespuesta(hueco, true);
+      else if (deltaX <= -UMBRAL) manejarRespuesta(hueco, false);
+    }
+    deltaX = 0;
+    capturado = false;
+  }
+
+  tarjeta.addEventListener('pointerup', soltar);
+  tarjeta.addEventListener('pointercancel', soltar);
+}
+
+/** Tarjeta de un hueco todavía sin responder: cabecera, enunciado, confianza
+ * (opcional, Media por defecto), zona de respuesta según tipo y, en vf, los
+ * botones FALSO/VERDADERO anclados abajo. */
+function construirTarjetaSinResponder(hueco) {
+  const pregunta = hueco.pregunta;
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta';
+  tarjeta.dataset.test = 'tarjeta';
+  tarjeta.dataset.respondida = 'false';
+
+  tarjeta.appendChild(construirCabeceraPregunta(pregunta));
+  tarjeta.appendChild(construirBloqueEnunciado(pregunta));
+  tarjeta.appendChild(construirFilaConfianza(hueco));
+  tarjeta.appendChild(construirZonaRespuesta(hueco));
+
+  const zonaAccion = document.createElement('div');
+  zonaAccion.className = 'tarjeta-accion';
+  if (pregunta.tipo === 'vf') {
+    zonaAccion.appendChild(construirPistaSwipeVf());
+    zonaAccion.appendChild(construirBotonesVf(hueco));
+  }
+  tarjeta.appendChild(zonaAccion);
+
+  if (pregunta.tipo === 'vf') activarSwipeVf(tarjeta, hueco);
+  activarToqueEnunciado(tarjeta);
 
   return tarjeta;
 }
 
-/** Tras responder una pregunta "error": tiñe la fila correcta de ok y, si el
- * jugador se equivocó, también la fila elegida de ko (spec "pantalla completa"
- * 12-sep: "la fila elegida/correcta tras responder"). */
-function marcarFilasError(pregunta, respuestaIndice) {
-  const tarjeta = contenedorPregunta.querySelector('.tarjeta');
-  if (!tarjeta) return;
-  const filas = tarjeta.querySelectorAll('.filas button');
-  filas.forEach((boton, i) => {
-    boton.classList.remove('fila-ok', 'fila-ko');
-    if (i === pregunta.sospechoso) boton.classList.add('fila-ok');
-    else if (i === respuestaIndice) boton.classList.add('fila-ko');
-  });
-}
+// --- tarjeta YA respondida (reutilizable por el repaso, Task 3) ---
 
-let preguntaRespondida = false;
-
-function manejarRespuesta(pregunta, respuesta) {
-  // Guarda contra doble tap / doble evento sobre la misma pregunta.
-  if (preguntaRespondida) return;
-  preguntaRespondida = true;
-  const correcta = evaluar(pregunta, respuesta);
-  if (pregunta.tipo === 'error') marcarFilasError(pregunta, respuesta);
-  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: confianzaActual });
-  aplicarResultado(pregunta, resultado, correcta);
-}
-
-/** Aplica el resultado de registrarRespuesta a la sesión de UI: guarda estado,
- * actualiza contadores de la partida (incluido "Para repasar") y pinta el feedback. */
-function aplicarResultado(pregunta, resultado, correcta) {
-  estado = resultado.estado;
-  guardarEstado(estado);
-  actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo, no solo al volver a Inicio.
-
-  xpPartida += resultado.delta.xp;
-  if (correcta) aciertosPartida += 1;
-  areasPartida.add(pregunta.area);
-
-  // "Para repasar" del resumen: falladas, o acertadas con confianza Baja (frágiles,
-  // delta.fragil ya implica correcta === true: en un fallo el motor siempre lo deja en false).
-  if (!correcta || resultado.delta.fragil) {
-    repasoPartida.push({ pregunta, correcta });
+/** Respuesta ya fija en su forma compacta (spec v0.1c §4.1 punto 4): vf una
+ * línea; test4/error la fila correcta con ✓ y, si falló, la suya tachada
+ * encima; ordenar la lista completa numerada con ✓/✗ por posición. */
+function construirRespuestaCompacta(pregunta, hueco) {
+  const contenedor = document.createElement('div');
+  contenedor.className = 'respuesta-compacta';
+  switch (pregunta.tipo) {
+    case 'vf': {
+      const linea = document.createElement('p');
+      linea.className = 'respuesta-compacta-linea';
+      linea.textContent = hueco.correcta
+        ? `Tu respuesta: ${hueco.respuesta ? 'Verdadero' : 'Falso'} ✓`
+        : `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+      linea.classList.add(hueco.correcta ? 'respuesta-compacta-linea--ok' : 'respuesta-compacta-linea--tachada');
+      contenedor.appendChild(linea);
+      break;
+    }
+    case 'test4': {
+      if (!hueco.correcta) {
+        const tuya = document.createElement('p');
+        tuya.className = 'respuesta-compacta-linea respuesta-compacta-linea--tachada';
+        tuya.textContent = `${pregunta.opciones[hueco.respuesta]} ✗`;
+        contenedor.appendChild(tuya);
+      }
+      const correcta = document.createElement('p');
+      correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
+      correcta.textContent = `${pregunta.opciones[pregunta.correcta]} ✓`;
+      contenedor.appendChild(correcta);
+      break;
+    }
+    case 'error': {
+      if (!hueco.correcta) {
+        const tuya = document.createElement('p');
+        tuya.className = 'respuesta-compacta-linea respuesta-compacta-linea--tachada';
+        tuya.textContent = `${pregunta.tarjeta.filas[hueco.respuesta].etiqueta} ✗`;
+        contenedor.appendChild(tuya);
+      }
+      const correcta = document.createElement('p');
+      correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
+      correcta.textContent = `${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta} ✓`;
+      contenedor.appendChild(correcta);
+      break;
+    }
+    case 'ordenar': {
+      const lista = document.createElement('ol');
+      lista.className = 'respuesta-compacta-orden';
+      const respuestaUsuario = Array.isArray(hueco.respuesta) ? hueco.respuesta : [];
+      pregunta.items.forEach((texto, posicion) => {
+        const li = document.createElement('li');
+        const marca = respuestaUsuario[posicion] === posicion ? '✓' : '✗';
+        li.textContent = `${texto} ${marca}`;
+        lista.appendChild(li);
+      });
+      contenedor.appendChild(lista);
+      break;
+    }
+    default:
+      break;
   }
+  return contenedor;
+}
 
-  mostrarFeedback(pregunta, correcta, resultado.delta);
+/** Resumen a una sola línea de la respuesta (tarjeta--compacta-1, spec v0.1c
+ * §4.2): siempre la respuesta CORRECTA (no la del jugador), para que quepa en
+ * una línea sea cual sea el resultado. */
+function construirResumenRespuesta(pregunta) {
+  const p = document.createElement('p');
+  p.className = 'respuesta-resumen';
+  switch (pregunta.tipo) {
+    case 'vf':
+      p.textContent = `Respuesta: ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+      break;
+    case 'test4':
+      p.textContent = `Respuesta: ${pregunta.opciones[pregunta.correcta]}`;
+      break;
+    case 'error':
+      p.textContent = `Respuesta: ${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta}`;
+      break;
+    case 'ordenar':
+      p.textContent = `Orden: ${pregunta.items.join(' › ')}`;
+      break;
+    default:
+      break;
+  }
+  return p;
 }
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -803,7 +1297,7 @@ function formatearFechaCorta(fechaISO) {
   return `${dia} ${MESES_CORTOS[mes - 1]}`;
 }
 
-/** Respuesta correcta como texto, para la tarjeta del carrusel "Para repasar". */
+/** Respuesta correcta como texto (para el carrusel "Para repasar" del resumen). */
 function respuestaCorrectaTexto(pregunta) {
   switch (pregunta.tipo) {
     case 'vf':
@@ -819,100 +1313,277 @@ function respuestaCorrectaTexto(pregunta) {
   }
 }
 
-function mostrarFeedback(pregunta, correcta, delta) {
-  // Ya se ha respondido: la zona de acción pasa a ser el panel de feedback.
-  nodoConfianzaFila.hidden = true;
-  nodoBotonesVfAccion.hidden = true;
-
-  const tarjeta = contenedorPregunta.querySelector('.tarjeta');
-  if (tarjeta) {
-    tarjeta.classList.remove('correcto', 'incorrecto');
-    tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
-  }
-
-  let textoResultado = correcta ? `✓ +${delta.xp} XP` : '✗ Incorrecto';
-  if (correcta && delta.confianza === 'alta') textoResultado += ' · confianza alta ×1,5';
-  feedbackTexto.textContent = textoResultado;
+/** Construye (o repinta, si se le pasa un nodo ya existente) el bloque de
+ * resultado + chips: resultado ("✓ +N XP" / "✗ Incorrecto"), combo, cambio de
+ * nivel, chips (Recuperada/Estabas seguro/Misión completada/Frágil). */
+function pintarFeedback(feedbackNodo, pregunta, correcta, delta) {
+  const feedbackTexto = feedbackNodo.querySelector('[data-test="feedback-texto"]');
+  let texto = correcta ? `✓ +${delta.xp} XP` : '✗ Incorrecto';
+  if (correcta && delta.confianza === 'alta') texto += ' · confianza alta ×1,5';
+  feedbackTexto.textContent = texto;
   feedbackTexto.classList.toggle('feedback-texto--ok', correcta);
   feedbackTexto.classList.toggle('feedback-texto--ko', !correcta);
+  // Animación breve al (re)pintar (spec v0.1c §2.3: se nota al cambiar la confianza).
+  feedbackTexto.classList.remove('feedback-texto--pulso');
+  void feedbackTexto.offsetWidth;
+  feedbackTexto.classList.add('feedback-texto--pulso');
 
-  if (delta.combo >= 3) {
-    feedbackCombo.hidden = false;
-    feedbackCombo.textContent = `Combo ×${delta.combo}`;
-  } else {
-    feedbackCombo.hidden = true;
-  }
+  const combo = feedbackNodo.querySelector('[data-test="feedback-combo"]');
+  combo.hidden = !(delta.combo >= 3);
+  if (!combo.hidden) combo.textContent = `Combo ×${delta.combo}`;
 
-  // Escalera inmediata: se ve subir o bajar en cada respuesta.
+  const cambioNivel = feedbackNodo.querySelector('[data-test="cambio-nivel"]');
   if (delta.cambioNivelPartida > 0) {
-    cambioNivelTexto.hidden = false;
-    cambioNivelTexto.textContent = `Nivel ${delta.nivelPartida} ↑`;
-    cambioNivelTexto.classList.remove('cambio-nivel-bajada');
-    cambioNivelTexto.classList.add('cambio-nivel-subida');
+    cambioNivel.hidden = false;
+    cambioNivel.textContent = `Nivel ${delta.nivelPartida} ↑`;
+    cambioNivel.classList.remove('cambio-nivel-bajada');
+    cambioNivel.classList.add('cambio-nivel-subida');
   } else if (delta.cambioNivelPartida < 0) {
-    cambioNivelTexto.hidden = false;
-    cambioNivelTexto.textContent = `Nivel ${delta.nivelPartida} ↓`;
-    cambioNivelTexto.classList.remove('cambio-nivel-subida');
-    cambioNivelTexto.classList.add('cambio-nivel-bajada');
+    cambioNivel.hidden = false;
+    cambioNivel.textContent = `Nivel ${delta.nivelPartida} ↓`;
+    cambioNivel.classList.remove('cambio-nivel-subida');
+    cambioNivel.classList.add('cambio-nivel-bajada');
   } else {
-    cambioNivelTexto.hidden = true;
+    cambioNivel.hidden = true;
   }
 
-  // Nivel por área (más lento, solo se anuncia cuando de verdad cambia).
+  const cambioNivelArea = feedbackNodo.querySelector('[data-test="cambio-nivel-area"]');
   if (delta.cambioNivelArea !== 0) {
-    cambioNivelAreaTexto.hidden = false;
+    cambioNivelArea.hidden = false;
     const nombreAreaTexto = nombreArea(pregunta.area);
-    cambioNivelAreaTexto.textContent = delta.cambioNivelArea > 0
+    cambioNivelArea.textContent = delta.cambioNivelArea > 0
       ? `${nombreAreaTexto} sube a nivel ${delta.nivelArea}`
       : `${nombreAreaTexto} baja a nivel ${delta.nivelArea}`;
   } else {
-    cambioNivelAreaTexto.hidden = true;
+    cambioNivelArea.hidden = true;
   }
 
-  // Chips compactos (spec "que se note"): cada uno solo si aplica.
   const hayRecuperada = Boolean(delta.recuperada);
+  const chipRecuperada = feedbackNodo.querySelector('[data-test="recuperada"]');
   chipRecuperada.hidden = !hayRecuperada;
   if (hayRecuperada) {
     chipRecuperada.textContent = `Recuperada · la fallaste el ${formatearFechaCorta(delta.recuperada.fechaFallo)}`;
   }
-  chipAltaFallo.hidden = !(delta.confianza === 'alta' && !correcta);
-  chipMisionCompletada.hidden = !delta.misionCompletada;
-  chipFragil.hidden = !delta.fragil;
-
-  // La explicación se muestra siempre, abierta (spec "pantalla completa" 12-sep):
-  // ya no hace falta pedirla con "?", ni al acertar ni al fallar.
-  explicacionTexto.hidden = false;
-  explicacionTexto.textContent = pregunta.explicacion;
-  reportadaTexto.hidden = true;
-
-  contenedorFeedback.hidden = false;
+  feedbackNodo.querySelector('[data-test="confianza-alta-fallo"]').hidden = !(delta.confianza === 'alta' && !correcta);
+  feedbackNodo.querySelector('[data-test="mision-completada"]').hidden = !delta.misionCompletada;
+  feedbackNodo.querySelector('[data-test="fragil"]').hidden = !delta.fragil;
 }
 
-// El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
-// no gastar batería (hallazgo bajo de la pasada adversarial).
-document.addEventListener('visibilitychange', () => {
-  for (const luz of document.querySelectorAll('.fondo-luz')) {
-    luz.style.animationPlayState = document.hidden ? 'paused' : 'running';
+/** Esqueleto del bloque de feedback (resultado, chips, explicación): se pinta
+ * una vez con pintarFeedback() y queda listo para repintarse tras un cambio de
+ * confianza (manejarClicConfianza). */
+function construirBloqueFeedback(pregunta, hueco) {
+  const feedback = document.createElement('div');
+  feedback.className = 'feedback';
+
+  const feedbackTexto = document.createElement('p');
+  feedbackTexto.className = 'feedback-texto';
+  feedbackTexto.dataset.test = 'feedback-texto';
+  feedback.appendChild(feedbackTexto);
+
+  const combo = document.createElement('p');
+  combo.className = 'feedback-combo';
+  combo.dataset.test = 'feedback-combo';
+  combo.hidden = true;
+  feedback.appendChild(combo);
+
+  const cambioNivel = document.createElement('p');
+  cambioNivel.className = 'cambio-nivel';
+  cambioNivel.dataset.test = 'cambio-nivel';
+  cambioNivel.hidden = true;
+  feedback.appendChild(cambioNivel);
+
+  const cambioNivelArea = document.createElement('p');
+  cambioNivelArea.className = 'cambio-nivel-area';
+  cambioNivelArea.dataset.test = 'cambio-nivel-area';
+  cambioNivelArea.hidden = true;
+  feedback.appendChild(cambioNivelArea);
+
+  const chips = document.createElement('div');
+  chips.className = 'feedback-chips';
+  const chipRecuperada = document.createElement('span');
+  chipRecuperada.className = 'feedback-chip';
+  chipRecuperada.dataset.test = 'recuperada';
+  chipRecuperada.hidden = true;
+  const chipAltaFallo = document.createElement('span');
+  chipAltaFallo.className = 'feedback-chip';
+  chipAltaFallo.dataset.test = 'confianza-alta-fallo';
+  chipAltaFallo.textContent = 'Estabas seguro → Pendientes';
+  chipAltaFallo.hidden = true;
+  const chipMision = document.createElement('span');
+  chipMision.className = 'feedback-chip';
+  chipMision.dataset.test = 'mision-completada';
+  chipMision.textContent = 'Misión completada';
+  chipMision.hidden = true;
+  const chipFragil = document.createElement('span');
+  chipFragil.className = 'feedback-chip';
+  chipFragil.dataset.test = 'fragil';
+  chipFragil.textContent = 'Frágil: volverá pronto';
+  chipFragil.hidden = true;
+  chips.append(chipRecuperada, chipAltaFallo, chipMision, chipFragil);
+  feedback.appendChild(chips);
+
+  const explicacion = document.createElement('p');
+  explicacion.className = 'explicacion';
+  explicacion.dataset.test = 'explicacion';
+  explicacion.textContent = pregunta.explicacion;
+  explicacion.addEventListener('click', (ev) => {
+    const tarjeta = explicacion.closest('.tarjeta');
+    if (!tarjeta || !tarjeta.classList.contains('tarjeta--compacta-2')) return;
+    ev.stopPropagation();
+    alternarEncaje(tarjeta, 'explicacion');
+  });
+  feedback.appendChild(explicacion);
+
+  pintarFeedback(feedback, pregunta, hueco.correcta, hueco.delta);
+  return feedback;
+}
+
+/**
+ * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para Task 3/repaso):
+ * cabecera, enunciado, confianza (activa, salvo soloLectura), respuesta
+ * compacta + resumen a una línea (para tarjeta--compacta-1), feedback y, en la
+ * zona de acción, el ancla "Preguntar a" (vacía: la rellena otra tarea) y,
+ * salvo soloLectura, "esta pregunta está mal" + Siguiente.
+ */
+function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {}) {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta';
+  tarjeta.dataset.test = 'tarjeta';
+  tarjeta.dataset.respondida = 'true';
+  tarjeta.classList.add(hueco.correcta ? 'correcto' : 'incorrecto');
+
+  tarjeta.appendChild(construirCabeceraPregunta(pregunta));
+  tarjeta.appendChild(construirBloqueEnunciado(pregunta));
+  if (!soloLectura) tarjeta.appendChild(construirFilaConfianza(hueco));
+
+  const zonaRespuesta = document.createElement('div');
+  zonaRespuesta.className = 'zona-respuesta';
+  const respuestaCompacta = construirRespuestaCompacta(pregunta, hueco);
+  const resumenRespuesta = construirResumenRespuesta(pregunta);
+  resumenRespuesta.addEventListener('click', (ev) => {
+    if (!tarjeta.classList.contains('tarjeta--compacta-1')) return;
+    ev.stopPropagation();
+    alternarEncaje(tarjeta, 'respuesta');
+  });
+  respuestaCompacta.addEventListener('click', (ev) => {
+    if (tarjeta.dataset.expandido !== 'respuesta') return;
+    ev.stopPropagation();
+    alternarEncaje(tarjeta, 'respuesta');
+  });
+  zonaRespuesta.appendChild(respuestaCompacta);
+  zonaRespuesta.appendChild(resumenRespuesta);
+  tarjeta.appendChild(zonaRespuesta);
+
+  tarjeta.appendChild(construirBloqueFeedback(pregunta, hueco));
+
+  const zonaAccion = document.createElement('div');
+  zonaAccion.className = 'tarjeta-accion';
+  const anclaPreguntarA = document.createElement('div');
+  anclaPreguntarA.dataset.test = 'preguntar-a';
+  zonaAccion.appendChild(anclaPreguntarA);
+
+  if (!soloLectura) {
+    const reportadaTexto = document.createElement('p');
+    reportadaTexto.className = 'reportada';
+    reportadaTexto.textContent = 'Anotado';
+    reportadaTexto.hidden = !hueco.reportada;
+    zonaAccion.appendChild(reportadaTexto);
+
+    const filaEstaMal = document.createElement('div');
+    filaEstaMal.className = 'fila-esta-mal';
+    const botonEstaMal = document.createElement('button');
+    botonEstaMal.className = 'enlace-discreto';
+    botonEstaMal.dataset.test = 'esta-mal';
+    botonEstaMal.textContent = 'esta pregunta está mal';
+    botonEstaMal.addEventListener('click', () => manejarClicEstaMal(hueco));
+    filaEstaMal.appendChild(botonEstaMal);
+    zonaAccion.appendChild(filaEstaMal);
+
+    const botonSiguiente = document.createElement('button');
+    botonSiguiente.className = 'boton boton-principal';
+    botonSiguiente.dataset.test = 'siguiente';
+    botonSiguiente.textContent = 'Siguiente';
+    botonSiguiente.addEventListener('click', irASiguienteHueco);
+    zonaAccion.appendChild(botonSiguiente);
   }
-});
+  tarjeta.appendChild(zonaAccion);
 
-function irASiguiente() {
-  if (!preguntaEnPantalla) return;
-  partidaUltima = preguntaEnPantalla;
-  preguntaEnPantalla = null;
-  indicePartida += 1;
-  avanzarPregunta();
+  activarToqueEnunciado(tarjeta);
+  return tarjeta;
 }
 
-function marcarPreguntaMal() {
-  const pregunta = preguntaEnPantalla;
-  if (!pregunta || reportadaEnActual) return;
-  if (!estado.reportadas.includes(pregunta.id)) {
-    estado = { ...estado, reportadas: [...estado.reportadas, pregunta.id] };
+function manejarClicEstaMal(hueco) {
+  if (hueco.reportada) return;
+  if (!estado.reportadas.includes(hueco.pregunta.id)) {
+    estado = { ...estado, reportadas: [...estado.reportadas, hueco.pregunta.id] };
     guardarEstado(estado);
   }
-  reportadaEnActual = true;
-  reportadaTexto.hidden = false;
+  hueco.reportada = true;
+  const reportadaTexto = hueco.nodo && hueco.nodo.querySelector('.reportada');
+  if (reportadaTexto) reportadaTexto.hidden = false;
+}
+
+/** Tarjeta de cierre (spec v0.1c §2.4): aparece al deslizar más allá del último
+ * hueco cuando ya hay N_PARTIDA (o el banco se agotó antes) y quedan sin
+ * responder. "Volver a ellas" salta al primer hueco pendiente; "Terminar
+ * igual" cierra la partida (las no respondidas no cuentan). */
+function construirTarjetaCierre() {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta tarjeta-cierre';
+  tarjeta.dataset.test = 'mazo-cierre';
+
+  const pendientesN = mazo.filter((h) => !h.respondida).length;
+  const titulo = document.createElement('p');
+  titulo.className = 'mazo-cierre-titulo';
+  titulo.textContent = `Quedan ${pendientesN} sin responder`;
+  tarjeta.appendChild(titulo);
+
+  const acciones = document.createElement('div');
+  acciones.className = 'mazo-cierre-acciones';
+
+  const volver = document.createElement('button');
+  volver.className = 'boton boton-principal';
+  volver.dataset.test = 'volver-pendientes';
+  volver.textContent = 'Volver a ellas';
+  volver.addEventListener('click', () => {
+    const indicePendiente = mazo.findIndex((h) => !h.respondida);
+    if (indicePendiente !== -1) mazoControlador.irA(indicePendiente);
+  });
+
+  const terminar = document.createElement('button');
+  terminar.className = 'boton';
+  terminar.dataset.test = 'terminar-igual';
+  terminar.textContent = 'Terminar igual';
+  terminar.addEventListener('click', finalizarPartida);
+
+  acciones.appendChild(volver);
+  acciones.appendChild(terminar);
+  tarjeta.appendChild(acciones);
+
+  return tarjeta;
+}
+
+/** Responde el hueco (cualquier tipo): evalúa, registra en el motor, reconstruye
+ * su tarjeta ya en estado respondida y la deja lista en el mazo. */
+function manejarRespuesta(hueco, respuesta) {
+  if (hueco.respondida) return; // guarda contra doble tap / doble evento
+  const pregunta = hueco.pregunta;
+  const correcta = evaluar(pregunta, respuesta);
+  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: hueco.confianza });
+  estado = resultado.estado;
+  guardarEstado(estado);
+  actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo.
+
+  hueco.respondida = true;
+  hueco.respuesta = respuesta;
+  hueco.correcta = correcta;
+  hueco.delta = resultado.delta;
+  hueco.nodo = construirTarjetaRespondida(pregunta, hueco, { soloLectura: false });
+
+  mazoControlador.actualizarTarjetas(listaActual());
+  actualizarBarraProgreso();
+  asegurarSiguienteDisponible();
 }
 
 /** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
@@ -933,25 +1604,19 @@ function animarConteo(nodo, prefijo, valorFinal, sufijo = '') {
   requestAnimationFrame(paso);
 }
 
-function finalizarPartida() {
-  estado = actualizarRacha(estado, hoy());
-  guardarEstado(estado);
-  actualizarCabecera();
-
-  const totalPreguntas = indicePartida;
-  animarConteo(resumenAciertos, 'Aciertos: ', aciertosPartida, `/${totalPreguntas}`);
-  animarConteo(resumenXp, 'XP ganado: ', xpPartida);
-  resumenAreas.textContent = `Áreas: ${[...areasPartida].join(', ') || '—'}`;
-
-  renderRepaso();
-
-  mostrarVista('resumen');
-}
+// El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
+// no gastar batería (hallazgo bajo de la pasada adversarial).
+document.addEventListener('visibilitychange', () => {
+  for (const luz of document.querySelectorAll('.fondo-luz')) {
+    luz.style.animationPlayState = document.hidden ? 'paused' : 'running';
+  }
+});
 
 /** "Para repasar" del resumen: un carrusel horizontal (scroll-snap) con una
  * tarjeta por pregunta fallada o acertada con confianza Baja de la partida que
  * acaba de terminar, en orden de aparición. Sin nada que repasar, el mensaje
- * vacío ("Sin fallos. Nada que repasar."). */
+ * vacío ("Sin fallos. Nada que repasar."). (Sustituido por un mazo vertical de
+ * solo lectura en la siguiente tarea, spec v0.1c §6; de momento se deja igual.) */
 function renderRepaso() {
   repasoCarrusel.innerHTML = '';
   repasoPuntos.innerHTML = '';
@@ -1160,11 +1825,6 @@ document.querySelector('[data-test="comenzar"]').addEventListener('click', () =>
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
-document.querySelector('[data-test="siguiente"]').addEventListener('click', irASiguiente);
-document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
-nodoConfianzaBaja.addEventListener('click', () => seleccionarConfianza('baja'));
-nodoConfianzaMedia.addEventListener('click', () => seleccionarConfianza('media'));
-nodoConfianzaAlta.addEventListener('click', () => seleccionarConfianza('alta'));
 // Misión de hoy / Pendientes: tocables solo cuando dataset.tocable === 'true'
 // (ver actualizarDestacados). Partida cerrada a esos ids concretos, sin relleno.
 nodoMision.addEventListener('click', () => {
