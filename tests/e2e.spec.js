@@ -108,7 +108,7 @@ test.describe('ONE · integración e2e', () => {
 
     await expect(page.locator('[data-test="modo-area"]')).toBeVisible();
     await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
-    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economia');
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
 
     // "No lo sé": despliega la explicación sola y ofrece "Siguiente", sin marcar
     // ni ✓ ni ✗ (es un fallo a efectos de motor, pero neutro a efectos visuales).
