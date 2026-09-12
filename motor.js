@@ -422,6 +422,7 @@ export function resumenProgreso(estado, banco) {
       return pregunta && pregunta.area === area && t.caja >= 3;
     }).length;
     const total = banco.filter((p) => p.area === area).length;
+    const puntuacion = puntuacionArea(areaState.nivel, aciertoReciente);
     return {
       area,
       nivel: areaState.nivel,
@@ -429,6 +430,8 @@ export function resumenProgreso(estado, banco) {
       estables,
       total,
       noLoSe: areaState.noLoSe || 0,
+      puntuacion,
+      nota: notaArea(puntuacion, aciertoReciente),
     };
   });
   // Total global acumulado de TODO el historial (no solo hoy): sirve para medir
@@ -450,6 +453,27 @@ export function resumenProgreso(estado, banco) {
     porArea,
     global,
   };
+}
+
+/**
+ * Puntuación 0..1 de un área para el radar y la nota: 60 % el nivel alcanzado (1..5) y
+ * 40 % el acierto reciente (0..1). Sin acierto reciente (null) se puntúa solo el nivel.
+ */
+export function puntuacionArea(nivel, aciertoReciente) {
+  const nivelNorm = (Math.min(5, Math.max(1, nivel)) - 1) / 4;
+  if (aciertoReciente === null || aciertoReciente === undefined) return Math.round(nivelNorm * 100) / 100;
+  return Math.round((nivelNorm * 0.6 + Math.min(1, Math.max(0, aciertoReciente)) * 0.4) * 100) / 100;
+}
+
+/** Nota tipo videojuego a partir de la puntuación 0..1: S+, S, A, B, C, D. Sin datos → '—'. */
+export function notaArea(puntuacion, aciertoReciente) {
+  if (aciertoReciente === null || aciertoReciente === undefined) return '—';
+  if (puntuacion >= 0.9) return 'S+';
+  if (puntuacion >= 0.75) return 'S';
+  if (puntuacion >= 0.6) return 'A';
+  if (puntuacion >= 0.45) return 'B';
+  if (puntuacion >= 0.3) return 'C';
+  return 'D';
 }
 
 /** Serializa el estado a JSON. */

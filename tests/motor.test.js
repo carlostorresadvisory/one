@@ -15,6 +15,8 @@ import {
   resumenProgreso,
   exportar,
   importar,
+  puntuacionArea,
+  notaArea,
 } from '../motor.js';
 
 const HOY = '2026-09-12';
@@ -716,5 +718,33 @@ describe('exportar / importar', () => {
       areas: { economia: { nivel: 2, seguidosOk: 0, seguidosKo: 0, ultimas: [], noLoSe: 4 } },
     };
     assert.equal(importar(JSON.stringify(conNoLoSeValido)).areas.economia.noLoSe, 4);
+  });
+});
+
+describe('puntuacionArea / notaArea', () => {
+  test('nivel 1 sin datos puntua 0 y nota sin datos', () => {
+    assert.equal(puntuacionArea(1, null), 0);
+    assert.equal(notaArea(0, null), '—');
+  });
+  test('nivel 5 con 100 % de acierto es S+', () => {
+    const p = puntuacionArea(5, 1);
+    assert.equal(p, 1);
+    assert.equal(notaArea(p, 1), 'S+');
+  });
+  test('nivel 3 con 50 % de acierto puntua 0.5 y es B', () => {
+    const p = puntuacionArea(3, 0.5);
+    assert.equal(p, 0.5);
+    assert.equal(notaArea(p, 0.5), 'B');
+  });
+  test('nivel 1 con 100 % de acierto no pasa de C (la precision sola no da S)', () => {
+    const p = puntuacionArea(1, 1);
+    assert.equal(p, 0.4);
+    assert.equal(notaArea(p, 1), 'C');
+  });
+  test('resumenProgreso incluye puntuacion y nota por area', () => {
+    const resumen = resumenProgreso(crearEstado(HOY), crearBancoPrueba());
+    const eco = resumen.porArea.find((a) => a.area === 'economia');
+    assert.equal(eco.puntuacion, 0);
+    assert.equal(eco.nota, '—');
   });
 });
