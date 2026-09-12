@@ -24,6 +24,17 @@ export const REGLAS_UTILIDAD =
   'clasificaciones taxonómicas de memorieta, definiciones de diccionario, y cualquier cosa que solo ' +
   'sabría un especialista de esa profesión (administrador de sistemas, bibliotecario, taxónomo).';
 
+// Escala de dificultad, redefinida por Carlos el 12-sep: el nivel mide a QUIÉN le resulta
+// obvia la pregunta, no lo técnico del tema. Antes el generador ponía "nivel 1" a cosas de
+// especialista.
+export const NIVELES =
+  'Escala de nivel (1-5), obligatoria: nivel 1 = lo que cualquier adulto culto debería saber sin ' +
+  'haber estudiado el tema (lo sabe el 80 % de la gente formada); nivel 2 = lo que sabe quien lee ' +
+  'prensa y sigue la actualidad; nivel 3 = quien ha leído un libro o varios artículos largos sobre ' +
+  'el tema; nivel 4 = aficionado serio que sigue el tema con interés; nivel 5 = solo quien lo ha ' +
+  'estudiado o trabaja en ello. Cuando dudes, pon el nivel MÁS ALTO de los dos. Reparte las preguntas ' +
+  'entre los niveles pedidos y no etiquetes nunca de nivel 1 o 2 algo que requiera vocabulario técnico.';
+
 // Qué enseña cada área: el generador reparte las preguntas entre estos hilos.
 export const HILOS_POR_AREA = {
   economia: [
@@ -93,5 +104,5 @@ export function textoCriterio(area) {
   const hilos = area && HILOS_POR_AREA[area]
     ? `\nHilos del área "${area}" (reparte las preguntas entre ellos): ${HILOS_POR_AREA[area].map((h, i) => `(${i + 1}) ${h}`).join('; ')}.`
     : '';
-  return `${PARA_QUIEN}\n${REGLAS_UTILIDAD}${hilos}`;
+  return `${PARA_QUIEN}\n${REGLAS_UTILIDAD}\n${NIVELES}${hilos}`;
 }

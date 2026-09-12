@@ -382,14 +382,19 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
   // Escalera inmediata: sube con cualquier acierto (incluido vf) y baja con cualquier
   // fallo. A diferencia del nivel por área, aquí vf sí cuenta: es lo que se siente
   // jugar, aunque el nivel por área lo siga ignorando para subir.
+  // Ritmo (Carlos, 12-sep tarde: "con 4 aciertos ya estaba en nivel 4 y me caían preguntas
+  // de experto"): sube un nivel cada DOS aciertos seguidos (el combo, que ya cuenta la
+  // racha de aciertos, es par) y baja uno con cada fallo.
+  const combo = correcta ? nuevo.combo + 1 : 0;
   const nivelPartidaAntes = nuevo.nivelPartida;
-  nuevo.nivelPartida = correcta
-    ? Math.min(5, nivelPartidaAntes + 1)
-    : Math.max(1, nivelPartidaAntes - 1);
+  if (correcta) {
+    nuevo.nivelPartida = combo % 2 === 0 ? Math.min(5, nivelPartidaAntes + 1) : nivelPartidaAntes;
+  } else {
+    nuevo.nivelPartida = Math.max(1, nivelPartidaAntes - 1);
+  }
   const cambioNivelPartida = nuevo.nivelPartida - nivelPartidaAntes;
 
-  // Combo y XP (el nivel usado para el XP es el de ANTES de aplicar la subida/bajada de este turno).
-  const combo = correcta ? nuevo.combo + 1 : 0;
+  // XP (el nivel usado para el XP es el de ANTES de aplicar la subida/bajada de este turno).
   const areaState = nuevo.areas[pregunta.area];
   const nivelAntes = areaState.nivel;
   let xp = correcta

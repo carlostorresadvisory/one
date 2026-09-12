@@ -500,13 +500,19 @@ describe('registrarRespuesta', () => {
     assert.equal(estadoHist.historial.length, 500);
   });
 
-  test('nivelPartida sube con acierto y baja con fallo, con topes 1 y 5', () => {
+  test('nivelPartida sube cada 2 aciertos seguidos y baja con cada fallo, con topes 1 y 5', () => {
     let estado = crearEstado(HOY);
-    const r1 = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, '-np1'), true, HOY);
+    // Primer acierto: el combo es 1 (impar), la escalera no se mueve todavía.
+    const r0 = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, '-np0'), true, HOY);
+    assert.equal(r0.estado.nivelPartida, 1);
+    assert.equal(r0.delta.cambioNivelPartida, 0);
+    // Segundo acierto seguido: combo 2, sube a 2.
+    const r1 = registrarRespuesta(r0.estado, crearPregunta('economia', 'test4', 1, '-np1'), true, HOY);
     assert.equal(r1.estado.nivelPartida, 2);
     assert.equal(r1.delta.nivelPartida, 2);
     assert.equal(r1.delta.cambioNivelPartida, 1);
 
+    // Un fallo baja un nivel y rompe el combo (el siguiente acierto vuelve a ser el primero).
     const r2 = registrarRespuesta(r1.estado, crearPregunta('economia', 'test4', 1, '-np2'), false, HOY);
     assert.equal(r2.estado.nivelPartida, 1);
     assert.equal(r2.delta.cambioNivelPartida, -1);
@@ -516,9 +522,9 @@ describe('registrarRespuesta', () => {
     assert.equal(r3.estado.nivelPartida, 1);
     assert.equal(r3.delta.cambioNivelPartida, 0);
 
-    // Tope superior: sube hasta 5 y no lo pasa.
+    // Tope superior: 8 aciertos seguidos llevan a 5 y el noveno no lo pasa.
     let estadoMax = crearEstado(HOY);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 8; i++) {
       const r = registrarRespuesta(estadoMax, crearPregunta('economia', 'test4', 1, `-npmax${i}`), true, HOY);
       estadoMax = r.estado;
     }
@@ -530,8 +536,9 @@ describe('registrarRespuesta', () => {
 
   test('V/F también mueve la escalera de nivelPartida (aunque no mueva el nivel del área)', () => {
     const estado = crearEstado(HOY);
-    const r1 = registrarRespuesta(estado, crearPregunta('economia', 'vf', 1, '-vfnp1'), true, HOY);
-    assert.equal(r1.estado.nivelPartida, 2);
+    const r0 = registrarRespuesta(estado, crearPregunta('economia', 'vf', 1, '-vfnp0'), true, HOY);
+    const r1 = registrarRespuesta(r0.estado, crearPregunta('economia', 'vf', 1, '-vfnp1'), true, HOY);
+    assert.equal(r1.estado.nivelPartida, 2); // dos vf seguidas acertadas suben la escalera
     const r2 = registrarRespuesta(r1.estado, crearPregunta('economia', 'vf', 1, '-vfnp2'), false, HOY);
     assert.equal(r2.estado.nivelPartida, 1);
   });
@@ -545,8 +552,8 @@ describe('registrarRespuesta', () => {
       ultimoDelta = r.delta;
     }
     assert.equal(estado.areas.economia.nivel, 2); // sube en el 3er acierto
-    assert.equal(ultimoDelta.nivelPartida, 4); // 1 -> 2 -> 3 -> 4, un +1 por acierto
-    assert.equal(ultimoDelta.cambioNivelPartida, 1);
+    assert.equal(ultimoDelta.nivelPartida, 2); // 3 aciertos: sube solo en el 2.º (cada 2 seguidos)
+    assert.equal(ultimoDelta.cambioNivelPartida, 0);
     assert.equal(ultimoDelta.nivelArea, 2);
     assert.equal(ultimoDelta.cambioNivelArea, 1);
   });
