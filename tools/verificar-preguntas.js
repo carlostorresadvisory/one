@@ -4,6 +4,7 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { llamar, extraerJson, MODELOS } from './openrouter.js';
 import { validarBanco, AREAS } from './validar-banco.js';
+import { textoCriterio } from './criterio.js';
 
 // Lotes pequeños: igual que en generar-preguntas.js, los modelos gratis de la cascada
 // gastan tokens ocultos de razonamiento y con lotes de 10 preguntas el JSON de salida
@@ -12,14 +13,22 @@ import { validarBanco, AREAS } from './validar-banco.js';
 // vuelto a truncarse.
 const TAMANO_LOTE = 4;
 
+// textoCriterio() sin área: los lotes mezclan preguntas de varias áreas (ver leerBorradores +
+// partirEnLotes más abajo), así que aquí solo entran PARA_QUIEN y REGLAS_UTILIDAD, sin los
+// hilos por área (esos sí los usa generar-preguntas.js, que trabaja área por área).
 const PROMPT_SISTEMA =
   'Eres un verificador escéptico de preguntas de examen. Para cada pregunta, comprueba ' +
   'si la respuesta marcada es correcta, si es la única correcta entre las opciones y si ' +
   'el enunciado es inequívoco. Rechaza también (inequivoca=false) si el enunciado contiene o ' +
   'revela la respuesta, si hay dos opciones defendibles, o si una afirmación V/F depende de una ' +
-  'interpretación. Sé estricto: ante la duda, rechaza. Devuelve SOLO JSON ' +
-  'con la forma {"resultados":[{"id":"…","correcta":true,"unica":true,"inequivoca":true,' +
-  '"confianza":0.9,"motivo":"…"}]}';
+  'interpretación. Sé estricto: ante la duda, rechaza.\n\n' +
+  `${textoCriterio()}\n` +
+  'Además de lo anterior, comprueba también la UTILIDAD: si la pregunta viola alguna de las ' +
+  'reglas de utilidad de arriba (trivia de especialista, siglas, puertos, versiones, fechas ' +
+  'sueltas, etc.), pon "cumpleUtilidad": false y haz que el motivo empiece por "utilidad: ". Si ' +
+  'las cumple, pon "cumpleUtilidad": true.\n' +
+  'Devuelve SOLO JSON con la forma {"resultados":[{"id":"…","correcta":true,"unica":true,' +
+  '"inequivoca":true,"cumpleUtilidad":true,"confianza":0.9,"motivo":"…"}]}';
 
 function imprimirAyuda() {
   console.log(`Uso: node tools/verificar-preguntas.js [--entrada datos/borradores] [--umbral 0.7]
@@ -170,7 +179,10 @@ async function main() {
       const pregunta = porId.get(r.id);
       if (!pregunta) continue;
       vistos.add(r.id);
-      const aprueba = r.correcta && r.unica && r.inequivoca && Number(r.confianza) >= args.umbral;
+      // cumpleUtilidad !== false: si el modelo no devuelve el campo (no debería pasar con el
+      // prompt de arriba, pero por si acaso) no se rechaza solo por eso.
+      const aprueba =
+        r.correcta && r.unica && r.inequivoca && r.cumpleUtilidad !== false && Number(r.confianza) >= args.umbral;
       if (aprueba) {
         aprobadas.push({ ...pregunta, verificado: true, confianza: r.confianza, verificador: salida.modelo });
       } else {

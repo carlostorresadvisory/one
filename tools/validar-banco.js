@@ -42,6 +42,11 @@ export function validarPregunta(p) {
   }
   if (!esTexto(p.generador)) errores.push('falta generador');
   if (p.verificado === true && !esTexto(p.verificador)) errores.push('falta verificador');
+  // "hilo" es opcional (campo nuevo, 12-sep-2026: el banco existente no lo tiene) — si viene,
+  // debe ser un entero positivo (el índice dentro de HILOS_POR_AREA del área, ver criterio.js).
+  if (p.hilo !== undefined && p.hilo !== null && (!Number.isInteger(p.hilo) || p.hilo < 1)) {
+    errores.push(`hilo inválido: ${p.hilo}`);
+  }
 
   switch (p.tipo) {
     case 'vf':
