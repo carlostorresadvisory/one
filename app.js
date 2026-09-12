@@ -73,6 +73,7 @@ const contenedorPregunta = document.getElementById('contenedor-pregunta');
 const contenedorFeedback = document.getElementById('contenedor-feedback');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
 const feedbackTexto = document.getElementById('feedback-texto');
+const botonSiguiente = document.querySelector('[data-test="siguiente"]');
 const feedbackCombo = document.getElementById('feedback-combo');
 const cambioNivelTexto = document.getElementById('cambio-nivel-texto');
 const cambioNivelAreaTexto = document.getElementById('cambio-nivel-area-texto');
@@ -526,6 +527,8 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
   reportadaTexto.hidden = true;
 
   contenedorFeedback.hidden = false;
+  // La explicación desplegada puede empujar el botón fuera de la pantalla en el móvil.
+  requestAnimationFrame(() => botonSiguiente.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
 }
 
 function irASiguiente() {
