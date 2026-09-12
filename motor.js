@@ -357,7 +357,10 @@ export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random,
  *   completan todos los ids, `completada = true` y `delta.misionCompletada = true`.
  *
  * Devuelve { estado nuevo, delta: { xp, combo, correcta, noLoSe, confianza, fragil,
- * recuperada, misionCompletada, ... } }. No muta `estado`.
+ * recuperada, misionCompletada, xpBase, cajaAntes, prioridadAntes, ... } }. No muta
+ * `estado`. `xpBase`, `cajaAntes` y `prioridadAntes` (spec v0.1c §3.1) son la foto de
+ * antes de esta respuesta que necesita `cambiarConfianza` para corregirla después sin
+ * tener que rehacer los cálculos de XP/Leitner/prioridad desde cero.
  */
 export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {}) {
   const noLoSe = opciones.noLoSe === true;
@@ -400,6 +403,9 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
   let xp = correcta
     ? Math.round(XP_BASE[pregunta.tipo] * (1 + 0.1 * nivelAntes) * (combo >= 3 ? 1.5 : 1))
     : 0;
+  // xpBase: el XP antes del bono ×1,5 de Alta (0 si fallo). Se expone en el delta para
+  // que cambiarConfianza pueda recalcular el XP sin repetir esta fórmula.
+  const xpBase = xp;
   // Confianza Alta + acierto: +50% de XP extra sobre el ya calculado, redondeado aparte.
   if (correcta && esAlta) xp = Math.round(xp * 1.5);
   nuevo.combo = combo;
@@ -421,6 +427,10 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
   const tarjeta = nuevo.tarjetas[pregunta.id]
     ? { ...nuevo.tarjetas[pregunta.id] }
     : { ...plantillaTarjeta };
+  // Caja y prioridad de la tarjeta ANTES de esta respuesta (0 si es nueva). Se exponen
+  // en el delta para que cambiarConfianza pueda recalcularlas sin repetir esta lógica.
+  const cajaAntes = tarjeta.caja;
+  const prioridadAntes = tarjeta.prioridad;
   const eraPendiente = tarjeta.pendiente === true;
   const ultimoFalloAntes = tarjeta.ultimoFallo;
 
@@ -524,7 +534,89 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
       cambioNivelPartida,
       nivelArea: areaState.nivel,
       cambioNivelArea,
+      xpBase,
+      cajaAntes,
+      prioridadAntes,
     },
+  };
+}
+
+/**
+ * Corrige la confianza declarada en una respuesta YA registrada (spec v0.1c §3.1):
+ * el jugador ve "puse Alta pero en realidad no lo tenía tan claro" y la ajusta a
+ * posteriori. No es una respuesta nueva — no toca `combo`, `nivelPartida`, `racha`,
+ * `recuperadas` ni `mision` — solo recalcula XP, Leitner/prioridad de la tarjeta y
+ * los contadores de calibración a partir de `xpBase`/`cajaAntes`/`prioridadAntes`
+ * que trae `delta` (los de la respuesta ORIGINAL, no los del estado actual: así una
+ * cadena de cambios de confianza siempre parte de la misma foto y "deshacer" vuelve
+ * exactamente al punto de partida).
+ *
+ * Si `confianzaNueva` no es una de `CONFIANZAS` o coincide con la ya registrada
+ * (`delta.confianza`), no hay nada que hacer y devuelve `estado`/`delta` tal cual
+ * (misma referencia). Pura, no muta la entrada.
+ */
+export function cambiarConfianza(estado, pregunta, delta, confianzaNueva, hoy) {
+  if (!CONFIANZAS.includes(confianzaNueva) || confianzaNueva === delta.confianza) {
+    return { estado, delta };
+  }
+  const nuevo = {
+    ...estado,
+    tarjetas: { ...estado.tarjetas },
+    confianza: { ...estado.confianza },
+    historial: [...estado.historial],
+  };
+  const { correcta, xpBase, cajaAntes, prioridadAntes } = delta;
+  const anterior = delta.confianza;
+
+  // XP: se recalcula desde xpBase (el XP antes del bono de Alta), no desde el XP ya
+  // aplicado, para no arrastrar redondeos de cambios anteriores.
+  const xpNuevo = correcta ? (confianzaNueva === 'alta' ? Math.round(xpBase * 1.5) : xpBase) : 0;
+  nuevo.xp = estado.xp + xpNuevo - delta.xp;
+
+  // Tarjeta: Leitner (acierto) o prioridad (fallo), siempre partiendo de cajaAntes/
+  // prioridadAntes — la caja/prioridad de ANTES de la respuesta original.
+  const tarjeta = { ...nuevo.tarjetas[pregunta.id] };
+  if (correcta) {
+    if (confianzaNueva === 'baja') {
+      // Baja + acierto: cuenta pero no consolida. La caja vuelve a la de antes.
+      tarjeta.caja = cajaAntes;
+      tarjeta.fragil = true;
+    } else {
+      tarjeta.caja = Math.min(cajaAntes + 1, 4);
+      tarjeta.fragil = false;
+    }
+    tarjeta.proximo = sumarDias(hoy, INTERVALOS[tarjeta.caja]);
+  } else {
+    tarjeta.prioridad = confianzaNueva === 'alta' ? 2 : Math.max(1, prioridadAntes);
+  }
+  nuevo.tarjetas[pregunta.id] = tarjeta;
+
+  // Calibración: quita el punto de la confianza anterior (Alta/Baja) y suma el de la
+  // nueva. Media no mueve estos contadores. Nunca baja de 0.
+  const resta = (k, ok) => {
+    nuevo.confianza[k] = Math.max(0, nuevo.confianza[k] - 1);
+    if (correcta) nuevo.confianza[ok] = Math.max(0, nuevo.confianza[ok] - 1);
+  };
+  const suma = (k, ok) => {
+    nuevo.confianza[k] += 1;
+    if (correcta) nuevo.confianza[ok] += 1;
+  };
+  if (anterior === 'alta') resta('altas', 'altasOk');
+  if (anterior === 'baja') resta('bajas', 'bajasOk');
+  if (confianzaNueva === 'alta') suma('altas', 'altasOk');
+  if (confianzaNueva === 'baja') suma('bajas', 'bajasOk');
+
+  // Historial: actualiza la confianza de la última entrada de esta pregunta.
+  for (let i = nuevo.historial.length - 1; i >= 0; i--) {
+    if (nuevo.historial[i].id === pregunta.id) {
+      nuevo.historial[i] = { ...nuevo.historial[i], confianza: confianzaNueva };
+      break;
+    }
+  }
+
+  return {
+    estado: nuevo,
+    delta: { ...delta, xp: xpNuevo, confianza: confianzaNueva, fragil: tarjeta.fragil },
   };
 }
 

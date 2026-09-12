@@ -12,6 +12,7 @@ import {
   seleccionarPartida,
   siguientePregunta,
   registrarRespuesta,
+  cambiarConfianza,
   actualizarRacha,
   resumenProgreso,
   pendientes,
@@ -1297,5 +1298,114 @@ describe('puntuacionArea / notaArea', () => {
     const eco = resumen.porArea.find((a) => a.area === 'economia');
     assert.equal(eco.puntuacion, 0);
     assert.equal(eco.nota, '—');
+  });
+});
+
+describe('cambiarConfianza', () => {
+  const P = { id: 'q1', area: 'economia', tipo: 'test4', nivel: 2, opciones: ['a','b','c','d'], correcta: 0, explicacion: 'x' };
+  const H = '2026-09-12';
+  const responde = (confianza, correcta = true, base = crearEstado(H)) =>
+    registrarRespuesta(base, P, correcta, H, { confianza });
+
+  test('registrarRespuesta expone xpBase, cajaAntes y prioridadAntes', () => {
+    const { delta } = responde('alta');
+    assert.equal(delta.cajaAntes, 0);
+    assert.equal(delta.prioridadAntes, 0);
+    assert.equal(delta.xp, Math.round(delta.xpBase * 1.5));
+  });
+
+  test('Alta→Media en acierto quita el bono ×1,5', () => {
+    const r = responde('alta');
+    const c = cambiarConfianza(r.estado, P, r.delta, 'media', H);
+    assert.equal(c.delta.xp, r.delta.xpBase);
+    assert.equal(c.estado.xp, r.delta.xpBase);
+    assert.equal(c.delta.confianza, 'media');
+  });
+
+  test('Media→Alta en acierto pone el bono', () => {
+    const r = responde('media');
+    const c = cambiarConfianza(r.estado, P, r.delta, 'alta', H);
+    assert.equal(c.estado.xp, Math.round(r.delta.xpBase * 1.5));
+  });
+
+  test('Media→Baja en acierto devuelve la caja y marca frágil', () => {
+    const r = responde('media');
+    assert.equal(r.estado.tarjetas.q1.caja, 1);
+    const c = cambiarConfianza(r.estado, P, r.delta, 'baja', H);
+    assert.equal(c.estado.tarjetas.q1.caja, 0);
+    assert.equal(c.estado.tarjetas.q1.fragil, true);
+    assert.equal(c.estado.tarjetas.q1.proximo, sumarDias(H, INTERVALOS[0]));
+    assert.equal(c.delta.fragil, true);
+  });
+
+  test('Baja→Media en acierto consolida', () => {
+    const r = responde('baja');
+    assert.equal(r.estado.tarjetas.q1.caja, 0);
+    const c = cambiarConfianza(r.estado, P, r.delta, 'media', H);
+    assert.equal(c.estado.tarjetas.q1.caja, 1);
+    assert.equal(c.estado.tarjetas.q1.fragil, false);
+    assert.equal(c.estado.tarjetas.q1.proximo, sumarDias(H, INTERVALOS[1]));
+  });
+
+  test('en fallo, Media→Alta sube prioridad a 2 y Alta→Media la baja a 1', () => {
+    const r = responde('media', false);
+    const c = cambiarConfianza(r.estado, P, r.delta, 'alta', H);
+    assert.equal(c.estado.tarjetas.q1.prioridad, 2);
+    const d = cambiarConfianza(c.estado, P, c.delta, 'media', H);
+    assert.equal(d.estado.tarjetas.q1.prioridad, 1);
+    assert.equal(d.estado.xp, 0);
+  });
+
+  test('en fallo no pisa una prioridad 2 previa', () => {
+    let e = crearEstado(H);
+    e = registrarRespuesta(e, P, false, H, { confianza: 'alta' }).estado; // prioridad 2
+    const r = registrarRespuesta(e, P, false, H, { confianza: 'alta' });
+    const c = cambiarConfianza(r.estado, P, r.delta, 'media', H);
+    assert.equal(c.estado.tarjetas.q1.prioridad, 2);
+  });
+
+  test('contadores de calibración se mueven y no bajan de 0', () => {
+    const r = responde('alta');
+    assert.deepEqual(r.estado.confianza, { altas: 1, altasOk: 1, bajas: 0, bajasOk: 0 });
+    const c = cambiarConfianza(r.estado, P, r.delta, 'baja', H);
+    assert.deepEqual(c.estado.confianza, { altas: 0, altasOk: 0, bajas: 1, bajasOk: 1 });
+    const d = cambiarConfianza(c.estado, P, c.delta, 'media', H);
+    assert.deepEqual(d.estado.confianza, { altas: 0, altasOk: 0, bajas: 0, bajasOk: 0 });
+  });
+
+  test('misma confianza: sin cambios (misma referencia de estado)', () => {
+    const r = responde('media');
+    const c = cambiarConfianza(r.estado, P, r.delta, 'media', H);
+    assert.equal(c.estado, r.estado);
+    assert.equal(c.delta, r.delta);
+  });
+
+  test('no toca combo ni nivelPartida ni recuperadas', () => {
+    const r = responde('media');
+    const c = cambiarConfianza(r.estado, P, r.delta, 'alta', H);
+    assert.equal(c.estado.combo, r.estado.combo);
+    assert.equal(c.estado.nivelPartida, r.estado.nivelPartida);
+    assert.equal(c.estado.recuperadas, r.estado.recuperadas);
+    assert.equal(c.delta.combo, r.delta.combo);
+  });
+
+  test('actualiza la confianza de la última entrada del historial', () => {
+    const r = responde('media');
+    const c = cambiarConfianza(r.estado, P, r.delta, 'alta', H);
+    assert.equal(c.estado.historial.at(-1).confianza, 'alta');
+  });
+
+  test('dos cambios seguidos equivalen al último (Alta→Baja→Alta = Alta)', () => {
+    const r = responde('alta');
+    const a = cambiarConfianza(r.estado, P, r.delta, 'baja', H);
+    const b = cambiarConfianza(a.estado, P, a.delta, 'alta', H);
+    assert.deepEqual(b.estado, r.estado);
+  });
+
+  test('no muta la entrada', () => {
+    const r = responde('media');
+    const copia = structuredClone(r.estado);
+    cambiarConfianza(r.estado, P, r.delta, 'alta', H);
+    assert.deepEqual(r.estado, copia);
   });
 });
