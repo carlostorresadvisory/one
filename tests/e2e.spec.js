@@ -109,9 +109,23 @@ async function fallarPreguntaActual(page, sospechosoPorTitulo) {
 // El mazo anima la transición entre tarjetas en 200ms (spec v0.1c §2.2): tras
 // cualquier navegación, se espera a que asiente antes de mirar/capturar nada,
 // si no la posición (y una captura de pantalla) queda a mitad de camino.
-const TRANSICION_MAZO_MS = 260;
+// Un timeout fijo es frágil (una máquina cargada puede tardar más de 200ms en
+// completar la animación, dejando una captura a mitad de camino: hallazgo real
+// de la ronda 1 de revisión). Se espera a que la tarjeta actual esté REALMENTE
+// asentada midiendo su transform computado (no el inline, que se fija al
+// instante aunque la transición CSS siga interpolando hacia él).
 async function esperarAsentamientoMazo(page) {
-  await page.waitForTimeout(TRANSICION_MAZO_MS);
+  await page.waitForFunction(
+    () => {
+      const actual = document.querySelector('.tarjeta-mazo--actual');
+      if (!actual) return false;
+      const transform = getComputedStyle(actual).transform;
+      if (transform === 'none') return true;
+      const m = new DOMMatrixReadOnly(transform);
+      return Math.abs(m.m42) < 0.5;
+    },
+    { timeout: 3000 }
+  );
 }
 
 /** Sin avance automático: tras responder, acierto o fallo, la partida SIEMPRE
@@ -120,7 +134,12 @@ async function avanzarTrasRespuesta(page) {
   const siguiente = tarjetaActual(page).locator('[data-test="siguiente"]');
   await expect(siguiente).toBeVisible();
   await siguiente.click();
-  await esperarAsentamientoMazo(page);
+  // El "Siguiente" de la última pregunta termina la partida (finalizarPartida
+  // desmonta el mazo, ver app.js): si ya se ve el resumen no queda ninguna
+  // .tarjeta-mazo--actual que asentar, y esperarla bloquearía para siempre.
+  if (await page.locator('[data-vista="pregunta"]').isVisible()) {
+    await esperarAsentamientoMazo(page);
+  }
 }
 
 /** vf: FALSO/VERDADERO viven ahora DENTRO de la tarjeta, en su zona de acción
@@ -538,13 +557,18 @@ test.describe('ONE · integración e2e', () => {
       await page.screenshot({ path: `${CAPTURAS}/v0.1c-${nombre}.png` });
     }
     let tipoHueco0 = await tipoPreguntaActual(page);
-    if (tipoHueco0 === 'vf') await capturarV01c('vf-antes');
+    if (tipoHueco0 === 'vf') {
+      await esperarAsentamientoMazo(page);
+      await capturarV01c('vf-antes');
+    }
 
     // Responder y capturar el XP mostrado y el guardado en localStorage.
     await responderPreguntaActual(page, sospechosoPorTitulo);
     await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
     if (tipoHueco0 === 'vf') await capturarV01c('vf-despues');
     if (tipoHueco0 === 'ordenar') await capturarV01c('ordenar-despues');
+    if (tipoHueco0 === 'test4') await capturarV01c('test4-despues');
     const textoAntes = await t.locator('[data-test="feedback-texto"]').textContent();
     const xpAntes = await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).xp);
 
@@ -565,10 +589,15 @@ test.describe('ONE · integración e2e', () => {
     for (let i = 0; i < 8; i += 1) {
       await expect(page.locator('[data-test="resumen"]')).toBeHidden();
       const tipoVuelta = await tipoPreguntaActual(page);
-      if (tipoVuelta === 'vf') await capturarV01c('vf-antes');
+      if (tipoVuelta === 'vf') {
+        await esperarAsentamientoMazo(page);
+        await capturarV01c('vf-antes');
+      }
       await responderPreguntaActual(page, sospechosoPorTitulo);
+      await esperarAsentamientoMazo(page);
       if (tipoVuelta === 'vf') await capturarV01c('vf-despues');
       if (tipoVuelta === 'ordenar') await capturarV01c('ordenar-despues');
+      if (tipoVuelta === 'test4') await capturarV01c('test4-despues');
       await avanzarTrasRespuesta(page);
     }
     await expect(t).toHaveAttribute('data-indice', '9');
@@ -593,5 +622,104 @@ test.describe('ONE · integración e2e', () => {
     await responderPreguntaActual(page, sospechosoPorTitulo);
     await avanzarTrasRespuesta(page);
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+  });
+
+  // Peor caso de la regla de encaje (spec v0.1c §4.2): la pregunta 'ordenar' y
+  // la 'error' con la explicación MÁS LARGA del banco REAL (no el de ejemplo),
+  // respondidas (falladas a propósito: es la variante más alta de la respuesta
+  // compacta, con la línea "tuya" tachada además de la correcta), sin scroll
+  // ni en la vista ni en la tarjeta, a 375×812 y 430×932, y sin que ningún
+  // font-size computado cambie entre el estado normal y los compactos.
+  test('mazo v0.1c §4.2: peor caso de encaje (ordenar/error con la explicación más larga) a 375×812 y 430×932', async ({ page }) => {
+    await page.goto('/');
+    const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
+    const masLargaDeTipo = (tipo) =>
+      banco
+        .filter((p) => p.tipo === tipo)
+        .reduce((mejor, p) => (!mejor || p.explicacion.length > mejor.explicacion.length ? p : mejor), null);
+    const peorOrdenar = masLargaDeTipo('ordenar');
+    const peorError = masLargaDeTipo('error');
+    expect(peorOrdenar).not.toBeNull();
+    expect(peorError).not.toBeNull();
+
+    /** Compara el font-size computado de .enunciado/.explicacion/.respuesta-resumen
+     * CON las clases tarjeta--compacta-1/2 que tenga ahora mismo la tarjeta y SIN
+     * ellas (las quita, mide, y las vuelve a dejar como estaban): la spec v0.1c
+     * §4.2 exige que el plegado nunca toque tamaños de letra, solo qué se ve. */
+    async function comprobarFontSizeEstable(tarjetaLocator) {
+      const { compactado, normal } = await tarjetaLocator.evaluate((tarjeta) => {
+        function tamanos() {
+          const leer = (selector) => {
+            const nodo = tarjeta.querySelector(selector);
+            return nodo ? getComputedStyle(nodo).fontSize : null;
+          };
+          return {
+            // "error" con el enunciado genérico del banco pinta la instrucción
+            // corta (.instruccion-error) en vez de .enunciado (ver
+            // construirBloqueEnunciado): se comprueba el que exista.
+            enunciado: leer('.enunciado') || leer('.instruccion-error'),
+            explicacion: leer('.explicacion'),
+            resumen: leer('.respuesta-resumen'),
+          };
+        }
+        const compactado = tamanos();
+        const teniaCompacta1 = tarjeta.classList.contains('tarjeta--compacta-1');
+        const teniaCompacta2 = tarjeta.classList.contains('tarjeta--compacta-2');
+        tarjeta.classList.remove('tarjeta--compacta-1', 'tarjeta--compacta-2');
+        const normal = tamanos();
+        // Deja la tarjeta EXACTAMENTE como estaba (esto es solo una medición).
+        if (teniaCompacta1) tarjeta.classList.add('tarjeta--compacta-1');
+        if (teniaCompacta2) tarjeta.classList.add('tarjeta--compacta-2');
+        return { compactado, normal };
+      });
+      expect(compactado.explicacion).not.toBeNull();
+      expect(compactado.enunciado).toBe(normal.enunciado);
+      expect(compactado.explicacion).toBe(normal.explicacion);
+      expect(compactado.resumen).toBe(normal.resumen);
+    }
+
+    async function comprobarEnViewport(viewport, sufijo) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      // Partida cerrada a estas dos ids concretas (mismo mecanismo que Misión
+      // de hoy/Pendientes), expuesta solo con ?test=1 (ver window.__one en app.js).
+      await page.evaluate(
+        (ids) => window.__one.empezarPartida({ ids, etiqueta: 'peor-caso' }),
+        [peorOrdenar.id, peorError.id]
+      );
+
+      const t = tarjetaActual(page);
+
+      // Hueco 0: ordenar, fallado a propósito (línea "tuya" + la correcta: el
+      // caso más alto posible de la respuesta compacta de este tipo).
+      await expect(t).toHaveAttribute('data-indice', '0');
+      for (let i = 3; i >= 0; i -= 1) await t.locator(`[data-original="${i}"]`).click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await comprobarFontSizeEstable(t);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1c-peor-caso-ordenar-${sufijo}.png` });
+      await avanzarTrasRespuesta(page);
+
+      // Hueco 1: error, fallado a propósito con una fila distinta a la sospechosa.
+      await expect(t).toHaveAttribute('data-indice', '1');
+      const numFilas = await t.locator('[data-test^="fila-"]').count();
+      const indiceFallo = (peorError.sospechoso + 1) % numFilas;
+      await t.locator(`[data-test="fila-${indiceFallo}"]`).click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await comprobarFontSizeEstable(t);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1c-peor-caso-error-${sufijo}.png` });
+    }
+
+    await comprobarEnViewport({ width: 375, height: 812 }, '375');
+    await comprobarEnViewport({ width: 430, height: 932 }, '430');
   });
 });

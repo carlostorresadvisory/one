@@ -468,13 +468,15 @@ main#app {
    taps accidentales sobre ellas mientras asoman durante el arrastre. */
 .tarjeta-mazo:not(.tarjeta-mazo--actual) { pointer-events: none; }
 
-/* Columna de puntos del mazo, fija al borde derecho (spec v0.1c §2.2): uno por
+/* Columna de puntos del mazo, DENTRO del padding derecho de la tarjeta (spec
+   v0.1c §2.2; corrección ronda 1: a right:3px quedaba pintada sobre el propio
+   borde/esquina redondeada de la tarjeta en vez de dentro de ella). Uno por
    hueco rellenado, relleno = respondida, aro = sin responder, cian = actual. */
 .mazo-puntos {
   position: absolute;
   top: 6px;
   bottom: 34px;
-  right: 3px;
+  right: 6px;
   width: 8px;
   display: flex;
   flex-direction: column;
@@ -584,15 +586,27 @@ main#app {
   flex: none;
 }
 
-/* Zona de respuesta (spec v0.1c §4.1 punto 4): flex:1 para absorber el espacio
-   libre entre la confianza y el feedback/acción; centrada para que la pista de
-   vf (que no tiene controles propios aquí) no quede pegada arriba. */
-.zona-respuesta {
+/* Bloque de contenido de la tarjeta (spec v0.1c §4.1, corrección ronda 1):
+   cabecera + enunciado + confianza + zona de respuesta + feedback son UN solo
+   bloque con gaps fijos entre sí (nada dentro lleva flex:1 propio) que se
+   centra como conjunto en el espacio libre por encima de la zona de acción.
+   Antes cada pieza competía por su propio flex:1 y quedaban 2-3 grupos
+   flotantes con huecos grandes entre ellos (hallazgo visual ronda 1). */
+.tarjeta-contenido {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 10px;
+}
+
+/* Zona de respuesta (spec v0.1c §4.1 punto 4): ya no absorbe espacio propio
+   (eso lo hace .tarjeta-contenido como bloque); solo ordena lo que tenga
+   dentro (opciones/filas/items, o la respuesta compacta + su resumen). */
+.zona-respuesta {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -699,19 +713,21 @@ main#app {
   margin: 0;
 }
 
-/* Pista de deslizamiento (vf): chevrones a los lados, siempre visibles; la
-   frase central solo las primeras 5 preguntas vf del dispositivo (ver
-   construirVf en app.js). */
+/* Pista de deslizamiento (vf): chevrones y frase agrupados como una sola línea
+   centrada, "‹ Falso · Verdadero ›" (corrección ronda 1: con
+   justify-content:space-between antes quedaban pegados a los bordes de la
+   tarjeta, lejos del texto que describen). Los chevrones se siguen tiñendo de
+   ok/ko al arrastrar (ver activarSwipeVf); la frase central solo se ve las
+   primeras 5 preguntas vf del dispositivo (ver construirPistaSwipeVf). */
 .pista-swipe {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
   margin-top: -2px;
 }
 
 .pista-swipe-texto {
-  flex: 1;
   text-align: center;
   color: var(--texto-suave);
   font-size: 12px;
@@ -838,8 +854,20 @@ main#app {
 .filas button.fila-ok { background: rgba(61, 220, 132, 0.15); }
 .filas button.fila-ko { background: rgba(255, 93, 93, 0.15); }
 
-.tarjeta.correcto { outline: 2px solid var(--ok); animation: tarjeta-pulso 0.35s ease; }
-.tarjeta.incorrecto { outline: 2px solid var(--ko); animation: tarjeta-sacude 0.4s ease; }
+/* El acierto/fallo solo pinta el borde en la tarjeta EXTERIOR (la que
+   posiciona el mazo por transform, spec v0.1c §2.2): la animación (que
+   necesita su propio transform) vive en .tarjeta-contenido, un hijo sin
+   ninguna otra función de transform que perder. Poner ambas cosas en el
+   mismo elemento (la tarjeta que también lleva el translateY del mazo) hacía
+   que, mientras la animación de 0,35-0,4s estaba activa, esa tarjeta pudiera
+   quedar posicionada mal (hallazgo real de la ronda 1, visto en captura a
+   430×932): separar el elemento animado del elemento posicionado por el mazo
+   lo evita de raíz, sin depender de entender el porqué exacto del motor de
+   renderizado. */
+.tarjeta.correcto { outline: 2px solid var(--ok); }
+.tarjeta.incorrecto { outline: 2px solid var(--ko); }
+.tarjeta.correcto > .tarjeta-contenido { animation: tarjeta-pulso 0.35s ease; }
+.tarjeta.incorrecto > .tarjeta-contenido { animation: tarjeta-sacude 0.4s ease; }
 
 @keyframes tarjeta-pulso {
   0% { transform: scale(1); }
@@ -848,6 +876,7 @@ main#app {
 }
 
 @keyframes tarjeta-sacude {
+  0%, 100% { transform: translateX(0); }
   10%, 90% { transform: translateX(-2px); }
   20%, 80% { transform: translateX(3px); }
   30%, 50%, 70% { transform: translateX(-5px); }
@@ -1343,7 +1372,7 @@ main#app {
    resuelto por app.js). */
 @media (prefers-reduced-motion: reduce) {
   .fondo-luz { animation: none; }
-  .tarjeta.correcto, .tarjeta.incorrecto { animation: none; }
+  .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
 
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

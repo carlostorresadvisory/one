@@ -357,6 +357,9 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
   let lista = tarjetasIniciales.slice();
   let indice = 0;
   let pistaVisibleActual = true;
+  // Nodos que YA han pasado por un render (para no transicionar su PRIMERA
+  // aparición, ver comentario en render() más abajo).
+  const nodosYaMostrados = new WeakSet();
 
   const puntos = document.createElement('div');
   puntos.className = 'mazo-puntos';
@@ -394,9 +397,15 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
   }
 
   function pintarChevronYPista() {
+    const actual = lista[indice];
+    // Respondida: la zona de acción ya muestra "Siguiente" en ese mismo hueco
+    // vertical (corrección ronda 1, hallazgo visual 5): el chevrón/pista se
+    // quitan de en medio en vez de competir por el mismo espacio con el botón.
+    const respondida = Boolean(actual && actual.dataset && actual.dataset.respondida === 'true');
     const hayMas = indice + 1 < lista.length;
-    chevron.hidden = !hayMas;
-    pista.hidden = !hayMas || !pistaVisibleActual;
+    const mostrar = hayMas && !respondida;
+    chevron.hidden = !mostrar;
+    pista.hidden = !mostrar || !pistaVisibleActual;
   }
 
   /** Se llama una vez por cada índice NUEVO mostrado (no en cada render): decide
@@ -413,9 +422,17 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
       const i = indice + offset;
       if (i < 0 || i >= lista.length) continue;
       const nodo = lista[i];
+      // La PRIMERA vez que un nodo entra en el mazo nunca transiciona (no hay
+      // "antes" del que deslizarse: bastante tenía Chromium con calcular su
+      // primer layout como para además animarlo, y en la práctica dejaba
+      // alguna tarjeta con getBoundingClientRect() midiendo mal durante esa
+      // primera aparición — hallazgo real de la ronda 1, visto en captura a
+      // 430×932). Solo se transicionan los movimientos posteriores.
+      const primeraVez = !nodosYaMostrados.has(nodo);
+      nodosYaMostrados.add(nodo);
       nodo.classList.add('tarjeta-mazo');
       nodo.classList.toggle('tarjeta-mazo--actual', offset === 0);
-      nodo.classList.toggle('tarjeta-mazo--arrastrando', !conTransicion);
+      nodo.classList.toggle('tarjeta-mazo--arrastrando', !conTransicion || primeraVez);
       nodo.dataset.indice = String(i);
       // +-1px de margen sobre el 100% exacto: dos cajas con inset:0 en el mismo
       // contenedor deberían medir idéntico, pero el redondeo a píxel de
@@ -433,6 +450,33 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
     enDom.forEach((nodo) => nodo.remove());
     pintarPuntos();
     pintarChevronYPista();
+    requestAnimationFrame(corregirPosicionSiHaceFalta);
+  }
+
+  /** Red de seguridad (hallazgo real de la ronda 1, visto en captura a
+   * 430×932 con contenido largo): muy de vez en cuando la tarjeta actual
+   * quedaba mal posicionada tras un render pese a tener el `transform`
+   * correcto ya computado (no se ha podido aislar la causa exacta, probable
+   * cosa del propio motor de layout con tanta lectura forzada seguida en
+   * ajustarEncaje). Un frame después de cada render, se comprueba contra el
+   * propio contenedor; si no coincide, reafirmar el mismo transform (incluso
+   * pasando por 'none' con un reflow de por medio) NO lo arregla — solo un
+   * render() con el índice REALMENTE distinto y de vuelta lo hace (comprobado
+   * a mano), así que es lo que se fuerza aquí, síncrono y sin ceder el hilo
+   * entre medias para que no se llegue a pintar el salto. */
+  function corregirPosicionSiHaceFalta() {
+    const nodo = lista[indice];
+    if (!nodo || !nodo.isConnected) return;
+    const mazoTop = contenedor.getBoundingClientRect().top;
+    const nodoTop = nodo.getBoundingClientRect().top;
+    if (Math.abs(nodoTop - mazoTop) <= 2) return;
+    const original = indice;
+    const vecino = original + 1 < lista.length ? original + 1 : original - 1;
+    if (vecino === original || vecino < 0 || vecino >= lista.length) return;
+    indice = vecino;
+    render(false);
+    indice = original;
+    render(false);
   }
 
   function animarRebote(sentido) {
@@ -598,6 +642,13 @@ if (new URLSearchParams(location.search).get('test') === '1') {
       const activo = mazosActivos.find((m) => m.estaVisible());
       if (activo) activo.irA(indice);
     },
+    // Arranca una partida filtrada a ids concretos (mismo mecanismo que Misión
+    // de hoy/Pendientes): para que el e2e pueda forzar preguntas concretas del
+    // banco real (p. ej. el peor caso de encaje, spec v0.1c §4.2) sin depender
+    // de qué le toque al azar.
+    empezarPartida(filtro) {
+      empezarPartida(filtro);
+    },
   };
 }
 
@@ -730,25 +781,45 @@ function rellenarHueco(i) {
  * no hace falta nada más (todas respondidas: el botón Siguiente de la última
  * lleva directo al resumen). Se llama tras cada cambio de índice y tras cada
  * respuesta. */
-function asegurarSiguienteDisponible() {
-  if (listaActual().length <= indiceMazo + 1) {
-    if (mazo.length < N_PARTIDA && !bancoAgotado) {
-      if (rellenarHueco(mazo.length)) {
-        mazoControlador.actualizarTarjetas(listaActual());
-        return;
-      }
-    }
+/**
+ * Decide si hace falta rellenar un hueco más o crear/quitar la tarjeta de
+ * cierre (spec v0.1c §2.1/§2.4): MUTA `mazo`/`nodoCierre` pero no empuja nada
+ * a montarMazo todavía. Devuelve `true` si algo cambió (y por tanto hace
+ * falta repintar). Separado de `asegurarSiguienteDisponible` para que
+ * `manejarRespuesta` pueda combinarlo con el cambio de nodo de la respuesta en
+ * UNA sola llamada a `actualizarTarjetas()`: dos renders seguidos con
+ * `ajustarEncaje` midiendo (forzando layout) entre medias dejaban a veces el
+ * `getBoundingClientRect()` de la tarjeta actual en un estado inconsistente
+ * (hallazgo real de la ronda 1: reproducible con un filtro `{ids}` que se
+ * agota justo al responder la penúltima).
+ */
+function actualizarEstadoMazo() {
+  let cambio = false;
+  if (listaActual().length <= indiceMazo + 1 && mazo.length < N_PARTIDA && !bancoAgotado) {
+    if (rellenarHueco(mazo.length)) cambio = true;
   }
   const hayHuecos = mazo.length > 0;
   const puedeCerrar = hayHuecos && (mazo.length >= N_PARTIDA || bancoAgotado);
   const todasRespondidas = hayHuecos && mazo.every((h) => h.respondida);
-  if (puedeCerrar && !todasRespondidas && !nodoCierre) {
-    nodoCierre = construirTarjetaCierre();
-    mazoControlador.actualizarTarjetas(listaActual());
-  } else if (todasRespondidas && nodoCierre) {
+  if (puedeCerrar && !todasRespondidas) {
+    // Se reconstruye si no existía o si el número de pendientes ya no
+    // coincide (spec v0.1c §2.4): el mazo puede alcanzar las N_PARTIDA (por
+    // el prerrelleno) con más de un hueco sin responder todavía, y alguno de
+    // esos huecos puede responderse DESPUÉS de que la tarjeta ya existiera.
+    const pendientesActuales = mazo.filter((h) => !h.respondida).length;
+    if (!nodoCierre || nodoCierre.dataset.pendientes !== String(pendientesActuales)) {
+      nodoCierre = construirTarjetaCierre();
+      cambio = true;
+    }
+  } else if (nodoCierre) {
     nodoCierre = null;
-    mazoControlador.actualizarTarjetas(listaActual());
+    cambio = true;
   }
+  return cambio;
+}
+
+function asegurarSiguienteDisponible() {
+  if (actualizarEstadoMazo()) mazoControlador.actualizarTarjetas(listaActual());
 }
 
 function manejarCambioIndiceMazo(nuevoIndice) {
@@ -770,6 +841,13 @@ function irASiguienteHueco() {
 }
 
 function finalizarPartida() {
+  // La partida ha terminado: se desmonta el mazo (listeners de puntero y de
+  // teclado incluidos) para no dejar nada colgado mientras se ve el resumen.
+  if (mazoControlador) {
+    mazoControlador.destruir();
+    mazoControlador = null;
+  }
+
   estado = actualizarRacha(estado, hoy());
   guardarEstado(estado);
   actualizarCabecera();
@@ -1181,10 +1259,19 @@ function construirTarjetaSinResponder(hueco) {
   tarjeta.dataset.test = 'tarjeta';
   tarjeta.dataset.respondida = 'false';
 
-  tarjeta.appendChild(construirCabeceraPregunta(pregunta));
-  tarjeta.appendChild(construirBloqueEnunciado(pregunta));
-  tarjeta.appendChild(construirFilaConfianza(hueco));
-  tarjeta.appendChild(construirZonaRespuesta(hueco));
+  // Todo lo de arriba de la zona de acción es UN bloque con gaps fijos que se
+  // centra verticalmente en el espacio libre (corrección de la ronda 1: antes
+  // cada pieza -confianza, respuesta, feedback- competía por su propio flex:1
+  // y quedaban tres grupos flotantes con huecos grandes entre sí). El plegado
+  // (compacta-1/2, ver ajustarEncaje) solo entra cuando este bloque desborda.
+  const contenido = document.createElement('div');
+  contenido.className = 'tarjeta-contenido';
+  contenido.appendChild(construirCabeceraPregunta(pregunta));
+  contenido.appendChild(construirBloqueEnunciado(pregunta));
+  contenido.appendChild(construirFilaConfianza(hueco));
+  const zonaRespuesta = construirZonaRespuesta(hueco);
+  if (zonaRespuesta.hasChildNodes()) contenido.appendChild(zonaRespuesta);
+  tarjeta.appendChild(contenido);
 
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
@@ -1272,13 +1359,13 @@ function construirResumenRespuesta(pregunta) {
   p.className = 'respuesta-resumen';
   switch (pregunta.tipo) {
     case 'vf':
-      p.textContent = `Respuesta: ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+      p.textContent = `Respuesta: ${pregunta.respuesta ? 'Verdadero' : 'Falso'} ✓`;
       break;
     case 'test4':
-      p.textContent = `Respuesta: ${pregunta.opciones[pregunta.correcta]}`;
+      p.textContent = `Respuesta: ${pregunta.opciones[pregunta.correcta]} ✓`;
       break;
     case 'error':
-      p.textContent = `Respuesta: ${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta}`;
+      p.textContent = `Respuesta: ${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta} ✓`;
       break;
     case 'ordenar':
       p.textContent = `Orden: ${pregunta.items.join(' › ')}`;
@@ -1453,9 +1540,11 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
   tarjeta.dataset.respondida = 'true';
   tarjeta.classList.add(hueco.correcta ? 'correcto' : 'incorrecto');
 
-  tarjeta.appendChild(construirCabeceraPregunta(pregunta));
-  tarjeta.appendChild(construirBloqueEnunciado(pregunta));
-  if (!soloLectura) tarjeta.appendChild(construirFilaConfianza(hueco));
+  const contenido = document.createElement('div');
+  contenido.className = 'tarjeta-contenido';
+  contenido.appendChild(construirCabeceraPregunta(pregunta));
+  contenido.appendChild(construirBloqueEnunciado(pregunta));
+  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
 
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
@@ -1473,9 +1562,10 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
   });
   zonaRespuesta.appendChild(respuestaCompacta);
   zonaRespuesta.appendChild(resumenRespuesta);
-  tarjeta.appendChild(zonaRespuesta);
+  contenido.appendChild(zonaRespuesta);
 
-  tarjeta.appendChild(construirBloqueFeedback(pregunta, hueco));
+  contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
+  tarjeta.appendChild(contenido);
 
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
@@ -1534,6 +1624,12 @@ function construirTarjetaCierre() {
   tarjeta.dataset.test = 'mazo-cierre';
 
   const pendientesN = mazo.filter((h) => !h.respondida).length;
+  // Marca cuántas quedaban AL CONSTRUIRSE: actualizarEstadoMazo la usa para
+  // saber si hay que reconstruir la tarjeta (spec v0.1c §2.4). Sin esto, una
+  // pendiente respondida DESPUÉS de que apareciera el cierre (p. ej. el
+  // pre-relleno alcanza las N_PARTIDA justo al llegar al penúltimo hueco, con
+  // dos sin responder todavía) dejaba el número congelado y equivocado.
+  tarjeta.dataset.pendientes = String(pendientesN);
   const titulo = document.createElement('p');
   titulo.className = 'mazo-cierre-titulo';
   titulo.textContent = `Quedan ${pendientesN} sin responder`;
@@ -1581,9 +1677,12 @@ function manejarRespuesta(hueco, respuesta) {
   hueco.delta = resultado.delta;
   hueco.nodo = construirTarjetaRespondida(pregunta, hueco, { soloLectura: false });
 
+  // Un solo actualizarTarjetas() con el nodo nuevo Y (si aplica) el hueco
+  // rellenado por delante o la tarjeta de cierre ya resueltos: ver el porqué
+  // en el comentario de actualizarEstadoMazo.
+  actualizarEstadoMazo();
   mazoControlador.actualizarTarjetas(listaActual());
   actualizarBarraProgreso();
-  asegurarSiguienteDisponible();
 }
 
 /** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
