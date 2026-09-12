@@ -1,14 +1,16 @@
-// ONE · service worker — cache-first de los estáticos, stale-while-revalidate del banco.
-const CACHE = 'one-v1';
+// ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
+// actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
+// tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
+const CACHE = 'one-v2';
 
 const ESTATICOS = [
   './',
-  'index.html',
   'estilos.css',
   'app.js',
   'motor.js',
   'manifest.json',
   'datos/banco.json',
+  'iconos/180.png',
   'iconos/192.png',
   'iconos/512.png',
 ];
@@ -18,7 +20,7 @@ self.addEventListener('install', (evento) => {
     caches.open(CACHE).then((cache) =>
       Promise.all(
         ESTATICOS.map((ruta) => cache.add(ruta).catch(() => {
-          // Un recurso que falte (p. ej. banco.json aún no generado) no debe romper la instalación.
+          // Un recurso que falte no debe romper la instalación.
         }))
       )
     )
@@ -35,33 +37,27 @@ self.addEventListener('activate', (evento) => {
   self.clients.claim();
 });
 
-function esBanco(url) {
-  return url.pathname.endsWith('/datos/banco.json');
-}
-
 self.addEventListener('fetch', (evento) => {
+  if (evento.request.method !== 'GET') return;
   const url = new URL(evento.request.url);
   if (url.origin !== self.location.origin) return;
 
-  if (esBanco(url)) {
-    // stale-while-revalidate: responde con lo que haya en caché mientras actualiza en segundo plano.
-    evento.respondWith(
-      caches.open(CACHE).then(async (cache) => {
-        const enCache = await cache.match(evento.request);
-        const actualizacion = fetch(evento.request)
-          .then((respuesta) => {
-            if (respuesta && respuesta.ok) cache.put(evento.request, respuesta.clone());
-            return respuesta;
-          })
-          .catch(() => enCache);
-        return enCache || actualizacion;
-      })
-    );
-    return;
-  }
-
-  // cache-first para el resto de estáticos.
   evento.respondWith(
-    caches.match(evento.request).then((enCache) => enCache || fetch(evento.request))
+    caches.open(CACHE).then(async (cache) => {
+      const enCache = await cache.match(evento.request, { ignoreSearch: true });
+      const actualizacion = fetch(evento.request)
+        .then((respuesta) => {
+          if (respuesta && respuesta.ok) cache.put(evento.request, respuesta.clone());
+          return respuesta;
+        })
+        .catch(() => null);
+      if (enCache) {
+        // No se espera a la red: la actualización queda para la próxima apertura.
+        evento.waitUntil(actualizacion);
+        return enCache;
+      }
+      const deRed = await actualizacion;
+      return deRed || new Response('Sin conexión y sin copia local', { status: 503, statusText: 'Sin conexión' });
+    })
   );
 });

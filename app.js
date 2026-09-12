@@ -39,8 +39,9 @@ function guardarEstado(estado) {
 }
 
 // --- estado global de la sesión de UI ---
-const hoy = hoyLocal();
-let estado = cargarEstado(hoy);
+// La fecha se lee cada vez que hace falta: una partida puede cruzar la medianoche.
+function hoy() { return hoyLocal(); }
+let estado = cargarEstado(hoy());
 let banco = [];
 
 let partidaIds = [];
@@ -89,7 +90,7 @@ async function iniciar() {
 
 // --- flujo de partida ---
 function empezarPartida() {
-  partidaIds = seleccionarPartida(estado, banco, hoy, N_PARTIDA, Math.random);
+  partidaIds = seleccionarPartida(estado, banco, hoy(), N_PARTIDA, Math.random);
   indicePartida = 0;
   xpPartida = 0;
   aciertosPartida = 0;
@@ -108,6 +109,7 @@ function renderPreguntaActual() {
     finalizarPartida();
     return;
   }
+  preguntaRespondida = false;
   const pregunta = preguntaActual();
   if (!pregunta) {
     // Id de la partida no encontrado en el banco: se salta a la siguiente.
@@ -353,9 +355,14 @@ function construirError(pregunta) {
   return tarjeta;
 }
 
+let preguntaRespondida = false;
+
 function manejarRespuesta(pregunta, respuesta) {
+  // Guarda contra doble tap / doble evento sobre la misma pregunta.
+  if (preguntaRespondida) return;
+  preguntaRespondida = true;
   const correcta = evaluar(pregunta, respuesta);
-  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy);
+  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy());
   estado = resultado.estado;
   guardarEstado(estado);
 
@@ -387,6 +394,7 @@ function mostrarFeedback(pregunta, correcta, delta) {
 }
 
 function irASiguiente() {
+  if (indicePartida >= partidaIds.length) return;
   indicePartida += 1;
   renderPreguntaActual();
 }
@@ -403,7 +411,7 @@ function marcarPreguntaMal() {
 }
 
 function finalizarPartida() {
-  estado = actualizarRacha(estado, hoy);
+  estado = actualizarRacha(estado, hoy());
   guardarEstado(estado);
   actualizarRachaNodo();
 
@@ -460,7 +468,7 @@ function exportarEstado() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `one-estado-${hoy}.json`;
+  a.download = `one-estado-${hoy()}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

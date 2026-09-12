@@ -1,4 +1,4 @@
-// Genera iconos/192.png e iconos/512.png con un codificador PNG mínimo propio
+// Genera iconos/180.png (Home Screen de iOS), iconos/192.png e iconos/512.png con un codificador PNG mínimo propio
 // (sin dependencias): fondo oscuro, círculo de acento centrado y un punto oscuro central.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -101,7 +101,7 @@ function construirPng(lado) {
 function generar() {
   const dirIconos = path.join(RAIZ, 'iconos');
   fs.mkdirSync(dirIconos, { recursive: true });
-  for (const lado of [192, 512]) {
+  for (const lado of [180, 192, 512]) {
     const png = construirPng(lado);
     const destino = path.join(dirIconos, `${lado}.png`);
     fs.writeFileSync(destino, png);
