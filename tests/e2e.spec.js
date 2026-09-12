@@ -17,6 +17,17 @@ async function assertSinScroll(page) {
   expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
 }
 
+/** El radar absorbe el espacio libre del HUB (spec "pantalla completa"
+ * 12-sep): nada de hueco vacío entre la rejilla de áreas y "Comenzar". */
+async function comprobarHuecoGridComenzar(page) {
+  const cajaGrid = await page.locator('#progreso-areas').boundingBox();
+  const cajaComenzar = await page.locator('[data-test="comenzar"]').boundingBox();
+  expect(cajaGrid).not.toBeNull();
+  expect(cajaComenzar).not.toBeNull();
+  const hueco = cajaComenzar.y - (cajaGrid.y + cajaGrid.height);
+  expect(hueco).toBeLessThanOrEqual(48);
+}
+
 /** Detecta el tipo de la pregunta actual por sus selectores data-test, sin responder. */
 async function tipoPreguntaActual(page) {
   if (await page.locator('[data-test="vf-verdadero"]').count()) return 'vf';
@@ -71,24 +82,21 @@ async function fallarPreguntaActual(page, sospechosoPorTitulo) {
   return tipo;
 }
 
-/** Tras responder: si se acierta, la app puede avanzar sola a la siguiente
- * pregunta (1,4s o 2,2s con chips de Recuperada/Misión completada); si se falla,
- * nunca avanza sola y espera a "Siguiente". Aceptamos ambos desenlaces sin
- * depender de temporizadores fijos largos: si "Siguiente" sigue visible en un
- * margen corto se pulsa; si ya no lo está (avanzó sola, o se llegó al resumen)
- * no hay nada que pulsar y seguimos. */
+/** Sin avance automático (spec "pantalla completa" 12-sep): tras responder,
+ * acierto o fallo, la partida SIEMPRE espera a "Siguiente". */
 async function avanzarTrasRespuesta(page) {
   const siguiente = page.locator('[data-test="siguiente"]');
-  try {
-    await siguiente.waitFor({ state: 'visible', timeout: 300 });
-  } catch {
-    return; // ya no está: avanzó sola o se llegó al resumen.
-  }
-  try {
-    await siguiente.click({ timeout: 2000 });
-  } catch {
-    // Avanzó sola justo antes del click: no pasa nada, seguimos.
-  }
+  await expect(siguiente).toBeVisible();
+  await siguiente.click();
+}
+
+/** vf: FALSO/VERDADERO fuera de la tarjeta (en la zona de acción) y la pista de
+ * deslizamiento visible sobre la propia tarjeta (spec "pantalla completa" 12-sep). */
+async function comprobarZonaAccionVf(page) {
+  await expect(page.locator('[data-test="pista-swipe"]')).toBeVisible();
+  await expect(page.locator('.tarjeta [data-test="vf-falso"]')).toHaveCount(0);
+  await expect(page.locator('[data-test="vf-falso"]')).toBeVisible();
+  await expect(page.locator('[data-test="vf-verdadero"]')).toBeVisible();
 }
 
 /** Juega hasta que aparece el resumen, respondiendo siempre correctamente y
@@ -109,15 +117,20 @@ async function jugarPartida(page, { alDetectarTipo, alVerFeedback, sospechosoPor
     if (await page.locator('[data-test="resumen"]').isVisible()) return;
 
     await expect(page.locator('[data-test="confianza"]')).toBeVisible();
+    await expect(page.locator('[data-test="confianza-etiqueta"]')).toHaveText('Confianza');
     await assertSinScroll(page);
 
     const tipo = await tipoPreguntaActual(page);
+    if (tipo === 'vf') await comprobarZonaAccionVf(page);
     if (alDetectarTipo) await alDetectarTipo(tipo);
 
     await responderPreguntaActual(page, sospechosoPorTitulo);
 
     await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
     await expect(page.locator('[data-test="confianza"]')).toBeHidden();
+    // La explicación se muestra siempre al responder, sin tocar nada (spec
+    // "pantalla completa" 12-sep: sin avance automático, sin botón "?").
+    await expect(page.locator('#explicacion-texto')).toBeVisible();
     await assertSinScroll(page);
     if (!feedbackVisto) {
       feedbackVisto = true;
@@ -166,6 +179,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="mision"]')).toContainText('0/3');
     await expect(page.locator('[data-test="pendientes"]')).toHaveText('Pendientes · 0');
     await assertSinScroll(page);
+    await comprobarHuecoGridComenzar(page);
     await page.screenshot({ path: `${CAPTURAS}/02-hub.png` });
 
     // 3. "←" desde el HUB vuelve a los emojis (nunca al revés): comprobamos el
@@ -186,15 +200,15 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
     await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
 
-    // 5. Primera pregunta de economía: selector de confianza visible antes de
-    // responder; "¿por qué?" y "Siguiente" (dentro de #contenedor-feedback) deben
-    // estar OCULTOS hasta responder. Fallamos A PROPÓSITO (la tarjeta se sacude,
-    // se ve la explicación sola, y NO debe avanzar sola: espera a "Siguiente").
-    // Esta tarjeta queda pendiente: el resto del flujo la usa para probar
-    // "Pendientes" y el chip "Recuperada".
+    // 5. Primera pregunta de economía: selector de confianza (con su etiqueta)
+    // visible antes de responder; "Siguiente" (dentro de #contenedor-feedback)
+    // debe estar OCULTO hasta responder. Fallamos A PROPÓSITO (la tarjeta se
+    // sacude, se ve la explicación sola, y sin avance automático: espera
+    // siempre a "Siguiente"). Esta tarjeta queda pendiente: el resto del flujo
+    // la usa para probar "Pendientes" y el chip "Recuperada".
     await expect(page.locator('[data-test="confianza"]')).toBeVisible();
+    await expect(page.locator('[data-test="confianza-etiqueta"]')).toHaveText('Confianza');
     await expect(page.locator('[data-test="confianza-media"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('[data-test="porque"]')).toBeHidden();
     await expect(page.locator('[data-test="siguiente"]')).toBeHidden();
     // El orden de las 2 preguntas de economía lo decide el rng del motor: puede
     // salir primero la vf o la de tipo "error", así que fallamos sea cual sea.
@@ -202,10 +216,6 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="confianza"]')).toBeHidden();
     await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
     await expect(page.locator('#explicacion-texto')).toBeVisible();
-    // Confirmamos que sigue en la misma pregunta pasado un margen: el fallo
-    // nunca arma el avance automático (a diferencia del acierto).
-    await page.waitForTimeout(400);
-    await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
     await assertSinScroll(page);
     await page.locator('[data-test="siguiente"]').click();
 
@@ -215,6 +225,10 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
     await expect(page.locator('[data-test="confianza"]')).toBeVisible();
     await responderPreguntaActual(page, sospechosoPorTitulo);
+    // Acierto: la explicación también se ve siempre, sin tocar nada (spec
+    // "pantalla completa" 12-sep: sin avance automático, acierto o fallo).
+    await expect(page.locator('#explicacion-texto')).toBeVisible();
+    await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
     await avanzarTrasRespuesta(page);
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
@@ -364,5 +378,60 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
     expect(erroresPagina).toEqual([]);
+  });
+
+  // Mismo flujo (banco de ejemplo) a 430×932 (iPhone Pro Max): la spec "pantalla
+  // completa" pide sin scroll también a este tamaño, y capturas propias.
+  test('pantalla completa a 430×932: sin scroll y capturas', async ({ page }) => {
+    const CAPTURAS_430 = `${CAPTURAS}/430x932`;
+    await page.setViewportSize({ width: 430, height: 932 });
+
+    await page.goto('/?ejemplo=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await assertSinScroll(page);
+    await page.screenshot({ path: `${CAPTURAS_430}/01-inicio.png` });
+
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await assertSinScroll(page);
+    await comprobarHuecoGridComenzar(page);
+    await page.screenshot({ path: `${CAPTURAS_430}/02-hub.png` });
+
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(
+      bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
+    );
+
+    await page.locator('[data-test="comenzar"]').click();
+
+    const vistos = new Set();
+    const nombreCaptura = { vf: '03-vf.png', error: '06-error.png' };
+    let feedbackCapturado = false;
+
+    for (let vueltas = 0; vueltas < 25; vueltas += 1) {
+      if (await page.locator('[data-test="resumen"]').isVisible()) break;
+
+      await assertSinScroll(page);
+      const tipo = await tipoPreguntaActual(page);
+      if (tipo === 'vf') await comprobarZonaAccionVf(page);
+      if (!vistos.has(tipo) && nombreCaptura[tipo]) {
+        vistos.add(tipo);
+        await page.screenshot({ path: `${CAPTURAS_430}/${nombreCaptura[tipo]}` });
+      }
+
+      await responderPreguntaActual(page, sospechosoPorTitulo);
+      await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
+      await assertSinScroll(page);
+      if (!feedbackCapturado) {
+        feedbackCapturado = true;
+        await page.screenshot({ path: `${CAPTURAS_430}/07-feedback.png` });
+      }
+
+      await avanzarTrasRespuesta(page);
+    }
+
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+    await assertSinScroll(page);
+    await page.screenshot({ path: `${CAPTURAS_430}/08-resumen.png` });
   });
 });
