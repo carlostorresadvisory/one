@@ -633,7 +633,10 @@ function construirOrdenar(pregunta) {
 
   const enunciado = document.createElement('p');
   enunciado.className = 'enunciado';
-  enunciado.textContent = `Ordena ${pregunta.criterio}: ${pregunta.enunciado}`;
+  // El banco suele traer ya la instrucción completa ("Ordena estos…"): no duplicarla.
+  enunciado.textContent = /^ordena/i.test(pregunta.enunciado.trim())
+    ? pregunta.enunciado
+    : `Ordena ${pregunta.criterio}: ${pregunta.enunciado}`;
   tarjeta.appendChild(enunciado);
 
   const contenedorItems = document.createElement('div');
