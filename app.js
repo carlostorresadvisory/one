@@ -190,16 +190,28 @@ function activarSwipeVf(tarjeta, pregunta) {
   let inicioX = 0;
   let deltaX = 0;
 
+  const ARRANQUE = 8; // px de movimiento antes de considerar que es un swipe y no un tap
+  let capturado = false;
+
   tarjeta.addEventListener('pointerdown', (ev) => {
+    // Un toque que empieza en un botón (FALSO/VERDADERO, ¿por qué?...) es del botón, no del gesto:
+    // si la tarjeta capturase el puntero, el click acabaría en la tarjeta y el botón no respondería.
+    if (ev.target.closest('button')) return;
     activo = true;
+    capturado = false;
     inicioX = ev.clientX;
-    tarjeta.setPointerCapture(ev.pointerId);
+    deltaX = 0;
   });
 
   tarjeta.addEventListener('pointermove', (ev) => {
     if (!activo) return;
     deltaX = ev.clientX - inicioX;
-    tarjeta.style.transform = `translateX(${deltaX}px)`;
+    if (!capturado && Math.abs(deltaX) > ARRANQUE) {
+      // Solo se captura el puntero cuando ya es un arrastre: un tap simple nunca lo secuestra.
+      capturado = true;
+      tarjeta.setPointerCapture(ev.pointerId);
+    }
+    if (capturado) tarjeta.style.transform = `translateX(${deltaX}px)`;
   });
 
   function soltar() {
