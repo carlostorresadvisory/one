@@ -1,0 +1,598 @@
+[
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios finales producidos en una economía durante un periodo determinado.",
+    "explicacion": "El Producto Interno Bruto (PIB) se define precisamente como el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un intervalo de tiempo, usualmente un año o un trimestre.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-001",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En un mercado de competencia perfecta, las empresas son precio-tomadoras y no pueden influir en el precio de mercado.",
+    "explicacion": "En la competencia perfecta hay muchos compradores y vendedores, productos homogéneos y libre entrada/salida, de modo que cada firma enfrenta una demanda perfectamente elástica y debe aceptar el precio de mercado como dado.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "eco-002",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La curva de Phillips a largo plazo es vertical, indicando que no existe un trade-off estable entre inflación y desempleo.",
+    "explicacion": "Según la hipótesis de expectativas racionales y la curva de Phillips augmentada, a largo plazo la inflación no afecta al desempleo, cuya tasa natural determina una curva vertical en el nivel de desempleo natural.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "eco-003",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En teoría de juegos, un equilibrio de Nash en estrategias puras existe siempre en cualquier juego finito.",
+    "explicacion": "Aunque todo juego finito tiene al menos un equilibrio de Nash en estrategias mixtas (teorema de Nash), no garantiza la existencia de un equilibrio en estrategias puras; ejemplos como el juego de 'Matching Pennies' solo tienen equilibrio mixto.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "eco-004",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período.",
+    "explicacion": "El Producto Interno Bruto (PIB) es la medida estándar de la producción económica total de un país, contabilizando solo bienes y servicios finales para evitar doble conteo.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-005",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La curva de Phillips original mostraba una relación inversa estable entre inflación y desempleo a largo plazo.",
+    "explicacion": "La curva de Phillips original (1958) describía una relación inversa a corto plazo; a largo plazo la curva es vertical, ya que las expectativas de inflación ajustan el desempleo a su tasa natural.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "eco-006",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo de Solow, un aumento permanente en la tasa de ahorro eleva el nivel de producto por trabajador en el estado estacionario, pero no su tasa de crecimiento a largo plazo.",
+    "explicacion": "Un mayor ahorro aumenta el capital por trabajador y, por tanto, el producto por trabajador en el estado estacionario, pero la tasa de crecimiento de la productividad a largo plazo sigue determinada por el progreso técnico exógeno.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "eco-007",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interno Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor de mercado de todos los bienes y servicios finales producidos dentro de un país en un período determinado.",
+    "nivel": 1,
+    "opciones": [
+      "La cantidad total de bienes y servicios producidos en un período",
+      "El nivel de desempleo",
+      "La balanza comercial",
+      "La inflación"
+    ],
+    "correcta": 0,
+    "id": "eco-008",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes es un ejemplo de política monetaria expansiva?",
+    "explicacion": "Reducir el coeficiente de reservas obligatorias aumenta la capacidad de los bancos para prestar, expandiendo la oferta monetaria.",
+    "nivel": 2,
+    "opciones": [
+      "Aumentar el tipo de interés de referencia",
+      "Reducir el coeficiente de reservas obligatorias",
+      "Aumentar los impuestos",
+      "Reducir el gasto público"
+    ],
+    "correcta": 1,
+    "id": "eco-009",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo de Solow, ¿qué factor impulsa el crecimiento a largo plazo de la producción per cápita en el estado estacionario?",
+    "explicacion": "En el estado estacionario del modelo de Solow, solo el progreso tecnológico exógeno genera crecimiento sostenido del producto por trabajador.",
+    "nivel": 3,
+    "opciones": [
+      "Acumulación de capital físico",
+      "Progreso tecnológico exógeno",
+      "Aumento de la tasa de ahorro",
+      "Crecimiento de la fuerza laboral"
+    ],
+    "correcta": 1,
+    "id": "eco-010",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué condición debe cumplirse para que una curva de Phillips a corto plazo sea vertical en el modelo de expectativas racionales?",
+    "explicacion": "Si los agentes forman expectativas racionales y anticipan correctamente la política monetaria, la curva de Phillips a corto plazo se vuelve vertical, ya que no hay trade‑off entre inflación y desempleo.",
+    "nivel": 5,
+    "opciones": [
+      "Los agentes forman expectativas adaptativas",
+      "Los agentes tienen información perfecta y anticipan la política monetaria",
+      "La política fiscal es neutra",
+      "La oferta agregada es perfectamente elástica"
+    ],
+    "correcta": 1,
+    "id": "eco-011",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interno Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país durante un periodo determinado.",
+    "nivel": 1,
+    "opciones": [
+      "La cantidad total de bienes y servicios producidos dentro de sus fronteras en un periodo",
+      "El total de exportaciones menos importaciones",
+      "El nivel de empleo",
+      "La deuda pública"
+    ],
+    "correcta": 0,
+    "id": "eco-012",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué representa el coste de oportunidad de una decisión económica?",
+    "explicacion": "El coste de oportunidad es el valor de la mejor alternativa que se renuncia al elegir una opción.",
+    "nivel": 2,
+    "opciones": [
+      "El valor de la mejor alternativa no elegida",
+      "El gasto monetario incurrido",
+      "El beneficio obtenido",
+      "El riesgo asociado"
+    ],
+    "correcta": 0,
+    "id": "eco-013",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo de competencia perfecta, ¿qué condición debe cumplirse para que una empresa maximice su beneficio a corto plazo?",
+    "explicacion": "En competencia perfecta la empresa es tomadora de precios; maximiza beneficio produciendo donde el precio de mercado iguala su coste marginal.",
+    "nivel": 4,
+    "opciones": [
+      "Precio = Coste marginal",
+      "Precio = Coste total medio",
+      "Ingreso marginal = Coste total medio",
+      "Coste marginal = Coste total medio"
+    ],
+    "correcta": 0,
+    "id": "eco-014",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes afirmaciones describe correctamente el teorema de la imposibilidad de Arrow?",
+    "explicacion": "El teorema de Arrow establece que ninguna regla de agregación de preferencias individuales puede cumplir simultáneamente universalidad, no dictatorialidad, independencia de alternativas irrelevantes y transitividad.",
+    "nivel": 5,
+    "opciones": [
+      "No existe ninguna regla de agregación de preferencias que satisfaga simultáneamente universalidad, no dictatorialidad, independencia de alternativas irrelevantes y transitividad",
+      "Cualquier sistema de votación mayoritario garantiza un resultado transitivo",
+      "El teorema solo se aplica a elecciones con tres candidatos",
+      "El teorema afirma que la democracia es imposible"
+    ],
+    "correcta": 0,
+    "id": "eco-015",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interior Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor monetario de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un periodo determinado, generalmente un año.",
+    "nivel": 1,
+    "opciones": [
+      "El total de exportaciones netas",
+      "El valor de la producción final dentro del territorio",
+      "La suma de los salarios pagados a los trabajadores",
+      "El saldo de la balanza de pagos"
+    ],
+    "correcta": 1,
+    "id": "eco-016",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cómo se define la inflación en términos macroeconómicos?",
+    "explicacion": "La inflación es el aumento sostenido y generalizado del nivel de precios de los bienes y servicios en una economía a lo largo del tiempo, lo que reduce el poder adquisitivo de la moneda.",
+    "nivel": 2,
+    "opciones": [
+      "Una caída puntual del precio de un bien específico",
+      "Un aumento sostenido y generalizado del nivel de precios",
+      "Una reducción de la oferta monetaria",
+      "Un incremento del tipo de cambio nominal"
+    ],
+    "correcta": 1,
+    "id": "eco-017",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué relación describe la curva de Phillips en su versión original?",
+    "explicacion": "La curva de Phillips original muestra una relación inversa empírica entre la tasa de desempleo y la tasa de crecimiento de los salarios (o la inflación) a corto plazo.",
+    "nivel": 3,
+    "opciones": [
+      "Relación directa entre inflación y crecimiento del PIB",
+      "Relación inversa entre desempleo e inflación (o crecimiento salarial)",
+      "Relación entre tipo de interés y inversión",
+      "Relación entre oferta monetaria y tipo de cambio"
+    ],
+    "correcta": 1,
+    "id": "eco-018",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué establece el teorema de la imposibilidad de Arrow sobre las funciones de bienestar social?",
+    "explicacion": "El teorema de Arrow demuestra que no existe ninguna regla de agregación de preferencias individuales en una preferencia social que cumpla simultáneamente con condiciones de racionalidad, no dictadura, independencia de alternativas irrelevantes y unanimidad.",
+    "nivel": 4,
+    "opciones": [
+      "Existe una función de bienestar social perfecta si se permite la cardinalidad",
+      "Cualquier regla de votación mayoritaria satisface todos los axiomas de Arrow",
+      "No hay función de bienestar social que cumpla todos los axiomas de Arrow simultáneamente",
+      "El teorema solo se aplica a economías con más de tres agentes"
+    ],
+    "correcta": 2,
+    "id": "eco-019",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo de crecimiento de Solow, ¿qué condición garantiza la convergencia condicional entre economías?",
+    "explicacion": "La convergencia condicional ocurre cuando las economías comparten la misma tasa de ahorro, tasa de crecimiento de la población, progreso tecnológico y depreciación, pero difieren en su stock inicial de capital per cápita; entonces, las más pobres crecen más rápido y tienden al mismo estado estacionario.",
+    "nivel": 5,
+    "opciones": [
+      "Igualdad en la tasa de ahorro y en la función de producción, pero diferencias en preferencias",
+      "Mismas tasas de ahorro, crecimiento poblacional, progreso tecnológico y depreciación",
+      "Libre movilidad de capital y trabajo entre países",
+      "Políticas fiscales idénticas en todas las economías"
+    ],
+    "correcta": 1,
+    "id": "eco-020",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes agentes económicos de menor a mayor nivel de agregación.",
+    "explicacion": "El individuo es la unidad básica, los hogares agrupan individuos, las empresas agrupan hogares y factores de producción, y el país abarca todas las unidades anteriores.",
+    "nivel": 1,
+    "criterio": "de menor a mayor nivel de agregación",
+    "items": [
+      "individuo",
+      "hogar",
+      "empresa",
+      "país"
+    ],
+    "id": "eco-021",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las estructuras de mercado de menor a mayor grado de competencia.",
+    "explicacion": "El monopolio tiene un solo vendedor, el oligopolio pocos, la competencia monopolística muchos con diferenciación, y la competencia perfecta muchos con productos homogéneos.",
+    "nivel": 2,
+    "criterio": "de menor a mayor grado de competencia",
+    "items": [
+      "monopolio",
+      "oligopolio",
+      "competencia monopolística",
+      "competencia perfecta"
+    ],
+    "id": "eco-022",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los niveles de gobierno según su ámbito territorial de menor a mayor.",
+    "explicacion": "Los municipios administran áreas locales, las regiones/estados agrupan municipios, el gobierno nacional abarca todo el país, y las entidades supranacionales (p.ej., UE) coordinan varios países.",
+    "nivel": 3,
+    "criterio": "de menor a mayor ámbito territorial",
+    "items": [
+      "municipal",
+      "regional",
+      "nacional",
+      "supranacional"
+    ],
+    "id": "eco-023",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los tipos de elasticidad precio de la demanda según el valor absoluto de su coeficiente, de menor a mayor.",
+    "explicacion": "La elasticidad perfectamente inelástica es 0, la inelástica entre 0 y 1, la unitaria igual a 1, y la elástica mayor que 1 en valor absoluto.",
+    "nivel": 4,
+    "criterio": "de menor a mayor valor absoluto del coeficiente de elasticidad",
+    "items": [
+      "perfectamente inelástica",
+      "inelástica",
+      "unitaria",
+      "elástica"
+    ],
+    "id": "eco-024",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los componentes del PIB de una economía desarrollada típica según su participación porcentual, de menor a mayor.",
+    "explicacion": "En la mayoría de economías avanzadas el consumo privado representa la mayor parte del PIB, seguido del gasto público, la inversión y, por último, las exportaciones netas (que pueden ser negativas).",
+    "nivel": 1,
+    "criterio": "de menor a mayor participación en el PIB",
+    "items": [
+      "Exportaciones netas",
+      "Inversión",
+      "Gasto público",
+      "Consumo"
+    ],
+    "id": "eco-025",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las etapas del modelo de desarrollo de Rostow desde la inicial hasta la final.",
+    "explicacion": "El modelo de Rostow describe cinco fases; aquí se presentan cuatro consecutivas que marcan la transición de una sociedad tradicional a una economía de alto consumo.",
+    "nivel": 2,
+    "criterio": "de etapa inicial a etapa final",
+    "items": [
+      "Sociedad tradicional",
+      "Precondiciones para el despegue",
+      "Despegue",
+      "Madurez"
+    ],
+    "id": "eco-026",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los agregados monetarios principales por su amplitud, de menor a mayor.",
+    "explicacion": "M0 es la base monetaria (efectivo en circulación más reservas bancarias); M1 añade depósitos a la vista; M2 incorpora depósitos de ahorro y a plazo corto; M3 agrega instrumentos de mercado monetario de mayor plazo.",
+    "nivel": 3,
+    "criterio": "de menor a mayor amplitud",
+    "items": [
+      "M0 (base monetaria)",
+      "M1",
+      "M2",
+      "M3"
+    ],
+    "id": "eco-027",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los tipos de elasticidad-precio de la demanda según su magnitud, de menor a mayor elasticidad.",
+    "explicacion": "La elasticidad mide la sensibilidad de la cantidad demandada ante cambios de precio; varía desde cero (perfectamente inelástica) hasta infinito (perfectamente elástica).",
+    "nivel": 4,
+    "criterio": "de menor a mayor elasticidad",
+    "items": [
+      "Perfectamente inelástica",
+      "Relativamente inelástica",
+      "Unitaria",
+      "Relativamente elástica"
+    ],
+    "id": "eco-028",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las principales escuelas de pensamiento económico según su aparición histórica, de la más antigua a la más reciente.",
+    "explicacion": "El mercantilismo precede a la escuela clásica (Smith, Ricardo), que a su vez antecede a la revolución marginalista (Jevons, Menger, Walras) y finalmente al keynesianismo (Keynes, años 30).",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Mercantilismo",
+      "Escuela clásica",
+      "Escuela marginalista",
+      "Keynesianismo"
+    ],
+    "id": "eco-029",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La curva de oferta es ascendente (pendiente positiva), no descendente; a mayor precio, los productores están dispuestos a ofrecer más cantidad.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Conceptos básicos de oferta y demanda",
+      "filas": [
+        {
+          "etiqueta": "Ley de la demanda",
+          "valor": "A mayor precio, menor cantidad demandada"
+        },
+        {
+          "etiqueta": "Elasticidad precio",
+          "valor": "Mide la sensibilidad de la cantidad demandada al cambio en el precio"
+        },
+        {
+          "etiqueta": "Curva de oferta",
+          "valor": "Es descendente"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "eco-030",
+    "area": "economia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La tasa de desempleo se calcula sobre la fuerza de trabajo (población activa), no sobre la población total.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Indicadores macroeconómicos",
+      "filas": [
+        {
+          "etiqueta": "PIB",
+          "valor": "Valor total de bienes y servicios finales producidos en un país en un período"
+        },
+        {
+          "etiqueta": "Tasa de desempleo",
+          "valor": "Porcentaje de la población total sin empleo"
+        },
+        {
+          "etiqueta": "Inflación",
+          "valor": "Aumento sostenido y generalizado de los precios"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "eco-031",
+    "area": "economia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Las reservas obligatorias son depósitos que los bancos deben mantener en el banco central, no efectivo en sus propias cajas.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Política monetaria",
+      "filas": [
+        {
+          "etiqueta": "Tipo de interés de referencia",
+          "valor": "Herramienta principal del banco central para influir en la liquidez"
+        },
+        {
+          "etiqueta": "Operaciones de mercado abierto",
+          "valor": "Compra y venta de bonos del gobierno para controlar la base monetaria"
+        },
+        {
+          "etiqueta": "Reservas obligatorias",
+          "valor": "Porcentaje de depósitos que los bancos deben mantener en efectivo en sus cajas"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "eco-032",
+    "area": "economia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "En un juego de suma cero la suma de los pagos de todos los jugadores es siempre cero; no puede ser positiva.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Teoría de juegos en economía",
+      "filas": [
+        {
+          "etiqueta": "Equilibrio de Nash",
+          "valor": "Conjunto de estrategias donde ningún jugador puede mejorar unilateralmente su resultado"
+        },
+        {
+          "etiqueta": "Dominancia estricta",
+          "valor": "Una estrategia que siempre produce un pago mayor que cualquier otra, independientemente de las acciones de los demás"
+        },
+        {
+          "etiqueta": "Juego de suma cero",
+          "valor": "La ganancia de un jugador equivale exactamente a la pérdida del otro, pero la suma total de pagos puede ser positiva"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "eco-033",
+    "area": "economia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

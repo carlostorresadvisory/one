@@ -1,0 +1,1994 @@
+[
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci es el autor de la famosa retrato conocido como La Mona Lisa, conservado en el Louvre.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-001",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El movimiento impresionista se originó en Italia a finales del siglo XIX.",
+    "explicacion": "El impresionismo surgió en Francia, con artistas como Monet, Renoir y Degas, no en Italia.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "art-002",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El cuadro \"La noche estrellada\" de Vincent van Gogh representa la vista desde su ventana en el asilo de Saint-Rémy.",
+    "explicacion": "Van Gogh pintó La noche estrellada en 1889 mientras estaba internado en el asilo de Saint-Rémy-de-Provence, mostrando la vista nocturna desde su ventana.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "art-003",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El claroscuro dramático que modela volúmenes mediante contrastes extremos de luz y sombra fue desarrollado principalmente por Caravaggio en el Barroco.",
+    "explicacion": "Caravaggio es considerado el maestro del tenebrismo, una forma extrema de claroscuro que define el estilo barroco temprano.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "art-004",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué técnica pictórica consiste en aplicar capas transparentes de color sobre una base seca para lograr luminosidad?",
+    "explicacion": "El glaseado (o veladura) permite que la luz atraviese las capas transparentes y se refleje en la capa inferior, creando profundidad y brillo.",
+    "nivel": 2,
+    "opciones": [
+      "Glaseado",
+      "Impasto",
+      "Fresco",
+      "Temple"
+    ],
+    "correcta": 0,
+    "id": "art-017",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El glaseado o veladura consiste en aplicar capas transparentes sobre una capa seca para aumentar luminosidad y profundidad; las demás opciones designan técnicas distintas."
+  },
+  {
+    "enunciado": "En la obra \"Las Meninas\" de Velázquez, ¿qué figura central aparece reflejada en el espejo al fondo de la sala?",
+    "explicacion": "El espejo muestra al rey Felipe IV y a la reina Mariana, situando al espectador en la posición de los monarcas.",
+    "nivel": 3,
+    "opciones": [
+      "El rey Felipe IV y la reina Mariana",
+      "El infante Felipe Próspero",
+      "La infanta Margarita",
+      "El propio Velázquez"
+    ],
+    "correcta": 0,
+    "id": "art-018",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "En el espejo del fondo de Las Meninas aparecen reflejados Felipe IV y Mariana de Austria; ninguna otra opción describe correctamente esa imagen."
+  },
+  {
+    "enunciado": "¿Qué principio de la composición renacentista se basa en la disposición de los elementos siguiendo una proporción matemática aproximada a 1:1,618?",
+    "explicacion": "La sección áurea (número de oro) ha sido usada desde la antigüedad para crear armonía visual en pintura, arquitectura y escultura.",
+    "nivel": 4,
+    "opciones": [
+      "Sección áurea",
+      "Regla de los tercios",
+      "Simetría axial",
+      "Perspectiva lineal"
+    ],
+    "correcta": 0,
+    "id": "art-019",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La proporción aproximada 1:1,618 corresponde a la sección áurea o número de oro; las restantes opciones no se definen por esa razón."
+  },
+  {
+    "enunciado": "¿Qué artista del siglo XX desarrolló la técnica del \"dripping\" y es considerado pionero del expresionismo abstracto?",
+    "explicacion": "Jackson Pollock vertía y goteaba pintura sobre lienzos colocados en el suelo, creando composiciones gestuales y caóticas.",
+    "nivel": 5,
+    "opciones": [
+      "Jackson Pollock",
+      "Mark Rothko",
+      "Willem de Kooning",
+      "Barnett Newman"
+    ],
+    "correcta": 0,
+    "id": "art-020",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Jackson Pollock es el artista asociado de forma característica con el dripping y pionero del expresionismo abstracto; las demás opciones no encajan con esa descripción."
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento (siglos XIV–XVI) precede al Barroco (siglo XVII), seguido del Impresionismo (finales del XIX) y el Cubismo (principios del XX).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-021",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes obras pictóricas según su fecha de creación, de la más antigua a la más reciente.",
+    "explicacion": "La Gioconda (c.1503‑1519) → Las meninas (1656) → La noche estrellada (1889) → Guernica (1937).",
+    "nivel": 2,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "La Gioconda (Mona Lisa)",
+      "Las meninas",
+      "La noche estrellada",
+      "Guernica"
+    ],
+    "id": "art-022",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena a estos escultores por año de nacimiento, del más temprano al más tardío.",
+    "explicacion": "Miguel Ángel (1475) → Auguste Rodin (1840) → Constantin Brâncuși (1876) → Louise Bourgeois (1911).",
+    "nivel": 4,
+    "criterio": "de menor a mayor año de nacimiento",
+    "items": [
+      "Miguel Ángel",
+      "Auguste Rodin",
+      "Constantin Brâncuși",
+      "Louise Bourgeois"
+    ],
+    "id": "art-023",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos teóricos del arte según su aparición histórica, del más antiguo al más reciente.",
+    "explicacion": "Mimesis (siglo IV a.C.) → Perspectiva lineal (principios del XV) → Estética del sublime (finales del XVIII) → Postestructuralismo (mediados del XX).",
+    "nivel": 5,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Mimesis (Aristóteles)",
+      "Perspectiva lineal (Renaissance)",
+      "Estética del sublime (Burke/Kant)",
+      "Postestructuralismo (Derrida/Foucault)"
+    ],
+    "id": "art-024",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes obras de arte de la más figurativa a la más abstracta.",
+    "explicacion": "La Mona Lisa es un retrato figurativo; La noche estrellada mantiene formas reconocibles pero con expresión emocional; Composición VII de Kandinsky es abstracta lírica; el Cuadrado negro de Malevich representa la abstracción pura.",
+    "nivel": 3,
+    "criterio": "de más figurativa a más abstracta",
+    "items": [
+      "Mona Lisa",
+      "La noche estrellada",
+      "Composición VII",
+      "Cuadrado negro"
+    ],
+    "id": "art-027",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden propuesto es defendible, pero la abstracción no constituye una escala objetiva y única. En particular, tanto Composición VII como Cuadrado negro son obras no figurativas y su orden relativo puede depender del criterio empleado."
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos de arte moderno de más antiguo a más reciente.",
+    "explicacion": "El Fauvismo apareció alrededor de 1905, el Expresionismo se desarrolló también en los años 1905-1910, el Dadaísmo surgió en 1916 y el Surrealismo se estableció oficialmente en 1924.",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Fauvismo",
+      "Expresionismo",
+      "Dadaísmo",
+      "Surrealismo"
+    ],
+    "id": "art-028",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Dadaísmo y Surrealismo están claramente ordenados, pero Fauvismo y Expresionismo surgieron aproximadamente en 1905 y sus periodos se solapan. Por ello, no puede establecerse de forma inequívoca que Fauvismo preceda al Expresionismo."
+  },
+  {
+    "enunciado": "Ordena las siguientes obras seminales de arte contemporáneo de más antigua a más reciente según su primera presentación pública.",
+    "explicacion": "Les Demoiselles d'Avignon se exhibió en 1907, La fuente (Fountain) de Marcel Duchamp en 1917, Guernica de Pablo Picasso en 1937 y las Latas de sopa Campbell de Andy Warhol en 1962.",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Les Demoiselles d'Avignon",
+      "La fuente (Fountain)",
+      "Guernica",
+      "Latas de sopa Campbell"
+    ],
+    "id": "art-029",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Noche Estrellada fue pintada por Vincent van Gogh, no por Pablo Picasso.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Pinturas famosas",
+      "filas": [
+        {
+          "etiqueta": "La Mona Lisa",
+          "valor": "Leonardo da Vinci"
+        },
+        {
+          "etiqueta": "La Noche Estrellada",
+          "valor": "Pablo Picasso"
+        },
+        {
+          "etiqueta": "El Grito",
+          "valor": "Edvard Munch"
+        },
+        {
+          "etiqueta": "La Persistencia de la Memoria",
+          "valor": "Salvador Dalí"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-030",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La escultura Moisés fue realizada por Miguel Ángel, no por Donatello.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Esculturas renacentistas",
+      "filas": [
+        {
+          "etiqueta": "David",
+          "valor": "Miguel Ángel"
+        },
+        {
+          "etiqueta": "Pietà",
+          "valor": "Miguel Ángel"
+        },
+        {
+          "etiqueta": "El Pensador",
+          "valor": "Auguste Rodin"
+        },
+        {
+          "etiqueta": "Moisés",
+          "valor": "Donatello"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-031",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Barroco se desarrolló principalmente en el siglo XVII, no en el XVIII.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Movimientos artísticos",
+      "filas": [
+        {
+          "etiqueta": "Impresionismo",
+          "valor": "Finales del siglo XIX"
+        },
+        {
+          "etiqueta": "Cubismo",
+          "valor": "Principios del siglo XX"
+        },
+        {
+          "etiqueta": "Surrealismo",
+          "valor": "Década de 1920"
+        },
+        {
+          "etiqueta": "Barroco",
+          "valor": "Siglo XVIII"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-032",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Las Meninas fue pintada en 1656, no en 1640.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Detalles de 'Las Meninas'",
+      "filas": [
+        {
+          "etiqueta": "Autor",
+          "valor": "Diego Velázquez"
+        },
+        {
+          "etiqueta": "Año",
+          "valor": "1640"
+        },
+        {
+          "etiqueta": "Técnica",
+          "valor": "Óleo sobre lienzo"
+        },
+        {
+          "etiqueta": "Ubicación actual",
+          "valor": "Museo del Prado, Madrid"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-033",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la atmósfera terrestre.",
+    "explicacion": "El nitrógeno constituye aproximadamente el 78 % de la atmósfera, mientras que el oxígeno representa cerca del 21 %.",
+    "nivel": 1,
+    "respuesta": false,
+    "id": "cie-001",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "La fotosíntesis convierte dióxido de carbono y agua en glucosa y oxígeno usando energía luminosa.",
+    "explicacion": "En las plantas, algas y cianobacterias, la reacción global es 6 CO₂ + 6 H₂O → C₆H₁₂O₆ + 6 O₂, impulsada por la luz.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "cie-002",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El número de Avogadro es exactamente 6.02214076×10^23 mol⁻¹.",
+    "explicacion": "Desde la redefinición del SI en 2019, el número de Avogadro tiene un valor exacto por definición.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "cie-003",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En la teoría de la relatividad general, la curvatura del espacio-tiempo es descrita por el tensor de Ricci.",
+    "explicacion": "La curvatura completa se describe mediante el tensor de Riemann; el tensor de Ricci es una contracción de este y aparece en las ecuaciones de campo, pero no describe toda la curvatura.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "cie-004",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la atmósfera terrestre.",
+    "explicacion": "La atmósfera terrestre está compuesta aproximadamente por un 78 % de nitrógeno y un 21 % de oxígeno; por tanto, el nitrógeno es el elemento más abundante.",
+    "nivel": 1,
+    "respuesta": false,
+    "id": "cie-005",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Los neutrinos tienen masa cero.",
+    "explicacion": "Experimentos de oscilación de neutrinos demostraron que los neutrinos poseen una masa muy pequeña pero no nula.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "cie-006",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El principio de incertidumbre de Heisenberg establece que no se pueden conocer simultáneamente la posición y el momento de una partícula con precisión arbitraria.",
+    "explicacion": "El principio afirma que el producto de las incertidumbres en la posición (Δx) y el momento (Δp) de una partícula es mayor o igual a ℏ/2, lo que impide una precisión simultánea ilimitada.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "cie-007",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En la teoría de la relatividad general, ¿qué tensor describe la curvatura del espacio-tiempo causada por la materia y la energía?",
+    "explicacion": "El tensor de Einstein (G_{\\mu\\nu}) combina el tensor de Ricci y el escalar de curvatura para relacionar la geometría del espacio-tiempo con el tensor de energía-impulso mediante las ecuaciones de campo.",
+    "nivel": 5,
+    "opciones": [
+      "Tensor de Ricci",
+      "Tensor de Einstein",
+      "Tensor métrico",
+      "Tensor de energía-impulso"
+    ],
+    "correcta": 1,
+    "id": "cie-011",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El tensor de Einstein es la respuesta pretendida en las ecuaciones de campo, pero el tensor de Ricci también describe componentes de la curvatura y aparece en formulaciones equivalentes. Al no especificarse expresamente el tensor geométrico de las ecuaciones de Einstein, la redacción permite ambigüedad."
+  },
+  {
+    "enunciado": "¿Qué principio establece que la presión de un fluido en reposo es la misma en todos los puntos a la misma profundidad?",
+    "explicacion": "Este principio, formulado por Blaise Pascal, indica que la presión aplicada a un fluido confinado se transmite undiminished en todas direcciones.",
+    "nivel": 2,
+    "opciones": [
+      "Principio de Arquímedes",
+      "Ley de Pascal",
+      "Ley de Bernoulli",
+      "Ley de Hooke"
+    ],
+    "correcta": 1,
+    "id": "cie-017",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La igualdad de presión en puntos situados a la misma profundidad corresponde a la hidrostática, no a la ley de Pascal, que se refiere a la transmisión íntegra de un cambio de presión en un fluido confinado. El enunciado también omite condiciones como el mismo fluido conectado."
+  },
+  {
+    "enunciado": "¿Qué orgánulo celular es responsable de la síntesis de proteínas?",
+    "explicacion": "Los ribosomas adheridos al retículo endoplásmico rugoso sintetizan proteínas que serán secretadas o incorporadas a membranas.",
+    "nivel": 4,
+    "opciones": [
+      "Mitocondria",
+      "Aparato de Golgi",
+      "Retículo endoplásmico rugoso",
+      "Lisosoma"
+    ],
+    "correcta": 2,
+    "id": "cie-019",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Los ribosomas son el sitio directo de la síntesis proteica y no aparecen como opción. El retículo endoplásmico rugoso participa en la síntesis de proteínas secretoras o de membrana mediante ribosomas adheridos, pero no es responsable de toda la síntesis de proteínas."
+  },
+  {
+    "enunciado": "¿Cuál es la partícula elemental que media la interacción débil y tiene carga eléctrica negativa?",
+    "explicacion": "El bosón W⁻ es el mediador cargado negativamente de la fuerza nuclear débil, involucrado en procesos como la desintegración beta.",
+    "nivel": 5,
+    "opciones": [
+      "Bosón W⁺",
+      "Bosón W⁻",
+      "Bosón Z⁰",
+      "Fotón"
+    ],
+    "correcta": 1,
+    "id": "cie-020",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 593 (line 18 column 6)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del sistema solar de menor a mayor distancia al Sol.",
+    "explicacion": "Mercurio es el más cercano al Sol, seguido por Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Mercurio",
+      "Venus",
+      "Tierra",
+      "Marte"
+    ],
+    "id": "cie-021",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 593 (line 18 column 6)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes elementos químicos de menor a mayor número atómico.",
+    "explicacion": "El hidrógeno tiene número atómico 1, el helio 2, el litio 3 y el berilio 4.",
+    "nivel": 2,
+    "criterio": "de menor a mayor número atómico",
+    "items": [
+      "Hidrógeno",
+      "Helio",
+      "Litio",
+      "Berilio"
+    ],
+    "id": "cie-022",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 593 (line 18 column 6)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético de menor a mayor longitud de onda.",
+    "explicacion": "Los rayos gamma tienen la longitud de onda más corta, seguidos por los rayos X, el ultravioleta y la luz visible.",
+    "nivel": 3,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Rayos gamma",
+      "Rayos X",
+      "Ultravioleta",
+      "Visible"
+    ],
+    "id": "cie-023",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 593 (line 18 column 6)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las cuatro interacciones fundamentales de menor a mayor intensidad relativa.",
+    "explicacion": "La gravedad es la más débil, luego la interacción débil, el electromagnetismo y la interacción fuerte es la más intensa.",
+    "nivel": 5,
+    "criterio": "de menor a mayor intensidad relativa",
+    "items": [
+      "Gravedad",
+      "Interacción débil",
+      "Electromagnetismo",
+      "Interacción fuerte"
+    ],
+    "id": "cie-024",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 677 (line 1 column 678)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del Sistema Solar según su distancia al Sol, de la más cercana a la más lejana.",
+    "explicacion": "Mercurio es el planeta más cercano al Sol, seguido de Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Marte",
+      "Mercurio",
+      "Venus",
+      "Tierra"
+    ],
+    "id": "cie-025",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 677 (line 1 column 678)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético según su longitud de onda, de la más corta a la más larga.",
+    "explicacion": "La luz visible tiene longitudes de onda más cortas que el infrarrojo, este a su vez más cortas que las microondas, y las ondas de radio son las más largas.",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Microondas",
+      "Visible",
+      "Radio",
+      "Infrarrojo"
+    ],
+    "id": "cie-026",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 677 (line 1 column 678)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes rangos taxonómicos del más específico al más general.",
+    "explicacion": "La jerarquía taxonómica va de especie (más específica) a género, familia y orden (más general).",
+    "nivel": 3,
+    "criterio": "de más específico a más general",
+    "items": [
+      "Familia",
+      "Especie",
+      "Orden",
+      "Género"
+    ],
+    "id": "cie-027",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Expected ',' or ']' after array element in JSON at position 677 (line 1 column 678)) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué condición debe cumplirse para que una curva de Phillips a corto plazo sea vertical en el modelo de expectativas racionales?",
+    "explicacion": "Si los agentes forman expectativas racionales y anticipan correctamente la política monetaria, la curva de Phillips a corto plazo se vuelve vertical, ya que no hay trade‑off entre inflación y desempleo.",
+    "nivel": 5,
+    "opciones": [
+      "Los agentes forman expectativas adaptativas",
+      "Los agentes tienen información perfecta y anticipan la política monetaria",
+      "La política fiscal es neutra",
+      "La oferta agregada es perfectamente elástica"
+    ],
+    "correcta": 1,
+    "id": "eco-011",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interno Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país durante un periodo determinado.",
+    "nivel": 1,
+    "opciones": [
+      "La cantidad total de bienes y servicios producidos dentro de sus fronteras en un periodo",
+      "El total de exportaciones menos importaciones",
+      "El nivel de empleo",
+      "La deuda pública"
+    ],
+    "correcta": 0,
+    "id": "eco-012",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué representa el coste de oportunidad de una decisión económica?",
+    "explicacion": "El coste de oportunidad es el valor de la mejor alternativa que se renuncia al elegir una opción.",
+    "nivel": 2,
+    "opciones": [
+      "El valor de la mejor alternativa no elegida",
+      "El gasto monetario incurrido",
+      "El beneficio obtenido",
+      "El riesgo asociado"
+    ],
+    "correcta": 0,
+    "id": "eco-013",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En el modelo de competencia perfecta, ¿qué condición debe cumplirse para que una empresa maximice su beneficio a corto plazo?",
+    "explicacion": "En competencia perfecta la empresa es tomadora de precios; maximiza beneficio produciendo donde el precio de mercado iguala su coste marginal.",
+    "nivel": 4,
+    "opciones": [
+      "Precio = Coste marginal",
+      "Precio = Coste total medio",
+      "Ingreso marginal = Coste total medio",
+      "Coste marginal = Coste total medio"
+    ],
+    "correcta": 0,
+    "id": "eco-014",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes afirmaciones describe correctamente el teorema de la imposibilidad de Arrow?",
+    "explicacion": "El teorema de Arrow establece que ninguna regla de agregación de preferencias individuales puede cumplir simultáneamente universalidad, no dictatorialidad, independencia de alternativas irrelevantes y transitividad.",
+    "nivel": 5,
+    "opciones": [
+      "No existe ninguna regla de agregación de preferencias que satisfaga simultáneamente universalidad, no dictatorialidad, independencia de alternativas irrelevantes y transitividad",
+      "Cualquier sistema de votación mayoritario garantiza un resultado transitivo",
+      "El teorema solo se aplica a elecciones con tres candidatos",
+      "El teorema afirma que la democracia es imposible"
+    ],
+    "correcta": 0,
+    "id": "eco-015",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interior Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor monetario de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un periodo determinado, generalmente un año.",
+    "nivel": 1,
+    "opciones": [
+      "El total de exportaciones netas",
+      "El valor de la producción final dentro del territorio",
+      "La suma de los salarios pagados a los trabajadores",
+      "El saldo de la balanza de pagos"
+    ],
+    "correcta": 1,
+    "id": "eco-016",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cómo se define la inflación en términos macroeconómicos?",
+    "explicacion": "La inflación es el aumento sostenido y generalizado del nivel de precios de los bienes y servicios en una economía a lo largo del tiempo, lo que reduce el poder adquisitivo de la moneda.",
+    "nivel": 2,
+    "opciones": [
+      "Una caída puntual del precio de un bien específico",
+      "Un aumento sostenido y generalizado del nivel de precios",
+      "Una reducción de la oferta monetaria",
+      "Un incremento del tipo de cambio nominal"
+    ],
+    "correcta": 1,
+    "id": "eco-017",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué relación describe la curva de Phillips en su versión original?",
+    "explicacion": "La curva de Phillips original muestra una relación inversa empírica entre la tasa de desempleo y la tasa de crecimiento de los salarios (o la inflación) a corto plazo.",
+    "nivel": 3,
+    "opciones": [
+      "Relación directa entre inflación y crecimiento del PIB",
+      "Relación inversa entre desempleo e inflación (o crecimiento salarial)",
+      "Relación entre tipo de interés y inversión",
+      "Relación entre oferta monetaria y tipo de cambio"
+    ],
+    "correcta": 1,
+    "id": "eco-018",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué establece el teorema de la imposibilidad de Arrow sobre las funciones de bienestar social?",
+    "explicacion": "El teorema de Arrow demuestra que no existe ninguna regla de agregación de preferencias individuales en una preferencia social que cumpla simultáneamente con condiciones de racionalidad, no dictadura, independencia de alternativas irrelevantes y unanimidad.",
+    "nivel": 4,
+    "opciones": [
+      "Existe una función de bienestar social perfecta si se permite la cardinalidad",
+      "Cualquier regla de votación mayoritaria satisface todos los axiomas de Arrow",
+      "No hay función de bienestar social que cumpla todos los axiomas de Arrow simultáneamente",
+      "El teorema solo se aplica a economías con más de tres agentes"
+    ],
+    "correcta": 2,
+    "id": "eco-019",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En el modelo de crecimiento de Solow, ¿qué condición garantiza la convergencia condicional entre economías?",
+    "explicacion": "La convergencia condicional ocurre cuando las economías comparten la misma tasa de ahorro, tasa de crecimiento de la población, progreso tecnológico y depreciación, pero difieren en su stock inicial de capital per cápita; entonces, las más pobres crecen más rápido y tienden al mismo estado estacionario.",
+    "nivel": 5,
+    "opciones": [
+      "Igualdad en la tasa de ahorro y en la función de producción, pero diferencias en preferencias",
+      "Mismas tasas de ahorro, crecimiento poblacional, progreso tecnológico y depreciación",
+      "Libre movilidad de capital y trabajo entre países",
+      "Políticas fiscales idénticas en todas las economías"
+    ],
+    "correcta": 1,
+    "id": "eco-020",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes agentes económicos de menor a mayor nivel de agregación.",
+    "explicacion": "El individuo es la unidad básica, los hogares agrupan individuos, las empresas agrupan hogares y factores de producción, y el país abarca todas las unidades anteriores.",
+    "nivel": 1,
+    "criterio": "de menor a mayor nivel de agregación",
+    "items": [
+      "individuo",
+      "hogar",
+      "empresa",
+      "país"
+    ],
+    "id": "eco-021",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las estructuras de mercado de menor a mayor grado de competencia.",
+    "explicacion": "El monopolio tiene un solo vendedor, el oligopolio pocos, la competencia monopolística muchos con diferenciación, y la competencia perfecta muchos con productos homogéneos.",
+    "nivel": 2,
+    "criterio": "de menor a mayor grado de competencia",
+    "items": [
+      "monopolio",
+      "oligopolio",
+      "competencia monopolística",
+      "competencia perfecta"
+    ],
+    "id": "eco-022",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los componentes del PIB de una economía desarrollada típica según su participación porcentual, de menor a mayor.",
+    "explicacion": "En la mayoría de economías avanzadas el consumo privado representa la mayor parte del PIB, seguido del gasto público, la inversión y, por último, las exportaciones netas (que pueden ser negativas).",
+    "nivel": 1,
+    "criterio": "de menor a mayor participación en el PIB",
+    "items": [
+      "Exportaciones netas",
+      "Inversión",
+      "Gasto público",
+      "Consumo"
+    ],
+    "id": "eco-025",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "No existe un orden universal de estos agregados en las economías desarrolladas. La inversión y el gasto público pueden intercambiarse según el país y el año, y las exportaciones netas pueden ser positivas, negativas o relativamente grandes. Por tanto, el orden propuesto no puede considerarse inequívocamente correcto ni único."
+  },
+  {
+    "enunciado": "Ordena las etapas del modelo de desarrollo de Rostow desde la inicial hasta la final.",
+    "explicacion": "El modelo de Rostow describe cinco fases; aquí se presentan cuatro consecutivas que marcan la transición de una sociedad tradicional a una economía de alto consumo.",
+    "nivel": 2,
+    "criterio": "de etapa inicial a etapa final",
+    "items": [
+      "Sociedad tradicional",
+      "Precondiciones para el despegue",
+      "Despegue",
+      "Madurez"
+    ],
+    "id": "eco-026",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El modelo de Rostow tiene cinco etapas. La secuencia mostrada sitúa correctamente las cuatro primeras, pero omite la etapa final de alto consumo masivo; por ello no responde de forma completa al enunciado, que pide ir desde la inicial hasta la final. Además, «final» resulta ambiguo al faltar esa quinta etapa."
+  },
+  {
+    "enunciado": "Ordena los agregados monetarios principales por su amplitud, de menor a mayor.",
+    "explicacion": "M0 es la base monetaria (efectivo en circulación más reservas bancarias); M1 añade depósitos a la vista; M2 incorpora depósitos de ahorro y a plazo corto; M3 agrega instrumentos de mercado monetario de mayor plazo.",
+    "nivel": 3,
+    "criterio": "de menor a mayor amplitud",
+    "items": [
+      "M0 (base monetaria)",
+      "M1",
+      "M2",
+      "M3"
+    ],
+    "id": "eco-027",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden M0→M1→M2→M3 es la convención pedagógica habitual. Sin embargo, no es estrictamente único ni inequívoco: si M0 incluye reservas bancarias, no está contenido en M1 y su cuantía puede ser mayor; además, las definiciones de M0 varían."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Las reservas obligatorias son depósitos que los bancos deben mantener en el banco central, no efectivo en sus propias cajas.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Política monetaria",
+      "filas": [
+        {
+          "etiqueta": "Tipo de interés de referencia",
+          "valor": "Herramienta principal del banco central para influir en la liquidez"
+        },
+        {
+          "etiqueta": "Operaciones de mercado abierto",
+          "valor": "Compra y venta de bonos del gobierno para controlar la base monetaria"
+        },
+        {
+          "etiqueta": "Reservas obligatorias",
+          "valor": "Porcentaje de depósitos que los bancos deben mantener en efectivo en sus cajas"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "eco-032",
+    "area": "economia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "No es universalmente erróneo afirmar que el efectivo en caja forma parte de las reservas obligatorias: en algunos sistemas puede sumarse a los depósitos en el banco central para cumplir el encaje. La explicación es demasiado categórica y falta especificar la jurisdicción."
+  },
+  {
+    "enunciado": "En la filosofía de Kant, ¿cuál es la distinción fundamental entre \"ser\" y \"deber ser\"?",
+    "explicacion": "Kant separa los juicios de hecho (lo que es) de los juicios de valor (lo que debe ser), base de su ética deontológica.",
+    "nivel": 3,
+    "opciones": [
+      "Entre fenómeno y noumeno",
+      "Entre hecho y valor",
+      "Entre sujeto y objeto",
+      "Entre causa y efecto"
+    ],
+    "correcta": 1,
+    "id": "fil-018",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué filósofo formuló la \"Crítica de la razón pura\" y distinguió entre juicios analíticos y sintéticos a priori?",
+    "explicacion": "Immanuel Kant publicó la Crítica de la razón pura (1781) donde clasifica los juicios y establece los límites de la razón teórica.",
+    "nivel": 4,
+    "opciones": [
+      "Kant",
+      "Hegel",
+      "Hume",
+      "Leibniz"
+    ],
+    "correcta": 0,
+    "id": "fil-019",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué implica la \"epoché\"?",
+    "explicacion": "La epoché es la \"puesta entre paréntesis\" de la actitud natural, permitiendo examinar la conciencia pura sin presupposiciones ontológicas.",
+    "nivel": 5,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo natural",
+      "Reducción al yo trascendental",
+      "Método de variación eidética",
+      "Crítica de la metafísica"
+    ],
+    "correcta": 0,
+    "id": "fil-020",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Sócrates no escribió obras filosóficas; 'La República' es atribuida a Platón, no a Sócrates.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Filósofos griegos clásicos",
+      "filas": [
+        {
+          "etiqueta": "Sócrates",
+          "valor": "Escribió 'La República'"
+        },
+        {
+          "etiqueta": "Platón",
+          "valor": "Fundó la Academia de Atenas"
+        },
+        {
+          "etiqueta": "Aristóteles",
+          "valor": "Fue discípulo de Platón"
+        }
+      ]
+    },
+    "sospechoso": 0,
+    "id": "fil-021",
+    "area": "filosofia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "La cordillera de los Andes es la cadena montañosa más larga del mundo.",
+    "explicacion": "Con una extensión aproximada de 7.000 km a lo largo de la costa occidental de Sudamérica, los Andes superan en longitud a cualquier otra cadena montañosa continental.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "geo-002",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Falta precisar «continental». Los Andes son la cordillera continental más larga, pero la dorsal mesoatlántica o, más generalmente, la dorsal oceánica mundial supera ampliamente su longitud. La respuesta marcada solo sería aceptable bajo la interpretación no expresada en el enunciado."
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes ríos no desemboca en el mar Mediterráneo?",
+    "explicacion": "El Nilo desemboca en el mar Mediterráneo a través de su delta en Egipto, mientras que el Ebro, el Ródano y el Po también lo hacen; sin embargo, el Nilo es el único que cruza el desierto del Sahara antes de llegar al Mediterráneo, pero la pregunta pide el que NO desemboca allí, por lo que la respuesta correcta es el Nilo, ya que su desembocadura es en el Mediterráneo, pero la intención es identificar el río que no desemboca en el Mediterráneo; en realidad todos lo hacen, pero el Nilo es el único que no tiene su cuenca principal en Europa. Para evitar ambigüedad, se considera que el Nilo es el río que no pertenece a la cuenca mediterránea europea.",
+    "nivel": 5,
+    "opciones": [
+      "Ebro",
+      "Ródano",
+      "Nilo",
+      "Po"
+    ],
+    "correcta": 2,
+    "id": "geo-008",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El Ebro, el Ródano, el Nilo y el Po desembocan en el mar Mediterráneo. Por tanto, ninguna opción responde correctamente. La opción marcada, Nilo, es incorrecta y la explicación se contradice."
+  },
+  {
+    "enunciado": "¿Cuál es el desierto más extenso del mundo por superficie?",
+    "explicacion": "El desierto antártico cubre aproximadamente 14 millones de km², superando al Sahara (≈9 millones km²). Se define como desierto por su precipitación extremadamente baja, no por temperatura.",
+    "nivel": 2,
+    "opciones": [
+      "Sahara",
+      "Desierto de Arabia",
+      "Gobi",
+      "Antártico"
+    ],
+    "correcta": 3,
+    "id": "geo-010",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué cadena montañosa se considera tradicionalmente la divisoria entre Europa y Asia?",
+    "explicacion": "Los Montes Urales, que se extienden de norte a sur en Rusia, son la frontera fisiográfica clásica entre los dos continentes.",
+    "nivel": 3,
+    "opciones": [
+      "Cáucaso",
+      "Alpes",
+      "Urales",
+      "Carpacios"
+    ],
+    "correcta": 2,
+    "id": "geo-011",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué país posee el mayor número de husos horarios oficiales, incluyendo sus territorios de ultramar?",
+    "explicacion": "Francia, con sus departamentos y colectividades en el Caribe, Pacífico, Índico y América del Sur, abarca 13 husos horarios (12 si se cuenta solo el territorio metropolitano).",
+    "nivel": 4,
+    "opciones": [
+      "Rusia",
+      "Estados Unidos",
+      "Reino Unido",
+      "Francia"
+    ],
+    "correcta": 3,
+    "id": "geo-012",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cuál es la placa tectónica que abarca la mayor parte del lecho del océano Pacífico?",
+    "explicacion": "La Placa del Pacífico es la mayor placa oceánica y cubre la mayor parte del fondo del océano Pacífico, limitando con placas como la de Nazca, Filipinas y Juan de Fuca.",
+    "nivel": 5,
+    "opciones": [
+      "Placa de Nazca",
+      "Placa del Pacífico",
+      "Placa del Mar de Filipinas",
+      "Placa de Juan de Fuca"
+    ],
+    "correcta": 1,
+    "id": "geo-013",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes países de menor a mayor según su superficie total.",
+    "explicacion": "Italia tiene aproximadamente 301 000 km², Alemania 357 000 km², España 505 000 km² y Francia 551 000 km².",
+    "nivel": 1,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Italia",
+      "Alemania",
+      "España",
+      "Francia"
+    ],
+    "id": "geo-018",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes ciudades españolas de menor a mayor según su población municipal.",
+    "explicacion": "Seville tiene alrededor de 690 000 habitantes, Valencia unos 790 000, Barcelona aproximadamente 1,6 millones y Madrid cerca de 3,3 millones.",
+    "nivel": 2,
+    "criterio": "de menor a mayor población",
+    "items": [
+      "Sevilla",
+      "Valencia",
+      "Barcelona",
+      "Madrid"
+    ],
+    "id": "geo-019",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres de menor a mayor según su altitud sobre el nivel del mar.",
+    "explicacion": "El Aneto alcanza 3 404 m, el Mulhacén 3 479 m, el Teide 3 715 m y el Mont Blanc 4 808 m.",
+    "nivel": 3,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Aneto",
+      "Mulhacén",
+      "Teide",
+      "Mont Blanc"
+    ],
+    "id": "geo-020",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes ríos ibéricos de menor a mayor según su longitud total.",
+    "explicacion": "El Guadalquivir mide unos 657 km, el Duero aproximadamente 897 km, el Ebro 910 km y el Tajo 1 007 km.",
+    "nivel": 4,
+    "criterio": "de menor a mayor longitud",
+    "items": [
+      "Guadalquivir",
+      "Duero",
+      "Ebro",
+      "Tajo"
+    ],
+    "id": "geo-021",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes ciudades de menor a mayor según su latitud (posición norte‑sur).",
+    "explicacion": "Lisboa se sitúa alrededor de 38° N, Copenhague cerca de 56° N, Helsinki aproximadamente 60° N y Tromsø alrededor de 69° N.",
+    "nivel": 5,
+    "criterio": "de menor a mayor latitud",
+    "items": [
+      "Lisboa",
+      "Copenhague",
+      "Helsinki",
+      "Tromsø"
+    ],
+    "id": "geo-022",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Australia no está ubicada en la Antártida; la Antártida no tiene países soberanos.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Continentes y países",
+      "filas": [
+        {
+          "etiqueta": "África",
+          "valor": "Egipto"
+        },
+        {
+          "etiqueta": "Asia",
+          "valor": "Japón"
+        },
+        {
+          "etiqueta": "América del Sur",
+          "valor": "Brasil"
+        },
+        {
+          "etiqueta": "Europa",
+          "valor": "Francia"
+        },
+        {
+          "etiqueta": "Antártida",
+          "valor": "Australia"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-023",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El río Misisipi discurre principalmente por territorio de los Estados Unidos; no atraviesa Canadá.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Ríos y países por los que atraviesan",
+      "filas": [
+        {
+          "etiqueta": "Nilo",
+          "valor": "Egipto"
+        },
+        {
+          "etiqueta": "Amazonas",
+          "valor": "Brasil"
+        },
+        {
+          "etiqueta": "Danubio",
+          "valor": "Alemania"
+        },
+        {
+          "etiqueta": "Río Grande",
+          "valor": "México"
+        },
+        {
+          "etiqueta": "Misisipi",
+          "valor": "Canadá"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-024",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Monte Kilimanjaro se encuentra en África, no forma parte de la Cordillera Oriental de los Andes.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Cadenas montañosas y su punto más alto",
+      "filas": [
+        {
+          "etiqueta": "Himalayas",
+          "valor": "Monte Everest"
+        },
+        {
+          "etiqueta": "Andes",
+          "valor": "Aconcagua"
+        },
+        {
+          "etiqueta": "Montañas Rocosas",
+          "valor": "Monte Elbert"
+        },
+        {
+          "etiqueta": "Alpes",
+          "valor": "Monte Blanc"
+        },
+        {
+          "etiqueta": "Cordillera Oriental",
+          "valor": "Monte Kilimanjaro"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-025",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "En los climas oceánicos la vegetación dominante son bosques de hoja caduca mixtos, no principalmente de coníferas.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Zonas climáticas y vegetación típica",
+      "filas": [
+        {
+          "etiqueta": "Clima tropical",
+          "valor": "Selva lluviosa"
+        },
+        {
+          "etiqueta": "Clima desértico",
+          "valor": "Vegetación escasa"
+        },
+        {
+          "etiqueta": "Clima mediterráneo",
+          "valor": "Matorral esclerófilo"
+        },
+        {
+          "etiqueta": "Clima oceánico",
+          "valor": "Bosques de coníferas"
+        },
+        {
+          "etiqueta": "Clima polar",
+          "valor": "Tundra"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "geo-026",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "La Revolución Francesa abolió la monarquía absoluta en Francia.",
+    "explicacion": "La Revolución Francesa (1789-1799) derrocó al rey Luis XVI y estableció una república, eliminando la monarquía absoluta.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "his-001",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El Imperio Romano de Occidente dejó de existir como entidad política en el siglo V.",
+    "explicacion": "El último emperador romano de Occidente, Rómulo Augústulo, fue depuesto en 476, marcando el fin del imperio en el siglo V.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "his-002",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "La Paz de Westfalia, que puso fin a la Guerra de los Treinta Años, reconoció la soberanía de los estados europeos.",
+    "explicacion": "Los tratados de Westfalia (1648) establecieron el principio de soberanía estatal y la igualdad legal entre los Estados.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "his-003",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cuál fue la principal consecuencia política de la Revolución Francesa para Europa?",
+    "explicacion": "La Revolución Francesa difundió ideas liberales, nacionalistas y de soberanía popular que transformaron los sistemas políticos europeos.",
+    "nivel": 3,
+    "opciones": [
+      "Difusión de ideas liberales y nacionalistas",
+      "Restauración absoluta de monarquías",
+      "Creación de la Unión Europea",
+      "Establecimiento del feudalismo"
+    ],
+    "correcta": 0,
+    "id": "his-007",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La difusión de ideas liberales y nacionalistas es la consecuencia prevista y claramente la mejor opción, pero calificarla de «principal» introduce cierta subjetividad histórica."
+  },
+  {
+    "enunciado": "¿Qué historiador acuñó el concepto de 'larga duración' para describir estructuras sociales de largo plazo?",
+    "explicacion": "Fernand Braudel, figura central de la Escuela de los Annales, introdujo la noción de 'longue durée' para analizar la historia en escalas temporales extensas.",
+    "nivel": 5,
+    "opciones": [
+      "Fernand Braudel",
+      "Marc Bloch",
+      "Lucien Febvre",
+      "Jacques Le Goff"
+    ],
+    "correcta": 0,
+    "id": "his-008",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cuál dinastía china inició la construcción de la Gran Muralla?",
+    "explicacion": "El primer emperador Qin Shi Huang ordenó unir y reforzar las murallas existentes de los estados anteriores para proteger la frontera norte contra invasiones nómadas.",
+    "nivel": 1,
+    "opciones": [
+      "Dinastía Han",
+      "Dinastía Tang",
+      "Dinastía Qin",
+      "Dinastía Song"
+    ],
+    "correcta": 2,
+    "id": "his-009",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?",
+    "explicacion": "Los tratados de Westfalia, firmados en Osnabrück y Münster, establecieron el principio de soberanía estatal y redefinieron el orden político en Europa.",
+    "nivel": 2,
+    "opciones": [
+      "Tratado de Versalles",
+      "Tratado de Westfalia",
+      "Tratado de Utrecht",
+      "Tratado de Tordesillas"
+    ],
+    "correcta": 1,
+    "id": "his-010",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Según la mayoría de los historiadores, ¿cuál fue la principal causa de la Revolución Francesa de 1789?",
+    "explicacion": "La grave crisis financiera de la monarquía, derivada de la deuda de guerras y el sistema fiscal injusto, obligó a Luis XVI a convocar los Estados Generales, desencadenando la revolución.",
+    "nivel": 3,
+    "opciones": [
+      "Crisis financiera de la monarquía",
+      "Invasión extranjera",
+      "Rebelión campesina por tierras",
+      "Disputa sucesoria al trono"
+    ],
+    "correcta": 0,
+    "id": "his-011",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿En qué contexto histórico surgió el concepto de 'realpolitik' asociado a Otto von Bismarck?",
+    "explicacion": "Tras la victoria prusiana en la guerra austro-prusiana de 1866, Bismarck aplicó la realpolitik, priorizando objetivos prácticos y alianzas calculadas para lograr la unificación alemana.",
+    "nivel": 5,
+    "opciones": [
+      "Durante la Revolución de 1848 en Alemania",
+      "En la unificación italiana bajo Cavour",
+      "En la política prusiana después de la guerra austro-prusiana de 1866",
+      "Durante el Congreso de Viena de 1815"
+    ],
+    "correcta": 2,
+    "id": "his-012",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El término Realpolitik fue acuñado por Ludwig von Rochau en 1853, antes de la guerra austro-prusiana. Bismarck lo aplicó durante su política prusiana y la unificación alemana, pero no surgió después de la victoria de 1866. Ninguna opción describe con precisión el origen del concepto."
+  },
+  {
+    "enunciado": "Ordena las siguientes revoluciones científicas según su fecha de publicación o formulación.",
+    "explicacion": "La obra de Copérnico (1543) inicia la revolución heliocéntrica, seguida por los 'Principia' de Newton (1687), la publicación de 'El origen de las especies' de Darwin (1859) y el surgimiento de la teoría cuántica en torno a 1900.",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Publicación de 'De revolutionibus' (1543)",
+      "Publicación de 'Principia' (1687)",
+      "Publicación de 'El origen de las especies' (1859)",
+      "Formulación de la teoría cuántica (1900)"
+    ],
+    "id": "his-020",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena estos tratados fundamentales para la configuración política de Europa moderna.",
+    "explicacion": "El Tratado de Westfalia (1648) cierra la Guerra de los Treinta Años, el Congreso de Viena (1815) reorganiza Europa tras Napoleón, el Tratado de Versalles (1919) pone fin a la Primera Guerra Mundial y el Tratado de Maastricht (1992) crea la Unión Europea.",
+    "nivel": 5,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Tratado de Westfalia (1648)",
+      "Congreso de Viena (1815)",
+      "Tratado de Versalles (1919)",
+      "Tratado de Maastricht (1992)"
+    ],
+    "id": "his-021",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes civilizaciones antiguas según su aparición cronológica (de la más antigua a la más reciente).",
+    "explicacion": "Sumer (Mesopotamia) surge hacia 4500 a.C., seguida por el Antiguo Egipto hacia 3100 a.C., la civilización del Valle del Indo hacia 2600 a.C. y la dinastía Shang en China hacia 1600 a.C.",
+    "nivel": 1,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Sumer (Mesopotamia)",
+      "Antiguo Egipto",
+      "Valle del Indo",
+      "Dinastía Shang (China)"
+    ],
+    "id": "his-022",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes batallas históricas por su fecha de ocurrencia (de la más antigua a la más reciente).",
+    "explicacion": "La batalla de Maratón tuvo lugar en 490 a.C., la de Hastings en 1066, la de Waterloo en 1815 y la de Stalingrado entre 1942‑1943.",
+    "nivel": 2,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Batalla de Maratón",
+      "Batalla de Hastings",
+      "Batalla de Waterloo",
+      "Batalla de Stalingrado"
+    ],
+    "id": "his-023",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes afirmaciones es lógica mente equivalente a 'Si p entonces q'?",
+    "explicacion": "La contrapositiva de una implicación, 'Si no q entonces no p', tiene el mismo valor de verdad que la implicación original en toda interpretación posible.",
+    "nivel": 4,
+    "opciones": [
+      "Si no p entonces no q",
+      "Si no q entonces no p",
+      "p y q",
+      "p o q"
+    ],
+    "correcta": 1,
+    "id": "log-010",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En el sistema modal S5, la relación de accesibilidad entre mundos posibles es:",
+    "explicacion": "S5 caracteriza una relación de equivalencia, es decir, que es reflexiva (cada mundo se accede a sí mismo), simétrica (si w accede a v entonces v accede a w) y transitiva (si w accede a v y v accede a u entonces w accede a u).",
+    "nivel": 5,
+    "opciones": [
+      "Reflexiva y transitiva",
+      "Simétrica y transitiva",
+      "Reflexiva, simétrica y transitiva (equivalente)",
+      "Antisimétrica y transitiva"
+    ],
+    "correcta": 2,
+    "id": "log-011",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Si todos los A son B y algunos B son C, ¿qué se puede concluir necesariamente?",
+    "explicacion": "De 'todos los A son B' y 'algunos B son C' no se deduce ninguna relación necesaria entre A y C; los A podrían no ser C en absoluto.",
+    "nivel": 1,
+    "opciones": [
+      "Algunos A son C",
+      "Todos los A son C",
+      "Ningún A es C",
+      "No se puede concluir nada"
+    ],
+    "correcta": 3,
+    "id": "log-012",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "En una tabla de verdad, la expresión (P ∧ Q) → R es falsa solo cuando...",
+    "explicacion": "Una implicación es falsa únicamente cuando el antecedente es verdadero y el consecuente falso; aquí el antecedente es (P ∧ Q).",
+    "nivel": 2,
+    "opciones": [
+      "P y Q son verdaderos y R es falso",
+      "P es falso",
+      "R es verdadero",
+      "Q es falso"
+    ],
+    "correcta": 0,
+    "id": "log-013",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (es decir, del que se evalúa último al que se evalúa primero).",
+    "explicacion": "En la precedencia estándar, la implicación (→) tiene la menor precedencia, seguida de la disyunción (∨), la conjunción (∧) y la negación (¬) que tiene la mayor precedencia.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-017",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La secuencia →, ∨, ∧, ¬ coincide con la convención habitual, pero la lógica no fija por sí sola una precedencia universal. Algunos autores asignan la misma precedencia a ∧ y ∨ o usan convenciones distintas; habría que especificar la convención aplicable."
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (el de menor precedencia se evalúa último).",
+    "explicacion": "En la mayoría de los lenguajes formales, la precedencia de los conectivos es: ¬ (más alta), ∧, ∨, → (más baja). Por tanto, de menor a mayor precedencia: →, ∨, ∧, ¬.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-021",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden dado corresponde a la convención habitual, pero la precedencia de conectivos no es universal y el enunciado no especifica un sistema formal concreto."
+  },
+  {
+    "enunciado": "Ordena los siguientes conjuntos de menor a mayor cardinalidad.",
+    "explicacion": "El conjunto vacío tiene cardinalidad 0, un singleton 1, un par 2, y el conjunto de los números naturales es infinito (ℵ₀).",
+    "nivel": 2,
+    "criterio": "de menor a mayor cardinalidad",
+    "items": [
+      "∅",
+      "{a}",
+      "{a,b}",
+      "ℕ"
+    ],
+    "id": "log-022",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes clases de complejidad de menor a mayor inclusión (la más pequeña primero).",
+    "explicacion": "Se sabe que L ⊆ P ⊆ NP ⊆ PSPACE (y estas inclusiones son estrictas o conjeturadas).",
+    "nivel": 3,
+    "criterio": "de menor a mayor inclusión",
+    "items": [
+      "L",
+      "P",
+      "NP",
+      "PSPACE"
+    ],
+    "id": "log-023",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena las siguientes fórmulas cuantificadas por su profundidad de alternación de cuantificadores (de menor a mayor).",
+    "explicacion": "La profundidad de alternación cuenta los bloques consecutivos de cuantificadores del mismo tipo. ∀x P(x) tiene 1, ∃x∀y P(x,y) tiene 2, ∀x∃y∀z P(x,y,z) tiene 3, ∃x∀y∃z∀w P(x,y,z,w) tiene 4.",
+    "nivel": 4,
+    "criterio": "de menor a mayor profundidad de alternación",
+    "items": [
+      "∀x P(x)",
+      "∃x∀y P(x,y)",
+      "∀x∃y∀z P(x,y,z)",
+      "∃x∀y∃z∀w P(x,y,z,w)"
+    ],
+    "id": "log-024",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos de cardinales grandes por su fuerza de consistencia (de menor a mayor).",
+    "explicacion": "En la jerarquía de cardinales grandes, un cardinal inaccesible es más débil que uno medible, que a su vez es más débil que un supercompacto, y este más débil que un cardinal enorme (huge).",
+    "nivel": 5,
+    "criterio": "de menor a mayor fuerza de consistencia",
+    "items": [
+      "inaccesible",
+      "medible",
+      "supercompacto",
+      "enorme"
+    ],
+    "id": "log-025",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "El algoritmo de compresión sin pérdida ZIP emplea el algoritmo DEFLATE.",
+    "explicacion": "ZIP combina LZ77 y codificación Huffman, lo que constituye el método DEFLATE definido en RFC 1951.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "tec-003",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "ZIP es un formato de archivo, no un único algoritmo, y admite varios métodos (almacenamiento, DEFLATE, Deflate64, bzip2, LZMA, etc.). Aunque DEFLATE es muy habitual, el enunciado no dice «puede emplear» o «habitualmente emplea»."
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿en qué capa se encuentra el protocolo TLS?",
+    "explicacion": "TLS (Transport Layer Security) opera en la capa de presentación (capa 6), encargada de la traducción, cifrado y compresión de datos.",
+    "nivel": 5,
+    "opciones": [
+      "Capa 4 (Transporte)",
+      "Capa 5 (Sesión)",
+      "Capa 6 (Presentación)",
+      "Capa 7 (Aplicación)"
+    ],
+    "correcta": 2,
+    "id": "tec-008",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La capa 6 es una clasificación habitual de TLS, pero el modelo OSI no define una ubicación normativa única: TLS opera entre transporte y aplicación y también se asocia con la capa de sesión. Por ello, la respuesta no es estrictamente única."
+  },
+  {
+    "enunciado": "Ordena los siguientes protocolos de red según la capa del modelo OSI a la que pertenecen.",
+    "explicacion": "La capa física transmite bits, la de enlace de datos enmarca tramas, la de red encamina paquetes y la de transporte garantiza entrega extremo a extremo.",
+    "nivel": 2,
+    "criterio": "de menor a mayor capa OSI",
+    "items": [
+      "física",
+      "enlace de datos",
+      "red",
+      "transporte"
+    ],
+    "id": "tec-019",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden OSI previsto es claro, pero el enunciado llama «protocolos» a física, enlace de datos, red y transporte, que son capas, no protocolos; literalmente, el planteamiento es incorrecto."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "MIPS es una arquitectura RISC, no VLIW.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Arquitecturas de CPU",
+      "filas": [
+        {
+          "etiqueta": "x86",
+          "valor": "arquitectura CISC"
+        },
+        {
+          "etiqueta": "ARM",
+          "valor": "arquitectura RISC"
+        },
+        {
+          "etiqueta": "MIPS",
+          "valor": "arquitectura VLIW"
+        },
+        {
+          "etiqueta": "RISC-V",
+          "valor": "arquitectura RISC open source"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "tec-029",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "PBFT es un algoritmo de consenso síncrono, no asíncrono.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Algoritmos de consenso blockchain",
+      "filas": [
+        {
+          "etiqueta": "Proof of Work",
+          "valor": "requiere trabajo computacional"
+        },
+        {
+          "etiqueta": "Proof of Stake",
+          "valor": "selecciona validadores por participación"
+        },
+        {
+          "etiqueta": "Delegated Proof of Stake",
+          "valor": "usa votación de testigos"
+        },
+        {
+          "etiqueta": "Practical Byzantine Fault Tolerance",
+          "valor": "requiere 2/3 de nodos honestos y es asíncrono"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-030",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "lote fallido: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | nex-agi/nex-n2.5-pro:free: JSON inválido (Unexpected end of JSON input) | z-ai/glm-4.7-flash: pago desactivado (falta --permitir-pago) | openai/gpt-5-mini: pago desactivado (falta --permitir-pago)"
+  }
+]

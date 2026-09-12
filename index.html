@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="iconos/192.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="estilos.css">
+  <title>ONE</title>
+</head>
+<body>
+  <header class="cabecera">
+    <span class="cabecera-logo">🧠 ONE</span>
+    <span class="cabecera-racha" data-test="racha">🔥 0</span>
+  </header>
+
+  <main id="app">
+    <section class="vista" data-vista="inicio">
+      <div class="inicio-centro">
+        <p class="inicio-emoji">🧠</p>
+        <button class="boton boton-principal" data-test="jugar">▶ JUGAR</button>
+        <button class="enlace" data-test="progreso">Progreso</button>
+      </div>
+    </section>
+
+    <section class="vista" data-vista="pregunta" data-test="pregunta" hidden>
+      <div class="barra-progreso">
+        <div class="barra-progreso-relleno" id="barra-progreso-relleno"></div>
+      </div>
+      <div id="contenedor-pregunta"></div>
+      <div id="contenedor-feedback" class="feedback" hidden>
+        <p id="feedback-texto" class="feedback-texto"></p>
+        <p id="feedback-combo" class="feedback-combo" hidden></p>
+        <div class="feedback-acciones">
+          <button class="enlace" data-test="porque">¿por qué?</button>
+          <button class="enlace" data-test="esta-mal">esta pregunta está mal</button>
+        </div>
+        <p id="explicacion-texto" class="explicacion" hidden></p>
+        <p id="reportada-texto" class="reportada" hidden>Anotado</p>
+        <button class="boton boton-principal" data-test="siguiente">Siguiente</button>
+      </div>
+    </section>
+
+    <section class="vista" data-vista="resumen" data-test="resumen" hidden>
+      <h2>Resumen</h2>
+      <p id="resumen-aciertos" class="resumen-linea"></p>
+      <p id="resumen-xp" class="resumen-linea"></p>
+      <p id="resumen-areas" class="resumen-linea"></p>
+      <div class="resumen-acciones">
+        <button class="boton boton-principal" data-test="otra">Otra</button>
+        <button class="boton" data-test="inicio">Inicio</button>
+      </div>
+    </section>
+
+    <section class="vista" data-vista="progreso" hidden>
+      <h2>Progreso</h2>
+      <p id="progreso-hoy" class="resumen-linea"></p>
+      <div id="progreso-areas" class="progreso-areas"></div>
+      <div class="progreso-acciones">
+        <button class="boton" data-test="exportar">Exportar</button>
+        <label class="enlace boton-archivo">
+          Importar
+          <input type="file" id="importar-archivo" accept="application/json" hidden>
+        </label>
+      </div>
+      <button class="enlace" id="boton-cerrar-progreso">← Inicio</button>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,578 @@
+[
+  {
+    "enunciado": "La Revolución Francesa abolió la monarquía absoluta en Francia.",
+    "explicacion": "La Revolución Francesa (1789-1799) derrocó al rey Luis XVI y estableció una república, eliminando la monarquía absoluta.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "his-001",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El Imperio Romano de Occidente dejó de existir como entidad política en el siglo V.",
+    "explicacion": "El último emperador romano de Occidente, Rómulo Augústulo, fue depuesto en 476, marcando el fin del imperio en el siglo V.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "his-002",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La Paz de Westfalia, que puso fin a la Guerra de los Treinta Años, reconoció la soberanía de los estados europeos.",
+    "explicacion": "Los tratados de Westfalia (1648) establecieron el principio de soberanía estatal y la igualdad legal entre los Estados.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "his-003",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El Tratado de Versalles creó la Liga de Naciones como organización para la seguridad colectiva.",
+    "explicacion": "El artículo 1 del Tratado de Versalles (1919) instituyó la Liga de Naciones con el objetivo de prevenir futuros conflictos mediante la seguridad colectiva.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "his-004",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué civilización antigua construyó la ciudad de Machu Picchu?",
+    "explicacion": "Machu Picchu fue una ciudadela inca construida en el siglo XV en los Andes peruanos.",
+    "nivel": 1,
+    "opciones": [
+      "Inca",
+      "Maya",
+      "Azteca",
+      "Olmeca"
+    ],
+    "correcta": 0,
+    "id": "his-005",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?",
+    "explicacion": "La Paz de Westfalia (1648) concluyó la Guerra de los Treinta Años y redefinió el mapa político de Europa.",
+    "nivel": 2,
+    "opciones": [
+      "Tratado de Westfalia",
+      "Tratado de Versalles",
+      "Tratado de Utrecht",
+      "Congreso de Viena"
+    ],
+    "correcta": 0,
+    "id": "his-006",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál fue la principal consecuencia política de la Revolución Francesa para Europa?",
+    "explicacion": "La Revolución Francesa difundió ideas liberales, nacionalistas y de soberanía popular que transformaron los sistemas políticos europeos.",
+    "nivel": 3,
+    "opciones": [
+      "Difusión de ideas liberales y nacionalistas",
+      "Restauración absoluta de monarquías",
+      "Creación de la Unión Europea",
+      "Establecimiento del feudalismo"
+    ],
+    "correcta": 0,
+    "id": "his-007",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué historiador acuñó el concepto de 'larga duración' para describir estructuras sociales de largo plazo?",
+    "explicacion": "Fernand Braudel, figura central de la Escuela de los Annales, introdujo la noción de 'longue durée' para analizar la historia en escalas temporales extensas.",
+    "nivel": 5,
+    "opciones": [
+      "Fernand Braudel",
+      "Marc Bloch",
+      "Lucien Febvre",
+      "Jacques Le Goff"
+    ],
+    "correcta": 0,
+    "id": "his-008",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál dinastía china inició la construcción de la Gran Muralla?",
+    "explicacion": "El primer emperador Qin Shi Huang ordenó unir y reforzar las murallas existentes de los estados anteriores para proteger la frontera norte contra invasiones nómadas.",
+    "nivel": 1,
+    "opciones": [
+      "Dinastía Han",
+      "Dinastía Tang",
+      "Dinastía Qin",
+      "Dinastía Song"
+    ],
+    "correcta": 2,
+    "id": "his-009",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?",
+    "explicacion": "Los tratados de Westfalia, firmados en Osnabrück y Münster, establecieron el principio de soberanía estatal y redefinieron el orden político en Europa.",
+    "nivel": 2,
+    "opciones": [
+      "Tratado de Versalles",
+      "Tratado de Westfalia",
+      "Tratado de Utrecht",
+      "Tratado de Tordesillas"
+    ],
+    "correcta": 1,
+    "id": "his-010",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Según la mayoría de los historiadores, ¿cuál fue la principal causa de la Revolución Francesa de 1789?",
+    "explicacion": "La grave crisis financiera de la monarquía, derivada de la deuda de guerras y el sistema fiscal injusto, obligó a Luis XVI a convocar los Estados Generales, desencadenando la revolución.",
+    "nivel": 3,
+    "opciones": [
+      "Crisis financiera de la monarquía",
+      "Invasión extranjera",
+      "Rebelión campesina por tierras",
+      "Disputa sucesoria al trono"
+    ],
+    "correcta": 0,
+    "id": "his-011",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿En qué contexto histórico surgió el concepto de 'realpolitik' asociado a Otto von Bismarck?",
+    "explicacion": "Tras la victoria prusiana en la guerra austro-prusiana de 1866, Bismarck aplicó la realpolitik, priorizando objetivos prácticos y alianzas calculadas para lograr la unificación alemana.",
+    "nivel": 5,
+    "opciones": [
+      "Durante la Revolución de 1848 en Alemania",
+      "En la unificación italiana bajo Cavour",
+      "En la política prusiana después de la guerra austro-prusiana de 1866",
+      "Durante el Congreso de Viena de 1815"
+    ],
+    "correcta": 2,
+    "id": "his-012",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué civilización antigua construyó la ciudad de Machu Picchu?",
+    "explicacion": "Machu Picchu fue una ciudadela inca construida en el siglo XV en la actual Perú.",
+    "nivel": 1,
+    "opciones": [
+      "Inca",
+      "Maya",
+      "Azteca",
+      "Olmeca"
+    ],
+    "correcta": 0,
+    "id": "his-013",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál fue el principal motivo de la Guerra de los Cien Años entre Inglaterra y Francia?",
+    "explicacion": "El conflicto se originó por la disputa dinástica sobre la sucesión al trono francés tras la muerte de Carlos IV sin heredero varón.",
+    "nivel": 2,
+    "opciones": [
+      "Disputa por el trono francés",
+      "Control de rutas comerciales",
+      "Diferencias religiosas",
+      "Expansión colonial"
+    ],
+    "correcta": 0,
+    "id": "his-014",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?",
+    "explicacion": "La Paz de Westfalia, compuesta por los tratados de Münster y Osnabrück, estableció un nuevo orden político en Europa.",
+    "nivel": 3,
+    "opciones": [
+      "Tratado de Westfalia",
+      "Tratado de Versalles",
+      "Paz de Augsburgo",
+      "Concordato de Worms"
+    ],
+    "correcta": 0,
+    "id": "his-015",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué movimiento intelectual del siglo XVIII promovió la razón, la ciencia y el escepticismo frente a la tradición?",
+    "explicacion": "La Ilustración defendió el uso de la razón como herramienta para comprender y mejorar la sociedad.",
+    "nivel": 4,
+    "opciones": [
+      "Ilustración",
+      "Romanticismo",
+      "Renacimiento",
+      "Barroco"
+    ],
+    "correcta": 0,
+    "id": "his-016",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué historiador francés del siglo XX desarrolló la 'Escuela de los Annales' enfatizando la historia total y las estructuras de larga duración?",
+    "explicacion": "Fernand Braudel, figura central de la segunda generación de los Annales, introdujo el concepto de 'longue durée' para analizar procesos históricos a gran escala.",
+    "nivel": 5,
+    "opciones": [
+      "Fernand Braudel",
+      "Marc Bloch",
+      "Lucien Febvre",
+      "Jacques Le Goff"
+    ],
+    "correcta": 0,
+    "id": "his-017",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes civilizaciones antiguas según su aparición cronológica.",
+    "explicacion": "Mesopotamia (hacia 3500 a.C.) es la más antigua, seguida por el Antiguo Egipto (hacia 3100 a.C.), la civilización del Valle del Indo (hacia 2600 a.C.) y la dinastía Shang en China (hacia 1600 a.C.).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Mesopotamia",
+      "Egipto",
+      "Valle del Indo",
+      "China (dinastía Shang)"
+    ],
+    "id": "his-018",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena estos hitos de la Edad Media europea de forma cronológica.",
+    "explicacion": "La caída del Imperio Romano de Occidente (476) precede a la Batalla de Hastings (1066), la Carta Magna (1215) y la caída de Constantinopla (1453).",
+    "nivel": 2,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Caída del Imperio Romano de Occidente (476)",
+      "Batalla de Hastings (1066)",
+      "Carta Magna (1215)",
+      "Caída de Constantinopla (1453)"
+    ],
+    "id": "his-019",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes revoluciones científicas según su fecha de publicación o formulación.",
+    "explicacion": "La obra de Copérnico (1543) inicia la revolución heliocéntrica, seguida por los 'Principia' de Newton (1687), la publicación de 'El origen de las especies' de Darwin (1859) y el surgimiento de la teoría cuántica en torno a 1900.",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Publicación de 'De revolutionibus' (1543)",
+      "Publicación de 'Principia' (1687)",
+      "Publicación de 'El origen de las especies' (1859)",
+      "Formulación de la teoría cuántica (1900)"
+    ],
+    "id": "his-020",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena estos tratados fundamentales para la configuración política de Europa moderna.",
+    "explicacion": "El Tratado de Westfalia (1648) cierra la Guerra de los Treinta Años, el Congreso de Viena (1815) reorganiza Europa tras Napoleón, el Tratado de Versalles (1919) pone fin a la Primera Guerra Mundial y el Tratado de Maastricht (1992) crea la Unión Europea.",
+    "nivel": 5,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Tratado de Westfalia (1648)",
+      "Congreso de Viena (1815)",
+      "Tratado de Versalles (1919)",
+      "Tratado de Maastricht (1992)"
+    ],
+    "id": "his-021",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes civilizaciones antiguas según su aparición cronológica (de la más antigua a la más reciente).",
+    "explicacion": "Sumer (Mesopotamia) surge hacia 4500 a.C., seguida por el Antiguo Egipto hacia 3100 a.C., la civilización del Valle del Indo hacia 2600 a.C. y la dinastía Shang en China hacia 1600 a.C.",
+    "nivel": 1,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Sumer (Mesopotamia)",
+      "Antiguo Egipto",
+      "Valle del Indo",
+      "Dinastía Shang (China)"
+    ],
+    "id": "his-022",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes batallas históricas por su fecha de ocurrencia (de la más antigua a la más reciente).",
+    "explicacion": "La batalla de Maratón tuvo lugar en 490 a.C., la de Hastings en 1066, la de Waterloo en 1815 y la de Stalingrado entre 1942‑1943.",
+    "nivel": 2,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Batalla de Maratón",
+      "Batalla de Hastings",
+      "Batalla de Waterloo",
+      "Batalla de Stalingrado"
+    ],
+    "id": "his-023",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes revoluciones científicas según el año de su publicación principal (de la más antigua a la más reciente).",
+    "explicacion": "El modelo heliocéntrico de Copérnico se publicó en 1543, la 'Principia' de Newton en 1687, 'El origen de las especies' de Darwin en 1859 y los artículos de Einstein sobre la relatividad especial en 1905.",
+    "nivel": 3,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Revolución copernicana (1543)",
+      "Revolución newtoniana (1687)",
+      "Revolución darwiniana (1859)",
+      "Revolución einsteiniana (1905)"
+    ],
+    "id": "his-024",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes tratados internacionales por su fecha de firma (de la más antigua a la más reciente).",
+    "explicacion": "El Tratado de Tordesillas se firmó en 1494, el de Westfalia en 1648, el de París (fin de la Guerra de los Siete Años) en 1763 y el de Versalles en 1919.",
+    "nivel": 4,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Tratado de Tordesillas (1494)",
+      "Tratado de Westfalia (1648)",
+      "Tratado de París (1763)",
+      "Tratado de Versalles (1919)"
+    ],
+    "id": "his-025",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes hitos del desarrollo de Internet según su ocurrencia cronológica (de la más antigua a la más reciente).",
+    "explicacion": "ARPANET se puso en marcha en 1969, el protocolo TCP/IP se adoptó como estándar en 1983, Tim Berners‑Lee propuso la World Wide Web en 1989 y el navegador Mosaic se lanzó en 1993.",
+    "nivel": 5,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Lanzamiento de ARPANET (1969)",
+      "Adopción de TCP/IP (1983)",
+      "Propuesta de la World Wide Web (1989)",
+      "Lanzamiento del navegador Mosaic (1993)"
+    ],
+    "id": "his-026",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Valle del Indo no desarrolló la metalurgia del hierro; esta apareció mucho más tarde en la India.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Grandes civilizaciones antiguas",
+      "filas": [
+        {
+          "etiqueta": "Egipto",
+          "valor": "construyó las pirámides de Giza"
+        },
+        {
+          "etiqueta": "Mesopotamia",
+          "valor": "inventó la escritura cuneiforme"
+        },
+        {
+          "etiqueta": "Valle del Indo",
+          "valor": "desarrolló la metalurgia del hierro"
+        },
+        {
+          "etiqueta": "China",
+          "valor": "creó la Gran Muralla en la dinastía Qin"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "his-027",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Revolución de Octubre ocurrió en 1917, no en 1918.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Revoluciones políticas destacadas",
+      "filas": [
+        {
+          "etiqueta": "Revolución Francesa",
+          "valor": "1789"
+        },
+        {
+          "etiqueta": "Revolución Americana",
+          "valor": "1776"
+        },
+        {
+          "etiqueta": "Revolución Rusa",
+          "valor": "1917"
+        },
+        {
+          "etiqueta": "Revolución de Octubre",
+          "valor": "1918"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "his-028",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Tratado de Utrecht se firmó en 1713, no en 1714.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Tratados de paz fundamentales",
+      "filas": [
+        {
+          "etiqueta": "Tratado de Westfalia",
+          "valor": "1648"
+        },
+        {
+          "etiqueta": "Tratado de Versalles",
+          "valor": "1919"
+        },
+        {
+          "etiqueta": "Tratado de Tordesillas",
+          "valor": "1494"
+        },
+        {
+          "etiqueta": "Tratado de Utrecht",
+          "valor": "1714"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "his-029",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Batalla de Gettysburg tuvo lugar en julio de 1863, no en 1862.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Batallas decisivas de la historia",
+      "filas": [
+        {
+          "etiqueta": "Batalla de Hastings",
+          "valor": "1066"
+        },
+        {
+          "etiqueta": "Batalla de Waterloo",
+          "valor": "1815"
+        },
+        {
+          "etiqueta": "Batalla de Stalingrado",
+          "valor": "1942-1943"
+        },
+        {
+          "etiqueta": "Batalla de Gettysburg",
+          "valor": "1862"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "his-030",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

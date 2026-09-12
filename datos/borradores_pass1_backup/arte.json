@@ -1,0 +1,614 @@
+[
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci es el autor de la famosa retrato conocido como La Mona Lisa, conservado en el Louvre.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-001",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El movimiento impresionista se originó en Italia a finales del siglo XIX.",
+    "explicacion": "El impresionismo surgió en Francia, con artistas como Monet, Renoir y Degas, no en Italia.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "art-002",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El cuadro \"La noche estrellada\" de Vincent van Gogh representa la vista desde su ventana en el asilo de Saint-Rémy.",
+    "explicacion": "Van Gogh pintó La noche estrellada en 1889 mientras estaba internado en el asilo de Saint-Rémy-de-Provence, mostrando la vista nocturna desde su ventana.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "art-003",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El claroscuro dramático que modela volúmenes mediante contrastes extremos de luz y sombra fue desarrollado principalmente por Caravaggio en el Barroco.",
+    "explicacion": "Caravaggio es considerado el maestro del tenebrismo, una forma extrema de claroscuro que define el estilo barroco temprano.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "art-004",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci realizó el retrato de Lisa Gherardini, conocido como La Mona Lisa, entre 1503 y 1519.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-005",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El movimiento artístico conocido como 'Futurismo' surgió en Italia a principios del siglo XX.",
+    "explicacion": "El Futurismo fue fundado por Filippo Tommaso Marinetti en 1909 con la publicación de su manifiesto en Milán.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "art-006",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El pintor español Francisco de Goya fue miembro fundador del movimiento impresionista.",
+    "explicacion": "Goya vivió en los siglos XVIII‑XIX y su obra precede al Impresionismo; los fundadores de este movimiento fueron artistas franceses como Monet, Renoir y Degas.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "art-007",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la atmósfera, surgido en Francia a finales del siglo XIX?",
+    "explicacion": "El impresionismo, liderado por artistas como Monet, Renoir y Pissarro, buscaba plasmar la impresión visual inmediata mediante pinceladas sueltas y colores puros.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-008",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes obras es de Leonardo da Vinci?",
+    "explicacion": "La Última Cena (1495-1498) es un mural de Leonardo en el convento de Santa Maria delle Grazie en Milán; las otras obras pertenecen a Van Gogh, Munch y Dalí respectivamente.",
+    "nivel": 2,
+    "opciones": [
+      "La última cena",
+      "La noche estrellada",
+      "El grito",
+      "La persistencia de la memoria"
+    ],
+    "correcta": 0,
+    "id": "art-009",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué técnica pictórica consiste en aplicar capas transparentes de pintura sobre una capa seca para lograr luminosidad?",
+    "explicacion": "La veladura (glazing) permite modificar el tono y la saturación sin ocultar la capa inferior, usada desde el Renacimiento hasta el Barroco.",
+    "nivel": 3,
+    "opciones": [
+      "Veladura",
+      "Impasto",
+      "Fresco",
+      "Temple"
+    ],
+    "correcta": 0,
+    "id": "art-010",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué artista conceptual creó la obra 'One and Three Chairs' (1965), que presenta una silla real, una fotografía de la silla y una definición diccionaria de 'silla'?",
+    "explicacion": "Joseph Kosuth es pionero del arte conceptual y esta pieza ejemplifica su interés por la relación entre objeto, imagen y lenguaje.",
+    "nivel": 5,
+    "opciones": [
+      "Joseph Kosuth",
+      "Marcel Duchamp",
+      "Sol LeWitt",
+      "Lawrence Weiner"
+    ],
+    "correcta": 0,
+    "id": "art-011",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?",
+    "explicacion": "El impresionismo buscaba representar la impresión visual inmediata, empleando pinceladas sueltas y colores puros para captar la luz cambiante.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-012",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes artistas es considerado el padre del cubismo junto a Georges Braque?",
+    "explicacion": "Pablo Picasso, junto con Braque, desarrolló el cubismo analítico y sintético a partir de 1907, rompiendo la perspectiva tradicional.",
+    "nivel": 2,
+    "opciones": [
+      "Pablo Picasso",
+      "Salvador Dalí",
+      "Henri Matisse",
+      "Wassily Kandinsky"
+    ],
+    "correcta": 0,
+    "id": "art-013",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿En qué técnica pictórica se aplica pigmento suspendido en agua sobre papel húmedo, permitiendo difuminados suaves?",
+    "explicacion": "La acuarela utiliza pigmentos diluidos en agua; el papel húmedo favorece la difusión y la transparencia característica de esta técnica.",
+    "nivel": 3,
+    "opciones": [
+      "Acuarela",
+      "Óleo",
+      "Temple",
+      "Fresco"
+    ],
+    "correcta": 0,
+    "id": "art-014",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué concepto de la teoría del color, formulado por Johannes Itten, describe la relación de contraste entre colores complementarios en la rueda de color?",
+    "explicacion": "Itten definió el «contraste de complementarios» como el efecto visual intenso que se produce al yuxtaponer colores opuestos en el círculo cromático.",
+    "nivel": 5,
+    "opciones": [
+      "Contraste simultáneo",
+      "Contraste de saturación",
+      "Contraste de complementarios",
+      "Contraste de temperatura"
+    ],
+    "correcta": 2,
+    "id": "art-015",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la impresión momentánea de una escena?",
+    "explicacion": "El impresionismo, surgido en Francia a finales del siglo XIX, busca representar la luz y el color tal como se perciben en un instante fugaz.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-016",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué técnica pictórica consiste en aplicar capas transparentes de color sobre una base seca para lograr luminosidad?",
+    "explicacion": "El glaseado (o veladura) permite que la luz atraviese las capas transparentes y se refleje en la capa inferior, creando profundidad y brillo.",
+    "nivel": 2,
+    "opciones": [
+      "Glaseado",
+      "Impasto",
+      "Fresco",
+      "Temple"
+    ],
+    "correcta": 0,
+    "id": "art-017",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la obra \"Las Meninas\" de Velázquez, ¿qué figura central aparece reflejada en el espejo al fondo de la sala?",
+    "explicacion": "El espejo muestra al rey Felipe IV y a la reina Mariana, situando al espectador en la posición de los monarcas.",
+    "nivel": 3,
+    "opciones": [
+      "El rey Felipe IV y la reina Mariana",
+      "El infante Felipe Próspero",
+      "La infanta Margarita",
+      "El propio Velázquez"
+    ],
+    "correcta": 0,
+    "id": "art-018",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué principio de la composición renacentista se basa en la disposición de los elementos siguiendo una proporción matemática aproximada a 1:1,618?",
+    "explicacion": "La sección áurea (número de oro) ha sido usada desde la antigüedad para crear armonía visual en pintura, arquitectura y escultura.",
+    "nivel": 4,
+    "opciones": [
+      "Sección áurea",
+      "Regla de los tercios",
+      "Simetría axial",
+      "Perspectiva lineal"
+    ],
+    "correcta": 0,
+    "id": "art-019",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué artista del siglo XX desarrolló la técnica del \"dripping\" y es considerado pionero del expresionismo abstracto?",
+    "explicacion": "Jackson Pollock vertía y goteaba pintura sobre lienzos colocados en el suelo, creando composiciones gestuales y caóticas.",
+    "nivel": 5,
+    "opciones": [
+      "Jackson Pollock",
+      "Mark Rothko",
+      "Willem de Kooning",
+      "Barnett Newman"
+    ],
+    "correcta": 0,
+    "id": "art-020",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento (siglos XIV–XVI) precede al Barroco (siglo XVII), seguido del Impresionismo (finales del XIX) y el Cubismo (principios del XX).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-021",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes obras pictóricas según su fecha de creación, de la más antigua a la más reciente.",
+    "explicacion": "La Gioconda (c.1503‑1519) → Las meninas (1656) → La noche estrellada (1889) → Guernica (1937).",
+    "nivel": 2,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "La Gioconda (Mona Lisa)",
+      "Las meninas",
+      "La noche estrellada",
+      "Guernica"
+    ],
+    "id": "art-022",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena a estos escultores por año de nacimiento, del más temprano al más tardío.",
+    "explicacion": "Miguel Ángel (1475) → Auguste Rodin (1840) → Constantin Brâncuși (1876) → Louise Bourgeois (1911).",
+    "nivel": 4,
+    "criterio": "de menor a mayor año de nacimiento",
+    "items": [
+      "Miguel Ángel",
+      "Auguste Rodin",
+      "Constantin Brâncuși",
+      "Louise Bourgeois"
+    ],
+    "id": "art-023",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos teóricos del arte según su aparición histórica, del más antiguo al más reciente.",
+    "explicacion": "Mimesis (siglo IV a.C.) → Perspectiva lineal (principios del XV) → Estética del sublime (finales del XVIII) → Postestructuralismo (mediados del XX).",
+    "nivel": 5,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Mimesis (Aristóteles)",
+      "Perspectiva lineal (Renaissance)",
+      "Estética del sublime (Burke/Kant)",
+      "Postestructuralismo (Derrida/Foucault)"
+    ],
+    "id": "art-024",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento surgió en el siglo XIV-XV, el Barroco en el siglo XVII, el Impresionismo a finales del siglo XIX y el Cubismo en el primer tercio del siglo XX.",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-025",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena a los siguientes artistas de más antiguo a más reciente según su año de nacimiento.",
+    "explicacion": "Leonardo da Vinci (1452), Miguel Ángel (1475), Rembrandt van Rijn (1606) y Pablo Picasso (1881).",
+    "nivel": 2,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Leonardo da Vinci",
+      "Miguel Ángel",
+      "Rembrandt van Rijn",
+      "Pablo Picasso"
+    ],
+    "id": "art-026",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes obras de arte de la más figurativa a la más abstracta.",
+    "explicacion": "La Mona Lisa es un retrato figurativo; La noche estrellada mantiene formas reconocibles pero con expresión emocional; Composición VII de Kandinsky es abstracta lírica; el Cuadrado negro de Malevich representa la abstracción pura.",
+    "nivel": 3,
+    "criterio": "de más figurativa a más abstracta",
+    "items": [
+      "Mona Lisa",
+      "La noche estrellada",
+      "Composición VII",
+      "Cuadrado negro"
+    ],
+    "id": "art-027",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos de arte moderno de más antiguo a más reciente.",
+    "explicacion": "El Fauvismo apareció alrededor de 1905, el Expresionismo se desarrolló también en los años 1905-1910, el Dadaísmo surgió en 1916 y el Surrealismo se estableció oficialmente en 1924.",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Fauvismo",
+      "Expresionismo",
+      "Dadaísmo",
+      "Surrealismo"
+    ],
+    "id": "art-028",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes obras seminales de arte contemporáneo de más antigua a más reciente según su primera presentación pública.",
+    "explicacion": "Les Demoiselles d'Avignon se exhibió en 1907, La fuente (Fountain) de Marcel Duchamp en 1917, Guernica de Pablo Picasso en 1937 y las Latas de sopa Campbell de Andy Warhol en 1962.",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Les Demoiselles d'Avignon",
+      "La fuente (Fountain)",
+      "Guernica",
+      "Latas de sopa Campbell"
+    ],
+    "id": "art-029",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Noche Estrellada fue pintada por Vincent van Gogh, no por Pablo Picasso.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Pinturas famosas",
+      "filas": [
+        {
+          "etiqueta": "La Mona Lisa",
+          "valor": "Leonardo da Vinci"
+        },
+        {
+          "etiqueta": "La Noche Estrellada",
+          "valor": "Pablo Picasso"
+        },
+        {
+          "etiqueta": "El Grito",
+          "valor": "Edvard Munch"
+        },
+        {
+          "etiqueta": "La Persistencia de la Memoria",
+          "valor": "Salvador Dalí"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-030",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La escultura Moisés fue realizada por Miguel Ángel, no por Donatello.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Esculturas renacentistas",
+      "filas": [
+        {
+          "etiqueta": "David",
+          "valor": "Miguel Ángel"
+        },
+        {
+          "etiqueta": "Pietà",
+          "valor": "Miguel Ángel"
+        },
+        {
+          "etiqueta": "El Pensador",
+          "valor": "Auguste Rodin"
+        },
+        {
+          "etiqueta": "Moisés",
+          "valor": "Donatello"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-031",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Barroco se desarrolló principalmente en el siglo XVII, no en el XVIII.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Movimientos artísticos",
+      "filas": [
+        {
+          "etiqueta": "Impresionismo",
+          "valor": "Finales del siglo XIX"
+        },
+        {
+          "etiqueta": "Cubismo",
+          "valor": "Principios del siglo XX"
+        },
+        {
+          "etiqueta": "Surrealismo",
+          "valor": "Década de 1920"
+        },
+        {
+          "etiqueta": "Barroco",
+          "valor": "Siglo XVIII"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-032",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Las Meninas fue pintada en 1656, no en 1640.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Detalles de 'Las Meninas'",
+      "filas": [
+        {
+          "etiqueta": "Autor",
+          "valor": "Diego Velázquez"
+        },
+        {
+          "etiqueta": "Año",
+          "valor": "1640"
+        },
+        {
+          "etiqueta": "Técnica",
+          "valor": "Óleo sobre lienzo"
+        },
+        {
+          "etiqueta": "Ubicación actual",
+          "valor": "Museo del Prado, Madrid"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-033",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

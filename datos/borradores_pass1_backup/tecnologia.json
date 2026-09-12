@@ -1,0 +1,578 @@
+[
+  {
+    "enunciado": "El protocolo HTTP utiliza el puerto 80 por defecto.",
+    "explicacion": "HTTP está estandarizado para escuchar en el puerto TCP 80, mientras que HTTPS usa el 443.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "tec-001",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La arquitectura de von Neumann separa la memoria de instrucciones y datos.",
+    "explicacion": "Von Neumann usa una única memoria compartida para instrucciones y datos; la separación corresponde a la arquitectura Harvard.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "tec-002",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El algoritmo de compresión sin pérdida ZIP emplea el algoritmo DEFLATE.",
+    "explicacion": "ZIP combina LZ77 y codificación Huffman, lo que constituye el método DEFLATE definido en RFC 1951.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "tec-003",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La curva elíptica secp256k1, utilizada en Bitcoin, tiene un cofactor igual a 1.",
+    "explicacion": "secp256k1 está definida sobre un campo primo con orden de grupo primo, por lo que su cofactor es 1.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "tec-004",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué significa la sigla HTTP?",
+    "explicacion": "HTTP son las siglas de HyperText Transfer Protocol, el protocolo base de la World Wide Web para la transferencia de hipertexto.",
+    "nivel": 1,
+    "opciones": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Hyperlink Transfer Text Protocol",
+      "Home Tool Transfer Protocol"
+    ],
+    "correcta": 0,
+    "id": "tec-005",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes protocolos se utiliza para la transferencia segura de archivos?",
+    "explicacion": "SFTP (SSH File Transfer Protocol) proporciona transferencia de archivos cifrada sobre una conexión SSH, a diferencia de FTP que envía datos en claro.",
+    "nivel": 2,
+    "opciones": [
+      "FTP",
+      "SFTP",
+      "HTTP",
+      "SMTP"
+    ],
+    "correcta": 1,
+    "id": "tec-006",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué algoritmo de consenso utiliza la red Bitcoin para validar transacciones?",
+    "explicacion": "Bitcoin emplea Proof of Work (Prueba de Trabajo), donde los mineros resuelven un problema criptográfico para añadir bloques a la cadena.",
+    "nivel": 4,
+    "opciones": [
+      "Proof of Stake",
+      "Proof of Work",
+      "Delegated Proof of Stake",
+      "Byzantine Fault Tolerance"
+    ],
+    "correcta": 1,
+    "id": "tec-007",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿en qué capa se encuentra el protocolo TLS?",
+    "explicacion": "TLS (Transport Layer Security) opera en la capa de presentación (capa 6), encargada de la traducción, cifrado y compresión de datos.",
+    "nivel": 5,
+    "opciones": [
+      "Capa 4 (Transporte)",
+      "Capa 5 (Sesión)",
+      "Capa 6 (Presentación)",
+      "Capa 7 (Aplicación)"
+    ],
+    "correcta": 2,
+    "id": "tec-008",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué significa la sigla HTTP?",
+    "explicacion": "HTTP significa HyperText Transfer Protocol, el protocolo base de la World Wide Web.",
+    "nivel": 1,
+    "opciones": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Hyperlink Transfer Text Protocol",
+      "Home Tool Transfer Protocol"
+    ],
+    "correcta": 0,
+    "id": "tec-009",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes protocolos se utiliza para la transferencia segura de archivos?",
+    "explicacion": "SFTP (SSH File Transfer Protocol) proporciona transferencia de archivos cifrada sobre SSH.",
+    "nivel": 2,
+    "opciones": [
+      "FTP",
+      "SFTP",
+      "HTTP",
+      "SMTP"
+    ],
+    "correcta": 1,
+    "id": "tec-010",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿en qué capa se encuentra el protocolo TCP?",
+    "explicacion": "TCP opera en la capa de transporte (capa 4) del modelo OSI.",
+    "nivel": 4,
+    "opciones": [
+      "Capa 3 (Red)",
+      "Capa 4 (Transporte)",
+      "Capa 5 (Sesión)",
+      "Capa 6 (Presentación)"
+    ],
+    "correcta": 1,
+    "id": "tec-011",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué algoritmo de consenso utiliza la red Bitcoin para validar bloques?",
+    "explicacion": "Bitcoin emplea Proof of Work, donde los mineros resuelven un puzzle criptográfico para añadir bloques.",
+    "nivel": 5,
+    "opciones": [
+      "Proof of Stake",
+      "Proof of Work",
+      "Delegated Proof of Stake",
+      "Byzantine Fault Tolerance"
+    ],
+    "correcta": 1,
+    "id": "tec-012",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué significan las siglas HTTP?",
+    "explicacion": "HTTP significa HyperText Transfer Protocol, el protocolo base de la World Wide Web para la transferencia de hipertexto.",
+    "nivel": 1,
+    "opciones": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Hyperlink Text Transfer Process",
+      "Home Transfer Text Protocol"
+    ],
+    "correcta": 0,
+    "id": "tec-013",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el puerto predeterminado utilizado por HTTPS?",
+    "explicacion": "HTTPS (HTTP sobre TLS/SSL) usa por defecto el puerto 443 para establecer conexiones seguras.",
+    "nivel": 2,
+    "opciones": [
+      "80",
+      "443",
+      "8080",
+      "22"
+    ],
+    "correcta": 1,
+    "id": "tec-014",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la función principal de un resolvedor DNS?",
+    "explicacion": "Un resolvedor DNS traduce nombres de dominio legibles por humanos (como example.com) en direcciones IP que los equipos pueden usar para enrutar el tráfico.",
+    "nivel": 3,
+    "opciones": [
+      "Almacenar páginas web en caché",
+      "Traducir nombres de dominio a direcciones IP",
+      "Cifrar el tráfico de red",
+      "Gestionar certificados digitales"
+    ],
+    "correcta": 1,
+    "id": "tec-015",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿qué capa se encarga del enrutamiento de paquetes entre redes distintas?",
+    "explicacion": "La capa de red (capa 3) es responsable del direccionamiento lógico y el enrutamiento de paquetes a través de múltiples redes.",
+    "nivel": 4,
+    "opciones": [
+      "Capa de enlace de datos",
+      "Capa de red",
+      "Capa de transporte",
+      "Capa de sesión"
+    ],
+    "correcta": 1,
+    "id": "tec-016",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué algoritmo de hash utiliza Bitcoin para su prueba de trabajo (proof‑of‑work)?",
+    "explicacion": "Bitcoin emplea SHA‑256 (Secure Hash Algorithm de 256 bits) como función de hash en su mecanismo de consenso Proof‑of‑Work.",
+    "nivel": 5,
+    "opciones": [
+      "MD5",
+      "SHA‑1",
+      "SHA‑256",
+      "RIPEMD‑160"
+    ],
+    "correcta": 2,
+    "id": "tec-017",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos informáticos según su nivel de abstracción.",
+    "explicacion": "El hardware es la capa física, el firmware es software de bajo nivel incrustado en el hardware, el sistema operativo gestiona recursos y la aplicación es el software de usuario final.",
+    "nivel": 1,
+    "criterio": "de menor a mayor nivel de abstracción",
+    "items": [
+      "hardware",
+      "firmware",
+      "sistema operativo",
+      "aplicación"
+    ],
+    "id": "tec-018",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes protocolos de red según la capa del modelo OSI a la que pertenecen.",
+    "explicacion": "La capa física transmite bits, la de enlace de datos enmarca tramas, la de red encamina paquetes y la de transporte garantiza entrega extremo a extremo.",
+    "nivel": 2,
+    "criterio": "de menor a mayor capa OSI",
+    "items": [
+      "física",
+      "enlace de datos",
+      "red",
+      "transporte"
+    ],
+    "id": "tec-019",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes lenguajes de programación según su nivel de abstracción.",
+    "explicacion": "El código máquina es ejecutado directamente por la CPU, el ensamblador es una representación mnemotécnica, C es un lenguaje de alto nivel con gestión manual de memoria y Python es un lenguaje de muy alto nivel con gestión automática.",
+    "nivel": 4,
+    "criterio": "de menor a mayor nivel de abstracción",
+    "items": [
+      "código máquina",
+      "ensamblador",
+      "C",
+      "Python"
+    ],
+    "id": "tec-020",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes algoritmos criptográficos según su tamaño de clave efectiva (seguridad).",
+    "explicacion": "DES usa 56 bits, 3DES aplica DES tres veces alcanzando ~112 bits, AES-128 emplea 128 bits y AES-256 emplea 256 bits, ofreciendo mayor resistencia a ataques de fuerza bruta.",
+    "nivel": 5,
+    "criterio": "de menor a mayor tamaño de clave efectiva",
+    "items": [
+      "DES",
+      "3DES",
+      "AES-128",
+      "AES-256"
+    ],
+    "id": "tec-021",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las siguientes unidades de almacenamiento de información digital.",
+    "explicacion": "El sistema binario define que 1 kilobyte (KB) = 1024 bytes, 1 megabyte (MB) = 1024 KB, 1 gigabyte (GB) = 1024 MB y 1 terabyte (TB) = 1024 GB. Por lo tanto, el orden correcto de menor a mayor capacidad es KB, MB, GB, TB.",
+    "nivel": 1,
+    "criterio": "de menor a mayor",
+    "items": [
+      "KB",
+      "MB",
+      "GB",
+      "TB"
+    ],
+    "id": "tec-022",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las generaciones de tecnología de redes móviles según su aparición histórica.",
+    "explicacion": "Las generaciones de redes móviles se desarrollaron en secuencia: 1G (analógica) apareció en los años 80, 2G (digital, GSM) en los 90, 3G (UMTS) a principios de los 2000 y 4G (LTE) alrededor de 2009-2010. Así, el orden de menor a mayor antigüedad es 1G, 2G, 3G, 4G.",
+    "nivel": 2,
+    "criterio": "de menor a mayor",
+    "items": [
+      "1G",
+      "2G",
+      "3G",
+      "4G"
+    ],
+    "id": "tec-023",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las versiones del estándar del lenguaje de programación C según su año de publicación.",
+    "explicacion": "El estándar C fue inicialmente publicado como C89 (también llamado ANSI C) en 1989, seguido por C99 en 1999, C11 en 2011 y C18 en 2018. Por lo tanto, el orden cronológico de menor a mayor año es C89, C99, C11, C18.",
+    "nivel": 3,
+    "criterio": "de menor a mayor",
+    "items": [
+      "C89",
+      "C99",
+      "C11",
+      "C18"
+    ],
+    "id": "tec-024",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las microarquitecturas de procesadores Intel según su año de lanzamiento.",
+    "explicacion": "Intel lanzó Nehalem en 2008, Sandy Bridge en 2011, Ivy Bridge en 2012 y Haswell en 2013. Así, el orden de menor a mayor año de lanzamiento es Nehalem, Sandy Bridge, Ivy Bridge, Haswell.",
+    "nivel": 4,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Nehalem",
+      "Sandy Bridge",
+      "Ivy Bridge",
+      "Haswell"
+    ],
+    "id": "tec-025",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las tecnologías Ethernet según su velocidad de transmisión de datos.",
+    "explicacion": "Ethernet ha evolucionado en incrementos de velocidad: 10BASE-T ofrece 10 Mbps, Fast Ethernet (100BASE-TX) 100 Mbps, Gigabit Ethernet (1000BASE-T) 1 Gbps y 10 Gigabit Ethernet (10GBASE-T) 10 Gbps. Por lo tanto, el orden de menor a mayor velocidad es 10 Mbps, 100 Mbps, 1 Gbps, 10 Gbps.",
+    "nivel": 5,
+    "criterio": "de menor a mayor",
+    "items": [
+      "10 Mbps",
+      "100 Mbps",
+      "1 Gbps",
+      "10 Gbps"
+    ],
+    "id": "tec-026",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "JavaScript es un lenguaje de tipado dinámico, no estático.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Lenguajes de programación",
+      "filas": [
+        {
+          "etiqueta": "Python",
+          "valor": "lenguaje interpretado"
+        },
+        {
+          "etiqueta": "Java",
+          "valor": "compilado a bytecode"
+        },
+        {
+          "etiqueta": "C",
+          "valor": "lenguaje de alto nivel"
+        },
+        {
+          "etiqueta": "JavaScript",
+          "valor": "lenguaje de tipado estático"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-027",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "SSH utiliza el puerto 22, no el 80.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Protocolos de red",
+      "filas": [
+        {
+          "etiqueta": "HTTP",
+          "valor": "protocolo de capa de aplicación"
+        },
+        {
+          "etiqueta": "FTP",
+          "valor": "usa puerto 21 para control"
+        },
+        {
+          "etiqueta": "DNS",
+          "valor": "usa UDP puerto 53"
+        },
+        {
+          "etiqueta": "SSH",
+          "valor": "usa puerto 80"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-028",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "MIPS es una arquitectura RISC, no VLIW.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Arquitecturas de CPU",
+      "filas": [
+        {
+          "etiqueta": "x86",
+          "valor": "arquitectura CISC"
+        },
+        {
+          "etiqueta": "ARM",
+          "valor": "arquitectura RISC"
+        },
+        {
+          "etiqueta": "MIPS",
+          "valor": "arquitectura VLIW"
+        },
+        {
+          "etiqueta": "RISC-V",
+          "valor": "arquitectura RISC open source"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "tec-029",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "PBFT es un algoritmo de consenso síncrono, no asíncrono.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Algoritmos de consenso blockchain",
+      "filas": [
+        {
+          "etiqueta": "Proof of Work",
+          "valor": "requiere trabajo computacional"
+        },
+        {
+          "etiqueta": "Proof of Stake",
+          "valor": "selecciona validadores por participación"
+        },
+        {
+          "etiqueta": "Delegated Proof of Stake",
+          "valor": "usa votación de testigos"
+        },
+        {
+          "etiqueta": "Practical Byzantine Fault Tolerance",
+          "valor": "requiere 2/3 de nodos honestos y es asíncrono"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-030",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

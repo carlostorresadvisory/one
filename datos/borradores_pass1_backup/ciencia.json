@@ -1,0 +1,618 @@
+[
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la atmósfera terrestre.",
+    "explicacion": "El nitrógeno constituye aproximadamente el 78 % de la atmósfera, mientras que el oxígeno representa cerca del 21 %.",
+    "nivel": 1,
+    "respuesta": false,
+    "id": "cie-001",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La fotosíntesis convierte dióxido de carbono y agua en glucosa y oxígeno usando energía luminosa.",
+    "explicacion": "En las plantas, algas y cianobacterias, la reacción global es 6 CO₂ + 6 H₂O → C₆H₁₂O₆ + 6 O₂, impulsada por la luz.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "cie-002",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El número de Avogadro es exactamente 6.02214076×10^23 mol⁻¹.",
+    "explicacion": "Desde la redefinición del SI en 2019, el número de Avogadro tiene un valor exacto por definición.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "cie-003",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la teoría de la relatividad general, la curvatura del espacio-tiempo es descrita por el tensor de Ricci.",
+    "explicacion": "La curvatura completa se describe mediante el tensor de Riemann; el tensor de Ricci es una contracción de este y aparece en las ecuaciones de campo, pero no describe toda la curvatura.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "cie-004",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la atmósfera terrestre.",
+    "explicacion": "La atmósfera terrestre está compuesta aproximadamente por un 78 % de nitrógeno y un 21 % de oxígeno; por tanto, el nitrógeno es el elemento más abundante.",
+    "nivel": 1,
+    "respuesta": false,
+    "id": "cie-005",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Los neutrinos tienen masa cero.",
+    "explicacion": "Experimentos de oscilación de neutrinos demostraron que los neutrinos poseen una masa muy pequeña pero no nula.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "cie-006",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El principio de incertidumbre de Heisenberg establece que no se pueden conocer simultáneamente la posición y el momento de una partícula con precisión arbitraria.",
+    "explicacion": "El principio afirma que el producto de las incertidumbres en la posición (Δx) y el momento (Δp) de una partícula es mayor o igual a ℏ/2, lo que impide una precisión simultánea ilimitada.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "cie-007",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el elemento químico más abundante en la corteza terrestre?",
+    "explicacion": "El oxígeno constituye aproximadamente el 46 % en peso de la corteza terrestre, siendo el elemento más abundante.",
+    "nivel": 1,
+    "opciones": [
+      "Oxígeno",
+      "Silicio",
+      "Aluminio",
+      "Hierro"
+    ],
+    "correcta": 0,
+    "id": "cie-008",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tipo de enlace químico se forma entre los átomos de hidrógeno y oxígeno en una molécula de agua?",
+    "explicacion": "El enlace O–H en el agua es covalente con una marcada polaridad debido a la diferencia de electronegatividad entre oxígeno e hidrógeno.",
+    "nivel": 2,
+    "opciones": [
+      "Enlace iónico",
+      "Enlace covalente polar",
+      "Enlace metálico",
+      "Enlace de hidrógeno"
+    ],
+    "correcta": 1,
+    "id": "cie-009",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes leyes describe la relación entre la presión y el volumen de un gas a temperatura constante?",
+    "explicacion": "La ley de Boyle establece que, a temperatura constante, la presión de una cantidad fija de gas es inversamente proporcional a su volumen.",
+    "nivel": 3,
+    "opciones": [
+      "Ley de Charles",
+      "Ley de Boyle",
+      "Ley de Gay-Lussac",
+      "Ley de Avogadro"
+    ],
+    "correcta": 1,
+    "id": "cie-010",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la teoría de la relatividad general, ¿qué tensor describe la curvatura del espacio-tiempo causada por la materia y la energía?",
+    "explicacion": "El tensor de Einstein (G_{\\mu\\nu}) combina el tensor de Ricci y el escalar de curvatura para relacionar la geometría del espacio-tiempo con el tensor de energía-impulso mediante las ecuaciones de campo.",
+    "nivel": 5,
+    "opciones": [
+      "Tensor de Ricci",
+      "Tensor de Einstein",
+      "Tensor métrico",
+      "Tensor de energía-impulso"
+    ],
+    "correcta": 1,
+    "id": "cie-011",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el elemento químico más abundante en la atmósfera terrestre?",
+    "explicacion": "El nitrógeno constituye aproximadamente el 78 % del volumen de la atmósfera, siendo el gas más abundante.",
+    "nivel": 1,
+    "opciones": [
+      "Nitrógeno",
+      "Oxígeno",
+      "Argón",
+      "Dióxido de carbono"
+    ],
+    "correcta": 0,
+    "id": "cie-012",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tipo de radiación electromagnética tiene una longitud de onda más larga que la luz visible pero más corta que las microondas?",
+    "explicacion": "El espectro electromagnético ordena la radiación por longitud de onda; el infrarrojo se sitúa entre la luz visible y las microondas.",
+    "nivel": 2,
+    "opciones": [
+      "Infrarrojo",
+      "Ultravioleta",
+      "Rayos X",
+      "Radio"
+    ],
+    "correcta": 0,
+    "id": "cie-013",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la ecuación de Schrödinger independiente del tiempo, ¿qué representa el operador Hamiltoniano?",
+    "explicacion": "El Hamiltoniano Ĥ es el operador que corresponde a la energía total (cinética + potencial) del sistema cuántico.",
+    "nivel": 4,
+    "opciones": [
+      "La energía total del sistema",
+      "El momento lineal",
+      "La posición",
+      "La carga eléctrica"
+    ],
+    "correcta": 0,
+    "id": "cie-014",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la simetría de gauge subyacente del modelo estándar de la física de partículas?",
+    "explicacion": "El modelo estándar se basa en el grupo de gauge SU(3)_C × SU(2)_L × U(1)_Y, que describe las interacciones fuerte, débil y electromagnética.",
+    "nivel": 5,
+    "opciones": [
+      "SU(3)×SU(2)×U(1)",
+      "SO(10)",
+      "SU(5)",
+      "E8×E8"
+    ],
+    "correcta": 0,
+    "id": "cie-015",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el gas más abundante en la atmósfera terrestre?",
+    "explicacion": "El nitrógeno constituye aproximadamente el 78 % del volumen de la atmósfera terrestre, siendo el componente más abundante.",
+    "nivel": 1,
+    "opciones": [
+      "Oxígeno",
+      "Nitrógeno",
+      "Dióxido de carbono",
+      "Argón"
+    ],
+    "correcta": 1,
+    "id": "cie-016",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué principio establece que la presión de un fluido en reposo es la misma en todos los puntos a la misma profundidad?",
+    "explicacion": "Este principio, formulado por Blaise Pascal, indica que la presión aplicada a un fluido confinado se transmite undiminished en todas direcciones.",
+    "nivel": 2,
+    "opciones": [
+      "Principio de Arquímedes",
+      "Ley de Pascal",
+      "Ley de Bernoulli",
+      "Ley de Hooke"
+    ],
+    "correcta": 1,
+    "id": "cie-017",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la configuración electrónica de estado fundamental del átomo de neón?",
+    "explicacion": "Neón tiene número atómico 10; su configuración electrónica completa es 1s² 2s² 2p⁶, lo que le confiere una capa de valencia completa y lo hace un gas noble.",
+    "nivel": 3,
+    "opciones": [
+      "1s² 2s² 2p⁶",
+      "1s² 2s² 2p⁵",
+      "1s² 2s² 2p⁴",
+      "1s² 2s² 2p³"
+    ],
+    "correcta": 0,
+    "id": "cie-018",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué orgánulo celular es responsable de la síntesis de proteínas?",
+    "explicacion": "Los ribosomas adheridos al retículo endoplásmico rugoso sintetizan proteínas que serán secretadas o incorporadas a membranas.",
+    "nivel": 4,
+    "opciones": [
+      "Mitocondria",
+      "Aparato de Golgi",
+      "Retículo endoplásmico rugoso",
+      "Lisosoma"
+    ],
+    "correcta": 2,
+    "id": "cie-019",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la partícula elemental que media la interacción débil y tiene carga eléctrica negativa?",
+    "explicacion": "El bosón W⁻ es el mediador cargado negativamente de la fuerza nuclear débil, involucrado en procesos como la desintegración beta.",
+    "nivel": 5,
+    "opciones": [
+      "Bosón W⁺",
+      "Bosón W⁻",
+      "Bosón Z⁰",
+      "Fotón"
+    ],
+    "correcta": 1,
+    "id": "cie-020",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del sistema solar de menor a mayor distancia al Sol.",
+    "explicacion": "Mercurio es el más cercano al Sol, seguido por Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Mercurio",
+      "Venus",
+      "Tierra",
+      "Marte"
+    ],
+    "id": "cie-021",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes elementos químicos de menor a mayor número atómico.",
+    "explicacion": "El hidrógeno tiene número atómico 1, el helio 2, el litio 3 y el berilio 4.",
+    "nivel": 2,
+    "criterio": "de menor a mayor número atómico",
+    "items": [
+      "Hidrógeno",
+      "Helio",
+      "Litio",
+      "Berilio"
+    ],
+    "id": "cie-022",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético de menor a mayor longitud de onda.",
+    "explicacion": "Los rayos gamma tienen la longitud de onda más corta, seguidos por los rayos X, el ultravioleta y la luz visible.",
+    "nivel": 3,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Rayos gamma",
+      "Rayos X",
+      "Ultravioleta",
+      "Visible"
+    ],
+    "id": "cie-023",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las cuatro interacciones fundamentales de menor a mayor intensidad relativa.",
+    "explicacion": "La gravedad es la más débil, luego la interacción débil, el electromagnetismo y la interacción fuerte es la más intensa.",
+    "nivel": 5,
+    "criterio": "de menor a mayor intensidad relativa",
+    "items": [
+      "Gravedad",
+      "Interacción débil",
+      "Electromagnetismo",
+      "Interacción fuerte"
+    ],
+    "id": "cie-024",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del Sistema Solar según su distancia al Sol, de la más cercana a la más lejana.",
+    "explicacion": "Mercurio es el planeta más cercano al Sol, seguido de Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Marte",
+      "Mercurio",
+      "Venus",
+      "Tierra"
+    ],
+    "id": "cie-025",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético según su longitud de onda, de la más corta a la más larga.",
+    "explicacion": "La luz visible tiene longitudes de onda más cortas que el infrarrojo, este a su vez más cortas que las microondas, y las ondas de radio son las más largas.",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Microondas",
+      "Visible",
+      "Radio",
+      "Infrarrojo"
+    ],
+    "id": "cie-026",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes rangos taxonómicos del más específico al más general.",
+    "explicacion": "La jerarquía taxonómica va de especie (más específica) a género, familia y orden (más general).",
+    "nivel": 3,
+    "criterio": "de más específico a más general",
+    "items": [
+      "Familia",
+      "Especie",
+      "Orden",
+      "Género"
+    ],
+    "id": "cie-027",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las cuatro interacciones fundamentales de la física según su intensidad relativa, de la más débil a la más fuerte.",
+    "explicacion": "La gravedad es la más débil, seguida de la fuerza nuclear débil, la electromagnética y la fuerza nuclear fuerte.",
+    "nivel": 4,
+    "criterio": "de menor a mayor intensidad",
+    "items": [
+      "Fuerza nuclear fuerte",
+      "Gravedad",
+      "Fuerza electromagnética",
+      "Fuerza nuclear débil"
+    ],
+    "id": "cie-028",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las etapas de la evolución estelar de una estrella de masa similar al Sol, desde la fase inicial hasta la final.",
+    "explicacion": "Una estrella como el Sol se forma en una nebulosa, pasa a la secuencia principal, se expande como gigante roja y termina como enana blanca.",
+    "nivel": 5,
+    "criterio": "de etapa más temprana a más tardía",
+    "items": [
+      "Gigante roja",
+      "Nebulosa",
+      "Enana blanca",
+      "Secuencia principal"
+    ],
+    "id": "cie-029",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta sobre los estados de la materia.",
+    "explicacion": "El plasma no es el estado más común en la Tierra; los sólidos, líquidos y gases predominan en condiciones normales.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Estados de la materia",
+      "filas": [
+        {
+          "etiqueta": "Sólido",
+          "valor": "forma y volumen definidos"
+        },
+        {
+          "etiqueta": "Líquido",
+          "valor": "volumen definido, forma variable"
+        },
+        {
+          "etiqueta": "Gas",
+          "valor": "ni forma ni volumen definidos"
+        },
+        {
+          "etiqueta": "Plasma",
+          "valor": "estado más común en la Tierra"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-030",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Identifica la información incorrecta en la tarjeta sobre orgánulos celulares.",
+    "explicacion": "Los lisosomas contienen enzimas digestivas, no producen ATP; la producción de ATP ocurre en las mitocondrias.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Orgánulos celulares",
+      "filas": [
+        {
+          "etiqueta": "Núcleo",
+          "valor": "contiene el material genético"
+        },
+        {
+          "etiqueta": "Mitocondria",
+          "valor": "produce ATP"
+        },
+        {
+          "etiqueta": "Ribosoma",
+          "valor": "síntesis de proteínas"
+        },
+        {
+          "etiqueta": "Lisosoma",
+          "valor": "produce ATP"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-031",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Detecta el error en la tarjeta sobre las fuerzas fundamentales.",
+    "explicacion": "La fuerza nuclear fuerte, no la débil, media la fusión nuclear en el Sol.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Fuerzas fundamentales",
+      "filas": [
+        {
+          "etiqueta": "Gravedad",
+          "valor": "atracción universal entre masas"
+        },
+        {
+          "etiqueta": "Electromagnetismo",
+          "valor": "interacción entre cargas"
+        },
+        {
+          "etiqueta": "Fuerza nuclear fuerte",
+          "valor": "une nucleones en el núcleo"
+        },
+        {
+          "etiqueta": "Fuerza nuclear débil",
+          "valor": "responsable de la fusión en el Sol"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-032",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra la fila errónea en la tarjeta sobre grupos de la tabla periódica.",
+    "explicacion": "El grupo 13 corresponde al grupo del boro, no a los gases nobles; los gases nobles son el grupo 18.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Grupos de la tabla periódica",
+      "filas": [
+        {
+          "etiqueta": "Grupo 1",
+          "valor": "metales alcalinos"
+        },
+        {
+          "etiqueta": "Grupo 2",
+          "valor": "metales alcalinotérreos"
+        },
+        {
+          "etiqueta": "Grupo 17",
+          "valor": "halógenos"
+        },
+        {
+          "etiqueta": "Grupo 18",
+          "valor": "gases nobles"
+        },
+        {
+          "etiqueta": "Grupo 13",
+          "valor": "gases nobles"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "cie-033",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

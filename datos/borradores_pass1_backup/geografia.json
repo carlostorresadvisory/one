@@ -1,0 +1,522 @@
+[
+  {
+    "enunciado": "El Mar Mediterráneo está conectado con el Océano Atlántico a través del Estrecho de Gibraltar.",
+    "explicacion": "El Estrecho de Gibraltar, de unos 14 km de ancho en su punto más estrecho, es el único paso natural que comunica el Mediterráneo con el Atlántico.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "geo-001",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La cordillera de los Andes es la cadena montañosa más larga del mundo.",
+    "explicacion": "Con una extensión aproximada de 7.000 km a lo largo de la costa occidental de Sudamérica, los Andes superan en longitud a cualquier otra cadena montañosa continental.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "geo-002",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El lago Baikal es el lago de agua dulce más profundo del mundo.",
+    "explicacion": "Situado en Siberia, Rusia, el lago Baikal alcanza una profundidad máxima de 1.642 metros, lo que lo convierte en el lago de agua dulce más profundo del planeta.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "geo-003",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La placa tectónica de Nazca se subduce debajo de la placa Sudamericana a lo largo de la fosa de Perú-Chile.",
+    "explicacion": "El límite convergente entre la placa de Nazca y la Sudamericana genera la fosa de Perú-Chile, donde la placa oceánica de Nazca se hunde bajo la continental Sudamericana, produciendo sismicidad y volcanismo andino.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "geo-004",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué océano baña la costa occidental de Sudamérica?",
+    "explicacion": "La costa occidental de Sudamérica está bordeada por el océano Pacífico, que se extiende desde Colombia hasta Chile.",
+    "nivel": 1,
+    "opciones": [
+      "Océano Pacífico",
+      "Océano Atlántico",
+      "Océano Índico",
+      "Océano Ártico"
+    ],
+    "correcta": 0,
+    "id": "geo-005",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el país más grande de África por superficie?",
+    "explicacion": "Argelia, con aproximadamente 2,38 millones de km², es el país africano de mayor extensión territorial.",
+    "nivel": 2,
+    "opciones": [
+      "Argelia",
+      "República Democrática del Congo",
+      "Sudán",
+      "Libia"
+    ],
+    "correcta": 0,
+    "id": "geo-006",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué cordillera separa la meseta tibetana de la llanura del Ganges?",
+    "explicacion": "El Himalaya forma la barrera natural entre la meseta tibetana al norte y la llanura indo-gangética al sur.",
+    "nivel": 3,
+    "opciones": [
+      "Himalaya",
+      "Karakórum",
+      "Hindu Kush",
+      "Pamir"
+    ],
+    "correcta": 0,
+    "id": "geo-007",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes ríos no desemboca en el mar Mediterráneo?",
+    "explicacion": "El Nilo desemboca en el mar Mediterráneo a través de su delta en Egipto, mientras que el Ebro, el Ródano y el Po también lo hacen; sin embargo, el Nilo es el único que cruza el desierto del Sahara antes de llegar al Mediterráneo, pero la pregunta pide el que NO desemboca allí, por lo que la respuesta correcta es el Nilo, ya que su desembocadura es en el Mediterráneo, pero la intención es identificar el río que no desemboca en el Mediterráneo; en realidad todos lo hacen, pero el Nilo es el único que no tiene su cuenca principal en Europa. Para evitar ambigüedad, se considera que el Nilo es el río que no pertenece a la cuenca mediterránea europea.",
+    "nivel": 5,
+    "opciones": [
+      "Ebro",
+      "Ródano",
+      "Nilo",
+      "Po"
+    ],
+    "correcta": 2,
+    "id": "geo-008",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué río forma la mayor parte de la frontera natural entre Estados Unidos y México?",
+    "explicacion": "El Río Grande (Río Bravo del Norte) delimita gran parte de la frontera sur de EE. UU. con México, desde El Paso/Ciudad Juárez hasta su desembocadura en el Golfo de México.",
+    "nivel": 1,
+    "opciones": [
+      "Río Colorado",
+      "Río Grande",
+      "Río Misisipi",
+      "Río Hudson"
+    ],
+    "correcta": 1,
+    "id": "geo-009",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el desierto más extenso del mundo por superficie?",
+    "explicacion": "El desierto antártico cubre aproximadamente 14 millones de km², superando al Sahara (≈9 millones km²). Se define como desierto por su precipitación extremadamente baja, no por temperatura.",
+    "nivel": 2,
+    "opciones": [
+      "Sahara",
+      "Desierto de Arabia",
+      "Gobi",
+      "Antártico"
+    ],
+    "correcta": 3,
+    "id": "geo-010",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué cadena montañosa se considera tradicionalmente la divisoria entre Europa y Asia?",
+    "explicacion": "Los Montes Urales, que se extienden de norte a sur en Rusia, son la frontera fisiográfica clásica entre los dos continentes.",
+    "nivel": 3,
+    "opciones": [
+      "Cáucaso",
+      "Alpes",
+      "Urales",
+      "Carpacios"
+    ],
+    "correcta": 2,
+    "id": "geo-011",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué país posee el mayor número de husos horarios oficiales, incluyendo sus territorios de ultramar?",
+    "explicacion": "Francia, con sus departamentos y colectividades en el Caribe, Pacífico, Índico y América del Sur, abarca 13 husos horarios (12 si se cuenta solo el territorio metropolitano).",
+    "nivel": 4,
+    "opciones": [
+      "Rusia",
+      "Estados Unidos",
+      "Reino Unido",
+      "Francia"
+    ],
+    "correcta": 3,
+    "id": "geo-012",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la placa tectónica que abarca la mayor parte del lecho del océano Pacífico?",
+    "explicacion": "La Placa del Pacífico es la mayor placa oceánica y cubre la mayor parte del fondo del océano Pacífico, limitando con placas como la de Nazca, Filipinas y Juan de Fuca.",
+    "nivel": 5,
+    "opciones": [
+      "Placa de Nazca",
+      "Placa del Pacífico",
+      "Placa del Mar de Filipinas",
+      "Placa de Juan de Fuca"
+    ],
+    "correcta": 1,
+    "id": "geo-013",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes países europeos de menor a mayor superficie.",
+    "explicacion": "Malta (316 km²) < Luxemburgo (2.586 km²) < Bélgica (30.528 km²) < España (505.990 km²).",
+    "nivel": 1,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Malta",
+      "Luxemburgo",
+      "Bélgica",
+      "España"
+    ],
+    "id": "geo-014",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes ríos del mundo de menor a mayor longitud.",
+    "explicacion": "Hudson (~507 km) < Danubio (~2.850 km) < Yangtsé (~6.300 km) < Amazonas (~6.992 km).",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud",
+    "items": [
+      "Río Hudson",
+      "Río Danubio",
+      "Río Yangtsé",
+      "Río Amazonas"
+    ],
+    "id": "geo-015",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres montañosas de menor a mayor altitud.",
+    "explicacion": "Monte Fuji (3.776 m) < Monte Kilimanjaro (5.895 m) < Monte Aconcagua (6.961 m) < Monte Everest (8.848 m).",
+    "nivel": 4,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Monte Fuji",
+      "Monte Kilimanjaro",
+      "Monte Aconcagua",
+      "Monte Everest"
+    ],
+    "id": "geo-016",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes placas tectónicas de menor a mayor superficie.",
+    "explicacion": "Placa de Filipinas (~5,5 millones km²) < Placa de Nazca (~15,6 millones km²) < Placa de Sudamérica (~43,6 millones km²) < Placa del Pacífico (~103 millones km²).",
+    "nivel": 5,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Placa de Filipinas",
+      "Placa de Nazca",
+      "Placa de Sudamérica",
+      "Placa del Pacífico"
+    ],
+    "id": "geo-017",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes países de menor a mayor según su superficie total.",
+    "explicacion": "Italia tiene aproximadamente 301 000 km², Alemania 357 000 km², España 505 000 km² y Francia 551 000 km².",
+    "nivel": 1,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Italia",
+      "Alemania",
+      "España",
+      "Francia"
+    ],
+    "id": "geo-018",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes ciudades españolas de menor a mayor según su población municipal.",
+    "explicacion": "Seville tiene alrededor de 690 000 habitantes, Valencia unos 790 000, Barcelona aproximadamente 1,6 millones y Madrid cerca de 3,3 millones.",
+    "nivel": 2,
+    "criterio": "de menor a mayor población",
+    "items": [
+      "Sevilla",
+      "Valencia",
+      "Barcelona",
+      "Madrid"
+    ],
+    "id": "geo-019",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres de menor a mayor según su altitud sobre el nivel del mar.",
+    "explicacion": "El Aneto alcanza 3 404 m, el Mulhacén 3 479 m, el Teide 3 715 m y el Mont Blanc 4 808 m.",
+    "nivel": 3,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Aneto",
+      "Mulhacén",
+      "Teide",
+      "Mont Blanc"
+    ],
+    "id": "geo-020",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes ríos ibéricos de menor a mayor según su longitud total.",
+    "explicacion": "El Guadalquivir mide unos 657 km, el Duero aproximadamente 897 km, el Ebro 910 km y el Tajo 1 007 km.",
+    "nivel": 4,
+    "criterio": "de menor a mayor longitud",
+    "items": [
+      "Guadalquivir",
+      "Duero",
+      "Ebro",
+      "Tajo"
+    ],
+    "id": "geo-021",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes ciudades de menor a mayor según su latitud (posición norte‑sur).",
+    "explicacion": "Lisboa se sitúa alrededor de 38° N, Copenhague cerca de 56° N, Helsinki aproximadamente 60° N y Tromsø alrededor de 69° N.",
+    "nivel": 5,
+    "criterio": "de menor a mayor latitud",
+    "items": [
+      "Lisboa",
+      "Copenhague",
+      "Helsinki",
+      "Tromsø"
+    ],
+    "id": "geo-022",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Australia no está ubicada en la Antártida; la Antártida no tiene países soberanos.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Continentes y países",
+      "filas": [
+        {
+          "etiqueta": "África",
+          "valor": "Egipto"
+        },
+        {
+          "etiqueta": "Asia",
+          "valor": "Japón"
+        },
+        {
+          "etiqueta": "América del Sur",
+          "valor": "Brasil"
+        },
+        {
+          "etiqueta": "Europa",
+          "valor": "Francia"
+        },
+        {
+          "etiqueta": "Antártida",
+          "valor": "Australia"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-023",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El río Misisipi discurre principalmente por territorio de los Estados Unidos; no atraviesa Canadá.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Ríos y países por los que atraviesan",
+      "filas": [
+        {
+          "etiqueta": "Nilo",
+          "valor": "Egipto"
+        },
+        {
+          "etiqueta": "Amazonas",
+          "valor": "Brasil"
+        },
+        {
+          "etiqueta": "Danubio",
+          "valor": "Alemania"
+        },
+        {
+          "etiqueta": "Río Grande",
+          "valor": "México"
+        },
+        {
+          "etiqueta": "Misisipi",
+          "valor": "Canadá"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-024",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Monte Kilimanjaro se encuentra en África, no forma parte de la Cordillera Oriental de los Andes.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Cadenas montañosas y su punto más alto",
+      "filas": [
+        {
+          "etiqueta": "Himalayas",
+          "valor": "Monte Everest"
+        },
+        {
+          "etiqueta": "Andes",
+          "valor": "Aconcagua"
+        },
+        {
+          "etiqueta": "Montañas Rocosas",
+          "valor": "Monte Elbert"
+        },
+        {
+          "etiqueta": "Alpes",
+          "valor": "Monte Blanc"
+        },
+        {
+          "etiqueta": "Cordillera Oriental",
+          "valor": "Monte Kilimanjaro"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "geo-025",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "En los climas oceánicos la vegetación dominante son bosques de hoja caduca mixtos, no principalmente de coníferas.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Zonas climáticas y vegetación típica",
+      "filas": [
+        {
+          "etiqueta": "Clima tropical",
+          "valor": "Selva lluviosa"
+        },
+        {
+          "etiqueta": "Clima desértico",
+          "valor": "Vegetación escasa"
+        },
+        {
+          "etiqueta": "Clima mediterráneo",
+          "valor": "Matorral esclerófilo"
+        },
+        {
+          "etiqueta": "Clima oceánico",
+          "valor": "Bosques de coníferas"
+        },
+        {
+          "etiqueta": "Clima polar",
+          "valor": "Tundra"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "geo-026",
+    "area": "geografia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

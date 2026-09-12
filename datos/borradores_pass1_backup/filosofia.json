@@ -1,0 +1,436 @@
+[
+  {
+    "enunciado": "El empirismo sostiene que todo conocimiento proviene de la experiencia sensorial.",
+    "explicacion": "El empirismo, defendido por filósofos como Locke, Berkeley y Hume, afirma que la mente es una tabula rasa y que las ideas se originan en la percepción sensorial.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "fil-001",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Según Sartre, la esencia precede a la existencia en los seres humanos.",
+    "explicacion": "Sartre, figura central del existencialismo, sostiene lo contrario: la existencia precede a la esencia, lo que significa que los seres humanos primero existen y luego se definen a sí mismos.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "fil-002",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La tesis del \"cogito, ergo sum\" de Descartes se fundamenta en la duda metódica como método para alcanzar la certeza.",
+    "explicacion": "Descartes emplea la duda hiperbólica para descartar toda creencia incierta y llega a la certeza indubitable de su propia existencia como sujeto pensante.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "fil-003",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, la epojé consiste en afirmar la existencia del mundo externo.",
+    "explicacion": "La epojé (o reducción fenomenológica) es la suspensión del juicio sobre la existencia del mundo natural para centrarse en la estructura de la conciencia y los fenómenos tal como se presentan.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "fil-004",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Aristóteles fue discípulo de Platón.",
+    "explicacion": "Aristóteles estudió en la Academia de Platón durante cerca de veinte años antes de fundar su propia escuela, el Liceo.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "fil-005",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El existencialismo de Jean-Paul Sartre sostiene que la esencia precede a la existencia.",
+    "explicacion": "Sartre afirma explícitamente que \"la existencia precede a la esencia\", lo que significa que el ser humano se define a sí mismo mediante sus acciones.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "fil-006",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la \"Crítica de la razón pura\", Kant sostiene que el espacio y el tiempo son propiedades empíricas de los objetos externos.",
+    "explicacion": "Kant argumenta que el espacio y el tiempo son formas a priori de la sensibilidad, condiciones necesarias para la experiencia, no propiedades empíricas de las cosas en sí.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "fil-007",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué filósofo griego es conocido por la alegoría de la caverna?",
+    "explicacion": "La alegoría de la caverna aparece en el libro VII de \"La República\" de Platón, donde ilustra la diferencia entre el mundo sensible y el mundo de las ideas.",
+    "nivel": 1,
+    "opciones": [
+      "Platón",
+      "Aristóteles",
+      "Sócrates",
+      "Epicuro"
+    ],
+    "correcta": 0,
+    "id": "fil-008",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es el principio central del utilitarismo según Jeremy Bentham?",
+    "explicacion": "Bentham formula el principio de la mayor felicidad: una acción es moralmente correcta si maximiza el placer y minimiza el dolor para el mayor número de personas.",
+    "nivel": 2,
+    "opciones": [
+      "Maximizar la felicidad",
+      "Cumplir el deber moral",
+      "Cultivar la virtud",
+      "Seguir la voluntad general"
+    ],
+    "correcta": 0,
+    "id": "fil-009",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué significa \"epoché\"?",
+    "explicacion": "La epoché es la suspensión (o \"puesta entre paréntesis\") de todo juicio sobre la existencia del mundo natural para concentrarse en la estructura de la conciencia.",
+    "nivel": 3,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo",
+      "Reducción al ego trascendental",
+      "Análisis del lenguaje",
+      "Crítica de la metafísica"
+    ],
+    "correcta": 0,
+    "id": "fil-010",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué concepto de Michel Foucault describe la relación entre poder y saber?",
+    "explicacion": "Foucault sostiene que poder y saber se constituyen mutuamente; el término \"poder-saber\" (pouvoir-savoir) captura esta inseparabilidad.",
+    "nivel": 4,
+    "opciones": [
+      "Poder-saber",
+      "Biopoder",
+      "Dispositivo",
+      "Genealogía"
+    ],
+    "correcta": 0,
+    "id": "fil-011",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué filósofo griego es conocido por la alegoría de la caverna?",
+    "explicacion": "La alegoría de la caverna aparece en la República de Platón y ilustra su teoría de las Ideas.",
+    "nivel": 1,
+    "opciones": [
+      "Platón",
+      "Aristóteles",
+      "Sócrates",
+      "Pitágoras"
+    ],
+    "correcta": 0,
+    "id": "fil-012",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes filósofos es considerado el padre del empirismo moderno?",
+    "explicacion": "John Locke defendió que todo conocimiento proviene de la experiencia sensorial, sentando las bases del empirismo.",
+    "nivel": 2,
+    "opciones": [
+      "John Locke",
+      "René Descartes",
+      "Immanuel Kant",
+      "David Hume"
+    ],
+    "correcta": 0,
+    "id": "fil-013",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué significa la 'epoché'?",
+    "explicacion": "La epochè es la suspensión del juicio sobre la existencia del mundo natural para examinar la conciencia pura.",
+    "nivel": 4,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo",
+      "Reducción al cogito",
+      "Método dialéctico",
+      "Crítica de la razón pura"
+    ],
+    "correcta": 0,
+    "id": "fil-014",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué tesis central sostiene el 'externalismo semántico' de Hilary Putnam?",
+    "explicacion": "Putnam argumenta que el significado de términos como 'agua' depende de factores externos (el entorno físico) y no solo de estados mentales internos.",
+    "nivel": 5,
+    "opciones": [
+      "El significado de los términos naturales depende de factores externos al hablante",
+      "El significado es puramente interno",
+      "La referencia se determina por descripciones definitorias",
+      "El lenguaje es un juego de reglas convencionales"
+    ],
+    "correcta": 0,
+    "id": "fil-015",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Quién escribió la obra \"La República\"?",
+    "explicacion": "La República es un diálogo de Platón, escrito hacia el 380 a.C., en el que expone su teoría de la justicia y el Estado ideal.",
+    "nivel": 1,
+    "opciones": [
+      "Platón",
+      "Aristóteles",
+      "Descartes",
+      "Kant"
+    ],
+    "correcta": 0,
+    "id": "fil-016",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué corriente filosófica sostiene que todo conocimiento proviene de la experiencia sensorial?",
+    "explicacion": "El empirismo, defendido por Locke, Berkeley y Hume, afirma que la mente es una tabula rasa y que el conocimiento se origina en la percepción.",
+    "nivel": 2,
+    "opciones": [
+      "Empirismo",
+      "Racionalismo",
+      "Idealismo",
+      "Existencialismo"
+    ],
+    "correcta": 0,
+    "id": "fil-017",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la filosofía de Kant, ¿cuál es la distinción fundamental entre \"ser\" y \"deber ser\"?",
+    "explicacion": "Kant separa los juicios de hecho (lo que es) de los juicios de valor (lo que debe ser), base de su ética deontológica.",
+    "nivel": 3,
+    "opciones": [
+      "Entre fenómeno y noumeno",
+      "Entre hecho y valor",
+      "Entre sujeto y objeto",
+      "Entre causa y efecto"
+    ],
+    "correcta": 1,
+    "id": "fil-018",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Qué filósofo formuló la \"Crítica de la razón pura\" y distinguió entre juicios analíticos y sintéticos a priori?",
+    "explicacion": "Immanuel Kant publicó la Crítica de la razón pura (1781) donde clasifica los juicios y establece los límites de la razón teórica.",
+    "nivel": 4,
+    "opciones": [
+      "Kant",
+      "Hegel",
+      "Hume",
+      "Leibniz"
+    ],
+    "correcta": 0,
+    "id": "fil-019",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué implica la \"epoché\"?",
+    "explicacion": "La epoché es la \"puesta entre paréntesis\" de la actitud natural, permitiendo examinar la conciencia pura sin presupposiciones ontológicas.",
+    "nivel": 5,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo natural",
+      "Reducción al yo trascendental",
+      "Método de variación eidética",
+      "Crítica de la metafísica"
+    ],
+    "correcta": 0,
+    "id": "fil-020",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Sócrates no escribió obras filosóficas; 'La República' es atribuida a Platón, no a Sócrates.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Filósofos griegos clásicos",
+      "filas": [
+        {
+          "etiqueta": "Sócrates",
+          "valor": "Escribió 'La República'"
+        },
+        {
+          "etiqueta": "Platón",
+          "valor": "Fundó la Academia de Atenas"
+        },
+        {
+          "etiqueta": "Aristóteles",
+          "valor": "Fue discípulo de Platón"
+        }
+      ]
+    },
+    "sospechoso": 0,
+    "id": "fil-021",
+    "area": "filosofia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Kant sostuvo que el conocimiento requiere tanto la experiencia sensorial como las categorías a priori del entendimiento, no que provenga exclusivamente de la experiencia.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Corrientes del conocimiento",
+      "filas": [
+        {
+          "etiqueta": "John Locke",
+          "valor": "Defendió que la mente es una tabla rasa al nacer"
+        },
+        {
+          "etiqueta": "David Hume",
+          "valor": "Negó la existencia de la causalidad objetiva"
+        },
+        {
+          "etiqueta": "Immanuel Kant",
+          "valor": "Afirmó que el conocimiento proviene exclusivamente de la experiencia sensorial"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "fil-022",
+    "area": "filosofia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "En sus obras posteriores, Wittgenstein enfatizó el uso ordinario del lenguaje, pero no rechazó el análisis lógico; más bien lo contextualizó dentro de las formas de vida.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Etapas de Wittgenstein",
+      "filas": [
+        {
+          "etiqueta": "Wittgenstein (early)",
+          "valor": "Escribió el 'Tractatus logico-philosophicus' proponiendo que el lenguaje muestra la forma lógica del mundo"
+        },
+        {
+          "etiqueta": "Wittgenstein (later)",
+          "valor": "Afirmó que el significado de una palabra es su uso en el lenguaje"
+        },
+        {
+          "etiqueta": "Wittgenstein (later)",
+          "valor": "Rechazó totalmente cualquier forma de análisis lógico del lenguaje"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "fil-023",
+    "area": "filosofia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Kripke distinguió la necesidad metafísica (verdad en todos los mundos posibles) de la necesidad epistémica (conocimiento a priori); afirmó que hay verdades necesarias a posteriori, pero no equiparó ambos tipos.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Teoría de la referencia",
+      "filas": [
+        {
+          "etiqueta": "Saul Kripke",
+          "valor": "Argumentó que los nombres propios son designadores rígidos que se refieren al mismo individuo en todos los mundos posibles donde existe"
+        },
+        {
+          "etiqueta": "Saul Kripke",
+          "valor": "Rechazó la teoría descriptivista de Frege-Russell según la cual el sentido de un nombre es un conjunto de propiedades"
+        },
+        {
+          "etiqueta": "Saul Kripke",
+          "valor": "Propuso que la necesidad epistemológica es equivalente a la necesidad metafísica"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "fil-024",
+    "area": "filosofia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

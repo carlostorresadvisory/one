@@ -1,0 +1,410 @@
+[
+  {
+    "enunciado": "En la lógica proposicional, la conjunción (p ∧ q) es verdadera solo cuando ambas proposiciones son verdaderas.",
+    "explicacion": "La tabla de verdad de la conjunción muestra que el resultado es verdadero únicamente en el caso (V, V); en los demás casos es falso.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "log-001",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "La implicación material (p → q) es falsa solo cuando p es verdadero y q es falso.",
+    "explicacion": "Por definición de la implicación material, el único caso que la hace falsa es cuando el antecedente es verdadero y el consecuente falso; en los otros tres casos es verdadera.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "log-002",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la lógica intuicionista, el principio del tercero excluido (p ∨ ¬p) es un teorema válido.",
+    "explicacion": "La lógica intuicionista rechaza el principio del tercero excluido como teorema general; solo se acepta cuando se tiene una prueba constructiva de p o de ¬p.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "log-003",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En la lógica modal S5, la relación de accesibilidad entre mundos posibles es una relación de equivalencia (reflexiva, simétrica y transitiva).",
+    "explicacion": "El sistema S5 se caracteriza por imponer que la relación de accesibilidad sea una relación de equivalencia, lo que hace que todos los mundos sean mutuamente accesibles.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "log-004",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En una proposición condicional 'Si P entonces Q', si P es falsa, la proposición es verdadera.",
+    "explicacion": "En la lógica clásica, una implicación con antecedente falso se considera verdadera independientemente del valor de verdad del consecuente.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "log-005",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "El principio de no contradicción establece que una proposición y su negación pueden ser ambas verdaderas en un mismo momento y contexto.",
+    "explicacion": "El principio de no contradicción afirma que no es posible que una proposición y su negación sean verdaderas simultáneamente en el mismo contexto.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "log-006",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En lógica de segundo orden, el teorema de completitud de Gödel asegura que toda teoría consistente tiene un modelo que satisface todas sus sentencias.",
+    "explicacion": "El teorema de completitud de Gödel se aplica únicamente a la lógica de primer orden; en lógica de segundo orden no vale en general debido a la falta de completitud.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "log-007",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
+    "explicacion": "La negación de un universal afirmativo ('Todos los S son P') es un particular negativo ('Algunos S no son P'). Por lo tanto, la afirmación correcta es 'Algunos estudiantes no aprobaron el examen'.",
+    "nivel": 1,
+    "opciones": [
+      "Ningún estudiante aprobó el examen",
+      "Algunos estudiantes no aprobaron el examen",
+      "Todos los estudiantes no aprobaron el examen",
+      "Algunos estudiantes aprobaron el examen"
+    ],
+    "correcta": 1,
+    "id": "log-008",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Si la implicación p → q es falsa, ¿qué valores de verdad tienen p y q?",
+    "explicacion": "En la lógica clásica, una implicación es falsa únicamente cuando su antecedente es verdadero y su consecuente es falso. En cualquier otro caso la implicación resulta verdadera.",
+    "nivel": 2,
+    "opciones": [
+      "p verdadero, q verdadero",
+      "p verdadero, q falso",
+      "p falso, q verdadero",
+      "p falso, q falso"
+    ],
+    "correcta": 1,
+    "id": "log-009",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes afirmaciones es lógica mente equivalente a 'Si p entonces q'?",
+    "explicacion": "La contrapositiva de una implicación, 'Si no q entonces no p', tiene el mismo valor de verdad que la implicación original en toda interpretación posible.",
+    "nivel": 4,
+    "opciones": [
+      "Si no p entonces no q",
+      "Si no q entonces no p",
+      "p y q",
+      "p o q"
+    ],
+    "correcta": 1,
+    "id": "log-010",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En el sistema modal S5, la relación de accesibilidad entre mundos posibles es:",
+    "explicacion": "S5 caracteriza una relación de equivalencia, es decir, que es reflexiva (cada mundo se accede a sí mismo), simétrica (si w accede a v entonces v accede a w) y transitiva (si w accede a v y v accede a u entonces w accede a u).",
+    "nivel": 5,
+    "opciones": [
+      "Reflexiva y transitiva",
+      "Simétrica y transitiva",
+      "Reflexiva, simétrica y transitiva (equivalente)",
+      "Antisimétrica y transitiva"
+    ],
+    "correcta": 2,
+    "id": "log-011",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Si todos los A son B y algunos B son C, ¿qué se puede concluir necesariamente?",
+    "explicacion": "De 'todos los A son B' y 'algunos B son C' no se deduce ninguna relación necesaria entre A y C; los A podrían no ser C en absoluto.",
+    "nivel": 1,
+    "opciones": [
+      "Algunos A son C",
+      "Todos los A son C",
+      "Ningún A es C",
+      "No se puede concluir nada"
+    ],
+    "correcta": 3,
+    "id": "log-012",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En una tabla de verdad, la expresión (P ∧ Q) → R es falsa solo cuando...",
+    "explicacion": "Una implicación es falsa únicamente cuando el antecedente es verdadero y el consecuente falso; aquí el antecedente es (P ∧ Q).",
+    "nivel": 2,
+    "opciones": [
+      "P y Q son verdaderos y R es falso",
+      "P es falso",
+      "R es verdadero",
+      "Q es falso"
+    ],
+    "correcta": 0,
+    "id": "log-013",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "¿Cuál de las siguientes reglas de inferencia es válida en lógica proposicional clásica?",
+    "explicacion": "Modus Tollens (si P → Q y ¬Q, entonces ¬P) es una regla válida; las otras son falacias formales.",
+    "nivel": 4,
+    "opciones": [
+      "Modus Tollens",
+      "Afirmación del consecuente",
+      "Negación de la antecedente",
+      "Silogismo hipotético inverso"
+    ],
+    "correcta": 0,
+    "id": "log-014",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "En lógica modal, el axioma 5 (◇□p → □p) caracteriza qué propiedad de la relación de accesibilidad?",
+    "explicacion": "El axioma 5 corresponde a la propiedad euclidiana: si wRv y wRu entonces vRu.",
+    "nivel": 5,
+    "opciones": [
+      "Euclidiana",
+      "Transitiva",
+      "Simétrica",
+      "Reflexiva"
+    ],
+    "correcta": 0,
+    "id": "log-015",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Si todos los mamíferos son animales, y todos los perros son mamíferos, ¿qué se puede concluir necesariamente?",
+    "explicacion": "Es un silogismo válido: si A ⊆ B y B ⊆ C, entonces A ⊆ C. Aquí perros ⊆ mamíferos ⊆ animales, por tanto perros ⊆ animales.",
+    "nivel": 3,
+    "opciones": [
+      "Todos los animales son perros",
+      "Todos los perros son animales",
+      "Algunos animales no son mamíferos",
+      "Ningún perro es animal"
+    ],
+    "correcta": 1,
+    "id": "log-016",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (es decir, del que se evalúa último al que se evalúa primero).",
+    "explicacion": "En la precedencia estándar, la implicación (→) tiene la menor precedencia, seguida de la disyunción (∨), la conjunción (∧) y la negación (¬) que tiene la mayor precedencia.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-017",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes filas de una tabla de verdad para dos variables proposicionales (p, q) de menor a mayor según el orden binario convencional.",
+    "explicacion": "El orden binario estándar para dos bits lista 00, 01, 10, 11.",
+    "nivel": 2,
+    "criterio": "de menor a mayor valor binario",
+    "items": [
+      "00",
+      "01",
+      "10",
+      "11"
+    ],
+    "id": "log-018",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes clases de complejidad de menor a mayor según su inclusión conocida (suponiendo las conjeturas estándar).",
+    "explicacion": "Se sabe que L ⊆ P ⊆ NP ⊆ PSPACE; por tanto, el orden de menor a mayor es L, P, NP, PSPACE.",
+    "nivel": 3,
+    "criterio": "de menor a mayor complejidad",
+    "items": [
+      "L",
+      "P",
+      "NP",
+      "PSPACE"
+    ],
+    "id": "log-019",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes axiomas de cardinales grandes de menor a mayor fuerza de consistencia.",
+    "explicacion": "La jerarquía de fuerza de consistencia es: cardinal inaccesible < cardinal Mahlo < cardinal medible < cardinal supercompacto.",
+    "nivel": 5,
+    "criterio": "de menor a mayor fuerza de consistencia",
+    "items": [
+      "inaccesible",
+      "Mahlo",
+      "medible",
+      "supercompacto"
+    ],
+    "id": "log-020",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (el de menor precedencia se evalúa último).",
+    "explicacion": "En la mayoría de los lenguajes formales, la precedencia de los conectivos es: ¬ (más alta), ∧, ∨, → (más baja). Por tanto, de menor a mayor precedencia: →, ∨, ∧, ¬.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-021",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conjuntos de menor a mayor cardinalidad.",
+    "explicacion": "El conjunto vacío tiene cardinalidad 0, un singleton 1, un par 2, y el conjunto de los números naturales es infinito (ℵ₀).",
+    "nivel": 2,
+    "criterio": "de menor a mayor cardinalidad",
+    "items": [
+      "∅",
+      "{a}",
+      "{a,b}",
+      "ℕ"
+    ],
+    "id": "log-022",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes clases de complejidad de menor a mayor inclusión (la más pequeña primero).",
+    "explicacion": "Se sabe que L ⊆ P ⊆ NP ⊆ PSPACE (y estas inclusiones son estrictas o conjeturadas).",
+    "nivel": 3,
+    "criterio": "de menor a mayor inclusión",
+    "items": [
+      "L",
+      "P",
+      "NP",
+      "PSPACE"
+    ],
+    "id": "log-023",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena las siguientes fórmulas cuantificadas por su profundidad de alternación de cuantificadores (de menor a mayor).",
+    "explicacion": "La profundidad de alternación cuenta los bloques consecutivos de cuantificadores del mismo tipo. ∀x P(x) tiene 1, ∃x∀y P(x,y) tiene 2, ∀x∃y∀z P(x,y,z) tiene 3, ∃x∀y∃z∀w P(x,y,z,w) tiene 4.",
+    "nivel": 4,
+    "criterio": "de menor a mayor profundidad de alternación",
+    "items": [
+      "∀x P(x)",
+      "∃x∀y P(x,y)",
+      "∀x∃y∀z P(x,y,z)",
+      "∃x∀y∃z∀w P(x,y,z,w)"
+    ],
+    "id": "log-024",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos de cardinales grandes por su fuerza de consistencia (de menor a mayor).",
+    "explicacion": "En la jerarquía de cardinales grandes, un cardinal inaccesible es más débil que uno medible, que a su vez es más débil que un supercompacto, y este más débil que un cardinal enorme (huge).",
+    "nivel": 5,
+    "criterio": "de menor a mayor fuerza de consistencia",
+    "items": [
+      "inaccesible",
+      "medible",
+      "supercompacto",
+      "enorme"
+    ],
+    "id": "log-025",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false
+  }
+]

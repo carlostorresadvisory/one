@@ -1,0 +1,196 @@
+[
+  {
+    "id": "eco-001",
+    "area": "economia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "El PIB mide el valor de mercado de los bienes y servicios finales producidos en un país durante un periodo determinado.",
+    "explicacion": "Es la definición estándar de Producto Interior Bruto: solo cuenta bienes y servicios finales, para no duplicar el valor de los insumos intermedios.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "his-001",
+    "area": "historia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "La Revolución Francesa comenzó en 1789.",
+    "explicacion": "La toma de la Bastilla, el 14 de julio de 1789, marca el inicio convencional de la Revolución Francesa.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "geo-001",
+    "area": "geografia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "El Everest es la montaña más alta del mundo medida desde el nivel del mar.",
+    "explicacion": "Con 8.849 metros sobre el nivel del mar, el Everest es el punto más alto de la Tierra medido así (otras montañas son más altas medidas desde su base).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "cie-001",
+    "area": "ciencia",
+    "tipo": "test4",
+    "nivel": 1,
+    "enunciado": "¿Cuál es el símbolo químico del oxígeno?",
+    "explicacion": "El oxígeno se representa con la letra O en la tabla periódica.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": ["O", "Ox", "O2", "Om"],
+    "correcta": 0
+  },
+  {
+    "id": "art-001",
+    "area": "arte",
+    "tipo": "test4",
+    "nivel": 1,
+    "enunciado": "¿Quién pintó \"La noche estrellada\"?",
+    "explicacion": "Vincent van Gogh la pintó en 1889, durante su estancia en el sanatorio de Saint-Rémy-de-Provence.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": ["Vincent van Gogh", "Pablo Picasso", "Claude Monet", "Salvador Dalí"],
+    "correcta": 0
+  },
+  {
+    "id": "tec-001",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "nivel": 2,
+    "enunciado": "¿Qué significa la sigla \"HTTP\"?",
+    "explicacion": "HTTP (Hypertext Transfer Protocol) es el protocolo usado para transferir páginas web entre el navegador y el servidor.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Hypertext Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Home Tool Transfer Protocol",
+      "Hyperlink Text Transmission Process"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "his-002",
+    "area": "historia",
+    "tipo": "ordenar",
+    "nivel": 2,
+    "enunciado": "Ordena estos periodos de más antiguo a más reciente.",
+    "explicacion": "El Imperio Romano (s. I a.C.-V d.C.) precede a la Edad Media (s. V-XV), que precede a la Revolución Industrial (s. XVIII), anterior a la Primera Guerra Mundial (1914-1918).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "criterio": "de más antiguo a más reciente",
+    "items": ["Imperio Romano", "Edad Media", "Revolución Industrial", "Primera Guerra Mundial"]
+  },
+  {
+    "id": "log-001",
+    "area": "logica",
+    "tipo": "ordenar",
+    "nivel": 1,
+    "enunciado": "Ordena estos números de menor a mayor.",
+    "explicacion": "2 < 8 < 15 < 40.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "criterio": "de menor a mayor",
+    "items": ["2", "8", "15", "40"]
+  },
+  {
+    "id": "fil-001",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "nivel": 2,
+    "enunciado": "Ordena estos filósofos de más antiguo a más reciente.",
+    "explicacion": "Sócrates (s. V a.C.), Descartes (s. XVII), Kant (s. XVIII) y Nietzsche (s. XIX) en orden cronológico.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "criterio": "de más antiguo a más reciente",
+    "items": ["Sócrates", "Descartes", "Kant", "Nietzsche"]
+  },
+  {
+    "id": "cie-002",
+    "area": "ciencia",
+    "tipo": "error",
+    "nivel": 2,
+    "enunciado": "Una de estas filas sobre los planetas del sistema solar es incorrecta. ¿Cuál?",
+    "explicacion": "Marte es el cuarto planeta desde el Sol, no el quinto (el quinto es Júpiter).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "tarjeta": {
+      "titulo": "Planetas y su posición desde el Sol",
+      "filas": [
+        { "etiqueta": "Mercurio", "valor": "1º desde el Sol" },
+        { "etiqueta": "Venus", "valor": "2º desde el Sol" },
+        { "etiqueta": "Tierra", "valor": "3º desde el Sol" },
+        { "etiqueta": "Marte", "valor": "5º desde el Sol" }
+      ]
+    },
+    "sospechoso": 3
+  },
+  {
+    "id": "eco-002",
+    "area": "economia",
+    "tipo": "error",
+    "nivel": 1,
+    "enunciado": "Una de estas filas sobre conceptos económicos básicos es incorrecta. ¿Cuál?",
+    "explicacion": "La inflación es una subida generalizada y sostenida de los precios, no una caída.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "tarjeta": {
+      "titulo": "Conceptos económicos básicos",
+      "filas": [
+        { "etiqueta": "Oferta", "valor": "Cantidad de un bien que los vendedores están dispuestos a vender" },
+        { "etiqueta": "Demanda", "valor": "Cantidad de un bien que los compradores están dispuestos a comprar" },
+        { "etiqueta": "Inflación", "valor": "Caída generalizada y sostenida de los precios" },
+        { "etiqueta": "PIB", "valor": "Valor de los bienes y servicios finales producidos en un país" }
+      ]
+    },
+    "sospechoso": 2
+  },
+  {
+    "id": "art-002",
+    "area": "arte",
+    "tipo": "error",
+    "nivel": 2,
+    "enunciado": "Una de estas filas sobre movimientos artísticos es incorrecta. ¿Cuál?",
+    "explicacion": "El cubismo surgió a principios del siglo XX, no en el siglo XVI.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "tarjeta": {
+      "titulo": "Movimientos artísticos y su periodo aproximado",
+      "filas": [
+        { "etiqueta": "Renacimiento", "valor": "Siglos XV-XVI" },
+        { "etiqueta": "Barroco", "valor": "Siglos XVII-XVIII" },
+        { "etiqueta": "Impresionismo", "valor": "Siglo XIX" },
+        { "etiqueta": "Cubismo", "valor": "Siglo XVI" }
+      ]
+    },
+    "sospechoso": 3
+  }
+]
