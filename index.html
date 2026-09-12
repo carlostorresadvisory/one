@@ -62,29 +62,12 @@
     </section>
 
     <section class="vista vista-resumen" data-vista="resumen" data-test="resumen" hidden>
-      <!-- Cabecera de resultado (spec "pantalla completa" 12-sep): aciertos y XP en
-           una línea grande, áreas en 13px debajo. -->
-      <div class="resumen-cabecera">
-        <div class="resumen-resultado">
-          <p id="resumen-aciertos" class="resumen-resultado-linea"></p>
-          <p id="resumen-xp" class="resumen-resultado-linea"></p>
-        </div>
-        <p id="resumen-areas" class="resumen-areas-linea"></p>
-      </div>
-      <!-- "Para repasar" (spec "que se note"): carrusel horizontal de las preguntas
-           falladas o acertadas con confianza Baja de esta partida (ver renderRepaso
-           en app.js). Ocupa el espacio restante (flex:1) para que el resumen quepa
-           entero sin scroll vertical. -->
-      <div class="resumen-repaso" data-test="repaso">
-        <p class="resumen-repaso-titulo">Para repasar</p>
-        <div class="resumen-repaso-carrusel" id="repaso-carrusel"></div>
-        <div class="resumen-repaso-puntos" id="repaso-puntos" data-test="repaso-puntos"></div>
-        <p class="resumen-repaso-vacio" id="repaso-vacio" data-test="repaso-vacio" hidden>Sin fallos. Nada que repasar.</p>
-      </div>
-      <div class="resumen-acciones">
-        <button class="boton boton-principal" data-test="otra">Otra</button>
-        <button class="boton" data-test="inicio">Inicio</button>
-      </div>
+      <!-- Repaso vertical (spec v0.1c §6): el resumen ES un mazo de solo lectura,
+           montado con montarMazo() (el mismo componente que la partida, ver
+           app.js/construirMazoResumen). Tarjeta 0: cifras de la partida. 1..N:
+           una por cada fallo/frágil, en estado respondida de solo lectura.
+           Última: Otra partida / Inicio. -->
+      <div id="mazo-resumen" class="mazo" data-test="repaso"></div>
     </section>
 
     <!-- HUB: sustituye a "Progreso". Se conservan data-vista="progreso" y

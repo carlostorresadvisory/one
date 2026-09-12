@@ -618,7 +618,8 @@ main#app {
 
 /* Zona de acción de CADA tarjeta, anclada a su borde inferior (spec v0.1c
    §4.1 punto 6): antes de responder, FALSO/VERDADERO en vf; después, "Preguntar
-   a" (ancla vacía, la rellena otra tarea) + "esta pregunta está mal" + Siguiente. */
+   a" (§5) + "esta pregunta está mal" + Siguiente (esta última pareja, salvo
+   soloLectura: en el repaso solo queda "Preguntar a"). */
 .tarjeta-accion {
   margin-top: auto;
   display: flex;
@@ -627,6 +628,55 @@ main#app {
 }
 
 .tarjeta-accion:empty { display: none; }
+
+/* "Preguntar a" (spec v0.1c §5): fila de 3 enlaces tocables (44×44, borde
+   cian) que abren ChatGPT/Claude/Gemini con el prompt de esta pregunta
+   precargado en la URL. Viven en la zona de acción de cada tarjeta respondida
+   (partida y repaso, construirTarjetaRespondida en app.js). */
+.preguntar-a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preguntar-a:empty { display: none; }
+
+.preguntar-a-etiqueta {
+  font-size: 13px;
+  color: var(--texto-suave);
+  margin-right: 2px;
+}
+
+.preguntar-a-boton {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--acento);
+  border-radius: 10px;
+  color: var(--acento);
+  text-decoration: none;
+  transition: opacity 0.1s ease;
+}
+
+.preguntar-a-boton svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Los <a> no cogen la regla general "button:focus-visible": mismo tratamiento
+   (borde cian, separado del botón) para que el foco de teclado se note igual. */
+.preguntar-a-boton:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+.preguntar-a-boton:active {
+  opacity: 0.6;
+}
 
 /* Respuesta ya fija, vista compacta (spec v0.1c §4.1 punto 4: máximo 2 líneas
    en test4/error, 4 en ordenar, 1 en vf). */
@@ -996,17 +1046,12 @@ main#app {
   overflow: visible;
 }
 
-/* --- resumen / progreso --- */
-.vista-resumen {
-  gap: 8px;
-}
-
-/* Cabecera de resultado (spec "pantalla completa" 12-sep): aciertos y XP en una
-   línea grande, áreas en 13px debajo. */
-.resumen-cabecera {
-  margin-top: 2px;
-}
-
+/* --- resumen / repaso vertical (spec v0.1c §6) ---
+   La vista resumen ES un mazo (#mazo-resumen.mazo, mismo componente que la
+   partida): sin el antiguo carrusel horizontal, sus puntos ni su vista vacía
+   aparte. Tarjeta 0 (resumen-cifras), tarjetas de repaso (reutilizan .tarjeta/
+   .tarjeta-contenido de la partida vía construirTarjetaRespondida) y la
+   tarjeta final (.tarjeta-cierre, ya existente para el cierre de la partida). */
 .resumen-resultado {
   display: flex;
   align-items: baseline;
@@ -1026,10 +1071,19 @@ main#app {
   color: var(--texto-suave);
 }
 
+/* Pie de la tarjeta de cifras: la pista de deslizar para repasar (permanente,
+   no como pista-mazo que solo se ve las 5 primeras veces de la app) o, sin
+   nada que repasar, "Sin fallos. Nada que repasar." */
+.resumen-cifras-pie {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
 .resumen-acciones {
   display: flex;
   gap: 12px;
-  margin-top: 10px;
+  width: 100%;
 }
 
 .resumen-acciones .boton {
@@ -1037,119 +1091,21 @@ main#app {
   min-height: 56px;
 }
 
-/* "Para repasar": ocupa el espacio restante del resumen (flex:1, contra la regla
-   general ".vista > * { flex-shrink: 0 }": misma especificidad, gana por ir
-   después en la hoja) para que el resumen entero quepa sin scroll vertical. */
-.resumen-repaso {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 6px;
-  margin-top: 8px;
-}
+/* "Inicio" es un botón secundario DENTRO de una tarjeta con el mismo fondo
+   (--tarjeta): sin este ajuste queda sin contraste, igual que "Terminar
+   igual" en .mazo-cierre-acciones (ver más abajo). */
+.resumen-acciones .boton:not(.boton-principal) { background: var(--fondo); }
 
-.resumen-repaso-titulo {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--texto-suave);
-}
-
-.resumen-repaso-carrusel {
-  display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
-
-.resumen-repaso-carrusel[hidden] { display: none; }
-
-.resumen-repaso-tarjeta {
-  flex: 0 0 84%;
-  scroll-snap-align: start;
-  background: var(--tarjeta);
-  border-radius: 14px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.resumen-repaso-marca {
+/* Marca de POR QUÉ está esta pregunta en el repaso (spec v0.1c §6): justo tras
+   la cabecera de área/nivel de la tarjeta reutilizada. */
+.repaso-marca {
   margin: 0;
   font-weight: 700;
   font-size: 13px;
 }
 
-.resumen-repaso-marca--fallo { color: var(--ko); }
-.resumen-repaso-marca--fragil { color: var(--texto-suave); }
-
-.resumen-repaso-enunciado {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.resumen-repaso-respuesta {
-  margin: 0;
-  color: var(--acento);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.resumen-repaso-explicacion {
-  margin: 0;
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
-.resumen-repaso-puntos {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  padding-top: 2px;
-}
-
-.resumen-repaso-puntos[hidden] { display: none; }
-
-.resumen-repaso-punto {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--tarjeta);
-  transition: background 0.15s ease;
-}
-
-.resumen-repaso-punto--activo {
-  background: var(--acento);
-}
-
-/* Sin nada que repasar: el mensaje se centra en el espacio libre en vez de
-   quedarse pegado arriba (si no, medio resumen queda vacío debajo — el mismo
-   defecto que motivó esta spec, reaparecido aquí). */
-.resumen-repaso-vacio {
-  margin: 0;
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
-.resumen-repaso-vacio[hidden] { display: none; }
+.repaso-marca--fallo { color: var(--ko); }
+.repaso-marca--fragil { color: var(--texto-suave); }
 
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
 .vista-hub {

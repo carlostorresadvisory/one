@@ -128,6 +128,26 @@ async function esperarAsentamientoMazo(page) {
   );
 }
 
+/** Recorre el mazo de repaso del resumen (spec v0.1c §6) con ArrowUp hasta que
+ * la tarjeta ACTUAL sea la final (`[data-test="repaso-final"]`), comprobando
+ * en cada parada que ni la vista ni la tarjeta actual hacen scroll. Mira la
+ * tarjeta actual (`.tarjeta-mazo--actual`), no una búsqueda global de
+ * `[data-test="repaso-final"]`: con la ventana de 3 nodos del mazo, la final
+ * puede estar ya en el DOM (como "siguiente", fuera de vista) un paso antes
+ * de ser la actual, e `isVisible()` de Playwright no distingue eso de estar
+ * realmente en pantalla. Devuelve el locator de la tarjeta final, ya actual. */
+async function recorrerRepasoHastaFinal(page) {
+  for (let vueltas = 0; vueltas < 20; vueltas += 1) {
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    const actual = tarjetaActual(page);
+    if ((await actual.getAttribute('data-test')) === 'repaso-final') return actual;
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+  }
+  throw new Error('No se alcanzó [data-test="repaso-final"] tras 20 ArrowUp (¿bucle sin fin?)');
+}
+
 /** Sin avance automático: tras responder, acierto o fallo, la partida SIEMPRE
  * espera a "Siguiente" (dentro de la propia tarjeta ya respondida). */
 async function avanzarTrasRespuesta(page) {
@@ -288,11 +308,14 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
 
-    // 7. "Inicio" (resumen) vuelve SIEMPRE al HUB, nunca a los emojis. La racha
-    // ya cuenta esta partida filtrada como partida completa del día, la nota de
-    // economía deja de estar vacía ('—'), y Pendientes pasa a 1 (el fallo de la
-    // primera pregunta de economía sigue sin recuperar).
-    await page.locator('[data-test="inicio"]').click();
+    // 7. "Inicio" (resumen) vuelve SIEMPRE al HUB, nunca a los emojis. Con la
+    // primera pregunta fallada, el resumen ES un mazo de repaso (spec v0.1c
+    // §6): hay que recorrerlo hasta la tarjeta final para llegar a "Inicio".
+    // La racha ya cuenta esta partida filtrada como partida completa del día,
+    // la nota de economía deja de estar vacía ('—'), y Pendientes pasa a 1 (el
+    // fallo de la primera pregunta de economía sigue sin recuperar).
+    const finalEconomia = await recorrerRepasoHastaFinal(page);
+    await finalEconomia.locator('[data-test="ir-inicio"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="modo-area"]')).toBeHidden();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
@@ -318,10 +341,12 @@ test.describe('ONE · integración e2e', () => {
     await page.screenshot({ path: `${CAPTURAS}/10-pendientes.png` });
     await avanzarTrasRespuesta(page);
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
-    await expect(page.locator('[data-test="repaso-vacio"]')).toBeVisible();
-    await expect(page.locator('.resumen-repaso-tarjeta')).toHaveCount(0);
+    // Sin nada que repasar, la tarjeta 0 (cifras) ya trae el mensaje y los
+    // botones directos (spec v0.1c §6): no hace falta deslizar a ningún sitio.
+    await expect(page.locator('[data-test="resumen-cifras"]')).toContainText('Sin fallos. Nada que repasar.');
+    await expect(page.locator('[data-test="repaso-tarjeta"]')).toHaveCount(0);
     await assertSinScroll(page);
-    await page.locator('[data-test="inicio"]').click();
+    await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="pendientes"]')).toHaveText('Pendientes · 0');
 
@@ -386,16 +411,59 @@ test.describe('ONE · integración e2e', () => {
       },
     });
 
-    // 11. Resumen visible, racha a 1 (misma partida del día), "Para repasar" con
-    // al menos una tarjeta (la fallada en la pregunta 1) y sin scroll.
+    // 11. Resumen visible, racha a 1 (misma partida del día): el mazo de
+    // repaso (spec v0.1c §6) arranca con la tarjeta de cifras, que anuncia
+    // cuántas hay que repasar (al menos la fallada en la pregunta 1).
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
     await expect(page.locator('[data-test="repaso"]')).toBeVisible();
-    const tarjetasRepaso = page.locator('.resumen-repaso-tarjeta');
-    await expect(tarjetasRepaso).not.toHaveCount(0);
-    await expect(page.locator('[data-test="repaso-puntos"]')).toBeVisible();
+    await expect(page.locator('[data-test="resumen-cifras"]')).toContainText('Desliza ↑ para repasar');
     await assertSinScroll(page);
     await page.screenshot({ path: `${CAPTURAS}/08-resumen.png` });
+    await page.screenshot({ path: `${CAPTURAS}/v0.1c-repaso-cifras.png` });
+
+    // v0.1c §5/§6: deslizar (ArrowUp) a la primera tarjeta de repaso y
+    // comprobar sus 3 enlaces "Preguntar a" — contienen el prompt de ESTA
+    // pregunta ya codificado en la URL (se compara contra la explicación
+    // mostrada, un campo del banco que no cambia de un tipo de pregunta a
+    // otro, a diferencia del enunciado en las de tipo "error" genéricas) y el
+    // de Gemini lleva "udm=50" (spec v0.1c §5, probado en vivo el 12-sep).
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    const tarjetaRepaso1 = page.locator('[data-test="repaso-tarjeta"]').first();
+    await expect(tarjetaRepaso1).toBeVisible();
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const explicacionFallada = ((await tarjetaRepaso1.locator('[data-test="explicacion"]').textContent()) || '').trim();
+    expect(explicacionFallada.length).toBeGreaterThan(0);
+    const hrefChatgpt = await tarjetaRepaso1.locator('[data-test="preguntar-chatgpt"]').getAttribute('href');
+    const hrefClaude = await tarjetaRepaso1.locator('[data-test="preguntar-claude"]').getAttribute('href');
+    const hrefGemini = await tarjetaRepaso1.locator('[data-test="preguntar-gemini"]').getAttribute('href');
+    expect(hrefChatgpt.startsWith('https://chatgpt.com/?q=')).toBe(true);
+    expect(hrefClaude.startsWith('https://claude.ai/new?q=')).toBe(true);
+    expect(hrefGemini.startsWith('https://www.google.com/search?udm=50&q=')).toBe(true);
+    for (const href of [hrefChatgpt, hrefClaude, hrefGemini]) {
+      expect(decodeURIComponent(href)).toContain(explicacionFallada);
+    }
+    for (const destino of ['chatgpt', 'claude', 'gemini']) {
+      await expect(tarjetaRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('target', '_blank');
+      await expect(tarjetaRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('rel', 'noopener');
+    }
+    await page.screenshot({ path: `${CAPTURAS}/v0.1c-repaso-tarjeta.png` });
+
+    // Seguir deslizando hasta la tarjeta final (spec v0.1c §6): "Otra partida"
+    // / Inicio presentes. Esta partida es ya la 4ª de la sesión contra un
+    // banco de ejemplo de solo 12 preguntas (mini partida de economía +
+    // pendientes + esta): con casi todo el banco ya respondido HOY,
+    // siguientePregunta() puede legítimamente no tener nada que dar
+    // (motor.js: una recién acertada no vuelve a estar "pendiente" el mismo
+    // día). Que "Otra partida" arranca una partida de verdad, con banco
+    // fresco, se comprueba abajo en la suite de 430×932.
+    const tarjetaFinal = await recorrerRepasoHastaFinal(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.1c-repaso-final.png` });
+    await expect(tarjetaFinal.locator('[data-test="otra-partida"]')).toBeVisible();
+    await expect(tarjetaFinal.locator('[data-test="ir-inicio"]')).toBeVisible();
 
     // 12. Recargar: siempre se cae en el inicio de los emojis (no hay "última
     // vista" que recordar); la racha persiste. Volver al HUB: el radar ya no
@@ -470,6 +538,8 @@ test.describe('ONE · integración e2e', () => {
     const nombreCaptura = { vf: '03-vf.png', error: '06-error.png' };
     const v01cVistos = new Set(); // capturas v0.1c-*.png: vf antes/después, ordenar después
     let feedbackCapturado = false;
+    let primeraFallada = false; // la primera pregunta se falla a propósito: garantiza
+    // algo que repasar (spec v0.1c §6) también a este tamaño.
 
     for (let vueltas = 0; vueltas < 25; vueltas += 1) {
       if (await page.locator('[data-test="resumen"]').isVisible()) break;
@@ -489,7 +559,12 @@ test.describe('ONE · integración e2e', () => {
       }
 
       const t = tarjetaActual(page);
-      await responderPreguntaActual(page, sospechosoPorTitulo);
+      if (!primeraFallada) {
+        primeraFallada = true;
+        await fallarPreguntaActual(page, sospechosoPorTitulo);
+      } else {
+        await responderPreguntaActual(page, sospechosoPorTitulo);
+      }
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
@@ -513,7 +588,25 @@ test.describe('ONE · integración e2e', () => {
 
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
+    await expect(page.locator('[data-test="resumen-cifras"]')).toContainText('Desliza ↑ para repasar');
     await page.screenshot({ path: `${CAPTURAS_430}/08-resumen.png` });
+
+    // v0.1c §5/§6, también a 430×932: recorrer el repaso, comprobar los 3
+    // enlaces "Preguntar a" de la tarjeta fallada y llegar hasta la final;
+    // "Otra partida" arranca una partida nueva.
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    const tarjetaRepaso430 = page.locator('[data-test="repaso-tarjeta"]').first();
+    await expect(tarjetaRepaso430).toBeVisible();
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(tarjetaRepaso430.locator('[data-test="preguntar-chatgpt"]')).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
+    await expect(tarjetaRepaso430.locator('[data-test="preguntar-claude"]')).toHaveAttribute('href', /^https:\/\/claude\.ai\/new\?q=/);
+    await expect(tarjetaRepaso430.locator('[data-test="preguntar-gemini"]')).toHaveAttribute('href', /udm=50/);
+
+    const final430 = await recorrerRepasoHastaFinal(page);
+    await final430.locator('[data-test="otra-partida"]').click();
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toBeVisible();
   });
 
   // Mecánicas propias del mazo (spec v0.1c §2): pasar sin responder y volver,

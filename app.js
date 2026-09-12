@@ -65,19 +65,27 @@ let partidaUltima = null;
 let bancoAgotado = false;
 let nodoCierre = null;
 let mazoControlador = null;
+// Mazo del RESUMEN (repaso vertical, spec v0.1c §6): se monta en finalizarPartida()
+// sobre #mazo-resumen y se destruye al abandonar la vista (irAlHub, "Otra
+// partida") o antes de reemplazarlo por uno nuevo (otra partida terminada sin
+// haber recargado la página).
+let mazoResumenControlador = null;
 // "Para repasar" del resumen (falladas o acertadas con confianza Baja de la
 // partida que acaba de terminar): se recalcula en finalizarPartida() a partir
 // del mazo completo, así que refleja también un cambio de confianza hecho
-// justo antes de terminar. Task 3 lo reutiliza para el mazo de repaso.
+// justo antes de terminar. Fuente del mazo de repaso vertical (spec v0.1c §6,
+// ver construirMazoResumen): cada elemento guarda también `respuesta`/`delta`
+// para poder reconstruir la MISMA tarjeta respondida en soloLectura.
 let repasoPartida = [];
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
 // desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
-// ("←" o "Inicio"); "Otra" en el resumen lo respeta para repetir el mismo filtro.
+// ("←" o "Inicio"); "Otra partida" en el resumen lo respeta para repetir el
+// mismo filtro.
 let filtroPartida = null;
 
-// Mazos activos (partida y, más adelante, el del repaso): registro mínimo para
-// que window.__one.irA() (solo con ?test=1) alcance al que esté visible.
+// Mazos activos (partida y repaso): registro mínimo para que window.__one.irA()
+// (solo con ?test=1) alcance al que esté visible.
 const mazosActivos = [];
 
 // --- referencias a nodos ---
@@ -102,12 +110,7 @@ const nodoPendientes = document.querySelector('[data-test="pendientes"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
-const resumenAciertos = document.getElementById('resumen-aciertos');
-const resumenXp = document.getElementById('resumen-xp');
-const resumenAreas = document.getElementById('resumen-areas');
-const repasoCarrusel = document.getElementById('repaso-carrusel');
-const repasoPuntos = document.getElementById('repaso-puntos');
-const repasoVacio = document.getElementById('repaso-vacio');
+const contenedorMazoResumen = document.getElementById('mazo-resumen');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 const plantillaConfianza = document.getElementById('plantilla-confianza');
@@ -261,6 +264,16 @@ function vistaActual() {
   return document.querySelector('.vista:not([hidden])')?.dataset.vista || null;
 }
 
+/** Desmonta el mazo de resumen (repaso vertical) si lo hubiera: listeners de
+ * puntero y teclado incluidos. Se llama al abandonar la vista resumen y antes
+ * de montar uno nuevo, por si acaso quedara uno de una partida anterior. */
+function limpiarResumenMazo() {
+  if (mazoResumenControlador) {
+    mazoResumenControlador.destruir();
+    mazoResumenControlador = null;
+  }
+}
+
 /** Abandona la partida en curso si la hubiera (las respuestas ya dadas quedan
  * guardadas: Leitner/nivel se aplican una a una; la racha solo se actualiza al
  * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
@@ -270,6 +283,7 @@ function limpiarPartidaEnCurso() {
     mazoControlador.destruir();
     mazoControlador = null;
   }
+  limpiarResumenMazo();
   mazo = [];
   indiceMazo = 0;
   nodoCierre = null;
@@ -328,10 +342,10 @@ async function iniciar() {
 // gestiona el gesto (pointerdown/move/up), las teclas (↑/↓, PageUp/PageDown),
 // la columna de puntos, el chevrón y la pista, y la ventana de 3 nodos en el
 // DOM (anterior/actual/siguiente). No sabe nada de preguntas ni de motor: la
-// partida (más abajo) y, en la siguiente tarea, el repaso, son quienes deciden
-// QUÉ tarjetas hay y cuándo hace falta una más (a través de `alCambiar` y
-// `actualizarTarjetas`). `test=1` en la URL expone window.__one.irA(indice)
-// sobre el mazo que esté visible en cada momento.
+// partida y el repaso (más abajo) son quienes deciden QUÉ tarjetas hay y
+// cuándo hace falta una más (a través de `alCambiar` y `actualizarTarjetas`;
+// el repaso, de tamaño fijo, no usa `alCambiar`). `test=1` en la URL expone
+// window.__one.irA(indice) sobre el mazo que esté visible en cada momento.
 // ============================================================================
 
 const CLAVE_PISTA_MAZO = 'one.pistaMazo';
@@ -404,12 +418,16 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
 
   function pintarChevronYPista() {
     const actual = lista[indice];
-    // Respondida: la zona de acción ya muestra "Siguiente" en ese mismo hueco
-    // vertical (corrección ronda 1, hallazgo visual 5): el chevrón/pista se
-    // quitan de en medio en vez de competir por el mismo espacio con el botón.
-    const respondida = Boolean(actual && actual.dataset && actual.dataset.respondida === 'true');
+    // Si la tarjeta actual ya tiene su propio botón "Siguiente" (partida, ya
+    // respondida), el chevrón/pista se quitan de en medio en vez de competir
+    // por el mismo hueco vertical con ese botón (corrección ronda 1, hallazgo
+    // visual 5). Una tarjeta de SOLO LECTURA (repaso, spec v0.1c §6) no tiene
+    // "Siguiente": ahí el gesto debe seguir indicado igual que antes de
+    // responder, así que se mira si el botón existe de verdad (no el atajo
+    // "respondida === true", que en repaso es cierto pero no hay botón).
+    const tieneSiguiente = Boolean(actual && actual.querySelector && actual.querySelector('[data-test="siguiente"]'));
     const hayMas = indice + 1 < lista.length;
-    const mostrar = hayMas && !respondida;
+    const mostrar = hayMas && !tieneSiguiente;
     chevron.hidden = !mostrar;
     pista.hidden = !mostrar || !pistaVisibleActual;
   }
@@ -553,7 +571,10 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
   let velocidadActual = 0;
 
   function alPointerDown(ev) {
-    if (ev.target.closest('button')) return;
+    // Los enlaces "Preguntar a" (spec v0.1c §5) son <a>, no <button>: se
+    // excluyen igual que los botones para que un toque los abra en vez de
+    // arrancar el gesto de arrastre del mazo.
+    if (ev.target.closest('button') || ev.target.closest('a')) return;
     gesto = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, capturado: false, ultimaY: ev.clientY, ultimoT: performance.now() };
     deltaYActual = 0;
     velocidadActual = 0;
@@ -749,6 +770,10 @@ function empezarPartida(filtro = null) {
     mazoControlador.destruir();
     mazoControlador = null;
   }
+  // Por si se viene del resumen ("Otra partida" arranca sin pasar por el HUB,
+  // así que limpiarPartidaEnCurso() no se llega a invocar aquí): el mazo de
+  // repaso no debe quedar montado (listeners incluidos) bajo la vista pregunta.
+  limpiarResumenMazo();
   mazo = [];
   indiceMazo = 0;
   partidaUsados = new Set();
@@ -880,11 +905,14 @@ function irASiguienteHueco() {
 
 function finalizarPartida() {
   // La partida ha terminado: se desmonta el mazo (listeners de puntero y de
-  // teclado incluidos) para no dejar nada colgado mientras se ve el resumen.
+  // teclado incluidos) para no dejar nada colgado mientras se ve el resumen;
+  // también cualquier mazo de resumen anterior (defensivo: no debería quedar
+  // uno vivo, ver limpiarResumenMazo/empezarPartida).
   if (mazoControlador) {
     mazoControlador.destruir();
     mazoControlador = null;
   }
+  limpiarResumenMazo();
 
   estado = actualizarRacha(estado, hoy());
   guardarEstado(estado);
@@ -897,16 +925,19 @@ function finalizarPartida() {
   const areas = new Set(respondidas.map((h) => h.pregunta.area));
   // "Para repasar": falladas, o acertadas con confianza Baja (frágiles). Se
   // recalcula aquí (no se acumula sobre la marcha) para reflejar también los
-  // cambios de confianza hechos en cualquier momento de la partida.
+  // cambios de confianza hechos en cualquier momento de la partida. Se
+  // guardan también `respuesta`/`delta`: el mazo de repaso (spec v0.1c §6)
+  // reconstruye la MISMA tarjeta respondida (construirTarjetaRespondida), que
+  // los necesita para la respuesta compacta y el feedback.
   repasoPartida = respondidas
     .filter((h) => !h.correcta || h.delta.fragil)
-    .map((h) => ({ pregunta: h.pregunta, correcta: h.correcta }));
+    .map((h) => ({ pregunta: h.pregunta, correcta: h.correcta, respuesta: h.respuesta, delta: h.delta }));
 
-  animarConteo(resumenAciertos, 'Aciertos: ', aciertos, `/${totalPreguntas}`);
-  animarConteo(resumenXp, 'XP ganado: ', xpTotal);
-  resumenAreas.textContent = `Áreas: ${[...areas].join(', ') || '—'}`;
-
-  renderRepaso();
+  contenedorMazoResumen.innerHTML = '';
+  mazoResumenControlador = montarMazo(
+    contenedorMazoResumen,
+    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas })
+  );
   mostrarVista('resumen');
 }
 
@@ -1422,7 +1453,8 @@ function formatearFechaCorta(fechaISO) {
   return `${dia} ${MESES_CORTOS[mes - 1]}`;
 }
 
-/** Respuesta correcta como texto (para el carrusel "Para repasar" del resumen). */
+/** Respuesta correcta como texto (para el repaso del resumen y el prompt de
+ * "Preguntar a"). */
 function respuestaCorrectaTexto(pregunta) {
   switch (pregunta.tipo) {
     case 'vf':
@@ -1436,6 +1468,74 @@ function respuestaCorrectaTexto(pregunta) {
     default:
       return '';
   }
+}
+
+// ============================================================================
+// --- "Preguntar a" (spec v0.1c §5): fila de 3 enlaces que abren ChatGPT,
+// Claude y Gemini (vía el modo IA de Google, la app gemini.google.com no lee
+// la URL) con el mismo prompt precargado, para profundizar en una pregunta ya
+// respondida. Los tres LEEN el prompt de la URL (probado en vivo el 12-sep):
+// sin plan B de portapapeles. Se inserta en el ancla vacía
+// [data-test="preguntar-a"] de construirTarjetaRespondida (partida y repaso).
+// ============================================================================
+
+// Iconos SVG inline, monocromos (heredan el color cian del botón vía
+// currentColor): ChatGPT una flor de 6 pétalos simplificada, Claude un
+// asterisco de 8 rayos, Gemini una estrella/destello de 4 puntas.
+const SVG_PREGUNTAR_CHATGPT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(0 12 12)"/>
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(60 12 12)"/>
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(120 12 12)"/>
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(180 12 12)"/>
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(240 12 12)"/>
+  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(300 12 12)"/>
+</svg>`;
+const SVG_PREGUNTAR_CLAUDE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+  <line x1="12" y1="2.5" x2="12" y2="21.5"/>
+  <line x1="2.5" y1="12" x2="21.5" y2="12"/>
+  <line x1="5.4" y1="5.4" x2="18.6" y2="18.6"/>
+  <line x1="18.6" y1="5.4" x2="5.4" y2="18.6"/>
+</svg>`;
+const SVG_PREGUNTAR_GEMINI = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+  <path d="M12 2.5c0.9 5.6 3 7.7 8.6 8.6-5.6 0.9-7.7 3-8.6 8.6-0.9-5.6-3-7.7-8.6-8.6 5.6-0.9 7.7-3 8.6-8.6Z"/>
+</svg>`;
+
+const DESTINOS_PREGUNTAR_A = [
+  { clave: 'chatgpt', nombre: 'ChatGPT', icono: SVG_PREGUNTAR_CHATGPT, url: (q) => `https://chatgpt.com/?q=${q}` },
+  { clave: 'claude', nombre: 'Claude', icono: SVG_PREGUNTAR_CLAUDE, url: (q) => `https://claude.ai/new?q=${q}` },
+  { clave: 'gemini', nombre: 'Gemini', icono: SVG_PREGUNTAR_GEMINI, url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
+];
+
+/** Prompt en español, tal cual la spec v0.1c §5 (mismos tres campos: enunciado,
+ * respuesta correcta, explicación). */
+function construirPromptPreguntarA(pregunta) {
+  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación: «${pregunta.explicacion}». Explícamelo más a fondo: el mecanismo, por qué importa hoy y un dato memorable. En español, menos de 200 palabras.`;
+}
+
+/** Fila "Preguntar a:" (spec v0.1c §5): etiqueta + tres <a> de 44×44, borde
+ * cian, icono monocromo y aria-label, cada uno con el prompt de ESTA pregunta
+ * ya codificado en la URL. `target="_blank" rel="noopener"`: abren aparte. */
+function construirPreguntarA(pregunta) {
+  const frag = document.createDocumentFragment();
+
+  const etiqueta = document.createElement('span');
+  etiqueta.className = 'preguntar-a-etiqueta';
+  etiqueta.textContent = 'Preguntar a:';
+  frag.appendChild(etiqueta);
+
+  const prompt = encodeURIComponent(construirPromptPreguntarA(pregunta));
+  for (const destino of DESTINOS_PREGUNTAR_A) {
+    const enlace = document.createElement('a');
+    enlace.className = 'preguntar-a-boton';
+    enlace.dataset.test = `preguntar-${destino.clave}`;
+    enlace.href = destino.url(prompt);
+    enlace.target = '_blank';
+    enlace.rel = 'noopener';
+    enlace.setAttribute('aria-label', `Preguntar a ${destino.nombre}`);
+    enlace.innerHTML = destino.icono;
+    frag.appendChild(enlace);
+  }
+  return frag;
 }
 
 /** Construye (o repinta, si se le pasa un nodo ya existente) el bloque de
@@ -1608,7 +1708,9 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
   const anclaPreguntarA = document.createElement('div');
+  anclaPreguntarA.className = 'preguntar-a';
   anclaPreguntarA.dataset.test = 'preguntar-a';
+  anclaPreguntarA.appendChild(construirPreguntarA(pregunta));
   zonaAccion.appendChild(anclaPreguntarA);
 
   if (!soloLectura) {
@@ -1749,66 +1851,131 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
-/** "Para repasar" del resumen: un carrusel horizontal (scroll-snap) con una
- * tarjeta por pregunta fallada o acertada con confianza Baja de la partida que
- * acaba de terminar, en orden de aparición. Sin nada que repasar, el mensaje
- * vacío ("Sin fallos. Nada que repasar."). (Sustituido por un mazo vertical de
- * solo lectura en la siguiente tarea, spec v0.1c §6; de momento se deja igual.) */
-function renderRepaso() {
-  repasoCarrusel.innerHTML = '';
-  repasoPuntos.innerHTML = '';
+// ============================================================================
+// --- REPASO: mazo vertical de solo lectura (spec v0.1c §6). Mismo componente
+// (montarMazo) que la partida, montado sobre #mazo-resumen: tarjeta 0 con las
+// cifras, una por cada elemento de repasoPartida (la MISMA tarjeta respondida
+// de la partida, reconstruida en soloLectura) y una tarjeta final con Otra
+// partida / Inicio. El carrusel horizontal de antes desaparece entero.
+// ============================================================================
 
-  const vacio = repasoPartida.length === 0;
-  repasoVacio.hidden = !vacio;
-  repasoCarrusel.hidden = vacio;
-  repasoPuntos.hidden = vacio;
-  if (vacio) return;
+/** Fila Otra partida / Inicio (spec v0.1c §6): reutilizada por la tarjeta de
+ * cifras cuando no hay nada que repasar (botones directos, sin deslizar) y
+ * por la tarjeta final cuando sí lo hay. "Otra partida" respeta el filtro de
+ * área vigente (igual que hacía el antiguo botón "Otra"). */
+function construirAccionesResumen() {
+  const acciones = document.createElement('div');
+  acciones.className = 'resumen-acciones';
 
-  repasoPartida.forEach((item) => {
-    const { pregunta, correcta } = item;
+  const otra = document.createElement('button');
+  otra.className = 'boton boton-principal';
+  otra.dataset.test = 'otra-partida';
+  otra.textContent = 'Otra partida';
+  otra.addEventListener('click', () => empezarPartida(filtroPartida));
 
-    const tarjetaRepaso = document.createElement('div');
-    tarjetaRepaso.className = 'resumen-repaso-tarjeta';
+  const inicio = document.createElement('button');
+  inicio.className = 'boton';
+  inicio.dataset.test = 'ir-inicio';
+  inicio.textContent = 'Inicio';
+  inicio.addEventListener('click', irAlHub);
 
-    const marca = document.createElement('p');
-    marca.className = `resumen-repaso-marca ${correcta ? 'resumen-repaso-marca--fragil' : 'resumen-repaso-marca--fallo'}`;
-    marca.textContent = correcta ? '✓ frágil' : '✗';
-
-    const enunciado = document.createElement('p');
-    enunciado.className = 'resumen-repaso-enunciado';
-    enunciado.textContent = pregunta.enunciado;
-
-    const respuesta = document.createElement('p');
-    respuesta.className = 'resumen-repaso-respuesta';
-    respuesta.textContent = respuestaCorrectaTexto(pregunta);
-
-    const explicacionRepaso = document.createElement('p');
-    explicacionRepaso.className = 'resumen-repaso-explicacion';
-    explicacionRepaso.textContent = pregunta.explicacion;
-
-    tarjetaRepaso.appendChild(marca);
-    tarjetaRepaso.appendChild(enunciado);
-    tarjetaRepaso.appendChild(respuesta);
-    tarjetaRepaso.appendChild(explicacionRepaso);
-    repasoCarrusel.appendChild(tarjetaRepaso);
-
-    const punto = document.createElement('span');
-    punto.className = 'resumen-repaso-punto';
-    repasoPuntos.appendChild(punto);
-  });
-  sincronizarPuntosRepaso();
+  acciones.append(otra, inicio);
+  return acciones;
 }
 
-/** Marca el punto del carrusel que corresponde a la tarjeta visible (hallazgo de la
- * pasada adversarial del 12-sep: los puntos se pintaban pero nunca cambiaban). */
-function sincronizarPuntosRepaso() {
-  const puntos = repasoPuntos.children;
-  if (puntos.length === 0) return;
-  const ancho = repasoCarrusel.firstElementChild ? repasoCarrusel.firstElementChild.offsetWidth + 10 : 1;
-  const indice = Math.min(puntos.length - 1, Math.max(0, Math.round(repasoCarrusel.scrollLeft / ancho)));
-  for (let i = 0; i < puntos.length; i++) puntos[i].classList.toggle('resumen-repaso-punto--activo', i === indice);
+/** Tarjeta 0 del resumen (spec v0.1c §6): cifras de la partida (aciertos, XP,
+ * áreas) y, según haya o no algo que repasar, la pista de deslizar o el
+ * mensaje vacío con los botones directos (sin deslizar a ningún sitio, ya que
+ * en ese caso esta es también la última tarjeta del mazo). */
+function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta';
+  tarjeta.dataset.test = 'resumen-cifras';
+
+  const contenido = document.createElement('div');
+  contenido.className = 'tarjeta-contenido';
+
+  const resultado = document.createElement('div');
+  resultado.className = 'resumen-resultado';
+  const aciertosNodo = document.createElement('p');
+  aciertosNodo.className = 'resumen-resultado-linea';
+  const xpNodo = document.createElement('p');
+  xpNodo.className = 'resumen-resultado-linea';
+  resultado.append(aciertosNodo, xpNodo);
+
+  const areasNodo = document.createElement('p');
+  areasNodo.className = 'resumen-areas-linea';
+  areasNodo.textContent = `Áreas: ${[...areas].join(', ') || '—'}`;
+
+  const pieN = repasoPartida.length;
+  const pie = document.createElement('p');
+  pie.className = 'resumen-cifras-pie';
+  pie.textContent = pieN > 0 ? `Desliza ↑ para repasar ${pieN}` : 'Sin fallos. Nada que repasar.';
+
+  contenido.append(resultado, areasNodo, pie);
+  tarjeta.appendChild(contenido);
+
+  if (pieN === 0) {
+    const zonaAccion = document.createElement('div');
+    zonaAccion.className = 'tarjeta-accion';
+    zonaAccion.appendChild(construirAccionesResumen());
+    tarjeta.appendChild(zonaAccion);
+  }
+
+  animarConteo(aciertosNodo, 'Aciertos: ', aciertos, `/${totalPreguntas}`);
+  animarConteo(xpNodo, 'XP ganado: ', xpTotal);
+
+  return tarjeta;
 }
-repasoCarrusel.addEventListener('scroll', sincronizarPuntosRepaso, { passive: true });
+
+/** Una tarjeta de repaso (spec v0.1c §6): la MISMA tarjeta respondida de la
+ * partida (construirTarjetaRespondida, soloLectura: sin confianza ni
+ * Siguiente, con "Preguntar a" ya relleno), con una marca añadida justo tras
+ * la cabecera de área/nivel para saber POR QUÉ está aquí. */
+function construirTarjetaRepaso(item) {
+  const hueco = {
+    pregunta: item.pregunta,
+    correcta: item.correcta,
+    respuesta: item.respuesta,
+    delta: item.delta,
+    reportada: false,
+    nodo: null,
+  };
+  const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, { soloLectura: true });
+  tarjeta.dataset.test = 'repaso-tarjeta';
+
+  const marca = document.createElement('p');
+  marca.className = `repaso-marca ${item.correcta ? 'repaso-marca--fragil' : 'repaso-marca--fallo'}`;
+  marca.textContent = item.correcta ? '✓ frágil' : '✗ fallada';
+  tarjeta.querySelector('.pregunta-cabecera').insertAdjacentElement('afterend', marca);
+
+  return tarjeta;
+}
+
+/** Última tarjeta del mazo de resumen (spec v0.1c §6), solo cuando hay algo
+ * que repasar (si no, la tarjeta 0 ya hace de última: ver construirTarjetaCifras). */
+function construirTarjetaFinalResumen() {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta tarjeta-cierre';
+  tarjeta.dataset.test = 'repaso-final';
+
+  const titulo = document.createElement('p');
+  titulo.className = 'mazo-cierre-titulo';
+  titulo.textContent = 'Repaso terminado';
+
+  tarjeta.appendChild(titulo);
+  tarjeta.appendChild(construirAccionesResumen());
+  return tarjeta;
+}
+
+/** Construye las tarjetas del mazo de resumen, en orden (spec v0.1c §6):
+ * cifras, una por cada elemento de repasoPartida y, si había alguno, la final. */
+function construirMazoResumen(cifras) {
+  const tarjetas = [construirTarjetaCifras(cifras)];
+  repasoPartida.forEach((item) => tarjetas.push(construirTarjetaRepaso(item)));
+  if (repasoPartida.length > 0) tarjetas.push(construirTarjetaFinalResumen());
+  return tarjetas;
+}
 
 /** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y
  * la cuadrícula 4×2 de áreas (una tarjeta tocable por área, con emoji, nota,
@@ -1976,11 +2143,10 @@ nodoPendientes.addEventListener('click', () => {
   if (ids.length === 0) return;
   empezarPartida({ ids, etiqueta: 'Pendientes' });
 });
-document.querySelector('[data-test="otra"]').addEventListener('click', () => empezarPartida(filtroPartida));
 // "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
-// "Inicio" (resumen): siempre al HUB, nunca a los emojis (ver manejarVolver/irAlHub).
+// "Otra partida"/"Inicio" del resumen ya no son botones estáticos: viven
+// dentro del mazo de repaso (ver construirAccionesResumen).
 document.querySelector('[data-test="volver"]').addEventListener('click', manejarVolver);
-document.querySelector('[data-test="inicio"]').addEventListener('click', irAlHub);
 document.querySelector('[data-test="exportar"]').addEventListener('click', exportarEstado);
 importarArchivo.addEventListener('change', (ev) => {
   const archivo = ev.target.files && ev.target.files[0];
