@@ -29,12 +29,14 @@ const UMBRAL_APROBACION = 3; // utilidad < 3 se rechaza
 const UMBRAL_DUPLICADO = 0.55;
 
 function parsearArgs(argv) {
-  const args = { lote: 20, aplicar: false, permitirPago: false, topeEur: 0, ayuda: false };
+  const args = { lote: 20, aplicar: false, permitirPago: false, topeEur: 0, ayuda: false, umbral: UMBRAL_APROBACION, reutilizar: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
     else if (a === '--lote') args.lote = Number(argv[++i]);
     else if (a === '--aplicar') args.aplicar = true;
+    else if (a === '--umbral') args.umbral = Number(argv[++i]); // se rechaza utilidad < umbral
+    else if (a === '--reutilizar') args.reutilizar = true; // no repuntúa las ya presentes en datos/utilidad.json
     else if (a === '--permitir-pago') args.permitirPago = true;
     else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
   }
@@ -310,9 +312,18 @@ async function main() {
 
   await registrarLog(`\n=== filtrar-utilidad ${new Date().toISOString()} — banco: ${banco.length} preguntas, lote ${args.lote} ===`);
 
+  // --reutilizar: conserva las puntuaciones ya hechas (datos/utilidad.json) y solo puntúa las
+  // preguntas nuevas del banco; así una regeneración no obliga a repasar las 300 anteriores.
+  const previas = new Map();
+  if (args.reutilizar) {
+    const viejas = JSON.parse(await readFile(RUTA_UTILIDAD, 'utf8').catch(() => '[]'));
+    for (const r of viejas) if (typeof r.utilidad === 'number') previas.set(r.id, r);
+  }
   const resultados = [];
   for (const area of AREAS) {
-    const preguntas = porArea.get(area) || [];
+    const todas = porArea.get(area) || [];
+    for (const p of todas) if (previas.has(p.id)) resultados.push(previas.get(p.id));
+    const preguntas = todas.filter((p) => !previas.has(p.id));
     if (preguntas.length === 0) continue;
     const r = await puntuarArea(area, preguntas, args);
     resultados.push(...r);
@@ -326,7 +337,7 @@ async function main() {
   for (const [id, motivo] of duplicados) console.log(`  ${id}: ${motivo}`);
 
   const bajaUtilidad = new Map(
-    resultados.filter((r) => r.utilidad < UMBRAL_APROBACION).map((r) => [r.id, `utilidad ${r.utilidad}/5: ${r.motivo}`])
+    resultados.filter((r) => r.utilidad < args.umbral).map((r) => [r.id, `utilidad ${r.utilidad}/5: ${r.motivo}`])
   );
 
   console.log(`\nBaja utilidad (< ${UMBRAL_APROBACION}): ${bajaUtilidad.size}`);
