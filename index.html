@@ -14,8 +14,10 @@
 </head>
 <body>
   <header class="cabecera">
+    <button class="boton-volver" data-test="volver" aria-label="Volver a inicio" hidden>←</button>
     <span class="cabecera-logo">🧠 ONE</span>
     <div class="cabecera-estado">
+      <span class="cabecera-modo-area" data-test="modo-area" hidden></span>
       <span class="cabecera-racha" data-test="racha">🔥 0</span>
       <span class="cabecera-nivel" data-test="nivel-partida">Nivel 1</span>
     </div>
@@ -35,6 +37,7 @@
         <div class="barra-progreso-relleno" id="barra-progreso-relleno"></div>
       </div>
       <div id="contenedor-pregunta"></div>
+      <button class="enlace boton-no-lo-se" data-test="no-lo-se">No lo sé</button>
       <div id="contenedor-feedback" class="feedback" hidden>
         <p id="feedback-texto" class="feedback-texto"></p>
         <p id="feedback-combo" class="feedback-combo" hidden></p>
@@ -72,7 +75,6 @@
           <input type="file" id="importar-archivo" accept="application/json" hidden>
         </label>
       </div>
-      <button class="enlace" id="boton-cerrar-progreso">← Inicio</button>
     </section>
   </main>
 

@@ -35,7 +35,8 @@ export function sumarDias(fecha, n) {
 export function crearEstado(hoy) {
   const areas = {};
   for (const area of AREAS) {
-    areas[area] = { nivel: 1, seguidosOk: 0, seguidosKo: 0, ultimas: [] };
+    // noLoSe: veces que se ha pulsado "No lo sé" en preguntas de esta área (solo cuenta).
+    areas[area] = { nivel: 1, seguidosOk: 0, seguidosKo: 0, ultimas: [], noLoSe: 0 };
   }
   return {
     version: 1,
@@ -250,16 +251,25 @@ export function seleccionarPartida(estado, banco, hoy, n = 10, rng = Math.random
  * ampliando la distancia de nivel admitida (0, ±1, ±2…) hasta encontrar alguna.
  * Entre candidatas del mismo nivel, prioriza (si hay alternativa) un tipo distinto y
  * luego un área distinta de `ultima`; los empates se resuelven con `rng`.
+ *
+ * `filtro` (opcional, `{ area }`) restringe TODO lo anterior (repasos y nuevas) a un
+ * área concreta — modo "practicar solo un área". Sin `filtro` no cambia nada.
  */
-export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random, ultima = null) {
+export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random, ultima = null, filtro = null) {
   const reportadas = new Set(estado.reportadas);
   const idsEnBanco = new Set(banco.map((p) => p.id));
   const bancoPorId = new Map(banco.map((p) => [p.id, p]));
   const elegible = (id) => !usados.has(id) && !reportadas.has(id) && idsEnBanco.has(id);
+  const cumpleFiltro = (p) => !filtro || !filtro.area || p.area === filtro.area;
 
-  // Repasos vencidos pendientes (no usados ni reportados), el más atrasado primero.
+  // Repasos vencidos pendientes (no usados ni reportados, del área filtrada si toca),
+  // el más atrasado primero.
   const repasosPendientes = Object.entries(estado.tarjetas)
-    .filter(([id, t]) => t.proximo <= hoy && elegible(id))
+    .filter(([id, t]) => {
+      if (t.proximo > hoy || !elegible(id)) return false;
+      const pregunta = bancoPorId.get(id);
+      return Boolean(pregunta) && cumpleFiltro(pregunta);
+    })
     .sort((a, b) => (a[1].proximo < b[1].proximo ? -1 : a[1].proximo > b[1].proximo ? 1 : 0));
 
   function tomarRepaso() {
@@ -268,7 +278,7 @@ export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random,
   }
 
   function tomarNueva() {
-    const disponibles = banco.filter((p) => !estado.tarjetas[p.id] && elegible(p.id));
+    const disponibles = banco.filter((p) => !estado.tarjetas[p.id] && elegible(p.id) && cumpleFiltro(p));
     if (disponibles.length === 0) return null;
 
     let candidatos = [];
@@ -293,9 +303,15 @@ export function siguientePregunta(estado, banco, hoy, usados, rng = Math.random,
 
 /**
  * Registra la respuesta a `pregunta` (acierto/fallo) en el día `hoy`.
- * Devuelve { estado nuevo, delta: { xp, combo, correcta } }. No muta `estado`.
+ * `opciones.noLoSe === true` marca que el jugador ha pulsado "No lo sé": se trata
+ * SIEMPRE como fallo (ignora el `correcta` recibido), pero queda anotado aparte en
+ * el historial y en un contador por área, para poder distinguirlo de un fallo real.
+ * Devuelve { estado nuevo, delta: { xp, combo, correcta, noLoSe, ... } }. No muta `estado`.
  */
-export function registrarRespuesta(estado, pregunta, correcta, hoy) {
+export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {}) {
+  const noLoSe = opciones.noLoSe === true;
+  if (noLoSe) correcta = false; // "no lo sé" es siempre fallo, nunca depende de lo recibido
+
   const nuevo = structuredClone(estado);
 
   // Reinicia "hoy" si cambia la fecha.
@@ -355,10 +371,13 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy) {
       areaState.seguidosKo = 0;
     }
   }
+  if (noLoSe) {
+    areaState.noLoSe = (areaState.noLoSe || 0) + 1;
+  }
   areaState.ultimas = [...areaState.ultimas, correcta].slice(-20);
   const cambioNivelArea = areaState.nivel - nivelAntes;
 
-  nuevo.historial = [...nuevo.historial, { id: pregunta.id, fecha: hoy, correcta }].slice(-500);
+  nuevo.historial = [...nuevo.historial, { id: pregunta.id, fecha: hoy, correcta, noLoSe }].slice(-500);
 
   return {
     estado: nuevo,
@@ -366,6 +385,7 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy) {
       xp,
       combo,
       correcta,
+      noLoSe,
       nivelPartida: nuevo.nivelPartida,
       cambioNivelPartida,
       nivelArea: areaState.nivel,
@@ -402,13 +422,33 @@ export function resumenProgreso(estado, banco) {
       return pregunta && pregunta.area === area && t.caja >= 3;
     }).length;
     const total = banco.filter((p) => p.area === area).length;
-    return { area, nivel: areaState.nivel, aciertoReciente, estables, total };
+    return {
+      area,
+      nivel: areaState.nivel,
+      aciertoReciente,
+      estables,
+      total,
+      noLoSe: areaState.noLoSe || 0,
+    };
   });
+  // Total global acumulado de TODO el historial (no solo hoy): sirve para medir
+  // aciertos "por suerte" (aciertos / respondidas) frente a las veces que se ha
+  // reconocido no saber la respuesta.
+  const global = estado.historial.reduce(
+    (acc, h) => {
+      acc.respondidas += 1;
+      if (h.correcta) acc.aciertos += 1;
+      if (h.noLoSe) acc.noLoSe += 1;
+      return acc;
+    },
+    { respondidas: 0, aciertos: 0, noLoSe: 0 }
+  );
   return {
     racha: estado.racha,
     xp: estado.xp,
     hoy: { respondidas: estado.hoy.respondidas, aciertos: estado.hoy.aciertos },
     porArea,
+    global,
   };
 }
 
@@ -487,6 +527,7 @@ function normalizarEstado(obj) {
         seguidosOk: Number.isInteger(a.seguidosOk) ? a.seguidosOk : 0,
         seguidosKo: Number.isInteger(a.seguidosKo) ? a.seguidosKo : 0,
         ultimas: Array.isArray(a.ultimas) ? a.ultimas.filter((x) => typeof x === 'boolean').slice(-20) : [],
+        noLoSe: Number.isInteger(a.noLoSe) && a.noLoSe >= 0 ? a.noLoSe : 0,
       };
     }
   }

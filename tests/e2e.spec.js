@@ -89,8 +89,52 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    // 2. Jugar: recorrer la partida capturando la primera vez de cada mecánica
-    // y del feedback.
+    // 2. Navegación: desde la primera pregunta, "←" vuelve a inicio abandonando la
+    // partida (nada se ha respondido, así que la racha no se mueve). Cubre el
+    // callejón sin salida que había hoy entre pregunta e inicio.
+    await page.locator('[data-test="jugar"]').click();
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toBeVisible();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
+
+    // 3. Practicar solo un área desde Progreso: "practicar-economia" arranca una
+    // partida filtrada (el banco de ejemplo tiene 2 preguntas de economía). La
+    // cabecera debe anunciar "Solo Economia" y la tarjeta debe ser de esa área.
+    await page.locator('[data-test="progreso"]').click();
+    const practicarEconomia = page.locator('[data-test="practicar-economia"]');
+    await expect(practicarEconomia).toBeVisible();
+    await practicarEconomia.click();
+
+    await expect(page.locator('[data-test="modo-area"]')).toBeVisible();
+    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economia');
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economia');
+
+    // "No lo sé": despliega la explicación sola y ofrece "Siguiente", sin marcar
+    // ni ✓ ni ✗ (es un fallo a efectos de motor, pero neutro a efectos visuales).
+    await page.locator('[data-test="no-lo-se"]').click();
+    await expect(page.locator('[data-test="siguiente"]')).toBeVisible();
+    await expect(page.locator('#explicacion-texto')).toBeVisible();
+    await page.locator('[data-test="siguiente"]').click();
+
+    // La segunda (y última) pregunta de economía del banco de ejemplo: se responde
+    // normal y, al agotarse el área, la partida filtrada termina sola en el resumen.
+    await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economia');
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await page.locator('[data-test="siguiente"]').click();
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+
+    // "Inicio" limpia el filtro: de vuelta a inicio, "Solo Economia" desaparece.
+    await page.locator('[data-test="inicio"]').click();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-test="modo-area"]')).toBeHidden();
+    // La racha ya cuenta esta partida filtrada como partida completa del día (aunque
+    // corta): pasa a 1 aquí, y la partida sin filtrar de más abajo no la duplica
+    // (actualizarRacha no cambia si ya se jugó hoy).
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
+
+    // 4. Partida normal (sin filtro): recorrer capturando la primera vez de cada
+    // mecánica y del feedback, como antes.
     await page.locator('[data-test="jugar"]').click();
 
     // La escalera inmediata: el nivel de la pregunta se ve desde la primera tarjeta.
@@ -111,12 +155,12 @@ test.describe('ONE · integración e2e', () => {
       },
     });
 
-    // 3. Resumen visible, racha a 1.
+    // 5. Resumen visible, racha a 1.
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
     await page.screenshot({ path: `${CAPTURAS}/07-resumen.png` });
 
-    // 4. Recargar: la racha persiste; ir a progreso y comprobar una barra > 0.
+    // 6. Recargar: la racha persiste; ir a progreso y comprobar una barra > 0.
     await page.reload();
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
@@ -128,7 +172,7 @@ test.describe('ONE · integración e2e', () => {
     expect(anchos.some((ancho) => ancho > 0)).toBe(true);
     await page.screenshot({ path: `${CAPTURAS}/08-progreso.png` });
 
-    // 5. Sin errores de página en toda la sesión.
+    // 7. Sin errores de página en toda la sesión.
     expect(erroresPagina).toEqual([]);
   });
 

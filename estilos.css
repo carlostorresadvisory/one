@@ -50,9 +50,32 @@ button {
   padding-top: max(12px, env(safe-area-inset-top));
 }
 
+/* Flecha de "volver a inicio" en la cabecera fija: visible en pregunta, resumen y
+   progreso; oculta en inicio (no hay a dónde volver). Tap target >= 44px. */
+.boton-volver {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--texto);
+  font-size: 24px;
+  padding: 0;
+  margin-right: 4px;
+}
+
+.boton-volver[hidden] { display: none; }
+
 .cabecera-logo {
   font-size: var(--tam-2);
   font-weight: 600;
+}
+
+.cabecera-modo-area {
+  font-size: 13px;
+  color: var(--acento);
 }
 
 .cabecera-estado {
@@ -129,6 +152,14 @@ main#app {
 }
 
 .boton-archivo { display: inline-block; }
+
+/* Botón discreto "No lo sé": debajo de la mecánica, antes del bloque de feedback. */
+.boton-no-lo-se {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.boton-no-lo-se[hidden] { display: none; }
 
 /* --- pregunta --- */
 .barra-progreso {
@@ -328,4 +359,16 @@ main#app {
   height: 100%;
   background: var(--acento);
   min-width: 2px;
+}
+
+/* Practicar solo esta área desde Progreso. */
+.practicar-area {
+  align-self: flex-start;
+  padding: 8px 0;
+  margin: 0;
+}
+
+.practicar-area:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

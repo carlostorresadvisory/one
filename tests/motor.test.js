@@ -100,7 +100,7 @@ describe('crearEstado', () => {
     assert.equal(est.nivelPartida, 1); // escalera inmediata: arranca en 1
     assert.equal(Object.keys(est.areas).length, 8);
     for (const area of AREAS) {
-      assert.deepStrictEqual(est.areas[area], { nivel: 1, seguidosOk: 0, seguidosKo: 0, ultimas: [] });
+      assert.deepStrictEqual(est.areas[area], { nivel: 1, seguidosOk: 0, seguidosKo: 0, ultimas: [], noLoSe: 0 });
     }
     assert.deepStrictEqual(est.tarjetas, {});
     assert.deepStrictEqual(est.reportadas, []);
@@ -305,6 +305,40 @@ describe('siguientePregunta', () => {
     assert.notEqual(p.tipo, ultima.tipo);
     assert.notEqual(p.area, ultima.area);
   });
+
+  // --- filtro (7º parámetro): "practicar solo un área" ---
+  test('con filtro por área, siempre devuelve preguntas de esa área (repetido varias veces)', () => {
+    const estado = crearEstado(HOY);
+    const usados = new Set();
+    for (let i = 0; i < 15; i++) {
+      const p = siguientePregunta(estado, banco, HOY, usados, rngDeterminista(), null, { area: 'historia' });
+      assert.ok(p, `debería devolver pregunta en la vuelta ${i}`);
+      assert.equal(p.area, 'historia');
+      usados.add(p.id);
+    }
+  });
+
+  test('con filtro, devuelve null si el área filtrada se agota aunque queden otras áreas', () => {
+    const estado = crearEstado(HOY);
+    // Banco reducido a una sola pregunta de historia; el resto de áreas siguen teniendo de sobra.
+    const unaDeHistoria = banco.filter((p) => p.area === 'historia').slice(0, 1);
+    const otrasAreas = banco.filter((p) => p.area !== 'historia');
+    const bancoLimitado = [...unaDeHistoria, ...otrasAreas];
+    const usados = new Set([unaDeHistoria[0].id]); // la única de historia ya está "usada" (agotada)
+    const p = siguientePregunta(estado, bancoLimitado, HOY, usados, rngDeterminista(), null, { area: 'historia' });
+    assert.equal(p, null);
+  });
+
+  test('el filtro también se aplica a los repasos vencidos, no solo a las nuevas', () => {
+    const estado = crearEstado(HOY);
+    // Tarjeta vencida de un área DISTINTA a la filtrada: no debe salir aunque el
+    // azar "quiera" repaso (rng() < 0.3 siempre con () => 0).
+    estado.tarjetas['tecnologia-test4-1'] = { caja: 1, proximo: sumarDias(HOY, -3), aciertos: 1, fallos: 0 };
+    const p = siguientePregunta(estado, banco, HOY, new Set(), () => 0, null, { area: 'economia' });
+    assert.ok(p);
+    assert.equal(p.area, 'economia');
+    assert.notEqual(p.id, 'tecnologia-test4-1');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -469,6 +503,57 @@ describe('registrarRespuesta', () => {
     registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, '-m1'), true, HOY);
     assert.deepStrictEqual(estado, copia);
   });
+
+  // --- opciones.noLoSe: botón "No lo sé" ---
+  test('noLoSe se trata como fallo: caja a 0, próximo a +1 día, XP 0, combo 0', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'test4', 1, '-nls1');
+    const { estado: nuevo, delta } = registrarRespuesta(estado, pregunta, true, HOY, { noLoSe: true });
+    // Aunque se pase `correcta: true`, noLoSe manda: se trata igual que un fallo.
+    assert.equal(delta.xp, 0);
+    assert.equal(delta.combo, 0);
+    assert.equal(delta.correcta, false);
+    assert.equal(nuevo.tarjetas[pregunta.id].caja, 0);
+    assert.equal(nuevo.tarjetas[pregunta.id].proximo, sumarDias(HOY, 1));
+  });
+
+  test('noLoSe baja el nivel de área y la escalera igual que un fallo normal', () => {
+    let estado = crearEstado(HOY);
+    estado.areas.economia.nivel = 2;
+    estado.nivelPartida = 2;
+    for (let i = 0; i < 2; i++) {
+      const r = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, `-nlsniv${i}`), false, HOY, { noLoSe: true });
+      estado = r.estado;
+    }
+    assert.equal(estado.areas.economia.nivel, 1);
+    assert.equal(estado.nivelPartida, 1);
+  });
+
+  test('el historial guarda noLoSe: true en la entrada de una respuesta "no lo sé"', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'test4', 1, '-nlshist');
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, false, HOY, { noLoSe: true });
+    const entrada = nuevo.historial.find((h) => h.id === pregunta.id);
+    assert.ok(entrada);
+    assert.equal(entrada.noLoSe, true);
+
+    const { estado: nuevo2 } = registrarRespuesta(nuevo, crearPregunta('economia', 'test4', 1, '-normal'), true, HOY);
+    const entradaNormal = nuevo2.historial.find((h) => h.id === 'economia-test4-1-normal');
+    assert.equal(entradaNormal.noLoSe, false);
+  });
+
+  test('areas[area].noLoSe cuenta las veces que se ha pulsado "no lo sé" en esa área', () => {
+    let estado = crearEstado(HOY);
+    for (let i = 0; i < 3; i++) {
+      const r = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, `-nlscount${i}`), false, HOY, { noLoSe: true });
+      estado = r.estado;
+    }
+    const r = registrarRespuesta(estado, crearPregunta('historia', 'test4', 1, '-nlsotra'), false, HOY, { noLoSe: true });
+    estado = r.estado;
+    assert.equal(estado.areas.economia.noLoSe, 3);
+    assert.equal(estado.areas.historia.noLoSe, 1);
+    assert.equal(estado.areas.ciencia.noLoSe, 0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -535,6 +620,36 @@ describe('resumenProgreso', () => {
     assert.equal(economia.estables, 1);
     assert.equal(economia.total, 20); // 5 niveles x 4 tipos
   });
+
+  test('porArea incluye noLoSe por área (contador, no afecta a aciertoReciente)', () => {
+    let estado = crearEstado(HOY);
+    const r = registrarRespuesta(
+      estado,
+      crearPregunta('economia', 'test4', 1, '-resnls'),
+      true,
+      HOY,
+      { noLoSe: true }
+    );
+    estado = r.estado;
+    const resumen = resumenProgreso(estado, banco);
+    const economia = resumen.porArea.find((a) => a.area === 'economia');
+    assert.equal(economia.noLoSe, 1);
+    // aciertoReciente sigue siendo la misma definición: % de acierto de `ultimas`,
+    // y noLoSe cuenta como fallo dentro de esa serie.
+    assert.equal(economia.aciertoReciente, 0);
+  });
+
+  test('resumenProgreso añade un total global {respondidas, aciertos, noLoSe} acumulado del historial', () => {
+    let estado = crearEstado(HOY);
+    let r = registrarRespuesta(estado, crearPregunta('economia', 'test4', 1, '-g1'), true, HOY);
+    estado = r.estado;
+    r = registrarRespuesta(estado, crearPregunta('historia', 'test4', 1, '-g2'), false, HOY);
+    estado = r.estado;
+    r = registrarRespuesta(estado, crearPregunta('ciencia', 'test4', 1, '-g3'), false, HOY, { noLoSe: true });
+    estado = r.estado;
+    const resumen = resumenProgreso(estado, banco);
+    assert.deepStrictEqual(resumen.global, { respondidas: 3, aciertos: 1, noLoSe: 1 });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -579,5 +694,27 @@ describe('exportar / importar', () => {
     assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 9 })).nivelPartida, 1); // fuera de rango
     assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 'x' })).nivelPartida, 1); // no es entero
     assert.equal(importar(JSON.stringify({ ...base, nivelPartida: 3 })).nivelPartida, 3); // válido: se respeta
+  });
+
+  test('importar sanea areas[area].noLoSe inválido (falta o negativo) a 0, y respeta un valor válido', () => {
+    const conAreaValida = {
+      version: 1, xp: 0, combo: 0, racha: { dias: 0, ultimaFecha: null },
+      hoy: { fecha: HOY, respondidas: 0, aciertos: 0 },
+      areas: { economia: { nivel: 2, seguidosOk: 0, seguidosKo: 0, ultimas: [] } }, // sin noLoSe
+      tarjetas: {}, reportadas: [], historial: [],
+    };
+    assert.equal(importar(JSON.stringify(conAreaValida)).areas.economia.noLoSe, 0);
+
+    const conNoLoSeNegativo = {
+      ...conAreaValida,
+      areas: { economia: { nivel: 2, seguidosOk: 0, seguidosKo: 0, ultimas: [], noLoSe: -3 } },
+    };
+    assert.equal(importar(JSON.stringify(conNoLoSeNegativo)).areas.economia.noLoSe, 0);
+
+    const conNoLoSeValido = {
+      ...conAreaValida,
+      areas: { economia: { nivel: 2, seguidosOk: 0, seguidosKo: 0, ultimas: [], noLoSe: 4 } },
+    };
+    assert.equal(importar(JSON.stringify(conNoLoSeValido)).areas.economia.noLoSe, 4);
   });
 });

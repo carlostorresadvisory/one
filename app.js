@@ -57,9 +57,17 @@ let aciertosPartida = 0;
 let areasPartida = new Set();
 let reportadaEnActual = false;
 
+// Modo "practicar solo un área": null en partida normal; { area } cuando se entra
+// desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
+// ("←" o "Inicio"); "Otra" en el resumen lo respeta para repetir el mismo filtro.
+let filtroPartida = null;
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
+const nodoVolver = document.querySelector('[data-test="volver"]');
+const nodoModoArea = document.querySelector('[data-test="modo-area"]');
+const nodoNoLoSe = document.querySelector('[data-test="no-lo-se"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorPregunta = document.getElementById('contenedor-pregunta');
 const contenedorFeedback = document.getElementById('contenedor-feedback');
@@ -81,6 +89,8 @@ function mostrarVista(nombre) {
   vistas.forEach((v) => {
     v.hidden = v.dataset.vista !== nombre;
   });
+  // La flecha "←" vuelve a inicio: no tiene sentido mostrarla ya en inicio.
+  nodoVolver.hidden = nombre === 'inicio';
 }
 
 /** Primera letra en mayúscula (para nombres de área en textos). */
@@ -91,6 +101,24 @@ function capitalizar(texto) {
 function actualizarCabecera() {
   nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
   nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
+  if (filtroPartida && filtroPartida.area) {
+    nodoModoArea.hidden = false;
+    nodoModoArea.textContent = `Solo ${capitalizar(filtroPartida.area)}`;
+  } else {
+    nodoModoArea.hidden = true;
+  }
+}
+
+/** Vuelve a inicio abandonando la partida en curso si la hubiera: las respuestas ya
+ * dadas quedan guardadas en el estado (se aplican a Leitner/nivel una a una), pero
+ * la racha solo se actualiza al COMPLETAR una partida (ver finalizarPartida), así
+ * que abandonar a mitad no cuenta como partida jugada para la racha. También limpia
+ * el filtro de "practicar solo un área" si lo hubiera. */
+function volverAInicio() {
+  filtroPartida = null;
+  preguntaEnPantalla = null;
+  actualizarCabecera();
+  mostrarVista('inicio');
 }
 
 // --- carga del banco y arranque ---
@@ -104,7 +132,10 @@ async function iniciar() {
 }
 
 // --- flujo de partida ---
-function empezarPartida() {
+/** `filtro` opcional ({ area }) arranca una partida SOLO de esa área ("Practicar"
+ * desde Progreso). Sin filtro, partida normal (todas las áreas). */
+function empezarPartida(filtro = null) {
+  filtroPartida = filtro && filtro.area ? { area: filtro.area } : null;
   indicePartida = 0;
   xpPartida = 0;
   aciertosPartida = 0;
@@ -112,6 +143,7 @@ function empezarPartida() {
   partidaUsados = new Set();
   partidaUltima = null;
   preguntaEnPantalla = null;
+  actualizarCabecera(); // pinta "Solo <Área>" desde la primera pregunta, si toca.
   mostrarVista('pregunta');
   avanzarPregunta();
 }
@@ -122,7 +154,7 @@ function avanzarPregunta() {
     finalizarPartida();
     return;
   }
-  const pregunta = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima);
+  const pregunta = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
   if (!pregunta) {
     // Banco agotado (reportadas/usadas incluidas): se termina con las que haya.
     finalizarPartida();
@@ -152,6 +184,7 @@ function renderPreguntaActual(pregunta) {
   explicacionTexto.hidden = true;
   reportadaTexto.hidden = true;
   reportadaEnActual = false;
+  nodoNoLoSe.hidden = false; // visible de nuevo para la pregunta que entra
 
   contenedorPregunta.innerHTML = '';
   const tarjeta = construirTarjetaPregunta(pregunta);
@@ -404,6 +437,23 @@ function manejarRespuesta(pregunta, respuesta) {
   preguntaRespondida = true;
   const correcta = evaluar(pregunta, respuesta);
   const resultado = registrarRespuesta(estado, pregunta, correcta, hoy());
+  aplicarResultado(pregunta, resultado, correcta, false);
+}
+
+/** Botón "No lo sé": no se evalúa ninguna respuesta, se trata como fallo a todos los
+ * efectos de motor (Leitner, nivel de área, escalera), pero queda marcado aparte. */
+function manejarNoLoSe() {
+  if (preguntaRespondida) return;
+  const pregunta = preguntaEnPantalla;
+  if (!pregunta) return;
+  preguntaRespondida = true;
+  const resultado = registrarRespuesta(estado, pregunta, false, hoy(), { noLoSe: true });
+  aplicarResultado(pregunta, resultado, false, true);
+}
+
+/** Aplica el resultado de registrarRespuesta a la sesión de UI: guarda estado,
+ * actualiza contadores de la partida y pinta el feedback (normal o "no lo sé"). */
+function aplicarResultado(pregunta, resultado, correcta, noLoSe) {
   estado = resultado.estado;
   guardarEstado(estado);
   actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo, no solo al volver a Inicio.
@@ -412,14 +462,20 @@ function manejarRespuesta(pregunta, respuesta) {
   if (correcta) aciertosPartida += 1;
   areasPartida.add(pregunta.area);
 
-  mostrarFeedback(pregunta, correcta, resultado.delta);
+  mostrarFeedback(pregunta, correcta, resultado.delta, noLoSe);
 }
 
-function mostrarFeedback(pregunta, correcta, delta) {
-  const tarjeta = contenedorPregunta.querySelector('.tarjeta');
-  if (tarjeta) tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
+function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
+  nodoNoLoSe.hidden = true; // ya se ha respondido (de una forma u otra): no tiene sentido seguir ofreciéndolo.
 
-  feedbackTexto.textContent = correcta ? `✓ +${delta.xp} XP` : '✗';
+  const tarjeta = contenedorPregunta.querySelector('.tarjeta');
+  if (tarjeta) {
+    tarjeta.classList.remove('correcto', 'incorrecto');
+    // "No lo sé" es un fallo a efectos de motor, pero visualmente es neutro: ni ✓ ni ✗.
+    if (!noLoSe) tarjeta.classList.add(correcta ? 'correcto' : 'incorrecto');
+  }
+
+  feedbackTexto.textContent = noLoSe ? 'No pasa nada: mañana vuelve' : (correcta ? `✓ +${delta.xp} XP` : '✗');
 
   if (delta.combo >= 3) {
     feedbackCombo.hidden = false;
@@ -454,7 +510,9 @@ function mostrarFeedback(pregunta, correcta, delta) {
     cambioNivelAreaTexto.hidden = true;
   }
 
-  explicacionTexto.hidden = true;
+  // Con "no lo sé" la explicación se despliega sola: no tiene sentido pedirle que
+  // toque "¿por qué?" para ver algo que él mismo ha dicho no saber.
+  explicacionTexto.hidden = !noLoSe;
   explicacionTexto.textContent = pregunta.explicacion;
   reportadaTexto.hidden = true;
 
@@ -512,7 +570,9 @@ function renderProgreso() {
     const detalle = document.createElement('span');
     detalle.className = 'progreso-area-detalle';
     const textoAcierto = fila.aciertoReciente === null ? 'sin datos' : `${Math.round(fila.aciertoReciente * 100)}%`;
-    detalle.textContent = `nivel ${fila.nivel} · ${textoAcierto} · ${fila.estables} estables de ${fila.total}`;
+    let textoDetalle = `nivel ${fila.nivel} · ${textoAcierto} · ${fila.estables} estables de ${fila.total}`;
+    if (fila.noLoSe > 0) textoDetalle += ` · ${fila.noLoSe} no lo sabía`;
+    detalle.textContent = textoDetalle;
 
     cabecera.appendChild(nombre);
     cabecera.appendChild(detalle);
@@ -526,8 +586,18 @@ function renderProgreso() {
     relleno.style.width = `${ancho}%`;
     track.appendChild(relleno);
 
+    // Practicar SOLO esta área: arranca una partida filtrada (siguientePregunta
+    // recibe { area } como 7º parámetro y solo sirve preguntas de esta área).
+    const practicar = document.createElement('button');
+    practicar.className = 'enlace practicar-area';
+    practicar.dataset.test = `practicar-${fila.area}`;
+    practicar.textContent = 'Practicar';
+    practicar.disabled = fila.total === 0;
+    practicar.addEventListener('click', () => empezarPartida({ area: fila.area }));
+
     contenedorFila.appendChild(cabecera);
     contenedorFila.appendChild(track);
+    contenedorFila.appendChild(practicar);
     progresoAreas.appendChild(contenedorFila);
   });
 }
@@ -561,7 +631,10 @@ function importarEstadoDesdeArchivo(archivo) {
 }
 
 // --- eventos de navegación ---
-document.querySelector('[data-test="jugar"]').addEventListener('click', empezarPartida);
+// "Jugar" desde inicio siempre arranca sin filtro (aunque quedara uno de una
+// práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
+// vigente, para poder repetir "Practicar <área>" varias veces seguidas.
+document.querySelector('[data-test="jugar"]').addEventListener('click', () => empezarPartida(null));
 document.querySelector('[data-test="progreso"]').addEventListener('click', () => {
   renderProgreso();
   mostrarVista('progreso');
@@ -571,13 +644,13 @@ document.querySelector('[data-test="porque"]').addEventListener('click', () => {
   explicacionTexto.hidden = false;
 });
 document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
-document.querySelector('[data-test="otra"]').addEventListener('click', empezarPartida);
-document.querySelector('[data-test="inicio"]').addEventListener('click', () => {
-  actualizarCabecera();
-  mostrarVista('inicio');
-});
+document.querySelector('[data-test="no-lo-se"]').addEventListener('click', manejarNoLoSe);
+document.querySelector('[data-test="otra"]').addEventListener('click', () => empezarPartida(filtroPartida));
+// "←" (cabecera) e "Inicio" (resumen) hacen lo mismo: abandonar/cerrar y volver a
+// inicio limpiando el filtro de área, para que el flujo nunca deje callejones.
+document.querySelector('[data-test="volver"]').addEventListener('click', volverAInicio);
+document.querySelector('[data-test="inicio"]').addEventListener('click', volverAInicio);
 document.querySelector('[data-test="exportar"]').addEventListener('click', exportarEstado);
-document.getElementById('boton-cerrar-progreso').addEventListener('click', () => mostrarVista('inicio'));
 importarArchivo.addEventListener('change', (ev) => {
   const archivo = ev.target.files && ev.target.files[0];
   if (archivo) importarEstadoDesdeArchivo(archivo);
