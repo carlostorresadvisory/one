@@ -195,9 +195,40 @@ export function seleccionarPartida(estado, banco, hoy, n = 10, rng = Math.random
     }
   }
 
+  // 2b. Relleno: si algún tipo no dio para su cupo, se completa con cualquier tipo,
+  // primero por cercanía de nivel (0, ±1, …) y rotando áreas; después con repasos
+  // extra no vencidos aún si sigue faltando. Objetivo blando: n manda sobre la mezcla.
+  let distancia = 0;
+  while (nuevaIds.length < restantes && distancia <= 4) {
+    let anadida = false;
+    for (const area of areasOrden) {
+      if (nuevaIds.length >= restantes) break;
+      const nivelArea = estado.areas[area].nivel;
+      const candidatos = nuevasDisponibles
+        .filter((p) => p.area === area && !usados.has(p.id) && Math.abs(p.nivel - nivelArea) <= distancia)
+        .sort((a, b) => Math.abs(a.nivel - nivelArea) - Math.abs(b.nivel - nivelArea));
+      if (candidatos.length > 0) {
+        nuevaIds.push(candidatos[0].id);
+        usados.add(candidatos[0].id);
+        anadida = true;
+      }
+    }
+    if (!anadida) distancia += 1;
+  }
+  const repasosExtra = [];
+  if (repasoIds.length + nuevaIds.length < n) {
+    for (const [id] of repasosCandidatos) {
+      if (repasoIds.length + nuevaIds.length + repasosExtra.length >= n) break;
+      if (!usados.has(id)) {
+        repasosExtra.push(id);
+        usados.add(id);
+      }
+    }
+  }
+
   // 3. Orden final: repasos + nuevas, evitando área repetida en posiciones consecutivas.
   const bancoPorId = new Map(banco.map((p) => [p.id, p]));
-  const items = [...repasoIds, ...nuevaIds]
+  const items = [...repasoIds, ...repasosExtra, ...nuevaIds]
     .map((id) => bancoPorId.get(id))
     .filter(Boolean)
     .map((p) => ({ id: p.id, area: p.area }));
@@ -339,5 +370,60 @@ export function importar(json) {
       throw new Error(`Falta el campo '${campo}' en el estado`);
     }
   }
-  return obj;
+  return normalizarEstado(obj);
+}
+
+const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const esObjeto = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * Repara la estructura interna de un estado importado: áreas que faltan vuelven a sus
+ * valores iniciales, tarjetas malformadas se descartan, racha/hoy/arrays se saneam.
+ * Así un JSON manipulado a mano no rompe registrarRespuesta ni resumenProgreso.
+ */
+function normalizarEstado(obj) {
+  const base = crearEstado(esObjeto(obj.hoy) && RE_FECHA.test(obj.hoy.fecha) ? obj.hoy.fecha : '1970-01-01');
+  const estado = { ...base, version: 1 };
+  estado.xp = Number.isFinite(obj.xp) && obj.xp >= 0 ? obj.xp : 0;
+  estado.combo = Number.isInteger(obj.combo) && obj.combo >= 0 ? obj.combo : 0;
+  if (esObjeto(obj.racha) && Number.isInteger(obj.racha.dias) && obj.racha.dias >= 0) {
+    estado.racha = {
+      dias: obj.racha.dias,
+      ultimaFecha: RE_FECHA.test(obj.racha.ultimaFecha ?? '') ? obj.racha.ultimaFecha : null,
+    };
+  }
+  if (esObjeto(obj.hoy) && RE_FECHA.test(obj.hoy.fecha)) {
+    estado.hoy = {
+      fecha: obj.hoy.fecha,
+      respondidas: Number.isInteger(obj.hoy.respondidas) ? obj.hoy.respondidas : 0,
+      aciertos: Number.isInteger(obj.hoy.aciertos) ? obj.hoy.aciertos : 0,
+    };
+  }
+  for (const area of AREAS) {
+    const a = esObjeto(obj.areas) ? obj.areas[area] : null;
+    if (esObjeto(a) && Number.isInteger(a.nivel) && a.nivel >= 1 && a.nivel <= 5) {
+      estado.areas[area] = {
+        nivel: a.nivel,
+        seguidosOk: Number.isInteger(a.seguidosOk) ? a.seguidosOk : 0,
+        seguidosKo: Number.isInteger(a.seguidosKo) ? a.seguidosKo : 0,
+        ultimas: Array.isArray(a.ultimas) ? a.ultimas.filter((x) => typeof x === 'boolean').slice(-20) : [],
+      };
+    }
+  }
+  estado.tarjetas = {};
+  if (esObjeto(obj.tarjetas)) {
+    for (const [id, t] of Object.entries(obj.tarjetas)) {
+      if (esObjeto(t) && Number.isInteger(t.caja) && t.caja >= 0 && t.caja <= 4 && RE_FECHA.test(t.proximo ?? '')) {
+        estado.tarjetas[id] = {
+          caja: t.caja,
+          proximo: t.proximo,
+          aciertos: Number.isInteger(t.aciertos) ? t.aciertos : 0,
+          fallos: Number.isInteger(t.fallos) ? t.fallos : 0,
+        };
+      }
+    }
+  }
+  estado.reportadas = Array.isArray(obj.reportadas) ? obj.reportadas.filter((x) => typeof x === 'string') : [];
+  estado.historial = Array.isArray(obj.historial) ? obj.historial.filter(esObjeto).slice(-500) : [];
+  return estado;
 }

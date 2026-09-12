@@ -194,6 +194,25 @@ describe('seleccionarPartida', () => {
     }
   });
 
+  test('si falta un tipo, rellena el cupo con otros tipos hasta n (objeción adversarial 1)', () => {
+    const soloVfYTest = banco.filter((p) => p.tipo === 'vf' || p.tipo === 'test4');
+    const estado = crearEstado(HOY);
+    const ids = seleccionarPartida(estado, soloVfYTest, HOY, 10, rngDeterminista());
+    assert.equal(ids.length, 10);
+    assert.equal(new Set(ids).size, 10);
+  });
+
+  test('con 12 preguntas de niveles 1-2 y área nivel 1 devuelve 10, no 6', () => {
+    const doce = [];
+    for (const area of AREAS.slice(0, 4)) {
+      for (const tipo of ['vf', 'test4', 'ordenar']) {
+        doce.push(crearPregunta(area, tipo, doce.length % 2 === 0 ? 1 : 2, 'x'));
+      }
+    }
+    const ids = seleccionarPartida(crearEstado(HOY), doce, HOY, 10, rngDeterminista());
+    assert.equal(ids.length, 10);
+  });
+
   test('banco de 4 preguntas devuelve 4, no lanza', () => {
     const bancoPequeno = banco.slice(0, 4);
     const estado = crearEstado(HOY);
@@ -405,6 +424,20 @@ describe('exportar / importar', () => {
     const json = exportar(estado);
     const estado2 = importar(json);
     assert.deepStrictEqual(estado, estado2);
+  });
+
+  test('importar con areas vacías y racha rota normaliza y permite jugar (objeción adversarial 2)', () => {
+    const roto = {
+      version: 1, xp: 0, combo: 0, racha: {}, hoy: { fecha: HOY, respondidas: 0, aciertos: 0 },
+      areas: {}, tarjetas: { mala: { caja: 'x' } }, reportadas: 'no-array', historial: [],
+    };
+    const estado = importar(JSON.stringify(roto));
+    assert.equal(estado.areas.economia.nivel, 1);
+    assert.deepEqual(estado.racha, { dias: 0, ultimaFecha: null });
+    assert.deepEqual(estado.reportadas, []);
+    assert.equal(estado.tarjetas.mala, undefined);
+    const pregunta = crearPregunta('economia', 'test4', 1);
+    assert.doesNotThrow(() => registrarRespuesta(estado, pregunta, true, HOY));
   });
 
   test('importar {} lanza', () => {
