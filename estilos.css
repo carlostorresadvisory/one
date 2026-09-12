@@ -749,6 +749,11 @@ main#app {
   height: 6px;
   border-radius: 50%;
   background: var(--tarjeta);
+  transition: background 0.15s ease;
+}
+
+.resumen-repaso-punto--activo {
+  background: var(--acento);
 }
 
 .resumen-repaso-vacio {

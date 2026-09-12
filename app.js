@@ -224,7 +224,8 @@ function renderRadar(porArea) {
   if (porArea.some((fila) => fila.solidez > 0)) {
     const puntosSolidez = porArea
       .map((fila, i) => {
-        const fraccion = Math.max(0.04, Math.min(1, fila.solidez));
+        const solidez = Number.isFinite(fila.solidez) ? fila.solidez : 0;
+        const fraccion = Math.max(0.04, Math.min(1, solidez));
         const p = puntoRadar(i, total, fraccion, RADAR_RADIO);
         return `${p.x},${p.y}`;
       })
@@ -937,7 +938,19 @@ function renderRepaso() {
     punto.className = 'resumen-repaso-punto';
     repasoPuntos.appendChild(punto);
   });
+  sincronizarPuntosRepaso();
 }
+
+/** Marca el punto del carrusel que corresponde a la tarjeta visible (hallazgo de la
+ * pasada adversarial del 12-sep: los puntos se pintaban pero nunca cambiaban). */
+function sincronizarPuntosRepaso() {
+  const puntos = repasoPuntos.children;
+  if (puntos.length === 0) return;
+  const ancho = repasoCarrusel.firstElementChild ? repasoCarrusel.firstElementChild.offsetWidth + 10 : 1;
+  const indice = Math.min(puntos.length - 1, Math.max(0, Math.round(repasoCarrusel.scrollLeft / ancho)));
+  for (let i = 0; i < puntos.length; i++) puntos[i].classList.toggle('resumen-repaso-punto--activo', i === indice);
+}
+repasoCarrusel.addEventListener('scroll', sincronizarPuntosRepaso, { passive: true });
 
 /** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y
  * la cuadrícula 4×2 de áreas (una tarjeta tocable por área, con emoji, nota,
@@ -1109,11 +1122,13 @@ nodoConfianzaAlta.addEventListener('click', () => seleccionarConfianza('alta'));
 nodoMision.addEventListener('click', () => {
   if (nodoMision.dataset.tocable !== 'true') return;
   const ids = estado.mision.ids.filter((id) => !estado.mision.hechas.includes(id));
+  if (ids.length === 0) return; // nada que jugar: no arrancar una partida vacía (adversarial 12-sep)
   empezarPartida({ ids, etiqueta: 'Misión de hoy' });
 });
 nodoPendientes.addEventListener('click', () => {
   if (nodoPendientes.dataset.tocable !== 'true') return;
   const ids = pendientes(estado, banco).slice(0, 5).map((p) => p.id);
+  if (ids.length === 0) return;
   empezarPartida({ ids, etiqueta: 'Pendientes' });
 });
 document.querySelector('[data-test="otra"]').addEventListener('click', () => empezarPartida(filtroPartida));
