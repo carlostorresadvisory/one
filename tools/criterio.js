@@ -22,7 +22,11 @@ export const REGLAS_UTILIDAD =
   'velocidades o tamaños de especificación, quién fundó o creó una tecnología salvo que la historia sea ' +
   'relevante, fechas sueltas sin causa ni consecuencia, records y superlativos sin mecanismo detrás, ' +
   'clasificaciones taxonómicas de memorieta, definiciones de diccionario, y cualquier cosa que solo ' +
-  'sabría un especialista de esa profesión (administrador de sistemas, bibliotecario, taxónomo).';
+  'sabría un especialista de esa profesión (administrador de sistemas, bibliotecario, taxónomo). ' +
+  'Redacción impecable en español: concordancia de género y número entre el sustantivo y sus artículos y ' +
+  'adjetivos ("conflictos… del más antiguo al más reciente", nunca "de la más antigua"), sin anglicismos ' +
+  'innecesarios ni calificativos mal aplicados (no llames "mundial" a una guerra que no lo fue); una pregunta ' +
+  'con un error de redacción o de concordancia se rechaza aunque el contenido sea correcto.';
 
 // Escala de dificultad, redefinida por Carlos el 12-sep: el nivel mide a QUIÉN le resulta
 // obvia la pregunta, no lo técnico del tema. Antes el generador ponía "nivel 1" a cosas de

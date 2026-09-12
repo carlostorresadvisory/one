@@ -1,0 +1,3376 @@
+[
+  {
+    "id": "eco-001",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una definición de manual del PIB, sin mecanismo, contexto ni utilidad conversacional nueva.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-002",
+    "area": "economia",
+    "utilidad": 2,
+    "motivo": "Aporta una lógica básica de la competencia perfecta, pero permanece en un ejercicio puramente académico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-003",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica bien por qué las expectativas eliminan el trade-off inflación-desempleo a largo plazo, una referencia macroeconómica útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-004",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una distinción técnica de teoría de juegos sin aplicación ni mecanismo relevante para el público objetivo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-005",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Repite una definición de manual del PIB y solo evita el doble cómputo, sin contexto ni mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-006",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Contrasta de forma útil el corto y el largo plazo en la Phillips y explica el papel de las expectativas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-007",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "La distinción entre elevar el nivel de producción y su crecimiento duradero es una idea macroeconómica valiosa y bien justificada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-009",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Muestra claramente cómo una reserva obligatoria menor puede ampliar el crédito y la oferta monetaria.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-010",
+    "area": "economia",
+    "utilidad": 3,
+    "motivo": "Presenta una conclusión importante de Solow, pero explica poco el porqué frente a la acumulación de capital.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-011",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Plantea una condición técnica y académica de expectativas racionales, demasiado especializada para este formato.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-013",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una definición de diccionario, expresamente poco útil según las reglas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-016",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Se limita a definir el PIB mediante una opción obvia, sin enseñar un mecanismo o debate.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-017",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una definición básica de inflación, sin causa, consecuencias ni conexión con la vida real.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-018",
+    "area": "economia",
+    "utilidad": 2,
+    "motivo": "Recuerda una referencia macroeconómica conocida, pero solo formula una relación sin explicar su mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-019",
+    "area": "economia",
+    "utilidad": 2,
+    "motivo": "El teorema es una referencia intelectual, pero el enunciado exige memorizar axiomas sin aplicación cotidiana.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-022",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación taxonómica de estructuras de mercado que premia memorizar un orden.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-023",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Ordenar niveles administrativos por ámbito es conocimiento obvio y ajeno a un mecanismo económico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-024",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Reduce la elasticidad a memorizar umbrales y categorías, sin aplicarla a decisiones o precios.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-026",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Exige recordar las etapas de un modelo histórico sin explicar su mecanismo ni su vigencia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-027",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Se basa en siglas y categorías monetarias prohibidas, además de pedir una mera clasificación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-028",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación taxonómica para memorizar, sin mecanismo aplicado ni contexto memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-029",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Solo exige ordenar escuelas por antigüedad, una cronología memorística sin causas ni consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-030",
+    "area": "economia",
+    "utilidad": 3,
+    "motivo": "Corrige un error básico y sugiere el incentivo de los productores, pero no desarrolla por qué cambia la oferta.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-031",
+    "area": "economia",
+    "utilidad": 3,
+    "motivo": "Aclara un detalle relevante para interpretar el desempleo, aunque se limita a corregir el denominador.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-033",
+    "area": "economia",
+    "utilidad": 2,
+    "motivo": "Reconoce un concepto conocido, pero la explicación es casi tautológica y no aporta un mecanismo aplicable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-034",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una definición de diccionario del PIB sin mecanismo, referencia conversacional ni conexión actual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-035",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica claramente por qué la fragmentación y la homogeneidad convierten a las empresas en precio-aceptantes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-036",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Distingue bien el corto y el largo plazo mediante el ajuste de las expectativas, una idea clave para debatir inflación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-037",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Presenta el mecanismo de Coase: sin costes de transacción, la negociación puede internalizar externalidades.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-038",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Repite la definición estándar del PIB sin explicar qué omite, por qué importa o cómo se relaciona con la realidad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-039",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica por qué no existe un intercambio permanente entre inflación y desempleo cuando se ajustan las expectativas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-041",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una pregunta de definición elemental sobre el PIB, sin valor añadido en la explicación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-042",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Se limita a definir el coste de oportunidad, justo el tipo de contenido memorístico prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-043",
+    "area": "economia",
+    "utilidad": 2,
+    "motivo": "Identifica un instrumento bancario, pero no explica su transmisión sobre crédito, consumo, inversión o inflación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-045",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es otra formulación puramente definitoria del PIB, sin mecanismo ni contexto que la haga memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-046",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Aunque añade que no es un gasto directo, sigue siendo una definición escolar sin aplicación concreta.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-048",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica el mecanismo de la ventaja comparativa: importa el coste relativo, no solo la productividad absoluta.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-053",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es teoría académica especializada de equilibrio general, inadecuada para la utilidad general exigida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-056",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Consiste en memorizar una taxonomía de regímenes cambiarios sin explicar sus incentivos o consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-062",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Vuelve a reducir la economía a ordenar escuelas por fechas, sin ideas, causas ni debate aplicable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-063",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es una definición aislada del PIB, un formato expresamente poco útil según las reglas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-064",
+    "area": "economia",
+    "utilidad": 3,
+    "motivo": "Aclara la diferencia entre corto y largo plazo en la curva de Phillips, aunque no explica por qué desaparece el trade-off.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-065",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica claramente un mecanismo relevante de crecimiento: los rendimientos decrecientes conducen al estado estacionario.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-066",
+    "area": "economia",
+    "utilidad": 1,
+    "motivo": "Es trivia sobre nombres y años de un premio, sin mecanismo ni valor conversacional duradero.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-067",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica bien por qué la inflación y el año base separan el PIB nominal del real, concepto aplicable al analizar datos económicos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-068",
+    "area": "economia",
+    "utilidad": 3,
+    "motivo": "Corrige una idea importante sobre Phillips, pero enuncia la verticalidad a largo plazo sin desarrollar sus causas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-069",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Explica transmisión de tipos a créditos y vincula con subidas 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-070",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Describe externalidades cruzadas y menciona debates regulatorios recientes.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-071",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Corrige mito sobre crisis 2008 y explica mecanismo real, sin dato reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-072",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Aclara límite del efecto anclaje y su implicación en decisiones financieras.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-073",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Detalla transmisión rápida a hipotecas variables y cita BCE 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-074",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Corrige modelo de ingresos de plataformas y explica take‑rate.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-075",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Desmiente postura de Friedman y enlaza con debate post‑pandemia sobre BC.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-076",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Identifica canal de demanda agregada y menciona subidas Fed/BCE 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-077",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Explica teoría del tonto mayor y la vincula con meme‑stock y cripto 2021‑22.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-078",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Da justificación proteccionista del arancel al acero y cita EE. UU./UE 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-079",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Presenta regla r>g de Piketty y conecta con debates de impuestos 2022‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-080",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Explica efecto inmediato de subir tipos y cita Fed/BCE 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-081",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Describe titulización de subprime como canal de contagio y menciona debate cripto.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-082",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Explica valoración por efectos de red y menciona megavaloraciones 2023‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-083",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Detalla estrategia China+1 post‑pandemia y guerra Ucrania, vigente 2024‑25.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-084",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Explica mecanismo de freno inflacionario vía crédito y cita 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-086",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Ordena caídas de crises y vincula caída crypto 2022 con debate stablecoins.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-087",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Clasifica múltiplos EV/EBITDA y menciona plataformas IA 2023‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-089",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Ordena velocidad de reacción a inflación sin referencia reciente explícita.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-090",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Ordena velocidad de formación de burbujas y cita manías NFT/cripto 2021‑22.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "eco-091",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Enseña por qué la intensidad de capital, los costes variables y la escalabilidad determinan los márgenes y la valoración empresarial.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-092",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Combina concentración productiva, plazos y sincronización con el ejemplo reciente de la escasez de chips, ofreciendo un mecanismo transferible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-093",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Organiza cuatro corrientes en una escala discutible pero comprensible y enlaza cada postura con un mecanismo económico real.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-094",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica con claridad cómo las compras de bonos inyectan liquidez y presionan los tipos a la baja, con una referencia reciente.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-095",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Explica por qué la quiebra de Lehman provocó pánico sistémico y ofrece la referencia duradera de «demasiado grande para caer».",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-096",
+    "area": "economia",
+    "utilidad": 5,
+    "motivo": "Corrige una exageración sobre la desglobalización con datos recientes y distingue reconfiguración comercial de contracción absoluta.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "eco-097",
+    "area": "economia",
+    "utilidad": 4,
+    "motivo": "Aunque parte de un sesgo muy conocido, lo aplica bien a la polarización y a la persistencia de narrativas falsas recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-001",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es un superlativo territorial sin explicar causas, contexto ni consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-003",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Revela el freno institucional del Senado y su consecuencia directa: la ausencia estadounidense en la Liga.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-004",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Presenta la «larga duración» de Braudel y explica por qué las estructuras profundas condicionan los acontecimientos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-005",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Resume un resultado muy conocido sin explicar las causas de la crisis ni sus consecuencias institucionales.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-006",
+    "area": "historia",
+    "utilidad": 3,
+    "motivo": "Vincula Versalles con la creación de la Liga, pero no explica las causas de su ineficacia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-007",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Marca un hito y una fecha, pero no explica sus causas ni su impacto geopolítico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-008",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Identifica una civilización, pero no aporta mecanismo histórico ni una referencia conversacional útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-009",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica la relevancia duradera de Westfalia al asociarla con el fin de la guerra y la soberanía estatal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-011",
+    "area": "historia",
+    "utilidad": 3,
+    "motivo": "Aporta una teoría causal reconocible, pero se limita a definir una etiqueta académica sin aplicarla a un caso.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-012",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Es una atribución de fundador sin explicar el contexto, la decisión ni su impacto duradero.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-013",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Sitúa el final formal en un acto concreto, pero no aborda causas ni consecuencias más amplias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-014",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica la relevancia duradera de Westfalia al asociarla con el fin de la guerra y la soberanía estatal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-016",
+    "area": "historia",
+    "utilidad": 3,
+    "motivo": "Añade el propósito funerario y el contexto dinástico, aunque la pregunta sigue siendo una identificación básica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-018",
+    "area": "historia",
+    "utilidad": 3,
+    "motivo": "Presenta un cambio conceptual memorable, pero no explica sus pruebas, resistencia ni consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-021",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una cronología taxonómica de fechas aproximadas, sin mecanismo ni consecuencia histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-022",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Solo ordena fechas de inicio y omite causas, desarrollos y consecuencias de los conflictos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-023",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es memorización de fechas revolucionarias sin explicar causas ni efectos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-025",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una cronología taxonómica de fechas aproximadas, sin mecanismo ni consecuencia histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-026",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Solo ordena fechas convencionales de fundación, sin explicar procesos políticos ni consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-027",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una secuencia de fechas bélicas sin mecanismo, contexto estratégico ni consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-028",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una ordenación cronológica de fechas sin explicar causas, consecuencias ni mecanismos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-030",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Contrasta un error básico entre civilizaciones, pero no aporta mecanismo ni referencia memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-031",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Corrige una alianza histórica evidente sin explicar por qué se formó el Eje ni sus consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-032",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Aporta líderes y una fecha de la independencia peruana, pero como dato aislado y sin mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-033",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica el desplazamiento de autoridad desde el papa hacia la soberanía territorial, una referencia útil para entender Europa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-034",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una fecha aislada sin causa ni consecuencia, expresamente poco útil según las reglas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-035",
+    "area": "historia",
+    "utilidad": 3,
+    "motivo": "Corrige el resultado de Waterloo y señala que cerró el gobierno napoleónico, aunque sin profundizar en el mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-036",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Menciona el origen y los sectores de la Revolución Industrial, pero no explica por qué empezó en Gran Bretaña ni cómo transformó la economía.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-037",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Distingue dos guerras y tratados, pero se apoya sobre todo en fechas sin explicar consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-038",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Conecta la imprenta con la reproducción barata de textos, la difusión de ideas, el Renacimiento y la Reforma mediante un mecanismo claro.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-039",
+    "area": "historia",
+    "utilidad": 2,
+    "motivo": "Corrige qué conflicto terminó Westfalia, pero no explica el significado de la soberanía estatal ni el contexto de Utrecht.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-040",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Enseña mecanismo de crisis que fragmentó imperio y enlaza con fronteras europeas actuales.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-041",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica por qué la frontera franco-alemana no es estática y muestra evolución histórica.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-042",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Relaciona la estrategia de Bismarck con la geopolítica reciente (Ucrania 2022‑24).",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-043",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Identifica la verdadera primera burbuja (tulipán) y conecta con volatilidad cripto 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-044",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Muestra causas sistémicas de la caída de Roma y cita estudio 2023 sobre capacidad tributaria.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-045",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Detalla resultados de Utrecht y vincula con debate actual sobre Gibraltar 2022‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-046",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Explica factores de la Revolución Industrial y los enlaza con auge de IA 2023‑25.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-047",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Indica la crisis financiera como causa inmediata de la Revolución Francesa.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-048",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica el origen del conflicto de Olivenza por ocupación española tras Tratado de Lisboa.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-049",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Describe la pérdida de posesiones europeas de España tras Utrecht.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-051",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Muestra cómo la devaluación monetaria provocó hiperinflación y la vincula a debates de inflación actual.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-052",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica la persistencia de la frontera del Rin desde Verdún y su relevancia en la UE.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-053",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Relata los Decretos de Nueva Planta y su eco en el debate catalán actual.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-054",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Describe la política de ‘hierro y sangre’ de Bismarck y su estudio en realpolitik contemporánea.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-055",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Indica la deposición de Rómulo Augústulo como símbolo y su uso en debates de derecho romano.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-056",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica cómo el Congreso de Viena fijó el Rin como frontera y su influencia en disputas actuales.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-057",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Identifica el Tratado de Utrecht y su principio de equilibrio de poder en diplomacia actual.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-058",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica la venta de Luisiana por necesidad de fondos y su eco en debates de fronteras y recursos.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-059",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Muestra la emisión de acciones negociables como origen de la sociedad anónima moderna.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-060",
+    "area": "historia",
+    "utilidad": 5,
+    "motivo": "Ordena hitos monetarios y conecta con la política de tipos 2022‑24 tras el colapso de Bretton Woods.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "his-061",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Aclara una confusión histórica relevante: la tolerancia legal no equivale a religión oficial, distinguiendo 313 de 380 con sentido institucional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-062",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Muestra por qué una partición medieval no puede equipararse a una frontera actual, una referencia útil para entender Europa, aunque simplifica los procesos posteriores.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-063",
+    "area": "historia",
+    "utilidad": 1,
+    "motivo": "Es una corrección de fecha aislada, sin mecanismo, causa ni consecuencia que aporte comprensión histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "his-064",
+    "area": "historia",
+    "utilidad": 4,
+    "motivo": "Explica que la desobediencia civil actuó mediante presión política y que la independencia dependió de procesos posteriores como la Segunda Guerra Mundial y la partición.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-001",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Solo compara porcentajes atmosféricos y no explica ningún mecanismo ni relevancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-002",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "Presenta la reacción global y la fuente de energía, pero no explica por qué ocurren esas transformaciones.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-003",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es un dato exacto de metrología y una redefinición normativa, útil casi solo para especialistas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-005",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Aporta una composición atmosférica básica, pero se limita a porcentajes sin explicar el porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-006",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "La relación entre oscilaciones y masa no nula es una inferencia científica interesante, aunque falta explicar su mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-007",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Repite la formulación técnica del principio sin ofrecer una intuición accesible ni una consecuencia relevante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-008",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Es un porcentaje aislado de abundancia elemental, sin mecanismo ni contexto útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-009",
+    "area": "ciencia",
+    "utilidad": 4,
+    "motivo": "Explica que la diferencia de electronegatividad polariza el enlace O-H, mecanismo clave para comprender propiedades del agua.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-010",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "Relaciona presión y volumen a temperatura constante, pero no explica la causa microscópica de esa relación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-011",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Pregunta por un tensor de relatividad general, contenido de especialista sin aplicación cotidiana clara.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-012",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Solo pide recordar la composición atmosférica y no desarrolla el porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-013",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Ordena regiones del espectro de memoria, sin explicar la física ni una consecuencia útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-014",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Define un operador de mecánica cuántica en lenguaje técnico, sin mecanismo accesible ni relevancia cotidiana.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-015",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Se centra en grupos de gauge y notación del modelo estándar, propia de física de partículas avanzada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-016",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Repite un dato elemental de composición atmosférica sin aportar mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-018",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Exige memorizar una configuración electrónica concreta, útil casi exclusivamente en química especializada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-020",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Identifica un bosón concreto de la interacción débil, dato de especialista sin mecanismo accesible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-021",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Ordenar planetas por distancia es memorización taxonómica sin mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-022",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Ordenar elementos por número atómico es una secuencia memorística sin explicación causal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-023",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Clasifica regiones electromagnéticas por longitud de onda sin explicar la relación física ni aplicaciones.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-030",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "Corrige una confusión habitual entre la materia en la Tierra y en el universo, aunque apenas explica el mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-031",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Contrasta dos funciones celulares básicas, pero se limita a memorizar orgánulos sin explicar el proceso energético.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-033",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación de la tabla periódica de tipo memorístico, expresamente poco útil según las reglas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-034",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Aporta la clasificación espectral del Sol, pero usa jerga técnica y no revela un mecanismo relevante para la vida diaria.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-035",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es una definición elemental sobre la carga del neutrón sin mecanismo ni contexto aprovechable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-036",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "La relación entre energía y frecuencia es una idea cuántica útil, aunque falta explicar por qué existe o dónde se observa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-037",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "El mecanismo de Higgs y los bosones W y Z pertenecen a una física de partículas demasiado especializada para este público.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-038",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "El 21% de oxígeno es un dato memorable con contexto atmosférico, pero no enseña qué lo causa ni por qué importa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-040",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "La distinción entre fermiones de distintos espines semienteros es conocimiento especializado sin aplicación cotidiana clara.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-041",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "La explicación menciona la producción de ATP, pero la pregunta solo premia recordar el sobrenombre de la mitocondria.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-042",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Identificar el argón como gas noble es una clasificación taxonómica memorística prohibida por las reglas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-044",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "El mantenimiento de la metilación por DNMT1 es un mecanismo molecular propio de especialidad, no de cultura general útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-045",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Repite una pregunta escolar que distingue la mitocondria, con una explicación demasiado breve y técnica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-046",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Solo exige reconocer un elemento como gas noble, una clasificación de memorieta sin mecanismo ni consecuencia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-047",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Relacionar el fotón con el electromagnetismo es correcto, pero la pregunta no explica cómo surge esa interacción ni por qué importa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-048",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "La violación de paridad en el cobalto-60 y el experimento de Wu son trivia de física de partículas demasiado especializada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-049",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Es otra repetición del tópico de la mitocondria y no aporta una explicación nueva o memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-050",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Reconocer el argón como gas noble es una clasificación elemental y memorística sin valor mecánico añadido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-051",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "La relación inversa entre presión y volumen da una intuición física útil, aunque falta explicar su causa molecular.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-052",
+    "area": "ciencia",
+    "utilidad": 4,
+    "motivo": "Explica con claridad la secuencia causal por la que una estrella como el Sol termina como enana blanca.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-054",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es una secuencia planetaria memorística; no explica ningún mecanismo ni ofrece contexto conversacional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-055",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Ordena categorías del espectro de memoria y solo repite el criterio, sin explicar energía o aplicaciones.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-056",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es una lista cronológica de periodos sin causas, consecuencias ni hitos que la hagan relevante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-057",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Comparación especializada y dependiente de la escala, sin explicar por qué cambian las intensidades relativas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-058",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Apunta al movimiento molecular, pero presenta la energía cinética como si dependiera del estado y simplifica en exceso.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-061",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Memoriza capas y altitudes sin explicar qué procesos físicos las separan.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-062",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Clasificación espectral memorística con rangos numéricos de especialista y sin mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-063",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Corrige una idea extendida sobre el plasma, pero no explica por qué es raro en las condiciones terrestres.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-064",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Es una distinción básica de memorización; falta explicar la función o el origen de la pared celular.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-065",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Corrige una etiqueta falsa, pero no aclara por qué la conservación de la energía no es una cuarta ley de Newton.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-066",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Confunde símbolos químicos de forma puramente memorística y no enseña ningún principio útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-067",
+    "area": "ciencia",
+    "utilidad": 2,
+    "motivo": "Dato llamativo pero aislado; no explica la química ni la formación que lo causan.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-068",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "Presenta el mecanismo semiconservativo, aunque no explica por qué conservar una hebra facilita copiar y revisar el ADN.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-069",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Centrada en una constante exacta y una redefinición metrológica, resulta demasiado técnica y alejada de mecanismos cotidianos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-070",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Acumula siglas y fechas de física de partículas sin explicar qué aportó el Higgs ni por qué importa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-071",
+    "area": "ciencia",
+    "utilidad": 1,
+    "motivo": "Definición elemental de memorización, sin mecanismo ni conexión con fenómenos observables.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-072",
+    "area": "ciencia",
+    "utilidad": 3,
+    "motivo": "Corrige una idea importante, pero no explica que el límite surge de la naturaleza ondulatoria y de observables incompatibles.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-073",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Explica mecanismo glinfático y cita estudio 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-075",
+    "area": "ciencia",
+    "utilidad": 4,
+    "motivo": "Explica sustentación por downwash/Newton, sin dato reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-077",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Mecanismo de síntesis de vitamina D y referencia 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-081",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Mecanismo de fiebre y debate COVID‑19 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-082",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Mecanismo GEI y cita IPCC 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-083",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Dispersión de Rayleigh y medición satélite 2022.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-084",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Órbita geoestacionaria y lanzamientos 2023‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-085",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Sueño profundo y glinfático, estudio 2023 de Alzheimer.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-086",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Sustentación por downwash/Newton, divulgación 2022‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-087",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Epigenética y estudios humanos 2022‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-088",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Curva de aprendizaje solar y informe IEA 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-089",
+    "area": "ciencia",
+    "utilidad": 4,
+    "motivo": "Relación energía‑longitud de onda, sin dato reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-090",
+    "area": "ciencia",
+    "utilidad": 4,
+    "motivo": "Orden de fases del sueño y glinfático, sin dato reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-091",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Emisiones CO₂ por fuente y taxonomía UE 2022.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-092",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Jerarquía de evidencia y ejemplo hidroxicloroquina pandemia.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "cie-094",
+    "area": "ciencia",
+    "utilidad": 5,
+    "motivo": "Identifica error en fases del sueño y estudio 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-001",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Preguntar por un número de puerto predeterminado está expresamente prohibido y no aporta un mecanismo útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-002",
+    "area": "tecnologia",
+    "utilidad": 2,
+    "motivo": "La distinción técnica enseña poco si no explica el cuello de botella ni sus consecuencias prácticas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-007",
+    "area": "tecnologia",
+    "utilidad": 3,
+    "motivo": "Introduce la prueba de trabajo de Bitcoin, pero no explica por qué el coste computacional aporta seguridad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-009",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Pedir el significado de una sigla es un tipo de pregunta expresamente prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-010",
+    "area": "tecnologia",
+    "utilidad": 2,
+    "motivo": "Identificar SFTP es correcto, pero la respuesta no contrasta su cifrado con la inseguridad de FTP.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-011",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Memorizar capas del modelo OSI es trivia de especialista sin valor práctico para el jugador.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-012",
+    "area": "tecnologia",
+    "utilidad": 3,
+    "motivo": "Aporta una referencia sobre Bitcoin, aunque repite el enunciado anterior y omite el porqué de su seguridad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-013",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Pedir el significado de una sigla es un tipo de pregunta expresamente prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-014",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Preguntar por un número de puerto predeterminado está expresamente prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-015",
+    "area": "tecnologia",
+    "utilidad": 4,
+    "motivo": "Explica de forma clara el paso esencial que convierte un nombre web en una dirección utilizable por la red.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-016",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Memorizar la capa OSI responsable del enrutamiento es una clasificación técnica de especialista.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-017",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "El algoritmo de hash concreto de Bitcoin es un detalle especialista que no enseña un mecanismo aplicable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-018",
+    "area": "tecnologia",
+    "utilidad": 4,
+    "motivo": "La secuencia hardware-firmware-sistema operativo-aplicación ayuda a entender cómo se construyen las capas de un dispositivo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-020",
+    "area": "tecnologia",
+    "utilidad": 4,
+    "motivo": "Ordenar estos lenguajes revela cómo la abstracción aleja al programador de la CPU y traslada tareas de gestión.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-021",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Comparar algoritmos por tamaños de clave es una memorización de especificaciones expresamente prohibida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-022",
+    "area": "tecnologia",
+    "utilidad": 2,
+    "motivo": "El orden de unidades es básico, pero la pregunta se limita a una escala memorística sin mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-023",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Ordenar generaciones por fechas y estándares no explica cómo han cambiado las redes ni por qué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-024",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Ordenar versiones de un estándar por año de publicación está expresamente prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-025",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Ordenar microarquitecturas por año de lanzamiento está expresamente prohibido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-026",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Ordenar tecnologías por velocidades de transmisión es una trivia de especificaciones expresamente prohibida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-027",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación técnica sin mecanismo, contexto ni valor conversacional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-028",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Pregunta sobre números de puerto, expresamente prohibida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-029",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Es taxonomía de arquitecturas propia de especialistas y sin explicación útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-033",
+    "area": "tecnologia",
+    "utilidad": 3,
+    "motivo": "Explica de forma básica el papel de TCP/IP, pero se queda en una descripción general sin conexión actual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-034",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Indaga quién creó una tecnología, dato prohibido y desprovisto de mecanismo o relevancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-035",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Se centra en una versión de estándar, categoría expresamente prohibida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-036",
+    "area": "tecnologia",
+    "utilidad": 1,
+    "motivo": "Combina creador y fecha de una tecnología, dos tipos de trivia prohibidos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-037",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Explica mecanismo de entrenamiento de LLMs y vincula con debates de licencias 2023‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-038",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Describe cómo llega Internet al móvil por cables submarinos y cita cortes/sabotaje 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-040",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Explica ventaja de baterías estado sólido y menciona prototipos 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-041",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Detalla por qué la pantalla multitáctil del iPhone habilitó apps y enlaza con debates de tiendas 2023‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-042",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Explica alucinación de LLMs como predicción estadística y cita caso abogado 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-043",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Muestra por qué EUV es cuello de botella geopolítico y referencia controles 2022‑2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-044",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Explica obstáculo de dendritas en ánodos de litio y menciona prototipos 2023‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-045",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Describe cómo LLMs generan texto coherente y conecta con debate de fiabilidad 2023‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-046",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Da porcentaje de tráfico por cables submarinos y menciona sistema 2Africa 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-047",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Explica por qué EUV es punto estratégico y cita restricciones de exportación 2022‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-048",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Detalla cómo E2E garantiza privacidad y vincula con debate legislativo 2022‑2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-050",
+    "area": "tecnologia",
+    "utilidad": 4,
+    "motivo": "Ordena tecnologías por latencia explicando dependencia de distancia y medio.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-051",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Ordena nodos de semiconductores y vincula con inicio de producción 3 nm de TSMC 2022.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-052",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Ordena claves simétricas por resistencia y cita recomendación 2023 para migrar a 256 bits.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-053",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Ordena baterías por densidad de energía y menciona anuncios LFP 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-054",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Identifica error sobre conexión satelital y explica uso real de torres celulares.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-055",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Identifica error sobre fiabilidad de IA y explica mecanismo de alucinación.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-056",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Identifica error sobre litografía no esencial y explica su papel geopolítico.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "tec-057",
+    "area": "tecnologia",
+    "utilidad": 5,
+    "motivo": "Identifica error sobre backdoor y explica cómo debilita la seguridad.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "geo-001",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Aporta una referencia cartográfica clara, pero no explica por qué el estrecho es estratégico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-002",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es un superlativo basado solo en una cifra de longitud, sin mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-003",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es un récord geográfico aislado que no enseña una causa o consecuencia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-004",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Explica bien cómo la subducción produce la fosa, la sismicidad y el volcanismo andino.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-005",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Es un dato cartográfico elemental sin explicación de por qué ocurre.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-006",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación por superficie sin mecanismo, causa ni relevancia contextual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-007",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Ofrece una referencia geográfica útil sobre una barrera natural, aunque no desarrolla sus efectos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-009",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Presenta una frontera relevante, pero se limita a describirla sin explicar sus implicaciones geopolíticas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-010",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Aclara de forma memorable que un desierto se define por la escasa precipitación, no por el calor.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-011",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Aporta una referencia cultural y cartográfica conocida, pero sin explicar por qué se eligió esa divisoria.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-012",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Explica un dato sorprendente mediante la distribución mundial de los territorios franceses de ultramar.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-013",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación tectónica basada en un superlativo y sin mecanismo explicativo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-014",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una ordenación memorística de superficies sin enseñanza causal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-015",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una comparación de longitudes que solo exige recordar cifras.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-016",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una lista de altitudes sin mecanismo ni contexto aprovechable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-017",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Combina una ordenación memorística con terminología demasiado especializada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-018",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una clasificación puramente memorística de superficies nacionales.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-019",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una ordenación estadística municipal sin explicar causas demográficas ni urbanas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-020",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una comparación de cifras de altitud sin mecanismo ni relevancia contextual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-021",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una ordenación de longitudes fluviales que no aporta una explicación geográfica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-022",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Es una ordenación memorística de coordenadas sin mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-023",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Corrige un error básico, pero no explica por qué la Antártida carece de soberanos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-024",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Solo contrasta dos ubicaciones del Misisipi sin aportar causa ni perspectiva geopolítica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-025",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "La corrección es elemental y no ayuda a entender la distribución de las cordilleras.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-027",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es un superlativo con una cifra, sin mecanismo, y cae en la trivia prohibida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-028",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Enseña una localización básica del Gobi, pero sin relación con el clima o la geografía regional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-030",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Se limita a un récord de profundidad y una comparación numérica sin explicación causal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-031",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Aclara de forma memorable que los desiertos se definen por la escasa precipitación, no solo por el calor.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-032",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "La lista de siete países es un dato de mapa, pero no explica por qué los Andes siguen ese recorrido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-033",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Presenta una referencia biogeográfica memorable, aunque no explica la causa física de la frontera.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-034",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Es una correspondencia oceánica básica sin mecanismo ni contexto aprovechable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-035",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Corrige una ubicación costera elemental, pero no aporta una idea geopolítica o física.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-037",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Plantea un récord fluvial y una longitud sin explicar su relevancia o causa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-038",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "La relación entre África oriental y el Índico es correcta, pero demasiado básica y descontextualizada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-039",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Identifica una cadena montañosa nacional sin explicar su formación ni su relevancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-040",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es un superlativo hidrológico con una cifra, sin mecanismo sobre la cuenca amazónica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-042",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Ordena superficies de memoria y no revela por qué esos microestados tienen esas escalas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-043",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Es una ordenación de latitudes sin conexión con clima, relieve o dinámicas urbanas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-044",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "La comparación de longitudes es memorística y no explica el recorrido ni la importancia de los ríos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-045",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Ordena altitudes célebres como trivia de récords, sin mecanismo geológico ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-046",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Es un recuento memorístico de fronteras que no explica ningún mecanismo ni contexto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-052",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "Aporta un dato básico y algo de contexto, pero no explica por qué Canberra resolvió la rivalidad entre Sídney y Melbourne.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-053",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Corrige un error frecuente y explica el mecanismo de subducción que forma los Andes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-054",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es un récord de profundidad con una cifra exacta y sin mecanismo ni relevancia explicativa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-055",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Se limita a un superlativo y una comparación de caudales sin explicar por qué el Amazonas descarga tanta agua.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-056",
+    "area": "geografia",
+    "utilidad": 1,
+    "motivo": "Es una comparación de longitudes y un superlativo sin mecanismo ni contexto físico o geopolítico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-057",
+    "area": "geografia",
+    "utilidad": 5,
+    "motivo": "Vincula la cuenca, las lluvias tropicales y el flujo de agua dulce con los debates recientes sobre deforestación y clima.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-058",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Explica bien la dependencia de un cuello de botella artificial, aunque su anclaje reciente es vago y el evento citado es de 2021.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-059",
+    "area": "geografia",
+    "utilidad": 5,
+    "motivo": "Combina proyecciones recientes de la ONU con fecundidad, migración y sus consecuencias para el mercado laboral global.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-060",
+    "area": "geografia",
+    "utilidad": 2,
+    "motivo": "La comparación de pasajeros es volátil y poco memorable; la explicación aporta escala urbana, pero no un mecanismo sólido.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-061",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Añade la subducción que forma los Andes y sus efectos sísmicos y volcánicos, una referencia geográfica útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-062",
+    "area": "geografia",
+    "utilidad": 5,
+    "motivo": "Explica el mecanismo de estrangulamiento energético y lo conecta con la seguridad comercial y tensiones recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-064",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Explica correctamente el papel del Nilo, pero es conocimiento geográfico muy básico y sin conexión reciente.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-065",
+    "area": "geografia",
+    "utilidad": 4,
+    "motivo": "Ofrece una cifra memorable y explica por qué una interrupción puede afectar a los mercados energéticos globales.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "geo-066",
+    "area": "geografia",
+    "utilidad": 3,
+    "motivo": "Presenta con claridad el mecanismo demográfico, aunque resulta bastante conocido y no se vincula a hechos recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-001",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Enseña mecanismo del empirismo con explicación clara.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-002",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Corrige concepto existencialista y explica por qué.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-003",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica método cartesiano de duda y certeza.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-004",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Aclara epojé y su propósito fenomenológico.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-005",
+    "area": "filosofia",
+    "utilidad": 3,
+    "motivo": "Dato histórico sin mecanismo ni conexión actual.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-006",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Reitera corrección existencialista con explicación.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-007",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica visión kantiana de espacio y tiempo como a priori.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-008",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Identifica autor de la alegoría y su significado.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-009",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica principio utilitarista de máxima felicidad.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-010",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Define epojé y su rol en la fenomenología.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-011",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica concepto foucaultiano de poder‑saber.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-012",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Mismo que fil‑008: referencia a Platón y alegoría.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-014",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Define epojé nuevamente con explicación adecuada.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-015",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica externalismo semántico de Putnam.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-016",
+    "area": "filosofia",
+    "utilidad": 3,
+    "motivo": "Dato de autoría sin mecanismo profundo.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-017",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Define empirismo y su base sensorial.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-018",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Distinción kantiana entre hecho y valor bien explicada.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-019",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Identifica autor de la Crítica y su clasificación de juicios.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-020",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Define epojé con explicación clara.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-021",
+    "area": "filosofia",
+    "utilidad": 3,
+    "motivo": "Corrige atribución errónea sin mecanismo adicional.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "fil-023",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Aclara una simplificación habitual sobre Wittgenstein y explica la función de las formas de vida.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-024",
+    "area": "filosofia",
+    "utilidad": 3,
+    "motivo": "Presenta una distinción conceptual relevante, pero resulta técnica y poco conectada con debates cotidianos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-025",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "Es una atribución histórica con fecha que no aporta mecanismo, causa ni una idea aprovechable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-026",
+    "area": "filosofia",
+    "utilidad": 3,
+    "motivo": "Recoge una distinción kantiana central, aunque la explicación se limita casi a definirla.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-027",
+    "area": "filosofia",
+    "utilidad": 2,
+    "motivo": "Corrige el enunciado, pero se apoya en un término técnico y apenas explica su utilidad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-028",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica por qué el Dasein no puede reducirse a biología al vincularlo con historicidad y proyecto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-029",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Ofrece una referencia filosófica central y relaciona felicidad, virtud y razón de forma clara.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-030",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Contrasta bien la ética kantiana con el consecuencialismo mediante el mecanismo de la universalización.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-031",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Aporta el origen de una referencia ética clásica, explica la tensión acción-omisión y la vincula con los vehículos autónomos recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-033",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Explica por qué la justicia algorítmica exige combatir sesgos y conecta el principio con la Ley de IA de la UE de 2024.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-035",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Presenta una herramienta útil para conversar y razonar, explicando por qué reducir supuestos facilita contrastar una hipótesis.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-036",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Aclara una idea central de Aristóteles al contraponer la vida virtuosa a la satisfacción inmediata de deseos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-037",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Explica la relación entre transparencia, rendición de cuentas y confianza en sistemas que afectan decisiones importantes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-038",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Convierte la banalidad del mal en una referencia conversacional clara y explica su mecanismo burocrático y cognitivo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-039",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Enseña una distinción filosófica fundamental y muestra su vigencia en vehículos autónomos y triaje médico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-040",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Explica una distinción clásica sobre la libertad y la aplica a debates actuales entre regulación y autonomía individual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-041",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Explica de forma accesible el mecanismo de la caja negra y lo relaciona con transparencia regulatoria en decisiones de alto riesgo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-042",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Ofrece una táctica argumentativa memorable, explica su funcionamiento y la conecta con las guerras culturales digitales recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-044",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Explica cómo el velo de ignorancia elimina intereses propios y vincula la idea con renta básica y equidad algorítmica recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-045",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Sintetiza la concepción arendtiana de la acción política y la aplica a la esfera pública digital y la polarización recientes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-047",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Desarrolla bien el dispositivo de Rawls, su protección de los desfavorecidos y su utilidad para debatir el diseño justo de la IA.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-048",
+    "area": "filosofia",
+    "utilidad": 2,
+    "motivo": "La cronología puede aportar contexto, pero el ejercicio premia memorizar fechas más que comprender mecanismos o causas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-049",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "Asigna una cronología artificial a conceptos sin origen único y reduce la filosofía a una ordenación histórica sin mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-050",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "Se apoya en fechas imprecisas y menciona lanzamientos de productos y modelos concretos, recursos expresamente prohibidos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-051",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "Es una exercise de memorizar fechas biográficas sin causa, consecuencia ni enseñanza conceptual relevante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-052",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "La ordenación por años de aparición convierte experimentos filosóficos útiles en trivia cronológica sin explicar su evolución.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-053",
+    "area": "filosofia",
+    "utilidad": 1,
+    "motivo": "Premia recordar fechas de publicación y aparición de conceptos sin explicar el desarrollo ni el impacto de las ideas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-055",
+    "area": "filosofia",
+    "utilidad": 4,
+    "motivo": "Corrige una simplificación frecuente sobre Ockham, explica el valor de la parsimonia y lo aplica al riesgo de narrativas falsas en redes.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-056",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Explica por qué surge el sesgo algorítmico y lo vincula con la regulación y responsabilidad de la IA.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-057",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Aclara la ética de Kant frente al utilitarismo y conecta esa distinción con los debates actuales sobre IA.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "fil-058",
+    "area": "filosofia",
+    "utilidad": 5,
+    "motivo": "Enseña cuándo una autoridad aporta evidencia fiable y relaciona la idea con debates recientes de políticas públicas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-001",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Es una atribución famosa, pero no explica por qué la obra importa ni aporta una idea memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-002",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Corrige una confusión situando el impresionismo en Francia, aunque no explica por qué nació allí ni qué rompió.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-003",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Aporta el contexto memorable del encierro de Van Gogh, pero se limita a datar y describir la vista.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-004",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica cómo el contraste extremo de luz y sombra modela volúmenes y ayuda a entender el tenebrismo barroco.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-005",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Repite una atribución conocida y añade fechas sin causa ni consecuencia que eleven su valor.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-006",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Sitúa el futurismo en el contexto italiano de los manifiestos de vanguardia, pero no explica qué rompía ni por qué importó.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-007",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "La corrección aclara la cronología entre Goya y el impresionismo, aunque sin desarrollar la relación histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-008",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es básicamente una definición taxonómica del impresionismo y no añade un mecanismo o referencia debatible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-009",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Solo pide asociar una obra con su autor entre nombres célebres, sin explicar su importancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-010",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica el mecanismo óptico por el que las capas transparentes modifican tono, saturación y luminosidad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-011",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Presenta una referencia central del arte conceptual y explica la tensión entre objeto, imagen y lenguaje.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-012",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Repite una definición elemental del impresionismo sin explicar su ruptura estética o su peso histórico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-013",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Aporta una referencia conversacional clave y señala que el cubismo rompió la perspectiva tradicional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-014",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica por qué el papel húmedo produce difusión y transparencias, no solo el nombre de la técnica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-015",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Premia recordar una categoría de la taxonomía de Itten más que comprender un mecanismo artístico relevante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-016",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es otra definición circular del impresionismo, sin mecanismo, contexto ni motivo de su importancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-017",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica cómo la luz atraviesa capas transparentes y se refleja debajo para crear profundidad y brillo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-018",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica el truco del espejo y cómo coloca al espectador en la posición de los monarcas, clave para entender la obra.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-019",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Identifica la sección áurea, pero reduce su papel a una proporción y una afirmación de armonía sin contexto ni matices.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-020",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Conecta el método físico del dripping con la gestualidad del expresionismo abstracto, explicando algo más que un nombre.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-021",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es una cronología memorística de movimientos, sin explicar qué cambiaron ni por qué importan.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-022",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Ordenar obras por fechas aisladas no aporta mecanismos, causas ni contexto cultural.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-023",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Memorizar años de nacimiento de escultores es trivia biográfica sin valor conceptual.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-025",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Repite una secuencia cronológica de estilos sin enseñar sus rupturas o consecuencias.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-026",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Ordenar artistas por nacimiento es ejercicio de memoria, no una referencia con porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-029",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Las primeras presentaciones públicas forman una cronología especializada sin mecanismo explicativo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-030",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Refuerza una atribución cultural básica, pero no explica nada sobre la obra ni su importancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-031",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Corregir el autor de una escultura aporta poco más que un dato de autoría.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-032",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es una fecha histórica aislada, sin causa, consecuencia ni sentido del movimiento.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-033",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "La corrección de un año concreto es memoria factual y no explica por qué importa Las Meninas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-034",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "La autoría de la Mona Lisa es una referencia conocida, pero el enunciado y la explicación no añaden criterio.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-035",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Situar el impresionismo en Francia y en los años 1870 es correcto, pero falta explicar su ruptura estética.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-036",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica que Guernica nació como respuesta al bombardeo, vinculando la obra con su causa histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-037",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Aclara el uso de materiales cotidianos que da sentido al Arte Povera, aunque sin desarrollar su ruptura artística.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-038",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Repite una atribución y unas fechas sin ofrecer una idea memorable o un porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-039",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Aporta el manifiesto y los valores del Futurismo, pero se queda en una caracterización general del movimiento.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-040",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Incluye el bombardeo que explica Guernica, aunque la pregunta central sobre la técnica sigue siendo secundaria.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-041",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica cómo pinceladas, color y luz buscaban captar la percepción inmediata y la luz cambiante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-042",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Identificar Las Meninas con Velázquez es una referencia básica, pero carece de explicación sobre su peso artístico.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-044",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Presenta a Kandinsky y la lógica de su abstracción, aunque el planteamiento depende demasiado de una autoría célebre.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-045",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica el mecanismo visual del impresionismo y aporta una referencia cultural reconocible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-046",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "Es una atribución memorística y el dato del asilo no explica por qué importa la obra.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-047",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Solo exige recordar la ubicación de una obra sin mecanismo ni contexto relevante.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-048",
+    "area": "arte",
+    "utilidad": 3,
+    "motivo": "Aclara una técnica y su lugar histórico, pero se queda cerca de una definición sin explicar sus efectos.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-050",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es una cronología de movimientos puramente memorística y sin relación causal.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-051",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Ordenar años de nacimiento aislados no enseña ningún mecanismo ni debate cultural.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-052",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Consiste en memorizar fechas de fundación sin causa, consecuencia ni interés conversacional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-054",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Es otra clasificación cronológica de movimientos sin explicar qué cambiaron ni por qué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-055",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Ordenar obras por fecha es trivia memorística sin contexto sobre su importancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-057",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Repite un ejercicio de fechas de nacimiento sin valor explicativo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-058",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "La secuencia de movimientos se limita a memoria taxonómica y cronológica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-059",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Corregir el autor de El grito no aporta el porqué ni una idea aprovechable en conversación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-061",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "La corrección geográfica del cubismo es un dato aislado sin explicación histórica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-062",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Solo contrasta dos ubicaciones museísticas y no ayuda a comprender Las meninas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-063",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Encuadrar la Mona Lisa en una fecha es trivia cronológica sin mecanismo ni consecuencia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-064",
+    "area": "arte",
+    "utilidad": 2,
+    "motivo": "El contexto del internamiento es reconocible, pero la pregunta sigue siendo factual y no explica la obra.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-065",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Vincula correctamente el Guernica con el bombardeo que lo motivó y explica por qué la fecha importa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-066",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Distinguir mármoles de Paros y Carrara es un detalle técnico sin relevancia explicativa.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-067",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Repite una fecha aislada sobre la Mona Lisa sin enseñar nada nuevo sobre su importancia.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-068",
+    "area": "arte",
+    "utilidad": 1,
+    "motivo": "Memorizar la posición del autorretrato no explica la composición ni el significado de Las meninas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-069",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica el porqué de Guernica y menciona retrospectiva 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-070",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica ruptura impresionista y cita exposición 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-071",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica transformación de Gaudí y menciona torre culminada 2025.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-072",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica motivo de Guernica y enlaza con debates actuales de protección civil.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-073",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica técnica clave del impresionismo y su anticipación a la fotografía.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-074",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica brutalismo y su debate actual sobre retorno y impacto ambiental.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-076",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica por qué Guernica es símbolo antifascista y su vigencia en memoria histórica.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-077",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica qué rompió el impresionismo respecto a la academia.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-078",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica por qué acero/hormigón permiten edificios más altos y plantas libres.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-080",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica motivo de Guernica y menciona exposición Reina Sofía 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-081",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica práctica plein air y cita retrospectiva Musée d’Orsay 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-082",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica innovación narrativa de Ciudadano Kane y restauración 4K 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-083",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica principio Bauhaus y menciona centenario 2023 y vivienda social.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-084",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica venta Beeple 2021 y debate NFT posterior 2022‑23.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-085",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica orden de obras y conecta con debates actuales sobre papel político de colecciones.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-086",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica orden de movimientos y su relación con normas sociales/técnicas previas.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-087",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica orden de películas y su relación con evolución narrativa y streaming.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-088",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica pasos de visibilidad de obra contemporánea y su relación con debates de museos.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-089",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica proceso de polémica a canon y su relación con institucionalización.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-090",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Explica orden de movimientos y su creciente radicalización respecto al arte.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "art-091",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Explica por qué el readymade cambió la definición de arte y lo conecta con debates recientes sobre obras digitales y NFTs.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-092",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Aclara la ruptura de las vanguardias con la tradición y su relación con los cambios sociales y tecnológicos, aunque sin anclarla en un hecho reciente concreto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-093",
+    "area": "arte",
+    "utilidad": 4,
+    "motivo": "Ofrece una referencia cultural sólida sobre la metatextualidad del Quijote y su influencia en la novela moderna, pero no se conecta con la actualidad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "art-094",
+    "area": "arte",
+    "utilidad": 5,
+    "motivo": "Enseña el mecanismo que vincula ventas privadas y subastas, y lo relaciona con debates recientes sobre transparencia y garantías en el mercado del arte.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-001",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una definición tabular de manual, sin mecanismo aplicado ni valor conversacional.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-002",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Reduce la implicación material a una convención definida por tabla, sin explicar su utilidad ni el porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-003",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una distinción técnica de lógica intuicionista propia de estudio académico especializado.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-004",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "La caracterización modal de S5 es trivia académica especializada y no ilumina un mecanismo cotidiano.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-005",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Repite una convención formal sin explicar por qué se adopta ni ofrecer una aplicación comprensible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-006",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una definición de manual del principio de no contradicción, sin contexto ni mecanismo aplicado.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-008",
+    "area": "logica",
+    "utilidad": 3,
+    "motivo": "Enseña la distinción útil entre «ninguno» y «alguno no», aunque falta un ejemplo aplicado que la haga memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-009",
+    "area": "logica",
+    "utilidad": 2,
+    "motivo": "Es una comprobación memorística de la tabla de verdad, sin mecanismo nuevo ni contexto aplicado.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-010",
+    "area": "logica",
+    "utilidad": 2,
+    "motivo": "La contraposición puede servir para razonar, pero solo se pide recordar la regla sin ilustrar su utilidad.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-011",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es otra pregunta técnica sobre S5 dirigida a quien ha estudiado lógica modal académica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-012",
+    "area": "logica",
+    "utilidad": 3,
+    "motivo": "Muestra una trampa de inferencia útil, pero permanece demasiado abstracta y sin situación real.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-013",
+    "area": "logica",
+    "utilidad": 2,
+    "motivo": "Aplica mecánicamente la tabla de verdad de la implicación sin aportar un razonamiento nuevo o aplicado.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-014",
+    "area": "logica",
+    "utilidad": 2,
+    "motivo": "Presenta una regla útil para detectar falacias, pero se limita a nombrarla sin explicar el mecanismo.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-015",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "La correspondencia entre axiomas modales y relaciones de accesibilidad es materia altamente especializada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-016",
+    "area": "logica",
+    "utilidad": 2,
+    "motivo": "Ilustra correctamente la transitividad de inclusiones, pero con un ejemplo demasiado elemental y abstracto.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-017",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "La precedencia de conectivos es una convención notacional arbitraria, no un mecanismo aplicable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-018",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Ordenar 00, 01, 10 y 11 solo mide el recuerdo de una convención binaria trivial.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-019",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Combina siglas y jerarquías de teoría de la complejidad propias de una especialidad académica.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-020",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "La jerarquía de cardinales grandes es trivia de lógica matemática altamente especializada.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-021",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Repite una convención de precedencia ya preguntada, sin mecanismo, aplicación ni valor memorables.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-022",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una clasificación elemental de cardinalidades sin mecanismo, contexto conversacional ni aplicación.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-023",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Exige memorizar siglas y una jerarquía de complejidad propia de especialistas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-024",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es notación y taxonomía técnica de lógica formal, sin utilidad cotidiana ni explicación del porqué.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-025",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Presenta una jerarquía de cardinales grandes de interés casi exclusivamente especializado.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-026",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una definición de tabla de verdad sin mecanismo, aplicación ni referencia memorable.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-027",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Comprueba una definición filosófica básica, pero no aporta mecanismo, debate ni contexto útil.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-028",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Distingue teoremas de lógica matemática especializada mediante memorización, sin una explicación accesible.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-029",
+    "area": "logica",
+    "utilidad": 1,
+    "motivo": "Es una correspondencia técnica de lógica modal que solo podría interesar a especialistas.",
+    "modelo": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "log-032",
+    "area": "logica",
+    "utilidad": 4,
+    "motivo": "Enseña mecanismo de calor y es buena explicación, pero sin referencia reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-033",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Corrige intuición de Monty Hall y cita artículo Nature 2023.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-034",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Define hombre de paja y vincula a campaña electoral española 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-035",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Explica estrategia dominante en dilema del prisionero y acuerdos climáticos 2022.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-036",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Ilustra falacia de ilícito menor y menciona debates 2023 sobre inferencias apresuradas.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-037",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Muestra por qué cambiar en Monty Hall y lo aplica a decisiones financieras 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-038",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Identifica pendiente resbaladiza y la relaciona con debates 2022 sobre teletrabajo en España.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-039",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Explica correlación espuria mediante temperatura y cita cobertura 2023 de salud pública.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-040",
+    "area": "logica",
+    "utilidad": 4,
+    "motivo": "Aplica falacia de tasa base a detección de fraude, pero sin referencia reciente específica.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-041",
+    "area": "logica",
+    "utilidad": 4,
+    "motivo": "Usa transitividad para ordenar alturas y menciona tests de consultoría/banca.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-042",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Ordena probabilidades y conecta paradoja de cumpleaños con ataques hash y encuestas 2023‑24.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-044",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Clasifica resultados de negociación y cita paquetes verdes UE‑EE. UU. 2023 y convenios 2024.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-046",
+    "area": "logica",
+    "utilidad": 4,
+    "motivo": "Describe fases de burbuja financiera y su repetición en inmobiliario y cripto, sin año concreto.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-047",
+    "area": "logica",
+    "utilidad": 4,
+    "motivo": "Ordena estructuras de mercado por competidores y menciona oligopolio de big tech, sin referencia reciente.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-048",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Detecta error en silogismo y lo vincula a debates políticos 2023 sobre falacias formales.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-050",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Identifica descripción invertida de ad hominem y la relaciona con columnas 2024 sobre debates electorales.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  },
+  {
+    "id": "log-051",
+    "area": "logica",
+    "utilidad": 5,
+    "motivo": "Corrige confusión entre correlación y causalidad y cita debate 2023 sobre helados y ahogamientos.",
+    "modelo": "nvidia/nemotron-3-super-120b-a12b:free"
+  }
+]

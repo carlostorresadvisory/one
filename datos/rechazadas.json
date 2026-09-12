@@ -1541,5 +1541,4171 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "motivo": "revisión manual: México y Argentina empiezan el mismo año (1810); Argentina en mayo, México en septiembre"
+  },
+  {
+    "enunciado": "¿Qué fenómeno psicológico conocido como 'la valle de lo inquietante' predice la reacción negativa del espectador ante figuras humanoides que son casi, pero no totalmente, realistas?",
+    "explicacion": "Este concepto, crucial en cine y animación, explica por qué la tecnología actual de IA y los avatares digitales pueden generar rechazo en lugar de empatía, un dilema central en la producción de medios digitales actuales.",
+    "nivel": 5,
+    "opciones": [
+      "El efecto de confirmación",
+      "La ilusión de control",
+      "La inestabilidad cognitiva",
+      "La hipervigilancia"
+    ],
+    "correcta": 2,
+    "hilo": 3,
+    "id": "art-075",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "z-ai/glm-4.7-flash",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La respuesta marcada (2) 'La inestabilidad cognitiva' no es correcta. El fenómeno conocido como 'valle inquietante' no se denomina así; ninguna opción corresponde al término correcto. La pregunta es equívoca porque las opciones no incluyen la respuesta adecuada."
+  },
+  {
+    "enunciado": "¿Qué aspecto del mercado del arte ha generado mayor controversia reciente respecto a los NFTs?",
+    "explicacion": "Al comprar un NFT se adquiere un token que representa la obra, pero no necesariamente los derechos de autor, lo que ha llevado a disputas sobre quién puede reproducir o explotar comercialmente la obra vinculada al token.",
+    "nivel": 5,
+    "opciones": [
+      "La dificultad de autenticar obras físicas mediante blockchain.",
+      "La cuestión de quién posee los derechos de reproducción cuando se vende un NFT vinculado a una obra.",
+      "La obligación de pagar impuestos exclusivamente en criptomonedas.",
+      "La prohibición de exhibir NFTs en museos públicos."
+    ],
+    "correcta": 1,
+    "hilo": 5,
+    "id": "art-079",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La opción marcada señala una controversia real y central: poseer un NFT no equivale automáticamente a poseer los derechos de autor. Sin embargo, calificarla de «mayor» controversia es subjetivo y discutible frente a otras, como el impacto ambiental, la especulación o el fraude; convendría eliminar «mayor»."
+  },
+  {
+    "enunciado": "El metano tiene un potencial de calentamiento global a 100 años 25 veces superior al CO₂.",
+    "explicacion": "El IPCC (2021) sitúa el GWP100 del metano entre 28 y 34, no en 25; la diferencia importa porque subestimar su impacto lleva a metas de reducción insuficientes en políticas climáticas recientes.",
+    "nivel": 2,
+    "respuesta": false,
+    "hilo": 2,
+    "id": "cie-074",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La afirmación es falsa: el IPCC (2021) sitúa el GWP100 del metano entre 28 y 34, no en 25. La pregunta está bien planteada y es inequívoca, con una única respuesta correcta. Es útil porque el dato concreto (valor exacto) puede ser discutible, pero la explicación enfatiza el porqué de la discrepancia y su relevancia política, lo que la hace útil para entender debates climáticos actuales. Nivel: 2-3."
+  },
+  {
+    "enunciado": "Los seres humanos comparten el 99.9 % de su ADN con los chimpancés.",
+    "explicacion": "La similitud genómica real es aproximadamente del 98.8 %; el 99.9 % se refiere a la identidad entre dos humanos cualesquiera, no entre especies distintas.",
+    "nivel": 4,
+    "respuesta": false,
+    "hilo": 4,
+    "id": "cie-076",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La afirmación es falsa: la similitud genómica entre humanos y chimpancés es ~98.8%, no 99.9% (que es entre humanos). Es clara y útil."
+  },
+  {
+    "enunciado": "La energía eólica marina produce menos electricidad por megavatio instalado que la eólica terrestre porque el viento es más irregular en alta mar.",
+    "explicacion": "En realidad el viento offshore es más fuerte y constante, dando factores de capacidad del 45‑55 % frente al 25‑35 % en tierra; por eso cada MW instalado genera más energía. Las subastas europeas de 2023 confirmaron la mayor rentabilidad del offshore.",
+    "nivel": 2,
+    "respuesta": false,
+    "hilo": 2,
+    "id": "cie-078",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La afirmación es falsa: la eólica marina tiene mayor factor de capacidad que la terrestre, no menor. Es clara y útil al corregir un error común."
+  },
+  {
+    "enunciado": "Un horno de microondas calienta los alimentos principalmente excitando los enlaces covalentes de las moléculas de agua.",
+    "explicacion": "Las microondas (2,45 GHz) hacen rotar los dipolos de agua, generando calor por fricción dieléctrica; no rompen enlaces covalentes. Revisiones de seguridad de 2022 reiteraron que el mecanismo es rotacional, no de excitación electrónica.",
+    "nivel": 3,
+    "respuesta": false,
+    "hilo": 3,
+    "id": "cie-079",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El enunciado dice 'excitando los enlaces covalentes', que es falso; la respuesta marcada es 'false', correcta. No hay ambigüedad: el mecanismo es rotacional, no de ruptura de enlaces."
+  },
+  {
+    "enunciado": "Los seres humanos comparten alrededor del 99,9 % de su secuencia de ADN con cualquier otro humano, mientras que con los chimpancés la similitud es de aproximadamente el 98,8 %.",
+    "explicacion": "La variación entre personas se reduce a SNPs y pequeñas indels (≈0,1 %); la divergencia con el chimpancé es del 1,2 % en el genoma alineable. Estudios de genómica comparativa de 2022 refinaron estas cifras.",
+    "nivel": 4,
+    "respuesta": true,
+    "hilo": 4,
+    "id": "cie-080",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Enunciado es verdadero, respuesta marcada 'true' correcta. Aunque se discuten cifras exactas (99,9% vs 98,8%), son aceptadas comúnmente y la explicación matiza. Inequívoco salvo variaciones mínimas, aceptable."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor el nivel de evidencia científica y el riesgo de error en el desarrollo de un nuevo fármaco.",
+    "explicacion": "Las fases 1 y 2 son pruebas iniciales con pocos pacientes para asegurar que no es mortal y ver si funciona, mientras que la fase 3 es el gran test con miles de personas para confirmar que es mejor que lo que ya existe. La fase 4 solo observa efectos secundarios una vez el medicamento está en el mercado. Esto explica por qué las noticias sobre efectos secundarios raros suelen aparecer años después de la aprobación inicial.",
+    "nivel": 3,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Fase 1",
+      "Fase 2",
+      "Fase 3",
+      "Fase 4"
+    ],
+    "hilo": 6,
+    "id": "cie-093",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "z-ai/glm-4.7-flash",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Las fases no forman una escalera monotónica de evidencia: la fase 4 no tiene por defecto mayor evidencia causal que la fase 3 y suele ser observacional. Además, a medida que aumenta la evidencia, el riesgo de error suele disminuir, por lo que pedir una sola ordenación de menor a mayor para ambas magnitudes es contradictorio."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Los aerogeneradores transforman la energía cinética del viento en electricidad, no su calor. La confusión entre energía térmica y cinética es común, pero el principio físico es la fuerza de arrastre sobre las palas. En 2024 la UE superó los 250 GW de capacidad eólica instalada, consolidando esta tecnología.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Fuentes renovables de electricidad",
+      "filas": [
+        {
+          "etiqueta": "Solar fotovoltaica",
+          "valor": "convierte luz en electricidad directamente"
+        },
+        {
+          "etiqueta": "Eólica",
+          "valor": "usa calor del viento"
+        },
+        {
+          "etiqueta": "Hidroeléctrica",
+          "valor": "aprovecha energía potencial del agua"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "hilo": 2,
+    "id": "cie-095",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La pregunta es clara y el error está inequívocamente en la fila 'Eólica' que dice 'usa calor del viento'. La opción sospechosa señalada (índice 1) es correcta. La pregunta es útil porque explica el principio físico real de la eólica, y la explicación incluye un dato reciente sobre capacidad instalada en la UE en 2024."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El color azul del cielo se debe a la dispersión de Rayleigh, que afecta a moléculas mucho más pequeñas que la longitud de onda de la luz. La dispersión de Mie actúa sobre partículas mayores (polvo, gotas) y produce tonos blancos o grises, no el azul característico. La erupción del Hunga Tonga en 2022 inyectó aerosoles que temporalmente blanquearon el cielo en amplias zonas.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Por qué el cielo es azul",
+      "filas": [
+        {
+          "etiqueta": "Dispersión de Rayleigh",
+          "valor": "dispersa más la luz azul"
+        },
+        {
+          "etiqueta": "Dispersión de Mie",
+          "valor": "responsable del color azul del cielo"
+        },
+        {
+          "etiqueta": "Longitud de onda azul",
+          "valor": "más corta que la roja"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "hilo": 3,
+    "id": "cie-096",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El error está claramente en la fila que atribuye el color azul del cielo a la dispersión de Mie. La opción sospechosa (índice 1) es la correcta. La pregunta es útil porque diferencia dos tipos de dispersión y la explicación menciona la erupción del Hunga Tonga como ejemplo reciente."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Un mismo gen puede dar lugar a varias proteínas gracias al empalme alternativo (alternative splicing), que combina distintos exones durante el procesamiento del ARN mensajero. Esto multiplica la diversidad proteica humana sin aumentar el número de genes. Investigaciones de 2023 han mapeado miles de isoformas nuevas en tejido cerebral.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Genoma humano básico",
+      "filas": [
+        {
+          "etiqueta": "Tamaño del genoma",
+          "valor": "≈ 3.000 millones de pares de bases"
+        },
+        {
+          "etiqueta": "Genes codificantes",
+          "valor": "≈ 20.000"
+        },
+        {
+          "etiqueta": "Relación gen–proteína",
+          "valor": "cada gen produce una única proteína"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "hilo": 4,
+    "id": "cie-097",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El error está en la afirmación 'cada gen produce una única proteína', que es falsa debido al empalme alternativo. La opción sospechosa (índice 2) es correcta. La pregunta es útil porque explica cómo un solo gen genera múltiples proteínas, y la explicación menciona investigaciones recientes sobre isoformas en tejido cerebral, sin que la pregunta dependa de ese hecho."
+  },
+  {
+    "enunciado": "Ordena los instrumentos de política monetaria del Banco Central Europeo según la rapidez con la que afectan al tipo de interés a muy corto plazo.",
+    "criterio": "de efecto más inmediato a efecto más retardado",
+    "items": [
+      "Operaciones de mercado abierto",
+      "Tipo de descuento",
+      "Coeficiente de reservas obligatorias",
+      "Guía forward (forward guidance)"
+    ],
+    "explicacion": "Las operaciones de mercado abierto inyectan o retiran liquidez al día siguiente, moviendo el tipo de referencia casi al instante; el tipo de descuento cambia el coste de la ventanilla de préstamo y tarda unas semanas en transmitirse; el coeficiente de reservas altera la base monetaria pero su impacto se nota en el siguiente período de mantenimiento; la guía forward solo influye cuando los mercados creen en la credibilidad del banco central, lo que puede llevar meses. En 2023‑2024 el BCE usó la guía forward para anclar expectativas mientras subía tipos.",
+    "nivel": 1,
+    "hilo": 1,
+    "id": "eco-085",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden esperado es defendible pero no único: un anuncio de guía forward mueve los tipos a corto plazo en el acto (igual que un cambio en el tipo de descuento vía expectativas y arbitraje), así que la secuencia de 'rapidez de efecto' admite más de una ordenación razonable. Además, 'tipo de descuento' no es la terminología del BCE (el equivalente es la facilidad marginal de préstamo), y el coeficiente de reservas del BCE fue fijado en 0% en 2024, debilitando el ítem de cara a que siga siendo válido en dos años. Pregunta rechazada por ambigüedad y precisión institucional."
+  },
+  {
+    "enunciado": "Ordena los sesgos cognitivos más estudiados en economía del comportamiento según la magnitud típica de su efecto en decisiones financieras de ahorro e inversión, de menor a mayor.",
+    "criterio": "de efecto más débil a efecto más fuerte",
+    "items": [
+      "Heurística de disponibilidad",
+      "Anclaje",
+      "Exceso de confianza",
+      "Aversión a la pérdida"
+    ],
+    "explicacion": "La disponibilidad (juzgar probabilidad por ejemplos recientes) suele mover decisiones un 5‑10 %; el anclaje (depender de una cifra inicial) eleva el impacto al 10‑20 %; el exceso de confianza lleva a sobreestimar rentabilidades y subestimar riesgos, con efectos del 15‑30 %; la aversión a la pérdida, documentada por Kahneman y Tversky, duplica el peso psicológico de una pérdida frente a una ganancia equivalente y es el sesgo que más distorsiona la asignación de cartera, como mostró el aumento de flujos a fondos de baja volatilidad tras la corrección de 2022.",
+    "nivel": 4,
+    "hilo": 6,
+    "id": "eco-088",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La magnitud del efecto no está universalmente establecida; el orden propuesto es discutible, por lo que el enunciado no es inequívoco."
+  },
+  {
+    "explicacion": "Rawls sostiene que detrás del velo de ignorancia también se desconocen las aptitudes, talentos y concepciones del bien de las personas, de modo que los principios de justicia se elijan sin ninguna ventaja arbitraria. Esta idea se ha citado en discusiones sobre reformas educativas y igualdad de oportunidades en 2023.",
+    "nivel": 2,
+    "respuesta": false,
+    "hilo": 2,
+    "enunciado": "Según el velo de ignorancia de John Rawls, al decidir sobre los principios de justicia ignoramos nuestra posición social pero conocemos nuestras habilidades y talentos.",
+    "id": "fil-032",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El enunciado es falso porque Rawls sostiene que detrás del velo de ignorancia también se desconocen las habilidades y talentos. La explicación lo aclara y lo vincula a discusiones recientes."
+  },
+  {
+    "explicacion": "La ética kantiana es deontológica: valora la acción según su conformidad con el deber y la ley moral universal, sin que las consecuencias determinen su moralidad. Este contraste se ha destacado en debates recientes sobre responsabilidad de la IA (2022-2025).",
+    "nivel": 4,
+    "respuesta": false,
+    "hilo": 4,
+    "enunciado": "Immanuel Kant afirmaba que la moralidad de una acción depende exclusivamente de sus consecuencias, según su ética deontológica.",
+    "id": "fil-034",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "Kant no basaba la moralidad en consecuencias sino en el deber; el enunciado es falso. La explicación contrasta con el consecuencialismo y lo conecta con debates sobre IA."
+  },
+  {
+    "enunciado": "En el clásico dilema del tranvía, ¿qué principio ético se pone a prueba al decidir si desviar el tren para salvar a cinco personas a costa de una?",
+    "opciones": [
+      "Utilitarismo",
+      "Deontología",
+      "Virtud",
+      "Contractualismo"
+    ],
+    "correcta": 0,
+    "nivel": 1,
+    "hilo": 1,
+    "explicacion": "El dilema contrasta una decisión basada en maximizar el bienestar total (utilitarismo) con la obligación de no matar activamente (deontología); se usa habitualmente para ilustrar el razonamiento consecuencialista, y reaparece en los debates actuales sobre alineación de IA (2023‑2024).",
+    "id": "fil-043",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El utilitarismo justifica habitualmente desviar el tren maximizando el número de vidas salvadas, pero el dilema también pone a prueba el principio deontológico que prohíbe matar activamente a una persona. Al aparecer ambas opciones, la pregunta admite dos lecturas defendibles."
+  },
+  {
+    "enunciado": "¿Qué falacia informal consiste en atacar a la persona que formula un argumento en lugar de refutar el argumento mismo?",
+    "opciones": [
+      "Ad hominem",
+      "Hombre de paja",
+      "Falsa dicotomía",
+      "Apelo a la autoridad"
+    ],
+    "correcta": 0,
+    "nivel": 5,
+    "hilo": 5,
+    "explicacion": "El ad hominem desvía la atención del contenido del razonamiento hacia características irrelevantes del interlocutor; es la falacia más frecuente en debates políticos y en comentarios de redes sociales (2022‑2026).",
+    "id": "fil-046",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "utilidad: La pregunta reproduce una definición de diccionario de una falacia, formato expresamente prohibido. La respuesta marcada es correcta y única, pero no aporta un mecanismo, contexto ni una referencia aprovechable más allá de reconocer el término."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor en el ciclo de la falsacionismo de Popper (el orden en que ocurren).",
+    "criterio": "de menor a mayor en el ciclo de la falsacionismo (el orden en que ocurren)",
+    "items": [
+      "Conjetura",
+      "Refutación",
+      "Corroboración",
+      "Nueva conjetura"
+    ],
+    "nivel": 5,
+    "hilo": 5,
+    "explicacion": "Según Karl Popper, la ciencia comienza con una conjetura (teoría), se somete a intentos de refutación (pruebas), si sobrevive se considera corroborada, lo que lleva a formular una nueva conjetura. Este esquema describe cómo se avanza el conocimiento mediante conjecturas y refutaciones.",
+    "id": "fil-054",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El ciclo de Popper no tiene un orden lineal único con refutación y corroboración como pasos secuenciales; son resultados alternativos. El enunciado es ambiguo."
+  },
+  {
+    "enunciado": "El área metropolitana de Tokio supera los 30.000 habitantes por kilómetro cuadrado de densidad media.",
+    "explicacion": "La densidad real del área metropolitana de Tokio ronda los 6.000 hab/km²; la cifra de 30.000 se acerca a la de barrios centrales como Shinjuku, pero no al promedio metropolitano, que incluye amplias zonas residenciales de baja densidad y parques.",
+    "nivel": 5,
+    "respuesta": false,
+    "hilo": 4,
+    "id": "geo-063",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La afirmación es falsa: la densidad media del área metropolitana de Tokio es unos 6.000 hab/km², no 30.000. El enunciado es claro y la respuesta correcta."
+  },
+  {
+    "enunciado": "¿Cuál es el principal motor detrás del aumento de carriles bici en ciudades como París y Barcelona desde 2020?",
+    "explicacion": "Tras la pandemia, muchas ciudades adoptaron planes de movilidad sostenible para reducir el uso del coche privado, disminuir emisiones y aliviar la congestión urbana.",
+    "nivel": 4,
+    "opciones": [
+      "Reducción del ruido ambiental",
+      "Incentivos fiscales a fabricantes de bicicletas",
+      "Políticas de movilidad sostenible para reducir emisiones y congestión tras la pandemia",
+      "Obligación de la UE de construir 1000 km de carriles bici"
+    ],
+    "correcta": 2,
+    "hilo": 4,
+    "id": "geo-067",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El enunciado ya contiene la respuesta al mencionar 'desde 2020', y la opción correcta es básicamente una repetición expandida del enunciado ('tras la pandemia')."
+  },
+  {
+    "enunciado": "¿Qué estrecho conecta el golfo Pérsico con el golfo de Omán y es un punto de estrangulamiento crítico para los envíos mundiales de petróleo?",
+    "opciones": [
+      "Estrecho de Ormuz",
+      "Estrecho de Malaca",
+      "Canal de Suez",
+      "Bósforo"
+    ],
+    "correcta": 0,
+    "nivel": 2,
+    "hilo": 2,
+    "explicacion": "El estrecho de Ormuz es la única salida marítima del golfo Pérsico, por donde transita cerca del 20 % del petróleo mundial; su control genera tensiones geopolíticas recurrentes, como los incidentes con petroleros registrados entre 2022 y 2024.",
+    "id": "geo-068",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "utilidad: Es redundante con la geo-065. Además, se convierte en una pregunta de 'nombre de lugar' (identificación) en lugar de explicar el mecanismo, lo que roza la trivia geográfica."
+  },
+  {
+    "enunciado": "¿Por qué decidió Napoleón Bonaparte vender la Luisiana a los Estados Unidos en 1803?",
+    "opciones": [
+      "Necesitaba fondos para financiar sus guerras en Europa",
+      "Consideraba el territorio inútil para Francia",
+      "Quería evitar que los británicos lo tomaran",
+      "Fue presionado por España para hacerlo"
+    ],
+    "correcta": 0,
+    "explicacion": "Tras el fracaso de la expedición a Saint-Domingue y la renovada guerra con Gran Bretaña, Napoleón necesitaba dinero rápidamente y prefirió vender la Luisiana antes de perderla frente a la marina británica.",
+    "nivel": 4,
+    "hilo": 4,
+    "id": "his-050",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La respuesta marcada (necesidad de fondos) es correcta, pero la opción 2 (evitar que los británicos lo tomaran) también es una razón válida, por lo que no es única y el enunciado es ambiguo."
+  },
+  {
+    "enunciado": "Ordena estas medidas de tendencia central según su sensibilidad a valores extremos (outliers).",
+    "criterio": "de menor a mayor sensibilidad a outliers",
+    "items": [
+      "Moda",
+      "Mediana",
+      "Media recortada al 10%",
+      "Media aritmética"
+    ],
+    "nivel": 3,
+    "hilo": 4,
+    "explicacion": "La moda ignora magnitudes; la mediana solo mira el orden (punto de quiebre 50 %); la media recortada descarta los extremos antes de promediar; la media aritmética incorpora cada dato con su peso real, por lo que un solo valor disparado la arrastra. Es la razón por la que el INE y el BCE usan renta media vs mediana para narrar desigualdad distinta (debate salarial 2022-2024 tras inflación).",
+    "id": "log-043",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden es ambiguo: la media recortada al 10% no tiene una sensibilidad fija, pues depende del nivel de recorte; además, no es evidente que sea menos sensible que la mediana (que tiene un punto de quiebre del 50%). La literatura estadística no establece un orden unívoco entre mediana y media recortada. El enunciado no especifica el porcentaje de recorte ni define 'sensibilidad a outliers' (¿punto de quiebre, influencia, varianza?). Esto hace que la respuesta no sea inequívoca."
+  },
+  {
+    "enunciado": "Ordena los tipos de desempleo por la dificultad de resolverlos con políticas económicas convencionales (de más fácil a más difícil).",
+    "explicacion": "El desempleo estacional es predecible y temporal, el friccional es natural por la rotación laboral, el cíclico responde a la demanda agregada y se puede mitigar con tasas de interés, mientras que el estructural requiere cambios profundos en el mercado laboral, como los que se debaten hoy por la automatización y la IA.",
+    "nivel": 1,
+    "criterio": "de más fácil a más difícil",
+    "items": [
+      "Desempleo estacional",
+      "Desempleo friccional",
+      "Desempleo cíclico",
+      "Desempleo estructural"
+    ],
+    "hilo": 5,
+    "id": "log-045",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "z-ai/glm-4.7-flash",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "El orden propuesto (estacional - friccional - cíclico - estructural) refleja la dificultad habitual, pero existe debate: algunos macroeconomistas sitúan el desempleo friccional como más fácil de resolver que el estacional (mediante políticas activas de empleo), o el cíclico como más difícil que el estructural si las tasas de interés son ineficaces (trampa de liquidez). La jerarquía no es universal ni está libre de controversia. Por tanto, no es inequívoco."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "En el problema de Monty Hall, cambiar de puerta tras la revelación del presentador da una probabilidad de 2/3 de ganar, mientras que quedarse mantiene 1/3; la tarjeta invierte estas cifras. La confusión resurgió en 2022 cuando un programa de televisión discutió la paradoja en prime time.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Problema de Monty Hall",
+      "filas": [
+        {
+          "etiqueta": "Cambiar de puerta",
+          "valor": "2/3 de probabilidad de ganar"
+        },
+        {
+          "etiqueta": "Quedarse",
+          "valor": "2/3 de probabilidad de ganar"
+        },
+        {
+          "etiqueta": "Elegir al azar",
+          "valor": "1/3 de probabilidad de ganar"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "hilo": 2,
+    "id": "log-049",
+    "area": "logica",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "La respuesta marcada (sospechoso: 1) es 'Cambiar de puerta: 2/3', pero ese dato es CORRECTO. El dato erróneo es 'Quedarse: 2/3'. Por tanto, la respuesta marcada es incorrecta."
+  },
+  {
+    "enunciado": "El algoritmo AES‑256 se considera inseguro para proteger datos en reposo desde 2023.",
+    "explicacion": "AES‑256 sigue siendo el estándar recomendado por NIST y no existe ningún ataque práctico que lo rompa; su seguridad se basa en la longitud de la clave, no en la fecha.",
+    "nivel": 3,
+    "respuesta": false,
+    "hilo": 4,
+    "id": "tec-039",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "utilidad: viola la regla de 'versiones de estándares o productos'. AES-256 es una versión específica del estándar de cifrado AES, un dato técnico de especialidad que no aporta al entendimiento general del mundo para un perfil financiero."
+  },
+  {
+    "enunciado": "Ordena los siguientes niveles de complejidad de modelos de lenguaje de IA de menor a mayor costo de entrenamiento típico.",
+    "explicacion": "El costo de entrenamiento crece aproximadamente con el número de parámetros porque se requieren más operaciones de matriz y más memoria para almacenar y actualizar esos pesos durante el aprendizaje. Este debate resurgió en 2023 cuando se estimó que entrenar un modelo de cientos de billones podría consumir tanta energía como varios hogares durante un año.",
+    "nivel": 1,
+    "criterio": "de menor a mayor costo de entrenamiento",
+    "items": [
+      "Modelo con ~100 millones de parámetros",
+      "Modelo con ~1 mil millones de parámetros",
+      "Modelo con ~100 mil millones de parámetros",
+      "Modelo con ~1 billón de parámetros"
+    ],
+    "hilo": 1,
+    "id": "tec-049",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": null,
+    "verificado": false,
+    "motivo": "utilidad: El enunciado pide ordenar modelos de IA por 'menor a mayor costo de entrenamiento típico', pero el costo no solo depende del número de parámetros; también influyen la arquitectura, los datos, el hardware, etc. Aunque ~100M < ~1B < ~100B < ~1B de parámetros suele correlacionar con menor costo, no es una regla fija (hay modelos más grandes más eficientes). El juicio es ambiguo y binario (¿un modelo con 99M sería distinto?), y la explicación menciona una cifra de consumo energético que parece trivial y no esencial. Además, el tema de parámetros y costos de entrenamiento puede caer en especificaciones técnicas de especialista (nivel 5) que no cumple utilidad para un adulto no ingeniero. Por tanto, se rechaza."
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci realizó el retrato de Lisa Gherardini, conocido como La Mona Lisa, entre 1503 y 1519.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-005",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-001: \"La Mona Lisa fue pintada por Leonardo da Vinci.\""
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la atmósfera, surgido en Francia a finales del siglo XIX?",
+    "explicacion": "El impresionismo, liderado por artistas como Monet, Renoir y Pissarro, buscaba plasmar la impresión visual inmediata mediante pinceladas sueltas y colores puros.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-008",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es básicamente una definición taxonómica del impresionismo y no añade un mecanismo o referencia debatible."
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?",
+    "explicacion": "El impresionismo buscaba representar la impresión visual inmediata, empleando pinceladas sueltas y colores puros para captar la luz cambiante.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-012",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-008: \"¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?\""
+  },
+  {
+    "enunciado": "¿Qué concepto de la teoría del color, formulado por Johannes Itten, describe la relación de contraste entre colores complementarios en la rueda de color?",
+    "explicacion": "Itten definió el «contraste de complementarios» como el efecto visual intenso que se produce al yuxtaponer colores opuestos en el círculo cromático.",
+    "nivel": 5,
+    "opciones": [
+      "Contraste simultáneo",
+      "Contraste de saturación",
+      "Contraste de complementarios",
+      "Contraste de temperatura"
+    ],
+    "correcta": 2,
+    "id": "art-015",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Premia recordar una categoría de la taxonomía de Itten más que comprender un mecanismo artístico relevante."
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la impresión momentánea de una escena?",
+    "explicacion": "El impresionismo, surgido en Francia a finales del siglo XIX, busca representar la luz y el color tal como se perciben en un instante fugaz.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-016",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es otra definición circular del impresionismo, sin mecanismo, contexto ni motivo de su importancia."
+  },
+  {
+    "enunciado": "¿Qué técnica pictórica consiste en aplicar capas transparentes de color sobre una base seca para lograr luminosidad?",
+    "explicacion": "El glaseado (o veladura) permite que la luz atraviese las capas transparentes y se refleje en la capa inferior, creando profundidad y brillo.",
+    "nivel": 2,
+    "opciones": [
+      "Glaseado",
+      "Impasto",
+      "Fresco",
+      "Temple"
+    ],
+    "correcta": 0,
+    "id": "art-017",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-010: \"¿Qué técnica pictórica consiste en aplicar capas transparentes de color sobre una base seca para lograr luminosidad?\""
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento (siglos XIV–XVI) precede al Barroco (siglo XVII), seguido del Impresionismo (finales del XIX) y el Cubismo (principios del XX).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-021",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una cronología memorística de movimientos, sin explicar qué cambiaron ni por qué importan."
+  },
+  {
+    "enunciado": "Ordena las siguientes obras pictóricas según su fecha de creación, de la más antigua a la más reciente.",
+    "explicacion": "La Gioconda (c.1503‑1519) → Las meninas (1656) → La noche estrellada (1889) → Guernica (1937).",
+    "nivel": 2,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "La Gioconda (Mona Lisa)",
+      "Las meninas",
+      "La noche estrellada",
+      "Guernica"
+    ],
+    "id": "art-022",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar obras por fechas aisladas no aporta mecanismos, causas ni contexto cultural."
+  },
+  {
+    "enunciado": "Ordena a estos escultores por año de nacimiento, del más temprano al más tardío.",
+    "explicacion": "Miguel Ángel (1475) → Auguste Rodin (1840) → Constantin Brâncuși (1876) → Louise Bourgeois (1911).",
+    "nivel": 4,
+    "criterio": "de menor a mayor año de nacimiento",
+    "items": [
+      "Miguel Ángel",
+      "Auguste Rodin",
+      "Constantin Brâncuși",
+      "Louise Bourgeois"
+    ],
+    "id": "art-023",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Memorizar años de nacimiento de escultores es trivia biográfica sin valor conceptual."
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento surgió en el siglo XIV-XV, el Barroco en el siglo XVII, el Impresionismo a finales del siglo XIX y el Cubismo en el primer tercio del siglo XX.",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-025",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-021: \"Ordena los siguientes movimientos artísticos de más antiguo a más reciente.\""
+  },
+  {
+    "enunciado": "Ordena a los siguientes artistas de más antiguo a más reciente según su año de nacimiento.",
+    "explicacion": "Leonardo da Vinci (1452), Miguel Ángel (1475), Rembrandt van Rijn (1606) y Pablo Picasso (1881).",
+    "nivel": 2,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Leonardo da Vinci",
+      "Miguel Ángel",
+      "Rembrandt van Rijn",
+      "Pablo Picasso"
+    ],
+    "id": "art-026",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar artistas por nacimiento es ejercicio de memoria, no una referencia con porqué."
+  },
+  {
+    "enunciado": "Ordena las siguientes obras seminales de arte contemporáneo de más antigua a más reciente según su primera presentación pública.",
+    "explicacion": "Les Demoiselles d'Avignon se exhibió en 1907, La fuente (Fountain) de Marcel Duchamp en 1917, Guernica de Pablo Picasso en 1937 y las Latas de sopa Campbell de Andy Warhol en 1962.",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Les Demoiselles d'Avignon",
+      "La fuente (Fountain)",
+      "Guernica",
+      "Latas de sopa Campbell"
+    ],
+    "id": "art-029",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Las primeras presentaciones públicas forman una cronología especializada sin mecanismo explicativo."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El Barroco se desarrolló principalmente en el siglo XVII, no en el XVIII.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Movimientos artísticos",
+      "filas": [
+        {
+          "etiqueta": "Impresionismo",
+          "valor": "Finales del siglo XIX"
+        },
+        {
+          "etiqueta": "Cubismo",
+          "valor": "Principios del siglo XX"
+        },
+        {
+          "etiqueta": "Surrealismo",
+          "valor": "Década de 1920"
+        },
+        {
+          "etiqueta": "Barroco",
+          "valor": "Siglo XVIII"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-032",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una fecha histórica aislada, sin causa, consecuencia ni sentido del movimiento."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "Las Meninas fue pintada en 1656, no en 1640.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Detalles de 'Las Meninas'",
+      "filas": [
+        {
+          "etiqueta": "Autor",
+          "valor": "Diego Velázquez"
+        },
+        {
+          "etiqueta": "Año",
+          "valor": "1640"
+        },
+        {
+          "etiqueta": "Técnica",
+          "valor": "Óleo sobre lienzo"
+        },
+        {
+          "etiqueta": "Ubicación actual",
+          "valor": "Museo del Prado, Madrid"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-033",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La corrección de un año concreto es memoria factual y no explica por qué importa Las Meninas."
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci realizó el retrato de Lisa Gherardini, conocido como La Mona Lisa, entre 1503 y 1519.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-034",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-001: \"La Mona Lisa fue pintada por Leonardo da Vinci.\""
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
+    "explicacion": "Leonardo da Vinci comenzó la obra alrededor de 1503 y la terminó hacia 1517; es su retrato más famoso.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-038",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-001: \"La Mona Lisa fue pintada por Leonardo da Vinci.\""
+  },
+  {
+    "enunciado": "El movimiento artístico conocido como 'Futurismo' se originó en Italia a principios del siglo XX.",
+    "explicacion": "El Futurismo fue lanzado por Filippo Tommaso Marinetti con su manifiesto de 1909 en Milán, exaltando la velocidad, la tecnología y la modernidad.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "art-039",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-006: \"El movimiento artístico conocido como 'Futurismo' se originó en Italia a principios del siglo XX.\""
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la atmósfera, desarrollado en Francia a finales del siglo XIX?",
+    "explicacion": "El Impresionismo surgió en la década de 1870 en Francia y se centró en la percepción visual inmediata, empleando pinceladas sueltas y colores vibrantes para representar la luz cambiante.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-041",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-008: \"¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la atmósfera, desarrollado en Francia a finales del siglo XIX?\""
+  },
+  {
+    "enunciado": "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?",
+    "explicacion": "El impresionismo surgió en Francia en la década de 1870 y se centró en plasmar la impresión visual inmediata mediante pinceladas sueltas y colores puros.",
+    "nivel": 1,
+    "opciones": [
+      "Impresionismo",
+      "Cubismo",
+      "Surrealismo",
+      "Expresionismo"
+    ],
+    "correcta": 0,
+    "id": "art-045",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "duplicado de art-008: \"¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?\""
+  },
+  {
+    "enunciado": "¿En qué ciudad se encuentra el museo que alberga \"El jardín de las delicias\" de El Bosco?",
+    "explicacion": "La obra maestra de El Bosco se conserva en el Museo del Prado, situado en Madrid.",
+    "nivel": 3,
+    "opciones": [
+      "Madrid",
+      "París",
+      "Florencia",
+      "Viena"
+    ],
+    "correcta": 0,
+    "id": "art-047",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "utilidad 1/5: Solo exige recordar la ubicación de una obra sin mecanismo ni contexto relevante."
+  },
+  {
+    "enunciado": "Ordena los siguientes periodos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento (siglos XIV‑XVI) precede al Barroco (siglo XVII), seguido del Neoclasicismo (siglo XVIII) y finalmente el Impresionismo (finales del XIX).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Neoclasicismo",
+      "Impresionismo"
+    ],
+    "id": "art-050",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-021: \"Ordena los siguientes periodos artísticos de más antiguo a más reciente.\""
+  },
+  {
+    "enunciado": "Ordena a estos pintores según su año de nacimiento, de menor a mayor.",
+    "explicacion": "Leonardo da Vinci (1452), Rembrandt (1606), Vincent van Gogh (1853) y Pablo Picasso (1881).",
+    "nivel": 2,
+    "criterio": "de menor a mayor (año de nacimiento)",
+    "items": [
+      "Leonardo da Vinci",
+      "Rembrandt",
+      "Vincent van Gogh",
+      "Pablo Picasso"
+    ],
+    "id": "art-051",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-026: \"Ordena a estos pintores según su año de nacimiento, de menor a mayor.\""
+  },
+  {
+    "enunciado": "Ordena estos museos de arte según su año de fundación, de más antiguo a más reciente.",
+    "explicacion": "El Louvre abrió en 1793, el Prado en 1819, el Metropolitan Museum of Art en 1870 y el Reina Sofía en 1992.",
+    "nivel": 3,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Museo del Louvre",
+      "Museo del Prado",
+      "Museo Metropolitano de Arte",
+      "Museo Reina Sofía"
+    ],
+    "id": "art-052",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Consiste en memorizar fechas de fundación sin causa, consecuencia ni interés conversacional."
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos de más antiguo a más reciente.",
+    "explicacion": "El Renacimiento (siglos XIV‑XVI) precede al Barroco (siglo XVII), seguido del Impresionismo (finales del XIX) y el Cubismo (principios del XX).",
+    "nivel": 1,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Renacimiento",
+      "Barroco",
+      "Impresionismo",
+      "Cubismo"
+    ],
+    "id": "art-054",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-021: \"Ordena los siguientes movimientos artísticos de más antiguo a más reciente.\""
+  },
+  {
+    "enunciado": "Ordena las siguientes pinturas de la más antigua a la más reciente.",
+    "explicacion": "La Gioconda (c. 1503‑1519), Las meninas (1656), La noche estrellada (1889) y Guernica (1937).",
+    "nivel": 2,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "La Gioconda",
+      "Las meninas",
+      "La noche estrellada",
+      "Guernica"
+    ],
+    "id": "art-055",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-022: \"Ordena las siguientes pinturas de la más antigua a la más reciente.\""
+  },
+  {
+    "enunciado": "Ordena a estos artistas por año de nacimiento, del más antiguo al más reciente.",
+    "explicacion": "Leonardo da Vinci (1452), Rembrandt (1606), Vincent van Gogh (1853), Pablo Picasso (1881).",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Leonardo da Vinci",
+      "Rembrandt",
+      "Vincent van Gogh",
+      "Pablo Picasso"
+    ],
+    "id": "art-057",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-026: \"Ordena a estos artistas por año de nacimiento, del más antiguo al más reciente.\""
+  },
+  {
+    "enunciado": "Ordena los siguientes movimientos artísticos según su aparición histórica, del más temprano al más tardío.",
+    "explicacion": "Manierismo (c. 1520), Rococó (c. 1700), Surrealismo (1924), Arte conceptual (década de 1960).",
+    "nivel": 5,
+    "criterio": "de más temprano a más tardío",
+    "items": [
+      "Manierismo",
+      "Rococó",
+      "Surrealismo",
+      "Arte conceptual"
+    ],
+    "id": "art-058",
+    "area": "arte",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La secuencia de movimientos se limita a memoria taxonómica y cronológica."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El cuadro «El grito» fue pintado por Edvard Munch, no por Pablo Picasso.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Pinturas famosas",
+      "filas": [
+        {
+          "etiqueta": "La Mona Lisa",
+          "valor": "pintada por Leonardo da Vinci"
+        },
+        {
+          "etiqueta": "La noche estrellada",
+          "valor": "pintada por Vincent van Gogh"
+        },
+        {
+          "etiqueta": "La persistencia de la memoria",
+          "valor": "pintada por Salvador Dalí"
+        },
+        {
+          "etiqueta": "El grito",
+          "valor": "pintada por Pablo Picasso"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-059",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-030: \"Encuentra el dato erróneo en la tarjeta.\""
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El cubismo surgió en París (Francia) de la mano de Picasso y Braque, no en España.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Movimientos artísticos",
+      "filas": [
+        {
+          "etiqueta": "Impresionismo",
+          "valor": "siglo XIX, Francia"
+        },
+        {
+          "etiqueta": "Cubismo",
+          "valor": "principios del XX, España"
+        },
+        {
+          "etiqueta": "Surrealismo",
+          "valor": "década de 1920, Francia"
+        },
+        {
+          "etiqueta": "Expresionismo abstracto",
+          "valor": "década de 1940, Estados Unidos"
+        }
+      ]
+    },
+    "sospechoso": 1,
+    "id": "art-061",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La corrección geográfica del cubismo es un dato aislado sin explicación histórica."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "«Las Meninas» se encuentra en el Museo del Prado de Madrid, no en el Museo del Louvre.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Detalles de 'Las Meninas'",
+      "filas": [
+        {
+          "etiqueta": "Autor",
+          "valor": "Diego Velázquez"
+        },
+        {
+          "etiqueta": "Año",
+          "valor": "1656"
+        },
+        {
+          "etiqueta": "Técnica",
+          "valor": "óleo sobre lienzo"
+        },
+        {
+          "etiqueta": "Ubicación actual",
+          "valor": "Museo del Louvre, París"
+        },
+        {
+          "etiqueta": "Personaje central",
+          "valor": "la infanta Margarita"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "art-062",
+    "area": "arte",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Solo contrasta dos ubicaciones museísticas y no ayuda a comprender Las meninas."
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI.",
+    "explicacion": "Leonardo da Vinci comenzó el retrato hacia 1503 y lo terminó alrededor de 1517, situándolo claramente en el primer tercio del siglo XVI.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-063",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-001: \"La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI.\""
+  },
+  {
+    "enunciado": "La escultura 'David' de Miguel Ángel fue tallada en mármol de Paros entre 1501 y 1504.",
+    "explicacion": "El David fue esculpido en un bloque de mármol de Carrara, no de Paros, entre 1501 y 1504.",
+    "nivel": 4,
+    "respuesta": false,
+    "id": "art-066",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Distinguir mármoles de Paros y Carrara es un detalle técnico sin relevancia explicativa."
+  },
+  {
+    "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI.",
+    "explicacion": "Leonardo da Vinci comenzó la obra alrededor de 1503 y la terminó hacia 1517, situándola en el inicio del siglo XVI.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "art-067",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-001: \"La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI.\""
+  },
+  {
+    "enunciado": "En 'Las Meninas' de Velázquez, el autorretrato del pintor aparece en el lado derecho de la composición, mirando directamente al espectador.",
+    "explicacion": "Velázquez se representa a sí mismo en el lado izquierdo de la obra, detrás del gran caballete, no en el derecho.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "art-068",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Memorizar la posición del autorretrato no explica la composición ni el significado de Las meninas."
+  },
+  {
+    "enunciado": "El cuadro \"Guernica\" de Pablo Picasso fue pintado en respuesta al bombardeo de la ciudad vasca de Guernica durante la Guerra Civil Española.",
+    "explicacion": "Picasso creó la obra en 1937 como denuncia visual de la violencia contra civiles; su simbolismo anti‑bélico la convirtió en ícono universal, y en 2023 el Museo Reina Sofía organizó una gran retrospectiva que volvió a ponerla en el debate público sobre arte y memoria histórica.",
+    "nivel": 1,
+    "respuesta": true,
+    "hilo": 1,
+    "id": "art-069",
+    "area": "arte",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de art-065: \"El cuadro \"Guernica\" de Pablo Picasso fue pintado en respuesta al bombardeo de la ciudad vasca de Guernica durante la Guerra Civil Española.\""
+  },
+  {
+    "enunciado": "¿Qué evento histórico inspiró a Picasso para pintar \"Guernica\"?",
+    "opciones": [
+      "El bombardeo de la ciudad vasca de Guernica durante la Guerra Civil española",
+      "La caída de París en la Segunda Guerra Mundial",
+      "La Revolución Rusa de 1917",
+      "El atentado de Sarajevo de 1914"
+    ],
+    "correcta": 0,
+    "nivel": 1,
+    "hilo": 1,
+    "explicacion": "Picasso pintó Guernica en 1937 como respuesta inmediata al bombardeo de la aviación alemana e italiana sobre la población civil de Guernica, convirtiéndose en el icono universal del horror de la guerra. En 2023 el Museo Reina Sofía organizó una gran exposición que recontextualizó la obra frente a los conflictos actuales.",
+    "id": "art-080",
+    "area": "arte",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de art-072: \"¿Qué evento histórico inspiró a Picasso para pintar \"Guernica\"?\""
+  },
+  {
+    "enunciado": "El número de Avogadro es exactamente 6.02214076×10^23 mol⁻¹.",
+    "explicacion": "Desde la redefinición del SI en 2019, el número de Avogadro tiene un valor exacto por definición.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "cie-003",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es un dato exacto de metrología y una redefinición normativa, útil casi solo para especialistas."
+  },
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la atmósfera terrestre.",
+    "explicacion": "La atmósfera terrestre está compuesta aproximadamente por un 78 % de nitrógeno y un 21 % de oxígeno; por tanto, el nitrógeno es el elemento más abundante.",
+    "nivel": 1,
+    "respuesta": false,
+    "id": "cie-005",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-001: \"El oxígeno es el elemento más abundante en la atmósfera terrestre.\""
+  },
+  {
+    "enunciado": "En la teoría de la relatividad general, ¿qué tensor describe la curvatura del espacio-tiempo causada por la materia y la energía?",
+    "explicacion": "El tensor de Einstein (G_{\\mu\\nu}) combina el tensor de Ricci y el escalar de curvatura para relacionar la geometría del espacio-tiempo con el tensor de energía-impulso mediante las ecuaciones de campo.",
+    "nivel": 5,
+    "opciones": [
+      "Tensor de Ricci",
+      "Tensor de Einstein",
+      "Tensor métrico",
+      "Tensor de energía-impulso"
+    ],
+    "correcta": 1,
+    "id": "cie-011",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.9,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Pregunta por un tensor de relatividad general, contenido de especialista sin aplicación cotidiana clara."
+  },
+  {
+    "enunciado": "¿Cuál es el elemento químico más abundante en la atmósfera terrestre?",
+    "explicacion": "El nitrógeno constituye aproximadamente el 78 % del volumen de la atmósfera, siendo el gas más abundante.",
+    "nivel": 1,
+    "opciones": [
+      "Nitrógeno",
+      "Oxígeno",
+      "Argón",
+      "Dióxido de carbono"
+    ],
+    "correcta": 0,
+    "id": "cie-012",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de cie-008: \"¿Cuál es el elemento químico más abundante en la atmósfera terrestre?\""
+  },
+  {
+    "enunciado": "¿Qué tipo de radiación electromagnética tiene una longitud de onda más larga que la luz visible pero más corta que las microondas?",
+    "explicacion": "El espectro electromagnético ordena la radiación por longitud de onda; el infrarrojo se sitúa entre la luz visible y las microondas.",
+    "nivel": 2,
+    "opciones": [
+      "Infrarrojo",
+      "Ultravioleta",
+      "Rayos X",
+      "Radio"
+    ],
+    "correcta": 0,
+    "id": "cie-013",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Ordena regiones del espectro de memoria, sin explicar la física ni una consecuencia útil."
+  },
+  {
+    "enunciado": "En la ecuación de Schrödinger independiente del tiempo, ¿qué representa el operador Hamiltoniano?",
+    "explicacion": "El Hamiltoniano Ĥ es el operador que corresponde a la energía total (cinética + potencial) del sistema cuántico.",
+    "nivel": 4,
+    "opciones": [
+      "La energía total del sistema",
+      "El momento lineal",
+      "La posición",
+      "La carga eléctrica"
+    ],
+    "correcta": 0,
+    "id": "cie-014",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Define un operador de mecánica cuántica en lenguaje técnico, sin mecanismo accesible ni relevancia cotidiana."
+  },
+  {
+    "enunciado": "¿Cuál es la simetría de gauge subyacente del modelo estándar de la física de partículas?",
+    "explicacion": "El modelo estándar se basa en el grupo de gauge SU(3)_C × SU(2)_L × U(1)_Y, que describe las interacciones fuerte, débil y electromagnética.",
+    "nivel": 5,
+    "opciones": [
+      "SU(3)×SU(2)×U(1)",
+      "SO(10)",
+      "SU(5)",
+      "E8×E8"
+    ],
+    "correcta": 0,
+    "id": "cie-015",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Se centra en grupos de gauge y notación del modelo estándar, propia de física de partículas avanzada."
+  },
+  {
+    "enunciado": "¿Cuál es la configuración electrónica de estado fundamental del átomo de neón?",
+    "explicacion": "Neón tiene número atómico 10; su configuración electrónica completa es 1s² 2s² 2p⁶, lo que le confiere una capa de valencia completa y lo hace un gas noble.",
+    "nivel": 3,
+    "opciones": [
+      "1s² 2s² 2p⁶",
+      "1s² 2s² 2p⁵",
+      "1s² 2s² 2p⁴",
+      "1s² 2s² 2p³"
+    ],
+    "correcta": 0,
+    "id": "cie-018",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Exige memorizar una configuración electrónica concreta, útil casi exclusivamente en química especializada."
+  },
+  {
+    "enunciado": "¿Cuál es la partícula elemental que media la interacción débil y tiene carga eléctrica negativa?",
+    "explicacion": "El bosón W⁻ es el mediador cargado negativamente de la fuerza nuclear débil, involucrado en procesos como la desintegración beta.",
+    "nivel": 5,
+    "opciones": [
+      "Bosón W⁺",
+      "Bosón W⁻",
+      "Bosón Z⁰",
+      "Fotón"
+    ],
+    "correcta": 1,
+    "id": "cie-020",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Identifica un bosón concreto de la interacción débil, dato de especialista sin mecanismo accesible."
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del sistema solar de menor a mayor distancia al Sol.",
+    "explicacion": "Mercurio es el más cercano al Sol, seguido por Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Mercurio",
+      "Venus",
+      "Tierra",
+      "Marte"
+    ],
+    "id": "cie-021",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar planetas por distancia es memorización taxonómica sin mecanismo ni contexto."
+  },
+  {
+    "enunciado": "Ordena los siguientes elementos químicos de menor a mayor número atómico.",
+    "explicacion": "El hidrógeno tiene número atómico 1, el helio 2, el litio 3 y el berilio 4.",
+    "nivel": 2,
+    "criterio": "de menor a mayor número atómico",
+    "items": [
+      "Hidrógeno",
+      "Helio",
+      "Litio",
+      "Berilio"
+    ],
+    "id": "cie-022",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar elementos por número atómico es una secuencia memorística sin explicación causal."
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético de menor a mayor longitud de onda.",
+    "explicacion": "Los rayos gamma tienen la longitud de onda más corta, seguidos por los rayos X, el ultravioleta y la luz visible.",
+    "nivel": 3,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Rayos gamma",
+      "Rayos X",
+      "Ultravioleta",
+      "Visible"
+    ],
+    "id": "cie-023",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Clasifica regiones electromagnéticas por longitud de onda sin explicar la relación física ni aplicaciones."
+  },
+  {
+    "enunciado": "Encuentra la fila errónea en la tarjeta sobre grupos de la tabla periódica.",
+    "explicacion": "El grupo 13 corresponde al grupo del boro, no a los gases nobles; los gases nobles son el grupo 18.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Grupos de la tabla periódica",
+      "filas": [
+        {
+          "etiqueta": "Grupo 1",
+          "valor": "metales alcalinos"
+        },
+        {
+          "etiqueta": "Grupo 2",
+          "valor": "metales alcalinotérreos"
+        },
+        {
+          "etiqueta": "Grupo 17",
+          "valor": "halógenos"
+        },
+        {
+          "etiqueta": "Grupo 18",
+          "valor": "gases nobles"
+        },
+        {
+          "etiqueta": "Grupo 13",
+          "valor": "gases nobles"
+        }
+      ]
+    },
+    "sospechoso": 4,
+    "id": "cie-033",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una clasificación de la tabla periódica de tipo memorístico, expresamente poco útil según las reglas."
+  },
+  {
+    "enunciado": "Los neutrones tienen carga eléctrica positiva.",
+    "explicacion": "Los neutrones son partículas subatómicas neutras; su carga eléctrica neta es cero, a diferencia de los protones (positivos) y los electrones (negativos).",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "cie-035",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición elemental sobre la carga del neutrón sin mecanismo ni contexto aprovechable."
+  },
+  {
+    "enunciado": "El bosón de Higgs es la partícula asociada al campo de Higgs, responsable de dar masa a los bosones W y Z del modelo estándar.",
+    "explicacion": "El mecanismo de Higgs genera masa para los bosones gauge débiles (W± y Z⁰) mediante la ruptura espontánea de simetría; el bosón de Higgs es la excitación cuántica de ese campo.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "cie-037",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: El mecanismo de Higgs y los bosones W y Z pertenecen a una física de partículas demasiado especializada para este público."
+  },
+  {
+    "enunciado": "En mecánica cuántica, el principio de exclusión de Pauli se aplica únicamente a fermiones de spin 1/2.",
+    "explicacion": "El principio de exclusión de Pauli rige para todos los fermiones, es decir, partículas con spin semi‑entero (1/2, 3/2, 5/2, …), no solo para las de spin 1/2.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "cie-040",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La distinción entre fermiones de distintos espines semienteros es conocimiento especializado sin aplicación cotidiana clara."
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?",
+    "explicacion": "El argón (Ar) pertenece al grupo 18 de la tabla periódica y es un gas monoatómico inerte en condiciones estándar.",
+    "nivel": 2,
+    "opciones": [
+      "Cloro",
+      "Argón",
+      "Azufre",
+      "Fósforo"
+    ],
+    "correcta": 1,
+    "id": "cie-042",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Identificar el argón como gas noble es una clasificación taxonómica memorística prohibida por las reglas."
+  },
+  {
+    "enunciado": "¿Qué mecanismo molecular explica la heredabilidad epigenética de la metilación del ADN durante la división celular?",
+    "explicacion": "La enzima DNMT1 reconoce los sitios hemimetilados en la hebra recién sintetizada y copia el patrón de metilación, manteniendo la marca epigenética a través de generaciones celulares.",
+    "nivel": 5,
+    "opciones": [
+      "Replicación semiconservativa",
+      "Mantenimiento de la metilación por DNMT1",
+      "Reparación por escisión de nucleótidos",
+      "Transposición de retrotransposones"
+    ],
+    "correcta": 1,
+    "id": "cie-044",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: El mantenimiento de la metilación por DNMT1 es un mecanismo molecular propio de especialidad, no de cultura general útil."
+  },
+  {
+    "enunciado": "¿Qué orgánulo es conocido como la \"central energética\" de la célula?",
+    "explicacion": "Las mitocondrias generan la mayor parte del ATP celular mediante la fosforilación oxidativa, por lo que se les llama la central energética de la célula.",
+    "nivel": 1,
+    "opciones": [
+      "Núcleo",
+      "Mitocondria",
+      "Ribosoma",
+      "Aparato de Golgi"
+    ],
+    "correcta": 1,
+    "id": "cie-045",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-041: \"¿Qué orgánulo es conocido como la \"central energética\" de la célula?\""
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?",
+    "explicacion": "El argón (Ar) pertenece al grupo 18 de la tabla periódica, los gases nobles, y es gaseoso en condiciones estándar.",
+    "nivel": 2,
+    "opciones": [
+      "Cloro",
+      "Argón",
+      "Sodio",
+      "Hierro"
+    ],
+    "correcta": 1,
+    "id": "cie-046",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-042: \"¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?\""
+  },
+  {
+    "enunciado": "¿Qué fenómeno describe la violación de la paridad en las interacciones débiles, observado experimentalmente en el decaimiento del cobalto-60?",
+    "explicacion": "El experimento de Wu (1957) mostró que la emisión de electrones en el decaimiento beta del Co-60 es asimétrica respecto a la dirección del spin nuclear, evidenciando la violación de la paridad (P) en la interacción débil.",
+    "nivel": 5,
+    "opciones": [
+      "Efecto Zeeman",
+      "Violación CP",
+      "Violación de paridad (P)",
+      "Efecto Hall cuántico"
+    ],
+    "correcta": 2,
+    "id": "cie-048",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La violación de paridad en el cobalto-60 y el experimento de Wu son trivia de física de partículas demasiado especializada."
+  },
+  {
+    "enunciado": "¿Qué orgánulo celular es conocido como la \"central energética\" de la célula?",
+    "explicacion": "Las mitocondrias generan la mayor parte del ATP mediante la fosforilación oxidativa, por lo que se les llama la central energética de la célula.",
+    "nivel": 1,
+    "opciones": [
+      "Núcleo",
+      "Mitocondria",
+      "Ribosoma",
+      "Lisosoma"
+    ],
+    "correcta": 1,
+    "id": "cie-049",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-041: \"¿Qué orgánulo celular es conocido como la \"central energética\" de la célula?\""
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?",
+    "explicacion": "El argón (Ar) pertenece al grupo 18 de la tabla periódica y es un gas monoatómico inerte en condiciones normales.",
+    "nivel": 2,
+    "opciones": [
+      "Oxígeno",
+      "Nitrógeno",
+      "Argón",
+      "Cloro"
+    ],
+    "correcta": 2,
+    "id": "cie-050",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-042: \"¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?\""
+  },
+  {
+    "enunciado": "¿Qué ley describe la relación entre la presión y el volumen de un gas ideal a temperatura constante?",
+    "explicacion": "La ley de Boyle establece que, a temperatura constante, la presión de un gas ideal es inversamente proporcional a su volumen (P·V = constante).",
+    "nivel": 3,
+    "opciones": [
+      "Ley de Charles",
+      "Ley de Boyle",
+      "Ley de Gay-Lussac",
+      "Ley de Avogadro"
+    ],
+    "correcta": 1,
+    "id": "cie-051",
+    "area": "ciencia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-010: \"¿Qué ley describe la relación entre la presión y el volumen de un gas ideal a temperatura constante?\""
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del sistema solar según su distancia media al Sol.",
+    "explicacion": "Mercurio es el más cercano al Sol, seguido de Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia media al Sol",
+    "items": [
+      "Mercurio",
+      "Venus",
+      "Tierra",
+      "Marte"
+    ],
+    "id": "cie-054",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-021: \"Ordena los siguientes planetas del sistema solar según su distancia media al Sol.\""
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético según su longitud de onda.",
+    "explicacion": "La longitud de onda aumenta desde los rayos gamma (más cortos) hasta la luz visible.",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Rayos gamma",
+      "Rayos X",
+      "Ultravioleta",
+      "Luz visible"
+    ],
+    "id": "cie-055",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de cie-023: \"Ordena las siguientes regiones del espectro electromagnético según su longitud de onda.\""
+  },
+  {
+    "enunciado": "Ordena los siguientes periodos geológicos desde el más antiguo al más reciente.",
+    "explicacion": "El Cámbrico precede al Ordovícico, seguido del Silúrico y el Devónico en la escala temporal geológica.",
+    "nivel": 3,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Cámbrico",
+      "Ordovícico",
+      "Silúrico",
+      "Devónico"
+    ],
+    "id": "cie-056",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una lista cronológica de periodos sin causas, consecuencias ni hitos que la hagan relevante."
+  },
+  {
+    "enunciado": "Ordena las cuatro interacciones fundamentales de la física según su intensidad relativa.",
+    "explicacion": "La gravedad es muchas órdenes de magnitud más débil que la interacción débil, que a su vez es más débil que el electromagnetismo, y la interacción fuerte es la más intensa a escalas subatómicas.",
+    "nivel": 5,
+    "criterio": "de más débil a más fuerte",
+    "items": [
+      "Gravedad",
+      "Interacción débil",
+      "Electromagnetismo",
+      "Interacción fuerte"
+    ],
+    "id": "cie-057",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Comparación especializada y dependiente de la escala, sin explicar por qué cambian las intensidades relativas."
+  },
+  {
+    "enunciado": "Ordena las capas principales de la atmósfera terrestre de menor a mayor altitud.",
+    "explicacion": "La troposfera se extiende hasta ~12 km, la estratosfera hasta ~50 km, la mesosfera hasta ~85 km y la termosfera comienza por encima de ese nivel.",
+    "nivel": 4,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "troposfera",
+      "estratosfera",
+      "mesosfera",
+      "termosfera"
+    ],
+    "id": "cie-061",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Memoriza capas y altitudes sin explicar qué procesos físicos las separan."
+  },
+  {
+    "enunciado": "Ordena las siguientes clases espectrales estelares de mayor a menor temperatura efectiva.",
+    "explicacion": "Las estrellas de tipo O son las más calientes (>30 000 K), seguidas por B (10 000–30 000 K), A (7 500–10 000 K) y F (6 000–7 500 K).",
+    "nivel": 5,
+    "criterio": "de mayor a menor temperatura efectiva",
+    "items": [
+      "O",
+      "B",
+      "A",
+      "F"
+    ],
+    "id": "cie-062",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Clasificación espectral memorística con rangos numéricos de especialista y sin mecanismo."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El plasma no es el estado más común en la Tierra; los estados sólido, líquido y gaseoso predominan en condiciones normales.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Estados de la materia",
+      "filas": [
+        {
+          "etiqueta": "Sólido",
+          "valor": "forma y volumen definidos"
+        },
+        {
+          "etiqueta": "Líquido",
+          "valor": "volumen definido, forma variable"
+        },
+        {
+          "etiqueta": "Gas",
+          "valor": "ni forma ni volumen definidos"
+        },
+        {
+          "etiqueta": "Plasma",
+          "valor": "es el estado más común en la Tierra"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-063",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-030: \"Encuentra el dato erróneo en la tarjeta.\""
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La pared celular está presente en células vegetales, hongos y bacterias, pero no en células animales.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Partes de la célula",
+      "filas": [
+        {
+          "etiqueta": "Núcleo",
+          "valor": "contiene el material genético"
+        },
+        {
+          "etiqueta": "Mitocondria",
+          "valor": "produce ATP"
+        },
+        {
+          "etiqueta": "Ribosoma",
+          "valor": "síntesis de proteínas"
+        },
+        {
+          "etiqueta": "Pared celular",
+          "valor": "presente en células animales"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-064",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-031: \"Encuentra el dato erróneo en la tarjeta.\""
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "El símbolo del berilio es Be; la B corresponde al boro.",
+    "nivel": 5,
+    "tarjeta": {
+      "titulo": "Elementos químicos y sus símbolos",
+      "filas": [
+        {
+          "etiqueta": "Hidrógeno",
+          "valor": "H"
+        },
+        {
+          "etiqueta": "Helio",
+          "valor": "He"
+        },
+        {
+          "etiqueta": "Litio",
+          "valor": "Li"
+        },
+        {
+          "etiqueta": "Berilio",
+          "valor": "B"
+        },
+        {
+          "etiqueta": "Boro",
+          "valor": "B"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "cie-066",
+    "area": "ciencia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Confunde símbolos químicos de forma puramente memorística y no enseña ningún principio útil."
+  },
+  {
+    "enunciado": "El oxígeno es el elemento más abundante en la corteza terrestre.",
+    "explicacion": "El oxígeno constituye aproximadamente el 46 % en masa de la corteza terrestre, superando al silicio y al aluminio.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "cie-067",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-001: \"El oxígeno es el elemento más abundante en la corteza terrestre.\""
+  },
+  {
+    "enunciado": "La constante de Planck tiene un valor exacto de 6.62607015×10⁻³⁴ J·s desde la redefinición del SI en 2019.",
+    "explicacion": "En 2019 la Conferencia General de Pesos y Medidas fijó el valor de la constante de Planck exactamente en 6.62607015×10⁻³⁴ J·s para definir el kilogramo.",
+    "nivel": 4,
+    "respuesta": true,
+    "id": "cie-069",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Centrada en una constante exacta y una redefinición metrológica, resulta demasiado técnica y alejada de mecanismos cotidianos."
+  },
+  {
+    "enunciado": "El bosón de Higgs fue descubierto en el acelerador LEP del CERN en 1995.",
+    "explicacion": "El bosón de Higgs se anunció oficialmente en 2012 tras los experimentos ATLAS y CMS en el Gran Colisionador de Hadrones (LHC), no en el LEP ni en 1995.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "cie-070",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Acumula siglas y fechas de física de partículas sin explicar qué aportó el Higgs ni por qué importa."
+  },
+  {
+    "enunciado": "El núcleo de un átomo está compuesto principalmente por protones y neutrones.",
+    "explicacion": "El núcleo atómico contiene protones (carga positiva) y neutrones (sin carga), mientras que los electrones, de carga negativa, orbitan alrededor del núcleo en nubes de probabilidad.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "cie-071",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Definición elemental de memorización, sin mecanismo ni conexión con fenómenos observables."
+  },
+  {
+    "enunciado": "En la mecánica cuántica, el principio de incertidumbre de Heisenberg establece que es posible conocer simultáneamente la posición exacta y el momento exacto de una partícula.",
+    "explicacion": "El principio de incertidumbre de Heisenberg afirma que existe un límite fundamental para la precisión con la que se pueden conocer conjuntamente la posición y el momento de una partícula; no es posible determinar ambos valores con exactitud arbitraria al mismo tiempo.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "cie-072",
+    "area": "ciencia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de cie-007: \"En la mecánica cuántica, el principio de incertidumbre de Heisenberg establece que es posible conocer simultáneamente la posición exacta y el momento exacto de una partícula.\""
+  },
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios finales producidos en una economía durante un periodo determinado.",
+    "explicacion": "El Producto Interno Bruto (PIB) se define precisamente como el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un intervalo de tiempo, usualmente un año o un trimestre.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-001",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición de manual del PIB, sin mecanismo, contexto ni utilidad conversacional nueva."
+  },
+  {
+    "enunciado": "En teoría de juegos, un equilibrio de Nash en estrategias puras existe siempre en cualquier juego finito.",
+    "explicacion": "Aunque todo juego finito tiene al menos un equilibrio de Nash en estrategias mixtas (teorema de Nash), no garantiza la existencia de un equilibrio en estrategias puras; ejemplos como el juego de 'Matching Pennies' solo tienen equilibrio mixto.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "eco-004",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una distinción técnica de teoría de juegos sin aplicación ni mecanismo relevante para el público objetivo."
+  },
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período.",
+    "explicacion": "El Producto Interno Bruto (PIB) es la medida estándar de la producción económica total de un país, contabilizando solo bienes y servicios finales para evitar doble conteo.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-005",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-001: \"El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período.\""
+  },
+  {
+    "enunciado": "¿Qué condición debe cumplirse para que una curva de Phillips a corto plazo sea vertical en el modelo de expectativas racionales?",
+    "explicacion": "Si los agentes forman expectativas racionales y anticipan correctamente la política monetaria, la curva de Phillips a corto plazo se vuelve vertical, ya que no hay trade‑off entre inflación y desempleo.",
+    "nivel": 5,
+    "opciones": [
+      "Los agentes forman expectativas adaptativas",
+      "Los agentes tienen información perfecta y anticipan la política monetaria",
+      "La política fiscal es neutra",
+      "La oferta agregada es perfectamente elástica"
+    ],
+    "correcta": 1,
+    "id": "eco-011",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.91,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Plantea una condición técnica y académica de expectativas racionales, demasiado especializada para este formato."
+  },
+  {
+    "enunciado": "¿Qué representa el coste de oportunidad de una decisión económica?",
+    "explicacion": "El coste de oportunidad es el valor de la mejor alternativa que se renuncia al elegir una opción.",
+    "nivel": 2,
+    "opciones": [
+      "El valor de la mejor alternativa no elegida",
+      "El gasto monetario incurrido",
+      "El beneficio obtenido",
+      "El riesgo asociado"
+    ],
+    "correcta": 0,
+    "id": "eco-013",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición de diccionario, expresamente poco útil según las reglas."
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interior Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor monetario de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un periodo determinado, generalmente un año.",
+    "nivel": 1,
+    "opciones": [
+      "El total de exportaciones netas",
+      "El valor de la producción final dentro del territorio",
+      "La suma de los salarios pagados a los trabajadores",
+      "El saldo de la balanza de pagos"
+    ],
+    "correcta": 1,
+    "id": "eco-016",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Se limita a definir el PIB mediante una opción obvia, sin enseñar un mecanismo o debate."
+  },
+  {
+    "enunciado": "¿Cómo se define la inflación en términos macroeconómicos?",
+    "explicacion": "La inflación es el aumento sostenido y generalizado del nivel de precios de los bienes y servicios en una economía a lo largo del tiempo, lo que reduce el poder adquisitivo de la moneda.",
+    "nivel": 2,
+    "opciones": [
+      "Una caída puntual del precio de un bien específico",
+      "Un aumento sostenido y generalizado del nivel de precios",
+      "Una reducción de la oferta monetaria",
+      "Un incremento del tipo de cambio nominal"
+    ],
+    "correcta": 1,
+    "id": "eco-017",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición básica de inflación, sin causa, consecuencias ni conexión con la vida real."
+  },
+  {
+    "enunciado": "Ordena las estructuras de mercado de menor a mayor grado de competencia.",
+    "explicacion": "El monopolio tiene un solo vendedor, el oligopolio pocos, la competencia monopolística muchos con diferenciación, y la competencia perfecta muchos con productos homogéneos.",
+    "nivel": 2,
+    "criterio": "de menor a mayor grado de competencia",
+    "items": [
+      "monopolio",
+      "oligopolio",
+      "competencia monopolística",
+      "competencia perfecta"
+    ],
+    "id": "eco-022",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una clasificación taxonómica de estructuras de mercado que premia memorizar un orden."
+  },
+  {
+    "enunciado": "Ordena los niveles de gobierno según su ámbito territorial de menor a mayor.",
+    "explicacion": "Los municipios administran áreas locales, las regiones/estados agrupan municipios, el gobierno nacional abarca todo el país, y las entidades supranacionales (p.ej., UE) coordinan varios países.",
+    "nivel": 3,
+    "criterio": "de menor a mayor ámbito territorial",
+    "items": [
+      "municipal",
+      "regional",
+      "nacional",
+      "supranacional"
+    ],
+    "id": "eco-023",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar niveles administrativos por ámbito es conocimiento obvio y ajeno a un mecanismo económico."
+  },
+  {
+    "enunciado": "Ordena los tipos de elasticidad precio de la demanda según el valor absoluto de su coeficiente, de menor a mayor.",
+    "explicacion": "La elasticidad perfectamente inelástica es 0, la inelástica entre 0 y 1, la unitaria igual a 1, y la elástica mayor que 1 en valor absoluto.",
+    "nivel": 4,
+    "criterio": "de menor a mayor valor absoluto del coeficiente de elasticidad",
+    "items": [
+      "perfectamente inelástica",
+      "inelástica",
+      "unitaria",
+      "elástica"
+    ],
+    "id": "eco-024",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Reduce la elasticidad a memorizar umbrales y categorías, sin aplicarla a decisiones o precios."
+  },
+  {
+    "enunciado": "Ordena las etapas del modelo de desarrollo de Rostow desde la inicial hasta la final.",
+    "explicacion": "El modelo de Rostow describe cinco fases; aquí se presentan cuatro consecutivas que marcan la transición de una sociedad tradicional a una economía de alto consumo.",
+    "nivel": 2,
+    "criterio": "de etapa inicial a etapa final",
+    "items": [
+      "Sociedad tradicional",
+      "Precondiciones para el despegue",
+      "Despegue",
+      "Madurez"
+    ],
+    "id": "eco-026",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Exige recordar las etapas de un modelo histórico sin explicar su mecanismo ni su vigencia."
+  },
+  {
+    "enunciado": "Ordena los agregados monetarios principales por su amplitud, de menor a mayor.",
+    "explicacion": "M0 es la base monetaria (efectivo en circulación más reservas bancarias); M1 añade depósitos a la vista; M2 incorpora depósitos de ahorro y a plazo corto; M3 agrega instrumentos de mercado monetario de mayor plazo.",
+    "nivel": 3,
+    "criterio": "de menor a mayor amplitud",
+    "items": [
+      "M0 (base monetaria)",
+      "M1",
+      "M2",
+      "M3"
+    ],
+    "id": "eco-027",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Se basa en siglas y categorías monetarias prohibidas, además de pedir una mera clasificación."
+  },
+  {
+    "enunciado": "Ordena los tipos de elasticidad-precio de la demanda según su magnitud, de menor a mayor elasticidad.",
+    "explicacion": "La elasticidad mide la sensibilidad de la cantidad demandada ante cambios de precio; varía desde cero (perfectamente inelástica) hasta infinito (perfectamente elástica).",
+    "nivel": 4,
+    "criterio": "de menor a mayor elasticidad",
+    "items": [
+      "Perfectamente inelástica",
+      "Relativamente inelástica",
+      "Unitaria",
+      "Relativamente elástica"
+    ],
+    "id": "eco-028",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de eco-024: \"Ordena los tipos de elasticidad-precio de la demanda según su magnitud, de menor a mayor elasticidad.\""
+  },
+  {
+    "enunciado": "Ordena las principales escuelas de pensamiento económico según su aparición histórica, de la más antigua a la más reciente.",
+    "explicacion": "El mercantilismo precede a la escuela clásica (Smith, Ricardo), que a su vez antecede a la revolución marginalista (Jevons, Menger, Walras) y finalmente al keynesianismo (Keynes, años 30).",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Mercantilismo",
+      "Escuela clásica",
+      "Escuela marginalista",
+      "Keynesianismo"
+    ],
+    "id": "eco-029",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Solo exige ordenar escuelas por antigüedad, una cronología memorística sin causas ni consecuencias."
+  },
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios producidos en una economía durante un periodo determinado.",
+    "explicacion": "El Producto Interno Bruto (PIB) es la medida macroeconómica que suma el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país en un período específico, generalmente un año o un trimestre.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-034",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.88,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-001: \"El PIB mide el valor total de los bienes y servicios producidos en una economía durante un periodo determinado.\""
+  },
+  {
+    "enunciado": "En un mercado de competencia perfecta, las empresas son precio tomadores y no pueden influir en el precio de mercado.",
+    "explicacion": "En la competencia perfecta hay muchos compradores y vendedores, productos homogéneos y libre entrada y salida; ninguna empresa individual tiene suficiente poder de mercado para afectar el precio, que resulta de la interacción de la oferta y la demanda agregada.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "eco-035",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.96,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-002: \"En un mercado de competencia perfecta, las empresas son precio tomadores y no pueden influir en el precio de mercado.\""
+  },
+  {
+    "enunciado": "La curva de Phillips muestra una relación inversa estable entre el desempleo y la inflación a largo plazo.",
+    "explicacion": "La curva de Phillips original observó una relación inversa a corto plazo, pero a largo plazo las expectativas de inflación se ajustan y la relación desaparece, convirtiéndose en una curva vertical en la tasa natural de desempleo (hipótesis de expectativas racionales).",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "eco-036",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-006: \"La curva de Phillips muestra una relación inversa estable entre el desempleo y la inflación a largo plazo.\""
+  },
+  {
+    "enunciado": "El Producto Interno Bruto (PIB) mide el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país durante un período determinado.",
+    "explicacion": "El PIB es la medida estándar de la actividad económica agregada y se define exactamente como el valor de mercado de la producción final dentro de un territorio en un intervalo de tiempo dado.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-038",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de eco-001: \"El Producto Interno Bruto (PIB) mide el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país durante un período determinado.\""
+  },
+  {
+    "enunciado": "A largo plazo, la curva de Phillips es vertical, lo que significa que no existe un trade-off permanente entre inflación y desempleo.",
+    "explicacion": "En el largo plazo las expectativas de inflación se ajustan, eliminando la relación inversa observada a corto plazo; la curva de Phillips a largo plazo es vertical en la tasa natural de desempleo.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "eco-039",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de eco-003: \"A largo plazo, la curva de Phillips es vertical, lo que significa que no existe un trade-off permanente entre inflación y desempleo.\""
+  },
+  {
+    "enunciado": "¿Qué mide el Producto Interno Bruto (PIB) de un país?",
+    "explicacion": "El PIB es el valor total de los bienes y servicios finales producidos dentro de las fronteras de un país durante un período determinado.",
+    "nivel": 1,
+    "opciones": [
+      "La producción total de bienes y servicios finales",
+      "El total de exportaciones",
+      "El nivel de empleo",
+      "La tasa de inflación"
+    ],
+    "correcta": 0,
+    "id": "eco-041",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-016: \"¿Qué mide el Producto Interno Bruto (PIB) de un país?\""
+  },
+  {
+    "enunciado": "¿Qué es el coste de oportunidad?",
+    "explicacion": "El coste de oportunidad de una decisión es el valor de la mejor alternativa que se renuncia al elegir esa opción.",
+    "nivel": 2,
+    "opciones": [
+      "El coste monetario de una decisión",
+      "El valor de la mejor alternativa no elegida",
+      "El coste de producción de un bien",
+      "El coste de oportunidad es lo mismo que el coste fijo"
+    ],
+    "correcta": 1,
+    "id": "eco-042",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Se limita a definir el coste de oportunidad, justo el tipo de contenido memorístico prohibido."
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes indicadores mide el valor total de los bienes y servicios finales producidos dentro de las fronteras de un país en un período determinado?",
+    "explicacion": "El Producto Interno Bruto (PIB) suma el valor de mercado de todos los bienes y servicios finales producidos en una economía durante un periodo específico, usualmente un año o un trimestre.",
+    "nivel": 1,
+    "opciones": [
+      "PIB",
+      "Inflación",
+      "Déficit presupuestario",
+      "Tipo de cambio"
+    ],
+    "correcta": 0,
+    "id": "eco-045",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es otra formulación puramente definitoria del PIB, sin mecanismo ni contexto que la haga memorable."
+  },
+  {
+    "enunciado": "En economía, ¿qué se entiende por costo de oportunidad?",
+    "explicacion": "El costo de oportunidad representa el valor de la mejor alternativa que se renuncia al elegir una opción determinada; no es un gasto monetario directo sino lo que se deja de obtener.",
+    "nivel": 2,
+    "opciones": [
+      "El gasto monetario real de una decisión",
+      "El valor de la mejor alternativa renunciada al elegir una opción",
+      "El impuesto que se paga por un bien",
+      "El beneficio neto de una inversión"
+    ],
+    "correcta": 1,
+    "id": "eco-046",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Aunque añade que no es un gasto directo, sigue siendo una definición escolar sin aplicación concreta."
+  },
+  {
+    "enunciado": "En el modelo de equilibrio general de Arrow-Debreu, ¿qué supuesto es esencial para la existencia de un equilibrio competitivo?",
+    "explicacion": "La convexidad de los conjuntos de preferencias de los consumidores y de los conjuntos de producción de las empresas garantiza que las funciones de demanda y oferta sean continuas y que exista un punto de intersección (equilibrio).",
+    "nivel": 5,
+    "opciones": [
+      "Preferencias no convexas",
+      "Conjuntos de consumo no acotados",
+      "Convexidad de los conjuntos de preferencias y tecnologías",
+      "Ausencia de externalidades en la producción"
+    ],
+    "correcta": 2,
+    "id": "eco-053",
+    "area": "economia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.9,
+    "verificado": true,
+    "verificador": "openai/gpt-5-mini",
+    "motivo": "utilidad 1/5: Es teoría académica especializada de equilibrio general, inadecuada para la utilidad general exigida."
+  },
+  {
+    "enunciado": "Ordena los regímenes tipo de cambio de menor a mayor grado de flexibilidad.",
+    "explicacion": "Los regímenes tipo de cambio van desde los fijos, donde el valor está pegado, hasta los flotantes libres, donde el mercado determina el tipo de cambio.",
+    "nivel": 3,
+    "criterio": "de menor a mayor grado de flexibilidad",
+    "items": [
+      "Tipo de cambio fijo",
+      "Tipo de cambio crawling peg",
+      "Tipo de cambio managed float",
+      "Tipo de cambio libre flotante"
+    ],
+    "id": "eco-056",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.85,
+    "verificado": true,
+    "verificador": "openai/gpt-5-mini",
+    "motivo": "utilidad 1/5: Consiste en memorizar una taxonomía de regímenes cambiarios sin explicar sus incentivos o consecuencias."
+  },
+  {
+    "enunciado": "Ordena las principales escuelas de pensamiento económico por su aparición histórica.",
+    "explicacion": "La escuela clásica surge en el siglo XVIII; la neoclásica a finales del XIX; la keynesiana en la década de 1930; la nueva economía institucional se consolida a finales del XX.",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Escuela clásica",
+      "Escuela neoclásica",
+      "Escuela keynesiana",
+      "Escuela de la nueva economía institucional"
+    ],
+    "id": "eco-062",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.92,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Vuelve a reducir la economía a ordenar escuelas por fechas, sin ideas, causas ni debate aplicable."
+  },
+  {
+    "enunciado": "El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período.",
+    "explicacion": "El PIB (Producto Interno Bruto) es la medida estándar del valor de producción final dentro de las fronteras de un país en un intervalo de tiempo determinado.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "eco-063",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-001: \"El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período.\""
+  },
+  {
+    "enunciado": "La curva de Phillips original mostraba una relación inversa estable entre inflación y desempleo a largo plazo.",
+    "explicacion": "La curva de Phillips original (1958) mostraba una relación inversa entre inflación y desempleo solo a corto plazo; a largo plazo la curva es vertical según la teoría de la tasa natural de desempleo.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "eco-064",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.96,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de eco-006: \"La curva de Phillips original mostraba una relación inversa estable entre inflación y desempleo a largo plazo.\""
+  },
+  {
+    "enunciado": "El Premio Nobel de Economía 2021 fue otorgado a Paul Milgrom y Robert Wilson por sus contribuciones a la teoría de subastas.",
+    "explicacion": "El Nobel de Economía 2021 fue concedido a David Card, Joshua Angrist y Guido Imbens por sus aportes a la economía laboral y métodos causales; Milgrom y Wilson recibieron el premio en 2020.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "eco-066",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es trivia sobre nombres y años de un premio, sin mecanismo ni valor conversacional duradero."
+  },
+  {
+    "enunciado": "La curva de Phillips muestra una relación directa y estable entre la tasa de inflación y el nivel de desempleo a largo plazo.",
+    "explicacion": "La curva de Phillips original describe una relación inversa a corto plazo entre inflación y desempleo. A largo plazo, la curva es vertical en la tasa natural de desempleo, indicando que no existe un trade‑off estable entre ambas variables.",
+    "nivel": 4,
+    "respuesta": false,
+    "id": "eco-068",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de eco-006: \"La curva de Phillips muestra una relación directa y estable entre la tasa de inflación y el nivel de desempleo a largo plazo.\""
+  },
+  {
+    "enunciado": "¿Qué filósofo griego es conocido por la alegoría de la caverna?",
+    "explicacion": "La alegoría de la caverna aparece en la República de Platón y ilustra su teoría de las Ideas.",
+    "nivel": 1,
+    "opciones": [
+      "Platón",
+      "Aristóteles",
+      "Sócrates",
+      "Pitágoras"
+    ],
+    "correcta": 0,
+    "id": "fil-012",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de fil-008: \"¿Qué filósofo griego es conocido por la alegoría de la caverna?\""
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué significa la 'epoché'?",
+    "explicacion": "La epochè es la suspensión del juicio sobre la existencia del mundo natural para examinar la conciencia pura.",
+    "nivel": 4,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo",
+      "Reducción al cogito",
+      "Método dialéctico",
+      "Crítica de la razón pura"
+    ],
+    "correcta": 0,
+    "id": "fil-014",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de fil-010: \"En la fenomenología de Husserl, ¿qué significa la 'epoché'?\""
+  },
+  {
+    "enunciado": "En la fenomenología de Husserl, ¿qué implica la \"epoché\"?",
+    "explicacion": "La epoché es la \"puesta entre paréntesis\" de la actitud natural, permitiendo examinar la conciencia pura sin presupposiciones ontológicas.",
+    "nivel": 5,
+    "opciones": [
+      "Suspensión del juicio sobre la existencia del mundo natural",
+      "Reducción al yo trascendental",
+      "Método de variación eidética",
+      "Crítica de la metafísica"
+    ],
+    "correcta": 0,
+    "id": "fil-020",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de fil-010: \"En la fenomenología de Husserl, ¿qué implica la \"epoché\"?\""
+  },
+  {
+    "enunciado": "El 'Cogito, ergo sum' fue formulado por René Descartes en su obra 'Discurso del método'.",
+    "explicacion": "Descartes introduce la famosa fórmula en el 'Discurso del método' (1637) y la desarrolla después en las 'Meditaciones metafísicas'.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "fil-025",
+    "area": "filosofia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una atribución histórica con fecha que no aporta mecanismo, causa ni una idea aprovechable."
+  },
+  {
+    "enunciado": "Ordena de más antiguo a más reciente.",
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Verdad",
+      "Justicia",
+      "Felicidad",
+      "Libertad"
+    ],
+    "explicacion": "La noción de verdad se remonta a los presocráticos como Parmenides (siglo V a.C.); la justicia fue tratada sistemáticamente por Platón en la República (siglo IV a.C.); la felicidad (eudaimonia) fue desarrollada por Aristóteles en la Ética a Nicómaco (siglo IV a.C.); la libertad como concepto político moderno surge con John Locke en el siglo XVII. En 2022-2024, la libertad de expresión en plataformas digitales ha sido un tema candente.",
+    "nivel": 2,
+    "hilo": 2,
+    "id": "fil-049",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Asigna una cronología artificial a conceptos sin origen único y reduce la filosofía a una ordenación histórica sin mecanismo."
+  },
+  {
+    "enunciado": "Ordena de menos reciente a más reciente.",
+    "criterio": "de menos reciente a más reciente",
+    "items": [
+      "Desigualdad",
+      "Bioética",
+      "Redes sociales",
+      "Inteligencia artificial"
+    ],
+    "explicacion": "La desigualdad ha sido tema de debate desde el siglo XIX, revitalizada por obras como \"El capital en el siglo XXI\" de Piketty (2013). La bioética emergió en los años 70 con el informe Belmont. Las redes sociales masivas empezaron con Facebook (2004). La IA generativa alcanzó relevancia pública tras el lanzamiento de GPT-3 (2020) y su expansión en 2022-2023.",
+    "nivel": 3,
+    "hilo": 3,
+    "id": "fil-050",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Se apoya en fechas imprecisas y menciona lanzamientos de productos y modelos concretos, recursos expresamente prohibidos."
+  },
+  {
+    "enunciado": "Ordena de más antiguo a más reciente.",
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Sócrates",
+      "Aristóteles",
+      "Immanuel Kant",
+      "Friedrich Nietzsche"
+    ],
+    "explicacion": "Sócrates vivió entre 470 y 399 a.C.; Aristóteles entre 384 y 322 a.C.; Kant nació en 1724 y murió en 1804; Nietzsche nació en 1844 y falleció en 1900. El resurgir de interés por Nietzsche en la cultura popular se vio en 2023 con múltiples series y libros que reinterpretaron su idea de la 'muerte de Dios'.",
+    "nivel": 4,
+    "hilo": 4,
+    "id": "fil-051",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una exercise de memorizar fechas biográficas sin causa, consecuencia ni enseñanza conceptual relevante."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor año de aparición de estos experimentos de pensamiento.",
+    "criterio": "de menor a mayor año de aparición",
+    "items": [
+      "El barco de Teseo",
+      "Dilema del tranvía",
+      "Velo de ignorancia",
+      "Cerebro en una cubeta"
+    ],
+    "nivel": 3,
+    "hilo": 1,
+    "explicacion": "El barco de Teseo se remonta a la antigüedad griega; el dilema del tranvía fue planteado por Philippa Foot en 1967; el velo de ignorancia aparece en la teoría de justicia de John Rawls (1971); el cerebro en una cubeta fue popularizado por Hilary Putnam en 1981. Conocer su cronología ayuda a ver cómo los experimentos evolucionan con los debates filosóficos.",
+    "id": "fil-052",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: La ordenación por años de aparición convierte experimentos filosóficos útiles en trivia cronológica sin explicar su evolución."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor año de publicación de estas obras feministas clave.",
+    "criterio": "de menor a mayor año de publicación",
+    "items": [
+      "Una vindicación de los derechos de la mujer",
+      "El segundo sexo",
+      "La interseccionalidad",
+      "El problema del género"
+    ],
+    "nivel": 4,
+    "hilo": 3,
+    "explicacion": "\"Una vindicación...\" de Mary Wollstonecraft (1792) precedió a \"El segundo sexo\" de Simone de Beauvoir (1949); el concepto de interseccionalidad fue acuñado por Kimberlé Crenshaw en 1989 y \"El problema del género\" de Judith Butler salió en 1990. Esta secuencia muestra el desarrollo de la teoría feminista contemporánea y su relación con los debates sobre igualdad.",
+    "id": "fil-053",
+    "area": "filosofia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Premia recordar fechas de publicación y aparición de conceptos sin explicar el desarrollo ni el impacto de las ideas."
+  },
+  {
+    "enunciado": "La cordillera de los Andes es la cadena montañosa más larga del mundo.",
+    "explicacion": "Con una extensión aproximada de 7.000 km a lo largo de la costa occidental de Sudamérica, los Andes superan en longitud a cualquier otra cadena montañosa continental.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "geo-002",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es un superlativo basado solo en una cifra de longitud, sin mecanismo ni contexto."
+  },
+  {
+    "enunciado": "El lago Baikal es el lago de agua dulce más profundo del mundo.",
+    "explicacion": "Situado en Siberia, Rusia, el lago Baikal alcanza una profundidad máxima de 1.642 metros, lo que lo convierte en el lago de agua dulce más profundo del planeta.",
+    "nivel": 3,
+    "respuesta": true,
+    "id": "geo-003",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es un récord geográfico aislado que no enseña una causa o consecuencia."
+  },
+  {
+    "enunciado": "¿Cuál es el país más grande de África por superficie?",
+    "explicacion": "Argelia, con aproximadamente 2,38 millones de km², es el país africano de mayor extensión territorial.",
+    "nivel": 2,
+    "opciones": [
+      "Argelia",
+      "República Democrática del Congo",
+      "Sudán",
+      "Libia"
+    ],
+    "correcta": 0,
+    "id": "geo-006",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una clasificación por superficie sin mecanismo, causa ni relevancia contextual."
+  },
+  {
+    "enunciado": "¿Cuál es la placa tectónica que abarca la mayor parte del lecho del océano Pacífico?",
+    "explicacion": "La Placa del Pacífico es la mayor placa oceánica y cubre la mayor parte del fondo del océano Pacífico, limitando con placas como la de Nazca, Filipinas y Juan de Fuca.",
+    "nivel": 5,
+    "opciones": [
+      "Placa de Nazca",
+      "Placa del Pacífico",
+      "Placa del Mar de Filipinas",
+      "Placa de Juan de Fuca"
+    ],
+    "correcta": 1,
+    "id": "geo-013",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una clasificación tectónica basada en un superlativo y sin mecanismo explicativo."
+  },
+  {
+    "enunciado": "Ordena los siguientes países europeos de menor a mayor superficie.",
+    "explicacion": "Malta (316 km²) < Luxemburgo (2.586 km²) < Bélgica (30.528 km²) < España (505.990 km²).",
+    "nivel": 1,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Malta",
+      "Luxemburgo",
+      "Bélgica",
+      "España"
+    ],
+    "id": "geo-014",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una ordenación memorística de superficies sin enseñanza causal."
+  },
+  {
+    "enunciado": "Ordena los siguientes ríos del mundo de menor a mayor longitud.",
+    "explicacion": "Hudson (~507 km) < Danubio (~2.850 km) < Yangtsé (~6.300 km) < Amazonas (~6.992 km).",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud",
+    "items": [
+      "Río Hudson",
+      "Río Danubio",
+      "Río Yangtsé",
+      "Río Amazonas"
+    ],
+    "id": "geo-015",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "utilidad 1/5: Es una comparación de longitudes que solo exige recordar cifras."
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres montañosas de menor a mayor altitud.",
+    "explicacion": "Monte Fuji (3.776 m) < Monte Kilimanjaro (5.895 m) < Monte Aconcagua (6.961 m) < Monte Everest (8.848 m).",
+    "nivel": 4,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Monte Fuji",
+      "Monte Kilimanjaro",
+      "Monte Aconcagua",
+      "Monte Everest"
+    ],
+    "id": "geo-016",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "utilidad 1/5: Es una lista de altitudes sin mecanismo ni contexto aprovechable."
+  },
+  {
+    "enunciado": "Ordena las siguientes placas tectónicas de menor a mayor superficie.",
+    "explicacion": "Placa de Filipinas (~5,5 millones km²) < Placa de Nazca (~15,6 millones km²) < Placa de Sudamérica (~43,6 millones km²) < Placa del Pacífico (~103 millones km²).",
+    "nivel": 5,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Placa de Filipinas",
+      "Placa de Nazca",
+      "Placa de Sudamérica",
+      "Placa del Pacífico"
+    ],
+    "id": "geo-017",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "utilidad 1/5: Combina una ordenación memorística con terminología demasiado especializada."
+  },
+  {
+    "enunciado": "Ordena los siguientes países de menor a mayor según su superficie total.",
+    "explicacion": "Italia tiene aproximadamente 301 000 km², Alemania 357 000 km², España 505 000 km² y Francia 551 000 km².",
+    "nivel": 1,
+    "criterio": "de menor a mayor superficie",
+    "items": [
+      "Italia",
+      "Alemania",
+      "España",
+      "Francia"
+    ],
+    "id": "geo-018",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "google/gemma-4-31b-it:free",
+    "motivo": "utilidad 1/5: Es una clasificación puramente memorística de superficies nacionales."
+  },
+  {
+    "enunciado": "Ordena las siguientes ciudades españolas de menor a mayor según su población municipal.",
+    "explicacion": "Seville tiene alrededor de 690 000 habitantes, Valencia unos 790 000, Barcelona aproximadamente 1,6 millones y Madrid cerca de 3,3 millones.",
+    "nivel": 2,
+    "criterio": "de menor a mayor población",
+    "items": [
+      "Sevilla",
+      "Valencia",
+      "Barcelona",
+      "Madrid"
+    ],
+    "id": "geo-019",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una ordenación estadística municipal sin explicar causas demográficas ni urbanas."
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres de menor a mayor según su altitud sobre el nivel del mar.",
+    "explicacion": "El Aneto alcanza 3 404 m, el Mulhacén 3 479 m, el Teide 3 715 m y el Mont Blanc 4 808 m.",
+    "nivel": 3,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Aneto",
+      "Mulhacén",
+      "Teide",
+      "Mont Blanc"
+    ],
+    "id": "geo-020",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una comparación de cifras de altitud sin mecanismo ni relevancia contextual."
+  },
+  {
+    "enunciado": "Ordena los siguientes ríos ibéricos de menor a mayor según su longitud total.",
+    "explicacion": "El Guadalquivir mide unos 657 km, el Duero aproximadamente 897 km, el Ebro 910 km y el Tajo 1 007 km.",
+    "nivel": 4,
+    "criterio": "de menor a mayor longitud",
+    "items": [
+      "Guadalquivir",
+      "Duero",
+      "Ebro",
+      "Tajo"
+    ],
+    "id": "geo-021",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.96,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una ordenación de longitudes fluviales que no aporta una explicación geográfica."
+  },
+  {
+    "enunciado": "El océano más grande del mundo es el Pacífico.",
+    "explicacion": "El Océano Pacífico cubre aproximadamente 165 millones de km², siendo el más extenso de los cinco océanos terrestres.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "geo-027",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es un superlativo con una cifra, sin mecanismo, y cae en la trivia prohibida."
+  },
+  {
+    "enunciado": "El lago más profundo del mundo es el Lago Superior.",
+    "explicacion": "El lago más profundo es el Lago Baikal en Siberia, con una profundidad máxima de unos 1.642 metros, mientras que el Lago Superior alcanza aproximadamente 406 metros.",
+    "nivel": 4,
+    "respuesta": false,
+    "id": "geo-030",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Se limita a un récord de profundidad y una comparación numérica sin explicación causal."
+  },
+  {
+    "enunciado": "¿Cuál es el río más largo que discurre íntegramente dentro de un solo país?",
+    "explicacion": "El río Yangtsé, con unos 6.300 km, fluye completamente por China, superando en longitud a otros ríos que también están confinados a un solo país.",
+    "nivel": 4,
+    "opciones": [
+      "Volga",
+      "Yangtsé",
+      "Misisipi",
+      "Amazonas"
+    ],
+    "correcta": 1,
+    "id": "geo-037",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Plantea un récord fluvial y una longitud sin explicar su relevancia o causa."
+  },
+  {
+    "enunciado": "¿Cuál es el río que tiene la mayor cuenca de drenaje en América del Sur?",
+    "explicacion": "La cuenca del río Amazonas abarca aproximadamente 7 millones de km², siendo la más grande del continente y del mundo.",
+    "nivel": 3,
+    "opciones": [
+      "Río Amazonas",
+      "Río Paraná",
+      "Río Orinoco",
+      "Río Magdalena"
+    ],
+    "correcta": 0,
+    "id": "geo-040",
+    "area": "geografia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es un superlativo hidrológico con una cifra, sin mecanismo sobre la cuenca amazónica."
+  },
+  {
+    "enunciado": "Ordena las siguientes cumbres montañosas de menor a mayor altitud.",
+    "explicacion": "El Monte Fuji (3.776 m) es el más bajo, luego Mont Blanc (4.808 m), Kilimanjaro (5.895 m) y el Everest (8.848 m).",
+    "nivel": 4,
+    "criterio": "de menor a mayor altitud",
+    "items": [
+      "Monte Fuji",
+      "Mont Blanc",
+      "Kilimanjaro",
+      "Everest"
+    ],
+    "id": "geo-045",
+    "area": "geografia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de geo-016: \"Ordena las siguientes cumbres montañosas de menor a mayor altitud.\""
+  },
+  {
+    "enunciado": "El punto más profundo de la Fosa de las Marianas, el abismo Challenger, se encuentra a aproximadamente 10 924 metros de profundidad.",
+    "explicacion": "Mediciones recientes sitúan la máxima profundidad en 10 924 m (± 10 m), siendo el punto más profundo conocido de los océanos.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "geo-054",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.96,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es un récord de profundidad con una cifra exacta y sin mecanismo ni relevancia explicativa."
+  },
+  {
+    "enunciado": "El río Amazonas es el río con mayor caudal del mundo.",
+    "explicacion": "El Amazonas transporta más agua que los siguientes siete ríos juntos, con un caudal medio superior a 200 000 m³/s.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "geo-055",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Se limita a un superlativo y una comparación de caudales sin explicar por qué el Amazonas descarga tanta agua."
+  },
+  {
+    "enunciado": "La cordillera del Himalaya es la cadena montañosa más larga del mundo, superando a los Andes en longitud.",
+    "explicacion": "Los Andes, con unos 7 000 km, son la cadena montañosa continental más larga; el Himalaya se extiende aproximadamente 2 400 km.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "geo-056",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de geo-002: \"La cordillera del Himalaya es la cadena montañosa más larga del mundo, superando a los Andes en longitud.\""
+  },
+  {
+    "enunciado": "La cordillera de los Andes es la cadena montañosa más larga del mundo.",
+    "explicacion": "Los Andes se extienden unos 7.000 km a lo largo del borde occidental de Sudamérica, superando en longitud a cualquier otra cordillera continental; su formación responde a la subducción de la placa de Nazca bajo la Sudamericana, proceso que sigue activo y genera sismos y volcanes frecuentes.",
+    "nivel": 1,
+    "respuesta": true,
+    "hilo": 1,
+    "id": "geo-061",
+    "area": "geografia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de geo-002: \"La cordillera de los Andes es la cadena montañosa más larga del mundo.\""
+  },
+  {
+    "enunciado": "El Imperio Romano alcanzó su máxima extensión territorial bajo el emperador Trajano.",
+    "explicacion": "Durante el reinado de Trajano (98-117 d.C.) el Imperio Romano llegó a su mayor superficie, abarcando desde Britania hasta Mesopotamia.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "his-001",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es un superlativo territorial sin explicar causas, contexto ni consecuencias."
+  },
+  {
+    "enunciado": "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?",
+    "explicacion": "La Paz de Westfalia, firmada en 1648, concluyó la Guerra de los Treinta Años y redefinió el mapa político de Europa.",
+    "nivel": 3,
+    "opciones": [
+      "Paz de Westfalia",
+      "Tratado de Versalles",
+      "Tratado de Utrecht",
+      "Congreso de Viena"
+    ],
+    "correcta": 0,
+    "id": "his-014",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "duplicado de his-009: \"¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?\""
+  },
+  {
+    "enunciado": "Ordena las siguientes civilizaciones antiguas de la más antigua a la más reciente según su surgimiento.",
+    "explicacion": "Mesopotamia (hacia 3500 a.C.) precede al Antiguo Egipto (hacia 3100 a.C.), seguido por la civilización del Valle del Indo (hacia 2600 a.C.) y finalmente la civilización china de la dinastía Shang (hacia 1600 a.C.).",
+    "nivel": 1,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Mesopotamia",
+      "Antiguo Egipto",
+      "Civilización del Valle del Indo",
+      "Civilización China (Shang)"
+    ],
+    "id": "his-021",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "utilidad 1/5: Es una cronología taxonómica de fechas aproximadas, sin mecanismo ni consecuencia histórica."
+  },
+  {
+    "enunciado": "Ordena los siguientes conflictos mundiales de la más antigua a la más reciente según su inicio.",
+    "explicacion": "La Guerra de los Treinta Años comenzó en 1618, la Guerra de Sucesión Española en 1701, la Primera Guerra Mundial en 1914 y la Segunda Guerra Mundial en 1939.",
+    "nivel": 2,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Guerra de los Treinta Años",
+      "Guerra de Sucesión Española",
+      "Primera Guerra Mundial",
+      "Segunda Guerra Mundial"
+    ],
+    "id": "his-022",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "utilidad 1/5: Solo ordena fechas de inicio y omite causas, desarrollos y consecuencias de los conflictos."
+  },
+  {
+    "enunciado": "Ordena las siguientes revoluciones europeas de la más antigua a la más reciente.",
+    "explicacion": "La Revolución Francesa estalló en 1789, las revoluciones de 1848 recorrieron Europa en ese año, la Revolución Rusa ocurrió en 1917 y la Revolución de los Claveles en Portugal tuvo lugar en 1974.",
+    "nivel": 3,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Revolución Francesa",
+      "Revoluciones de 1848 en Europa",
+      "Revolución Rusa de 1917",
+      "Revolución de los Claveles (Portugal)"
+    ],
+    "id": "his-023",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "utilidad 1/5: Es memorización de fechas revolucionarias sin explicar causas ni efectos."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor el año de aparición de estas civilizaciones antiguas.",
+    "explicacion": "Mesopotamia surgió alrededor del 3500 a.C., seguida por el Antiguo Egipto hacia el 3100 a.C., luego la Cuenca del Indo alrededor del 2600 a.C. y finalmente la civilización china antigua cerca del 2000 a.C.",
+    "nivel": 1,
+    "criterio": "de menor a mayor año de aparición",
+    "items": [
+      "Mesopotamia",
+      "Antiguo Egipto",
+      "Cuenca del Indo",
+      "Civilización china antigua"
+    ],
+    "id": "his-025",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una cronología taxonómica de fechas aproximadas, sin mecanismo ni consecuencia histórica."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor el año de fundación de estos reinos medievales.",
+    "explicacion": "El Reino de León se fundó en 910, el Reino de Inglaterra en 927, el Sacro Imperio Romano Germánico en 962 y el Reino de Francia (dinastía capeta) en 987.",
+    "nivel": 2,
+    "criterio": "de menor a mayor año de fundación",
+    "items": [
+      "Reino de León",
+      "Reino de Inglaterra",
+      "Sacro Imperio Romano Germánico",
+      "Reino de Francia"
+    ],
+    "id": "his-026",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Solo ordena fechas convencionales de fundación, sin explicar procesos políticos ni consecuencias."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor la fecha de inicio de estas batallas de la Segunda Guerra Mundial.",
+    "explicacion": "La Batalla de Midway ocurrió en junio de 1942, la Batalla de Stalingrado comenzó en agosto de 1942, la Batalla de Kursk en julio de 1943 y el Día D (Desembarco de Normandía) el 6 de junio de 1944.",
+    "nivel": 3,
+    "criterio": "de menor a mayor fecha de inicio",
+    "items": [
+      "Batalla de Midway",
+      "Batalla de Stalingrado",
+      "Batalla de Kursk",
+      "Día D"
+    ],
+    "id": "his-027",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una secuencia de fechas bélicas sin mecanismo, contexto estratégico ni consecuencias."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor el año de firma de estos tratados que reconfiguraron Europa.",
+    "explicacion": "El Tratado de Westfalia fue firmado en 1648, el de Utrecht en 1713, el de Viena en 1815 y el de Versalles en 1919.",
+    "nivel": 4,
+    "criterio": "de menor a mayor año de firma",
+    "items": [
+      "Tratado de Westfalia",
+      "Tratado de Utrecht",
+      "Tratado de Viena",
+      "Tratado de Versalles"
+    ],
+    "id": "his-028",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una ordenación cronológica de fechas sin explicar causas, consecuencias ni mecanismos."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Gran Muralla China fue construida por dinastías chinas, no por la civilización romana.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Civilizaciones antiguas",
+      "filas": [
+        {
+          "etiqueta": "Egipto",
+          "valor": "construyó las pirámides de Giza"
+        },
+        {
+          "etiqueta": "Grecia",
+          "valor": "inventó la democracia en Atenas"
+        },
+        {
+          "etiqueta": "Roma",
+          "valor": "construyó la Gran Muralla China"
+        },
+        {
+          "etiqueta": "Mesopotamia",
+          "valor": "desarrolló la escritura cuneiforme"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "his-030",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Contrasta un error básico entre civilizaciones, pero no aporta mecanismo ni referencia memorable."
+  },
+  {
+    "enunciado": "La caída del Muro de Berlín ocurrió en 1989.",
+    "explicacion": "El Muro de Berlín fue abierto el 9 de noviembre de 1989, marcando el inicio de su demolición y el fin de la división física de Berlín.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "his-034",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una fecha aislada sin causa ni consecuencia, expresamente poco útil según las reglas."
+  },
+  {
+    "enunciado": "¿Por qué la frontera entre Francia y Alemania sigue en gran parte el curso del Rin?",
+    "explicacion": "El Congreso de Viena (1815) utilizó el Rin como línea de demarcación entre la zona de influencia francesa y los estados alemanes, consolidando una frontera que ha perdurado con ajustes menores. La persistencia de ese trazado explica por qué muchas disputas territoriales actuales en la región se refieren a márgenes fluviales.",
+    "nivel": 2,
+    "opciones": [
+      "Porque el río era una línea defensiva natural acordada en el Congreso de Viena",
+      "Porque el Tratado de Versalles fijó el Rin como límite tras la Primera Guerra Mundial",
+      "Porque el río separaba culturalmente a los pueblos galos y germánicos desde la Antigüedad",
+      "Porque la Unión Europea impuso el Rin como frontera administrativa en 1992"
+    ],
+    "correcta": 0,
+    "hilo": 2,
+    "id": "his-056",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de his-052: \"¿Por qué la frontera entre Francia y Alemania sigue en gran parte el curso del Rin?\""
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "La Constitución española fue aprobada en referéndum el 6 de diciembre de 1978, no en 1979. La fecha de 1979 corresponde a la entrada en vigor de la ley orgánica del Tribunal Constitucional, no a la aprobación del texto constitucional.",
+    "nivel": 3,
+    "tarjeta": {
+      "titulo": "Hechos clave de la historia de España",
+      "filas": [
+        {
+          "etiqueta": "Reconquista finalizada",
+          "valor": "Caída de Granada 1492"
+        },
+        {
+          "etiqueta": "Guerra de Sucesión Española",
+          "valor": "Tratado de Utrecht 1713"
+        },
+        {
+          "etiqueta": "Segunda República proclamada",
+          "valor": "14 de abril 1931"
+        },
+        {
+          "etiqueta": "Transición democrática",
+          "valor": "Constitución de 1978 aprobada por referéndum en 1979"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "hilo": 3,
+    "id": "his-063",
+    "area": "historia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una corrección de fecha aislada, sin mecanismo, causa ni consecuencia que aporte comprensión histórica."
+  },
+  {
+    "enunciado": "En la lógica proposicional, la conjunción (p ∧ q) es verdadera solo cuando ambas proposiciones son verdaderas.",
+    "explicacion": "La tabla de verdad de la conjunción muestra que el resultado es verdadero únicamente en el caso (V, V); en los demás casos es falso.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "log-001",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición tabular de manual, sin mecanismo aplicado ni valor conversacional."
+  },
+  {
+    "enunciado": "La implicación material (p → q) es falsa solo cuando p es verdadero y q es falso.",
+    "explicacion": "Por definición de la implicación material, el único caso que la hace falsa es cuando el antecedente es verdadero y el consecuente falso; en los otros tres casos es verdadera.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "log-002",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Reduce la implicación material a una convención definida por tabla, sin explicar su utilidad ni el porqué."
+  },
+  {
+    "enunciado": "En la lógica intuicionista, el principio del tercero excluido (p ∨ ¬p) es un teorema válido.",
+    "explicacion": "La lógica intuicionista rechaza el principio del tercero excluido como teorema general; solo se acepta cuando se tiene una prueba constructiva de p o de ¬p.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "log-003",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una distinción técnica de lógica intuicionista propia de estudio académico especializado."
+  },
+  {
+    "enunciado": "En la lógica modal S5, la relación de accesibilidad entre mundos posibles es una relación de equivalencia (reflexiva, simétrica y transitiva).",
+    "explicacion": "El sistema S5 se caracteriza por imponer que la relación de accesibilidad sea una relación de equivalencia, lo que hace que todos los mundos sean mutuamente accesibles.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "log-004",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: La caracterización modal de S5 es trivia académica especializada y no ilumina un mecanismo cotidiano."
+  },
+  {
+    "enunciado": "En una proposición condicional 'Si P entonces Q', si P es falsa, la proposición es verdadera.",
+    "explicacion": "En la lógica clásica, una implicación con antecedente falso se considera verdadera independientemente del valor de verdad del consecuente.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "log-005",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Repite una convención formal sin explicar por qué se adopta ni ofrecer una aplicación comprensible."
+  },
+  {
+    "enunciado": "El principio de no contradicción establece que una proposición y su negación pueden ser ambas verdaderas en un mismo momento y contexto.",
+    "explicacion": "El principio de no contradicción afirma que no es posible que una proposición y su negación sean verdaderas simultáneamente en el mismo contexto.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "log-006",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una definición de manual del principio de no contradicción, sin contexto ni mecanismo aplicado."
+  },
+  {
+    "enunciado": "En el sistema modal S5, la relación de accesibilidad entre mundos posibles es:",
+    "explicacion": "S5 caracteriza una relación de equivalencia, es decir, que es reflexiva (cada mundo se accede a sí mismo), simétrica (si w accede a v entonces v accede a w) y transitiva (si w accede a v y v accede a u entonces w accede a u).",
+    "nivel": 5,
+    "opciones": [
+      "Reflexiva y transitiva",
+      "Simétrica y transitiva",
+      "Reflexiva, simétrica y transitiva (equivalente)",
+      "Antisimétrica y transitiva"
+    ],
+    "correcta": 2,
+    "id": "log-011",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es otra pregunta técnica sobre S5 dirigida a quien ha estudiado lógica modal académica."
+  },
+  {
+    "enunciado": "En lógica modal, el axioma 5 (◇□p → □p) caracteriza qué propiedad de la relación de accesibilidad?",
+    "explicacion": "El axioma 5 corresponde a la propiedad euclidiana: si wRv y wRu entonces vRu.",
+    "nivel": 5,
+    "opciones": [
+      "Euclidiana",
+      "Transitiva",
+      "Simétrica",
+      "Reflexiva"
+    ],
+    "correcta": 0,
+    "id": "log-015",
+    "area": "logica",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: La correspondencia entre axiomas modales y relaciones de accesibilidad es materia altamente especializada."
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (es decir, del que se evalúa último al que se evalúa primero).",
+    "explicacion": "En la precedencia estándar, la implicación (→) tiene la menor precedencia, seguida de la disyunción (∨), la conjunción (∧) y la negación (¬) que tiene la mayor precedencia.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-017",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: La precedencia de conectivos es una convención notacional arbitraria, no un mecanismo aplicable."
+  },
+  {
+    "enunciado": "Ordena las siguientes filas de una tabla de verdad para dos variables proposicionales (p, q) de menor a mayor según el orden binario convencional.",
+    "explicacion": "El orden binario estándar para dos bits lista 00, 01, 10, 11.",
+    "nivel": 2,
+    "criterio": "de menor a mayor valor binario",
+    "items": [
+      "00",
+      "01",
+      "10",
+      "11"
+    ],
+    "id": "log-018",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Ordenar 00, 01, 10 y 11 solo mide el recuerdo de una convención binaria trivial."
+  },
+  {
+    "enunciado": "Ordena las siguientes clases de complejidad de menor a mayor según su inclusión conocida (suponiendo las conjeturas estándar).",
+    "explicacion": "Se sabe que L ⊆ P ⊆ NP ⊆ PSPACE; por tanto, el orden de menor a mayor es L, P, NP, PSPACE.",
+    "nivel": 3,
+    "criterio": "de menor a mayor complejidad",
+    "items": [
+      "L",
+      "P",
+      "NP",
+      "PSPACE"
+    ],
+    "id": "log-019",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Combina siglas y jerarquías de teoría de la complejidad propias de una especialidad académica."
+  },
+  {
+    "enunciado": "Ordena los siguientes axiomas de cardinales grandes de menor a mayor fuerza de consistencia.",
+    "explicacion": "La jerarquía de fuerza de consistencia es: cardinal inaccesible < cardinal Mahlo < cardinal medible < cardinal supercompacto.",
+    "nivel": 5,
+    "criterio": "de menor a mayor fuerza de consistencia",
+    "items": [
+      "inaccesible",
+      "Mahlo",
+      "medible",
+      "supercompacto"
+    ],
+    "id": "log-020",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: La jerarquía de cardinales grandes es trivia de lógica matemática altamente especializada."
+  },
+  {
+    "enunciado": "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (el de menor precedencia se evalúa último).",
+    "explicacion": "En la mayoría de los lenguajes formales, la precedencia de los conectivos es: ¬ (más alta), ∧, ∨, → (más baja). Por tanto, de menor a mayor precedencia: →, ∨, ∧, ¬.",
+    "nivel": 1,
+    "criterio": "de menor a mayor precedencia",
+    "items": [
+      "→",
+      "∨",
+      "∧",
+      "¬"
+    ],
+    "id": "log-021",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de log-017: \"Ordena los siguientes conectivos lógicos de menor a mayor precedencia (el de menor precedencia se evalúa último).\""
+  },
+  {
+    "enunciado": "Ordena los siguientes conjuntos de menor a mayor cardinalidad.",
+    "explicacion": "El conjunto vacío tiene cardinalidad 0, un singleton 1, un par 2, y el conjunto de los números naturales es infinito (ℵ₀).",
+    "nivel": 2,
+    "criterio": "de menor a mayor cardinalidad",
+    "items": [
+      "∅",
+      "{a}",
+      "{a,b}",
+      "ℕ"
+    ],
+    "id": "log-022",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "utilidad 1/5: Es una clasificación elemental de cardinalidades sin mecanismo, contexto conversacional ni aplicación."
+  },
+  {
+    "enunciado": "Ordena las siguientes clases de complejidad de menor a mayor inclusión (la más pequeña primero).",
+    "explicacion": "Se sabe que L ⊆ P ⊆ NP ⊆ PSPACE (y estas inclusiones son estrictas o conjeturadas).",
+    "nivel": 3,
+    "criterio": "de menor a mayor inclusión",
+    "items": [
+      "L",
+      "P",
+      "NP",
+      "PSPACE"
+    ],
+    "id": "log-023",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "duplicado de log-019: \"Ordena las siguientes clases de complejidad de menor a mayor inclusión (la más pequeña primero).\""
+  },
+  {
+    "enunciado": "Ordena las siguientes fórmulas cuantificadas por su profundidad de alternación de cuantificadores (de menor a mayor).",
+    "explicacion": "La profundidad de alternación cuenta los bloques consecutivos de cuantificadores del mismo tipo. ∀x P(x) tiene 1, ∃x∀y P(x,y) tiene 2, ∀x∃y∀z P(x,y,z) tiene 3, ∃x∀y∃z∀w P(x,y,z,w) tiene 4.",
+    "nivel": 4,
+    "criterio": "de menor a mayor profundidad de alternación",
+    "items": [
+      "∀x P(x)",
+      "∃x∀y P(x,y)",
+      "∀x∃y∀z P(x,y,z)",
+      "∃x∀y∃z∀w P(x,y,z,w)"
+    ],
+    "id": "log-024",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es notación y taxonomía técnica de lógica formal, sin utilidad cotidiana ni explicación del porqué."
+  },
+  {
+    "enunciado": "Ordena los siguientes conceptos de cardinales grandes por su fuerza de consistencia (de menor a mayor).",
+    "explicacion": "En la jerarquía de cardinales grandes, un cardinal inaccesible es más débil que uno medible, que a su vez es más débil que un supercompacto, y este más débil que un cardinal enorme (huge).",
+    "nivel": 5,
+    "criterio": "de menor a mayor fuerza de consistencia",
+    "items": [
+      "inaccesible",
+      "medible",
+      "supercompacto",
+      "enorme"
+    ],
+    "id": "log-025",
+    "area": "logica",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.94,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de log-020: \"Ordena los siguientes conceptos de cardinales grandes por su fuerza de consistencia (de menor a mayor).\""
+  },
+  {
+    "enunciado": "En la lógica proposicional, la tabla de verdad de la implicación (p → q) es falsa solo cuando p es verdadero y q es falso.",
+    "explicacion": "La implicación material solo es falsa en el caso de antecedente verdadero y consecuente falso; en los demás casos es verdadera.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "log-026",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de log-002: \"En la lógica proposicional, la tabla de verdad de la implicación (p → q) es falsa solo cuando p es verdadero y q es falso.\""
+  },
+  {
+    "enunciado": "El principio de no contradicción afirma que una proposición y su negación pueden ser ambas verdaderas al mismo tiempo.",
+    "explicacion": "El principio de no contradicción establece que no pueden ser verdaderas simultáneamente una proposición y su negación; como mucho una de ellas lo es.",
+    "nivel": 2,
+    "respuesta": false,
+    "id": "log-027",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de log-006: \"El principio de no contradicción afirma que una proposición y su negación pueden ser ambas verdaderas al mismo tiempo.\""
+  },
+  {
+    "enunciado": "El teorema de completitud de Gödel establece que todo sistema formal consistente y recursivamente enumerable es completo.",
+    "explicacion": "El teorema de completitud de Gödel se refiere a la lógica de primer orden; el teorema de incompletitud dice que sistemas suficientemente expresivos no pueden ser a la vez consistentes y completos.",
+    "nivel": 3,
+    "respuesta": false,
+    "id": "log-028",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Distingue teoremas de lógica matemática especializada mediante memorización, sin una explicación accesible."
+  },
+  {
+    "enunciado": "En la lógica modal, el axioma 4 (□p → □□p) caracteriza la transitividad de la relación de accesibilidad.",
+    "explicacion": "El axioma 4 equivale a exigir que la relación de accesibilidad entre mundos posibles sea transitiva.",
+    "nivel": 4,
+    "respuesta": true,
+    "id": "log-029",
+    "area": "logica",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una correspondencia técnica de lógica modal que solo podría interesar a especialistas."
+  },
+  {
+    "enunciado": "El protocolo HTTP utiliza el puerto 80 por defecto.",
+    "explicacion": "HTTP está estandarizado para escuchar en el puerto TCP 80, mientras que HTTPS usa el 443.",
+    "nivel": 1,
+    "respuesta": true,
+    "id": "tec-001",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Preguntar por un número de puerto predeterminado está expresamente prohibido y no aporta un mecanismo útil."
+  },
+  {
+    "enunciado": "¿Qué significa la sigla HTTP?",
+    "explicacion": "HTTP significa HyperText Transfer Protocol, el protocolo base de la World Wide Web.",
+    "nivel": 1,
+    "opciones": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Hyperlink Transfer Text Protocol",
+      "Home Tool Transfer Protocol"
+    ],
+    "correcta": 0,
+    "id": "tec-009",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Pedir el significado de una sigla es un tipo de pregunta expresamente prohibido."
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿en qué capa se encuentra el protocolo TCP?",
+    "explicacion": "TCP opera en la capa de transporte (capa 4) del modelo OSI.",
+    "nivel": 4,
+    "opciones": [
+      "Capa 3 (Red)",
+      "Capa 4 (Transporte)",
+      "Capa 5 (Sesión)",
+      "Capa 6 (Presentación)"
+    ],
+    "correcta": 1,
+    "id": "tec-011",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Memorizar capas del modelo OSI es trivia de especialista sin valor práctico para el jugador."
+  },
+  {
+    "enunciado": "¿Qué algoritmo de consenso utiliza la red Bitcoin para validar bloques?",
+    "explicacion": "Bitcoin emplea Proof of Work, donde los mineros resuelven un puzzle criptográfico para añadir bloques.",
+    "nivel": 5,
+    "opciones": [
+      "Proof of Stake",
+      "Proof of Work",
+      "Delegated Proof of Stake",
+      "Byzantine Fault Tolerance"
+    ],
+    "correcta": 1,
+    "id": "tec-012",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de tec-007: \"¿Qué algoritmo de consenso utiliza la red Bitcoin para validar bloques?\""
+  },
+  {
+    "enunciado": "¿Qué significan las siglas HTTP?",
+    "explicacion": "HTTP significa HyperText Transfer Protocol, el protocolo base de la World Wide Web para la transferencia de hipertexto.",
+    "nivel": 1,
+    "opciones": [
+      "HyperText Transfer Protocol",
+      "High Transfer Text Protocol",
+      "Hyperlink Text Transfer Process",
+      "Home Transfer Text Protocol"
+    ],
+    "correcta": 0,
+    "id": "tec-013",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "duplicado de tec-009: \"¿Qué significan las siglas HTTP?\""
+  },
+  {
+    "enunciado": "¿Cuál es el puerto predeterminado utilizado por HTTPS?",
+    "explicacion": "HTTPS (HTTP sobre TLS/SSL) usa por defecto el puerto 443 para establecer conexiones seguras.",
+    "nivel": 2,
+    "opciones": [
+      "80",
+      "443",
+      "8080",
+      "22"
+    ],
+    "correcta": 1,
+    "id": "tec-014",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Preguntar por un número de puerto predeterminado está expresamente prohibido."
+  },
+  {
+    "enunciado": "En el modelo OSI, ¿qué capa se encarga del enrutamiento de paquetes entre redes distintas?",
+    "explicacion": "La capa de red (capa 3) es responsable del direccionamiento lógico y el enrutamiento de paquetes a través de múltiples redes.",
+    "nivel": 4,
+    "opciones": [
+      "Capa de enlace de datos",
+      "Capa de red",
+      "Capa de transporte",
+      "Capa de sesión"
+    ],
+    "correcta": 1,
+    "id": "tec-016",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Memorizar la capa OSI responsable del enrutamiento es una clasificación técnica de especialista."
+  },
+  {
+    "enunciado": "¿Qué algoritmo de hash utiliza Bitcoin para su prueba de trabajo (proof‑of‑work)?",
+    "explicacion": "Bitcoin emplea SHA‑256 (Secure Hash Algorithm de 256 bits) como función de hash en su mecanismo de consenso Proof‑of‑Work.",
+    "nivel": 5,
+    "opciones": [
+      "MD5",
+      "SHA‑1",
+      "SHA‑256",
+      "RIPEMD‑160"
+    ],
+    "correcta": 2,
+    "id": "tec-017",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: El algoritmo de hash concreto de Bitcoin es un detalle especialista que no enseña un mecanismo aplicable."
+  },
+  {
+    "enunciado": "Ordena los siguientes algoritmos criptográficos según su tamaño de clave efectiva (seguridad).",
+    "explicacion": "DES usa 56 bits, 3DES aplica DES tres veces alcanzando ~112 bits, AES-128 emplea 128 bits y AES-256 emplea 256 bits, ofreciendo mayor resistencia a ataques de fuerza bruta.",
+    "nivel": 5,
+    "criterio": "de menor a mayor tamaño de clave efectiva",
+    "items": [
+      "DES",
+      "3DES",
+      "AES-128",
+      "AES-256"
+    ],
+    "id": "tec-021",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "utilidad 1/5: Comparar algoritmos por tamaños de clave es una memorización de especificaciones expresamente prohibida."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las generaciones de tecnología de redes móviles según su aparición histórica.",
+    "explicacion": "Las generaciones de redes móviles se desarrollaron en secuencia: 1G (analógica) apareció en los años 80, 2G (digital, GSM) en los 90, 3G (UMTS) a principios de los 2000 y 4G (LTE) alrededor de 2009-2010. Así, el orden de menor a mayor antigüedad es 1G, 2G, 3G, 4G.",
+    "nivel": 2,
+    "criterio": "de menor a mayor",
+    "items": [
+      "1G",
+      "2G",
+      "3G",
+      "4G"
+    ],
+    "id": "tec-023",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar generaciones por fechas y estándares no explica cómo han cambiado las redes ni por qué."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las versiones del estándar del lenguaje de programación C según su año de publicación.",
+    "explicacion": "El estándar C fue inicialmente publicado como C89 (también llamado ANSI C) en 1989, seguido por C99 en 1999, C11 en 2011 y C18 en 2018. Por lo tanto, el orden cronológico de menor a mayor año es C89, C99, C11, C18.",
+    "nivel": 3,
+    "criterio": "de menor a mayor",
+    "items": [
+      "C89",
+      "C99",
+      "C11",
+      "C18"
+    ],
+    "id": "tec-024",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar versiones de un estándar por año de publicación está expresamente prohibido."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las microarquitecturas de procesadores Intel según su año de lanzamiento.",
+    "explicacion": "Intel lanzó Nehalem en 2008, Sandy Bridge en 2011, Ivy Bridge en 2012 y Haswell en 2013. Así, el orden de menor a mayor año de lanzamiento es Nehalem, Sandy Bridge, Ivy Bridge, Haswell.",
+    "nivel": 4,
+    "criterio": "de menor a mayor",
+    "items": [
+      "Nehalem",
+      "Sandy Bridge",
+      "Ivy Bridge",
+      "Haswell"
+    ],
+    "id": "tec-025",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar microarquitecturas por año de lanzamiento está expresamente prohibido."
+  },
+  {
+    "enunciado": "Ordena de menor a mayor las tecnologías Ethernet según su velocidad de transmisión de datos.",
+    "explicacion": "Ethernet ha evolucionado en incrementos de velocidad: 10BASE-T ofrece 10 Mbps, Fast Ethernet (100BASE-TX) 100 Mbps, Gigabit Ethernet (1000BASE-T) 1 Gbps y 10 Gigabit Ethernet (10GBASE-T) 10 Gbps. Por lo tanto, el orden de menor a mayor velocidad es 10 Mbps, 100 Mbps, 1 Gbps, 10 Gbps.",
+    "nivel": 5,
+    "criterio": "de menor a mayor",
+    "items": [
+      "10 Mbps",
+      "100 Mbps",
+      "1 Gbps",
+      "10 Gbps"
+    ],
+    "id": "tec-026",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Ordenar tecnologías por velocidades de transmisión es una trivia de especificaciones expresamente prohibida."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "JavaScript es un lenguaje de tipado dinámico, no estático.",
+    "nivel": 1,
+    "tarjeta": {
+      "titulo": "Lenguajes de programación",
+      "filas": [
+        {
+          "etiqueta": "Python",
+          "valor": "lenguaje interpretado"
+        },
+        {
+          "etiqueta": "Java",
+          "valor": "compilado a bytecode"
+        },
+        {
+          "etiqueta": "C",
+          "valor": "lenguaje de alto nivel"
+        },
+        {
+          "etiqueta": "JavaScript",
+          "valor": "lenguaje de tipado estático"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-027",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es una clasificación técnica sin mecanismo, contexto ni valor conversacional."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "SSH utiliza el puerto 22, no el 80.",
+    "nivel": 2,
+    "tarjeta": {
+      "titulo": "Protocolos de red",
+      "filas": [
+        {
+          "etiqueta": "HTTP",
+          "valor": "protocolo de capa de aplicación"
+        },
+        {
+          "etiqueta": "FTP",
+          "valor": "usa puerto 21 para control"
+        },
+        {
+          "etiqueta": "DNS",
+          "valor": "usa UDP puerto 53"
+        },
+        {
+          "etiqueta": "SSH",
+          "valor": "usa puerto 80"
+        }
+      ]
+    },
+    "sospechoso": 3,
+    "id": "tec-028",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Pregunta sobre números de puerto, expresamente prohibida."
+  },
+  {
+    "enunciado": "Encuentra el dato erróneo en la tarjeta.",
+    "explicacion": "MIPS es una arquitectura RISC, no VLIW.",
+    "nivel": 4,
+    "tarjeta": {
+      "titulo": "Arquitecturas de CPU",
+      "filas": [
+        {
+          "etiqueta": "x86",
+          "valor": "arquitectura CISC"
+        },
+        {
+          "etiqueta": "ARM",
+          "valor": "arquitectura RISC"
+        },
+        {
+          "etiqueta": "MIPS",
+          "valor": "arquitectura VLIW"
+        },
+        {
+          "etiqueta": "RISC-V",
+          "valor": "arquitectura RISC open source"
+        }
+      ]
+    },
+    "sospechoso": 2,
+    "id": "tec-029",
+    "area": "tecnologia",
+    "tipo": "error",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.96,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Es taxonomía de arquitecturas propia de especialistas y sin explicación útil."
+  },
+  {
+    "enunciado": "FLAC (Free Lossless Audio Codec) fue desarrollado por Apple.",
+    "explicacion": "FLAC fue creado por Josh Coalson como un proyecto de código abierto independiente de Apple.",
+    "nivel": 5,
+    "respuesta": false,
+    "id": "tec-034",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Indaga quién creó una tecnología, dato prohibido y desprovisto de mecanismo o relevancia."
+  },
+  {
+    "enunciado": "El protocolo HTTP/2 utiliza multiplexación de flujos sobre una sola conexión TCP.",
+    "explicacion": "HTTP/2 introduce la multiplexación, permitiendo enviar varias solicitudes y respuestas simultáneamente en una única conexión TCP, mejorando el rendimiento frente a HTTP/1.1.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "tec-035",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.98,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Se centra en una versión de estándar, categoría expresamente prohibida."
+  },
+  {
+    "enunciado": "El lenguaje de programación Rust fue creado originalmente por Brendan Eich en 2006.",
+    "explicacion": "Rust fue iniciado por Graydon Hoare en Mozilla Research alrededor de 2006; Brendan Eich es conocido por crear JavaScript, no Rust.",
+    "nivel": 4,
+    "respuesta": false,
+    "id": "tec-036",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "utilidad 1/5: Combina creador y fecha de una tecnología, dos tipos de trivia prohibidos."
   }
 ]

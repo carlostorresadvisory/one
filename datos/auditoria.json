@@ -1,0 +1,1989 @@
+[
+  {
+    "id": "art-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Enunciado verdadero: La Gioconda (Mona Lisa) se atribuye a Leonardo da Vinci; pieza icónica conservada en el Louvre.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-002",
+    "veredicto": "CORRECTA",
+    "motivo": "Marcación correcta: el impresionismo nació en Francia a finales del siglo XIX, no en Italia.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Marcación correcta: Van Gogh pintó La noche estrellada en 1889 en Saint‑Rémy; incluye la vista desde su ventana aunque con licencias compositivas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-004",
+    "veredicto": "CORRECTA",
+    "motivo": "Aceptable: Caravaggio es el maestro del tenebrismo (claroscuro dramático) en el Barroco temprano, aunque el claroscuro tiene antecedentes anteriores.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-005",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de art-001 — afirmación verificada: Leonardo da Vinci autor de La Mona Lisa (c.1503–1519).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Futurismo surgió en Italia a principios del siglo XX; manifiesto de Marinetti publicado en 1909 en Milán.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-007",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta la negación: Goya precede cronológicamente al impresionismo y no fue fundador de ese movimiento francés.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-008",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: la descripción corresponde al Impresionismo, movimiento francés de finales del siglo XIX.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-009",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: La Última Cena (1495–1498) es obra de Leonardo da Vinci en Santa Maria delle Grazie, Milán.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-010",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: la veladura (glazing) consiste en capas transparentes sobre capa seca para obtener luminosidad.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-011",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: Joseph Kosuth creó One and Three Chairs (1965), obra emblemática del arte conceptual.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Duplicado del ítem anterior: la respuesta Impresionismo es correcta según la definición dada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-013",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: Pablo Picasso, junto a Georges Braque, es padre del cubismo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-014",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: la acuarela aplica pigmento diluido en agua sobre papel, favoreciendo difuminados suaves.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-015",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: Itten definió el contraste de complementarios como la relación de colores opuestos en el círculo cromático.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-016",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: la descripción corresponde al Impresionismo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-017",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: el glaseado/veladura consiste en capas transparentes sobre base seca para crear luminosidad.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-018",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta y aceptada: en Las Meninas el espejo refleja a los reyes Felipe IV y Mariana.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-019",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: la sección áurea (número de oro ≈1,618) es el principio mencionado para proporción armónica.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-020",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta: Jackson Pollock desarrolló la técnica del dripping y fue figura central del expresionismo abstracto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-021",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden correcto: Renacimiento → Barroco → Impresionismo → Cubismo, de más antiguo a más reciente.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-022",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden cronológico correcto: La Gioconda (c.1503–1519) → Las Meninas (1656) → La noche estrellada (1889) → Guernica (1937).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden de nacimientos correcto: Miguel Ángel (1475) → Rodin (1840) → Brâncuși (1876) → Louise Bourgeois (1911).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-025",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de art-021: orden correcto de movimientos artísticos por antigüedad.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-026",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden cronológico correcto por nacimiento: Leonardo (1452) → Miguel Ángel (1475) → Rembrandt (1606) → Picasso (1881).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-029",
+    "veredicto": "CORRECTA",
+    "motivo": "Las fechas citadas son correctas y el orden cronológico de primeras presentaciones (1907 Les Demoiselles, 1917 Fountain, 1937 Guernica, 1962 Soup Cans) es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-030",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila indicada (La Noche Estrellada atribuida a Picasso) es la única errónea; las demás entradas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-031",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila señalada (Moisés atribuida a Donatello) es efectivamente incorrecta: Moisés es de Miguel Ángel; las otras filas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-032",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila marcada (Barroco: Siglo XVIII) es incorrecta: el barroco se desarrolló principalmente en el siglo XVII; las demás filas son adecuadas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-033",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila indicada (Año: 1640) es errónea: Las Meninas se fechó en 1656; el resto de los datos de la tarjeta son correctos.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-034",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera y bien fundamentada: La Mona Lisa es de Leonardo da Vinci (c.1503–1519).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-035",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: el impresionismo surgió en Francia a finales del siglo XIX (década de 1870 y primera exposición en 1874).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-036",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta la valoración: la afirmación es falsa porque asigna 1936 como año de Guernica; Picasso completó Guernica en 1937 (la técnica óleo sobre lienzo es cierta).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-037",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación correcta: Arte Povera nació en Italia a finales de los años 60 y emplea materiales humildes o cotidianos.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-038",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición válida de la afirmación sobre La Mona Lisa: atribuida correctamente a Leonardo, con cronología plausible (c.1503–1517).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-039",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación correcta: el Futurismo se originó en Italia a principios del siglo XX (manifiesto de Marinetti, 1909).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-040",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación correcta: Guernica es óleo sobre lienzo y fue pintada por Picasso en 1937.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-041",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta 'Impresionismo' es la única correcta para la descripción dada; la clave 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-042",
+    "veredicto": "CORRECTA",
+    "motivo": "'Las Meninas' es la obra de Velázquez; la opción 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-044",
+    "veredicto": "CORRECTA",
+    "motivo": "La referencia a Kandinsky como pionero de la abstracción y autor de series tituladas 'Composición' es apropiada; la opción 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-045",
+    "veredicto": "CORRECTA",
+    "motivo": "Duplicado del enunciado sobre impresión y luz: 'Impresionismo' (opción 0) es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-046",
+    "veredicto": "CORRECTA",
+    "motivo": "Vincent van Gogh es el autor de 'La noche estrellada'; la opción 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-047",
+    "veredicto": "CORRECTA",
+    "motivo": "El Jardín de las Delicias se conserva en el Museo del Prado (Madrid); opción 0 correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-048",
+    "veredicto": "CORRECTA",
+    "motivo": "La técnica con yema de huevo es la témpera ('temple'); la opción 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-050",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden cronológico correcto: Renacimiento (XIV–XVI), Barroco (XVII), Neoclasicismo (XVIII), Impresionismo (finales XIX).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-051",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden por año de nacimiento correcto y verificado: Leonardo 1452, Rembrandt 1606, Van Gogh 1853, Picasso 1881.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-052",
+    "veredicto": "CORRECTA",
+    "motivo": "Fundaciones correctas y ordenadas: Louvre 1793, Prado 1819, Met 1870, Reina Sofía 1992.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-054",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden correcto: Renacimiento, Barroco, Impresionismo, Cubismo, según periodización estándar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-055",
+    "veredicto": "CORRECTA",
+    "motivo": "Cronología de las obras correcta: La Gioconda (c.1503–1519), Las Meninas (1656), La noche estrellada (1889), Guernica (1937).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-057",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de orden por nacimiento correcta: Leonardo (1452), Rembrandt (1606), Van Gogh (1853), Picasso (1881).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-058",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden indicado (Manierismo c.1520 → Rococó c.1700 → Surrealismo 1924 → Arte conceptual años 1960) es históricamente correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-059",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila indexada 3 corresponde a «El grito» atribuido erróneamente a Picasso; la obra es de Edvard Munch.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-061",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 1 afirma que el cubismo surgió en España; es incorrecto (nació en París con Picasso y Braque), por tanto la fila señalada es la errónea.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-062",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 3 indica ubicación en el Louvre; «Las Meninas» pertenece al Museo del Prado (fila 3 es la incorrecta).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-063",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: la obra se inició alrededor de 1503 y se terminó hacia 1517, en el primer tercio del siglo XVI.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-064",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: Van Gogh pintó «La noche estrellada» en junio de 1889 en Saint-Rémy-de-Provence.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-065",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación original (1935) es falsa; Picasso completó el Guernica en 1937 tras el bombardeo, por tanto marcar 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-066",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: el David fue esculpido en mármol de Carrara (no de Paros) entre 1501–1504; marcar 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-067",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de art-063: la afirmación es verdadera según datación aceptada (inicio c.1503, final ~1517).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "art-068",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: Velázquez se autorretrata a la izquierda, detrás del caballete; marcar 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación falsa: el elemento más abundante en la atmósfera es el nitrógeno (~78%), no el oxígeno (~21%).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-002",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: la fotosíntesis global convierte CO₂ + H₂O en glucosa y O₂ impulsada por luz (ecuación balanceada indicada).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: desde la redefinición del SI (2019) el número de Avogadro tiene el valor exacto 6.02214076×10^23 mol⁻¹ por definición.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-005",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de cie-001: la afirmación es falsa; el nitrógeno es el más abundante (~78%).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación falsa: mediciones de oscilación de neutrinos demuestran que tienen masa distinta de cero (muy pequeña).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-007",
+    "veredicto": "CORRECTA",
+    "motivo": "Afirmación verdadera: el principio de incertidumbre impone que Δx·Δp ≥ ħ/2, impidiendo conocer posición y momento con precisión arbitraria.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-008",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (0): el oxígeno es el elemento más abundante en la corteza terrestre (~46% en peso).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-009",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (1): el enlace O–H en agua es covalente polar, no iónico ni metálico; el enlace de hidrógeno es intermolecular.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-010",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (1): la ley de Boyle relaciona presión y volumen inversamente a temperatura constante.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-011",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (1): el tensor que describe la curvatura vinculada a la materia/energía en las ecuaciones de campo es el tensor de Einstein G_{μν}.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (0): el nitrógeno es el gas más abundante en la atmósfera (~78%).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-013",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (0): la radiación entre la luz visible y las microondas es el infrarrojo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-014",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (0): el Hamiltoniano representa la energía total (cinética + potencial) en la ecuación de Schrödinger independiente del tiempo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-015",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (0): la simetría de gauge del modelo estándar es SU(3)_C × SU(2)_L × U(1)_Y (abreviado SU(3)×SU(2)×U(1)).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-016",
+    "veredicto": "CORRECTA",
+    "motivo": "Opción correcta (1): el gas más abundante de la atmósfera es el nitrógeno (~78%), por tanto la opción 1 es la correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-018",
+    "veredicto": "CORRECTA",
+    "motivo": "El neón (Z=10) tiene la configuración fundamental 1s² 2s² 2p⁶.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-020",
+    "veredicto": "CORRECTA",
+    "motivo": "El bosón W⁻ es el mediador de la interacción débil con carga eléctrica negativa.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-021",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de menor a mayor distancia al Sol es Mercurio, Venus, Tierra y Marte.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-022",
+    "veredicto": "CORRECTA",
+    "motivo": "Los números atómicos crecen así: hidrógeno 1, helio 2, litio 3 y berilio 4.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-023",
+    "veredicto": "CORRECTA",
+    "motivo": "La longitud de onda aumenta en el orden rayos gamma, rayos X, ultravioleta y visible.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-025",
+    "veredicto": "FALSA",
+    "motivo": "El orden correcto de menor a mayor distancia al Sol es Mercurio, Venus, Tierra y Marte, no el propuesto.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-027",
+    "veredicto": "FALSA",
+    "motivo": "Del rango más específico al más general corresponde especie, género, familia y orden.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-030",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 3 es errónea: el plasma no es el estado más común de la materia en la Tierra; las demás descripciones son correctas.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-031",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 3 es errónea: los lisosomas contienen enzimas digestivas, mientras que la producción principal de ATP corresponde a las mitocondrias.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-033",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 4 es errónea: el grupo 13 es el grupo del boro; los gases nobles son el grupo 18.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-034",
+    "veredicto": "CORRECTA",
+    "motivo": "El Sol está clasificado como una estrella de secuencia principal de tipo espectral G2V.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-035",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: el neutrón tiene carga eléctrica neta cero.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-036",
+    "veredicto": "CORRECTA",
+    "motivo": "La relación E=hν vincula la energía del fotón con su frecuencia mediante la constante de Planck.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-037",
+    "veredicto": "CORRECTA",
+    "motivo": "La excitación del campo de Higgs es el bosón de Higgs, y el mecanismo de Higgs da masa a los bosones W y Z.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-038",
+    "veredicto": "CORRECTA",
+    "motivo": "El oxígeno representa aproximadamente el 21 % del volumen del aire seco.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-040",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: el principio de exclusión de Pauli se aplica a todos los fermiones, no solo a los de espín 1/2.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-041",
+    "veredicto": "CORRECTA",
+    "motivo": "La mitocondria es la central energética celular por su papel principal en la producción de ATP.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-042",
+    "veredicto": "CORRECTA",
+    "motivo": "El argón pertenece al grupo 18 y es un gas noble a temperatura ambiente.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-044",
+    "veredicto": "CORRECTA",
+    "motivo": "DNMT1 efectúa la metilación de mantenimiento tras la replicación, preservando los patrones de metilación del ADN.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-045",
+    "veredicto": "CORRECTA",
+    "motivo": "La mitocondria es la central energética celular por su papel principal en la producción de ATP.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-046",
+    "veredicto": "CORRECTA",
+    "motivo": "Entre las opciones, solo el argón es un gas noble a temperatura ambiente.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-047",
+    "veredicto": "CORRECTA",
+    "motivo": "El fotón es el bosón de gauge mediador de la interacción electromagnética.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-048",
+    "veredicto": "CORRECTA",
+    "motivo": "El experimento de Wu con cobalto-60 demostró una emisión beta asimétrica y, por tanto, la violación de la paridad.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-049",
+    "veredicto": "CORRECTA",
+    "motivo": "La mitocondria es la central energética celular por su papel principal en la producción de ATP.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-050",
+    "veredicto": "CORRECTA",
+    "motivo": "Entre las opciones, solo el argón pertenece al grupo 18 y es un gas noble.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "cie-051",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la Ley de Boyle establece P·V = constante a temperatura constante; la opción marcada ('Ley de Boyle') es la adecuada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-052",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: una estrella de masa similar al Sol termina como enana blanca tras perder sus capas externas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-054",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: orden cronológico por distancia al Sol — Mercurio, Venus, Tierra, Marte — es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-055",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: de menor a mayor longitud de onda efectivamente va rayos gamma, rayos X, ultravioleta, luz visible.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-056",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la secuencia Cámbrico → Ordovícico → Silúrico → Devónico es la cronología correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-057",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: orden de intensidad (más débil a más fuerte) — gravedad, débil, electromagnetismo, fuerte — es el estándar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-058",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: energía cinética media crece sólido < líquido < gas < plasma; el orden dado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-061",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: capas por altitud ascendente — troposfera, estratosfera, mesosfera, termosfera — es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-062",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: clases espectrales por temperatura (mayor a menor) O, B, A, F es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-063",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la fila señalada (Plasma: 'es el estado más común en la Tierra') es errónea; la afirmación es falsa y las demás filas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-064",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la fila señalada ('Pared celular presente en células animales') es incorrecta; la pared celular no se encuentra en células animales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-065",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la supuesta 'Cuarta ley' es un error histórico—Newton formuló tres leyes del movimiento; la fila marcada es incorrecta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-066",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la fila del berilio está mal (símbolo 'B' es del boro); la entrada marcada es la equivocada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-067",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el oxígeno es el elemento más abundante en la corteza terrestre (~46 % en masa); afirmar 'true' es acertado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-068",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la replicación del ADN es semiconservativa; la respuesta 'false' frente a 'conservativa' es adecuada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-069",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: desde la redefinición del SI en 2019 la constante de Planck quedó fijada exactamente en 6.62607015×10⁻³⁴ J·s.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-070",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el bosón de Higgs no fue descubierto en LEP en 1995; su observación se anunció en 2012 en el LHC, por tanto 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-071",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el núcleo atómico está compuesto principalmente por protones y neutrones; la afirmación marcada 'true' es veraz.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "cie-072",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el principio de incertidumbre prohíbe conocer simultáneamente posición y momento con exactitud arbitraria; marcar la afirmación como 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el PIB mide el valor de mercado de todos los bienes y servicios finales producidos dentro de un país en un periodo determinado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-002",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: en competencia perfecta las empresas son precio‑tomadoras; la afirmación marcada 'true' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la curva de Phillips a largo plazo es vertical (no hay trade‑off estable inflación‑desempleo); 'true' es apropiado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-004",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: no todo juego finito tiene equilibrio en estrategias puras (ej. Matching Pennies); afirmar lo contrario es falso, por tanto la respuesta marcada 'false' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-005",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: duplicación del enunciado del PIB; la respuesta 'true' es correcta: mide bienes y servicios finales producidos en un país durante un periodo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la curva de Phillips original describe una relación a corto plazo; la afirmación de relación inversa estable a largo plazo es incorrecta, por tanto 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-007",
+    "veredicto": "CORRECTA",
+    "motivo": "En el modelo de Solow un aumento permanente de la tasa de ahorro eleva el capital por trabajador y, por tanto, el producto por trabajador en el estado estacionario; el crecimiento per cápita sostenido sigue estando determinado por el progreso técnico exógeno.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-009",
+    "veredicto": "CORRECTA",
+    "motivo": "Reducir el coeficiente de reservas obligatorias incrementa la capacidad de los bancos para crear crédito y expande la oferta monetaria, por tanto es una política monetaria expansiva.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-010",
+    "veredicto": "CORRECTA",
+    "motivo": "En el estado estacionario del modelo de Solow el único motor del crecimiento sostenido de la producción per cápita es el progreso tecnológico exógeno; acumulación de capital sólo cambia niveles.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-011",
+    "veredicto": "CORRECTA",
+    "motivo": "Bajo expectativas racionales, si los agentes anticipan correctamente la política monetaria (información/anticipación adecuada), no existe trade‑off explotable y la Phillips de corto plazo deja de operar; la opción señalada refleja esa condición.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-013",
+    "veredicto": "CORRECTA",
+    "motivo": "La definición de coste de oportunidad es precisamente el valor de la mejor alternativa sacrificada al tomar una decisión.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-016",
+    "veredicto": "CORRECTA",
+    "motivo": "El PIB mide el valor de la producción final dentro de las fronteras de un país durante un período determinado; la opción indicada recoge esa definición territorial y de bienes finales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-017",
+    "veredicto": "CORRECTA",
+    "motivo": "La inflación se define como un aumento sostenido y generalizado del nivel de precios, reduciendo el poder adquisitivo; la opción indicada es la definición convencional.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-018",
+    "veredicto": "CORRECTA",
+    "motivo": "La curva de Phillips original describió empíricamente una relación inversa entre desempleo y crecimiento salarial/inflación a corto plazo; la opción elegida lo refleja correctamente.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-019",
+    "veredicto": "CORRECTA",
+    "motivo": "El teorema de la imposibilidad de Arrow afirma que no existe una regla de agregación de preferencias que satisfaga simultáneamente los axiomas clásicos (racionalidad, no dictadura, independencia de alternativas irrelevantes y unanimidad); la opción indicada es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-022",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden indicado (monopolio < oligopolio < competencia monopolística < competencia perfecta) es la clasificación estándar por grado creciente de competencia.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Ordenar por ámbito territorial de menor a mayor como municipal < regional < nacional < supranacional es correcto y consistente con la explicación dada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-024",
+    "veredicto": "CORRECTA",
+    "motivo": "La secuencia por valor absoluto de la elasticidad precio (0 = perfectamente inelástica, 0–1 inelástica, 1 unitaria, >1 elástica) está correctamente ordenada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-025",
+    "veredicto": "AMBIGUA",
+    "motivo": "La jerarquía propuesta (exportaciones netas < inversión < gasto público < consumo) puede ser válida en muchas economías avanzadas pero no es universal: la participación relativa de inversión y gasto público varía entre países y las exportaciones netas pueden ser positivas o negativas. Por tanto la afirmación como ‘típica’ es defendible pero imprecisa.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-026",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden dado (Sociedad tradicional → Precondiciones para el despegue → Despegue → Madurez) corresponde a las etapas iniciales y medias del modelo de Rostow en la secuencia correcta; omite la quinta etapa pero la ordenación presentada es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-027",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden por amplitud M0 (base monetaria) < M1 < M2 < M3 es la clasificación estándar de agregados monetarios de menor a mayor.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-028",
+    "veredicto": "CORRECTA",
+    "motivo": "La clasificación por magnitud de elasticidad (perfectamente inelástica, relativamente inelástica, unitaria, relativamente elástica) está correctamente ordenada de menor a mayor sensibilidad.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-029",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden histórico mercantilismo → escuela clásica → marginalismo → keynesianismo es correcto según la cronología convencional de las escuelas económicas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-030",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila señalada (Curva de oferta: 'Es descendente') es errónea: la curva de oferta tiene pendiente positiva; las otras filas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-031",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila señalada define la tasa de desempleo respecto a la población total, lo cual es incorrecto: la tasa de desempleo se calcula sobre la fuerza de trabajo (población activa). Las demás filas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-033",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila señalada afirma que en un juego de suma cero la suma total de pagos puede ser positiva, lo cual contradice la definición (la suma debe ser cero); esa fila es efectivamente la errónea.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-034",
+    "veradicto": "CORRECTA",
+    "motivo": "La afirmación sobre el PIB como valor de mercado de bienes y servicios producidos en un período determinado es la definición aceptada y la respuesta verdadera es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-035",
+    "veredicto": "CORRECTA",
+    "motivo": "En competencia perfecta las empresas son tomadoras de precio (price takers) debido a la atomicidad, homogeneidad del producto y libre entrada/salida; la afirmación es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-036",
+    "veredicto": "CORRECTA",
+    "motivo": "Decir que existe una relación inversa estable entre desempleo e inflación a largo plazo es falso: la relación observada es de corto plazo; a largo plazo las expectativas se ajustan y la curva es vertical. La marcación 'falso' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-037",
+    "veredicto": "CORRECTA",
+    "motivo": "El teorema de Coase establece que, sin costos de transacción y con negociación libre, la asignación será eficiente independiente de la distribución inicial de derechos de propiedad; la afirmación es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-038",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de la definición estándar del PIB (valor de mercado de bienes y servicios finales dentro de fronteras en un período); la afirmación y la respuesta 'verdadero' son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-039",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la teoría de Friedman/Phelps establece que en el largo plazo las expectativas se ajustan y la Phillips es vertical en la tasa natural de desempleo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-040",
+    "veredicto": "FALSA",
+    "motivo": "Falsa: el teorema de Arrow exige, además de universalidad e independencia de alternativas irrelevantes y no dictadura, el principio de Pareto (unanimidad); la formulación sustituye indebidamente Pareto por 'transitividad' en la lista de axiomas, lo que distorsiona el resultado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-041",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el PIB mide el valor de los bienes y servicios finales producidos dentro de un país en un periodo dado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-042",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el coste de oportunidad es el valor de la mejor alternativa no elegida.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-043",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el tipo de interés de referencia es una herramienta central de política monetaria para influir en la oferta monetaria.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-045",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el indicador descrito es el PIB, que suma el valor de mercado de los bienes y servicios finales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-046",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: definición estándar del coste de oportunidad como el valor de la mejor alternativa renunciada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-048",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la ventaja comparativa se basa en tener un coste relativo (u opportunity cost) más bajo, no en ventaja absoluta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-053",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la convexidad de preferencias y tecnologías es un supuesto clave para garantizar existencia (y unicidad) en el modelo Arrow‑Debreu.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-056",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el orden propuesto (peg fijo → crawling peg → managed float → libre flotante) refleja correctamente un aumento del grado de flexibilidad cambiaria.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-057",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: cronología aceptada — Harrod‑Domar (antes del modelo neoclásico), Solow‑Swan, modelos AK, y Romer (endógeno) como más recientes.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-062",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: orden histórico razonable — clásica, neoclásica, keynesiana, nueva economía institucional.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-063",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: enunciado coincide con la definición estándar del PIB.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-064",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; la curva de Phillips original describía una relación observada a corto plazo, no un trade‑off estable a largo plazo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-065",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: en el modelo de Solow sin progreso tecnológico la economía converge a un estado estacionario con crecimiento nulo del PIB per cápita.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-066",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; Milgrom y Wilson recibieron el Nobel en 2020; 2021 correspondió a Card, Angrist e Imbens.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-067",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: con inflación positiva los precios corrientes superan los del año base, de modo que el PIB nominal suele exceder al PIB real.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "eco-068",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; la curva de Phillips no muestra una relación directa y estable a largo plazo (en el largo plazo es vertical).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el empirismo sostiene que el conocimiento deriva de la experiencia sensorial, según Locke, Berkeley y Hume.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-002",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; Sartre defiende que la existencia precede a la esencia.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: el 'cogito, ergo sum' surge de la duda metódica cartesiana como fundación de certeza.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-004",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; la epojé es la suspensión del juicio sobre la existencia del mundo, no su afirmación.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-005",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: Aristóteles fue discípulo de Platón en la Academia durante aproximadamente dos décadas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; Sartre sostiene explícitamente que 'la existencia precede a la esencia'.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-007",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta: la afirmación es falsa; Kant sostiene que el espacio y el tiempo son formas a priori de la sensibilidad, no propiedades empíricas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-008",
+    "veredicto": "CORRECTA",
+    "motivo": "Platón es el autor de la alegoría de la caverna (Libro VII de La República).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-009",
+    "veredicto": "CORRECTA",
+    "motivo": "Bentham sostiene el principio de la mayor felicidad: maximizar placer/minimizar dolor para la mayoría.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-010",
+    "veredicto": "CORRECTA",
+    "motivo": "Epoché en Husserl es la suspensión del juicio sobre la existencia del mundo natural para estudiar la conciencia.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-011",
+    "veredicto": "CORRECTA",
+    "motivo": "La expresión poder‑saber (pouvoir‑savoir) resume la inseparabilidad entre poder y saber en Foucault.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición de la pregunta anterior: la alegoría corresponde a Platón, no a Pitágoras.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-014",
+    "veredicto": "CORRECTA",
+    "motivo": "La epochè es la suspensión del juicio sobre la existencia del mundo natural; la opción elegida es la definición adecuada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-015",
+    "veredicto": "CORRECTA",
+    "motivo": "Putnam defiende el externalismo semántico: el significado de términos naturales depende de factores externos.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-016",
+    "veredicto": "CORRECTA",
+    "motivo": "La República es un diálogo de Platón (aprox. siglo IV a.C.).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-017",
+    "veredicto": "CORRECTA",
+    "motivo": "El empirismo sostiene que el conocimiento procede de la experiencia sensible (Locke, Hume, Berkeley).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-018",
+    "veredicto": "CORRECTA",
+    "motivo": "La distinción 'ser'/'deber ser' remite a hecho frente a norma/valor; la opción marcada refleja esa distinción.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-019",
+    "veredicto": "CORRECTA",
+    "motivo": "Immanuel Kant es el autor de la Crítica de la razón pura (1781) y distingue juicios analíticos y sintéticos a priori.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-020",
+    "veredicto": "CORRECTA",
+    "motivo": "La epoché implica poner entre paréntesis la actitud natural para examinar la conciencia pura; la opción seleccionada es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-021",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 0 es la errónea: Sócrates no escribió La República; las otras afirmaciones (Platón fundó la Academia; Aristóteles fue discípulo de Platón) son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-023",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 2 es la falsa: Wittgenstein no 'rechazó totalmente cualquier forma de análisis lógico'; las dos primeras filas son interpretaciones aceptables de sus etapas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-024",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 2 es incorrecta: Kripke no afirmó que la necesidad epistemológica sea equivalente a la necesidad metafísica; las dos primeras filas son correctas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-025",
+    "veredicto": "CORRECTA",
+    "motivo": "Es aceptable afirmar que Descartes formuló 'Cogito, ergo sum' en la versión francesa en el Discurso del método; la respuesta verdadera es apropiada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-026",
+    "veredicto": "CORRECTA",
+    "motivo": "Kant efectivamente distingue fenómenos (apariencias) y noumenos (cosas en sí) en la Crítica de la razón pura.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-027",
+    "veredictO": "CORRECTA",
+    "motivo": "La afirmación es falsa: Husserl propone la epoché; marcar 'falso' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-028",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: Heidegger caracteriza al Dasein por su historicidad y existencialidad, no como entidad puramente biológica; marcar 'falso' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-029",
+    "veredicto": "CORRECTA",
+    "motivo": "Aristóteles define la eudaimonía como actividad del alma conforme a la virtud y la razón (Ética a Nicómaco).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "fil-030",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa: Kant no basa la ética en las consecuencias; es deontológico (máximas y universalizabilidad).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Mediterráneo comunica con el Atlántico por el Estrecho de Gibraltar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-002",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la cordillera de los Andes es la más larga del mundo continental (~7.000 km).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el lago Baikal es el lago de agua dulce más profundo (aprox. 1.642 m).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-004",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la placa de Nazca se subduce bajo la placa Sudamericana a lo largo de la fosa Perú‑Chile.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-005",
+    "veredicto": "CORRECTA",
+    "motivo": "El océano Pacífico baña efectivamente la costa occidental de Sudamérica.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Argelia es el país más extenso de África.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-007",
+    "veredicto": "CORRECTA",
+    "motivo": "El Himalaya es la barrera orográfica entre la meseta tibetana y la llanura del Ganges.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-009",
+    "veredicto": "CORRECTA",
+    "motivo": "El Río Grande/Bravo es la frontera natural predominante entre EE. UU. y México.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-010",
+    "veredicto": "CORRECTA",
+    "motivo": "Científicamente, la Antártida es el desierto más grande del mundo.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-011",
+    "veredicto": "CORRECTA",
+    "motivo": "Los Urales son la frontera convencional entre Europa y Asia.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Francia posee 12 husos horarios debido a sus territorios de ultramar, superando a Rusia.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-013",
+    "veredicto": "CORRECTA",
+    "motivo": "La Placa del Pacífico es la placa oceánica más extensa.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-014",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de superficie es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-015",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de longitud es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-016",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de altitud es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-017",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de superficie de las placas es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-018",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de superficie es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-019",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de población municipal es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-020",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de altitud es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-021",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de longitud de los ríos ibéricos es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-022",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de latitud (de sur a norte) es correcto.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Australia no es un país de la Antártida.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-024",
+    "veredicto": "CORRECTA",
+    "motivo": "El Misisipi no atraviesa Canadá.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-025",
+    "veredicto": "CORRECTA",
+    "motivo": "El Kilimanjaro está en Tanzania (África), no en los Andes.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-027",
+    "veredicto": "CORRECTA",
+    "motivo": "El Pacífico es el océano más extenso.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-028",
+    "veredicto": "CORRECTA",
+    "motivo": "El Gobi está en Asia.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-030",
+    "veredicto": "CORRECTA",
+    "motivo": "El Baikal es el más profundo, no el Superior.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-031",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto, el Sahara es el desierto cálido más grande, pero la Antártida es el desierto global más grande.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-032",
+    "veredicto": "CORRECTA",
+    "motivo": "Atraviesa efectivamente Venezuela, Colombia, Ecuador, Perú, Bolivia, Chile y Argentina.",
+    "auditor": "google/gemma-4-31b-it:free"
+  },
+  {
+    "id": "geo-033",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la Línea de Wallace, propuesta por Alfred Russel Wallace, marca la transición faunística y pasa entre Bali y Lombok.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-034",
+    "veredicto": "CORRECTA",
+    "motigo": "Nota: error tipográfico en la clave 'motigo' (no afecta la corrección).",
+    "motivo": "Correcto: la costa este de EE. UU. está bañada por el océano Atlántico.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-035",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: Portugal no tiene litoral mediterráneo; su costa es atlántica.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-037",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Yangtsé (~6 300 km) discurre íntegramente dentro de China y es el río más largo que queda dentro de un solo país.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-038",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la costa este de África está bañada por el océano Índico.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-039",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la Sierra Madre Occidental se extiende únicamente por México; las otras opciones son cadenas transnacionales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-040",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la cuenca del Amazonas (~7 millones km²) es la mayor de América del Sur.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-042",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: orden correcto por superficie: Ciudad del Vaticano, Mónaco, San Marino, Liechtenstein.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-043",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: orden norte→sur por latitud: Bogotá (4,7°N), Quito (~0°S), Lima (~12°S), Buenos Aires (~34,6°S).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-044",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: orden por longitud creciente: Rin (~1 230 km), Danubio (~2 850 km), Volga (~3 530 km), Nilo (~6 650 km).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-045",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: altitudes crecientes: Monte Fuji (3 776 m), Mont Blanc (4 808 m), Kilimanjaro (5 895 m), Everest (8 848 m).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-046",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: número de fronteras terrestres creciente: Canadá (1), México (3), Brasil (10), China (14).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-052",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: Canberra es la capital federal de Australia desde 1913.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-053",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto (la respuesta marcada): la afirmación es falsa; la placa de Nazca se subduce bajo la placa Sudamericana, no bajo la placa del Pacífico.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-054",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Abismo Challenger se ha medido en torno a 10 924 m, cifra aceptada como aproximación de su profundidad máxima.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-055",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Amazonas es el río de mayor caudal medio del planeta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "geo-056",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto (la respuesta marcada): la afirmación es falsa; los Andes (~7 000 km) son más largos que el Himalaya (~2 400 km).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-001",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: bajo Trajano (98–117 d.C.) el Imperio Romano alcanzó su máxima extensión territorial conocida.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-003",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto (la respuesta marcada): falso; el Senado de EE. UU. rechazó la ratificación del Tratado de Versalles y la entrada en la Liga de Naciones.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-004",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: Braudel defiende la 'larga duración' y la primacía de factores geográficos y estructurales sobre los acontecimientos coyunturales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-005",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la Revolución Francesa (iniciada en 1789) condujo al derrocamiento de la monarquía absoluta y a la instauración de nuevas formas políticas.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-006",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: el Tratado de Versalles (1919) incluyó la creación de la Liga de las Naciones.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-007",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la caída de Constantinopla en 1453 por los otomanos puso fin al Imperio bizantino.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-008",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: Machu Picchu fue construida por la civilización inca en el siglo XV.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-009",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcto: la Paz de Westfalia (1648) puso fin a la Guerra de los Treinta Años.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-011",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Materialismo histórico es el término marxista (Marx y Engels) que explica la historia como lucha de clases y relaciones de producción.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Ciro II (Ciro el Grande) fundó el Imperio aqueménida persa en el siglo VI a.C.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-013",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La deposición de Rómulo Augústulo en 476 d.C. se considera el fin formal del Imperio romano de Occidente.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-014",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La Paz de Westfalia (1648) puso fin a la Guerra de los Treinta Años.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-015",
+    "veredicto": "AMBIGUA",
+    "motivo": "Ambigua. Braudel articuló los tres niveles (longue durée, conjoncture, événement) dentro de un enfoque de ‘histoire totale’, pero también es famoso por la noción de ‘la larga duración’. La pregunta no especifica si pide el término global (historia total) o la categoría metodológica (larga duración), por lo que ambas respuestas 0 y 1 resultan defendibles.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-016",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Las pirámides de Guiza fueron construidas en el Antiguo Egipto, principalmente durante la IV dinastía.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-018",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Copérnico propuso el modelo heliocéntrico que sitúa al Sol en el centro del sistema planetario.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-021",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Orden cronológico aceptado: Mesopotamia ≻ Antiguo Egipto ≻ Valle del Indo ≻ China (Shang).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-022",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Orden por inicio: Guerra de los Treinta Años (1618), Guerra de Sucesión Española (1701), Primera Guerra Mundial (1914), Segunda Guerra Mundial (1939).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Orden cronológico: Revolución Francesa (1789), revoluciones de 1848, Revolución Rusa (1917), Revolución de los Claveles (1974).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-024",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Orden aceptado de revoluciones científicas: Copernicana (1543) → Newtoniana (1687) → Einsteiniana (1905/1915) → Cuántica (década de 1920).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-025",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Secuencia por aparición: Mesopotamia ≻ Antiguo Egipto ≻ Cuenca del Indo ≻ civilización china antigua (fechas aproximadas pero orden correcto).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-026",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Fechas de fundación acordes a la historiografía: León (910), Inglaterra bajo Æthelstan (927), Sacro Imperio (962), Capetos en Francia (987).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-027",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Fechas de inicio: Midway (junio 1942) → Stalingrado (agosto 1942) → Kursk (julio 1943) → Día D (6 junio 1944).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-028",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Años de firma: Westfalia 1648, Utrecht 1713, Viena 1815, Versalles 1919.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-029",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Años de inicio: Revolución Haitiana 1791, Guerra de Independencia de México 1810, independencia de Argentina 1816, Guerra de Independencia de Cuba 1895.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-030",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La fila marcada (Roma: «construyó la Gran Muralla China») es claramente errónea; la Gran Muralla la construyeron dinastías chinas, no Roma.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-031",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La fila señalada (Japón como aliado de los Aliados en el teatro europeo) es falsa: Japón fue potencia del Eje y combatió contra los Aliados en Asia y el Pacífico.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-032",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La fila marcada (Perú: «nunca tuvo un movimiento de independencia») es evidentemente errónea; Perú sí tuvo movimientos independentistas y fue liberado en 1821 tras acciones de San Martín y Bolívar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-033",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La afirmación sospechosa (que el Tratado de Westfalia otorgó autoridad papal suprema sobre territorios protestantes) es falsa; Westfalia consolidó la soberanía estatal y redujo la influencia papal.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-034",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. El Muro de Berlín fue abierto el 9 de noviembre de 1989; la afirmación es verdadera.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-035",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La afirmación es falsa: Napoleón fue derrotado en Waterloo (18 de junio de 1815) por Wellington y Blücher.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-036",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La Revolución Industrial comenzó en Gran Bretaña alrededor de 1760, en la segunda mitad del siglo XVIII.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-037",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. La afirmación es falsa: el Tratado de Versalles (1919) puso fin a la Primera Guerra Mundial, no a la Guerra de los Cien Años (terminada en 1453).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-038",
+    "veredicto": "CORRECTA",
+    "motivo": "Correcta. Gutenberg introdujo la imprenta de tipos móviles hacia 1440‑1450, facilitando la reproducción masiva de libros y la difusión del Renacimiento y la Reforma.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "his-039",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación es falsa y la respuesta marcada (false) es correcta: el Tratado de Westfalia (1648) resolvió la Guerra de los Treinta Años; la Guerra de Sucesión Española concluyó con los Tratados de Utrecht (1713).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-001",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (true) es correcta: la conjunción p ∧ q es verdadera únicamente en el caso (V,V).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-002",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (true) es correcta: la implicación material es falsa sólo cuando p es verdadero y q falso.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-003",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (false) es correcta: la lógica intuicionista no acepta el principio del tercero excluido como teorema general sin prueba constructiva.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-004",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (true) es correcta: S5 corresponde a marcos cuya relación de accesibilidad es una relación de equivalencia (reflexiva, simétrica y transitiva).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-005",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (true) es correcta en lógica clásica: una implicación con antecedente falso se considera verdadera (vacuamente verdadera).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-006",
+    "veredicto": "CORRECTA",
+    "motivo": "La respuesta marcada (false) es correcta: el principio de no contradicción afirma que una proposición y su negación no pueden ser verdaderas simultáneamente en el mismo contexto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-008",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 1: «Algunos estudiantes no aprobaron el examen») es la negación correcta de un universal afirmativo.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-009",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 1: p verdadero, q falso) es la única que hace falsa la implicación p → q.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-010",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 1: «Si no q entonces no p») es la contrapositiva y es lógicamente equivalente a «Si p entonces q».",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-011",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 2: reflexiva, simétrica y transitiva) describe correctamente la relación de accesibilidad en S5.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-012",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 3: «No se puede concluir nada») es correcta: de ‘Todos A son B’ y ‘Algunos B son C’ no sigue necesariamente ninguna relación entre A y C.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-013",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 0: «P y Q son verdaderos y R es falso») es la condición que hace falsa la implicación (P ∧ Q) → R.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-014",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 0: Modus Tollens) es una regla válida en lógica proposicional clásica; las otras listadas son falacias formales.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-015",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 0: Euclidiana) es correcta: el axioma 5 caracteriza la propiedad euclidiana de la relación de accesibilidad (y es una de las formas que conducen a S5).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-016",
+    "veredicto": "CORRECTA",
+    "motivo": "La opción marcada (índice 1: «Todos los perros son animales») es la conclusión válida del silogismo dado.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-017",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden indicado (→, ∨, ∧, ¬) corresponde correctamente, de menor a mayor precedencia, a la convención estándar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-018",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden binario convencional para dos variables es 00, 01, 10, 11; la secuencia dada es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-019",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden L ⊆ P ⊆ NP ⊆ PSPACE es el habitual (dentro de las inclusiones conocidas/conjeturadas); la respuesta marcada es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-020",
+    "veredicto": "CORRECTA",
+    "motivo": "La jerarquía indicada (inaccesible < Mahlo < medible < supercompacto) refleja correctamente aumento de fuerza de consistencia entre esos cardinales grandes.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-021",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición del ítem de precedencias: el orden →, ∨, ∧, ¬ (de menor a mayor precedencia) es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-022",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden por cardinalidad 0,1,2,ℵ₀ (∅, {a}, {a,b}, ℕ) es correcto; la respuesta indicada es válida.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Igual que log-019: L ⊆ P ⊆ NP ⊆ PSPACE es el orden de inclusión considerado; la respuesta es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-024",
+    "veredicto": "CORRECTA",
+    "motivo": "Las fórmulas están ordenadas correctamente según la profundidad de alternación de cuantificadores (1,2,3,4).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-025",
+    "veredicto": "CORRECTA",
+    "motivo": "El orden de fuerza de consistencia dado (inaccesible < medible < supercompacto < enorme/huge) es correcto; la respuesta marcada coincide con la jerarquía estándar.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-026",
+    "veredicto": "CORRECTA",
+    "motivo": "La implicación material en lógica proposicional efectivamente solo es falsa cuando p es verdadera y q es falsa; la respuesta 'true' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-027",
+    "veredicto": "CORRECTA",
+    "motivo": "El principio de no contradicción niega que una proposición y su negación sean simultáneamente verdaderas; marcar 'false' es preciso.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-028",
+    "veredicto": "CORRECTA",
+    "motivo": "La afirmación confunde los teoremas de Gödel: la completitud de la lógica de primer orden no implica que todo sistema formal recursivamente enumerable y consistente sea completo; señalar 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "log-029",
+    "veredicto": "CORRECTA",
+    "motivo": "El axioma 4 (□p → □□p) corresponde a marcos con relación de accesibilidad transitiva (lógica K4); la respuesta 'true' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-001",
+    "veredicto": "CORRECTA",
+    "motivo": "HTTP usa por defecto el puerto TCP 80; la respuesta 'true' es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-002",
+    "veredicto": "CORRECTA",
+    "motivo": "La arquitectura von Neumann utiliza memoria unificada para instrucciones y datos (la separación es característica de Harvard); marcar 'false' es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-007",
+    "veredicto": "CORRECTA",
+    "motivo": "Bitcoin emplea Proof of Work; la opción índice 1 ('Proof of Work') es la correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-009",
+    "veredicto": "CORRECTA",
+    "motivo": "HTTP significa 'HyperText Transfer Protocol'; la opción índice 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-010",
+    "veredicto": "CORRECTA",
+    "motivo": "SFTP (SSH File Transfer Protocol) proporciona transferencia de archivos segura; la opción índice 1 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-011",
+    "veredicto": "CORRECTA",
+    "motivo": "TCP opera en la capa 4 (Transporte) del modelo OSI; la opción índice 1 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-012",
+    "veredicto": "CORRECTA",
+    "motivo": "Repetición del caso Bitcoin: Proof of Work es correcto; la opción índice 1 es adecuada.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-013",
+    "veredicto": "CORRECTA",
+    "motivo": "De nuevo, HTTP = 'HyperText Transfer Protocol'; la opción índice 0 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-014",
+    "veredicto": "CORRECTA",
+    "motivo": "HTTPS usa por defecto el puerto 443; la opción índice 1 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-015",
+    "veredicto": "CORRECTA",
+    "motivo": "Un resolvedor DNS traduce nombres de dominio a direcciones IP; la opción índice 1 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-016",
+    "veredicto": "CORRECTA",
+    "motivo": "El enrutamiento entre redes corresponde a la capa de red (capa 3) del modelo OSI; la opción índice 1 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-017",
+    "veredicto": "CORRECTA",
+    "motivo": "Bitcoin usa SHA-256 en su Proof-of-Work; la opción índice 2 es correcta.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-018",
+    "veredicto": "CORRECTA",
+    "motivo": "Orden lógico por abstracción: hardware < firmware < sistema operativo < aplicación; el orden facilitado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-020",
+    "veredicto": "CORRECTA",
+    "motivo": "Por nivel de abstracción: código máquina < ensamblador < C < Python; el orden dado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-021",
+    "veredicto": "CORRECTA",
+    "motivo": "Tamaños efectivos: DES (56) < 3DES (~112) < AES-128 < AES-256; el orden proporcionado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-022",
+    "veredicto": "CORRECTA",
+    "motivo": "Unidades de almacenamiento en orden ascendente: KB < MB < GB < TB; el orden indicado es correcto (la explicación usa la convención binaria 1024).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-023",
+    "veredicto": "CORRECTA",
+    "motivo": "Generaciones móviles por aparición: 1G, 2G, 3G, 4G; el orden facilitado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-024",
+    "veredicto": "CORRECTA",
+    "motivo": "Estándares de C por año: C89 (ANSI) < C99 < C11 < C18; el orden indicado es correcto (aceptable usar la notación C89).",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-025",
+    "veredicto": "CORRECTA",
+    "motivo": "Años de lanzamiento aproximados: Nehalem (2008) < Sandy Bridge (2011) < Ivy Bridge (2012) < Haswell (2013); el orden es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-026",
+    "veredicto": "CORRECTA",
+    "motivo": "Velocidades Ethernet en orden ascendente: 10 Mbps < 100 Mbps < 1 Gbps < 10 Gbps; el orden dado es correcto.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-027",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila marcada (índice 3, 'JavaScript: lenguaje de tipado estático') es efectivamente la errónea: JavaScript es de tipado dinámico; las demás filas son aceptables en el contexto pedagógico.",
+    "auditor": "openai/gpt-5-mini"
+  },
+  {
+    "id": "tec-028",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 3 es SSH, y SSH emplea el puerto 22, no el 80; las demás afirmaciones son aceptables.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-029",
+    "veredicto": "CORRECTA",
+    "motivo": "La fila 2 atribuye VLIW a MIPS, pero MIPS es una arquitectura RISC; las demás clasificaciones son correctas.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-033",
+    "veredicto": "CORRECTA",
+    "motivo": "La suite TCP/IP constituye la base de las comunicaciones de Internet.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-034",
+    "veredicto": "CORRECTA",
+    "motivo": "FLAC fue creado por Josh Coalson, no por Apple; por tanto, la afirmación es falsa.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-035",
+    "veredicto": "CORRECTA",
+    "motivo": "HTTP/2 multiplexa varios flujos bidireccionales dentro de una misma conexión TCP.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  },
+  {
+    "id": "tec-036",
+    "veredicto": "CORRECTA",
+    "motivo": "Rust fue iniciado por Graydon Hoare hacia 2006; Brendan Eich creó JavaScript, no Rust.",
+    "auditor": "nex-agi/nex-n2.5-pro:free"
+  }
+]

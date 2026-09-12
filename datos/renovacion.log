@@ -1,0 +1,125 @@
+=== renovar-banco 2026-09-12T19:12:50+02:00 tope=0.50 ===
+--- generar economia 19:12 ---
+economia: pedidas 25, válidas 29, descartadas 0 (+ 68 ya existentes, total 97)
+--- generar historia 19:28 ---
+historia: pedidas 25, válidas 25, descartadas 0 (+ 39 ya existentes, total 64)
+--- generar ciencia 19:41 ---
+ciencia: pedidas 25, válidas 25, descartadas 0 (+ 72 ya existentes, total 97)
+--- generar tecnologia 19:53 ---
+tecnologia: pedidas 25, válidas 21, descartadas 0 (+ 36 ya existentes, total 57)
+--- generar geografia 20:09 ---
+geografia: pedidas 25, válidas 12, descartadas 0 (+ 56 ya existentes, total 68)
+--- generar filosofia 20:21 ---
+filosofia: pedidas 25, válidas 28, descartadas 2 (+ 30 ya existentes, total 58)
+--- generar arte 20:31 ---
+arte: pedidas 25, válidas 26, descartadas 3 (+ 68 ya existentes, total 94)
+--- generar logica 20:53 ---
+logica: pedidas 25, válidas 20, descartadas 2 (+ 31 ya existentes, total 51)
+--- verificar pendientes 21:09 ---
+--solo-pendientes: 400 ya verificadas, 186 pendientes.
+Por área (aprobadas/rechazadas):
+  economia: 73/24
+  historia: 55/9
+  ciencia: 73/24
+  tecnologia: 46/11
+  geografia: 55/13
+  filosofia: 51/7
+  arte: 84/10
+  logica: 45/6
+Total aprobadas: 482, rechazadas: 104
+--- validar 22:34 ---
+Preguntas: 482
+Banco válido.
+--- filtrar utilidad (solo nuevas) y aplicar umbral 2 22:34 ---
+
+=== filtrar-utilidad 2026-09-12T20:34:27.337Z — banco: 482 preguntas, lote 20 ===
+economia lote 1/2: 20 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+economia lote 2/2: 7 juzgadas, 0 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+historia lote 1/2: 20 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+historia lote 2/2: 4 juzgadas, 1 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+ciencia lote 1/1: 16 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+tecnologia lote 1/1: 19 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+geografia lote 1/1: 9 juzgadas, 1 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+filosofia lote 1/2: 20 juzgadas, 6 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+filosofia lote 2/2: 3 juzgadas, 0 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+arte lote 1/2: 20 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+arte lote 2/2: 4 juzgadas, 0 con utilidad < 3 (nex-agi/nex-n2.5-pro:free)
+logica lote 1/1: 17 juzgadas, 0 con utilidad < 3 (nvidia/nemotron-3-super-120b-a12b:free)
+
+Distribución de utilidad por área (1-5):
+  economia: 1=25 2=5 3=5 4=20 5=18
+  historia: 1=11 2=10 3=5 4=21 5=8
+  ciencia: 1=30 2=16 3=9 4=5 5=13
+  tecnologia: 1=18 2=3 3=3 4=4 5=18
+  geografia: 1=20 2=17 3=7 4=8 5=3
+  filosofia: 1=6 2=2 3=5 4=26 5=12
+  arte: 1=27 2=12 3=9 4=26 5=10
+  logica: 1=21 2=5 3=2 4=5 5=12
+
+Duplicados evidentes detectados: 58
+  art-005: duplicado de art-001: "La Mona Lisa fue pintada por Leonardo da Vinci."
+  art-034: duplicado de art-001: "La Mona Lisa fue pintada por Leonardo da Vinci."
+  art-038: duplicado de art-001: "La Mona Lisa fue pintada por Leonardo da Vinci."
+  art-063: duplicado de art-001: "La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI."
+  art-067: duplicado de art-001: "La Mona Lisa fue pintada por Leonardo da Vinci a principios del siglo XVI."
+  art-039: duplicado de art-006: "El movimiento artístico conocido como 'Futurismo' se originó en Italia a principios del siglo XX."
+  art-069: duplicado de art-065: "El cuadro "Guernica" de Pablo Picasso fue pintado en respuesta al bombardeo de la ciudad vasca de Guernica durante la Guerra Civil Española."
+  art-012: duplicado de art-008: "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?"
+  art-041: duplicado de art-008: "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para capturar la atmósfera, desarrollado en Francia a finales del siglo XIX?"
+  art-045: duplicado de art-008: "¿Qué movimiento artístico se caracteriza por el uso de la luz y el color para captar la atmósfera, desarrollado en Francia a finales del siglo XIX?"
+  art-017: duplicado de art-010: "¿Qué técnica pictórica consiste en aplicar capas transparentes de color sobre una base seca para lograr luminosidad?"
+  art-080: duplicado de art-072: "¿Qué evento histórico inspiró a Picasso para pintar "Guernica"?"
+  art-025: duplicado de art-021: "Ordena los siguientes movimientos artísticos de más antiguo a más reciente."
+  art-050: duplicado de art-021: "Ordena los siguientes periodos artísticos de más antiguo a más reciente."
+  art-054: duplicado de art-021: "Ordena los siguientes movimientos artísticos de más antiguo a más reciente."
+  art-055: duplicado de art-022: "Ordena las siguientes pinturas de la más antigua a la más reciente."
+  art-051: duplicado de art-026: "Ordena a estos pintores según su año de nacimiento, de menor a mayor."
+  art-057: duplicado de art-026: "Ordena a estos artistas por año de nacimiento, del más antiguo al más reciente."
+  art-059: duplicado de art-030: "Encuentra el dato erróneo en la tarjeta."
+  cie-005: duplicado de cie-001: "El oxígeno es el elemento más abundante en la atmósfera terrestre."
+  cie-067: duplicado de cie-001: "El oxígeno es el elemento más abundante en la corteza terrestre."
+  cie-072: duplicado de cie-007: "En la mecánica cuántica, el principio de incertidumbre de Heisenberg establece que es posible conocer simultáneamente la posición exacta y el momento exacto de una partícula."
+  cie-012: duplicado de cie-008: "¿Cuál es el elemento químico más abundante en la atmósfera terrestre?"
+  cie-051: duplicado de cie-010: "¿Qué ley describe la relación entre la presión y el volumen de un gas ideal a temperatura constante?"
+  cie-045: duplicado de cie-041: "¿Qué orgánulo es conocido como la "central energética" de la célula?"
+  cie-049: duplicado de cie-041: "¿Qué orgánulo celular es conocido como la "central energética" de la célula?"
+  cie-046: duplicado de cie-042: "¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?"
+  cie-050: duplicado de cie-042: "¿Cuál de los siguientes elementos es un gas noble a temperatura ambiente?"
+  cie-054: duplicado de cie-021: "Ordena los siguientes planetas del sistema solar según su distancia media al Sol."
+  cie-055: duplicado de cie-023: "Ordena las siguientes regiones del espectro electromagnético según su longitud de onda."
+  cie-063: duplicado de cie-030: "Encuentra el dato erróneo en la tarjeta."
+  cie-064: duplicado de cie-031: "Encuentra el dato erróneo en la tarjeta."
+  eco-005: duplicado de eco-001: "El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período."
+  eco-034: duplicado de eco-001: "El PIB mide el valor total de los bienes y servicios producidos en una economía durante un periodo determinado."
+  eco-038: duplicado de eco-001: "El Producto Interno Bruto (PIB) mide el valor de mercado de todos los bienes y servicios finales producidos dentro de las fronteras de un país durante un período determinado."
+  eco-063: duplicado de eco-001: "El PIB mide el valor total de los bienes y servicios finales producidos en un país durante un período."
+  eco-035: duplicado de eco-002: "En un mercado de competencia perfecta, las empresas son precio tomadores y no pueden influir en el precio de mercado."
+  eco-039: duplicado de eco-003: "A largo plazo, la curva de Phillips es vertical, lo que significa que no existe un trade-off permanente entre inflación y desempleo."
+  eco-036: duplicado de eco-006: "La curva de Phillips muestra una relación inversa estable entre el desempleo y la inflación a largo plazo."
+  eco-064: duplicado de eco-006: "La curva de Phillips original mostraba una relación inversa estable entre inflación y desempleo a largo plazo."
+  eco-068: duplicado de eco-006: "La curva de Phillips muestra una relación directa y estable entre la tasa de inflación y el nivel de desempleo a largo plazo."
+  eco-041: duplicado de eco-016: "¿Qué mide el Producto Interno Bruto (PIB) de un país?"
+  eco-028: duplicado de eco-024: "Ordena los tipos de elasticidad-precio de la demanda según su magnitud, de menor a mayor elasticidad."
+  fil-012: duplicado de fil-008: "¿Qué filósofo griego es conocido por la alegoría de la caverna?"
+  fil-014: duplicado de fil-010: "En la fenomenología de Husserl, ¿qué significa la 'epoché'?"
+  fil-020: duplicado de fil-010: "En la fenomenología de Husserl, ¿qué implica la "epoché"?"
+  geo-056: duplicado de geo-002: "La cordillera del Himalaya es la cadena montañosa más larga del mundo, superando a los Andes en longitud."
+  geo-061: duplicado de geo-002: "La cordillera de los Andes es la cadena montañosa más larga del mundo."
+  geo-045: duplicado de geo-016: "Ordena las siguientes cumbres montañosas de menor a mayor altitud."
+  his-014: duplicado de his-009: "¿Qué tratado puso fin a la Guerra de los Treinta Años en 1648?"
+  his-056: duplicado de his-052: "¿Por qué la frontera entre Francia y Alemania sigue en gran parte el curso del Rin?"
+  log-026: duplicado de log-002: "En la lógica proposicional, la tabla de verdad de la implicación (p → q) es falsa solo cuando p es verdadero y q es falso."
+  log-027: duplicado de log-006: "El principio de no contradicción afirma que una proposición y su negación pueden ser ambas verdaderas al mismo tiempo."
+  log-021: duplicado de log-017: "Ordena los siguientes conectivos lógicos de menor a mayor precedencia (el de menor precedencia se evalúa último)."
+  log-023: duplicado de log-019: "Ordena las siguientes clases de complejidad de menor a mayor inclusión (la más pequeña primero)."
+  log-025: duplicado de log-020: "Ordena los siguientes conceptos de cardinales grandes por su fuerza de consistencia (de menor a mayor)."
+  tec-012: duplicado de tec-007: "¿Qué algoritmo de consenso utiliza la red Bitcoin para validar bloques?"
+  tec-013: duplicado de tec-009: "¿Qué significan las siglas HTTP?"
+
+Baja utilidad (< 3): 158
+Total a quitar si se aplica: 187
+Aplicado: banco 482 → 295 (duplicados 58, baja utilidad 158, solapadas 29); rechazadas +187.
+--- validar final 22:55 ---
+Preguntas: 295
+Banco válido.
+=== fin 2026-09-12T22:55:54+02:00 ===

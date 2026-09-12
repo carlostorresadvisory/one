@@ -340,7 +340,7 @@ async function main() {
     resultados.filter((r) => r.utilidad < args.umbral).map((r) => [r.id, `utilidad ${r.utilidad}/5: ${r.motivo}`])
   );
 
-  console.log(`\nBaja utilidad (< ${UMBRAL_APROBACION}): ${bajaUtilidad.size}`);
+  console.log(`\nBaja utilidad (< ${args.umbral}): ${bajaUtilidad.size}`);
   console.log(`Total a quitar si se aplica: ${new Set([...duplicados.keys(), ...bajaUtilidad.keys()]).size}`);
 
   if (!args.aplicar) {
