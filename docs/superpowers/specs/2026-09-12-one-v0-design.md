@@ -54,7 +54,7 @@ Campos por tipo: `vf` → `respuesta: true|false`; `test4` → `opciones: [4 str
   1. `tools/generar-preguntas.js --area X --n 25` → modelo gratis **A** genera en lotes de 5-10 por tipo y nivel, salida JSON estricta → `datos/borradores/`.
   2. `tools/verificar-preguntas.js` → modelo gratis **B, de otra familia**, responde por cada pregunta: ¿es verdadera la afirmación/respuesta marcada? ¿es la única correcta? ¿es inequívoca? → `verificado`, `confianza` (0-1). Solo entran al banco las que aprueba con confianza ≥ 0,7.
   3. `tools/revisar-muestra.js --n 30` → saca 30 al azar en Markdown para que **Carlos** las revise a mano y se mida la tasa de error real.
-  4. Caída si un modelo gratis falla (límite de peticiones, 404 de catálogo): reintento con **otro gratis** de la lista; **nunca un modelo de pago** sin cifra exacta y aprobación (presupuesto de hoy: 0 €).
+  4. **Cascada de modelos** (pedida por Carlos, 12-sep): la lista de cada papel va de gratis a de pago barato (p. ej. `openai/gpt-5-mini`, `z-ai/glm-4.7-flash`, `google/gemini-2.5-flash`; ids exactos según catálogo). Si un modelo falla (límite de peticiones, 404, JSON inválido) se pasa al siguiente. La cola de pago está **desactivada por defecto**: solo se recorre con `--permitir-pago --tope-eur N`, y N lo fija Carlos antes (regla 5). Presupuesto de hoy: 0 €.
 - Los modelos concretos se eligen con el catálogo delante al construir (dos familias distintas, contexto suficiente, JSON fiable) y quedan registrados en cada pregunta.
 
 ## 4. Motor (`motor.js`, puro, sin dependencias, con tests)
@@ -92,6 +92,7 @@ Funciones (todas puras: reciben estado y devuelven estado nuevo):
 
 ## 7. Hoja de ruta (después de la v0)
 
+- **Principio de producto (fijado por Carlos, 12-sep)**: las preguntas son **infinitas y adaptativas** — se generan conforme se responde, por área y nivel según los aciertos. En v0 el banco es un lote fijo de 200 (el pipeline llamado una vez). En **v0.1** el mismo pipeline repone automáticamente: cuando el pozo de un área en el nivel actual de Carlos baja de 10 preguntas sin responder, se genera y verifica un lote nuevo de ese área y nivel (script lanzado a mano o programado). En **v1** lo hace el servidor en segundo plano, y la dificultad de lo generado sigue al nivel real de cada área.
 - **v0.1**: boss semanal con "elige el camino" (árbol de 3 pasos), FSRS en lugar de Leitner cuando haya ≥ 2 semanas de datos, lotes nuevos de preguntas (mismo pipeline), preguntas de actualidad desde el brief.
 - **v1**: servidor Node + Postgres en el VPS (el estado exportable migra tal cual), capa `model-provider` con coste, fuentes propias (PDF/artículo → preguntas ancladas), CUERPO mínimo si la v0 supera sus 7 días.
 - **v2 · feed tipo TikTok**: desaparece la partida de 10. Un feed vertical infinito de tarjetas a pantalla completa con `scroll-snap`, que mezcla preguntas, repasos, microdatos ("¿sabías que…") y microexplicaciones; precarga la tarjeta siguiente; el motor decide el orden en tiempo real (repasos vencidos, nivel, variedad de área y tipo, "descanso" cada N tarjetas). Gestos iguales; la racha pasa a medirse en minutos de sesión además de días.

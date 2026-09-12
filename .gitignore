@@ -1,0 +1,6 @@
+node_modules/
+datos/llamadas.log
+datos/llamadas.test.log
+datos/borradores/
+test-results/
+playwright-report/

@@ -1,0 +1,10 @@
+{
+  "name": "one",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "servir": "node tools/servir.js",
+    "e2e": "npx playwright test"
+  }
+}
