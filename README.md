@@ -8,9 +8,9 @@ Proyecto independiente de CT Advisory: repo propio, sin datos de negocio. Conten
 
 ## Estado (12-sep-2026, v0 jugable)
 
-- **Qué hay**: PWA instalable desde Safari. Partida de 10 preguntas, 4 mecánicas sin teclado (swipe o botones V/F, test de 4, ordenar por taps, encuentra el error). Escalera adaptativa inmediata (`nivelPartida` 1-5: sube por acierto, baja por fallo, persiste), nivel por área como memoria lenta, repaso espaciado Leitner (1-3-7-14-30 días), racha, XP y combo. Nivel visible en cada tarjeta y en el feedback. Botón "No lo sé" (fallo sin culpa, contado aparte), "esta pregunta está mal", practicar solo un área desde Progreso, exportar/importar el estado. Estado en `localStorage` del dispositivo; no hay servidor.
-- **Banco**: `datos/banco.json`, **335 preguntas verificadas** en 8 áreas (economía, historia, ciencia, tecnología, geografía, filosofía, arte, lógica), niveles 1-5. Generadas por modelos gratuitos y verificadas por un segundo modelo de otra familia (cascada gratis → de pago barato con tope). 65 rechazadas con motivo en `datos/rechazadas.json`. Coste total de la generación y verificación del 12-sep: 0,023 $.
-- **Verificación**: 74 tests del motor y del pipeline (`npm test`), 2 tests e2e con Playwright a 375×812 (`npm run e2e`) con capturas en `docs/capturas/`, dos pasadas adversariales con modelos gratuitos (motor y UI) con sus objeciones resueltas o declaradas en la sesión.
+- **Qué hay**: PWA instalable desde Safari. Partida de 10 preguntas, 4 mecánicas sin teclado (swipe o botones V/F, test de 4, ordenar por taps, encuentra el error). Escalera adaptativa inmediata (`nivelPartida` 1-5: sube por acierto, baja por fallo, persiste), nivel por área como memoria lenta, repaso espaciado Leitner (1-3-7-14-30 días), racha, XP y combo. Nivel visible en cada tarjeta y en el feedback. Botón "No lo sé" (fallo sin culpa, contado aparte), "esta pregunta está mal", practicar solo un área desde el hub, exportar/importar el estado. Flujo: inicio 🧠/💪 → hub (radar de 8 áreas, nota S+/S/A/B/C/D por área, KPIs, "Comenzar") → partida; acierto avanza solo en ~1,4 s, fallo muestra la explicación; botones IDK y ? en las 4 mecánicas. Estado en `localStorage` del dispositivo; no hay servidor.
+- **Banco**: `datos/banco.json`, **323 preguntas verificadas y auditadas** en 8 áreas (economía, historia, ciencia, tecnología, geografía, filosofía, arte, lógica), niveles 1-5. Generadas por modelos gratuitos y verificadas por un segundo modelo de otra familia (cascada gratis → de pago barato con tope). 77 rechazadas con motivo en `datos/rechazadas.json`. Coste total de la generación y verificación del 12-sep: 0,023 $.
+- **Verificación**: 79 tests del motor y del pipeline (`npm test`), 2 tests e2e con Playwright a 375×812 (`npm run e2e`) con capturas en `docs/capturas/`, dos pasadas adversariales con modelos gratuitos (motor y UI) con sus objeciones resueltas o declaradas en la sesión.
 - **Pendiente de Carlos**: revisar `docs/revision-muestra-2026-09-12.md` (30 preguntas al azar) para medir la tasa de error real del banco.
 
 ## Cómo instalarla en el iPhone
@@ -45,8 +45,8 @@ Por defecto solo se usan modelos `:free`. La cola de pago barato de la cascada (
 ## Siguiente (v0.1, por orden)
 
 1. **Generación continua**: reposición automática por área y nivel cuando el pozo baja de 10 sin responder (con la escalera, ~5 preguntas por nivel y área se agotan en días).
-2. **Inicio nuevo** (ideas de Carlos, 12-sep): fondo dinámico como ctadvisory.es, 🧠 clicable → stats, 💪 apagado ("pronto", será CUERPO), botón "Comenzar"; las stats antes de las preguntas.
-3. Boss semanal con "elige el camino"; FSRS en lugar de Leitner cuando haya datos; exportar las preguntas reportadas para depurar el banco.
+2. **Tanda "que se note" (brainstorming 12-sep, elegida por Carlos)**: sólido vs. reciente en el radar, Recuperadas, Pendientes, cierre con repaso, confianza opcional de un toque, misión del día. Detalle en `docs/2026-09-12-brainstorming-gamificacion.md`.
+3. Boss semanal (idea de Carlos: estilo esfinge); FSRS en lugar de Leitner cuando haya datos; exportar las preguntas reportadas para depurar el banco.
 
 Después: v1 (servidor + Postgres en el VPS, fuentes propias, CUERPO mínimo) y v2 (feed vertical infinito tipo TikTok). Detalle en la spec.
 

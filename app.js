@@ -56,6 +56,14 @@ let xpPartida = 0;
 let aciertosPartida = 0;
 let areasPartida = new Set();
 let reportadaEnActual = false;
+// Tras un acierto (no "no lo sé") la partida avanza sola a los ~1,4s; se guarda el
+// id para poder cancelarlo si el jugador toca "Siguiente" o la tarjeta antes.
+let avanceAutomaticoId = null;
+// Solo true mientras hay un avance automático pendiente Y ya ha pasado un tick
+// desde que se armó: así el click que ACABA de responder (que burbujea hasta
+// contenedorPregunta en la misma fase de evento) nunca se confunde con un toque
+// del jugador para adelantar el avance. Ver mostrarFeedback/limpiarAvanceAutomatico.
+let puedeAdelantarConToque = false;
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
 // desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
@@ -68,6 +76,18 @@ const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
 const nodoNoLoSe = document.querySelector('[data-test="no-lo-se"]');
+// Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
+// grande" y visibles sin tener que fijarse en la esquina.
+const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
+const nodoNivelInicio = document.querySelector('[data-test="nivel-inicio"]');
+const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
+const avisoCuerpo = document.getElementById('aviso-cuerpo');
+// Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
+const radarSvg = document.querySelector('[data-test="radar"]');
+const radarVacio = document.getElementById('radar-vacio');
+const nodoKpiRacha = document.querySelector('[data-test="kpi-racha"]');
+const nodoKpiAciertosHoy = document.querySelector('[data-test="kpi-aciertos-hoy"]');
+const nodoKpiNoSe = document.querySelector('[data-test="kpi-no-se"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorPregunta = document.getElementById('contenedor-pregunta');
 const contenedorFeedback = document.getElementById('contenedor-feedback');
@@ -82,13 +102,20 @@ const reportadaTexto = document.getElementById('reportada-texto');
 const resumenAciertos = document.getElementById('resumen-aciertos');
 const resumenXp = document.getElementById('resumen-xp');
 const resumenAreas = document.getElementById('resumen-areas');
-const progresoHoy = document.getElementById('progreso-hoy');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 
 function mostrarVista(nombre) {
   vistas.forEach((v) => {
-    v.hidden = v.dataset.vista !== nombre;
+    const activa = v.dataset.vista === nombre;
+    v.hidden = !activa;
+    if (activa) {
+      // Reinicia la animación de entrada (deslizamiento + fade, ~180ms) aunque ya
+      // tuviera la clase de una vez anterior: quitar, forzar reflow, volver a poner.
+      v.classList.remove('vista-entra');
+      void v.offsetWidth;
+      v.classList.add('vista-entra');
+    }
   });
   // La flecha "←" vuelve a inicio: no tiene sentido mostrarla ya en inicio.
   nodoVolver.hidden = nombre === 'inicio';
@@ -104,13 +131,97 @@ function nombreArea(area) {
   return NOMBRES_AREA[area] || capitalizar(area);
 }
 
+// Un emoji por área: para las tarjetas del HUB y las etiquetas del radar.
+const EMOJI_AREA = {
+  economia: '📈', historia: '🏛️', ciencia: '🔬', tecnologia: '💻',
+  geografia: '🌍', filosofia: '🤔', arte: '🎨', logica: '🧩',
+};
+
+/** Clase de color de la nota (S+/S/A/B/C/D/—), según la paleta ya existente:
+ * S+/S en el acento, A/B en el texto normal, C/D atenuados, sin datos ('—') aparte. */
+function claseNota(nota) {
+  if (nota === '—') return 'tarjeta-area-nota--vacia';
+  if (nota === 'S+' || nota === 'S') return 'tarjeta-area-nota--alta';
+  if (nota === 'A' || nota === 'B') return 'tarjeta-area-nota--media';
+  return 'tarjeta-area-nota--baja';
+}
+
+// --- radar del HUB (8 ejes, uno por área, en el orden de resumenProgreso().porArea) ---
+const RADAR_CENTRO = 110;
+const RADAR_RADIO = 78;
+const RADAR_RADIO_ETIQUETA = 98;
+
+function anguloRadar(indice, total) {
+  return -Math.PI / 2 + indice * ((2 * Math.PI) / total);
+}
+
+function puntoRadar(indice, total, fraccion, radio) {
+  const angulo = anguloRadar(indice, total);
+  return {
+    x: Number((RADAR_CENTRO + Math.cos(angulo) * radio * fraccion).toFixed(1)),
+    y: Number((RADAR_CENTRO + Math.sin(angulo) * radio * fraccion).toFixed(1)),
+  };
+}
+
+/** Pinta el radar tipo Tekken 8: un polígono por anillo guía (25/50/75/100%), los
+ * 8 ejes, el polígono de datos (con `puntuacion` 0..1 de cada área) y una
+ * etiqueta (emoji) por eje. Si todas las áreas están a 0 (estado recién creado,
+ * nada jugado todavía) se ve un polígono mínimo y un aviso debajo. */
+function renderRadar(porArea) {
+  const total = porArea.length;
+
+  const anillos = [0.25, 0.5, 0.75, 1]
+    .map((fraccion) => {
+      const puntos = porArea
+        .map((_, i) => {
+          const p = puntoRadar(i, total, fraccion, RADAR_RADIO);
+          return `${p.x},${p.y}`;
+        })
+        .join(' ');
+      return `<polygon points="${puntos}" class="radar-anillo" />`;
+    })
+    .join('');
+
+  const ejes = porArea
+    .map((_, i) => {
+      const p = puntoRadar(i, total, 1, RADAR_RADIO);
+      return `<line x1="${RADAR_CENTRO}" y1="${RADAR_CENTRO}" x2="${p.x}" y2="${p.y}" class="radar-eje" />`;
+    })
+    .join('');
+
+  // Mínimo visible (4%) para que un área en 0 no colapse el polígono en el centro.
+  const puntosDato = porArea
+    .map((fila, i) => {
+      const fraccion = Math.max(0.04, Math.min(1, fila.puntuacion));
+      const p = puntoRadar(i, total, fraccion, RADAR_RADIO);
+      return `${p.x},${p.y}`;
+    })
+    .join(' ');
+
+  const etiquetas = porArea
+    .map((fila, i) => {
+      const p = puntoRadar(i, total, 1, RADAR_RADIO_ETIQUETA);
+      const emoji = EMOJI_AREA[fila.area] || '❔';
+      return `<text x="${p.x}" y="${p.y}" class="radar-etiqueta" text-anchor="middle" dominant-baseline="middle">${emoji}</text>`;
+    })
+    .join('');
+
+  radarSvg.innerHTML = `${anillos}${ejes}<polygon points="${puntosDato}" class="radar-dato" />${etiquetas}`;
+  radarVacio.hidden = !porArea.every((fila) => fila.puntuacion === 0);
+}
+
 function capitalizar(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
 function actualizarCabecera() {
-  nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
-  nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
+  const textoRacha = `🔥 ${estado.racha.dias}`;
+  const textoNivel = `Nivel ${estado.nivelPartida}`;
+  nodoRacha.textContent = textoRacha;
+  nodoNivelPartida.textContent = textoNivel;
+  // Espejos "en grande" en inicio: mismo dato, misma fuente de verdad.
+  nodoRachaInicio.textContent = textoRacha;
+  nodoNivelInicio.textContent = textoNivel;
   if (filtroPartida && filtroPartida.area) {
     nodoModoArea.hidden = false;
     nodoModoArea.textContent = `Solo ${nombreArea(filtroPartida.area)}`;
@@ -119,16 +230,53 @@ function actualizarCabecera() {
   }
 }
 
-/** Vuelve a inicio abandonando la partida en curso si la hubiera: las respuestas ya
- * dadas quedan guardadas en el estado (se aplican a Leitner/nivel una a una), pero
- * la racha solo se actualiza al COMPLETAR una partida (ver finalizarPartida), así
- * que abandonar a mitad no cuenta como partida jugada para la racha. También limpia
- * el filtro de "practicar solo un área" si lo hubiera. */
-function volverAInicio() {
+function vistaActual() {
+  return document.querySelector('.vista:not([hidden])')?.dataset.vista || null;
+}
+
+/** Abandona la partida en curso si la hubiera (las respuestas ya dadas quedan
+ * guardadas: Leitner/nivel se aplican una a una; la racha solo se actualiza al
+ * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
+function limpiarPartidaEnCurso() {
   filtroPartida = null;
   preguntaEnPantalla = null;
+  limpiarAvanceAutomatico();
   actualizarCabecera();
+}
+
+/** Pantalla de los dos emojis (🧠/💪). Solo se llega aquí desde "←" en el HUB. */
+function irAInicioEmojis() {
+  limpiarPartidaEnCurso();
   mostrarVista('inicio');
+}
+
+/** El HUB (antes "Progreso"): SIEMPRE se empieza a jugar desde aquí. Se llega
+ * desde 🧠, desde "←" en pregunta/resumen, y desde "Inicio" en el resumen. */
+function irAlHub() {
+  limpiarPartidaEnCurso();
+  renderHub();
+  mostrarVista('progreso');
+}
+
+/** "←" de la cabecera: desde el HUB vuelve a los emojis; desde cualquier otro
+ * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis. */
+function manejarVolver() {
+  if (vistaActual() === 'progreso') {
+    irAInicioEmojis();
+  } else {
+    irAlHub();
+  }
+}
+
+let avisoCuerpoId = null;
+/** 💪 está apagado: un aviso breve, sin navegar a ningún sitio. */
+function mostrarAvisoCuerpo() {
+  avisoCuerpo.hidden = false;
+  if (avisoCuerpoId !== null) clearTimeout(avisoCuerpoId);
+  avisoCuerpoId = setTimeout(() => {
+    avisoCuerpo.hidden = true;
+    avisoCuerpoId = null;
+  }, 1600);
 }
 
 // --- carga del banco y arranque ---
@@ -160,6 +308,7 @@ function empezarPartida(filtro = null) {
 
 /** Pide la siguiente pregunta al motor (o termina la partida si no queda ninguna). */
 function avanzarPregunta() {
+  limpiarAvanceAutomatico(); // por si quedara uno pendiente (defensivo)
   if (indicePartida >= N_PARTIDA) {
     finalizarPartida();
     return;
@@ -520,18 +669,49 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
     cambioNivelAreaTexto.hidden = true;
   }
 
-  // Con "no lo sé" la explicación se despliega sola: no tiene sentido pedirle que
-  // toque "¿por qué?" para ver algo que él mismo ha dicho no saber.
-  explicacionTexto.hidden = !noLoSe;
+  // Con "no lo sé" o al fallar, la explicación se despliega sola: no tiene sentido
+  // pedirle que toque "¿por qué?" para ver por qué ha fallado o ha dicho no saber.
+  // Al acertar se queda oculta (sigue disponible bajo "¿por qué?" si quiere verla).
+  explicacionTexto.hidden = correcta && !noLoSe;
   explicacionTexto.textContent = pregunta.explicacion;
   reportadaTexto.hidden = true;
 
   contenedorFeedback.hidden = false;
   // La explicación desplegada puede empujar el botón fuera de la pantalla en el móvil.
-  requestAnimationFrame(() => botonSiguiente.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  // "Siguiente" es sticky (siempre visible), así que hay que llevar el scroll de la
+  // vista hasta el final: si no, tapa la fila de "?" y "esta pregunta está mal".
+  requestAnimationFrame(() => {
+    const vista = contenedorFeedback.closest('.vista');
+    if (vista) vista.scrollTo({ top: vista.scrollHeight, behavior: 'auto' });
+  });
+
+  // Acierto (no "no lo sé"): avanza sola a los ~1,4s; tocar "Siguiente" o la propia
+  // tarjeta antes cancela este temporizador y adelanta el avance (ver más abajo,
+  // listener de contenedorPregunta, y irASiguiente que siempre lo limpia primero).
+  // Fallo o "no lo sé": nunca avanza sola, siempre espera a "Siguiente".
+  limpiarAvanceAutomatico();
+  if (correcta && !noLoSe) {
+    avanceAutomaticoId = setTimeout(() => {
+      avanceAutomaticoId = null;
+      puedeAdelantarConToque = false;
+      irASiguiente();
+    }, 1400);
+    // Un tick después: el click que acaba de responder ya ha terminado de
+    // burbujear, así que a partir de ahora sí es seguro adelantar con un toque.
+    setTimeout(() => { puedeAdelantarConToque = true; }, 0);
+  }
+}
+
+function limpiarAvanceAutomatico() {
+  puedeAdelantarConToque = false;
+  if (avanceAutomaticoId !== null) {
+    clearTimeout(avanceAutomaticoId);
+    avanceAutomaticoId = null;
+  }
 }
 
 function irASiguiente() {
+  limpiarAvanceAutomatico();
   if (!preguntaEnPantalla) return;
   partidaUltima = preguntaEnPantalla;
   preguntaEnPantalla = null;
@@ -550,67 +730,104 @@ function marcarPreguntaMal() {
   reportadaTexto.hidden = false;
 }
 
+/** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
+ * movimiento" activo pinta el valor final directamente, sin animar. */
+function animarConteo(nodo, prefijo, valorFinal, sufijo = '') {
+  const prefiereMenosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefiereMenosMovimiento || valorFinal === 0) {
+    nodo.textContent = `${prefijo}${valorFinal}${sufijo}`;
+    return;
+  }
+  const duracion = 600;
+  const inicio = performance.now();
+  function paso(ahora) {
+    const t = Math.min(1, (ahora - inicio) / duracion);
+    nodo.textContent = `${prefijo}${Math.round(valorFinal * t)}${sufijo}`;
+    if (t < 1) requestAnimationFrame(paso);
+  }
+  requestAnimationFrame(paso);
+}
+
 function finalizarPartida() {
   estado = actualizarRacha(estado, hoy());
   guardarEstado(estado);
   actualizarCabecera();
 
-  resumenAciertos.textContent = `Aciertos: ${aciertosPartida}/${indicePartida}`;
-  resumenXp.textContent = `XP ganado: ${xpPartida}`;
+  const totalPreguntas = indicePartida;
+  animarConteo(resumenAciertos, 'Aciertos: ', aciertosPartida, `/${totalPreguntas}`);
+  animarConteo(resumenXp, 'XP ganado: ', xpPartida);
   resumenAreas.textContent = `Áreas: ${[...areasPartida].join(', ') || '—'}`;
 
   mostrarVista('resumen');
 }
 
-function renderProgreso() {
+/** El HUB: radar de las 8 áreas, 3 KPIs, "Comenzar" y la cuadrícula de niveles
+ * (una tarjeta tocable por área, con emoji, nivel, barra fina y nota). */
+function renderHub() {
   const resumen = resumenProgreso(estado, banco);
   actualizarCabecera();
-  progresoHoy.textContent = `Hoy: ${resumen.hoy.respondidas} preguntas, ${resumen.hoy.aciertos} aciertos`;
+
+  renderRadar(resumen.porArea);
+
+  nodoKpiRacha.textContent = `🔥 ${estado.racha.dias}`;
+  nodoKpiAciertosHoy.textContent = `Hoy: ${resumen.hoy.aciertos}/${resumen.hoy.respondidas}`;
+  nodoKpiNoSe.textContent = resumen.global.respondidas === 0
+    ? 'No sé: —'
+    : `No sé: ${Math.round((resumen.global.noLoSe / resumen.global.respondidas) * 100)}%`;
 
   progresoAreas.innerHTML = '';
   resumen.porArea.forEach((fila) => {
-    const contenedorFila = document.createElement('div');
-    contenedorFila.className = 'progreso-area-fila';
+    const tarjeta = document.createElement('button');
+    tarjeta.className = 'tarjeta-area';
+    tarjeta.dataset.test = `practicar-${fila.area}`;
+    tarjeta.disabled = fila.total === 0;
 
-    const cabecera = document.createElement('div');
-    cabecera.className = 'progreso-area-cabecera';
+    const cabeceraTarjeta = document.createElement('div');
+    cabeceraTarjeta.className = 'tarjeta-area-cabecera';
+
+    const emoji = document.createElement('span');
+    emoji.className = 'tarjeta-area-emoji';
+    emoji.textContent = EMOJI_AREA[fila.area] || '❔';
 
     const nombre = document.createElement('span');
-    nombre.className = 'progreso-area-nombre';
+    nombre.className = 'tarjeta-area-nombre';
     nombre.textContent = nombreArea(fila.area);
 
-    const detalle = document.createElement('span');
-    detalle.className = 'progreso-area-detalle';
-    const textoAcierto = fila.aciertoReciente === null ? 'sin datos' : `${Math.round(fila.aciertoReciente * 100)}%`;
-    let textoDetalle = `nivel ${fila.nivel} · ${textoAcierto} · ${fila.estables} estables de ${fila.total}`;
-    if (fila.noLoSe > 0) textoDetalle += ` · ${fila.noLoSe} no lo sabía`;
-    detalle.textContent = textoDetalle;
+    const nota = document.createElement('span');
+    nota.className = `tarjeta-area-nota ${claseNota(fila.nota)}`;
+    nota.dataset.test = `nota-${fila.area}`;
+    nota.textContent = fila.nota;
 
-    cabecera.appendChild(nombre);
-    cabecera.appendChild(detalle);
+    cabeceraTarjeta.appendChild(emoji);
+    cabeceraTarjeta.appendChild(nombre);
+    cabeceraTarjeta.appendChild(nota);
+
+    const nivel = document.createElement('span');
+    nivel.className = 'tarjeta-area-nivel';
+    nivel.textContent = `Nv ${fila.nivel}`;
 
     const track = document.createElement('div');
-    track.className = 'barra-track';
+    track.className = 'tarjeta-area-track';
     const relleno = document.createElement('div');
-    relleno.className = 'barra-relleno';
+    relleno.className = 'tarjeta-area-relleno';
     relleno.dataset.test = `barra-${fila.area}`;
     const ancho = fila.aciertoReciente === null ? 0 : fila.aciertoReciente * 100;
     relleno.style.width = `${ancho}%`;
     track.appendChild(relleno);
 
-    // Practicar SOLO esta área: arranca una partida filtrada (siguientePregunta
-    // recibe { area } como 7º parámetro y solo sirve preguntas de esta área).
-    const practicar = document.createElement('button');
-    practicar.className = 'enlace practicar-area';
-    practicar.dataset.test = `practicar-${fila.area}`;
-    practicar.textContent = 'Practicar';
-    practicar.disabled = fila.total === 0;
-    practicar.addEventListener('click', () => empezarPartida({ area: fila.area }));
+    const estables = document.createElement('span');
+    estables.className = 'tarjeta-area-estables';
+    estables.textContent = `${fila.estables} estables`;
 
-    contenedorFila.appendChild(cabecera);
-    contenedorFila.appendChild(track);
-    contenedorFila.appendChild(practicar);
-    progresoAreas.appendChild(contenedorFila);
+    // Tocar la tarjeta entera arranca una partida SOLO de esa área (como un nivel
+    // de videojuego): nada de un botón "Practicar" aparte.
+    tarjeta.addEventListener('click', () => empezarPartida({ area: fila.area }));
+
+    tarjeta.appendChild(cabeceraTarjeta);
+    tarjeta.appendChild(nivel);
+    tarjeta.appendChild(track);
+    tarjeta.appendChild(estables);
+    progresoAreas.appendChild(tarjeta);
   });
 }
 
@@ -633,8 +850,7 @@ function importarEstadoDesdeArchivo(archivo) {
     try {
       estado = importar(String(lector.result));
       guardarEstado(estado);
-      actualizarCabecera();
-      renderProgreso();
+      renderHub();
     } catch (err) {
       console.error('No se pudo importar el estado:', err.message);
     }
@@ -643,25 +859,30 @@ function importarEstadoDesdeArchivo(archivo) {
 }
 
 // --- eventos de navegación ---
-// "Jugar" desde inicio siempre arranca sin filtro (aunque quedara uno de una
+// "Comenzar" (en el HUB) siempre arranca sin filtro (aunque quedara uno de una
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
-// vigente, para poder repetir "Practicar <área>" varias veces seguidas.
+// vigente, para poder repetir la misma área varias veces seguidas.
 document.querySelector('[data-test="jugar"]').addEventListener('click', () => empezarPartida(null));
-document.querySelector('[data-test="progreso"]').addEventListener('click', () => {
-  renderProgreso();
-  mostrarVista('progreso');
-});
+// 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
+document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
+botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
 document.querySelector('[data-test="siguiente"]').addEventListener('click', irASiguiente);
+// Tocar la tarjeta mientras el acierto está avanzando solo adelanta ese avance;
+// antes de responder, o tras un fallo/"no lo sé", no hace nada (puedeAdelantarConToque
+// es false), así que no interfiere con los botones de cada mecánica.
+contenedorPregunta.addEventListener('click', () => {
+  if (puedeAdelantarConToque) irASiguiente();
+});
 document.querySelector('[data-test="porque"]').addEventListener('click', () => {
   explicacionTexto.hidden = false;
 });
 document.querySelector('[data-test="esta-mal"]').addEventListener('click', marcarPreguntaMal);
 document.querySelector('[data-test="no-lo-se"]').addEventListener('click', manejarNoLoSe);
 document.querySelector('[data-test="otra"]').addEventListener('click', () => empezarPartida(filtroPartida));
-// "←" (cabecera) e "Inicio" (resumen) hacen lo mismo: abandonar/cerrar y volver a
-// inicio limpiando el filtro de área, para que el flujo nunca deje callejones.
-document.querySelector('[data-test="volver"]').addEventListener('click', volverAInicio);
-document.querySelector('[data-test="inicio"]').addEventListener('click', volverAInicio);
+// "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
+// "Inicio" (resumen): siempre al HUB, nunca a los emojis (ver manejarVolver/irAlHub).
+document.querySelector('[data-test="volver"]').addEventListener('click', manejarVolver);
+document.querySelector('[data-test="inicio"]').addEventListener('click', irAlHub);
 document.querySelector('[data-test="exportar"]').addEventListener('click', exportarEstado);
 importarArchivo.addEventListener('change', (ev) => {
   const archivo = ev.target.files && ev.target.files[0];

@@ -1387,5 +1387,159 @@
     "verificado": true,
     "verificador": "z-ai/glm-4.7-flash",
     "motivo": "auditoria: pide ordenar protocolos pero los items son capas OSI"
+  },
+  {
+    "enunciado": "Ordena los siguientes planetas del Sistema Solar según su distancia al Sol, de la más cercana a la más lejana.",
+    "explicacion": "Mercurio es el planeta más cercano al Sol, seguido de Venus, la Tierra y Marte.",
+    "nivel": 1,
+    "criterio": "de menor a mayor distancia al Sol",
+    "items": [
+      "Marte",
+      "Mercurio",
+      "Venus",
+      "Tierra"
+    ],
+    "id": "cie-025",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "auditoría (FALSA): ítems guardados en orden incorrecto (Marte primero)"
+  },
+  {
+    "enunciado": "Ordena los siguientes rangos taxonómicos del más específico al más general.",
+    "explicacion": "La jerarquía taxonómica va de especie (más específica) a género, familia y orden (más general).",
+    "nivel": 3,
+    "criterio": "de más específico a más general",
+    "items": [
+      "Familia",
+      "Especie",
+      "Orden",
+      "Género"
+    ],
+    "id": "cie-027",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.99,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "auditoría (FALSA): ítems guardados en orden incorrecto (Familia antes que Especie)"
+  },
+  {
+    "enunciado": "Ordena los componentes del PIB de una economía desarrollada típica según su participación porcentual, de menor a mayor.",
+    "explicacion": "En la mayoría de economías avanzadas el consumo privado representa la mayor parte del PIB, seguido del gasto público, la inversión y, por último, las exportaciones netas (que pueden ser negativas).",
+    "nivel": 1,
+    "criterio": "de menor a mayor participación en el PIB",
+    "items": [
+      "Exportaciones netas",
+      "Inversión",
+      "Gasto público",
+      "Consumo"
+    ],
+    "id": "eco-025",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "auditoría (AMBIGUA): el orden inversión/gasto público varía según el país"
+  },
+  {
+    "enunciado": "El teorema de la imposibilidad de Arrow demuestra que ninguna regla de agregación de preferencias puede satisfacer simultáneamente universalidad, no dictadura, independencia de alternativas irrelevantes y transitividad.",
+    "explicacion": "El teorema de Arrow (1951) establece que, bajo condiciones razonables, no existe una función de bienestar social que cumpla con esos cuatro axiomas simultáneamente.",
+    "nivel": 5,
+    "respuesta": true,
+    "id": "eco-040",
+    "area": "economia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "auditoría (FALSA): lista los axiomas de Arrow con transitividad en lugar de Pareto"
+  },
+  {
+    "enunciado": "Ordena las siguientes teorías del crecimiento económico de más antiguo a más reciente.",
+    "explicacion": "El pensamiento sobre el crecimiento ha evolucionado desde modelos basados en acumulación de capital hasta aquellos que incorporan conocimiento y tecnología como factores endógenos.",
+    "nivel": 4,
+    "criterio": "de más antiguo a más reciente",
+    "items": [
+      "Modelo de Harrod-Domar",
+      "Modelo de Solow-Swan",
+      "Modelo AK",
+      "Modelo de Romer (crecimiento endógeno basado en conocimiento)"
+    ],
+    "id": "eco-057",
+    "area": "economia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 0.9,
+    "verificado": true,
+    "verificador": "openai/gpt-5-mini",
+    "motivo": "revisión manual: el modelo AK (Rebelo 1991) es posterior a Romer 1990"
+  },
+  {
+    "enunciado": "¿Qué concepto historiográfico, desarrollado por Fernand Braudel, articula los tres niveles temporales de larga duración, coyuntura y acontecimiento?",
+    "explicacion": "Braudel denominó 'historia total' (histoire totale) a su enfoque que integra la larga duración, las coyunturas y los eventos puntuales.",
+    "nivel": 5,
+    "opciones": [
+      "La historia total",
+      "La larga duración",
+      "El estructuralismo",
+      "La escuela de los Annales"
+    ],
+    "correcta": 0,
+    "id": "his-015",
+    "area": "historia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "auditoría (AMBIGUA): historia total vs. larga duración, ambas defendibles"
+  },
+  {
+    "enunciado": "Ordena las siguientes revoluciones científicas de la más antigua a la más reciente.",
+    "explicacion": "La Revolución Copernicana (publicación de 'De revolutionibus' en 1543) precede a la Revolución Newtoniana (Principia, 1687), seguida por la Revolución Einsteiniana (teoría de la relatividad, 1905/1915) y finalmente la Revolución Cuántica (desarrollo de la mecánica cuántica en la década de 1920).",
+    "nivel": 5,
+    "criterio": "de más antigua a más reciente",
+    "items": [
+      "Revolución Copernicana",
+      "Revolución Newtoniana",
+      "Revolución Einsteiniana (Relatividad)",
+      "Revolución Cuántica"
+    ],
+    "id": "his-024",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.95,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "revisión manual: la revolución cuántica (Planck 1900) precede a la relatividad (1905); orden discutible"
+  },
+  {
+    "enunciado": "Ordena de menor a mayor el año de inicio de estas independencias/revoluciones latinoamericanas.",
+    "explicacion": "La Revolución Haitiana comenzó en 1791, la Guerra de Independencia de México en 1810, la Guerra de Independencia de Argentina en 1816 y la Guerra de Independencia de Cuba en 1895.",
+    "nivel": 5,
+    "criterio": "de menor a mayor año de inicio",
+    "items": [
+      "Revolución Haitiana",
+      "Guerra de Independencia de México",
+      "Guerra de Independencia de Argentina",
+      "Guerra de Independencia de Cuba"
+    ],
+    "id": "his-029",
+    "area": "historia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-super-120b-a12b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "revisión manual: México y Argentina empiezan el mismo año (1810); Argentina en mayo, México en septiembre"
   }
 ]

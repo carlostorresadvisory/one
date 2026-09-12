@@ -12,6 +12,9 @@
   --tam-2: 20px;
   --tam-3: 28px;
   --tam-4: 40px;
+
+  /* Curva suave para el fondo animado y los pulsos de feedback. */
+  --ease-suave: cubic-bezier(.16, 1, .3, 1);
 }
 
 * { box-sizing: border-box; }
@@ -25,13 +28,18 @@ html, body {
   color: var(--texto);
   font-family: -apple-system, system-ui, sans-serif;
   font-size: var(--tam-1);
-  height: 100%;
+  /* Sensación de app, no de web: cada vista ocupa EXACTAMENTE la pantalla (con
+     fallback para navegadores sin dvh) y la página en sí nunca hace scroll ni
+     rebota; si algo no cabe, el scroll es interno a la vista (ver .vista). */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -40,6 +48,11 @@ button {
   font-size: var(--tam-1);
   color: inherit;
   cursor: pointer;
+  /* Nada de resaltado gris de iOS al tocar, ni selección de texto accidental
+     mientras se juega a golpe de tap. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .cabecera {
@@ -97,20 +110,56 @@ button {
 
 main#app {
   flex: 1;
+  min-height: 0; /* deja que .vista (con su propio scroll) pueda encogerse dentro del flex */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   padding: 0 16px 24px;
 }
 
 .vista {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  /* El scroll, si hace falta, vive aquí (no en el body): así el fondo animado del
+     inicio y la cabecera fija nunca se mueven, y el resto de vistas no arrastran
+     rebote de goma al body. */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Los hijos directos de una vista nunca se encogen: en una columna flex con
+   overflow, un botón con min-height explícito (44px) se comprimía y el texto de
+   "Comenzar" (28px + 18px de relleno) salía cortado por abajo. */
+.vista > * {
+  flex-shrink: 0;
 }
 
 .vista[hidden] { display: none; }
 
+/* Transición breve entre vistas (deslizamiento + fade, ~180ms). Se retriggerea en
+   cada mostrarVista() quitando y volviendo a poner la clase (ver app.js). Bajo
+   "reducir movimiento" queda neutralizada por la regla general de más abajo. */
+.vista-entra {
+  animation: vista-entra 0.18s var(--ease-suave);
+}
+
+@keyframes vista-entra {
+  from { transform: translateX(12px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Sección inicio: contenedor con overflow oculto para que el fondo animado (que
+   respira un poco más allá de sus bordes) nunca provoque scroll horizontal. */
+.vista-inicio {
+  position: relative;
+  overflow: hidden;
+}
+
 .inicio-centro {
+  position: relative;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -122,6 +171,94 @@ main#app {
 .inicio-emoji {
   font-size: 72px;
   margin: 0;
+  line-height: 1;
+}
+
+/* --- fondo dinámico del inicio (técnica adaptada de un fondo con "luces que
+   respiran" de otro proyecto propio; colores y proporciones son los de ONE) ---
+   Tres capas fijas al tamaño de la sección: dos luces radiales que se mueven muy
+   lentamente y una viñeta que oscurece los bordes. Sin JS: solo CSS. */
+.fondo-dinamico {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fondo-luz {
+  position: absolute;
+  inset: -20%;
+  /* Las posiciones están calculadas para que, tras el inset:-20% (la capa mide
+     1.4x la sección), los brillos caigan CENTRADOS en la zona visible (donde
+     están los emojis), no en una esquina: comprobado con las coordenadas reales
+     (getBoundingClientRect) a 375x812, no solo a ojo. */
+  background:
+    radial-gradient(48% 42% at 39% 36%, rgba(76, 201, 240, 0.20), transparent 80%),
+    radial-gradient(52% 46% at 68% 64%, rgba(76, 201, 240, 0.13), transparent 80%),
+    radial-gradient(60% 55% at 50% 93%, rgba(21, 27, 35, 0.9), transparent 72%);
+  animation: fondo-respira 22s var(--ease-suave) infinite alternate;
+}
+
+@keyframes fondo-respira {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-2%, 1.5%, 0) scale(1.08); }
+}
+
+.fondo-vineta {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 90% at 50% 35%, transparent 55%, rgba(11, 15, 20, 0.6) 100%);
+}
+
+.inicio-emojis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+}
+
+.inicio-emoji-boton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 12px;
+  background: none;
+  border: none;
+  transition: transform 0.15s ease;
+}
+
+.inicio-emoji-boton:active {
+  transform: scale(0.97);
+}
+
+.inicio-emoji-boton--apagado {
+  opacity: 0.35;
+}
+
+.inicio-etiqueta-pronto {
+  font-size: 11px;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.inicio-aviso {
+  min-height: 20px;
+  margin: 4px 0 0;
+  color: var(--acento);
+  font-size: var(--tam-1);
+  text-align: center;
+}
+
+.inicio-mini-stats {
+  display: flex;
+  gap: 16px;
+  color: var(--texto-suave);
+  font-size: 13px;
 }
 
 .boton {
@@ -134,6 +271,11 @@ main#app {
   color: var(--texto);
   font-size: var(--tam-2);
   font-weight: 600;
+  transition: transform 0.1s ease;
+}
+
+.boton:active {
+  transform: scale(0.97);
 }
 
 .boton-principal {
@@ -141,25 +283,87 @@ main#app {
   color: #04121a;
 }
 
+/* Pastilla con borde sutil (Exportar/Importar en el pie del HUB). "¿por qué?" y
+   "esta pregunta está mal" ya NO usan esta clase: ver .boton-accion-cuadrado y
+   .enlace-discreto más abajo. */
 .enlace {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--tarjeta);
+  border-radius: 999px;
+  background: var(--tarjeta);
+  color: var(--texto-suave);
+  font-size: var(--tam-1);
+  text-decoration: none;
+  transition: transform 0.1s ease;
+}
+
+.enlace:active {
+  transform: scale(0.97);
+}
+
+.boton-archivo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fila de acciones bajo la tarjeta de pregunta: "No lo sé" (IDK) antes de
+   responder; "¿por qué?" + "esta pregunta está mal" después (ver index.html:
+   son dos filas con la misma clase, una dentro de #contenedor-feedback). */
+.fila-acciones-pregunta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* "No lo sé" (IDK) y "¿por qué?" (?): botones cuadrados de verdad, no texto. */
+.boton-accion-cuadrado {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--acento);
+  border-radius: 10px;
+  background: none;
+  color: var(--acento);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: transform 0.1s ease;
+}
+
+.boton-accion-cuadrado--signo {
+  font-size: 20px;
+  text-transform: none;
+}
+
+.boton-accion-cuadrado:active {
+  transform: scale(0.97);
+}
+
+.boton-accion-cuadrado[hidden] { display: none; }
+
+/* "esta pregunta está mal": queda como texto pequeño y discreto, a la derecha de
+   la fila junto a "?" (es solo para depurar el banco, no es la acción principal). */
+.enlace-discreto {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--texto-suave);
   text-decoration: underline;
-  font-size: var(--tam-1);
-  min-height: 44px;
-  padding: 8px;
+  font-size: 12px;
 }
-
-.boton-archivo { display: inline-block; }
-
-/* Botón discreto "No lo sé": debajo de la mecánica, antes del bloque de feedback. */
-.boton-no-lo-se {
-  align-self: flex-start;
-  margin-top: 4px;
-}
-
-.boton-no-lo-se[hidden] { display: none; }
 
 /* --- pregunta --- */
 .barra-progreso {
@@ -188,6 +392,9 @@ main#app {
   gap: 20px;
   touch-action: pan-y;
   transition: transform 0.15s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .pregunta-cabecera {
@@ -220,6 +427,7 @@ main#app {
   border-radius: 12px;
   font-size: var(--tam-2);
   font-weight: 600;
+  transition: transform 0.1s ease;
 }
 
 .boton-ko { background: rgba(255, 93, 93, 0.15); color: var(--ko); }
@@ -244,6 +452,14 @@ main#app {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  transition: transform 0.1s ease;
+}
+
+.botones-vf button:active,
+.opciones button:active,
+.items button:active,
+.filas button:active {
+  transform: scale(0.97);
 }
 
 .items button.seleccionado {
@@ -266,8 +482,21 @@ main#app {
 
 .fila-etiqueta { color: var(--texto-suave); }
 
-.tarjeta.correcto { outline: 2px solid var(--ok); }
-.tarjeta.incorrecto { outline: 2px solid var(--ko); }
+.tarjeta.correcto { outline: 2px solid var(--ok); animation: tarjeta-pulso 0.35s ease; }
+.tarjeta.incorrecto { outline: 2px solid var(--ko); animation: tarjeta-sacude 0.4s ease; }
+
+@keyframes tarjeta-pulso {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.045); }
+  100% { transform: scale(1); }
+}
+
+@keyframes tarjeta-sacude {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
 
 /* "Siguiente" siempre alcanzable: pegado abajo aunque la explicación desplegada empuje el resto. */
 .feedback .boton-principal {
@@ -283,6 +512,16 @@ main#app {
   flex-direction: column;
   gap: 10px;
 }
+
+/* Fallo previo a este cambio (ya en el código base, no introducido ahora): al
+   declarar display:flex aquí, la regla [hidden] del navegador (display:none)
+   quedaba sin efecto por precedencia de cascada (origen "autor" gana al "user
+   agent" a igual especificidad) y #contenedor-feedback NUNCA llegaba a
+   ocultarse de verdad pese a tener el atributo. Con el feedback como texto
+   discreto pasaba desapercibido; con los botones cuadrados nuevos (IDK/¿?) se
+   veía "Siguiente" y "?" ANTES de responder. Mismo patrón que .vista[hidden]
+   y .boton-volver[hidden], que ya lo tenían resuelto. */
+.feedback[hidden] { display: none; }
 
 .feedback-texto {
   font-size: var(--tam-3);
@@ -310,12 +549,6 @@ main#app {
   margin: 0;
 }
 
-.feedback-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .explicacion, .reportada {
   color: var(--texto-suave);
   font-size: var(--tam-1);
@@ -328,71 +561,198 @@ main#app {
   margin: 6px 0;
 }
 
-.resumen-acciones, .progreso-acciones {
+.resumen-acciones {
   display: flex;
   gap: 12px;
   margin-top: 24px;
 }
 
-.progreso-areas {
-  display: flex;
-  flex-direction: column;
+/* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
+.vista-hub {
   gap: 16px;
-  margin-top: 12px;
 }
 
-.progreso-area-fila {
+/* Radar tipo "panel de stats de videojuego": un eje por área, con la puntuación
+   0..1 que calcula resumenProgreso(). Ver renderRadar() en app.js. */
+.hub-radar-envoltorio {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
+  margin-top: 4px;
 }
 
-.progreso-area-cabecera {
+.hub-radar {
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+}
+
+.radar-anillo {
+  fill: none;
+  stroke: var(--tarjeta);
+  stroke-width: 1;
+}
+
+.radar-eje {
+  stroke: var(--tarjeta);
+  stroke-width: 1;
+}
+
+.radar-dato {
+  fill: rgba(76, 201, 240, 0.28);
+  stroke: var(--acento);
+  stroke-width: 1.5;
+}
+
+.radar-etiqueta {
+  fill: var(--texto-suave);
+  font-size: 13px;
+}
+
+.radar-vacio {
+  margin: 0;
+  color: var(--texto-suave);
+  font-size: 13px;
+  text-align: center;
+}
+
+.hub-kpis {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 12px;
-  font-size: var(--tam-1);
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 8px;
 }
 
-.progreso-area-nombre { font-weight: 600; }
-.progreso-area-detalle { color: var(--texto-suave); font-size: 14px; flex: 1 1 100%; }
-.practicar-area {
-  display: inline-block;
-  margin-top: 6px;
-  padding: 8px 14px;
-  min-height: 44px;
-  border: 1px solid var(--acento);
+.hub-chip {
+  padding: 6px 12px;
   border-radius: 999px;
-  background: transparent;
-  color: var(--acento);
-  font: inherit;
-  font-size: 14px;
-  text-decoration: none;
-}
-.practicar-area:disabled { opacity: 0.35; }
-
-.barra-track {
-  height: 10px;
   background: var(--tarjeta);
-  border-radius: 5px;
+  color: var(--texto-suave);
+  font-size: 13px;
+}
+
+.boton-comenzar {
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 18px;
+  font-size: var(--tam-3);
+}
+
+/* Los 8 niveles del videojuego: cuadrícula de 2 columnas, tarjetas pequeñas y
+   tocables (tap target >= 44px por el padding + contenido). */
+.hub-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tarjeta-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 44px;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--tarjeta);
+  color: var(--texto);
+  text-align: left;
+  transition: transform 0.12s ease;
+}
+
+.tarjeta-area:active {
+  transform: scale(0.97);
+}
+
+.tarjeta-area:disabled {
+  opacity: 0.4;
+}
+
+.tarjeta-area-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.tarjeta-area-emoji {
+  font-size: 26px;
+}
+
+.tarjeta-area-nombre {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--tam-1);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nota tipo videojuego (S+/S/A/B/C/D), grande, a la derecha de la cabecera.
+   Paleta ya existente: nada de colores nuevos. */
+.tarjeta-area-nota {
+  flex: none;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.tarjeta-area-nota--alta { color: var(--acento); }
+.tarjeta-area-nota--media { color: var(--texto); }
+.tarjeta-area-nota--baja { color: var(--texto-suave); }
+.tarjeta-area-nota--vacia { color: var(--texto-suave); opacity: 0.5; }
+
+.tarjeta-area-nivel {
+  color: var(--texto-suave);
+  font-size: 12px;
+}
+
+/* Barra de progreso FINA (4px), como la de la partida, no la gruesa de antes. */
+.tarjeta-area-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--fondo);
   overflow: hidden;
 }
 
-.barra-relleno {
+.tarjeta-area-relleno {
   height: 100%;
-  background: var(--acento);
   min-width: 2px;
+  background: var(--acento);
 }
 
-/* Practicar solo esta área desde Progreso. */
-.practicar-area {
-  align-self: flex-start;
-  padding: 8px 0;
-  margin: 0;
+.tarjeta-area-estables {
+  color: var(--texto-suave);
+  font-size: 11px;
 }
 
-.practicar-area:disabled {
-  opacity: 0.4;
-  cursor: default;
+/* Exportar/Importar: pie discreto, ya no son la acción principal del HUB. */
+.hub-pie {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* --- accesibilidad de movimiento ---
+   Con "reducir movimiento" activo: sin fondo animado, sin pulso/sacudida de la
+   tarjeta, y ninguna transición/animación del resto de la app (barra de
+   progreso, transform de tarjeta al arrastrar, conteo del resumen se pinta ya
+   resuelto por app.js). */
+@media (prefers-reduced-motion: reduce) {
+  .fondo-luz { animation: none; }
+  .tarjeta.correcto, .tarjeta.incorrecto { animation: none; }
+
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
