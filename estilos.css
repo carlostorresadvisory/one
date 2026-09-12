@@ -341,12 +341,28 @@ main#app {
 
 .progreso-area-cabecera {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
   font-size: var(--tam-1);
 }
 
-.progreso-area-nombre { font-weight: 600; text-transform: capitalize; }
-.progreso-area-detalle { color: var(--texto-suave); }
+.progreso-area-nombre { font-weight: 600; }
+.progreso-area-detalle { color: var(--texto-suave); font-size: 14px; flex: 1 1 100%; }
+.practicar-area {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 8px 14px;
+  min-height: 44px;
+  border: 1px solid var(--acento);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--acento);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: none;
+}
+.practicar-area:disabled { opacity: 0.35; }
 
 .barra-track {
   height: 10px;

@@ -100,14 +100,14 @@ test.describe('ONE · integración e2e', () => {
 
     // 3. Practicar solo un área desde Progreso: "practicar-economia" arranca una
     // partida filtrada (el banco de ejemplo tiene 2 preguntas de economía). La
-    // cabecera debe anunciar "Solo Economia" y la tarjeta debe ser de esa área.
+    // cabecera debe anunciar "Solo Economía" y la tarjeta debe ser de esa área.
     await page.locator('[data-test="progreso"]').click();
     const practicarEconomia = page.locator('[data-test="practicar-economia"]');
     await expect(practicarEconomia).toBeVisible();
     await practicarEconomia.click();
 
     await expect(page.locator('[data-test="modo-area"]')).toBeVisible();
-    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economia');
+    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
     await expect(page.locator('[data-test="nivel-pregunta"]')).toContainText('Economia');
 
     // "No lo sé": despliega la explicación sola y ofrece "Siguiente", sin marcar

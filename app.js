@@ -94,6 +94,15 @@ function mostrarVista(nombre) {
 }
 
 /** Primera letra en mayúscula (para nombres de área en textos). */
+// Las claves de área van sin acento (ids); estos son los nombres que ve Carlos.
+const NOMBRES_AREA = {
+  economia: 'Economía', historia: 'Historia', ciencia: 'Ciencia', tecnologia: 'Tecnología',
+  geografia: 'Geografía', filosofia: 'Filosofía', arte: 'Arte', logica: 'Lógica',
+};
+function nombreArea(area) {
+  return NOMBRES_AREA[area] || capitalizar(area);
+}
+
 function capitalizar(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
@@ -103,7 +112,7 @@ function actualizarCabecera() {
   nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
   if (filtroPartida && filtroPartida.area) {
     nodoModoArea.hidden = false;
-    nodoModoArea.textContent = `Solo ${capitalizar(filtroPartida.area)}`;
+    nodoModoArea.textContent = `Solo ${nombreArea(filtroPartida.area)}`;
   } else {
     nodoModoArea.hidden = true;
   }
@@ -169,7 +178,7 @@ function construirCabeceraPregunta(pregunta) {
   const cabecera = document.createElement('p');
   cabecera.className = 'pregunta-cabecera';
   cabecera.dataset.test = 'nivel-pregunta';
-  cabecera.textContent = `${capitalizar(pregunta.area)} · nivel ${pregunta.nivel}`;
+  cabecera.textContent = `${nombreArea(pregunta.area)} · nivel ${pregunta.nivel}`;
   return cabecera;
 }
 
@@ -502,10 +511,10 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
   // Nivel por área (más lento, solo se anuncia cuando de verdad cambia).
   if (delta.cambioNivelArea !== 0) {
     cambioNivelAreaTexto.hidden = false;
-    const nombreArea = capitalizar(pregunta.area);
+    const nombreAreaTexto = nombreArea(pregunta.area);
     cambioNivelAreaTexto.textContent = delta.cambioNivelArea > 0
-      ? `${nombreArea} sube a nivel ${delta.nivelArea}`
-      : `${nombreArea} baja a nivel ${delta.nivelArea}`;
+      ? `${nombreAreaTexto} sube a nivel ${delta.nivelArea}`
+      : `${nombreAreaTexto} baja a nivel ${delta.nivelArea}`;
   } else {
     cambioNivelAreaTexto.hidden = true;
   }
@@ -565,7 +574,7 @@ function renderProgreso() {
 
     const nombre = document.createElement('span');
     nombre.className = 'progreso-area-nombre';
-    nombre.textContent = fila.area;
+    nombre.textContent = nombreArea(fila.area);
 
     const detalle = document.createElement('span');
     detalle.className = 'progreso-area-detalle';
