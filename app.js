@@ -106,6 +106,10 @@ const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 
 function mostrarVista(nombre) {
+  // Cambiar de vista (p. ej. "←" al hub durante el feedback) cancela cualquier avance
+  // automático pendiente: si no, el temporizador dispararía irASiguiente() fuera de la
+  // partida (hallazgo de la pasada adversarial del 12-sep).
+  limpiarAvanceAutomatico();
   vistas.forEach((v) => {
     const activa = v.dataset.vista === nombre;
     v.hidden = !activa;
@@ -694,13 +698,22 @@ function mostrarFeedback(pregunta, correcta, delta, noLoSe = false) {
     avanceAutomaticoId = setTimeout(() => {
       avanceAutomaticoId = null;
       puedeAdelantarConToque = false;
-      irASiguiente();
+      // Guarda extra: solo avanza si el feedback sigue en pantalla.
+      if (!contenedorFeedback.hidden) irASiguiente();
     }, 1400);
     // Un tick después: el click que acaba de responder ya ha terminado de
     // burbujear, así que a partir de ahora sí es seguro adelantar con un toque.
     setTimeout(() => { puedeAdelantarConToque = true; }, 0);
   }
 }
+
+// El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
+// no gastar batería (hallazgo bajo de la pasada adversarial).
+document.addEventListener('visibilitychange', () => {
+  for (const luz of document.querySelectorAll('.fondo-luz')) {
+    luz.style.animationPlayState = document.hidden ? 'paused' : 'running';
+  }
+});
 
 function limpiarAvanceAutomatico() {
   puedeAdelantarConToque = false;

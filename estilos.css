@@ -41,6 +41,17 @@ body {
   display: flex;
   flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
+  /* iOS instalada (standalone): con el body fijo a la pantalla desaparece el rebote de
+     goma de la página entera y el menú de "copiar" al mantener pulsado; el único scroll
+     que queda es el interno de cada vista (Carlos, 12-sep: "se siente como web"). */
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  -webkit-touch-callout: none;
+}
+
+.vista {
+  overscroll-behavior: contain;
 }
 
 button {
