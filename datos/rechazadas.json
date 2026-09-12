@@ -1313,5 +1313,79 @@
     "confianza": null,
     "verificado": false,
     "motivo": "sin resultado del verificador"
+  },
+  {
+    "enunciado": "Ordena las siguientes regiones del espectro electromagnético según su longitud de onda, de la más corta a la más larga.",
+    "explicacion": "La luz visible tiene longitudes de onda más cortas que el infrarrojo, este a su vez más cortas que las microondas, y las ondas de radio son las más largas.",
+    "nivel": 2,
+    "criterio": "de menor a mayor longitud de onda",
+    "items": [
+      "Microondas",
+      "Visible",
+      "Radio",
+      "Infrarrojo"
+    ],
+    "id": "cie-026",
+    "area": "ciencia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.97,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "auditoria: orden incorrecto (visible < infrarrojo < microondas < radio)"
+  },
+  {
+    "enunciado": "¿Cuál de los siguientes filósofos es considerado el padre del empirismo moderno?",
+    "explicacion": "John Locke defendió que todo conocimiento proviene de la experiencia sensorial, sentando las bases del empirismo.",
+    "nivel": 2,
+    "opciones": [
+      "John Locke",
+      "René Descartes",
+      "Immanuel Kant",
+      "David Hume"
+    ],
+    "correcta": 0,
+    "id": "fil-013",
+    "area": "filosofia",
+    "tipo": "test4",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 0.91,
+    "verificado": true,
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "motivo": "auditoria: ambigua, el titulo se atribuye a Locke o a Bacon"
+  },
+  {
+    "enunciado": "La Revolución Francesa comenzó con la toma de la Bastilla.",
+    "explicacion": "El asalto a la prisión de la Bastilla el 14 de julio de 1789 se considera el símbolo y el punto de partida de la Revolución Francesa.",
+    "nivel": 2,
+    "respuesta": true,
+    "id": "his-002",
+    "area": "historia",
+    "tipo": "vf",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "deepseek/deepseek-v4-flash",
+    "motivo": "auditoria: ambigua, la Revolucion ya estaba en marcha antes de la Bastilla"
+  },
+  {
+    "enunciado": "Ordena los siguientes protocolos de red según la capa del modelo OSI a la que pertenecen.",
+    "explicacion": "La capa física transmite bits, la de enlace de datos enmarca tramas, la de red encamina paquetes y la de transporte garantiza entrega extremo a extremo.",
+    "nivel": 2,
+    "criterio": "de menor a mayor capa OSI",
+    "items": [
+      "física",
+      "enlace de datos",
+      "red",
+      "transporte"
+    ],
+    "id": "tec-019",
+    "area": "tecnologia",
+    "tipo": "ordenar",
+    "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "confianza": 1,
+    "verificado": true,
+    "verificador": "z-ai/glm-4.7-flash",
+    "motivo": "auditoria: pide ordenar protocolos pero los items son capas OSI"
   }
 ]

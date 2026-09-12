@@ -55,13 +55,16 @@ function respuestaLegible(p) {
     case 'vf':
       return p.respuesta ? 'Verdadero' : 'Falso';
     case 'test4':
-      return `${p.opciones?.[p.correcta]} (opción ${p.correcta})`;
+      return `${p.opciones?.[p.correcta]} (opcion ${p.correcta}; las otras: ${(p.opciones || []).filter((_, i) => i !== p.correcta).join(' / ')})`;
     case 'ordenar':
       return (p.items || []).join(' → ');
-    case 'error':
-      return p.tarjeta?.filas?.[p.sospechoso]
-        ? `${p.tarjeta.filas[p.sospechoso].etiqueta}: ${p.tarjeta.filas[p.sospechoso].valor}`
-        : `fila ${p.sospechoso}`;
+    case 'error': {
+      // Tarjeta completa: sin las demas filas no se puede juzgar si la marcada es la unica sospechosa.
+      const filas = (p.tarjeta?.filas || [])
+        .map((f, i) => (i === p.sospechoso ? `**${f.etiqueta}: ${f.valor}** (marcada)` : `${f.etiqueta}: ${f.valor}`))
+        .join(' / ');
+      return `${p.tarjeta?.titulo || ''} -- ${filas}`;
+    }
     default:
       return '';
   }
