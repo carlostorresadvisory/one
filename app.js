@@ -360,6 +360,12 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
   // Nodos que YA han pasado por un render (para no transicionar su PRIMERA
   // aparición, ver comentario en render() más abajo).
   const nodosYaMostrados = new WeakSet();
+  // Tope de la red de seguridad de corregirPosicionSiHaceFalta (ronda 2 de
+  // revisión): cuántas veces seguidas se ha intentado corregir el MISMO
+  // índice sin que la medida llegue a coincidir. Se reinicia en cuanto
+  // coincide o en cuanto el índice cambia de verdad (intentarIr).
+  let intentosCorreccion = 0;
+  const MAX_INTENTOS_CORRECCION = 2;
 
   const puntos = document.createElement('div');
   puntos.className = 'mazo-puntos';
@@ -416,7 +422,13 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
     registrarPistaMazoMostrada(vistas + 1);
   }
 
-  function render(conTransicion) {
+  // `saltarAjuste`/`esCorreccion` (ronda 2 de revisión) solo los usa
+  // corregirPosicionSiHaceFalta: su reposicionamiento no cambia el contenido
+  // de ningún nodo, así que no hace falta recalcular el encaje (ajustarEncaje
+  // ya se aplicó en el render "real" que precedió a la corrección), y sus
+  // propios render() internos no deben reprogramar otra ronda de vigilancia
+  // (si no, cada corrección se re-armaría a sí misma sin límite).
+  function render(conTransicion, { saltarAjuste = false, esCorreccion = false } = {}) {
     const enDom = new Set(contenedor.querySelectorAll('.tarjeta-mazo'));
     for (let offset = -1; offset <= 1; offset += 1) {
       const i = indice + offset;
@@ -443,40 +455,65 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
       nodo.style.transform = `translateY(calc(${offset * 100}% + ${colchon}px))`;
       if (nodo.parentElement !== contenedor) contenedor.insertBefore(nodo, puntos);
       enDom.delete(nodo);
-      ajustarEncaje(nodo);
+      if (!saltarAjuste) ajustarEncaje(nodo);
     }
     // Solo se mantienen en el DOM la actual, la anterior y la siguiente (spec
     // v0.1c §2.2): el resto se retira.
     enDom.forEach((nodo) => nodo.remove());
     pintarPuntos();
     pintarChevronYPista();
-    requestAnimationFrame(corregirPosicionSiHaceFalta);
+    if (!esCorreccion) requestAnimationFrame(corregirPosicionSiHaceFalta);
   }
 
-  /** Red de seguridad (hallazgo real de la ronda 1, visto en captura a
-   * 430×932 con contenido largo): muy de vez en cuando la tarjeta actual
-   * quedaba mal posicionada tras un render pese a tener el `transform`
-   * correcto ya computado (no se ha podido aislar la causa exacta, probable
-   * cosa del propio motor de layout con tanta lectura forzada seguida en
-   * ajustarEncaje). Un frame después de cada render, se comprueba contra el
-   * propio contenedor; si no coincide, reafirmar el mismo transform (incluso
-   * pasando por 'none' con un reflow de por medio) NO lo arregla — solo un
-   * render() con el índice REALMENTE distinto y de vuelta lo hace (comprobado
-   * a mano), así que es lo que se fuerza aquí, síncrono y sin ceder el hilo
-   * entre medias para que no se llegue a pintar el salto. */
+  /** Red de seguridad DEFENSIVA (hallazgo real de la ronda 1, visto en
+   * captura a 430×932 con contenido largo): muy de vez en cuando la tarjeta
+   * actual quedaba mal posicionada tras un render pese a tener el `transform`
+   * correcto ya computado. Sigue sin aislarse la causa exacta pese a probar
+   * (ronda 1 y 2): fusionar los dos actualizarTarjetas() de una respuesta en
+   * uno solo, mover la animación de acierto/fallo a un elemento sin relación
+   * con el transform de posición, una variable CSS para el offset, no
+   * transicionar la primera aparición de un nodo, reafirmar a mano el mismo
+   * `transform` (con o sin pasar por 'none' de por medio) — nada de eso lo
+   * arregla. Lo único que sí lo arregla de forma reproducible es un render()
+   * con el índice REALMENTE distinto y de vuelta (probable pista para quien
+   * retome esto: algo del propio motor de layout de Chromium con tantas
+   * lecturas forzadas seguidas en ajustarEncaje deja "pegada" la posición del
+   * offset actual hasta que un cambio de índice de verdad la recalcula desde
+   * cero). Por eso este parche existe y por eso está acotado:
+   * - Tope de `MAX_INTENTOS_CORRECCION` intentos seguidos para el MISMO
+   *   índice (se reinicia solo si la medida llega a coincidir o si cambia el
+   *   índice de verdad, ver intentarIr) — si el desajuste no fuera el bug
+   *   transitorio de siempre, esto evita un bucle de renders sin fin.
+   * - Los dos render() internos van marcados `esCorreccion` (no reprograman
+   *   otra ronda de vigilancia: solo la vigila el render "real" que los
+   *   originó) y `saltarAjuste` (no hay contenido nuevo que reencajar, solo
+   *   reposicionar; ajustarEncaje ya corrió en el render real). */
   function corregirPosicionSiHaceFalta() {
     const nodo = lista[indice];
-    if (!nodo || !nodo.isConnected) return;
+    if (!nodo || !nodo.isConnected) {
+      intentosCorreccion = 0;
+      return;
+    }
     const mazoTop = contenedor.getBoundingClientRect().top;
     const nodoTop = nodo.getBoundingClientRect().top;
-    if (Math.abs(nodoTop - mazoTop) <= 2) return;
+    if (Math.abs(nodoTop - mazoTop) <= 2) {
+      intentosCorreccion = 0;
+      return;
+    }
+    if (intentosCorreccion >= MAX_INTENTOS_CORRECCION) {
+      // Dos intentos sin arreglarlo: esto ya no es el bug transitorio
+      // conocido. Se deja de insistir (nada de bucle sin fin); el próximo
+      // cambio de índice real vuelve a tener su propia oportunidad de asentar.
+      return;
+    }
     const original = indice;
     const vecino = original + 1 < lista.length ? original + 1 : original - 1;
     if (vecino === original || vecino < 0 || vecino >= lista.length) return;
+    intentosCorreccion += 1;
     indice = vecino;
-    render(false);
+    render(false, { saltarAjuste: true, esCorreccion: true });
     indice = original;
-    render(false);
+    render(false, { saltarAjuste: true, esCorreccion: true });
   }
 
   function animarRebote(sentido) {
@@ -501,6 +538,7 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
     }
     if (nuevo === indice) return;
     indice = nuevo;
+    intentosCorreccion = 0; // cambio de índice de verdad: la vigilancia arranca de cero.
     contarVistaParaPista();
     render(true);
     if (alCambiar) alCambiar(indice);

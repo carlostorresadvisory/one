@@ -456,6 +456,12 @@ main#app {
   inset: 0;
   transition: transform 0.2s var(--ease-suave);
   padding-bottom: calc(30px + env(safe-area-inset-bottom));
+  /* Hueco real para la columna de puntos del mazo (ronda 2): con el padding
+     uniforme de 14px de .tarjeta, la columna (right:6px, 8px de ancho, hasta
+     14px) caía justo donde empieza el texto/los botones a ancho completo —
+     visto en captura (peor-caso-error). 14 (padding base) + 8 (columna) + 6
+     (aire) = 28px, para que ninguna línea llegue a tocarla. */
+  padding-right: 28px;
   overflow: hidden;
 }
 
