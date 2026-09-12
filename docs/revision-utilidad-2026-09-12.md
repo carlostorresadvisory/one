@@ -135,6 +135,10 @@ El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la may
 
 Encuentra el dato erróneo en la tarjeta.
 
+**Límites de la IA generativa**
+- Entrenamiento — Se entrenan prediciendo la siguiente palabra o token a partir de grandes cantidades de texto
+- ❌ Fiabilidad factual — Nunca inventan hechos: todo lo que dicen está literalmente en sus datos de entrenamiento
+- Dependencia de recursos — Su calidad depende tanto de la cantidad y calidad de datos como de la capacidad computacional usada en el entrenamiento
 
 
 *Los modelos generativos se entrenan prediciendo tokens a partir de enormes colecciones de texto, pero esa técnica genera respuestas plausibles que no siempre corresponden a hechos reales: pueden 'alucinar' información porque optimizan coherencia estadística, no verificación factual; por eso reguladores y empresas piden mejores garantías de fuente y verificación.*
@@ -174,6 +178,10 @@ El canal de Suez es el único paso marítimo natural que conecta el Mediterráne
 
 Encuentra el dato erróneo en la tarjeta.
 
+**Términos en ética de IA**
+- ❌ Sesgo algorítmico — significa que el algoritmo siempre tiene intención de discriminar
+- Caja negra — modelos muy complejos cuya lógica interna es difícil de explicar
+- Responsabilidad automatizada — las empresas que despliegan sistemas pueden ser responsables de sus decisiones
 
 
 *El sesgo algorítmico no implica intención: los sesgos emergen de datos históricos, variables proxy y decisiones de diseño (qué se mide y cómo), no porque la máquina quiera discriminar. Por eso las soluciones eficaces actúan sobre los datos, la definición de objetivos y la evaluación, y son centrales en debates sobre regulación y responsabilidad de sistemas de IA.*
@@ -206,6 +214,11 @@ La 'falacia del motte-and-bailey' (motte y bailey) describe una táctica retóri
 
 Encuentra el dato erróneo en la tarjeta.
 
+**Cómo funcionan subastas y ventas**
+- Precio de martillo — El precio de martillo refleja la puja ganadora entre comprador y vendedor antes de sumar comisiones.
+- Garantías — Las casas pueden ofrecer garantías de venta o acuerdos que implican riesgo financiero si la obra no alcanza el precio comprometido.
+- ❌ Ventas privadas vs subastas — Las ventas privadas y las subastas son siempre separadas y no influyen en los precios de una u otra.
+- Comisiones — Los compradores suelen pagar además una comisión (buyer’s premium) que aumenta el coste final y financia gran parte del negocio de la casa.
 
 
 *El mercado primario (ventas privadas) y el secundario (subastas) están interconectados: ventas privadas fijan referencias de precio, influyen en expectativas y pueden preceder o evitar subasta pública; por eso no son independientes. Esa interdependencia es central en las discusiones recientes sobre transparencia y garantías en grandes casas de subastas.*
