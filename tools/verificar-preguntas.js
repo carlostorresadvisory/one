@@ -15,7 +15,9 @@ const TAMANO_LOTE = 4;
 const PROMPT_SISTEMA =
   'Eres un verificador escéptico de preguntas de examen. Para cada pregunta, comprueba ' +
   'si la respuesta marcada es correcta, si es la única correcta entre las opciones y si ' +
-  'el enunciado es inequívoco. Sé estricto: ante la duda, rechaza. Devuelve SOLO JSON ' +
+  'el enunciado es inequívoco. Rechaza también (inequivoca=false) si el enunciado contiene o ' +
+  'revela la respuesta, si hay dos opciones defendibles, o si una afirmación V/F depende de una ' +
+  'interpretación. Sé estricto: ante la duda, rechaza. Devuelve SOLO JSON ' +
   'con la forma {"resultados":[{"id":"…","correcta":true,"unica":true,"inequivoca":true,' +
   '"confianza":0.9,"motivo":"…"}]}';
 

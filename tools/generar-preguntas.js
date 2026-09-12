@@ -27,7 +27,11 @@ const PROMPT_SISTEMA =
   'o cifras que cambien con el tiempo.';
 
 const EJEMPLOS = {
-  vf: { enunciado: 'El agua hierve a 100°C al nivel del mar.', respuesta: true },
+  // Dos ejemplos para V/F: sin uno falso el generador sesga a "verdadero" (69 % en el primer lote).
+  vf: [
+    { enunciado: 'El agua hierve a 100°C al nivel del mar.', respuesta: true },
+    { enunciado: 'La Revolución Francesa comenzó en 1799.', respuesta: false },
+  ],
   test4: {
     enunciado: '¿Cuál es la capital de Francia?',
     opciones: ['Madrid', 'París', 'Roma', 'Berlín'],
@@ -55,7 +59,11 @@ const EJEMPLOS = {
 function esquemaTipo(tipo) {
   switch (tipo) {
     case 'vf':
-      return '{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "respuesta": true|false }';
+      return (
+        '{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "respuesta": true|false }. ' +
+        'OBLIGATORIO: exactamente la mitad de las afirmaciones con "respuesta": false. Las falsas deben ser ' +
+        'plausibles (un dato, fecha, autor o relación cambiados por otro verosímil), nunca absurdas ni obvias.'
+      );
     case 'test4':
       return '{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "opciones": ["s","s","s","s"], "correcta": 0..3 }';
     case 'ordenar':
@@ -95,13 +103,15 @@ Opciones:
 }
 
 function parsearArgs(argv) {
-  const args = { area: null, n: 25, salida: 'datos/borradores', permitirPago: false, topeEur: 0, ayuda: false };
+  const args = { area: null, n: 25, salida: 'datos/borradores', permitirPago: false, topeEur: 0, ayuda: false, tipos: null, cantidad: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
     else if (a === '--area') args.area = argv[++i];
     else if (a === '--n') args.n = Number(argv[++i]);
     else if (a === '--salida') args.salida = argv[++i];
+    else if (a === '--tipos') args.tipos = argv[++i].split(',').filter((t) => TIPOS.includes(t));
+    else if (a === '--cantidad') args.cantidad = Number(argv[++i]);
     else if (a === '--permitir-pago') args.permitirPago = true;
     else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
   }
@@ -161,8 +171,9 @@ async function generarArea(area, opts, existentes = []) {
   let descartadas = 0;
   let pedidas = 0;
 
-  for (const tipo of TIPOS) {
-    const cantidad = CANTIDAD_POR_TIPO[tipo];
+  // --tipos vf,test4 limita los tipos; --cantidad N fuerza cuántas por tipo (p. ej. reequilibrar V/F).
+  for (const tipo of opts.tipos || TIPOS) {
+    const cantidad = opts.cantidad || CANTIDAD_POR_TIPO[tipo];
     pedidas += cantidad;
 
     for (const subcantidad of repartirEnSublotes(cantidad, TAMANO_SUBLOTE)) {
