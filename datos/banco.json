@@ -942,7 +942,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el camino típico por el que una obra polémica pasa hasta convertirse en parte del canon artístico.",
-    "explicacion": "Cada institución (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.",
+    "explicacion": "Cada paso institucional (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.",
     "nivel": 2,
     "criterio": "de menor a mayor: fase en el proceso de controversia a canonización",
     "items": [
@@ -1198,7 +1198,7 @@
   },
   {
     "enunciado": "¿Cuál es el elemento químico más abundante en la corteza terrestre?",
-    "explicacion": "Porque forma parte de silicatos y óxidos, los minerales más comunes de las rocas. El oxígeno representa casi la mitad de la masa de la corteza, más que el silicio (28 %) y el aluminio (8 %).",
+    "explicacion": "El oxígeno domina porque los silicatos y óxidos, los minerales más comunes de las rocas, lo contienen en abundancia. Su masa en la corteza duplica la del silicio, segundo elemento más frecuente.",
     "nivel": 1,
     "opciones": [
       "Oxígeno",
@@ -1214,7 +1214,29 @@
     "confianza": 0.99,
     "verificado": true,
     "verificador": "nex-agi/nex-n2.5-pro:free",
-    "visual": null
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Abundancia en la corteza terrestre",
+      "items": [
+        {
+          "etiqueta": "Oxígeno",
+          "valor": 46.6,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Silicio",
+          "valor": 27.7,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Aluminio",
+          "valor": 8.1,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Porcentaje en masa de los tres elementos más comunes",
+      "fuente": "USGS 2023"
+    }
   },
   {
     "enunciado": "¿Qué tipo de enlace químico se forma entre los átomos de hidrógeno y oxígeno en una molécula de agua?",
@@ -1512,7 +1534,7 @@
   },
   {
     "enunciado": "El ADN se replica de forma conservativa, es decir, la doble hélice original permanece intacta.",
-    "explicacion": "La replicación del ADN es semiconservativa: cada nueva molécula contiene una hebra parental y una recién sintetizada, no se conserva la doble hélice original completa.",
+    "explicacion": "Es semiconservativa: cada nueva hélice tiene una hebra original y una nueva, no la original intacta. Este mecanismo, demostrado por Meselson y Stahl en 1958, es clave para la fidelidad genética.",
     "nivel": 2,
     "respuesta": false,
     "id": "cie-068",
@@ -1525,7 +1547,7 @@
   },
   {
     "enunciado": "El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la mayor cantidad de proteínas beta-amiloides asociadas al Alzheimer.",
-    "explicacion": "El sistema glinfático bombea líquido cefalorraquídeo durante el sueño profundo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder ondas lentas una noche eleva esta proteína un 30%.",
+    "explicacion": "Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1539,7 +1561,7 @@
   },
   {
     "enunciado": "Un avión se sustenta principalmente por la diferencia de presión creada al desviar el aire hacia abajo, no por el efecto Venturi sobre el ala.",
-    "explicacion": "El ala desvía aire hacia abajo generando una fuerza de reacción ascendente (tercera ley de Newton). La NASA confirmó en 2024 que este modelo explica la sustentación mejor que el efecto Venturi, aún enseñado en muchos libros.",
+    "explicacion": "El ala empuja aire hacia abajo; por reacción, el aire empuja el ala hacia arriba (tercera ley de Newton). La NASA desaconsejó en 2024 la explicación del efecto Venturi, aún común en libros.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -1598,7 +1620,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El hipotálamo eleva el termostato corporal para que las defensas actúen más rápido y los patógenos se multipliquen peor. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.",
+    "explicacion": "El hipotálamo sube el termostato interno: las enzimas inmunitarias trabajan mejor a más temperatura y los patógenos se replican peor. Por eso la fiebre moderada es una defensa, no un error del cuerpo.",
     "id": "cie-081",
     "area": "ciencia",
     "tipo": "test4",
@@ -2569,7 +2591,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "La teoría del tonto mayor explica que los compradores adquieren un activo sobrevalorado confiando en venderlo después a alguien aún más irracional. En 2021, el precio del Bitcoin superó los 60.000 dólares sin respaldo intrínseco.",
+    "explicacion": "Los compradores adquieren un activo sobrevalorado no por su valor real, sino esperando venderlo más caro a otro. En 2021, Bitcoin superó 60.000 dólares sin respaldo intrínseco.",
     "id": "eco-077",
     "area": "economia",
     "tipo": "test4",
@@ -2589,7 +2611,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El arancel encarece el acero importado para que el local gane competitividad en precio, protegiendo empleo e industria. En 2025, la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.",
+    "explicacion": "El arancel encarece el producto importado para que el local compita en precio, protegiendo empleo e industria. En 2025 la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.",
     "id": "eco-078",
     "area": "economia",
     "tipo": "test4",
@@ -2731,7 +2753,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "La pandemia y la guerra en Ucrania mostraron que depender de un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.",
+    "explicacion": "La estrategia “China + 1” busca un segundo proveedor en otro país para mitigar riesgos de cadena de suministro. Desde 2022, empresas como Apple han movido producción a India y Vietnam.",
     "id": "eco-083",
     "area": "economia",
     "tipo": "test4",
@@ -2739,7 +2761,26 @@
     "confianza": 0.9,
     "verificado": true,
     "verificador": "z-ai/glm-4.7-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Antes de 2022",
+          "puntos": [
+            "Dependencia de un solo país",
+            "Riesgo de rotura total"
+          ]
+        },
+        {
+          "titulo": "Desde 2022",
+          "puntos": [
+            "Diversificación geográfica",
+            "Resiliencia de suministro"
+          ]
+        }
+      ],
+      "leyenda": "La estrategia China+1 reduce la fragilidad de la cadena."
+    }
   },
   {
     "enunciado": "Cuando un banco central sube los tipos de interés de referencia, ¿cuál es el mecanismo principal por el que se frena la inflación?",
@@ -2780,7 +2821,7 @@
       "Burbuja puntocom 2000 (NASDAQ)",
       "Gran Crash 1929 (Dow Jones)"
     ],
-    "explicacion": "El apalancamiento amplifica las caídas. 2008 fue la más contenida por la intervención de bancos centrales; 1929, la más devastadora por la falta de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.",
+    "explicacion": "El apalancamiento amplifica las caídas: 2008 fue la más contenida por la intervención de los bancos centrales, mientras que 1929 careció de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.",
     "nivel": 2,
     "hilo": 2,
     "id": "eco-086",
@@ -2801,7 +2842,7 @@
       "Software como servicio (SaaS)",
       "Plataformas de marketplace / red"
     ],
-    "explicacion": "Los inversores valoran más los negocios escalables. La manufactura requiere mucha inversión fija; los marketplaces escalan casi sin coste, lo que dispara su múltiplo. Ejemplo: Mercado Libre cotiza a ~30x EBITDA, un fabricante a ~8x.",
+    "explicacion": "Los inversores pagan más por negocios escalables: la manufactura requiere alta inversión fija, mientras que los marketplaces crecen casi sin coste marginal, lo que dispara su múltiplo.",
     "nivel": 3,
     "hilo": 3,
     "id": "eco-087",
@@ -3067,39 +3108,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Volumen del comercio mundial (2019=100)",
-      "items": [
-        {
-          "etiqueta": "2019",
-          "valor": 100,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "2020",
-          "valor": 92,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "2021",
-          "valor": 106,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "2022",
-          "valor": 112,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "2023",
-          "valor": 115,
-          "unidad": ""
-        }
-      ],
-      "leyenda": "Fuente: OMC, World Trade Statistical Review 2024",
-      "fuente": "OMC 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -3468,7 +3477,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Wittgenstein no rechazó el análisis lógico, sino que pasó de buscar una estructura lógica ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.",
+    "explicacion": "Wittgenstein no rechazó el análisis lógico, sino que evolucionó: pasó de buscar una estructura ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Etapas de Wittgenstein",
@@ -3498,7 +3507,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.",
+    "explicacion": "Kripke separó necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -3643,7 +3652,7 @@
   },
   {
     "enunciado": "La navaja de Ockham sugiere que, entre explicaciones equivalentes, la más simple suele ser la preferida.",
-    "explicacion": "Es un principio de parsimonia que no busca la verdad absoluta, sino eficiencia: cuanto menos se asume, más difícil es equivocarse. Einstein lo resumió: \"Tan simple como sea posible, pero no más\".",
+    "explicacion": "Prioriza la explicación con menos suposiciones porque cada supuesto extra añade riesgo de error. Einstein lo expresó: «Tan simple como sea posible, pero no más».",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -3890,7 +3899,7 @@
       "Velo de ignorancia",
       "Principio de precaución"
     ],
-    "explicacion": "La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.",
+    "explicacion": "La navaja de Ockham (s. XIV) es la más antigua; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.",
     "nivel": 1,
     "hilo": 1,
     "id": "fil-048",
@@ -3956,7 +3965,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.",
+    "explicacion": "El sesgo algorítmico no requiere malicia: aparece cuando los datos de entrenamiento reflejan prejuicios históricos. Por eso corregir datos y objetivos es más eficaz que buscar intenciones ocultas.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Términos en ética de IA",
@@ -4693,24 +4702,7 @@
     "confianza": 0.9,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Población proyectada 2050 (millones)",
-      "items": [
-        {
-          "etiqueta": "Nigeria",
-          "valor": 400,
-          "unidad": "M"
-        },
-        {
-          "etiqueta": "EE. UU.",
-          "valor": 380,
-          "unidad": "M"
-        }
-      ],
-      "leyenda": "Proyecciones ONU (World Population Prospects 2024)",
-      "fuente": "ONU 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "El metro de Seúl transporta más pasajeros al año que el de Tokio.",
@@ -5736,7 +5728,7 @@
   },
   {
     "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
-    "explicacion": "Para negar 'todos', basta con que exista al menos uno que no cumpla. Una excepción desmonta cualquier afirmación universal, como en debates donde un solo contraejemplo invalida una generalización.",
+    "explicacion": "Negar un 'todos' no exige que ninguno cumpla, solo que exista al menos una excepción. Un solo contraejemplo derriba cualquier afirmación universal, como en un debate donde un caso invalida una generalización apresurada.",
     "nivel": 1,
     "opciones": [
       "Ningún estudiante aprobó el examen",
@@ -6070,7 +6062,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Al abrir una puerta perdedora, el presentador concentra la probabilidad 2/3 en la puerta restante; cambiar duplica tus opciones. Este principio se cita en análisis de toma de decisiones financieras recientes (2024) para ilustrar la actualización bayesiana.",
+    "explicacion": "Cambiar concentra la probabilidad de 2/3 en la otra puerta, ya que el presentador siempre revela una cabra. Es un ejemplo clásico de actualización bayesiana que se usa en finanzas para revisar hipótesis con nueva información.",
     "id": "log-037",
     "area": "logica",
     "tipo": "test4",
@@ -6130,7 +6122,7 @@
   },
   {
     "enunciado": "Una enfermedad afecta a 1 de cada 1.000 personas. Existe una prueba que acierta el 99 % de las veces (falla un 1 % tanto con enfermos como con sanos). A una persona elegida al azar le sale positivo. ¿Cuál es la probabilidad aproximada de que realmente esté enferma?",
-    "explicacion": "La prueba genera muchos positivos falsos porque el 1% de los sanos supera a los enfermos reales. De 1.098 positivos, solo 99 están enfermos. Por eso los bancos filtran miles de alertas de fraude a mano.",
+    "explicacion": "La prueba genera muchos falsos positivos porque el 1% de los sanos supera a los enfermos reales. De 1.098 positivos, solo 99 están enfermos, de ahí el 9%.",
     "nivel": 3,
     "opciones": [
       "Cerca del 99 %",
@@ -6618,7 +6610,7 @@
   },
   {
     "enunciado": "Los modelos de lenguaje grandes se entrenan únicamente con texto de dominio público.",
-    "explicacion": "No: usan además textos protegidos por derechos de autor, porque necesitan volúmenes imposibles de conseguir solo con dominio público. Eso ha generado demandas de autores y editoriales en 2023-2024, un debate aún abierto sobre el límite del uso legítimo.",
+    "explicacion": "No: necesitan cantidades masivas de texto, imposibles de obtener solo con dominio público, por lo que incluyen obras protegidas. Esto ha provocado demandas de autores y editoriales en 2023-2024, un debate abierto sobre el uso legítimo.",
     "nivel": 1,
     "respuesta": false,
     "hilo": 1,
@@ -6629,7 +6621,28 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "z-ai/glm-4.7-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Dominio público",
+          "puntos": [
+            "Obras antiguas",
+            "Sin permiso legal",
+            "Volumen limitado"
+          ]
+        },
+        {
+          "titulo": "Con derechos",
+          "puntos": [
+            "Libros y artículos",
+            "Requiere permiso",
+            "Volumen masivo"
+          ]
+        }
+      ],
+      "leyenda": "Las dos fuentes de datos de entrenamiento de la IA."
+    }
   },
   {
     "enunciado": "La mayor parte del tráfico internacional de Internet viaja por cables submarinos de fibra óptica.",
@@ -6667,7 +6680,7 @@
   },
   {
     "enunciado": "Las baterías de estado sólido prometen mayor densidad energética y mayor seguridad que las de iones de litio actuales.",
-    "explicacion": "El electrolito sólido no se incendia y permite ánodo de litio metálico, que almacena más energía que el grafito. Toyota presentó en 2024 un prototipo que carga 500 km en 10 minutos.",
+    "explicacion": "El electrolito sólido no es inflamable y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.",
     "nivel": 4,
     "respuesta": true,
     "hilo": 5,
@@ -6739,7 +6752,7 @@
       "Solo funciona en condiciones de microgravedad, lo que obliga a fabricar en órbita"
     ],
     "correcta": 0,
-    "explicacion": "La litografía EUV requiere precisión atómica y solo ASML la fabrica, con componentes de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.",
+    "explicacion": "Requiere precisión atómica y solo ASML la fabrica con componentes de EE. UU., Japón y Alemania. Los controles de exportación de 2023 la convierten en palanca geopolítica.",
     "nivel": 4,
     "hilo": 3,
     "id": "tec-043",
@@ -6842,7 +6855,7 @@
     "correcta": 0,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "ASML es el único fabricante mundial de máquinas EUV, lo que la convierte en un punto de control geopolítico. Cada equipo integra miles de componentes de alta precisión de varios países, limitando la producción de chips avanzados.",
+    "explicacion": "La luz EUV es absorbida por casi todo, incluso por el aire, por eso las máquinas operan en vacío. ASML los fabrica en exclusiva, y cada una tarda meses en montarse, limitando la producción global de chips avanzados.",
     "id": "tec-047",
     "area": "tecnologia",
     "tipo": "test4",
@@ -6956,7 +6969,7 @@
   },
   {
     "enunciado": "Ordena los siguientes tipos de baterías de vehículo eléctrico de menor a mayor densidad de energía específica (Wh/kg).",
-    "explicacion": "La densidad de energía determina cuánta energía se puede almacenar por kilogramo; las químicas de litio pueden almacenar mucho más que las de plomo o níquel debido a voltajes más altos y materiales más ligeros. En 2024 varios fabricantes anunciaron celdas LFP con mayor energía para reducir costo sin sacrificar seguridad.",
+    "explicacion": "La densidad de energía depende de la química: voltajes más altos y materiales más ligeros almacenan más. Las de litio cuadriplican a las de plomo. En 2024, las LFP ganan terreno por su bajo costo y seguridad.",
     "nivel": 5,
     "criterio": "de menor a mayor densidad de energía específica",
     "items": [
@@ -6973,7 +6986,26 @@
     "confianza": 1,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Menor densidad",
+          "puntos": [
+            "Plomo-ácido: ~35 Wh/kg",
+            "NiMH: ~70 Wh/kg"
+          ]
+        },
+        {
+          "titulo": "Mayor densidad",
+          "puntos": [
+            "LFP: ~150 Wh/kg",
+            "NMC: ~250 Wh/kg"
+          ]
+        }
+      ],
+      "leyenda": "Valores típicos de densidad energética por química"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
