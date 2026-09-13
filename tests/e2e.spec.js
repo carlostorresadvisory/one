@@ -148,6 +148,22 @@ async function esperarAsentamientoMazo(page) {
   );
 }
 
+/** Simula un gesto de arrastre con Pointer Events REALES (I3, ola final):
+ * Chromium headless dispara pointerdown/pointermove/pointerup para un puntero
+ * de ratón igual que para uno táctil, y ni montarMazo ni activarSwipeVf miran
+ * `pointerType` — así que `page.mouse` basta, sin necesitar un contexto con
+ * `hasTouch`. `pasos` son posiciones ABSOLUTAS: la primera es donde se agarra
+ * (down), las siguientes son movimientos sucesivos (move, con pasos
+ * intermedios) antes de soltar (up). */
+async function arrastrar(page, pasos) {
+  await page.mouse.move(pasos[0].x, pasos[0].y);
+  await page.mouse.down();
+  for (let i = 1; i < pasos.length; i += 1) {
+    await page.mouse.move(pasos[i].x, pasos[i].y, { steps: 4 });
+  }
+  await page.mouse.up();
+}
+
 /** Recorre el mazo de repaso del resumen (spec v0.1c §6) con ArrowUp hasta que
  * la tarjeta ACTUAL sea la final (`[data-test="repaso-final"]`), comprobando
  * en cada parada que ni la vista ni la tarjeta actual hacen scroll. Mira la
@@ -193,6 +209,40 @@ async function revelarImagenSiPlegada(tarjetaLocator) {
   if (await imagen.isVisible()) return;
   await tarjetaLocator.locator('[data-test="ver-imagen"]').click();
   await expect(imagen).toBeVisible();
+}
+
+/** I4 (ola final): espera a que el `<img>` de `[data-test="imagen"]` quede
+ * cargado ('ok'), falle ('error': construirBloqueImagen quita el bloque
+ * entero, ver app.js) o se agote un timeout corto ('timeout') — nunca cuelga.
+ * Antes, un fallo real de red dejaba el test esperando un 'load' que un
+ * 'error' ya disparado no iba a emitir nunca (hasta el timeout POR DEFECTO de
+ * Playwright, ~30s, con el mensaje de fallo sin explicar la causa real). */
+async function esperarImagenOFallo(page, timeoutMs = 3000) {
+  return page.evaluate((limite) => new Promise((resolve) => {
+    const evaluarActual = () => {
+      const img = document.querySelector('[data-test="imagen"] img');
+      if (!img) return 'sin-imagen'; // bloque ya quitado (error) o nunca construido
+      if (img.complete && img.naturalWidth > 0) return 'ok';
+      if (img.complete) return 'error'; // 'complete' también es true tras un fallo
+      return null;
+    };
+    const yaResuelto = evaluarActual();
+    if (yaResuelto) {
+      resolve(yaResuelto);
+      return;
+    }
+    const img = document.querySelector('[data-test="imagen"] img');
+    const limpiar = () => {
+      clearTimeout(temporizador);
+      img.removeEventListener('load', alCargar);
+      img.removeEventListener('error', alFallar);
+    };
+    const alCargar = () => { limpiar(); resolve('ok'); };
+    const alFallar = () => { limpiar(); resolve('error'); };
+    img.addEventListener('load', alCargar, { once: true });
+    img.addEventListener('error', alFallar, { once: true });
+    const temporizador = setTimeout(() => { limpiar(); resolve('timeout'); }, limite);
+  }), timeoutMs);
 }
 
 /** vf: FALSO/VERDADERO viven ahora DENTRO de la tarjeta, en su zona de acción
@@ -601,6 +651,11 @@ test.describe('ONE · integración e2e', () => {
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
+      if (vueltas === 0) {
+        // Regresión de C1 también a 430×932: la primera respuesta de la
+        // partida es la que reproducía el bug de #mazo como scroll container.
+        expect(await page.evaluate(() => document.getElementById('mazo').scrollTop)).toBe(0);
+      }
       if (tipo === 'vf' && !v01cVistos.has('vf-despues')) {
         v01cVistos.add('vf-despues');
         await esperarAsentamientoMazo(page);
@@ -692,6 +747,10 @@ test.describe('ONE · integración e2e', () => {
     await responderPreguntaActual(page, sospechosoPorTitulo);
     await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
+    // Regresión de C1: la PRIMERA respuesta de la partida es la que reproducía
+    // el bug (#mazo se convertía en contenedor de scroll de verdad al
+    // sustituir el nodo de la tarjeta). scrollTop debe seguir en 0 siempre.
+    expect(await page.evaluate(() => document.getElementById('mazo').scrollTop)).toBe(0);
     if (tipoHueco0 === 'vf') await capturarV01c('vf-despues');
     if (tipoHueco0 === 'ordenar') await capturarV01c('ordenar-despues');
     if (tipoHueco0 === 'test4') await capturarV01c('test4-despues');
@@ -737,6 +796,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(cierre).toBeVisible();
     await expect(cierre).toContainText('Quedan 1 sin responder');
     await assertSinScroll(page);
+    await assertTarjetaSinScroll(page); // I3: también la tarjeta de cierre.
     await page.screenshot({ path: `${CAPTURAS}/v0.1c-cierre.png` });
 
     // "Volver a ellas" salta directo al hueco 9, todavía sin responder.
@@ -748,6 +808,87 @@ test.describe('ONE · integración e2e', () => {
     await responderPreguntaActual(page, sospechosoPorTitulo);
     await avanzarTrasRespuesta(page);
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+  });
+
+  // I3 (ola final): el e2e solo ejercía el gesto por teclado. Se simulan los
+  // cuatro casos de la spec v0.1c §2.2/§2.3 con Pointer Events reales
+  // (page.mouse, ver arrastrar()): horizontal puro en vf responde y no
+  // navega; vertical puro navega y no responde; y en las dos diagonales, el
+  // eje que cruza su propio "arranque" PRIMERO es el que se queda con el
+  // gesto — nunca los dos a la vez (el revisor final ya probó esto a mano;
+  // aquí queda cubierto por el e2e).
+  test('mazo v0.1c §2.2: gesto real (down/move/up) — horizontal, vertical y diagonal nunca disparan los dos a la vez', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // his-001 (vf) + art-001 (test4): 2 huecos fijos, para poder navegar al
+    // segundo en los casos verticales/diagonales sin depender del azar.
+    async function empezarGesto() {
+      await page.evaluate(
+        (ids) => window.__one.empezarPartida({ ids, etiqueta: 'gesto-i3' }),
+        ['his-001', 'art-001']
+      );
+      await expect(tarjetaActual(page)).toHaveAttribute('data-indice', '0');
+    }
+
+    // Punto de agarre sobre el ENUNCIADO (nunca un <button>: tanto montarMazo
+    // como activarSwipeVf ignoran el pointerdown si el objetivo es un botón).
+    async function puntoAgarre() {
+      const caja = await tarjetaActual(page).locator('.enunciado, .instruccion-error').first().boundingBox();
+      return { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 };
+    }
+
+    // --- Caso 1: horizontal puro en vf → responde y NO navega. ---
+    await empezarGesto();
+    {
+      const p0 = await puntoAgarre();
+      await arrastrar(page, [p0, { x: p0.x + 80, y: p0.y }]); // dx puro, dy=0
+      const t = tarjetaActual(page);
+      await expect(t).toHaveAttribute('data-indice', '0');
+      await expect(t).toHaveAttribute('data-respondida', 'true');
+      expect(await page.evaluate(() => document.getElementById('mazo').scrollTop)).toBe(0);
+    }
+
+    // --- Caso 2: vertical puro → navega y NO responde. ---
+    await empezarGesto();
+    {
+      const p0 = await puntoAgarre();
+      await arrastrar(page, [p0, { x: p0.x, y: p0.y - 80 }]); // dy puro (arriba), dx=0
+      await esperarAsentamientoMazo(page);
+      await expect(tarjetaActual(page)).toHaveAttribute('data-indice', '1');
+      await expect(page.locator('[data-indice="0"]')).toHaveAttribute('data-respondida', 'false');
+    }
+
+    // --- Caso 3: diagonal con DX primero → solo responde, nunca navega. ---
+    await empezarGesto();
+    {
+      const p0 = await puntoAgarre();
+      await arrastrar(page, [
+        p0,
+        { x: p0.x + 15, y: p0.y + 2 }, // dx cruza su arranque (10 mazo / 8 vf) antes que dy
+        { x: p0.x + 80, y: p0.y + 80 }, // dy crece después igual de grande: no debe cambiar nada
+      ]);
+      const t = tarjetaActual(page);
+      await expect(t).toHaveAttribute('data-indice', '0');
+      await expect(t).toHaveAttribute('data-respondida', 'true');
+    }
+
+    // --- Caso 4: diagonal con DY primero → solo navega, nunca responde. ---
+    await empezarGesto();
+    {
+      const p0 = await puntoAgarre();
+      await arrastrar(page, [
+        p0,
+        { x: p0.x + 2, y: p0.y - 15 }, // dy cruza su arranque antes que dx
+        { x: p0.x + 80, y: p0.y - 80 }, // dx crece después igual de grande: no debe cambiar nada
+      ]);
+      await esperarAsentamientoMazo(page);
+      await expect(tarjetaActual(page)).toHaveAttribute('data-indice', '1');
+      await expect(page.locator('[data-indice="0"]')).toHaveAttribute('data-respondida', 'false');
+    }
   });
 
   // Peor caso de la regla de encaje (spec v0.1c §4.2): la pregunta 'ordenar' y
@@ -1032,12 +1173,24 @@ test.describe('ONE · integración e2e', () => {
       // 0): se despliega si hace falta ANTES de esperar a que cargue — un
       // <img loading="lazy"> oculto con display:none no llega a dispararse.
       await revelarImagenSiPlegada(t);
+      // I4: sin la red de Wikimedia viva (o si responde lento/falla), el
+      // <img> real puede no llegar a cargar nunca — construirBloqueImagen()
+      // quita el bloque entero al fallar (ver app.js). Con timeout corto y
+      // motivo explícito en vez de dejar que el test cuelgue ~30s sin decir
+      // por qué (era el propio hallazgo).
+      const estadoImagen = await esperarImagenOFallo(page, 3000);
+      test.skip(
+        estadoImagen !== 'ok',
+        `Imagen real de art-003 no disponible (${estadoImagen}): sin red o Wikimedia no respondió a tiempo.`
+      );
       // Espera a que el JPEG real esté DECODIFICADO y listo para pintar, no
       // solo descargado (ronda de corrección 1: `img.complete &&
       // naturalWidth > 0` se cumple antes de que el navegador termine de
       // pintar el bitmap, y la captura de 430 salía con la caja en blanco).
       // img.decode() resuelve justo cuando ya se puede pintar sin más
-      // decodificación pendiente; dos requestAnimationFrame de margen
+      // decodificación pendiente; ya se sabe que la imagen cargó bien
+      // (estadoImagen === 'ok'), así que decode() no puede quedarse esperando
+      // un 'load' que no vaya a llegar. Dos requestAnimationFrame de margen
       // aseguran que ESE frame decodificado ya se compuso en pantalla antes
       // del screenshot.
       await page.evaluate(async () => {
@@ -1046,11 +1199,8 @@ test.describe('ONE · integración e2e', () => {
         try {
           await img.decode();
         } catch (err) {
-          // Fallback si decode() no está disponible o falla (aun cargada):
-          // esperar a 'load' como red de seguridad.
-          if (!img.complete) {
-            await new Promise((resolve) => img.addEventListener('load', resolve, { once: true }));
-          }
+          // Ya cargada (estadoImagen 'ok'): decode() es solo para asegurar el
+          // pintado, no una condición de carga — un rechazo aquí no bloquea.
         }
       });
       await page.evaluate(
