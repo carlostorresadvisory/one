@@ -526,7 +526,13 @@ main#app {
   position: absolute;
   inset: 0;
   transition: transform 0.2s var(--ease-suave);
-  padding-bottom: calc(30px + env(safe-area-inset-bottom));
+  /* La zona segura inferior de iOS ya la reserva el padding del body (y main#app
+     deja 12px más): aquí solo hace falta el padding base de la tarjeta. Antes se
+     sumaba otra vez env(safe-area-inset-bottom) + 30px de banda para la pista y
+     el iPhone mostraba ~100px muertos bajo Siguiente (Carlos, 13-sep 12:13:
+     "dejas mucho espacio libre"). La banda de 30px solo cuando la pista textual
+     está visible (5 primeras tarjetas de la vida de la app): .mazo--con-pista. */
+  padding-bottom: 14px;
   /* Hueco real para la columna de puntos del mazo (ronda 2): con el padding
      uniforme de 14px de .tarjeta, la columna (right:6px, 8px de ancho, hasta
      14px) caía justo donde empieza el texto/los botones a ancho completo —
@@ -535,6 +541,8 @@ main#app {
   padding-right: 28px;
   overflow: hidden;
 }
+
+.mazo--con-pista .tarjeta-mazo { padding-bottom: 30px; }
 
 /* Durante el arrastre no hay transición (sigue al dedo 1:1); al soltar, render()
    la vuelve a activar para el asentamiento de 200ms. */
@@ -598,7 +606,7 @@ main#app {
 .mazo-gesto {
   position: absolute;
   left: 50%;
-  bottom: calc(4px + env(safe-area-inset-bottom));
+  bottom: 2px; /* dentro del padding inferior de la tarjeta; la zona segura la da el body */
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -637,7 +645,7 @@ main#app {
   position: absolute;
   left: 8px;
   right: 16px;
-  bottom: calc(15px + env(safe-area-inset-bottom));
+  bottom: 8px; /* dentro de la banda de 30px de .mazo--con-pista */
   margin: 0;
   text-align: center;
   color: var(--texto-suave);
@@ -1311,7 +1319,7 @@ main#app {
   gap: 4px;
   flex: 1 1 auto;
   min-height: 90px;
-  max-height: 40vh;
+  max-height: 55vh; /* Carlos 13-sep 12:17: la imagen protagoniza la explicación */
 }
 
 .imagen {

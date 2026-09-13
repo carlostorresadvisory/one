@@ -517,6 +517,9 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     // la pista textual (que sigue su propia lógica, sin tocar).
     indicadorGesto.hidden = !mostrarBase || gestoYaAprendido();
     pista.hidden = !mostrarBase || !pistaVisibleActual;
+    // Solo con la pista textual visible la tarjeta reserva la banda de 30px
+    // (estilos.css .mazo--con-pista); sin ella, el contenido llega abajo.
+    contenedor.classList.toggle("mazo--con-pista", !pista.hidden);
   }
 
   /** Se llama una vez por cada índice NUEVO mostrado (no en cada render): decide
@@ -1714,7 +1717,7 @@ const DESTINOS_PREGUNTAR_A = [
  * pide mecanismo/porqué, contexto, actualidad, un dato memorable, que
  * corrija la explicación si le falta algo y que proponga 2-3 preguntas más. */
 function construirPromptPreguntarA(pregunta) {
-  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
+  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, apóyate en algo visual siempre que ayude (un esquema en texto, una tabla comparativa, una línea de tiempo o una fórmula sencilla), y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
 }
 
 /** Fila "Preguntar a:" (spec v0.1c §5, nombres añadidos en v0.1d §5): etiqueta
