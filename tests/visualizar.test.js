@@ -253,6 +253,22 @@ test('verificarVisualYExplicacion: con necesitaVisual false, visualOk siempre tr
   assert.equal(r.visualOk, true);
 });
 
+test('verificarVisualYExplicacion: explicacionOk pasa a false si supera 40 palabras aunque el modelo diga true', async () => {
+  // Visto en vivo el 13-sep-2026 (art-001, ejecución completa real): el verificador dio
+  // explicacionOk:true a una propuesta de 54 palabras. El límite debe comprobarse en código.
+  const explicacionLarga = Array.from({ length: 45 }, (_, i) => `palabra${i}`).join(' ');
+  const llamarFalso = async ({ modelos }) => ({
+    texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }),
+    modelo: modelos[0],
+    coste: 0,
+    usage: {},
+  });
+  const propuesta = { explicacion: explicacionLarga, visual: null, modelo: 'a/uno:free' };
+  const r = await verificarVisualYExplicacion(preguntaBase(), propuesta, { llamar: llamarFalso, necesitaVisual: false });
+  assert.equal(r.explicacionOk, false);
+  assert.match(r.motivo, /45 palabras/);
+});
+
 test('verificarVisualYExplicacion: sin visual propuesto pero necesitándolo, visualOk false', async () => {
   const llamarFalso = async ({ modelos }) => ({
     texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }),

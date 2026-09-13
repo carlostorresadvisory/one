@@ -52,6 +52,15 @@ export const VERIFICADOR_VISUAL = [
   'google/gemini-2.5-flash-lite',
 ];
 
+// Visto en vivo el 13-sep-2026 (prueba en seco --limite 5 --tope-eur 0.05): con maxTokens:700 el
+// JSON queda truncado ("Unexpected end of JSON input") en las tres preguntas de la cascada
+// (incluido el modelo de pago) cuando "necesita_visual" es true -- el objeto visual + la
+// explicación no caben, y algún modelo (nemotron-3-super) además antepone razonamiento en texto
+// plano ("We need to...") antes del JSON. Mismo síntoma y mismo arreglo que EXTRA_VISION en
+// tools/buscar-imagenes.js: desactivar el razonamiento oculto (los modelos que no reconocen el
+// campo lo ignoran) y subir el margen de tokens de salida.
+const SIN_RAZONAMIENTO = { reasoning: { enabled: false, exclude: true } };
+
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -182,10 +191,13 @@ function promptSistemaGenerador(criterioTexto) {
     `${criterioTexto}\n\n` +
     'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
     'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n' +
-    'EXPLICACIÓN: máximo 40 PALABRAS (cuentan de verdad; no te pases), español impecable, en 2 ' +
-    'frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; (2) un gancho ' +
-    'memorable: una anécdota, un dato sorprendente o su conexión con la actualidad (2022-2026) si ' +
-    'existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la explicación original.\n\n' +
+    'EXPLICACIÓN: LÍMITE DURO de 40 palabras -- una propuesta de más de 40 se RECHAZA automáticamente ' +
+    'aunque el contenido sea perfecto, así que apunta a 30-32 palabras como objetivo real (cuenta las ' +
+    'palabras que llevas antes de terminar la frase; si te pasas, recorta, no añadas "..."). Español ' +
+    'impecable, en 2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
+    '(2) un gancho memorable: una anécdota, un dato sorprendente o su conexión con la actualidad ' +
+    '(2022-2026) si existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la ' +
+    'explicación original.\n\n' +
     'VISUAL (solo si "necesita_visual" es true): un objeto de DATOS -- nunca un dibujo, la app lo ' +
     'pinta con plantillas propias -- que ilustre la "respuesta_correcta" indicada (nunca una opción ' +
     'incorrecta ni el dato erróneo cuando se te avisa de cuál es). Elige el tipo más natural para el ' +
@@ -288,9 +300,10 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     mensajes,
     json: true,
     temperatura: 0.6,
-    maxTokens: 700,
+    maxTokens: 1500,
     permitirPago,
     topeEur,
+    extra: SIN_RAZONAMIENTO,
     ...(rutaLog ? { rutaLog } : {}),
   });
 
@@ -343,17 +356,26 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     mensajes,
     json: true,
     temperatura: 0.2,
-    maxTokens: 400,
+    maxTokens: 800,
     permitirPago,
     topeEur,
+    extra: SIN_RAZONAMIENTO,
     ...(rutaLog ? { rutaLog } : {}),
   });
 
   const datos = extraerJson(salida.texto);
-  const explicacionOk = datos.explicacionOk === true;
+  let motivo = typeof datos.motivo === 'string' ? datos.motivo : '';
+  // Comprobación en código, no solo criterio del modelo: visto en vivo el 13-sep-2026 (primera
+  // pregunta de la ejecución completa, art-001) que el verificador puede dar explicacionOk:true a
+  // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
+  // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
+  const dentroDelLimite = contarPalabras(propuesta.explicacion) <= 40;
+  const explicacionOk = datos.explicacionOk === true && dentroDelLimite;
+  if (datos.explicacionOk === true && !dentroDelLimite) {
+    motivo = `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`;
+  }
 
   let visualOk;
-  let motivo = typeof datos.motivo === 'string' ? datos.motivo : '';
 
   if (!necesitaVisual) {
     visualOk = true;
@@ -604,6 +626,15 @@ async function main() {
           : `sin visual (${resultado.motivoVisualRechazo || 'rechazado'})`;
       const trazaExplicacion = resultado.explicacionCambiada ? 'explicación actualizada' : `explicación conservada (${resultado.motivoExplicacionRechazo})`;
       await registrar(`  ${pregunta.id}: ${trazaExplicacion}; ${trazaVisual}`);
+      // Detalle completo (útil para auditar la calidad real, no solo el estado): antes/después de
+      // la explicación y el JSON del visual, cuando los hay.
+      if (resultado.explicacionCambiada) {
+        await registrar(`    explicación antes: ${pregunta.explicacion}`);
+        await registrar(`    explicación después: ${resultado.explicacion}`);
+      }
+      if (resultado.visual) {
+        await registrar(`    visual: ${JSON.stringify(resultado.visual)}`);
+      }
 
       await esperar(PAUSA_ENTRE_PREGUNTAS_MS);
     }
