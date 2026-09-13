@@ -414,6 +414,31 @@ function registrarPistaMazoMostrada(veces) {
   }
 }
 
+// Indicador de gesto (spec v0.1d §1): dos chevrones apilados que invitan a
+// deslizar, sustituyen al antiguo chevrón fijo "⌃" (siempre visible tras las 5
+// primeras vistas). Se apagan en cuanto el jugador desliza con éxito UNA VEZ
+// en la sesión (sessionStorage, no localStorage: "vuelve en la sesión
+// siguiente" según la spec) — a diferencia de la pista textual, que sigue
+// gastando su propio presupuesto de 5 vistas en localStorage.
+const CLAVE_GESTO_APRENDIDO = 'one.gestoAprendido';
+
+function gestoYaAprendido() {
+  try {
+    return sessionStorage.getItem(CLAVE_GESTO_APRENDIDO) === '1';
+  } catch (err) {
+    return false;
+  }
+}
+
+function marcarGestoAprendido() {
+  try {
+    sessionStorage.setItem(CLAVE_GESTO_APRENDIDO, '1');
+  } catch (err) {
+    // Sin sessionStorage el indicador se queda encendido: no rompe nada, solo
+    // no se apaga tan pronto como debería.
+  }
+}
+
 function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = true, puntosNeutros = false } = {}) {
   let lista = tarjetasIniciales.slice();
   let indice = 0;
@@ -427,12 +452,16 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
   puntos.dataset.test = 'mazo-puntos';
   contenedor.appendChild(puntos);
 
-  const chevron = document.createElement('div');
-  chevron.className = 'mazo-chevron';
-  chevron.dataset.test = 'mazo-siguiente-chevron';
-  chevron.textContent = '⌃';
-  chevron.setAttribute('aria-hidden', 'true');
-  contenedor.appendChild(chevron);
+  // Dos chevrones apilados, superpuestos (spec v0.1d §1): "sin ocupar altura"
+  // (position:absolute en CSS), animación mazo-invitar en bucle, apagados por
+  // gestoYaAprendido(). aria-hidden porque es puramente decorativo: la pista
+  // textual de abajo ya describe el gesto para quien use lector de pantalla.
+  const indicadorGesto = document.createElement('div');
+  indicadorGesto.className = 'mazo-gesto';
+  indicadorGesto.dataset.test = 'mazo-gesto';
+  indicadorGesto.setAttribute('aria-hidden', 'true');
+  indicadorGesto.innerHTML = '<span class="mazo-gesto-chevron">˄</span><span class="mazo-gesto-chevron">˄</span>';
+  contenedor.appendChild(indicadorGesto);
 
   const pista = document.createElement('p');
   pista.className = 'pista-mazo';
@@ -474,7 +503,7 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
   function pintarChevronYPista() {
     const actual = lista[indice];
     // Si la tarjeta actual ya tiene su propio botón "Siguiente" (partida, ya
-    // respondida), el chevrón/pista se quitan de en medio en vez de competir
+    // respondida), el indicador/pista se quitan de en medio en vez de competir
     // por el mismo hueco vertical con ese botón (corrección ronda 1, hallazgo
     // visual 5). Una tarjeta de SOLO LECTURA (repaso, spec v0.1c §6) no tiene
     // "Siguiente": ahí el gesto debe seguir indicado igual que antes de
@@ -482,9 +511,12 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     // "respondida === true", que en repaso es cierto pero no hay botón).
     const tieneSiguiente = Boolean(actual && actual.querySelector && actual.querySelector('[data-test="siguiente"]'));
     const hayMas = indice + 1 < lista.length;
-    const mostrar = hayMas && !tieneSiguiente;
-    chevron.hidden = !mostrar;
-    pista.hidden = !mostrar || !pistaVisibleActual;
+    const mostrarBase = hayMas && !tieneSiguiente;
+    // El indicador de gesto (spec v0.1d §1) se apaga en cuanto se aprendió el
+    // gesto EN ESTA SESIÓN, independientemente del presupuesto de 5 vistas de
+    // la pista textual (que sigue su propia lógica, sin tocar).
+    indicadorGesto.hidden = !mostrarBase || gestoYaAprendido();
+    pista.hidden = !mostrarBase || !pistaVisibleActual;
   }
 
   /** Se llama una vez por cada índice NUEVO mostrado (no en cada render): decide
@@ -565,7 +597,7 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     }, 110);
   }
 
-  function intentarIr(nuevo) {
+  function intentarIr(nuevo, viaGesto = false) {
     if (nuevo < 0) {
       animarRebote('abajo');
       return;
@@ -576,6 +608,10 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     }
     if (nuevo === indice) return;
     indice = nuevo;
+    // Solo un deslizamiento REAL con éxito apaga el indicador (spec v0.1d §1:
+    // "en cuanto el jugador desliza con éxito"); navegar con teclado o tocando
+    // "Siguiente" no enseña el gesto, así que no cuenta.
+    if (viaGesto) marcarGestoAprendido();
     contarVistaParaPista();
     render(true);
     if (alCambiar) alCambiar(indice);
@@ -644,9 +680,9 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     const v = velocidadActual;
     deltaYActual = 0;
     if (dy < -UMBRAL_PX || v < -UMBRAL_VELOCIDAD) {
-      intentarIr(indice + 1);
+      intentarIr(indice + 1, true);
     } else if (dy > UMBRAL_PX || v > UMBRAL_VELOCIDAD) {
-      intentarIr(indice - 1);
+      intentarIr(indice - 1, true);
     } else {
       render(true); // vuelve a la posición de reposo
     }
@@ -746,8 +782,15 @@ if (new URLSearchParams(location.search).get('test') === '1') {
  */
 function ajustarEncaje(tarjetaNodo) {
   if (!tarjetaNodo) return;
-  tarjetaNodo.classList.remove('tarjeta--sin-imagen', 'tarjeta--compacta-1', 'tarjeta--compacta-2');
-  delete tarjetaNodo.dataset.expandido;
+  tarjetaNodo.classList.remove(
+    'tarjeta--compacta-1',
+    'tarjeta--sin-respuestas',
+    'tarjeta--enunciado-menor',
+    'tarjeta--sin-enunciado',
+    'tarjeta--explicacion-menor',
+    'tarjeta--explicacion-minima',
+    'tarjeta--explicacion-clamp'
+  );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
 
@@ -769,21 +812,55 @@ function ajustarEncaje(tarjetaNodo) {
   const cabe = () => !contenidoEl || contenidoEl.scrollHeight <= contenidoEl.clientHeight + 2;
   if (cabe()) return;
 
-  // Paso 0 (Tarea 3b): la imagen es lo primero que se pliega, antes de tocar
-  // la respuesta o la explicación (spec v0.1c-3b §4.2). Sin imagen en esta
-  // tarjeta, no hay nada que hacer aquí y se pasa directo al paso 1.
-  if (tarjetaNodo.querySelector('.imagen')) {
-    tarjetaNodo.classList.add('tarjeta--sin-imagen');
-    if (cabe()) return;
-  }
+  // Sin responder no hay cascada (spec v0.1d §3/§4, cambio de contrato de
+  // Carlos 13-sep 10:19): antes de responder no hay imagen ni feedback, y el
+  // contenido (enunciado + confianza + opciones) ya está pensado para caber
+  // tal cual con el banco actual — no se pliega nada.
+  if (tarjetaNodo.dataset.respondida !== 'true') return;
 
-  // Paso 1: la respuesta compacta se reduce a una sola línea.
+  // Cascada de la tarjeta RESPONDIDA, automática y sin ningún toque para
+  // desplegar/plegar (decisión de Carlos, 13-sep 10:19, sustituye la de las
+  // 10:15: "lo que sale primero si no hay espacio son las respuestas; si no,
+  // se reduce el tamaño de la pregunta; si no, desaparece la pregunta. La
+  // imagen y la explicación es lo que más valor añadido tiene después de
+  // responder"). Se para en el primer paso en el que ya cabe:
+  //  (a) la imagen (si la hay) ya se ha encogido por flex hasta su mínimo de
+  //      90px — es pasivo (CSS), no un paso de esta cascada, y la imagen
+  //      NUNCA se quita: es de lo último que Carlos quiere sacrificar.
+  //  (b) la respuesta pasa a una sola línea ("Respuesta: X ✓" / "Orden: A ›
+  //      B › C › D…", tarjeta--compacta-1, ya existía).
+  //  (c) la respuesta desaparece del todo (ni la línea): tarjeta--sin-respuestas.
+  //  (d) el enunciado baja un paso de tamaño (a 15px, interlineado 1,3):
+  //      tarjeta--enunciado-menor. Única relajación de "los tamaños de letra
+  //      no cambian" fuera de la explicación, aprobada explícitamente por
+  //      Carlos para este caso.
+  //  (e) el enunciado desaparece entero (queda la cabecera "Área · nivel" y
+  //      la fila de confianza): tarjeta--sin-enunciado.
+  //  (f) la explicación baja de tamaño en dos pasos (14px, luego 13px con más
+  //      interlineado): tarjeta--explicacion-menor / tarjeta--explicacion-minima.
+  //  (g) último recurso (no debería hacer falta con el banco actual): recorte
+  //      con line-clamp calculado y "…", sin toque para desplegarla.
   tarjetaNodo.classList.add('tarjeta--compacta-1');
   if (cabe()) return;
 
-  // Paso 2: si aún no cabe, la explicación se recorta a las líneas que quepan.
-  tarjetaNodo.classList.add('tarjeta--compacta-2');
+  tarjetaNodo.classList.add('tarjeta--sin-respuestas');
+  if (cabe()) return;
+
+  tarjetaNodo.classList.add('tarjeta--enunciado-menor');
+  if (cabe()) return;
+
+  tarjetaNodo.classList.add('tarjeta--sin-enunciado');
+  if (cabe()) return;
+
   if (!explicacionEl || !contenidoEl) return;
+
+  tarjetaNodo.classList.add('tarjeta--explicacion-menor');
+  if (cabe()) return;
+
+  tarjetaNodo.classList.add('tarjeta--explicacion-minima');
+  if (cabe()) return;
+
+  tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
   const estilo = window.getComputedStyle(explicacionEl);
   const lineHeight = parseFloat(estilo.lineHeight) || 18;
   const restoAltura = contenidoEl.scrollHeight - explicacionEl.scrollHeight;
@@ -793,14 +870,6 @@ function ajustarEncaje(tarjetaNodo) {
   const alturaLibre = contenidoEl.clientHeight - restoAltura - 4;
   const lineas = Math.max(1, Math.floor(alturaLibre / lineHeight));
   explicacionEl.style.webkitLineClamp = String(lineas);
-}
-
-/** Alterna, dentro de una tarjeta plegada, cuál de las piezas (respuesta
- * completa / explicación completa / imagen, Tarea 3b) se ve entera — nunca
- * más de una a la vez, nunca scroll (spec v0.1c §4.2). */
-function alternarEncaje(tarjetaNodo, cual) {
-  const actual = tarjetaNodo.dataset.expandido || '';
-  tarjetaNodo.dataset.expandido = actual === cual ? '' : cual;
 }
 
 // ============================================================================
@@ -872,6 +941,24 @@ function listaActual() {
 function actualizarBarraProgreso() {
   const respondidas = mazo.filter((h) => h.respondida).length;
   barraProgresoRelleno.style.transform = `scaleX(${respondidas / N_PARTIDA})`;
+  // Contador de la cabecera de pregunta (spec v0.1d §1, "3/10"): el mismo
+  // valor para TODAS las tarjetas visibles ahora mismo (la ventana de 3 nodos
+  // de montarMazo), así que basta con volver a pintar lo que ya esté en el
+  // DOM en vez de reconstruir cada tarjeta. Se llama tras cada navegación y
+  // tras cada respuesta (los dos únicos momentos en que "respondidas" cambia
+  // o en que una tarjeta nueva puede entrar en la ventana).
+  const textoContador = contadorTextoPartida();
+  contenedorMazo.querySelectorAll('[data-test="mazo-contador"]').forEach((nodo) => {
+    nodo.textContent = textoContador;
+  });
+}
+
+/** "3/10" (respondidas/N_PARTIDA) para el contador de la cabecera de pregunta
+ * (spec v0.1d §1). Solo tiene sentido en la partida: el repaso usa su propia
+ * posición dentro del mazo de resumen (ver construirTarjetaRepaso). */
+function contadorTextoPartida() {
+  const respondidas = mazo.filter((h) => h.respondida).length;
+  return `${respondidas}/${N_PARTIDA}`;
 }
 
 /** Rellena el hueco `i` la primera vez que se llega a él (spec v0.1c §2.1): solo
@@ -1020,11 +1107,24 @@ function finalizarPartida() {
 // --- construcción de tarjetas ---
 // ============================================================================
 
-function construirCabeceraPregunta(pregunta) {
+/** Cabecera "Área · nivel N" de cada tarjeta, con el contador de la spec
+ * v0.1d §1 a la derecha si se pasa `contadorTexto` ("3/10" en la partida,
+ * "2/5" en el repaso — cada llamador decide cuál según el contexto). Sin
+ * contador, la cabecera queda igual que en v0.1c (usado nunca hoy, pero deja
+ * la función utilizable sin el segundo argumento). */
+function construirCabeceraPregunta(pregunta, contadorTexto) {
   const cabecera = document.createElement('p');
   cabecera.className = 'pregunta-cabecera';
   cabecera.dataset.test = 'nivel-pregunta';
-  cabecera.textContent = `${nombreArea(pregunta.area)} · nivel ${pregunta.nivel}`;
+  const texto = document.createElement('span');
+  texto.textContent = `${nombreArea(pregunta.area)} · nivel ${pregunta.nivel}`;
+  cabecera.appendChild(texto);
+  if (contadorTexto) {
+    const contador = document.createElement('span');
+    contador.dataset.test = 'mazo-contador';
+    contador.textContent = contadorTexto;
+    cabecera.appendChild(contador);
+  }
   return cabecera;
 }
 
@@ -1077,9 +1177,12 @@ function activarToqueEnunciado(tarjeta) {
 /** Fila de confianza (spec v0.1c §2.3): clonada de la plantilla, con su propio
  * segmentado. Antes de responder cambia hueco.confianza sin más; después de
  * responder, cada cambio recorrige la respuesta ya registrada vía
- * cambiarConfianza() del motor. */
+ * cambiarConfianza() del motor. Compacta a 32px tras responder (spec v0.1d
+ * §3, `hueco.respondida` ya está en `true` cuando esta función se llama desde
+ * construirTarjetaRespondida): sigue tocable y editable igual, solo más baja. */
 function construirFilaConfianza(hueco) {
   const nodo = plantillaConfianza.content.firstElementChild.cloneNode(true);
+  nodo.classList.toggle('confianza-fila--compacta', hueco.respondida);
   const opciones = {
     baja: nodo.querySelector('[data-test="confianza-baja"]'),
     media: nodo.querySelector('[data-test="confianza-media"]'),
@@ -1407,11 +1510,12 @@ function construirTarjetaSinResponder(hueco) {
   // Todo lo de arriba de la zona de acción es UN bloque con gaps fijos que se
   // centra verticalmente en el espacio libre (corrección de la ronda 1: antes
   // cada pieza -confianza, respuesta, feedback- competía por su propio flex:1
-  // y quedaban tres grupos flotantes con huecos grandes entre sí). El plegado
-  // (compacta-1/2, ver ajustarEncaje) solo entra cuando este bloque desborda.
+  // y quedaban tres grupos flotantes con huecos grandes entre sí). Sin
+  // responder no hay cascada de plegado (spec v0.1d §3/§4, 13-sep 10:19): ver
+  // ajustarEncaje.
   const contenido = document.createElement('div');
   contenido.className = 'tarjeta-contenido';
-  contenido.appendChild(construirCabeceraPregunta(pregunta));
+  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTextoPartida()));
   contenido.appendChild(construirBloqueEnunciado(pregunta));
   contenido.appendChild(construirFilaConfianza(hueco));
   const zonaRespuesta = construirZonaRespuesta(hueco);
@@ -1597,15 +1701,20 @@ const DESTINOS_PREGUNTAR_A = [
   { clave: 'gemini', nombre: 'Gemini', icono: SVG_PREGUNTAR_GEMINI, url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
 ];
 
-/** Prompt en español, tal cual la spec v0.1c §5 (mismos tres campos: enunciado,
- * respuesta correcta, explicación). */
+/** Prompt en español, literal de la spec v0.1d §5 (feedback de Carlos: "el
+ * prompt no lo limites tanto, que sea constructivo"): sin tope de palabras,
+ * pide mecanismo/porqué, contexto, actualidad, un dato memorable, que
+ * corrija la explicación si le falta algo y que proponga 2-3 preguntas más. */
 function construirPromptPreguntarA(pregunta) {
-  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación: «${pregunta.explicacion}». Explícamelo más a fondo: el mecanismo, por qué importa hoy y un dato memorable. En español, menos de 200 palabras.`;
+  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
 }
 
-/** Fila "Preguntar a:" (spec v0.1c §5): etiqueta + tres <a> de 44×44, borde
- * cian, icono monocromo y aria-label, cada uno con el prompt de ESTA pregunta
- * ya codificado en la URL. `target="_blank" rel="noopener"`: abren aparte. */
+/** Fila "Preguntar a:" (spec v0.1c §5, nombres añadidos en v0.1d §5): etiqueta
+ * + tres columnas icono(44×44)+nombre(11px), cada `<a>` con borde cian, icono
+ * monocromo, aria-label y el prompt de ESTA pregunta ya codificado en la URL.
+ * `target="_blank" rel="noopener"`: abren aparte. El nombre visible es
+ * `aria-hidden`: el aria-label del enlace ya lo dice, no hace falta leerlo dos
+ * veces con lector de pantalla. */
 function construirPreguntarA(pregunta) {
   const frag = document.createDocumentFragment();
 
@@ -1616,6 +1725,9 @@ function construirPreguntarA(pregunta) {
 
   const prompt = encodeURIComponent(construirPromptPreguntarA(pregunta));
   for (const destino of DESTINOS_PREGUNTAR_A) {
+    const item = document.createElement('div');
+    item.className = 'preguntar-a-item';
+
     const enlace = document.createElement('a');
     enlace.className = 'preguntar-a-boton';
     enlace.dataset.test = `preguntar-${destino.clave}`;
@@ -1624,7 +1736,15 @@ function construirPreguntarA(pregunta) {
     enlace.rel = 'noopener';
     enlace.setAttribute('aria-label', `Preguntar a ${destino.nombre}`);
     enlace.innerHTML = destino.icono;
-    frag.appendChild(enlace);
+    item.appendChild(enlace);
+
+    const nombre = document.createElement('span');
+    nombre.className = 'preguntar-a-nombre';
+    nombre.textContent = destino.nombre;
+    nombre.setAttribute('aria-hidden', 'true');
+    item.appendChild(nombre);
+
+    frag.appendChild(item);
   }
   return frag;
 }
@@ -1739,16 +1859,15 @@ function construirBloqueFeedback(pregunta, hueco) {
   chips.append(chipRecuperada, chipAltaFallo, chipMision, chipFragil);
   feedback.appendChild(chips);
 
+  // Sin toque para desplegar/plegar (spec v0.1d §3/§4, cambio de contrato de
+  // Carlos 13-sep 10:15/10:19: "evitar cantidad de clics"): si no cabe, la
+  // cascada de ajustarEncaje la encoge (tarjeta--explicacion-menor/-minima) o,
+  // como último recurso, la recorta con line-clamp — nunca con una alternancia
+  // táctil que el jugador tenga que descubrir.
   const explicacion = document.createElement('p');
   explicacion.className = 'explicacion';
   explicacion.dataset.test = 'explicacion';
   explicacion.textContent = pregunta.explicacion;
-  explicacion.addEventListener('click', (ev) => {
-    const tarjeta = explicacion.closest('.tarjeta');
-    if (!tarjeta || !tarjeta.classList.contains('tarjeta--compacta-2')) return;
-    ev.stopPropagation();
-    alternarEncaje(tarjeta, 'explicacion');
-  });
   feedback.appendChild(explicacion);
 
   pintarFeedback(feedback, pregunta, hueco.correcta, hueco.delta);
@@ -1783,9 +1902,14 @@ function construirAtribucionImagen(datos) {
   return p;
 }
 
-/** Bloque de imagen: figura 16:9 + pie, y el enlace discreto "Ver imagen" que
- * usa el paso 0 de ajustarEncaje cuando hay que plegarla para caber sin
- * scroll. Devuelve `null` si la pregunta no tiene imagen (nada que pintar). */
+/** Bloque de imagen: figura + pie, sin enlace "Ver imagen" (spec v0.1d §4,
+ * feedback de Carlos: "el botón Ver imagen no sirve para nada: la imagen o
+ * se pone o no"). La caja es flexible (CSS: flex:1 1 auto, min-height:90px,
+ * max-height:40vh): crece si sobra espacio y se encoge hasta 90px si hace
+ * falta, pero nunca se pliega/oculta por falta de espacio — es de lo último
+ * que la cascada de ajustarEncaje sacrifica (spec v0.1d §3/§4, 13-sep 10:19).
+ * Solo desaparece si la imagen de verdad falla al cargar (ver el `error` de
+ * abajo). Devuelve `null` si la pregunta no tiene imagen (nada que pintar). */
 function construirBloqueImagen(pregunta) {
   const datos = imagenesPorId.get(pregunta.id);
   if (!datos) return null;
@@ -1805,10 +1929,14 @@ function construirBloqueImagen(pregunta) {
   img.src = datos.url;
   // Imagen rota (404, sin red...): se quita el bloque entero (nada de cajas
   // rotas) y se recalcula el encaje por si la tarjeta dependía de ella para
-  // caber sin scroll.
+  // caber sin scroll. También se quita la marca de "hay imagen" del bloque de
+  // contenido (deja de alinearse arriba, vuelve a centrarse como si nunca
+  // hubiera tenido imagen, spec v0.1d §3).
   img.addEventListener('error', () => {
     const tarjeta = zona.closest('.tarjeta');
+    const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
     zona.remove();
+    if (contenido) contenido.classList.remove('tarjeta-contenido--imagen');
     if (tarjeta) ajustarEncaje(tarjeta);
   });
   figura.appendChild(img);
@@ -1823,25 +1951,25 @@ function construirBloqueImagen(pregunta) {
   pie.appendChild(construirAtribucionImagen(datos));
   figura.appendChild(pie);
 
-  const verImagen = document.createElement('button');
-  verImagen.className = 'ver-imagen';
-  verImagen.dataset.test = 'ver-imagen';
-  verImagen.textContent = 'Ver imagen';
-
   zona.appendChild(figura);
-  zona.appendChild(verImagen);
   return zona;
 }
 
 /**
  * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
- * cabecera, enunciado, confianza (activa, salvo soloLectura), respuesta
- * compacta + resumen a una línea (para tarjeta--compacta-1), imagen de
- * Wikimedia Commons si la pregunta tiene una (Tarea 3b), feedback y, en la
- * zona de acción, la fila "Preguntar a" (construirPreguntarA) y, salvo
- * soloLectura, "esta pregunta está mal" + Siguiente.
+ * cabecera (con contador, spec v0.1d §1), enunciado, confianza compacta
+ * (activa, salvo soloLectura), respuesta compacta + resumen a una línea (para
+ * tarjeta--compacta-1), imagen de Wikimedia Commons si la pregunta tiene una
+ * (Tarea 3b), feedback y, en la zona de acción, la fila "Preguntar a"
+ * (construirPreguntarA) y, salvo soloLectura, la fila compacta de 44px "esta
+ * pregunta está mal" + Siguiente (spec v0.1d §2). Único toque permitido en
+ * esta tarjeta, aparte de esos cuatro controles: ninguno — spec v0.1d §3/§4
+ * (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado, así que
+ * ni la explicación, ni la respuesta compacta, ni la imagen tienen listener.
+ * `contadorTexto` lo decide cada llamador ("3/10" en partida, "n/N" en
+ * repaso): ver manejarRespuesta y construirTarjetaRepaso.
  */
-function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {}) {
+function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, contadorTexto } = {}) {
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta';
   tarjeta.dataset.test = 'tarjeta';
@@ -1850,42 +1978,27 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
 
   const contenido = document.createElement('div');
   contenido.className = 'tarjeta-contenido';
-  contenido.appendChild(construirCabeceraPregunta(pregunta));
+  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto));
   contenido.appendChild(construirBloqueEnunciado(pregunta));
   if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
 
+  // Zona de respuesta ya fija: la compacta (completa) y su resumen a una
+  // línea conviven en el DOM, CSS decide cuál se ve según la cascada de
+  // ajustarEncaje (tarjeta--compacta-1 / tarjeta--sin-respuestas) — sin
+  // listeners, nunca se alternan con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
-  const respuestaCompacta = construirRespuestaCompacta(pregunta, hueco);
-  const resumenRespuesta = construirResumenRespuesta(pregunta);
-  resumenRespuesta.addEventListener('click', (ev) => {
-    if (!tarjeta.classList.contains('tarjeta--compacta-1')) return;
-    ev.stopPropagation();
-    alternarEncaje(tarjeta, 'respuesta');
-  });
-  respuestaCompacta.addEventListener('click', (ev) => {
-    if (tarjeta.dataset.expandido !== 'respuesta') return;
-    ev.stopPropagation();
-    alternarEncaje(tarjeta, 'respuesta');
-  });
-  zonaRespuesta.appendChild(respuestaCompacta);
-  zonaRespuesta.appendChild(resumenRespuesta);
+  zonaRespuesta.appendChild(construirRespuestaCompacta(pregunta, hueco));
+  zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
   contenido.appendChild(zonaRespuesta);
 
+  // La imagen absorbe el sobrante (spec v0.1d §3): el bloque de contenido deja
+  // de centrarse con márgenes automáticos y se alinea arriba (ver
+  // .tarjeta-contenido--imagen en estilos.css) solo cuando SÍ hay imagen; sin
+  // ella, o en la tarjeta sin responder, el centrado de v0.1c se mantiene.
   const bloqueImagen = construirBloqueImagen(pregunta);
   if (bloqueImagen) {
-    const figuraImagen = bloqueImagen.querySelector('.imagen');
-    const verImagen = bloqueImagen.querySelector('.ver-imagen');
-    verImagen.addEventListener('click', (ev) => {
-      if (!tarjeta.classList.contains('tarjeta--sin-imagen')) return;
-      ev.stopPropagation();
-      alternarEncaje(tarjeta, 'imagen');
-    });
-    figuraImagen.addEventListener('click', (ev) => {
-      if (tarjeta.dataset.expandido !== 'imagen') return;
-      ev.stopPropagation();
-      alternarEncaje(tarjeta, 'imagen');
-    });
+    contenido.classList.add('tarjeta-contenido--imagen');
     contenido.appendChild(bloqueImagen);
   }
 
@@ -1901,32 +2014,41 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
   zonaAccion.appendChild(anclaPreguntarA);
 
   if (!soloLectura) {
-    const reportadaTexto = document.createElement('p');
-    reportadaTexto.className = 'reportada';
-    reportadaTexto.textContent = 'Anotado';
-    reportadaTexto.hidden = !hueco.reportada;
-    zonaAccion.appendChild(reportadaTexto);
+    // Fila de acción compacta de 44px (spec v0.1d §2): "esta pregunta está
+    // mal" a la izquierda (o "Anotado" en su lugar, tras tocarlo) y
+    // "Siguiente ›" a la derecha, en UNA sola fila — ya no hay fila aparte
+    // para el enlace ni un botón Siguiente a todo el ancho.
+    const filaAccion = document.createElement('div');
+    filaAccion.className = 'fila-accion';
 
-    const filaEstaMal = document.createElement('div');
-    filaEstaMal.className = 'fila-esta-mal';
     const botonEstaMal = document.createElement('button');
     botonEstaMal.className = 'enlace-discreto';
     botonEstaMal.dataset.test = 'esta-mal';
     botonEstaMal.textContent = 'esta pregunta está mal';
+    botonEstaMal.hidden = hueco.reportada;
     botonEstaMal.addEventListener('click', () => manejarClicEstaMal(hueco));
-    filaEstaMal.appendChild(botonEstaMal);
-    zonaAccion.appendChild(filaEstaMal);
+    filaAccion.appendChild(botonEstaMal);
+
+    const reportadaTexto = document.createElement('p');
+    reportadaTexto.className = 'reportada';
+    reportadaTexto.textContent = 'Anotado';
+    reportadaTexto.hidden = !hueco.reportada;
+    filaAccion.appendChild(reportadaTexto);
 
     const botonSiguiente = document.createElement('button');
-    botonSiguiente.className = 'boton boton-principal';
+    botonSiguiente.className = 'boton boton-principal boton-siguiente';
     botonSiguiente.dataset.test = 'siguiente';
-    botonSiguiente.textContent = 'Siguiente';
+    botonSiguiente.textContent = 'Siguiente ›';
     botonSiguiente.addEventListener('click', irASiguienteHueco);
-    zonaAccion.appendChild(botonSiguiente);
+    filaAccion.appendChild(botonSiguiente);
+
+    zonaAccion.appendChild(filaAccion);
   }
   tarjeta.appendChild(zonaAccion);
 
-  activarToqueEnunciado(tarjeta);
+  // Sin toque en el enunciado tampoco (a diferencia de la tarjeta sin
+  // responder, que sí lo conserva): el único plegado de esta tarjeta es la
+  // cascada automática de ajustarEncaje, nunca uno manual.
   return tarjeta;
 }
 
@@ -1937,7 +2059,10 @@ function manejarClicEstaMal(hueco) {
     guardarEstado(estado);
   }
   hueco.reportada = true;
-  const reportadaTexto = hueco.nodo && hueco.nodo.querySelector('.reportada');
+  if (!hueco.nodo) return;
+  const botonEstaMal = hueco.nodo.querySelector('[data-test="esta-mal"]');
+  const reportadaTexto = hueco.nodo.querySelector('.reportada');
+  if (botonEstaMal) botonEstaMal.hidden = true;
   if (reportadaTexto) reportadaTexto.hidden = false;
 }
 
@@ -2008,7 +2133,7 @@ function manejarRespuesta(hueco, respuesta) {
   hueco.respuesta = respuesta;
   hueco.correcta = correcta;
   hueco.delta = resultado.delta;
-  hueco.nodo = construirTarjetaRespondida(pregunta, hueco, { soloLectura: false });
+  hueco.nodo = construirTarjetaRespondida(pregunta, hueco, { soloLectura: false, contadorTexto: contadorTextoPartida() });
 
   // Un solo actualizarTarjetas() con el nodo nuevo Y (si aplica) el hueco
   // rellenado por delante o la tarjeta de cierre ya resueltos: ver el porqué
@@ -2142,7 +2267,7 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
  * partida (construirTarjetaRespondida, soloLectura: sin confianza ni
  * Siguiente, con "Preguntar a" ya relleno), con una marca añadida justo tras
  * la cabecera de área/nivel para saber POR QUÉ está aquí. */
-function construirTarjetaRepaso(item) {
+function construirTarjetaRepaso(item, indice, total) {
   const hueco = {
     pregunta: item.pregunta,
     correcta: item.correcta,
@@ -2151,7 +2276,14 @@ function construirTarjetaRepaso(item) {
     reportada: false,
     nodo: null,
   };
-  const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, { soloLectura: true });
+  // Contador "n/N" (spec v0.1d §1): la posición de ESTA tarjeta dentro del
+  // repaso, fija desde que se construye (a diferencia del contador de la
+  // partida, aquí no hace falta refrescarlo: nada cambia el total ni el orden
+  // una vez montado el mazo de resumen).
+  const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, {
+    soloLectura: true,
+    contadorTexto: `${indice + 1}/${total}`,
+  });
   tarjeta.dataset.test = 'repaso-tarjeta';
 
   const marca = document.createElement('p');
@@ -2182,8 +2314,9 @@ function construirTarjetaFinalResumen() {
  * cifras, una por cada elemento de repasoPartida y, si había alguno, la final. */
 function construirMazoResumen(cifras) {
   const tarjetas = [construirTarjetaCifras(cifras)];
-  repasoPartida.forEach((item) => tarjetas.push(construirTarjetaRepaso(item)));
-  if (repasoPartida.length > 0) tarjetas.push(construirTarjetaFinalResumen());
+  const total = repasoPartida.length;
+  repasoPartida.forEach((item, i) => tarjetas.push(construirTarjetaRepaso(item, i, total)));
+  if (total > 0) tarjetas.push(construirTarjetaFinalResumen());
   return tarjetas;
 }
 
