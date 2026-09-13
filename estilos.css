@@ -393,7 +393,6 @@ main#app {
   border-radius: 10px;
   overflow: hidden;
   background: var(--tarjeta);
-  transition: height 150ms ease;
 }
 
 .confianza[hidden] { display: none; }
@@ -405,14 +404,15 @@ main#app {
   color: var(--texto-suave);
   font-size: 14px;
   font-weight: 600;
-  transition: transform 0.1s ease, background-color 0.1s ease, color 0.1s ease, font-size 150ms ease;
+  transition: transform 0.1s ease, background-color 0.1s ease, color 0.1s ease;
 }
 
 /* Confianza compacta tras responder (spec v0.1d §3): 44px -> 32px, sigue
-   tocable y editable con la misma lógica (cambiarConfianza). La transición de
-   arriba solo se nota si algún día la MISMA fila cambia de estado sin
-   reconstruirse; hoy la tarjeta se sustituye entera al responder, así que
-   esto es una garantía barata más que un efecto visible. */
+   tocable y editable con la misma lógica (cambiarConfianza). Sin transición
+   (corrección ronda 1 de revisión, minor): la tarjeta se sustituye entera al
+   responder, así que un cambio de altura nunca tiene un "antes" del que
+   animar — era una transición muerta que el detector de diseño marcaba como
+   animación de layout sin efecto real. */
 .confianza-fila--compacta .confianza {
   height: 32px;
 }
@@ -947,9 +947,13 @@ main#app {
   line-height: 1.3;
 }
 
-.tarjeta--sin-enunciado > .titulo-tarjeta,
-.tarjeta--sin-enunciado > .enunciado,
-.tarjeta--sin-enunciado > .instruccion-error {
+/* Descendiente, no hijo directo (corrección ronda 1 de revisión): estos tres
+   nodos viven dentro de `.tarjeta-contenido`, que a su vez vive dentro de
+   `.tarjeta` (donde se pone esta clase) — son nietos, no hijos, así que `>`
+   nunca los alcanzaba y este paso era código muerto. */
+.tarjeta--sin-enunciado .titulo-tarjeta,
+.tarjeta--sin-enunciado .enunciado,
+.tarjeta--sin-enunciado .instruccion-error {
   display: none;
 }
 
@@ -972,14 +976,28 @@ main#app {
   overflow: hidden;
 }
 
-/* Tipografía fluida (clamp) y recorte elegante a 5 líneas: un enunciado largo
-   nunca empuja la vista a hacer scroll. Un toque expande si estaba recortado,
-   solo en la tarjeta SIN responder (spec v0.1d §3/§4: la respondida no tiene
-   esta alternancia, ver activarToqueEnunciado en app.js). */
 .enunciado {
   font-size: clamp(18px, 5.4vw, 26px);
   line-height: 1.3;
   margin: 0;
+}
+
+/* Recorte elegante a 5 líneas SOLO antes de responder (corrección ronda 1 de
+   revisión, crítico): con el line-clamp nativo activo TAMBIÉN en la tarjeta
+   respondida, `-webkit-line-clamp` limita la propia caja del `.enunciado` a
+   la altura de las líneas visibles — su `scrollHeight` deja de reflejar el
+   contenido real y pasa a valer lo mismo que `clientHeight` aunque el texto
+   sea mucho más largo. `ajustarEncaje()` mide `.tarjeta-contenido` en
+   conjunto: con el enunciado ya "encogido" por el clamp nativo antes de que
+   la cascada de JS actúe, `cabe()` podía dar por bueno un desborde real
+   (visto en `docs/capturas/v0.1d-peor-caso-imagen-explicacion-430.png`: el
+   enunciado salía truncado con "…" mientras las respuestas se veían enteras,
+   el orden EXACTAMENTE CONTRARIO al que pide Carlos). Sin responder, el
+   enunciado no entra en la cascada (ver el `return` temprano en
+   ajustarEncaje para `dataset.respondida !== 'true'`) así que aquí sí puede
+   seguir recortado a 5 líneas con su alternancia de toque de siempre
+   (activarToqueEnunciado, app.js). */
+.tarjeta:not([data-respondida="true"]) .enunciado {
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;

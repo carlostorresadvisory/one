@@ -771,6 +771,14 @@ if (new URLSearchParams(location.search).get('test') === '1') {
       if (datos) imagenesPorId.set(id, datos);
       else imagenesPorId.delete(id);
     },
+    // Inyecta una pregunta sintética en el banco ya cargado (ronda 1 de
+    // revisión de v0.1d): para que el e2e pueda forzar un desborde extremo
+    // (enunciado + explicación larguísimos) sin depender de `page.route` ni
+    // de qué preguntas traiga el banco real/de ejemplo en cada momento.
+    inyectarPregunta(pregunta) {
+      bancoPorId.set(pregunta.id, pregunta);
+      banco.push(pregunta);
+    },
   };
 }
 
