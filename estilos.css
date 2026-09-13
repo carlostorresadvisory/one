@@ -671,6 +671,15 @@ main#app {
   font-weight: 600;
 }
 
+/* Recuento bajo la pregunta de confirmación (Añadido B, 13-sep tarde): mismo
+   texto literal de siempre ("Quedan N sin responder"), ahora como subtítulo
+   secundario en vez de único título. */
+.mazo-cierre-subtitulo {
+  margin: 0;
+  font-size: 14px;
+  color: var(--texto-suave);
+}
+
 .mazo-cierre-acciones {
   display: flex;
   flex-direction: column;
@@ -990,31 +999,48 @@ main#app {
   margin: 0;
 }
 
-/* Recorte elegante a 5 líneas SOLO antes de responder (corrección ronda 1 de
-   revisión, crítico): con el line-clamp nativo activo TAMBIÉN en la tarjeta
-   respondida, `-webkit-line-clamp` limita la propia caja del `.enunciado` a
-   la altura de las líneas visibles — su `scrollHeight` deja de reflejar el
-   contenido real y pasa a valer lo mismo que `clientHeight` aunque el texto
-   sea mucho más largo. `ajustarEncaje()` mide `.tarjeta-contenido` en
-   conjunto: con el enunciado ya "encogido" por el clamp nativo antes de que
-   la cascada de JS actúe, `cabe()` podía dar por bueno un desborde real
-   (visto en `docs/capturas/v0.1d-peor-caso-imagen-explicacion-430.png`: el
-   enunciado salía truncado con "…" mientras las respuestas se veían enteras,
-   el orden EXACTAMENTE CONTRARIO al que pide Carlos). Sin responder, el
-   enunciado no entra en la cascada (ver el `return` temprano en
-   ajustarEncaje para `dataset.respondida !== 'true'`) así que aquí sí puede
-   seguir recortado a 5 líneas con su alternancia de toque de siempre
-   (activarToqueEnunciado, app.js). */
-.tarjeta:not([data-respondida="true"]) .enunciado {
+/* Ya NO hay recorte fijo a 5 líneas antes de responder (Añadido A, feedback
+   de Carlos 13-sep tarde desde el iPhone: "No podemos tener preguntas que no
+   caben" — una captura mostraba un enunciado cortado con "…" mientras sobraba
+   media tarjeta vacía arriba y abajo). El enunciado sin responder ahora tiene
+   su PROPIA cascada en ajustarEncaje (spec v0.1d §3/§4 ampliada): (a)
+   tarjeta--enunciado-menor; (b) tarjeta--opciones-compactas (ver más abajo);
+   (c) último recurso, el mismo recorte con line-clamp CALCULADO (no fijo a 5)
+   que ya usa la explicación — mínimo 2 líneas, con "…", sin ningún toque para
+   desplegarlo (regla de Carlos: ningún toque en ninguna tarjeta para
+   desplegar/plegar nada). Reutiliza tarjeta--explicacion-clamp como patrón:
+   ver tarjeta--enunciado-clamp aquí y su cálculo en ajustarEncaje. */
+.tarjeta--enunciado-clamp .enunciado {
   display: -webkit-box;
-  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.enunciado--expandido {
-  -webkit-line-clamp: unset;
-  overflow: visible;
+/* Paso (b) de la cascada SIN responder: opciones (test4/ordenar/error) y los
+   botones FALSO/VERDADERO más compactos ANTES de tocar el enunciado del todo
+   — para vf en concreto, encoger sus botones libera altura real a
+   .tarjeta-contenido, que es lo que mide `cabe()` (los botones viven en
+   .tarjeta-accion, hermana de .tarjeta-contenido dentro de .tarjeta: menos
+   .tarjeta-accion es más .tarjeta-contenido). Mismo tamaño de letra, solo
+   menos aire. */
+.tarjeta--opciones-compactas .opciones,
+.tarjeta--opciones-compactas .items,
+.tarjeta--opciones-compactas .filas,
+.tarjeta--opciones-compactas .botones-vf {
+  gap: 6px;
+}
+
+.tarjeta--opciones-compactas .opciones button,
+.tarjeta--opciones-compactas .items button {
+  padding: 10px 14px;
+}
+
+.tarjeta--opciones-compactas .filas button {
+  padding: 8px 12px;
+}
+
+.tarjeta--opciones-compactas .botones-vf button {
+  min-height: 44px;
 }
 
 .titulo-tarjeta {

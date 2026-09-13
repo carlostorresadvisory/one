@@ -1709,3 +1709,117 @@ test.describe('ONE · visuales v0.1e', () => {
     await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
   });
 });
+
+// ============================================================================
+// Añadido A/B (v0.1e, 13-sep tarde): feedback de Carlos desde el iPhone sobre
+// una captura real — "No podemos tener preguntas que no caben": un enunciado
+// largo se recortaba a 5 líneas fijas aunque sobrara media tarjeta vacía. La
+// tarjeta SIN responder pasa a tener su propia cascada en ajustarEncaje
+// (enunciado-menor -> opciones-compactas -> line-clamp calculado, sin ningún
+// toque). Describe aparte, mismo patrón de inyectarPregunta que "cascada de
+// encaje paso a paso" de más arriba (id sintético, no depende del banco).
+// ============================================================================
+test.describe('ONE · Añadido A/B v0.1e', () => {
+  test('Añadido A: un enunciado de ~6 líneas sin responder se ve ENTERO (ya no hay recorte fijo a 5 líneas)', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const idSintetico = 'sintetico-enunciado-6-lineas';
+    const preguntaSintetica = {
+      id: idSintetico,
+      area: 'historia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado:
+        'Enunciado sintético pensado para ocupar unas seis líneas a 375px de ancho, de forma que quepa entero en la tarjeta sin responder ahora que ya no hay un recorte fijo de cinco líneas esperando un toque que en esta tarjeta ya no existe.',
+      explicacion: 'Explicación cualquiera: no es lo que se prueba en este test.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
+    await page.evaluate(
+      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'enunciado-6-lineas' }),
+      idSintetico
+    );
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-respondida', 'false');
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const estado = await t.evaluate((tarjeta) => {
+      const enunciado = tarjeta.querySelector('.enunciado');
+      return {
+        lineClamp: getComputedStyle(enunciado).getPropertyValue('-webkit-line-clamp'),
+        scrollHeight: enunciado.scrollHeight,
+        clientHeight: enunciado.clientHeight,
+      };
+    });
+    // Sin recorte efectivo: con sitio de sobra, se ve el enunciado ENTERO.
+    expect(estado.lineClamp).toBe('none');
+    expect(estado.scrollHeight).toBeLessThanOrEqual(estado.clientHeight + 2);
+  });
+
+  test('Añadido A: un enunciado absurdo de ~40 líneas sin responder no hace scroll y acaba en el recorte calculado', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const idSintetico = 'sintetico-enunciado-40-lineas';
+    const preguntaSintetica = {
+      id: idSintetico,
+      area: 'historia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado:
+        'Enunciado sintético deliberadamente absurdo, mucho más largo de lo que cabría nunca en una tarjeta sin responder, pensado para forzar el último recurso de la cascada de encaje: ni bajar el tamaño de letra del enunciado ni compactar las opciones basta, así que tiene que acabar recortado con puntos suspensivos, sin scroll en ningún punto de la tarjeta. '.repeat(
+          6
+        ),
+      explicacion: 'Explicación cualquiera: no es lo que se prueba en este test.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
+    await page.evaluate(
+      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'enunciado-40-lineas' }),
+      idSintetico
+    );
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-respondida', 'false');
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const estado = await t.evaluate((tarjeta) => {
+      const enunciado = tarjeta.querySelector('.enunciado');
+      return {
+        clases: [...tarjeta.classList],
+        lineClamp: getComputedStyle(enunciado).getPropertyValue('-webkit-line-clamp'),
+      };
+    });
+    // Último recurso de la cascada: recorte calculado y activo (nunca "none"
+    // con un enunciado que a todas luces no cabe entero). El propio
+    // -webkit-line-clamp es quien pinta el "…" al mostrar (no se toca el DOM:
+    // el texto completo sigue en el enunciado, ver ajustarEncaje) — se
+    // comprueba aquí que el recorte esté realmente activo con un número de
+    // líneas concreto, que es justo lo que produce esa elipsis visual.
+    expect(estado.clases).toContain('tarjeta--enunciado-clamp');
+    expect(estado.lineClamp).not.toBe('none');
+    expect(Number(estado.lineClamp)).toBeGreaterThanOrEqual(2);
+  });
+});

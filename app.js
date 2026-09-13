@@ -540,7 +540,20 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
   }
 
   function render(conTransicion) {
+    // Antes del bucle, NO después (Añadido A, hallazgo al depurar el nuevo
+    // recorte calculado del enunciado sin responder): pintarChevronYPista()
+    // decide si el contenedor lleva mazo--con-pista, que cambia el
+    // padding-bottom de .tarjeta-mazo (14px -> 30px, estilos.css) y por tanto
+    // el alto real disponible para .tarjeta-contenido. Si se llama DESPUÉS
+    // del bucle, ajustarEncaje mide cada tarjeta con el padding TODAVÍA
+    // antiguo y calcula su cascada (incluido el line-clamp del enunciado)
+    // contra un alto que deja de ser cierto en cuanto esta función añade la
+    // banda de 30px — visto en la práctica: el recorte calculado del
+    // enunciado se quedaba ~16px corto (justo la diferencia de padding) y la
+    // tarjeta acababa con scroll real. Calculando el padding ANTES, todas las
+    // tarjetas del bucle miden ya el alto final.
     const enDom = new Set(contenedor.querySelectorAll('.tarjeta-mazo'));
+    pintarChevronYPista();
     for (let offset = -1; offset <= 1; offset += 1) {
       const i = indice + offset;
       if (i < 0 || i >= lista.length) continue;
@@ -572,7 +585,6 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     // v0.1c §2.2): el resto se retira.
     enDom.forEach((nodo) => nodo.remove());
     pintarPuntos();
-    pintarChevronYPista();
     // Red de seguridad de la causa raíz de C1 (ola final): `.mazo` tenía
     // `overflow: hidden`, lo que lo convertía en contenedor de SCROLL de
     // verdad (las tarjetas vecinas en `translateY(±100%)` hacen que
@@ -799,12 +811,16 @@ function ajustarEncaje(tarjetaNodo) {
     'tarjeta--sin-respuestas',
     'tarjeta--enunciado-menor',
     'tarjeta--sin-enunciado',
+    'tarjeta--opciones-compactas',
+    'tarjeta--enunciado-clamp',
     'tarjeta--explicacion-menor',
     'tarjeta--explicacion-minima',
     'tarjeta--explicacion-clamp'
   );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
+  const enunciadoEl = tarjetaNodo.querySelector('.enunciado');
+  if (enunciadoEl) enunciadoEl.style.webkitLineClamp = '';
 
   // Se mide `.tarjeta-contenido`, NO la tarjeta entera (hallazgo de la Tarea
   // 3b probando con art-003 + su imagen real a 430×932): la tarjeta es una
@@ -824,11 +840,39 @@ function ajustarEncaje(tarjetaNodo) {
   const cabe = () => !contenidoEl || contenidoEl.scrollHeight <= contenidoEl.clientHeight + 2;
   if (cabe()) return;
 
-  // Sin responder no hay cascada (spec v0.1d §3/§4, cambio de contrato de
-  // Carlos 13-sep 10:19): antes de responder no hay imagen ni feedback, y el
-  // contenido (enunciado + confianza + opciones) ya está pensado para caber
-  // tal cual con el banco actual — no se pliega nada.
-  if (tarjetaNodo.dataset.respondida !== 'true') return;
+  // Cascada de la tarjeta SIN RESPONDER (Añadido A, 13-sep tarde: feedback de
+  // Carlos desde el iPhone — una captura mostraba el enunciado recortado a 5
+  // líneas fijas con "…" mientras sobraba media tarjeta vacía arriba y abajo:
+  // "No podemos tener preguntas que no caben"). Automática y sin ningún
+  // toque, parando en el primer paso en que ya cabe. Con el banco actual (a)
+  // y (b) no deberían hacer falta casi nunca; lo importante es que un
+  // enunciado de 5-7 líneas se vea ENTERO cuando hay sitio, que es el caso de
+  // la captura:
+  //  (a) el enunciado baja un paso de tamaño (15px, tarjeta--enunciado-menor,
+  //      ya existía para la tarjeta respondida).
+  //  (b) las opciones/botones se compactan (tarjeta--opciones-compactas): más
+  //      apretadas, mismo tamaño de letra.
+  //  (c) último recurso: recorte con line-clamp CALCULADO sobre el enunciado
+  //      (mismo método que la explicación de la tarjeta respondida — líneas =
+  //      floor(alturaLibre / lineHeight), mínimo 2), con "…", sin ningún
+  //      toque para desplegarlo.
+  if (tarjetaNodo.dataset.respondida !== 'true') {
+    tarjetaNodo.classList.add('tarjeta--enunciado-menor');
+    if (cabe()) return;
+
+    tarjetaNodo.classList.add('tarjeta--opciones-compactas');
+    if (cabe()) return;
+
+    if (!enunciadoEl || !contenidoEl) return;
+    tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
+    const estiloEnunciado = window.getComputedStyle(enunciadoEl);
+    const lineHeightEnunciado = parseFloat(estiloEnunciado.lineHeight) || 20;
+    const restoAlturaEnunciado = contenidoEl.scrollHeight - enunciadoEl.scrollHeight;
+    const alturaLibreEnunciado = contenidoEl.clientHeight - restoAlturaEnunciado - 4;
+    const lineasEnunciado = Math.max(2, Math.floor(alturaLibreEnunciado / lineHeightEnunciado));
+    enunciadoEl.style.webkitLineClamp = String(lineasEnunciado);
+    return;
+  }
 
   // Cascada de la tarjeta RESPONDIDA, automática y sin ningún toque para
   // desplegar/plegar (decisión de Carlos, 13-sep 10:19, sustituye la de las
@@ -1174,18 +1218,6 @@ function construirBloqueEnunciado(pregunta) {
   return frag;
 }
 
-/** Enunciado recortado a 5 líneas (CSS): un toque lo expande. stopPropagation
- * evita que el toque se propague al gesto de arrastre del mazo. */
-function activarToqueEnunciado(tarjeta) {
-  const enunciadoEl = tarjeta.querySelector('.enunciado');
-  if (!enunciadoEl) return;
-  enunciadoEl.addEventListener('click', (ev) => {
-    ev.stopPropagation();
-    enunciadoEl.classList.toggle('enunciado--expandido');
-    ajustarEncaje(tarjeta);
-  });
-}
-
 /** Fila de confianza (spec v0.1c §2.3): clonada de la plantilla, con su propio
  * segmentado. Antes de responder cambia hueco.confianza sin más; después de
  * responder, cada cambio recorrige la respuesta ya registrada vía
@@ -1523,8 +1555,10 @@ function construirTarjetaSinResponder(hueco) {
   // centra verticalmente en el espacio libre (corrección de la ronda 1: antes
   // cada pieza -confianza, respuesta, feedback- competía por su propio flex:1
   // y quedaban tres grupos flotantes con huecos grandes entre sí). Sin
-  // responder no hay cascada de plegado (spec v0.1d §3/§4, 13-sep 10:19): ver
-  // ajustarEncaje.
+  // responder SÍ hay cascada (Añadido A, 13-sep tarde: un enunciado largo no
+  // puede quedar cortado con hueco libre de sobra en la tarjeta) — ver la
+  // rama `dataset.respondida !== 'true'` en ajustarEncaje, sin ningún toque
+  // para desplegar/plegar nada.
   const contenido = document.createElement('div');
   contenido.className = 'tarjeta-contenido';
   contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTextoPartida()));
@@ -1543,7 +1577,6 @@ function construirTarjetaSinResponder(hueco) {
   tarjeta.appendChild(zonaAccion);
 
   if (pregunta.tipo === 'vf') activarSwipeVf(tarjeta, hueco);
-  activarToqueEnunciado(tarjeta);
 
   return tarjeta;
 }
@@ -2090,9 +2123,9 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   }
   tarjeta.appendChild(zonaAccion);
 
-  // Sin toque en el enunciado tampoco (a diferencia de la tarjeta sin
-  // responder, que sí lo conserva): el único plegado de esta tarjeta es la
-  // cascada automática de ajustarEncaje, nunca uno manual.
+  // Sin toque en el enunciado (Añadido A quitó también el de la tarjeta sin
+  // responder: ninguna tarjeta lo tiene ya): el único plegado de esta tarjeta
+  // es la cascada automática de ajustarEncaje, nunca uno manual.
   return tarjeta;
 }
 
@@ -2129,10 +2162,19 @@ function construirTarjetaCierre() {
   // pre-relleno alcanza las N_PARTIDA justo al llegar al penúltimo hueco, con
   // dos sin responder todavía) dejaba el número congelado y equivocado.
   tarjeta.dataset.pendientes = String(pendientesN);
+  // Añadido B (13-sep tarde): título de confirmación explícito por encima
+  // del recuento — antes el recuento SOLO ("Quedan N sin responder") hacía
+  // de título, sin preguntar nada. El recuento se mantiene literal debajo,
+  // en --texto-suave (hay e2e que buscan justo ese texto).
   const titulo = document.createElement('p');
   titulo.className = 'mazo-cierre-titulo';
-  titulo.textContent = `Quedan ${pendientesN} sin responder`;
+  titulo.textContent = '¿Seguro que quieres terminar?';
   tarjeta.appendChild(titulo);
+
+  const subtitulo = document.createElement('p');
+  subtitulo.className = 'mazo-cierre-subtitulo';
+  subtitulo.textContent = `Quedan ${pendientesN} sin responder`;
+  tarjeta.appendChild(subtitulo);
 
   const acciones = document.createElement('div');
   acciones.className = 'mazo-cierre-acciones';
