@@ -8,6 +8,7 @@ const ESTATICOS = [
   'estilos.css',
   'app.js',
   'motor.js',
+  'visuales.js',
   'manifest.json',
   'datos/banco.json',
   'datos/imagenes.json',

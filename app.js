@@ -13,6 +13,7 @@ import {
   importar,
   evaluar,
 } from './motor.js';
+import { construirVisual } from './visuales.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -1966,6 +1967,35 @@ function construirBloqueImagen(pregunta) {
   return zona;
 }
 
+/** Bloque de visual generado (spec v0.1e §2/§4): SOLO se llama cuando la
+ * pregunta no tiene imagen de Commons (ver la prioridad fija en
+ * construirTarjetaRespondida: imagen primero, este visual después, nada si
+ * no hay ninguno de los dos). Misma caja flexible que la imagen
+ * (.zona-imagen, con la clase extra zona-imagen--visual) y misma cascada de
+ * encaje de v0.1d §4: el visual es "imagen" a todos los efectos (mín. 90px,
+ * máx. 55vh, nunca se quita). construirVisual (visuales.js) hace su propia
+ * comprobación mínima de forma y devuelve null si `pregunta.visual` no
+ * existe, no tiene un tipo reconocido o los datos no tienen pinta de lo que
+ * dicen ser; en ese caso esta función tampoco pinta nada (mismo contrato que
+ * construirBloqueImagen: null = nada que pintar). La leyenda va en un <p>
+ * con el mismo estilo que el pie de la imagen, pero sin atribución (no hay
+ * autor/licencia que citar en un dibujo generado por la propia app). */
+function construirBloqueVisual(pregunta) {
+  const svg = construirVisual(pregunta.visual);
+  if (!svg) return null;
+
+  const zona = document.createElement('div');
+  zona.className = 'zona-imagen zona-imagen--visual';
+  zona.appendChild(svg);
+
+  const leyenda = document.createElement('p');
+  leyenda.className = 'visual-pie';
+  leyenda.textContent = (pregunta.visual && pregunta.visual.leyenda) || '';
+  zona.appendChild(leyenda);
+
+  return zona;
+}
+
 /**
  * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
  * cabecera (con contador, spec v0.1d §1), enunciado, confianza compacta
@@ -2003,11 +2033,14 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
   contenido.appendChild(zonaRespuesta);
 
-  // La imagen absorbe el sobrante (spec v0.1d §3): el bloque de contenido deja
-  // de centrarse con márgenes automáticos y se alinea arriba (ver
-  // .tarjeta-contenido--imagen en estilos.css) solo cuando SÍ hay imagen; sin
-  // ella, o en la tarjeta sin responder, el centrado de v0.1c se mantiene.
-  const bloqueImagen = construirBloqueImagen(pregunta);
+  // La imagen (o, en su falta, el visual) absorbe el sobrante (spec v0.1d
+  // §3, ampliado en v0.1e §2): el bloque de contenido deja de centrarse con
+  // márgenes automáticos y se alinea arriba (ver .tarjeta-contenido--imagen
+  // en estilos.css) en cuanto hay CUALQUIERA de los dos; sin ninguno, o en
+  // la tarjeta sin responder, el centrado de v0.1c se mantiene. Prioridad
+  // fija: imagen de Commons si existe; si no, el visual verificado de la
+  // pregunta; si tampoco, nada (como hasta ahora) — nunca los dos a la vez.
+  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta);
   if (bloqueImagen) {
     contenido.classList.add('tarjeta-contenido--imagen');
     contenido.appendChild(bloqueImagen);

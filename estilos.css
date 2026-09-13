@@ -1349,7 +1349,12 @@ main#app {
   flex: none;
 }
 
-.imagen-pie-leyenda {
+/* La leyenda del visual generado (.visual-pie, más abajo) comparte esta
+   misma regla: mismo estilo que el pie de la imagen de Commons, sin
+   atribución (spec v0.1e §2/§4 — un dibujo de la propia app no tiene
+   autor/licencia que citar). */
+.imagen-pie-leyenda,
+.visual-pie {
   margin: 0;
   font-size: 12px;
   color: var(--texto);
@@ -1363,6 +1368,25 @@ main#app {
 
 .imagen-pie-atribucion a {
   color: var(--acento);
+}
+
+/* --- visual generado (spec v0.1e §2/§4): un SVG dibujado por la propia app
+   (visuales.js) en vez de una foto, cuando la pregunta no tiene imagen de
+   Commons (ver construirBloqueVisual en app.js). Vive en la MISMA caja
+   flexible que la imagen (.zona-imagen ya definida arriba: flex:1 1 auto,
+   min-height:90px, max-height:55vh — el visual es "imagen" a todos los
+   efectos de la cascada de encaje de v0.1d §4), con la clase extra
+   zona-imagen--visual solo para distinguir el origen en el DOM/tests. El
+   <svg data-test="visual"> ocupa el hueco igual que <img> arriba: flex:1 1
+   auto, ancho 100% — el viewBox interno (fijo, ver visuales.js) y
+   preserveAspectRatio deciden la composición y la escalan sin deformarla. */
+.zona-imagen--visual .visual-svg {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  background: var(--fondo);
 }
 
 /* --- resumen / repaso vertical (spec v0.1c §6) ---
