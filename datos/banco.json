@@ -98,7 +98,7 @@
   },
   {
     "enunciado": "¿Qué técnica pictórica consiste en aplicar capas transparentes de pintura sobre una capa seca para lograr luminosidad?",
-    "explicacion": "La veladura (glazing) permite modificar el tono y la saturación sin ocultar la capa inferior, usada desde el Renacimiento hasta el Barroco.",
+    "explicacion": "La veladura superpone capas translúcidas sobre pintura seca; la luz atraviesa, rebota en el fondo y vuelve filtrada, creando profundidad imposible con mezcla directa. Tiziano la llevó al extremo: sus últimos rostros tienen hasta cincuenta capas invisibles al ojo.",
     "nivel": 3,
     "opciones": [
       "Veladura",
@@ -423,7 +423,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "google/gemma-4-31b-it:free"
+    "verificador": "google/gemma-4-31b-it:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Temple (huevo)",
+          "puntos": [
+            "Seca en minutos",
+            "Capas finas y opacas",
+            "Brillo mate y duradero"
+          ]
+        },
+        {
+          "titulo": "Óleo (aceite)",
+          "puntos": [
+            "Seca en días/semanas",
+            "Veladuras transparentes",
+            "Mezcla y corrección fácil"
+          ]
+        }
+      ],
+      "leyenda": "Por qué el óleo sustituyó a la temple en el XVI"
+    }
   },
   {
     "enunciado": "La obra 'La noche estrellada' fue pintada por Vincent van Gogh en 1889 durante su estancia en el asilo de Saint-Rémy.",
@@ -453,7 +475,7 @@
   },
   {
     "enunciado": "El impresionismo rechazó el uso de la perspectiva lineal y la paleta oscura del academicismo, prefiriendo capturar la luz efímera con pinceladas sueltas.",
-    "explicacion": "Al pintar al aire libre, los impresionistas rompieron con la tradición de atelier y la jerarquía de géneros, priorizando la percepción inmediata; la exposición “Impresionistas en la modernidad” del Musée d’Orsay en 2024 subrayó cómo ese giro sigue influyendo en la fotografía contemporánea.",
+    "explicacion": "Los impresionistas abandonaron el estudio y el academicismo para pintar al aire libre, capturando la luz cambiante con pinceladas visibles y colores puros; su enfoque influyó en la fotografía contemporánea, como mostró la exposición 2024 del Musée d’Orsay.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 2,
@@ -577,7 +599,29 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Academia",
+          "puntos": [
+            "Temas nobles: historia, mito",
+            "Acabado liso, invisible",
+            "Estudio, luz controlada"
+          ]
+        },
+        {
+          "titulo": "Impresionismo",
+          "puntos": [
+            "Vida moderna, paisaje",
+            "Pincelada visible, suelta",
+            "Aire libre, luz natural"
+          ]
+        }
+      ],
+      "leyenda": "Ruptura de temas, técnica y lugar de trabajo"
+    }
   },
   {
     "enunciado": "¿Por qué los rascacielos modernos suelen tener una estructura de acero o hormigón armado en lugar de muros de carga de piedra?",
@@ -630,14 +674,36 @@
     "correcta": 0,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "Orson Welles construyó la biografía de Kane a través de recuerdos fragmentados y subjetivos, rompiendo la narración cronológica clásica y permitiendo al espectador reconstruir al personaje; la restauración 4K de 2024 volvió a poner ese modelo narrativo en el debate crítico.",
+    "explicacion": "Welles rompe la cronología lineal y narra la vida de Kane mediante flashbacks encadenados y perspectivas contradictorias, obligando al espectador a reconstruir al personaje. La restauración 4K de 2024 revitalizó el debate sobre su influencia en el cine moderno.",
     "id": "art-082",
     "area": "arte",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Cine clásico",
+          "puntos": [
+            "Narración cronológica",
+            "Punto de vista único",
+            "Causa-efecto claro"
+          ]
+        },
+        {
+          "titulo": "Ciudadano Kane",
+          "puntos": [
+            "Flashbacks encadenados",
+            "Múltiples perspectivas",
+            "El espectador reconstruye"
+          ]
+        }
+      ],
+      "leyenda": "Ruptura narrativa frente al modelo clásico de Hollywood"
+    }
   },
   {
     "enunciado": "¿Qué principio rector definió la arquitectura de la Bauhaus y marcó el rumbo del movimiento moderno?",

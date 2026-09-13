@@ -1,0 +1,67 @@
+
+=== visualizar 2026-09-13T11:25:34.599Z — 295 preguntas candidatas (pago permitido, tope 0.4 €) ===
+
+-- lote 1/37 (8 preguntas) --
+  art-001: explicación actualizada; ya tiene imagen
+    explicación antes: Leonardo da Vinci es el autor de la famosa retrato conocido como La Mona Lisa, conservado en el Louvre.
+    explicación después: Leonardo la pintó entre 1503 y 1519 usando la técnica del sfumato, que difumina los contornos y crea esa atmósfera enigmática. El robo de 1911 en el Louvre la convirtió en el icono global que es hoy.
+  art-002: explicación actualizada; ya tiene imagen
+    explicación antes: El impresionismo surgió en Francia, con artistas como Monet, Renoir y Degas, no en Italia.
+    explicación después: El impresionismo nació en París en los años 1870, cuando un grupo de pintores rechazados por el Salón oficial organizó sus propias exposiciones independientes. El nombre proviene del cuadro "Impresión, sol naciente" de Monet, que un crítico usó para burlarse.
+  art-003: explicación conservada (La explicacion propuesta es demasiado larga y no se centra en el hecho clave de la explicacion actual, que es la vista desde la ventana del asilo. Ademas, introduce elementos que no estan en la explicacion actual y que podrian ser objeto de debate o requerir mas contexto para un jugador no experto.); ya tiene imagen
+  art-004: explicación conservada (explicación de 58 palabras (> 40)); ya tiene imagen
+  art-006: explicación conservada (explicación de 42 palabras (> 40)); ya tiene imagen
+  art-007: explicación actualizada; ya tiene imagen
+    explicación antes: Goya vivió en los siglos XVIII‑XIX y su obra precede al Impresionismo; los fundadores de este movimiento fueron artistas franceses como Monet, Renoir y Degas.
+    explicación después: Goya murió en 1828, antes de que surgiera el Impresionismo (década de 1860); sus obras, como los Pinturas Negras, pertenecen al Romanticismo y anticipan el expresionismo, no al movimiento francés liderado por Monet.
+  art-009: explicación actualizada; ya tiene imagen
+    explicación antes: La Última Cena (1495-1498) es un mural de Leonardo en el convento de Santa Maria delle Grazie en Milán; las otras obras pertenecen a Van Gogh, Munch y Dalí respectivamente.
+    explicación después: La Última Cena innova al captar el instante psicológico tras el anuncio de la traición, usando la perspectiva para centrar la mirada en Cristo; su técnica experimental sobre muro seco provocó su rápido deterioro.
+  art-010: explicación conservada (esquema inválido: flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)); visual barras OK (nvidia/nemotron-3-super-120b-a12b:free)
+    visual: {"tipo":"barras","titulo":"Efecto de la veladura","items":[{"etiqueta":"Capa base","valor":40,"unidad":"%"},{"etiqueta":"Veladura","valor":60,"unidad":"%"}],"leyenda":"La veladura transmite luz que se refleja en la capa base"}
+--solo-pendientes: 118 ya resueltas, 177 pendientes.
+
+=== visualizar 2026-09-13T12:04:12.135Z — 8 preguntas candidatas (pago permitido, tope 0.4 €) ===
+
+-- lote 1/1 (8 preguntas) --
+  art-010: explicación actualizada; sin visual (esquema inválido: flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: La veladura (glazing) permite modificar el tono y la saturación sin ocultar la capa inferior, usada desde el Renacimiento hasta el Barroco.
+    explicación después: La veladura superpone capas translúcidas sobre pintura seca; la luz atraviesa, rebota en el fondo y vuelve filtrada, creando profundidad imposible con mezcla directa. Tiziano la llevó al extremo: sus últimos rostros tienen hasta cincuenta capas invisibles al ojo.
+  art-020: explicación conservada (explicación de 47 palabras (> 40)); sin visual (La explicación propuesta se centra demasiado en el proceso técnico y el precio de venta, perdiendo el foco en el porqué de su importancia artística y su conexión con el expresionismo abstracto. Además, la mención de un precio de venta específico de 2006, aunque verificable, no es esencial para entender el concepto y puede quedar desactualizada rápidamente. El visual propuesto, aunque describe el proceso, no aporta un valor añadido significativo para comprender la relevancia del artista o el movimiento.)
+  art-048: explicación conservada (explicación de 47 palabras (> 40)); visual comparacion OK (nvidia/nemotron-3-ultra-550b-a55b:free)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Temple (huevo)","puntos":["Seca en minutos","Capas finas y opacas","Brillo mate y duradero"]},{"titulo":"Óleo (aceite)","puntos":["Seca en días/semanas","Veladuras transparentes","Mezcla y corrección fácil"]}],"leyenda":"Por qué el óleo sustituyó a la temple en el XVI"}
+  art-070: explicación actualizada; ya tiene imagen
+    explicación antes: Al pintar al aire libre, los impresionistas rompieron con la tradición de atelier y la jerarquía de géneros, priorizando la percepción inmediata; la exposición “Impresionistas en la modernidad” del Musée d’Orsay en 2024 subrayó cómo ese giro sigue influyendo en la fotografía contemporánea.
+    explicación después: Los impresionistas abandonaron el estudio y el academicismo para pintar al aire libre, capturando la luz cambiante con pinceladas visibles y colores puros; su enfoque influyó en la fotografía contemporánea, como mostró la exposición 2024 del Musée d’Orsay.
+  art-076: explicación conservada (explicación de 54 palabras (> 40)); ya tiene imagen
+  art-077: explicación conservada (explicación de 48 palabras (> 40)); visual comparacion OK (nvidia/nemotron-3-ultra-550b-a55b:free)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Academia","puntos":["Temas nobles: historia, mito","Acabado liso, invisible","Estudio, luz controlada"]},{"titulo":"Impresionismo","puntos":["Vida moderna, paisaje","Pincelada visible, suelta","Aire libre, luz natural"]}],"leyenda":"Ruptura de temas, técnica y lugar de trabajo"}
+  art-081: explicación conservada (explicación de 42 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres))
+  art-082: explicación actualizada; visual comparacion OK (nvidia/nemotron-3-ultra-550b-a55b:free)
+    explicación antes: Orson Welles construyó la biografía de Kane a través de recuerdos fragmentados y subjetivos, rompiendo la narración cronológica clásica y permitiendo al espectador reconstruir al personaje; la restauración 4K de 2024 volvió a poner ese modelo narrativo en el debate crítico.
+    explicación después: Welles rompe la cronología lineal y narra la vida de Kane mediante flashbacks encadenados y perspectivas contradictorias, obligando al espectador a reconstruir al personaje. La restauración 4K de 2024 revitalizó el debate sobre su influencia en el cine moderno.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Cine clásico","puntos":["Narración cronológica","Punto de vista único","Causa-efecto claro"]},{"titulo":"Ciudadano Kane","puntos":["Flashbacks encadenados","Múltiples perspectivas","El espectador reconstruye"]}],"leyenda":"Ruptura narrativa frente al modelo clásico de Hollywood"}
+
+=== Resumen ===
+  arte: 8 procesadas, 3 explicación actualizada, 3 visual generado (comparacion:3)
+
+Total candidatas: 8
+Resueltas: 8
+Fallos de cascada (red/todos los modelos): 0
+Rechazadas por verificación (explicación): 5
+Rechazadas por verificación (visual, tras reintento): 3
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 123
+
+Detalle rechazos de visual (motivo):
+  art-010: esquema inválido: flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  art-020: La explicación propuesta se centra demasiado en el proceso técnico y el precio de venta, perdiendo el foco en el porqué de su importancia artística y su conexión con el expresionismo abstracto. Además, la mención de un precio de venta específico de 2006, aunque verificable, no es esencial para entender el concepto y puede quedar desactualizada rápidamente. El visual propuesto, aunque describe el proceso, no aporta un valor añadido significativo para comprender la relevancia del artista o el movimiento.
+  art-081: esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres)
+
+Detalle rechazos de explicación (motivo):
+  art-020: explicación de 47 palabras (> 40)
+  art-048: explicación de 47 palabras (> 40)
+  art-076: explicación de 54 palabras (> 40)
+  art-077: explicación de 48 palabras (> 40)
+  art-081: explicación de 42 palabras (> 40)
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.001647 $
