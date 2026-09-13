@@ -516,8 +516,19 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = tr
     // El indicador de gesto (spec v0.1d §1) se apaga en cuanto se aprendió el
     // gesto EN ESTA SESIÓN, independientemente del presupuesto de 5 vistas de
     // la pista textual (que sigue su propia lógica, sin tocar).
-    indicadorGesto.hidden = !mostrarBase || gestoYaAprendido();
+    //
+    // Hallazgo I1 (revisión final v0.1e, preexistente desde v0.1d): la pista
+    // textual ("Desliza ↑ para la siguiente...", 5 primeras tarjetas de la
+    // vida de la app y TODO el repaso) y el chevrón (`bottom:2px`, 22px de
+    // alto real) se solapan 16px con la pista (`bottom:8px`, 16px de alto)
+    // cuando los dos están visibles a la vez. En vez de tocar posiciones (la
+    // pista ya reserva su propia banda de 30px vía `.mazo--con-pista`, y
+    // mover el chevrón encima de esa banda le quita el "pie de tarjeta" que
+    // pide la spec), la pista textual ya EXPLICA el gesto por sí sola, así
+    // que el chevrón sobra mientras esté visible: se oculta también cuando
+    // hay pista, no solo cuando ya se aprendió el gesto.
     pista.hidden = !mostrarBase || !pistaVisibleActual;
+    indicadorGesto.hidden = !mostrarBase || gestoYaAprendido() || !pista.hidden;
     // Solo con la pista textual visible la tarjeta reserva la banda de 30px
     // (estilos.css .mazo--con-pista); sin ella, el contenido llega abajo.
     contenedor.classList.toggle("mazo--con-pista", !pista.hidden);
@@ -1977,16 +1988,28 @@ function construirBloqueImagen(pregunta) {
   img.alt = datos.leyenda || '';
   img.referrerPolicy = 'no-referrer';
   img.src = datos.url;
-  // Imagen rota (404, sin red...): se quita el bloque entero (nada de cajas
-  // rotas) y se recalcula el encaje por si la tarjeta dependía de ella para
-  // caber sin scroll. También se quita la marca de "hay imagen" del bloque de
-  // contenido (deja de alinearse arriba, vuelve a centrarse como si nunca
-  // hubiera tenido imagen, spec v0.1d §3).
+  // Imagen rota (404, sin red...): antes de dejar el hueco vacío, se intenta
+  // el visual generado como respaldo (hallazgo M2, revisión final v0.1e: la
+  // prioridad fija imagen->visual de construirTarjetaRespondida se decide en
+  // el momento de construir la tarjeta, cuando la imagen "existe" a efectos
+  // de datos aunque su carga real falle después — sin este respaldo, una
+  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno). Si
+  // `construirBloqueVisual` también devuelve null (sin visual, o inválido),
+  // se cae al comportamiento anterior: se quita el bloque entero y la marca
+  // de "hay imagen" del contenido (vuelve a centrarse como si nunca hubiera
+  // tenido imagen, spec v0.1d §3). Se recalcula el encaje en ambos casos,
+  // porque el alto disponible cambia.
   img.addEventListener('error', () => {
     const tarjeta = zona.closest('.tarjeta');
     const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
-    zona.remove();
-    if (contenido) contenido.classList.remove('tarjeta-contenido--imagen');
+    const respaldo = construirBloqueVisual(pregunta);
+    if (respaldo) {
+      zona.replaceWith(respaldo);
+      if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
+    } else {
+      zona.remove();
+      if (contenido) contenido.classList.remove('tarjeta-contenido--imagen');
+    }
     if (tarjeta) ajustarEncaje(tarjeta);
   });
   figura.appendChild(img);
