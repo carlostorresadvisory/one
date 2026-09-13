@@ -891,6 +891,31 @@ test.describe('ONE · integración e2e', () => {
     }
   });
 
+  // M1 (ola final): un filtro {ids} sin ninguna pregunta elegible (aquí, un id
+  // que no existe en el banco — mismo síntoma que una Misión de hoy con ids de
+  // un banco ya renovado, aunque misionDelDia ya se autorrepara para ese caso
+  // concreto, ver motor.js) no debe fingir una partida ni un resumen vacíos:
+  // se vuelve al HUB con un aviso breve y la racha NO sube.
+  test('M1: un filtro sin nada que jugar vuelve al HUB con aviso, sin fingir partida ni subir la racha', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
+
+    await page.evaluate(() =>
+      window.__one.empezarPartida({ ids: ['no-existe-en-el-banco'], etiqueta: 'inexistente' })
+    );
+
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeHidden();
+    await expect(page.locator('[data-test="aviso-hub"]')).toBeVisible();
+    await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Nada que jugar con este filtro');
+    await expect(page.locator('[data-test="modo-area"]')).toBeHidden();
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
+    await assertSinScroll(page);
+  });
+
   // Peor caso de la regla de encaje (spec v0.1c §4.2): la pregunta 'ordenar' y
   // la 'error' con la explicación MÁS LARGA del banco REAL (no el de ejemplo),
   // respondidas (falladas a propósito: es la variante más alta de la respuesta

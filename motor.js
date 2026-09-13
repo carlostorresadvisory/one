@@ -735,12 +735,25 @@ export function resumenProgreso(estado, banco, hoy) {
  * (banco pequeño) completa con la otra de las 2 áreas o, si tampoco alcanza, deja
  * la misión con menos de 3 ids.
  *
- * Si `estado.mision` ya es de `hoy` la devuelve sin cambios (idempotente: no crea
- * una segunda misión el mismo día). Si no, genera una nueva y la guarda en el
- * estado devuelto. Devuelve `{ estado, mision }`. No muta `estado`. Nunca lanza.
+ * Si `estado.mision` ya es de `hoy` Y todos sus ids siguen existiendo en `banco`
+ * la devuelve sin cambios (idempotente: no crea una segunda misión el mismo
+ * día). Si no, genera una nueva y la guarda en el estado devuelto. Devuelve
+ * `{ estado, mision }`. No muta `estado`. Nunca lanza.
+ *
+ * Ola final v0.1c, hallazgo M1: una misión guardada de hoy puede referenciar
+ * ids que ya no están en `banco` (el banco se renueva entre sesiones con ids
+ * nuevos). Sin esta comprobación, `siguientePregunta({ ids })` no puede servir
+ * ninguna (todas fuera del banco actual) y la partida arranca vacía. Un banco
+ * pequeño con MENOS de 3 ids (falta de material, no ids inexistentes) sigue
+ * sin regenerarse en cada llamada: `.every()` sobre un array vacío es `true`.
  */
 export function misionDelDia(estado, banco, hoy, rng = Math.random) {
-  if (estado.mision && estado.mision.fecha === hoy) {
+  const idsEnBancoActual = new Set(banco.map((p) => p.id));
+  const misionSigueValida =
+    estado.mision &&
+    estado.mision.fecha === hoy &&
+    estado.mision.ids.every((id) => idsEnBancoActual.has(id));
+  if (misionSigueValida) {
     return { estado, mision: estado.mision };
   }
 

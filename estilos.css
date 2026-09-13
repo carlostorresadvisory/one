@@ -1378,6 +1378,17 @@ main#app {
   content: '· ';
 }
 
+/* Aviso breve del HUB (M1, ola final): mismo estilo que .inicio-aviso.
+   `[hidden]` (regla general de la hoja) evita que ocupe hueco cuando no se
+   muestra: no debe alterar "sin hueco vacío entre la rejilla y Comenzar". */
+.hub-aviso {
+  min-height: 20px;
+  margin: 0;
+  color: var(--acento);
+  font-size: var(--tam-1);
+  text-align: center;
+}
+
 /* Misión de hoy / Pendientes: fila de dos tarjetas tocables (o atenuadas +
    aria-disabled cuando no aplican, ver actualizarDestacados en app.js). */
 .hub-destacados {

@@ -88,6 +88,10 @@
         <span class="hub-chip" data-test="recuperadas">Recuperadas 0</span>
         <span class="hub-chip" data-test="calibracion" hidden></span>
       </div>
+      <!-- Aviso breve (M1, ola final): "Nada que jugar con este filtro" cuando
+           Misión de hoy/Pendientes resultan sin ninguna pregunta elegible. Oculto
+           por defecto: no ocupa hueco (mostrarAvisoHub en app.js lo muestra ~1,6s). -->
+      <p class="hub-aviso" id="aviso-hub" data-test="aviso-hub" hidden></p>
       <div class="hub-destacados">
         <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
         <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>

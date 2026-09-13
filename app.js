@@ -69,6 +69,14 @@ let partidaUltima = null;
 let bancoAgotado = false;
 let nodoCierre = null;
 let mazoControlador = null;
+// Día fijado al ARRANCAR la partida (hallazgo adversarial B5, confirmado):
+// hoy() se reevaluaba en cada respuesta, así que una partida que cruzara la
+// medianoche podía registrar respuestas de la MISMA partida en dos días de
+// calendario distintos (historial partido, "hoy" del motor reiniciándose a
+// mitad de partida). registrarRespuesta/cambiarConfianza usan este valor fijo
+// en vez de llamar a hoy() de nuevo; el resto de usos de hoy() (HUB, racha al
+// terminar) siguen evaluándose al vuelo a propósito.
+let diaPartida = null;
 // Mazo del RESUMEN (repaso vertical, spec v0.1c §6): se monta en finalizarPartida()
 // sobre #mazo-resumen y se destruye al abandonar la vista (irAlHub, "Otra
 // partida") o antes de reemplazarlo por uno nuevo (otra partida terminada sin
@@ -99,6 +107,9 @@ const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
 const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
 const avisoCuerpo = document.getElementById('aviso-cuerpo');
+// Aviso breve del HUB (M1): "Nada que jugar con este filtro" cuando un filtro
+// (Misión de hoy, Pendientes...) resulta sin ninguna pregunta elegible.
+const avisoHub = document.getElementById('aviso-hub');
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
 // grande" y visibles sin tener que fijarse en la esquina.
 const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
@@ -326,6 +337,20 @@ function mostrarAvisoCuerpo() {
   avisoCuerpoId = setTimeout(() => {
     avisoCuerpo.hidden = true;
     avisoCuerpoId = null;
+  }, 1600);
+}
+
+let avisoHubId = null;
+/** M1: aviso breve en el HUB cuando un filtro de partida (Misión de hoy,
+ * Pendientes...) no tiene ninguna pregunta elegible — se vuelve al HUB en vez
+ * de fingir una partida o un resumen vacíos (ver empezarPartida). */
+function mostrarAvisoHub(mensaje) {
+  avisoHub.textContent = mensaje;
+  avisoHub.hidden = false;
+  if (avisoHubId !== null) clearTimeout(avisoHubId);
+  avisoHubId = setTimeout(() => {
+    avisoHub.hidden = true;
+    avisoHubId = null;
   }, 1600);
 }
 
@@ -810,17 +835,26 @@ function empezarPartida(filtro = null) {
   bancoAgotado = false;
   nodoCierre = null;
   repasoPartida = [];
-  actualizarCabecera(); // pinta "Solo <Área>" / "Misión de hoy" / "Pendientes" desde la primera pregunta.
-  mostrarVista('pregunta');
+  diaPartida = hoy(); // fijado UNA vez (hallazgo B5): ver comentario en la declaración.
 
-  contenedorMazo.innerHTML = '';
+  // Se comprueba ANTES de mostrar la vista "pregunta" (hallazgo M1, confirmado):
+  // un filtro sin nada elegible (p. ej. "Misión de hoy" con ids de un banco ya
+  // renovado — normalmente ya lo evita misionDelDia regenerando la misión,
+  // pero esto es la red de seguridad para cualquier otro filtro que llegue
+  // vacío) NO debe fingir una partida ni un resumen falso "0/0": eso además
+  // subiría la racha sin haberse respondido nada (ver finalizarPartida).
   const primerHueco = rellenarHueco(0);
   if (!primerHueco) {
-    // Banco vacío desde el principio (filtro sin nada elegible): defensivo, no
-    // debería pasar con los filtros que ofrece el hub.
-    finalizarPartida();
+    filtroPartida = null;
+    mostrarAvisoHub('Nada que jugar con este filtro');
+    renderHub();
+    mostrarVista('progreso');
     return;
   }
+
+  actualizarCabecera(); // pinta "Solo <Área>" / "Misión de hoy" / "Pendientes" desde la primera pregunta.
+  mostrarVista('pregunta');
+  contenedorMazo.innerHTML = '';
   actualizarBarraProgreso();
   mazoControlador = montarMazo(contenedorMazo, listaActual(), { alCambiar: manejarCambioIndiceMazo });
   manejarCambioIndiceMazo(0); // dispara el pre-relleno inicial (ver nota en montarMazo).
@@ -943,11 +977,18 @@ function finalizarPartida() {
   }
   limpiarResumenMazo();
 
-  estado = actualizarRacha(estado, hoy());
-  guardarEstado(estado);
+  const respondidas = mazo.filter((h) => h.respondida);
+  // M1 (hallazgo confirmado): la racha solo sube si se ha respondido algo de
+  // verdad en esta partida. Sin esta guarda, un filtro que se queda sin nada
+  // que jugar (ver la comprobación en empezarPartida; esto es además una red
+  // de seguridad por si algún otro camino llegara aquí con `mazo` vacío) subía
+  // el 🔥 igual que una partida jugada de verdad.
+  if (respondidas.length > 0) {
+    estado = actualizarRacha(estado, hoy());
+    guardarEstado(estado);
+  }
   actualizarCabecera();
 
-  const respondidas = mazo.filter((h) => h.respondida);
   const totalPreguntas = respondidas.length;
   const aciertos = respondidas.filter((h) => h.correcta).length;
   const xpTotal = respondidas.reduce((suma, h) => suma + h.delta.xp, 0);
@@ -1063,7 +1104,8 @@ function manejarClicConfianza(hueco, valor, pintarLocal) {
   pintarLocal(valor);
   if (!hueco.respondida) return;
   if (valor === hueco.delta.confianza) return; // sin cambios reales
-  const resultado = cambiarConfianza(estado, hueco.pregunta, hueco.delta, valor, hoy());
+  // diaPartida, no hoy() (hallazgo B5): mismo motivo que en manejarRespuesta.
+  const resultado = cambiarConfianza(estado, hueco.pregunta, hueco.delta, valor, diaPartida);
   estado = resultado.estado;
   guardarEstado(estado);
   hueco.delta = resultado.delta;
@@ -1954,7 +1996,10 @@ function manejarRespuesta(hueco, respuesta) {
   if (hueco.respondida) return; // guarda contra doble tap / doble evento
   const pregunta = hueco.pregunta;
   const correcta = evaluar(pregunta, respuesta);
-  const resultado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: hueco.confianza });
+  // diaPartida (hallazgo B5), no hoy(): el día se fija una vez al arrancar la
+  // partida, así una partida que cruce la medianoche no reparte sus
+  // respuestas entre dos días de calendario distintos.
+  const resultado = registrarRespuesta(estado, pregunta, correcta, diaPartida, { confianza: hueco.confianza });
   estado = resultado.estado;
   guardarEstado(estado);
   actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo.

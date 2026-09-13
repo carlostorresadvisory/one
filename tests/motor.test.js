@@ -1157,6 +1157,35 @@ describe('misionDelDia', () => {
       assert.ok(!estado.reportadas.includes(id), `${id} está reportada y no debería salir en la misión`);
     }
   });
+
+  // Ola final v0.1c, hallazgo M1: banco renovado entre sesiones (ids nuevos) →
+  // una misión guardada de HOY con ids viejos ya no debe darse por buena.
+  test('M1: ids de la misión guardada que ya no están en el banco (banco renovado) → se regenera', () => {
+    const estado = crearEstado(HOY);
+    estado.mision = { fecha: HOY, ids: ['no-existe-1', 'no-existe-2'], hechas: [], completada: false };
+    const { estado: nuevoEstado, mision } = misionDelDia(estado, banco, HOY, rngDeterminista());
+    assert.notDeepStrictEqual(mision.ids, ['no-existe-1', 'no-existe-2']);
+    assert.ok(
+      mision.ids.every((id) => banco.some((p) => p.id === id)),
+      'la misión regenerada solo debe traer ids del banco actual'
+    );
+    assert.equal(nuevoEstado.mision.fecha, HOY);
+  });
+
+  test('M1: misión con todos sus ids válidos en el banco no se regenera (idempotencia normal intacta)', () => {
+    const estado = crearEstado(HOY);
+    const primera = misionDelDia(estado, banco, HOY, rngDeterminista());
+    const segunda = misionDelDia(primera.estado, banco, HOY, rngDeterminista());
+    assert.strictEqual(segunda.estado, primera.estado); // misma referencia: no se tocó
+  });
+
+  test('M1: banco pequeño con menos de 3 ids (falta de material, no ids inexistentes) no se regenera de más', () => {
+    const estado = crearEstado(HOY);
+    const bancoPequeno = banco.filter((p) => p.area === 'economia' && p.tipo === 'test4').slice(0, 1);
+    const primera = misionDelDia(estado, bancoPequeno, HOY, rngDeterminista());
+    const segunda = misionDelDia(primera.estado, bancoPequeno, HOY, rngDeterminista());
+    assert.strictEqual(segunda.estado, primera.estado);
+  });
 });
 
 // ---------------------------------------------------------------------------
