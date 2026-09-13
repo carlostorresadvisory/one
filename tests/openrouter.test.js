@@ -121,6 +121,24 @@ test('extraerJson quita los backticks y texto alrededor', () => {
   assert.deepEqual(r, [1, 2]);
 });
 
+test('extraerJson corta en el primer objeto cuando el modelo duplica la salida', () => {
+  // Visto en vivo el 13-sep-2026 (ejecución real, google/gemini-2.5-flash-lite): el modelo repitió
+  // el objeto JSON dos veces seguidas, y el recorte ingenuo hasta el último "}" concatenaba
+  // ambos, dando "Unexpected non-whitespace character after JSON".
+  const r = extraerJson('{"explicacionOk":true,"visualOk":false,"motivo":"x"}\n{"explicacionOk":true,"visualOk":false,"motivo":"x"}');
+  assert.deepEqual(r, { explicacionOk: true, visualOk: false, motivo: 'x' });
+});
+
+test('extraerJson ignora llaves dentro de una cadena al buscar el cierre', () => {
+  const r = extraerJson('{"motivo":"contiene { y } dentro de comillas","ok":true}');
+  assert.deepEqual(r, { motivo: 'contiene { y } dentro de comillas', ok: true });
+});
+
+test('extraerJson sigue funcionando con texto suelto alrededor de un único objeto', () => {
+  const r = extraerJson('Aquí tienes: {"a":1,"b":[1,2,3]} -- espero que sirva');
+  assert.deepEqual(r, { a: 1, b: [1, 2, 3] });
+});
+
 test('escribe una línea en el log con el coste de usage.cost', async () => {
   await limpiarLog();
   const fetchImpl = async (url, opts) => {

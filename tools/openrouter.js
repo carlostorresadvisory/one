@@ -66,6 +66,34 @@ async function registrarLog(rutaLog, entrada) {
   await appendFile(rutaLog, `${JSON.stringify(entrada)}\n`, 'utf8');
 }
 
+// Busca dónde termina el primer valor JSON completo (objeto o array) que empieza en `inicio`,
+// contando profundidad de { }/[ ] y respetando comillas/escapes de las cadenas. Devuelve el
+// índice del carácter de cierre, o -1 si el texto se corta antes de cerrar del todo.
+function encontrarFinValorJson(texto, inicio) {
+  let profundidad = 0;
+  let dentroString = false;
+  let escapando = false;
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i];
+    if (dentroString) {
+      if (escapando) escapando = false;
+      else if (c === '\\') escapando = true;
+      else if (c === '"') dentroString = false;
+      continue;
+    }
+    if (c === '"') {
+      dentroString = true;
+      continue;
+    }
+    if (c === '{' || c === '[') profundidad++;
+    else if (c === '}' || c === ']') {
+      profundidad--;
+      if (profundidad === 0) return i;
+    }
+  }
+  return -1;
+}
+
 /**
  * Extrae un JSON de un texto que puede traer ``` alrededor o texto suelto.
  * @param {string} texto
@@ -78,11 +106,22 @@ export function extraerJson(texto) {
     limpio = conFences[1].trim();
   } else {
     const inicio = limpio.search(/[[{]/);
-    const finArray = limpio.lastIndexOf(']');
-    const finObjeto = limpio.lastIndexOf('}');
-    const fin = Math.max(finArray, finObjeto);
-    if (inicio !== -1 && fin !== -1 && fin > inicio) {
-      limpio = limpio.slice(inicio, fin + 1);
+    if (inicio !== -1) {
+      // Corta en el cierre del PRIMER valor JSON completo, no en el último "}"/"]" del texto:
+      // visto en vivo el 13-sep-2026 (ejecución real, google/gemini-2.5-flash-lite) que el modelo
+      // a veces duplica el objeto de salida ("{...}\n{...}") y el recorte ingenuo hasta el último
+      // cierre concatenaba ambos, dando "Unexpected non-whitespace character after JSON".
+      const fin = encontrarFinValorJson(limpio, inicio);
+      if (fin !== -1) {
+        limpio = limpio.slice(inicio, fin + 1);
+      } else {
+        // No llegó a cerrar (respuesta truncada): mejor esfuerzo igual que antes, para no
+        // regresar peor de lo que ya estaba en ese caso.
+        const finArray = limpio.lastIndexOf(']');
+        const finObjeto = limpio.lastIndexOf('}');
+        const fin2 = Math.max(finArray, finObjeto);
+        if (fin2 > inicio) limpio = limpio.slice(inicio, fin2 + 1);
+      }
     }
   }
   return JSON.parse(limpio);
