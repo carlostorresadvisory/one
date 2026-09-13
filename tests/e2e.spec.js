@@ -3,7 +3,6 @@
 // resumen (carrusel "Para repasar") -> HUB, contra el banco de ejemplo, más una
 // partida de humo contra el banco real. Playwright headless a 375x812.
 import { test, expect } from '@playwright/test';
-import { readFileSync } from 'node:fs';
 
 const CAPTURAS = 'docs/capturas';
 
@@ -196,19 +195,6 @@ async function avanzarTrasRespuesta(page) {
   if (await page.locator('[data-vista="pregunta"]').isVisible()) {
     await esperarAsentamientoMazo(page);
   }
-}
-
-/** Tarea 3b (spec v0.1c §4.2 paso 0): con una imagen real de por medio (16:9,
- * hasta 34vh) es NORMAL que una tarjeta corta necesite plegarla para caber,
- * sobre todo a 375px — la propia regla de encaje existe para eso. Si
- * `[data-test="imagen"]` ya está visible tras responder, no hace falta tocar
- * nada; si no, la tarjeta está en tarjeta--sin-imagen y hay que tocar "Ver
- * imagen" para desplegarla antes de comprobar el pie o hacer la captura. */
-async function revelarImagenSiPlegada(tarjetaLocator) {
-  const imagen = tarjetaLocator.locator('[data-test="imagen"]');
-  if (await imagen.isVisible()) return;
-  await tarjetaLocator.locator('[data-test="ver-imagen"]').click();
-  await expect(imagen).toBeVisible();
 }
 
 /** I4 (ola final): espera a que el `<img>` de `[data-test="imagen"]` quede
@@ -920,8 +906,7 @@ test.describe('ONE · integración e2e', () => {
   // la 'error' con la explicación MÁS LARGA del banco REAL (no el de ejemplo),
   // respondidas (falladas a propósito: es la variante más alta de la respuesta
   // compacta, con la línea "tuya" tachada además de la correcta), sin scroll
-  // ni en la vista ni en la tarjeta, a 375×812 y 430×932, y sin que ningún
-  // font-size computado cambie entre el estado normal y los compactos.
+  // ni en la vista ni en la tarjeta, a 375×812 y 430×932.
   test('mazo v0.1c §4.2: peor caso de encaje (ordenar/error con la explicación más larga) a 375×812 y 430×932', async ({ page }) => {
     await page.goto('/');
     const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
@@ -934,40 +919,39 @@ test.describe('ONE · integración e2e', () => {
     expect(peorOrdenar).not.toBeNull();
     expect(peorError).not.toBeNull();
 
-    /** Compara el font-size computado de .enunciado/.explicacion/.respuesta-resumen
-     * CON las clases tarjeta--compacta-1/2 que tenga ahora mismo la tarjeta y SIN
-     * ellas (las quita, mide, y las vuelve a dejar como estaban): la spec v0.1c
-     * §4.2 exige que el plegado nunca toque tamaños de letra, solo qué se ve. */
+    /** Comprueba que el font-size computado de `.respuesta-resumen` (la línea
+     * "Respuesta: X ✓" / "Orden: A › B › C › D…") es el mismo con las clases
+     * de la cascada de encaje que tenga ahora mismo la tarjeta y sin ellas
+     * (las quita, mide, y las vuelve a dejar como estaban). El enunciado y la
+     * explicación SÍ pueden bajar de tamaño en la tarjeta respondida (spec
+     * v0.1d §3/§4, cambio de contrato de Carlos 13-sep 10:19: única
+     * relajación de "los tamaños de letra no cambian"), así que no se
+     * comparan aquí a propósito — solo la respuesta, que nunca cambia. */
     async function comprobarFontSizeEstable(tarjetaLocator) {
-      const { compactado, normal } = await tarjetaLocator.evaluate((tarjeta) => {
-        function tamanos() {
-          const leer = (selector) => {
-            const nodo = tarjeta.querySelector(selector);
-            return nodo ? getComputedStyle(nodo).fontSize : null;
-          };
-          return {
-            // "error" con el enunciado genérico del banco pinta la instrucción
-            // corta (.instruccion-error) en vez de .enunciado (ver
-            // construirBloqueEnunciado): se comprueba el que exista.
-            enunciado: leer('.enunciado') || leer('.instruccion-error'),
-            explicacion: leer('.explicacion'),
-            resumen: leer('.respuesta-resumen'),
-          };
-        }
-        const compactado = tamanos();
-        const teniaCompacta1 = tarjeta.classList.contains('tarjeta--compacta-1');
-        const teniaCompacta2 = tarjeta.classList.contains('tarjeta--compacta-2');
-        tarjeta.classList.remove('tarjeta--compacta-1', 'tarjeta--compacta-2');
-        const normal = tamanos();
+      const CLASES_CASCADA = [
+        'tarjeta--compacta-1',
+        'tarjeta--sin-respuestas',
+        'tarjeta--enunciado-menor',
+        'tarjeta--sin-enunciado',
+        'tarjeta--explicacion-menor',
+        'tarjeta--explicacion-minima',
+        'tarjeta--explicacion-clamp',
+      ];
+      const { compactado, normal } = await tarjetaLocator.evaluate((tarjeta, clases) => {
+        const leerResumen = () => {
+          const nodo = tarjeta.querySelector('.respuesta-resumen');
+          return nodo ? getComputedStyle(nodo).fontSize : null;
+        };
+        const compactado = leerResumen();
+        const teniaAntes = clases.filter((c) => tarjeta.classList.contains(c));
+        tarjeta.classList.remove(...clases);
+        const normal = leerResumen();
         // Deja la tarjeta EXACTAMENTE como estaba (esto es solo una medición).
-        if (teniaCompacta1) tarjeta.classList.add('tarjeta--compacta-1');
-        if (teniaCompacta2) tarjeta.classList.add('tarjeta--compacta-2');
+        tarjeta.classList.add(...teniaAntes);
         return { compactado, normal };
-      });
-      expect(compactado.explicacion).not.toBeNull();
-      expect(compactado.enunciado).toBe(normal.enunciado);
-      expect(compactado.explicacion).toBe(normal.explicacion);
-      expect(compactado.resumen).toBe(normal.resumen);
+      }, CLASES_CASCADA);
+      expect(compactado).not.toBeNull();
+      expect(compactado).toBe(normal);
     }
 
     async function comprobarEnViewport(viewport, sufijo) {
@@ -1044,10 +1028,9 @@ test.describe('ONE · integración e2e', () => {
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
-      // Con poco alto disponible (375px) puede que la propia regla de encaje
-      // pliegue la imagen (paso 0): revelarImagenSiPlegada la despliega si hace
-      // falta, sin dar por hecho ni que se pliega ni que no.
-      await revelarImagenSiPlegada(t);
+      // La imagen ya no se pliega nunca (spec v0.1d §3/§4): siempre visible
+      // tras responder, aunque tenga que encogerse hasta su mínimo de 90px.
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
       const pie0 = t.locator('[data-test="imagen-pie"]');
       await expect(pie0).toContainText('Autor de ejemplo');
       await expect(pie0).toContainText('CC BY-SA 4.0');
@@ -1064,7 +1047,7 @@ test.describe('ONE · integración e2e', () => {
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
-      await revelarImagenSiPlegada(t);
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
       const pie1 = t.locator('[data-test="imagen-pie"]');
       await expect(pie1).toContainText('Dominio público');
       await expect(pie1).not.toContainText('undefined');
@@ -1075,52 +1058,33 @@ test.describe('ONE · integración e2e', () => {
     await comprobarEnViewport({ width: 430, height: 932 });
   });
 
-  test('Tarea 3b §4.2: la imagen es lo primero que se pliega si la tarjeta desborda', async ({ page }) => {
-    // Desbordamiento FORZADO de forma determinista (en vez de confiar en cuál
-    // sea la "peor" pregunta real en cada momento, que puede cambiar según lo
-    // que otro agente vaya añadiendo a datos/banco.json en paralelo): se sirve
-    // el banco de ejemplo real (ya probado en el resto de la suite) más una
-    // pregunta añadida con una explicación deliberadamente larguísima, y se le
-    // fuerza una imagen vía window.__one.forzarImagen (data: URI de 1×1, sin
-    // depender de la red ni de datos/imagenes.json).
-    // El service worker (sw.js) cachea datos/banco.json (stale-while-revalidate):
-    // sin desactivarlo, la segunda navegación de este test (viewport 430) podría
-    // servirlo desde caché en vez de respetar el page.route de abajo.
-    await page.addInitScript(() => {
-      if (navigator.serviceWorker) {
-        navigator.serviceWorker.register = () => Promise.reject(new Error('SW deshabilitado en este e2e'));
-      }
-    });
-
-    const bancoEjemplo = JSON.parse(readFileSync('datos/banco.ejemplo.json', 'utf8'));
-    const idForzado = 'forzado-desborde-3b';
-    const preguntaForzada = {
-      id: idForzado,
-      area: 'historia',
-      tipo: 'vf',
-      nivel: 1,
-      enunciado: 'Pregunta de prueba (Tarea 3b) para forzar el desborde de la tarjeta.',
-      explicacion:
-        'Explicación deliberadamente larguísima para forzar el desborde de la tarjeta y comprobar que la imagen es lo primero en plegarse, antes que la respuesta o la propia explicación (paso 0 de ajustarEncaje, spec v0.1c-3b §4.2). '.repeat(6),
-      confianza: 1,
-      generador: 'manual',
-      verificador: 'manual',
-      verificado: true,
-      respuesta: true,
-    };
-    const bancoForzado = [...bancoEjemplo, preguntaForzada];
-    await page.route('**/datos/banco.json', (route) =>
-      route.fulfill({ contentType: 'application/json', body: JSON.stringify(bancoForzado) })
+  // Peor caso definitivo (spec v0.1d §3/§4, cambio de contrato de Carlos
+  // 13-sep 10:19, sustituye a la vieja alternancia "Ver imagen" de v0.1c):
+  // "lo que sale primero si no hay espacio son las respuestas; si no, se
+  // reduce el tamaño de la pregunta; si no, desaparece la pregunta. La
+  // imagen y la explicación es lo que más valor añadido tiene después de
+  // responder." Se usa la explicación MÁS LARGA de TODO el banco real (no
+  // solo ordenar/error, a diferencia del test de más abajo) con una imagen
+  // forzada encima: la imagen debe seguir viéndose (aunque sea a su mínimo de
+  // 90px) y la explicación debe verse ENTERA, sin recorte y sin ningún toque
+  // — son las respuestas y/o el enunciado quienes ceden espacio antes.
+  test('mazo v0.1d §3/§4: peor caso (explicación más larga del banco + imagen) — la imagen se queda, la explicación se ve entera, sin tocar nada', async ({ page }) => {
+    await page.goto('/');
+    const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
+    const peor = banco.reduce(
+      (mejor, p) => (!mejor || p.explicacion.length > mejor.explicacion.length ? p : mejor),
+      null
     );
+    expect(peor).not.toBeNull();
 
     const imagenForzada = {
-      id: idForzado,
+      id: peor.id,
       url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
       pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo-peor-caso.png',
       titulo: 'Ejemplo-peor-caso.png',
       autor: 'Autor forzado',
       licencia: 'CC BY 4.0',
-      leyenda: 'Imagen forzada para el e2e del peor caso',
+      leyenda: 'Imagen forzada para el peor caso (spec v0.1d)',
       termino: 'ejemplo',
       ancho: 1,
       alto: 1,
@@ -1135,37 +1099,44 @@ test.describe('ONE · integración e2e', () => {
 
       await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
       await page.evaluate(
-        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'imagen-peor-caso' }),
-        idForzado
+        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'peor-caso-imagen' }),
+        peor.id
       );
 
       const t = tarjetaActual(page);
-      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0); // nunca antes de responder (no debe dar pistas)
 
-      await t.locator('[data-test="vf-verdadero"]').click();
+      await responderPreguntaActual(page);
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
 
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
-      await expect(t).toHaveClass(/tarjeta--sin-imagen/);
-      await expect(t.locator('[data-test="imagen"]')).toBeHidden();
-      const verImagen = t.locator('[data-test="ver-imagen"]');
-      await expect(verImagen).toBeVisible();
-      await expect(verImagen).toHaveText('Ver imagen');
 
-      // Alternancia: un toque despliega la imagen sustituyendo la explicación...
-      await verImagen.click();
-      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
-      await expect(t.locator('[data-test="explicacion"]')).toBeHidden();
+      // La imagen NUNCA desaparece por falta de espacio (spec v0.1d §3/§4):
+      // sigue visible aunque tenga que encogerse hasta su mínimo de 90px.
+      const imagen = t.locator('[data-test="imagen"]');
+      await expect(imagen).toBeVisible();
+      const cajaImagen = await imagen.boundingBox();
+      expect(cajaImagen.height).toBeGreaterThanOrEqual(88);
 
-      // ...y otro toque, ahora sobre la propia imagen, la vuelve a plegar.
-      await t.locator('[data-test="imagen"]').click();
-      await expect(t.locator('[data-test="imagen"]')).toBeHidden();
-      await expect(t.locator('[data-test="explicacion"]')).toBeVisible();
-      await expect(verImagen).toBeVisible();
+      // La explicación se ve ENTERA (sin recortar), sin ningún toque: son las
+      // respuestas y/o el enunciado los que han cedido espacio antes.
+      const explicacion = t.locator('[data-test="explicacion"]');
+      await expect(explicacion).toBeVisible();
+      expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
 
-      await page.screenshot({ path: `${CAPTURAS}/v0.1c-imagen-peor-caso-${sufijo}.png` });
+      // Sin ningún listener de alternancia en la tarjeta respondida (cambio de
+      // contrato de Carlos, 13-sep 10:15: "evitar cantidad de clics"): tocar
+      // la explicación o la respuesta compacta no cambia nada del DOM.
+      const claseAntes = await t.getAttribute('class');
+      await explicacion.click({ force: true });
+      await t.locator('.zona-respuesta').click({ force: true }).catch(() => {});
+      expect(await t.getAttribute('class')).toBe(claseAntes);
+      await expect(explicacion).toBeVisible();
+      expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
+
+      await page.screenshot({ path: `${CAPTURAS}/v0.1d-peor-caso-imagen-explicacion-${sufijo}.png` });
     }
 
     await comprobarEnViewport({ width: 375, height: 812 }, '375');
@@ -1194,10 +1165,10 @@ test.describe('ONE · integración e2e', () => {
       await t.locator('[data-test="vf-verdadero"]').click();
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
-      // Con poco alto disponible puede que el encaje pliegue la imagen (paso
-      // 0): se despliega si hace falta ANTES de esperar a que cargue — un
-      // <img loading="lazy"> oculto con display:none no llega a dispararse.
-      await revelarImagenSiPlegada(t);
+      // La imagen ya no se pliega nunca (spec v0.1d §3/§4): siempre visible,
+      // así que el <img loading="lazy"> real no necesita nada especial para
+      // dispararse antes de esperar a que cargue.
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
       // I4: sin la red de Wikimedia viva (o si responde lento/falla), el
       // <img> real puede no llegar a cargar nunca — construirBloqueImagen()
       // quita el bloque entero al fallar (ver app.js). Con timeout corto y
@@ -1234,6 +1205,10 @@ test.describe('ONE · integración e2e', () => {
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
       await page.screenshot({ path: `${CAPTURAS}/v0.1c-imagen-${sufijo}.png` });
+      // Misma captura, también con el nombre que pide la spec v0.1d (revisión
+      // "sin hueco muerto, imagen proporcionada"): tarjeta respondida CON
+      // imagen real de Wikimedia Commons.
+      await page.screenshot({ path: `${CAPTURAS}/v0.1d-respondida-imagen-${sufijo}.png` });
     }
 
     await capturar({ width: 375, height: 812 }, '375');
@@ -1271,8 +1246,249 @@ test.describe('ONE · integración e2e', () => {
     // toHaveCount reintenta hasta que construirBloqueImagen() quita el bloque.
     await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
     await expect(t.locator('[data-test="imagen-pie"]')).toHaveCount(0);
-    await expect(t.locator('[data-test="ver-imagen"]')).toHaveCount(0);
+    // Sin imagen de verdad, el bloque de contenido vuelve a centrarse (spec
+    // v0.1d §3): la marca que lo alineaba arriba se quita con la imagen.
+    await expect(t.locator('.tarjeta-contenido')).not.toHaveClass(/tarjeta-contenido--imagen/);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
+  });
+
+  // --- v0.1d: gesto, contador, fila compacta, confianza compacta, imagen ---
+
+  test('mazo v0.1d §1: contador de la cabecera (respondidas/total en partida)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    const contador = t.locator('[data-test="mazo-contador"]');
+    await expect(contador).toBeVisible();
+    await expect(contador).toHaveText('0/10');
+
+    await responderPreguntaActual(page);
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await expect(contador).toHaveText('1/10');
+    await avanzarTrasRespuesta(page);
+
+    // La segunda tarjeta ya nace con el contador al día (se refresca en toda
+    // la ventana de 3 nodos del mazo, no solo en la actual, ver
+    // actualizarBarraProgreso en app.js) y vuelve a subir al responderla.
+    await expect(contador).toHaveText('1/10');
+    await responderPreguntaActual(page);
+    await expect(contador).toHaveText('2/10');
+  });
+
+  test('mazo v0.1d §1: contador del repaso (posición/total, no respondidas/10)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+
+    // Necesario para acertar SIEMPRE las de tipo "error" (spec de
+    // responderPreguntaActual): sin este mapa, "responder correctamente"
+    // adivina el índice 0, que falla en cualquier "error" cuyo sospechoso no
+    // sea ese, metiendo fallos NO intencionados en el repaso.
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(
+      bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
+    );
+
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    // Falla las dos primeras a propósito para tener exactamente dos tarjetas
+    // de repaso con posiciones distintas que comprobar.
+    await fallarPreguntaActual(page, sospechosoPorTitulo);
+    await avanzarTrasRespuesta(page);
+    await fallarPreguntaActual(page, sospechosoPorTitulo);
+    await avanzarTrasRespuesta(page);
+    // El resto, acertadas, hasta terminar la partida.
+    for (let i = 0; i < 8; i += 1) {
+      if (await page.locator('[data-test="resumen"]').isVisible()) break;
+      await responderPreguntaActual(page, sospechosoPorTitulo);
+      await avanzarTrasRespuesta(page);
+    }
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+
+    await page.keyboard.press('ArrowUp'); // de la tarjeta 0 (cifras) a la 1ª de repaso
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('1/2');
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('2/2');
+  });
+
+  test('mazo v0.1d §2: fila de acción compacta de 44px tras responder', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+
+    const fila = t.locator('.fila-accion');
+    await expect(fila).toBeVisible();
+    const cajaFila = await fila.boundingBox();
+    expect(cajaFila.height).toBeGreaterThanOrEqual(40);
+    expect(cajaFila.height).toBeLessThanOrEqual(48);
+
+    // "esta pregunta está mal" a la izquierda, "Siguiente ›" a la derecha, EN
+    // LA MISMA fila (no una debajo de otra, como en v0.1c).
+    const cajaEstaMal = await t.locator('[data-test="esta-mal"]').boundingBox();
+    const cajaSiguiente = await t.locator('[data-test="siguiente"]').boundingBox();
+    expect(Math.abs(cajaEstaMal.y - cajaSiguiente.y)).toBeLessThan(12);
+    expect(cajaEstaMal.x).toBeLessThan(cajaSiguiente.x);
+
+    // "esta pregunta está mal" -> "Anotado" ocupa el mismo sitio, sin fila aparte.
+    await t.locator('[data-test="esta-mal"]').click();
+    await expect(t.locator('[data-test="esta-mal"]')).toBeHidden();
+    await expect(t.locator('.reportada')).toBeVisible();
+    await expect(t.locator('.reportada')).toHaveText('Anotado');
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('mazo v0.1d §3: confianza compacta a 32px tras responder, sigue editable', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    const cajaAntes = await t.locator('[data-test="confianza"]').boundingBox();
+    expect(cajaAntes.height).toBeGreaterThanOrEqual(42);
+    expect(cajaAntes.height).toBeLessThanOrEqual(46);
+
+    await responderPreguntaActual(page);
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+
+    const confianza = t.locator('[data-test="confianza"]');
+    await expect(confianza).toBeVisible();
+    const cajaDespues = await confianza.boundingBox();
+    expect(cajaDespues.height).toBeGreaterThanOrEqual(30);
+    expect(cajaDespues.height).toBeLessThanOrEqual(34);
+
+    // Sigue editable (spec v0.1c §2.3): cambiar a Alta recalcula el XP
+    // mostrado y el guardado (responderPreguntaActual siempre acierta).
+    const textoAntes = await t.locator('[data-test="feedback-texto"]').textContent();
+    const xpAntes = await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).xp);
+    await t.locator('[data-test="confianza-alta"]').click();
+    await expect(t.locator('[data-test="confianza-alta"]')).toHaveAttribute('aria-pressed', 'true');
+    const textoDespues = await t.locator('[data-test="feedback-texto"]').textContent();
+    const xpDespues = await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).xp);
+    expect(textoDespues).not.toBe(textoAntes);
+    expect(xpDespues).not.toBe(xpAntes);
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('mazo v0.1d §1: indicador de gesto visible antes de deslizar, se apaga tras un deslizamiento con éxito', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const indicador = page.locator('[data-test="mazo-gesto"]');
+    await expect(indicador).toBeVisible();
+
+    // Navegar con teclado NO enseña el gesto (solo cuenta un deslizamiento
+    // real): el indicador se queda encendido.
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await expect(indicador).toBeVisible();
+
+    // Un deslizamiento vertical real (Pointer Events, como en el resto de la
+    // suite) sí lo apaga, y se queda apagado el resto de la sesión.
+    const puntoAgarre = async () => {
+      const caja = await tarjetaActual(page).locator('.enunciado, .instruccion-error').first().boundingBox();
+      return { x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 };
+    };
+    const p0 = await puntoAgarre();
+    await arrastrar(page, [p0, { x: p0.x, y: p0.y - 80 }]);
+    await esperarAsentamientoMazo(page);
+    await expect(indicador).toBeHidden();
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await expect(indicador).toBeHidden();
+  });
+
+  test('mazo v0.1d §3/§4: la imagen absorbe el sobrante, sin hueco muerto (banco de ejemplo)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    // his-001 trae imagen en datos/imagenes.ejemplo.json (data: URI, sin red).
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'sobrante-imagen' }));
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const medidas = await t.evaluate((tarjeta) => {
+      const contenido = tarjeta.querySelector('.tarjeta-contenido');
+      return { scrollHeight: contenido.scrollHeight, clientHeight: contenido.clientHeight };
+    });
+    // "Sin hueco muerto" (spec v0.1d §3): con la imagen absorbiendo el
+    // sobrante, lo que ocupa el contenido debe quedar muy cerca del alto
+    // disponible — nunca más (assertTarjetaSinScroll ya lo cubre) ni mucho
+    // menos (esto, que assertTarjetaSinScroll NO cubre).
+    expect(medidas.clientHeight - medidas.scrollHeight).toBeLessThan(24);
+  });
+
+  // Capturas pedidas por el brief (docs/capturas/v0.1d-*.png, revisadas con
+  // Read por el propio agente antes de entregar): sin-responder, respondida
+  // sin imagen y repaso. "respondida-imagen" ya se guarda en el test de
+  // art-003 de arriba (imagen real de Wikimedia Commons).
+  test('capturas v0.1d: sin-responder, respondida-sin-imagen, repaso', async ({ page }) => {
+    async function capturar(viewport, sufijo) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      // eco-001 (vf) no tiene entrada en datos/imagenes.ejemplo.json: tarjeta
+      // sin imagen, tanto antes como después de responder.
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-001'], etiqueta: 'capturas-v0.1d' }));
+      await esperarAsentamientoMazo(page);
+      const t = tarjetaActual(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1d-sin-responder-${sufijo}.png` });
+
+      // Fallada a propósito: dos pájaros de un tiro — comprueba la tarjeta
+      // respondida sin imagen Y deja un elemento en "Para repasar" para la
+      // captura de repaso de más abajo.
+      await t.locator('[data-test="vf-falso"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1d-respondida-sin-imagen-${sufijo}.png` });
+
+      // Único hueco del filtro ya respondido: "Siguiente" termina la partida
+      // directamente (irASiguienteHueco -> finalizarPartida).
+      await t.locator('[data-test="siguiente"]').click();
+      await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+      await page.keyboard.press('ArrowUp'); // de la tarjeta 0 (cifras) a la 1ª de repaso
+      await esperarAsentamientoMazo(page);
+      await expect(tarjetaActual(page)).toHaveAttribute('data-test', 'repaso-tarjeta');
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1d-repaso-${sufijo}.png` });
+    }
+
+    await capturar({ width: 375, height: 812 }, '375');
+    await capturar({ width: 430, height: 932 }, '430');
   });
 });
