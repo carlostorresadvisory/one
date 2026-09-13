@@ -59,6 +59,15 @@ const MODELOS_VISION = [
   'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
 ];
+
+// Último escalón de la cascada de visión, SOLO activo con --permitir-pago (autorizado por Carlos
+// el 13-sep-2026 para destrancar el backlog de "pendiente" cuando los ':free' llevan horas en
+// 429 en cadena). Probado en vivo: responde bien sin response_format ni "reasoning", y cuesta
+// ~0,0002 €/llamada (1832 tokens de prompt con imagen + ~50 de respuesta) -- con --tope-eur 0.05
+// caben unas 250 llamadas, de sobra para un backlog de pendientes. openrouter.js ya bloquea
+// cualquier modelo sin sufijo ':free' si no se pasa permitirPago:true, así que este modelo nunca
+// se llama por accidente aunque esté siempre en la lista.
+const MODELO_VISION_PAGO = 'google/gemini-2.5-flash-lite';
 const EXTRA_VISION = { reasoning: { enabled: false, exclude: true } };
 
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
@@ -86,6 +95,8 @@ function parsearArgs(argv) {
     ayuda: false,
     revalidar: false,
     revalidarVisual: false,
+    permitirPago: false,
+    topeEur: 0,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -96,6 +107,10 @@ function parsearArgs(argv) {
     else if (a === '--aplicar') args.aplicar = true;
     else if (a === '--revalidar') args.revalidar = true;
     else if (a === '--revalidar-visual') args.revalidarVisual = true;
+    // Solo tiene efecto dentro de --revalidar-visual (ver MODELO_VISION_PAGO): el paso A/C de
+    // texto y la búsqueda en Commons nunca pasan a pago, pase lo que pase con estos flags.
+    else if (a === '--permitir-pago') args.permitirPago = true;
+    else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
   }
   return args;
 }
@@ -103,17 +118,22 @@ function parsearArgs(argv) {
 function imprimirAyuda() {
   console.log(`Uso: node tools/buscar-imagenes.js [--area X] [--solo-pendientes] [--limite N] [--aplicar]
        node tools/buscar-imagenes.js --revalidar [--aplicar]
-       node tools/buscar-imagenes.js --revalidar-visual [--limite N] [--aplicar]
+       node tools/buscar-imagenes.js --revalidar-visual [--solo-pendientes] [--limite N] [--aplicar]
+                                     [--permitir-pago --tope-eur N]
 
 Busca en Wikimedia Commons una imagen libre para las preguntas de datos/banco.json donde una
 imagen aporte de verdad (ilustra el mecanismo, la obra, el lugar o la persona de la pregunta,
 nunca como decoración). Escribe datos/imagenes.json (solo con --aplicar) y datos/imagenes.log.
-Solo usa modelos ':free' de OpenRouter; la búsqueda en Commons no requiere clave.
+Solo usa modelos ':free' de OpenRouter, salvo --revalidar-visual con --permitir-pago (ver abajo);
+la búsqueda en Commons no requiere clave.
 
 Opciones:
   --area <area>       Solo esta área (economia, historia, ciencia, tecnologia, geografia,
                        filosofia, arte, logica).
-  --solo-pendientes   Salta las preguntas que ya tienen entrada en datos/imagenes.json.
+  --solo-pendientes   En el modo normal: salta las preguntas que ya tienen entrada en
+                       datos/imagenes.json. En --revalidar-visual: salta las imágenes cuyo
+                       campo "revalidacionVisual" ya sea "ok" (repasa solo "pendiente" o sin
+                       revisar).
   --limite <n>        Procesa como mucho N preguntas (tras aplicar --area/--solo-pendientes),
                        o N imágenes con --revalidar-visual.
   --aplicar           Escribe datos/imagenes.json y datos/imagenes.log. Sin esto, solo informa.
@@ -121,12 +141,20 @@ Opciones:
                        en datos/imagenes.json, sin repetir la búsqueda en Commons ni el paso A.
                        Útil tras mejorar el prompt del paso C (p. ej. contra homónimos). Quita
                        del fichero las que ya no pasen la comprobación.
-  --revalidar-visual  Re-comprueba CADA imagen ya guardada (nuevas y viejas) con un modelo
-                       ':free' que VE la miniatura (400px), no solo el título -- detecta fallos
-                       que el paso C por texto no puede ver (imagen borrosa, recortada, del
-                       objeto equivocado a pesar de un título correcto...). Descarta lo que el
-                       modelo marca "false" o lo que no responde tras 2 intentos. Guarda progreso
-                       parcial en datos/imagenes.json tras cada lote (con --aplicar).
+  --revalidar-visual  Re-comprueba CADA imagen guardada con un modelo que VE la miniatura
+                       (400px), no solo el título. Solo descarta lo que el modelo marca
+                       "relevante": false explícitamente; lo aprobado se marca
+                       "revalidacionVisual": "ok" (con modelo y fecha). Lo que no responde tras
+                       2 intentos NUNCA se descarta: se conserva marcado "revalidacionVisual":
+                       "pendiente" para reintentar más tarde (p. ej. con --solo-pendientes cuando
+                       la cascada gratis esté menos saturada). Guarda progreso parcial en
+                       datos/imagenes.json tras cada lote (con --aplicar).
+  --permitir-pago     Solo dentro de --revalidar-visual: añade un modelo de VISIÓN DE PAGO barato
+                       (ver MODELO_VISION_PAGO en el código) como último escalón de la cascada,
+                       por si los ':free' están saturados. Requiere --tope-eur. Nunca afecta al
+                       paso A/C de texto ni a la búsqueda en Commons, que son siempre gratis.
+  --tope-eur <n>      Tope de gasto diario acumulado (según datos/llamadas.log) para el modelo de
+                       pago de --permitir-pago. Obligatorio junto a --permitir-pago.
   --ayuda             Muestra esta ayuda y sale.
 `);
 }
@@ -521,29 +549,45 @@ async function obtenerUrlMiniatura(titulo, anchoDeseado, fetchImpl = fetch) {
   return null;
 }
 
+// Prompt reforzado por Carlos el 13-sep-2026 (12:17-12:23): la primera versión era demasiado
+// estricta y descartaba retratos/mapas/obras válidos solo porque no "representaban" el concepto
+// abstracto al pie de la letra (ej. un retrato de Rawls no ilustra literalmente "el velo de la
+// ignorancia", pero SÍ vale para la tarjeta -- es la persona correcta). Alineado con el criterio
+// ya amplio del paso A: el listón para descartar sube, no baja.
 function promptSistemaVisual() {
   return (
     'Ves la miniatura de una imagen de Wikimedia Commons candidata a ilustrar la tarjeta de ' +
-    'respuesta de una pregunta de quiz. Te doy el enunciado, el "concepto_correcto" (lo que la ' +
-    'imagen DEBE mostrar) y la leyenda propuesta para el pie de foto. Marca "relevante": true ' +
-    'SOLO si lo que VES en la imagen corresponde de verdad a ese concepto concreto -- la persona, ' +
-    'lugar, obra u objeto exactos, no un homónimo, no otra obra/persona/lugar parecido, no algo ' +
-    'genérico o meramente decorativo, no una opción incorrecta, no un diagrama que no muestre lo ' +
-    'que la leyenda promete. Si la imagen está borrosa, recortada de forma que no se reconoce el ' +
-    'sujeto, o es claramente de otra cosa a pesar de lo que diga el título, también "relevante": ' +
-    'false. Ante la duda, false.\n' +
+    'respuesta de una pregunta de quiz. Te doy el enunciado, el "concepto_correcto" (la persona, ' +
+    'lugar, obra, edificio/objeto o fenómeno que debe estar en la imagen) y la leyenda propuesta.\n' +
+    'Marca "relevante": true con criterio AMPLIO en cualquiera de estos casos: (1) es un RETRATO ' +
+    'de la persona nombrada en la pregunta o en la respuesta correcta -- vale aunque el retrato no ' +
+    '"represente" el concepto abstracto asociado (ejemplo: un retrato de John Rawls SÍ es válido ' +
+    'para una pregunta sobre el velo de la ignorancia, porque Rawls es la persona correcta, aunque ' +
+    'el retrato no dibuje el concepto en sí); (2) es un MAPA o FOTO del lugar correcto; (3) es la ' +
+    'OBRA correcta (cuadro, escultura, portada, fotograma...); (4) es el EDIFICIO u OBJETO ' +
+    'concreto correcto; (5) es un DIAGRAMA o gráfico del fenómeno correcto, aunque incluya más ' +
+    'elementos de los estrictamente preguntados o no estén etiquetados con las palabras exactas ' +
+    'del enunciado.\n' +
+    'Marca "relevante": false SOLO si la imagen es claramente de OTRA persona, lugar, obra u ' +
+    'objeto (homónimo, época o país distintos, otra obra del mismo autor...), de una OPCIÓN ' +
+    'INCORRECTA de la pregunta, está tan borrosa o recortada que el sujeto no se reconoce, o es ' +
+    'puramente decorativa/genérica sin relación identificable con el concepto correcto. ANTE LA ' +
+    'DUDA con una persona, lugar u obra que SÍ parece ser la correcta: true (el listón para ' +
+    'descartar es que se vea claramente que está mal, no que sea una ilustración perfecta).\n' +
     'Devuelve SOLO JSON: {"relevante":true|false,"motivo":"…"} (motivo breve, en español).'
   );
 }
 
-// 2 intentos por imagen (pedido en el encargo): si ambos fallan (red, JSON inválido, los 4
-// modelos de MODELOS_VISION agotados), se descarta la imagen -- a diferencia del paso C por
-// título, aquí un fallo del modelo NO conserva la imagen, porque esta es la última pasada de
-// calidad antes de publicar y el encargo pide explícitamente descartar "lo que no responde".
+// 2 intentos por imagen. IMPORTANTE (corregido 13-sep-2026 tras feedback de Carlos: "las imágenes
+// deberían protagonizar la explicación", quiere TODAS las preguntas con visual -- perder imágenes
+// por saturación del modelo iba en contra de eso): si los dos intentos fallan (red, JSON
+// inválido, cascada agotada), la imagen NUNCA se descarta -- solo se descarta lo que un modelo
+// VE de verdad y marca "relevante":false explícitamente. `fallo:true` en el resultado señala
+// "no se pudo comprobar todavía", no "no vale".
 const REINTENTOS_IMAGEN_VISUAL = 2;
 const PAUSA_ENTRE_IMAGENES_MS = 1200; // cortesía para no saturar la cascada de modelos ':free'
 
-async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta) {
+async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta, args) {
   await esperar(PAUSA_COMMONS_MS);
   const urlMiniatura = (await obtenerUrlMiniatura(imagen.titulo, 400)) || imagen.url;
   if (urlMiniatura === imagen.url) {
@@ -565,11 +609,17 @@ async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta) {
     },
   ];
 
+  // MODELO_VISION_PAGO solo entra en la cascada con --permitir-pago (autorizado por Carlos para
+  // esta pasada, tope --tope-eur): openrouter.js igualmente rechaza cualquier modelo sin ':free'
+  // si permitirPago no es true, así que añadirlo aquí sin el flag no tendría efecto -- es cinturón
+  // y tirantes, no la única guarda.
+  const modelos = args?.permitirPago ? [...MODELOS_VISION, MODELO_VISION_PAGO] : MODELOS_VISION;
+
   let ultimoError = 'sin detalle';
   for (let intento = 1; intento <= REINTENTOS_IMAGEN_VISUAL; intento++) {
     try {
       const salida = await llamar({
-        modelos: MODELOS_VISION,
+        modelos,
         mensajes,
         // json:false a propósito: inclusionai/ling-3.0-flash-vl:free (primero de la cascada)
         // devuelve HTTP 400 "does not support feature: structured-outputs" con
@@ -578,7 +628,8 @@ async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta) {
         json: false,
         temperatura: 0.2,
         maxTokens: 400,
-        permitirPago: false,
+        permitirPago: Boolean(args?.permitirPago),
+        topeEur: args?.topeEur || 0,
         extra: EXTRA_VISION,
       });
       const datos = extraerJson(salida.texto);
@@ -593,11 +644,12 @@ async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta) {
   return { relevante: false, motivo: `sin respuesta visual tras ${REINTENTOS_IMAGEN_VISUAL} intentos: ${ultimoError}`, modelo: null, fallo: true };
 }
 
-// Backoff del encargo si los modelos gratis se saturan en cadena (429/502): 30s, 60s, 120s.
-// Se dispara cuando SEGUIDAS_SATURACION imágenes consecutivas fallan del todo (los 2 intentos,
-// contra los 4 modelos de MODELOS_VISION cada uno) -- señal de saturación real de la cascada
-// entera, no mala suerte de una imagen concreta. Tras 3 rondas de backoff sin que la cascada se
-// recupere, se para el barrido (con lo conseguido ya guardado) en vez de seguir fallando en bucle.
+// Backoff si los modelos gratis se saturan en cadena (429/502): 30s, 60s, 120s. Se dispara cuando
+// SEGUIDAS_SATURACION imágenes consecutivas no consiguen respuesta (señal de saturación real de
+// la cascada entera, no mala suerte de una imagen concreta) y sirve para no quemar cientos de
+// llamadas fallidas en bucle rápido. Tras 3 rondas sin que la cascada se recupere, se para el
+// barrido (con lo conseguido ya guardado): lo no revisado queda tal cual, marcado "pendiente" por
+// el propio fallo -- nunca se pierde, se puede repetir después con --solo-pendientes.
 const BACKOFF_SATURACION_MS = [30000, 60000, 120000];
 const SEGUIDAS_SATURACION = 5;
 const TAMANO_LOTE_VISUAL = 15; // cuántas imágenes se procesan entre cada guardado a disco
@@ -607,6 +659,11 @@ async function revalidarVisual(banco, existentes, args, registrar, lineasLog) {
   let entradas = Object.entries(existentes)
     .filter(([id]) => porId.has(id))
     .map(([id, img]) => ({ id, pregunta: porId.get(id), imagen: img }));
+  if (args.soloPendientes) {
+    const antes = entradas.length;
+    entradas = entradas.filter(({ imagen }) => imagen.revalidacionVisual !== 'ok');
+    await registrar(`--solo-pendientes: ${antes - entradas.length} ya con revalidacionVisual "ok", ${entradas.length} pendientes.`);
+  }
   if (args.limite > 0) entradas = entradas.slice(0, args.limite);
 
   await registrar(`\n=== buscar-imagenes --revalidar-visual ${new Date().toISOString()} — ${entradas.length} imágenes a revisar ===`);
@@ -616,7 +673,9 @@ async function revalidarVisual(banco, existentes, args, registrar, lineasLog) {
   }
 
   const resultado = { ...existentes };
-  const descartadas = new Map(); // id -> motivo
+  const descartadas = new Map(); // id -> motivo (relevante:false explícito)
+  const pendientes = new Map(); // id -> motivo (sin respuesta tras 2 intentos)
+  let aprobadas = 0;
   let seguidasSaturadas = 0;
   let rondasBackoff = 0;
   let detenidoPorSaturacion = false;
@@ -627,12 +686,24 @@ async function revalidarVisual(banco, existentes, args, registrar, lineasLog) {
     await registrar(`\n-- lote visual ${i + 1}/${lotes.length} (${lote.length} imágenes) --`);
     for (const entrada of lote) {
       const etiqueta = `  ${entrada.id}`;
-      const r = await comprobarImagenVisual(entrada.pregunta, entrada.imagen, registrar, etiqueta);
-      if (!r.relevante) {
+      const r = await comprobarImagenVisual(entrada.pregunta, entrada.imagen, registrar, etiqueta, args);
+      if (r.fallo) {
+        // Nunca se descarta por no responder: se conserva tal cual, marcada "pendiente".
+        pendientes.set(entrada.id, r.motivo);
+        resultado[entrada.id] = { ...resultado[entrada.id], revalidacionVisual: 'pendiente' };
+        await registrar(`${etiqueta}: pendiente (sin respuesta) — se conserva`);
+      } else if (!r.relevante) {
         descartadas.set(entrada.id, r.motivo);
         delete resultado[entrada.id];
         await registrar(`${etiqueta}: descartada — ${r.motivo}`);
       } else {
+        aprobadas++;
+        resultado[entrada.id] = {
+          ...resultado[entrada.id],
+          revalidacionVisual: 'ok',
+          revalidacionModelo: r.modelo,
+          revalidacionFecha: new Date().toISOString(),
+        };
         await registrar(`${etiqueta}: OK (${r.modelo}) — ${r.motivo || 'relevante'}`);
       }
 
@@ -669,13 +740,20 @@ async function revalidarVisual(banco, existentes, args, registrar, lineasLog) {
     }
   }
 
-  await registrar(`\nRevisadas: ${entradas.length}. Descartadas por visión: ${descartadas.size}. Quedan: ${Object.keys(resultado).length}.`);
+  await registrar(
+    `\nRevisadas: ${entradas.length}. Aprobadas (ok): ${aprobadas}. Descartadas por criterio: ${descartadas.size}. ` +
+      `Pendientes (sin respuesta, conservadas): ${pendientes.size}. Quedan en total: ${Object.keys(resultado).length}.`,
+  );
   if (descartadas.size > 0) {
-    await registrar('Detalle de las descartadas en la revalidación visual:');
+    await registrar('Detalle de las descartadas por criterio (relevante:false explícito):');
     for (const [id, motivo] of descartadas) await registrar(`  ${id}: ${motivo}`);
   }
+  if (pendientes.size > 0) {
+    await registrar('Detalle de las pendientes (sin respuesta, se conservan para reintentar):');
+    for (const [id, motivo] of pendientes) await registrar(`  ${id}: ${motivo}`);
+  }
   if (detenidoPorSaturacion) {
-    await registrar('\nAVISO: barrido detenido por saturación antes de terminar. Quedan imágenes sin revalidar visualmente (se conservan tal cual, sin descartar por no haber podido comprobarlas).');
+    await registrar('\nAVISO: barrido detenido por saturación antes de terminar. Lo no revisado queda tal cual (no tocado).');
   }
 
   if (!args.aplicar) {

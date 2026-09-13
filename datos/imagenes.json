@@ -9,7 +9,10 @@
     "leyenda": "La Mona Lisa de Leonardo da Vinci",
     "termino": "Mona Lisa Leonardo da Vinci painting",
     "ancho": 900,
-    "alto": 1341
+    "alto": 1341,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-003": {
     "id": "art-003",
@@ -21,7 +24,10 @@
     "leyenda": "La noche estrellada de Van Gogh",
     "termino": "Starry Night Van Gogh painting",
     "ancho": 900,
-    "alto": 718
+    "alto": 718,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-004": {
     "id": "art-004",
@@ -33,7 +39,10 @@
     "leyenda": "Claroscuro de Caravaggio",
     "termino": "Caravaggio painting chiaroscuro",
     "ancho": 900,
-    "alto": 1210
+    "alto": 1210,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-007": {
     "id": "art-007",
@@ -45,7 +54,10 @@
     "leyenda": "Francisco de Goya",
     "termino": "Francisco Goya portrait",
     "ancho": 900,
-    "alto": 1361
+    "alto": 1361,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-009": {
     "id": "art-009",
@@ -57,7 +69,10 @@
     "leyenda": "La Última Cena de Leonardo",
     "termino": "Last Supper Leonardo da Vinci mural",
     "ancho": 900,
-    "alto": 469
+    "alto": 469,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-011": {
     "id": "art-011",
@@ -69,7 +84,10 @@
     "leyenda": "One and Three Chairs de Kosuth",
     "termino": "One and Three Chairs Joseph Kosuth",
     "ancho": 900,
-    "alto": 582
+    "alto": 582,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-030": {
     "id": "art-030",
@@ -81,7 +99,10 @@
     "leyenda": "La noche estrellada de Van Gogh",
     "termino": "Starry Night Van Gogh painting",
     "ancho": 900,
-    "alto": 718
+    "alto": 718,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-031": {
     "id": "art-031",
@@ -93,7 +114,10 @@
     "leyenda": "Moisés de Miguel Ángel",
     "termino": "Moses Michelangelo sculpture",
     "ancho": 900,
-    "alto": 1083
+    "alto": 1083,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-035": {
     "id": "art-035",
@@ -105,7 +129,10 @@
     "leyenda": "Pintura impresionista de Monet",
     "termino": "Impressionism painting Monet",
     "ancho": 900,
-    "alto": 1118
+    "alto": 1118,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-036": {
     "id": "art-036",
@@ -117,7 +144,10 @@
     "leyenda": "Guernica de Picasso",
     "termino": "Guernica Picasso painting",
     "ancho": 900,
-    "alto": 605
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-037": {
     "id": "art-037",
@@ -129,7 +159,10 @@
     "leyenda": "Obra de Arte Povera",
     "termino": "Arte Povera sculpture",
     "ancho": 900,
-    "alto": 600
+    "alto": 600,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-040": {
     "id": "art-040",
@@ -141,7 +174,10 @@
     "leyenda": "Guernica de Picasso",
     "termino": "Guernica Picasso painting",
     "ancho": 900,
-    "alto": 605
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-042": {
     "id": "art-042",
@@ -153,7 +189,10 @@
     "leyenda": "Las Meninas de Velázquez",
     "termino": "Las Meninas Velázquez painting",
     "ancho": 900,
-    "alto": 1036
+    "alto": 1036,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-044": {
     "id": "art-044",
@@ -165,7 +204,10 @@
     "leyenda": "Composición VII de Kandinsky",
     "termino": "Wassily Kandinsky Composition VII",
     "ancho": 900,
-    "alto": 598
+    "alto": 598,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemma-4-26b-a4b-it:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-076": {
     "id": "art-076",
@@ -177,7 +219,10 @@
     "leyenda": "Guernica de Picasso",
     "termino": "Guernica Picasso painting",
     "ancho": 900,
-    "alto": 605
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-091": {
     "id": "art-091",
@@ -189,7 +234,10 @@
     "leyenda": "Fuente de Duchamp, readymade que cuestiona qué es arte",
     "termino": "Fountain Marcel Duchamp 1917",
     "ancho": 900,
-    "alto": 949
+    "alto": 949,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-092": {
     "id": "art-092",
@@ -201,7 +249,10 @@
     "leyenda": "Cuadrado Negro de Malevich, vanguardia que rompe tradición",
     "termino": "Black Square Kazimir Malevich",
     "ancho": 900,
-    "alto": 896
+    "alto": 896,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-093": {
     "id": "art-093",
@@ -213,7 +264,10 @@
     "leyenda": "Portada de El Quijote, novela con recursos metatextuales",
     "termino": "Don Quixote Cervantes title page",
     "ancho": 900,
-    "alto": 1311
+    "alto": 1311,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-016": {
     "id": "cie-016",
@@ -225,7 +279,10 @@
     "leyenda": "Composición de la atmósfera terrestre: nitrógeno 78%",
     "termino": "Earth atmosphere composition pie chart nitrogen oxygen",
     "ancho": 900,
-    "alto": 1500
+    "alto": 1500,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-052": {
     "id": "cie-052",
@@ -237,7 +294,10 @@
     "leyenda": "Enana blanca Sirius B, resto estelar de masa solar",
     "termino": "White dwarf star Sirius B Hubble",
     "ancho": 900,
-    "alto": 675
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-065": {
     "id": "cie-065",
@@ -249,7 +309,10 @@
     "leyenda": "Isaac Newton y sus tres leyes del movimiento",
     "termino": "Isaac Newton portrait",
     "ancho": 900,
-    "alto": 1537
+    "alto": 1537,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-092": {
     "id": "cie-092",
@@ -261,7 +324,10 @@
     "leyenda": "Jerarquía de evidencia: meta-análisis > ECA > cohortes > ser",
     "termino": "evidence hierarchy pyramid diagram",
     "ancho": 900,
-    "alto": 487
+    "alto": 487,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "eco-071": {
     "id": "eco-071",
@@ -273,7 +339,10 @@
     "leyenda": "Burbuja inmobiliaria EE. UU. (Case-Shiller)",
     "termino": "Case-Shiller home price index 2006 peak",
     "ancho": 900,
-    "alto": 675
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "eco-075": {
     "id": "eco-075",
@@ -285,7 +354,10 @@
     "leyenda": "Milton Friedman, economista monetarista",
     "termino": "Milton Friedman portrait",
     "ancho": 900,
-    "alto": 1123
+    "alto": 1123,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-007": {
     "id": "fil-007",
@@ -297,7 +369,10 @@
     "leyenda": "Immanuel Kant, filósofo crítico",
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
-    "alto": 1175
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-008": {
     "id": "fil-008",
@@ -309,7 +384,10 @@
     "leyenda": "Platón, autor de la alegoría de la caverna",
     "termino": "Plato portrait",
     "ancho": 900,
-    "alto": 1310
+    "alto": 1310,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-016": {
     "id": "fil-016",
@@ -321,7 +399,10 @@
     "leyenda": "Platón, autor de La República",
     "termino": "Plato portrait",
     "ancho": 900,
-    "alto": 1310
+    "alto": 1310,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-019": {
     "id": "fil-019",
@@ -333,7 +414,10 @@
     "leyenda": "Immanuel Kant, autor de la Crítica de la razón pura",
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
-    "alto": 1175
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-026": {
     "id": "fil-026",
@@ -345,7 +429,10 @@
     "leyenda": "Immanuel Kant, distinguió fenómenos y noumenos",
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
-    "alto": 1175
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-044": {
     "id": "fil-044",
@@ -357,7 +444,10 @@
     "leyenda": "John Rawls, autor de 'Teoría de la justicia'",
     "termino": "John Rawls portrait",
     "ancho": 900,
-    "alto": 1260
+    "alto": 1260,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-034": {
     "id": "geo-034",
@@ -369,7 +459,10 @@
     "leyenda": "El océano Atlántico baña la costa este de EE.UU.",
     "termino": "Atlantic Ocean east coast United States map",
     "ancho": 900,
-    "alto": 556
+    "alto": 556,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-052": {
     "id": "geo-052",
@@ -381,7 +474,10 @@
     "leyenda": "Canberra, capital de Australia",
     "termino": "Canberra Australia Parliament House",
     "ancho": 900,
-    "alto": 535
+    "alto": 535,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-057": {
     "id": "geo-057",
@@ -393,7 +489,10 @@
     "leyenda": "Cuenca hidrográfica del Amazonas",
     "termino": "Amazon basin map hydrographic",
     "ancho": 900,
-    "alto": 650
+    "alto": 650,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-058": {
     "id": "geo-058",
@@ -405,7 +504,10 @@
     "leyenda": "Canal de Suez, vía artificial",
     "termino": "Suez Canal satellite view",
     "ancho": 900,
-    "alto": 506
+    "alto": 506,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemma-4-31b-it:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-008": {
     "id": "his-008",
@@ -417,7 +519,10 @@
     "leyenda": "Machu Picchu, ciudadela inca",
     "termino": "Machu Picchu Peru",
     "ancho": 900,
-    "alto": 598
+    "alto": 598,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-009": {
     "id": "his-009",
@@ -429,7 +534,10 @@
     "leyenda": "Tratado de Westfalia 1648",
     "termino": "Peace of Westphalia treaty",
     "ancho": 900,
-    "alto": 697
+    "alto": 697,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-013": {
     "id": "his-013",
@@ -441,7 +549,10 @@
     "leyenda": "Rómulo Augústulo, último emperador",
     "termino": "Romulus Augustulus",
     "ancho": 900,
-    "alto": 926
+    "alto": 926,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-016": {
     "id": "his-016",
@@ -453,7 +564,10 @@
     "leyenda": "Pirámides de Guiza, Egipto",
     "termino": "Pyramids of Giza",
     "ancho": 900,
-    "alto": 598
+    "alto": 598,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-064": {
     "id": "art-064",
@@ -465,7 +579,10 @@
     "leyenda": "La noche estrellada, Van Gogh, 1889",
     "termino": "The Starry Night Vincent van Gogh",
     "ancho": 900,
-    "alto": 718
+    "alto": 718,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-065": {
     "id": "art-065",
@@ -477,7 +594,10 @@
     "leyenda": "Guernica, Pablo Picasso, 1937",
     "termino": "Guernica Pablo Picasso painting",
     "ancho": 900,
-    "alto": 605
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-071": {
     "id": "art-071",
@@ -489,7 +609,10 @@
     "leyenda": "Sagrada Família, Gaudí, Barcelona",
     "termino": "Sagrada Familia Barcelona Gaudi",
     "ancho": 900,
-    "alto": 625
+    "alto": 625,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-073": {
     "id": "art-073",
@@ -501,7 +624,10 @@
     "leyenda": "Impresión, sol naciente, Monet, 1872",
     "termino": "Impression Sunrise Monet painting",
     "ancho": 900,
-    "alto": 698
+    "alto": 698,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-001": {
     "id": "cie-001",
@@ -513,7 +639,10 @@
     "leyenda": "Composición de gases en la atmósfera terrestre",
     "termino": "Earth atmosphere composition pie chart",
     "ancho": 900,
-    "alto": 1500
+    "alto": 1500,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-002": {
     "id": "cie-002",
@@ -525,7 +654,10 @@
     "leyenda": "Reacción de la fotosíntesis en cloroplastos",
     "termino": "photosynthesis diagram chloroplast",
     "ancho": 900,
-    "alto": 530
+    "alto": 530,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-034": {
     "id": "cie-034",
@@ -537,7 +669,10 @@
     "leyenda": "El Sol, estrella tipo G2V",
     "termino": "Sun G2V star",
     "ancho": 900,
-    "alto": 900
+    "alto": 900,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-082": {
     "id": "cie-082",
@@ -549,7 +684,10 @@
     "leyenda": "Gases de efecto invernadero absorben radiación infrarroja",
     "termino": "greenhouse effect infrared absorption diagram",
     "ancho": 900,
-    "alto": 910
+    "alto": 910,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-087": {
     "id": "cie-087",
@@ -561,7 +699,10 @@
     "leyenda": "Metilación del ADN y modificación de histonas en epigenética",
     "termino": "Histone modification epigenetics",
     "ancho": 900,
-    "alto": 612
+    "alto": 612,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "eco-018": {
     "id": "eco-018",
@@ -573,7 +714,10 @@
     "leyenda": "Curva de Phillips original (1958): relación inversa desemple",
     "termino": "Phillips curve scatter plot unemployment wage inflation",
     "ancho": 900,
-    "alto": 507
+    "alto": 507,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-007": {
     "id": "geo-007",
@@ -585,7 +729,10 @@
     "leyenda": "El Himalaya separa la meseta tibetana de la llanura del Gang",
     "termino": "Himalaya mountain range",
     "ancho": 900,
-    "alto": 593
+    "alto": 593,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-011": {
     "id": "geo-011",
@@ -597,7 +744,10 @@
     "leyenda": "Los Urales marcan la divisoria tradicional Europa–Asia",
     "termino": "Ural Mountains Russia",
     "ancho": 900,
-    "alto": 1395
+    "alto": 1395,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-038": {
     "id": "geo-038",
@@ -609,7 +759,10 @@
     "leyenda": "El océano Índico baña la costa oriental de África",
     "termino": "Indian Ocean east Africa coast",
     "ancho": 900,
-    "alto": 600
+    "alto": 600,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-039": {
     "id": "geo-039",
@@ -621,7 +774,10 @@
     "leyenda": "La Sierra Madre Occidental está toda en territorio mexicano",
     "termino": "Sierra Madre Occidental Mexico mountains",
     "ancho": 900,
-    "alto": 635
+    "alto": 635,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-031": {
     "id": "his-031",
@@ -633,7 +789,10 @@
     "leyenda": "Japón firma el Pacto Tripartito con el Eje, 1940",
     "termino": "Tripartite Pact signing 1940",
     "ancho": 900,
-    "alto": 623
+    "alto": 623,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-032": {
     "id": "his-032",
@@ -645,7 +804,10 @@
     "leyenda": "San Martín declara la independencia del Perú, 1821",
     "termino": "Jose de San Martin Peru independence",
     "ancho": 900,
-    "alto": 1181
+    "alto": 1181,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-033": {
     "id": "his-033",
@@ -657,7 +819,10 @@
     "leyenda": "Tratado de Westfalia, 1648: soberanía estatal",
     "termino": "Treaty of Westphalia 1648 document",
     "ancho": 900,
-    "alto": 665
+    "alto": 665,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-035": {
     "id": "his-035",
@@ -669,7 +834,10 @@
     "leyenda": "Derrota de Napoleón en Waterloo, 1815",
     "termino": "Battle of Waterloo painting",
     "ancho": 900,
-    "alto": 411
+    "alto": 411,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-038": {
     "id": "his-038",
@@ -681,7 +849,10 @@
     "leyenda": "Prensa de tipos móviles de Gutenberg, c. 1440",
     "termino": "Gutenberg printing press",
     "ancho": 900,
-    "alto": 1200
+    "alto": 1200,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-041": {
     "id": "his-041",
@@ -693,7 +864,10 @@
     "leyenda": "División de Verdún (843) vs. frontera actual Franco-Alemana",
     "termino": "Treaty of Verdun map 843",
     "ancho": 900,
-    "alto": 673
+    "alto": 673,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-045": {
     "id": "his-045",
@@ -705,7 +879,10 @@
     "leyenda": "Tratado de Utrecht: Gibraltar y Menorca a Gran Bretaña",
     "termino": "Treaty of Utrecht 1713 map",
     "ancho": 900,
-    "alto": 697
+    "alto": 697,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-049": {
     "id": "his-049",
@@ -717,7 +894,10 @@
     "leyenda": "Pérdidas territoriales españolas tras el Tratado de Utrecht ",
     "termino": "Treaty of Utrecht 1713 map Spanish territories",
     "ancho": 900,
-    "alto": 457
+    "alto": 457,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-051": {
     "id": "his-051",
@@ -729,7 +909,10 @@
     "leyenda": "Devaluación progresiva del denario romano (siglos I-III)",
     "termino": "Roman denarius debasement series",
     "ancho": 900,
-    "alto": 355
+    "alto": 355,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-055": {
     "id": "his-055",
@@ -741,7 +924,10 @@
     "leyenda": "Rómulo Augústulo, último emperador romano de Occidente (476)",
     "termino": "Romulus Augustulus coin",
     "ancho": 900,
-    "alto": 871
+    "alto": 871,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-057": {
     "id": "his-057",
@@ -753,7 +939,10 @@
     "leyenda": "Tratado de Utrecht (1713), fin de la Guerra de Sucesión Espa",
     "termino": "Treaty of Utrecht 1713 document",
     "ancho": 900,
-    "alto": 475
+    "alto": 475,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-060": {
     "id": "his-060",
@@ -765,7 +954,10 @@
     "leyenda": "Hitos del sistema monetario internacional: 1609-1971",
     "termino": "Bank of Amsterdam 1609",
     "ancho": 900,
-    "alto": 698
+    "alto": 698,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "tec-033": {
     "id": "tec-033",
@@ -777,7 +969,10 @@
     "leyenda": "Diagrama de la pila TCP/IP",
     "termino": "TCP/IP stack diagram",
     "ancho": 900,
-    "alto": 1065
+    "alto": 1065,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-013": {
     "id": "art-013",
@@ -789,7 +984,10 @@
     "leyenda": "Picasso, cofundador del cubismo",
     "termino": "Pablo Picasso portrait 1907",
     "ancho": 900,
-    "alto": 1182
+    "alto": 1182,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-019": {
     "id": "art-019",
@@ -801,7 +999,10 @@
     "leyenda": "Diagrama de la sección áurea",
     "termino": "golden ratio spiral diagram",
     "ancho": 900,
-    "alto": 562
+    "alto": 562,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-070": {
     "id": "art-070",
@@ -813,7 +1014,10 @@
     "leyenda": "Impresión, sol naciente (Monet)",
     "termino": "Impression Sunrise Monet 1872",
     "ancho": 900,
-    "alto": 698
+    "alto": 698,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-078": {
     "id": "art-078",
@@ -825,7 +1029,10 @@
     "leyenda": "Estructura de acero en rascacielos",
     "termino": "Empire State Building steel frame 1930",
     "ancho": 900,
-    "alto": 1200
+    "alto": 1200,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-038": {
     "id": "cie-038",
@@ -837,7 +1044,10 @@
     "leyenda": "Composición del aire seco: N₂ 78%, O₂ 21%",
     "termino": "Earth atmosphere composition pie chart",
     "ancho": 900,
-    "alto": 1500
+    "alto": 1500,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-088": {
     "id": "cie-088",
@@ -849,7 +1059,10 @@
     "leyenda": "Curva de aprendizaje solar: coste vs capacidad (ley Wright)",
     "termino": "Solar PV module price decline cumulative capacity chart",
     "ancho": 900,
-    "alto": 927
+    "alto": 927,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-002": {
     "id": "fil-002",
@@ -861,7 +1074,10 @@
     "leyenda": "Retrato de Jean-Paul Sartre",
     "termino": "Jean-Paul Sartre portrait",
     "ancho": 900,
-    "alto": 1178
+    "alto": 1178,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-003": {
     "id": "fil-003",
@@ -873,7 +1089,10 @@
     "leyenda": "Retrato de René Descartes",
     "termino": "René Descartes portrait",
     "ancho": 900,
-    "alto": 1102
+    "alto": 1102,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-004": {
     "id": "fil-004",
@@ -885,7 +1104,10 @@
     "leyenda": "Retrato de Edmund Husserl",
     "termino": "Edmund Husserl portrait",
     "ancho": 900,
-    "alto": 1061
+    "alto": 1061,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-005": {
     "id": "fil-005",
@@ -897,7 +1119,10 @@
     "leyenda": "Busto de Aristóteles",
     "termino": "Aristotle ancient Greek philosopher bust",
     "ancho": 900,
-    "alto": 1482
+    "alto": 1482,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-018": {
     "id": "fil-018",
@@ -909,7 +1134,10 @@
     "leyenda": "Retrato de Immanuel Kant",
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
-    "alto": 1175
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-029": {
     "id": "fil-029",
@@ -921,7 +1149,10 @@
     "leyenda": "Busto de Aristóteles",
     "termino": "Aristotle ancient Greek philosopher bust",
     "ancho": 900,
-    "alto": 1482
+    "alto": 1482,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-030": {
     "id": "fil-030",
@@ -933,7 +1164,10 @@
     "leyenda": "Retrato de Immanuel Kant",
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
-    "alto": 1175
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-036": {
     "id": "fil-036",
@@ -945,7 +1179,10 @@
     "leyenda": "Busto de Aristóteles",
     "termino": "Aristotle ancient Greek philosopher bust",
     "ancho": 900,
-    "alto": 1482
+    "alto": 1482,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-038": {
     "id": "fil-038",
@@ -957,7 +1194,10 @@
     "leyenda": "Hannah Arendt, filósofa política",
     "termino": "Hannah Arendt portrait",
     "ancho": 900,
-    "alto": 1113
+    "alto": 1113,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-039": {
     "id": "fil-039",
@@ -969,7 +1209,10 @@
     "leyenda": "Diagrama del dilema del tranvía",
     "termino": "Trolley dilemma schematic",
     "ancho": 900,
-    "alto": 474
+    "alto": 474,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-023": {
     "id": "geo-023",
@@ -981,7 +1224,10 @@
     "leyenda": "Mapa de la Antártida, sin países soberanos",
     "termino": "Antarctica map continent",
     "ancho": 900,
-    "alto": 900
+    "alto": 900,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-025": {
     "id": "geo-025",
@@ -993,7 +1239,10 @@
     "leyenda": "Monte Kilimanjaro, en África, no en los Andes",
     "termino": "Mount Kilimanjaro Tanzania",
     "ancho": 900,
-    "alto": 387
+    "alto": 387,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-003": {
     "id": "his-003",
@@ -1005,7 +1254,10 @@
     "leyenda": "Tratado de Versalles, 1919",
     "termino": "Treaty of Versailles 1919 document",
     "ancho": 900,
-    "alto": 1370
+    "alto": 1370,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-004": {
     "id": "his-004",
@@ -1017,7 +1269,10 @@
     "leyenda": "Fernand Braudel, historiador Annales",
     "termino": "Fernand Braudel Annales school",
     "ancho": 900,
-    "alto": 738
+    "alto": 738,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-037": {
     "id": "his-037",
@@ -1029,7 +1284,10 @@
     "leyenda": "Firma de Versalles en Salón de Espejos",
     "termino": "Treaty of Versailles signing 1919 Hall of Mirrors",
     "ancho": 900,
-    "alto": 322
+    "alto": 322,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-054": {
     "id": "his-054",
@@ -1041,7 +1299,10 @@
     "leyenda": "Otto von Bismarck, canciller de Prusia",
     "termino": "Otto von Bismarck 1862 portrait",
     "ancho": 900,
-    "alto": 1365
+    "alto": 1365,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-058": {
     "id": "his-058",
@@ -1053,7 +1314,10 @@
     "leyenda": "Compra de Luisiana, 1803",
     "termino": "Louisiana Purchase 1803 map",
     "ancho": 900,
-    "alto": 592
+    "alto": 592,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-061": {
     "id": "his-061",
@@ -1065,7 +1329,10 @@
     "leyenda": "Teodosio I y el Edicto de Tesalónica",
     "termino": "Theodosius I emperor portrait",
     "ancho": 900,
-    "alto": 1325
+    "alto": 1325,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "log-042": {
     "id": "log-042",
@@ -1077,7 +1344,10 @@
     "leyenda": "Curva de probabilidad de la paradoja del cumpleaños",
     "termino": "Birthday paradox probability graph",
     "ancho": 900,
-    "alto": 552
+    "alto": 552,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "tec-041": {
     "id": "tec-041",
@@ -1089,7 +1359,10 @@
     "leyenda": "iPhone original (2007) con pantalla multitáctil capacitiva",
     "termino": "iPhone 1st generation 2007",
     "ancho": 900,
-    "alto": 1357
+    "alto": 1357,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "tec-057": {
     "id": "tec-057",
@@ -1101,7 +1374,10 @@
     "leyenda": "Esquema de cifrado asimétrico y vulnerabilidad de backdoors",
     "termino": "End-to-end encryption illustration",
     "ancho": 900,
-    "alto": 1095
+    "alto": 1095,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-002": {
     "id": "art-002",
@@ -1113,7 +1389,10 @@
     "leyenda": "Impresión, sol naciente de Monet (1872)",
     "termino": "Impression Sunrise Monet painting",
     "ancho": 900,
-    "alto": 698
+    "alto": 698,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-074": {
     "id": "art-074",
@@ -1125,7 +1404,10 @@
     "leyenda": "Hormigón expuesto en arquitectura brutalista",
     "termino": "Barbican Estate brutalist concrete",
     "ancho": 900,
-    "alto": 1200
+    "alto": 1200,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-030": {
     "id": "cie-030",
@@ -1137,7 +1419,10 @@
     "leyenda": "Ejemplo de plasma: lámpara de plasma",
     "termino": "plasma lamp",
     "ancho": 900,
-    "alto": 675
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "cie-036": {
     "id": "cie-036",
@@ -1149,7 +1434,10 @@
     "leyenda": "Max Planck, físico alemán",
     "termino": "Max Planck physicist portrait",
     "ancho": 900,
-    "alto": 1264
+    "alto": 1264,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "fil-045": {
     "id": "fil-045",
@@ -1161,6 +1449,1059 @@
     "leyenda": "Hannah Arendt, acción y condición humana",
     "termino": "Hannah Arendt philosopher portrait",
     "ancho": 900,
-    "alto": 585
+    "alto": 585,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
+  },
+  "art-014": {
+    "id": "art-014",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg/960px-Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg",
+    "titulo": "Dolceacqua43 - Artista locale mentre dipinge un acquarello.jpg",
+    "autor": "Dongio",
+    "licencia": "Public domain",
+    "leyenda": "Técnica de acuarela",
+    "termino": "Watercolor painting technique",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:09:54.813Z"
+  },
+  "art-018": {
+    "id": "art-018",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg/960px-Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Las_Meninas,_by_Diego_Vel%C3%A1zquez,_from_Prado_in_Google_Earth.jpg",
+    "titulo": "Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg",
+    "autor": "Diego Velázquez",
+    "licencia": "Public domain",
+    "leyenda": "Las Meninas de Velázquez",
+    "termino": "Las Meninas Velázquez painting",
+    "ancho": 900,
+    "alto": 1036,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:09:58.396Z"
+  },
+  "art-072": {
+    "id": "art-072",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:%22Guernica%22_by_Picasso_at_MOMA,_NYC.jpg",
+    "titulo": "\"Guernica\" by Picasso at MOMA, NYC.jpg",
+    "autor": "Gotfryd, Bernard",
+    "licencia": "Public domain",
+    "leyenda": "Guernica de Picasso",
+    "termino": "Guernica Picasso painting",
+    "ancho": 900,
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:10:07.985Z"
+  },
+  "art-094": {
+    "id": "art-094",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Microcosm_of_London_Plate_006_-_Auction_Room%2C_Christie%27s_%28edited%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Microcosm_of_London_Plate_006_-_Auction_Room,_Christie%27s_(edited).jpg",
+    "titulo": "Microcosm of London Plate 006 - Auction Room, Christie's (edited).jpg",
+    "autor": "Thomas Rowlandson (1756–1827) and Augustus Charles Pugin (1762–1832) (after) John Bluck (fl. 1791–1819), Joseph Constantine Stadler (fl. 1780–1812), Thomas Sutherland (1785–1838), J. Hill, and Harrade",
+    "licencia": "Public domain",
+    "leyenda": "Sala de subastas Christie's, donde se venden obras",
+    "termino": "Christie's auction room interior",
+    "ancho": 900,
+    "alto": 670,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:11.794Z"
+  },
+  "cie-031": {
+    "id": "cie-031",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Biological_cell-2010-14-11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Biological_cell-2010-14-11.jpg",
+    "titulo": "Biological cell-2010-14-11.jpg",
+    "autor": "Biological_cell.svg : MesserWoland and Szczepan1990 derivative work: MrArifnajafov ( talk )",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Mitocondria: central energética productora de ATP",
+    "termino": "Animal cell organelles diagram mitochondria",
+    "ancho": 900,
+    "alto": 411,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:15.904Z"
+  },
+  "cie-041": {
+    "id": "cie-041",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Mitochondrial_DNA_lg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Mitochondrial_DNA_lg.jpg",
+    "titulo": "Mitochondrial DNA lg.jpg",
+    "autor": "National Human Genome Research Institute",
+    "licencia": "Public domain",
+    "leyenda": "Mitocondria, central energética de la célula",
+    "termino": "Mitochondria cell powerhouse diagram",
+    "ancho": 900,
+    "alto": 1006,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:19.894Z"
+  },
+  "cie-047": {
+    "id": "cie-047",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/Feynman_diagrams_of_photon-photon_scattering.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Feynman_diagrams_of_photon-photon_scattering.jpg",
+    "titulo": "Feynman diagrams of photon-photon scattering.jpg",
+    "autor": "ATLAS Collaboration",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Fotón mediador de la interacción electromagnética",
+    "termino": "Feynman diagram photon electromagnetic interaction",
+    "ancho": 900,
+    "alto": 258,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:23.278Z"
+  },
+  "cie-084": {
+    "id": "cie-084",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Space_sustainability_urgency_in_earth_orbits_white.png/960px-Space_sustainability_urgency_in_earth_orbits_white.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Space_sustainability_urgency_in_earth_orbits_white.png",
+    "titulo": "Space sustainability urgency in earth orbits white.png",
+    "autor": "Pablo Carlos Budassi",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Satélite geoestacionario a 35 786 km sobre el ecuador",
+    "termino": "geostationary orbit diagram",
+    "ancho": 900,
+    "alto": 756,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:27.788Z"
+  },
+  "cie-089": {
+    "id": "cie-089",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/TORNAI-SpectrumOfMedicalImaging.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:TORNAI-SpectrumOfMedicalImaging.jpg",
+    "titulo": "TORNAI-SpectrumOfMedicalImaging.jpg",
+    "autor": "Martin Tornai",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Energía fotónica aumenta de rojo a violeta",
+    "termino": "visible spectrum photon energy diagram",
+    "ancho": 900,
+    "alto": 630,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:32.289Z"
+  },
+  "eco-079": {
+    "id": "eco-079",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Thomas_Piketty2.jpg/960px-Thomas_Piketty2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Thomas_Piketty2.jpg",
+    "titulo": "Thomas Piketty2.jpg",
+    "autor": "librairie mollat",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Thomas Piketty, autor de El capital en el siglo XXI",
+    "termino": "Thomas Piketty",
+    "ancho": 900,
+    "alto": 1145,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:36.071Z"
+  },
+  "eco-095": {
+    "id": "eco-095",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Lehman_Brothers_Times_Square_by_David_Shankbone.jpg/960px-Lehman_Brothers_Times_Square_by_David_Shankbone.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Lehman_Brothers_Times_Square_by_David_Shankbone.jpg",
+    "titulo": "Lehman Brothers Times Square by David Shankbone.jpg",
+    "autor": "David Shankbone",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Sede de Lehman Brothers en Nueva York, epicentro de la quieb",
+    "termino": "Lehman Brothers headquarters New York 2008",
+    "ancho": 900,
+    "alto": 1200,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:39.865Z"
+  },
+  "fil-006": {
+    "id": "fil-006",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Jean_Paul_Sartre_1965.jpg/960px-Jean_Paul_Sartre_1965.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Jean_Paul_Sartre_1965.jpg",
+    "titulo": "Jean Paul Sartre 1965.jpg",
+    "autor": "Unknown author Unknown author",
+    "licencia": "CC BY-SA 3.0 nl",
+    "leyenda": "Jean-Paul Sartre, existencialista",
+    "termino": "Jean-Paul Sartre portrait",
+    "ancho": 900,
+    "alto": 1178,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:10:44.170Z"
+  },
+  "geo-001": {
+    "id": "geo-001",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Strait_of_Gibraltar_from_Plane.jpg/960px-Strait_of_Gibraltar_from_Plane.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Strait_of_Gibraltar_from_Plane.jpg",
+    "titulo": "Strait of Gibraltar from Plane.jpg",
+    "autor": "Florian Sauerland",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "El Estrecho de Gibraltar une Mediterráneo y Atlántico",
+    "termino": "Strait of Gibraltar map",
+    "ancho": 900,
+    "alto": 506,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:11:12.296Z"
+  },
+  "geo-005": {
+    "id": "geo-005",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/AMH-8032-KB_Map_of_the_Pacific_Ocean%2C_with_Australia_and_the_west_coast_of_South_America.jpg/960px-AMH-8032-KB_Map_of_the_Pacific_Ocean%2C_with_Australia_and_the_west_coast_of_South_America.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:AMH-8032-KB_Map_of_the_Pacific_Ocean,_with_Australia_and_the_west_coast_of_South_America.jpg",
+    "titulo": "AMH-8032-KB Map of the Pacific Ocean, with Australia and the west coast of South America.jpg",
+    "autor": "Jacques-Nicolas Bellin / Jakob van der Schley / Pieter de Hondt",
+    "licencia": "Public domain",
+    "leyenda": "Océano Pacífico baña la costa oeste de Sudamérica",
+    "termino": "Pacific Ocean South America west coast map",
+    "ancho": 900,
+    "alto": 561,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:16.027Z"
+  },
+  "geo-028": {
+    "id": "geo-028",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/China_edcp_relief_location_map_Gobi_de.jpg/960px-China_edcp_relief_location_map_Gobi_de.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:China_edcp_relief_location_map_Gobi_de.jpg",
+    "titulo": "China edcp relief location map Gobi de.jpg",
+    "autor": "WeHaKa",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "El desierto de Gobi está en Asia, no en Sudamérica",
+    "termino": "Gobi Desert map Asia",
+    "ancho": 900,
+    "alto": 717,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:19.704Z"
+  },
+  "geo-032": {
+    "id": "geo-032",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Andes_mountain_range_in_Winter%2C_Chile_June_2025.jpg/960px-Andes_mountain_range_in_Winter%2C_Chile_June_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Andes_mountain_range_in_Winter,_Chile_June_2025.jpg",
+    "titulo": "Andes mountain range in Winter, Chile June 2025.jpg",
+    "autor": "MattWithX1",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Los Andes atraviesan siete países sudamericanos",
+    "termino": "Andes mountain range South America map",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:23.798Z"
+  },
+  "geo-042": {
+    "id": "geo-042",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/European_ministates_map.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:European_ministates_map.png",
+    "titulo": "European ministates map.png",
+    "autor": "Paasikivi",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Microestados europeos ordenados por superficie",
+    "termino": "European microstates map Vatican City Monaco San Marino Liechtenstein",
+    "ancho": 900,
+    "alto": 976,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:27.989Z"
+  },
+  "geo-064": {
+    "id": "geo-064",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Nile_River_and_delta_from_orbit.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Nile_River_and_delta_from_orbit.jpg",
+    "titulo": "Nile River and delta from orbit.jpg",
+    "autor": "Jacques Descloitres, MODIS Rapid Response Team, NASA/sh",
+    "licencia": "Public domain",
+    "leyenda": "Valle del Nilo, zona fértil en el desierto",
+    "termino": "Nile Valley Egypt satellite view green desert",
+    "ancho": 900,
+    "alto": 707,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:31.570Z"
+  },
+  "his-007": {
+    "id": "his-007",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Le_si%C3%A8ge_de_Constantinople_%281453%29_by_Jean_Le_Tavernier_after_1455.jpg/960px-Le_si%C3%A8ge_de_Constantinople_%281453%29_by_Jean_Le_Tavernier_after_1455.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Le_si%C3%A8ge_de_Constantinople_(1453)_by_Jean_Le_Tavernier_after_1455.jpg",
+    "titulo": "Le siège de Constantinople (1453) by Jean Le Tavernier after 1455.jpg",
+    "autor": "",
+    "licencia": "Public domain",
+    "leyenda": "Caída de Constantinopla 1453",
+    "termino": "Fall of Constantinople 1453",
+    "ancho": 900,
+    "alto": 1330,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:35.882Z"
+  },
+  "his-012": {
+    "id": "his-012",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Tomb_of_Cyrus_the_Great.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Tomb_of_Cyrus_the_Great.jpg",
+    "titulo": "Tomb of Cyrus the Great.jpg",
+    "autor": "Mohammad Reza Domiri Ganji محمدرضا دومیری گنجی",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Ciro el Grande, fundador persa",
+    "termino": "Cyrus the Great",
+    "ancho": 900,
+    "alto": 1351,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:40.490Z"
+  },
+  "log-039": {
+    "id": "log-039",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Beach_at_Dunraven_Bay_on_a_hot_Summer%27s_day_-_geograph.org.uk_-_900349.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Beach_at_Dunraven_Bay_on_a_hot_Summer%27s_day_-_geograph.org.uk_-_900349.jpg",
+    "titulo": "Beach at Dunraven Bay on a hot Summer's day - geograph.org.uk - 900349.jpg",
+    "autor": "Alan Bowring",
+    "licencia": "CC BY-SA 2.0",
+    "leyenda": "El calor veraniego une helados y ahogamientos",
+    "termino": "Hot summer beach crowd",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:48.571Z"
+  },
+  "art-046": {
+    "id": "art-046",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/960px-VanGogh-starry_night_ballance1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:VanGogh-starry_night_ballance1.jpg",
+    "titulo": "VanGogh-starry night ballance1.jpg",
+    "autor": "Vincent van Gogh",
+    "licencia": "Public domain",
+    "leyenda": "La noche estrellada, Vincent van Gogh, 1889",
+    "termino": "The Starry Night Vincent van Gogh",
+    "ancho": 900,
+    "alto": 718,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemma-4-31b-it:free",
+    "revalidacionFecha": "2026-09-13T12:12:07.730Z"
+  },
+  "cie-083": {
+    "id": "cie-083",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Rayleigh_mie_fry3a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Rayleigh_mie_fry3a.jpg",
+    "titulo": "Rayleigh mie fry3a.jpg",
+    "autor": "The Good Doctor Fry",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Dispersión de Rayleigh hace que el cielo se vea azul",
+    "termino": "Rayleigh scattering sky blue diagram",
+    "ancho": 900,
+    "alto": 719,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:11.620Z"
+  },
+  "cie-086": {
+    "id": "cie-086",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Impulsdiagramm_downwash.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Impulsdiagramm_downwash.png",
+    "titulo": "Impulsdiagramm downwash.png",
+    "autor": "Zuburgl",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Desvío del aire (downwash) y sustentación por 3ª ley de Newt",
+    "termino": "Airfoil downwash diagram",
+    "ancho": 900,
+    "alto": 623,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:15.308Z"
+  },
+  "geo-062": {
+    "id": "geo-062",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Strait_of_Malacca_highlighted.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Strait_of_Malacca_highlighted.png",
+    "titulo": "Strait of Malacca highlighted.png",
+    "autor": "Derives from png uploaded by User:Wolrd blank map",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "El 80% del petróleo que importa China cruza el estrecho de M",
+    "termino": "Strait of Malacca map",
+    "ancho": 900,
+    "alto": 900,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:24.216Z"
+  },
+  "geo-065": {
+    "id": "geo-065",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_%28Image_2_of_3%29.jpg/960px-Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_%28Image_2_of_3%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_(Image_2_of_3).jpg",
+    "titulo": "Flickr - DVIDSHUB - USS Porter damaged in collision with oil tanker (Image 2 of 3).jpg",
+    "autor": "DVIDSHUB",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Por Ormuz pasa ~20% del petróleo mundial",
+    "termino": "Hormuz Strait oil tankers",
+    "ancho": 900,
+    "alto": 599,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:29.029Z"
+  },
+  "his-006": {
+    "id": "his-006",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Signing_of_the_Treaty_of_Versailles%2C_by_John_Christen_Johansen.jpg/960px-Signing_of_the_Treaty_of_Versailles%2C_by_John_Christen_Johansen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Signing_of_the_Treaty_of_Versailles,_by_John_Christen_Johansen.jpg",
+    "titulo": "Signing of the Treaty of Versailles, by John Christen Johansen.jpg",
+    "autor": "John Christen Johansen",
+    "licencia": "Public domain",
+    "leyenda": "Firma del Tratado de Versalles, 1919",
+    "termino": "Treaty of Versailles 1919 signing",
+    "ancho": 900,
+    "alto": 981,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:12:51.659Z"
+  },
+  "his-018": {
+    "id": "his-018",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg/960px-Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg",
+    "titulo": "Nicolaus Copernicus. Reproduction of line engraving.jpg",
+    "autor": "J. Falck",
+    "licencia": "Public domain",
+    "leyenda": "Modelo heliocéntrico de Copérnico, 1543",
+    "termino": "Nicolaus Copernicus portrait",
+    "ancho": 900,
+    "alto": 1171,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:56.369Z"
+  },
+  "his-040": {
+    "id": "his-040",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/GallicEmpire262.png/960px-GallicEmpire262.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:GallicEmpire262.png",
+    "titulo": "GallicEmpire262.png",
+    "autor": "Original - ArdadN ; edit - Wario2.",
+    "licencia": "Public domain",
+    "leyenda": "Diocleciano reorganiza el Imperio tras la crisis del s. III",
+    "termino": "Crisis of the Third Century map",
+    "ancho": 900,
+    "alto": 946,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:01.490Z"
+  },
+  "his-042": {
+    "id": "his-042",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_%28Indianapolis%29.jpg/960px-Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_%28Indianapolis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_(Indianapolis).jpg",
+    "titulo": "Franz von Lenbach - Bildnis Otto Eduard Leopold von Bismarck (Indianapolis).jpg",
+    "autor": "Franz von Lenbach",
+    "licencia": "Public domain",
+    "leyenda": "Bismarck proclama el Imperio alemán en Versalles, 1871",
+    "termino": "Otto von Bismarck portrait",
+    "ancho": 900,
+    "alto": 1125,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:05.888Z"
+  },
+  "his-043": {
+    "id": "his-043",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_%28Tulip_mania%29.png/960px-Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_%28Tulip_mania%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_(Tulip_mania).png",
+    "titulo": "Tooneel van Flora Handel der Floristen in Amsterdam 1637 (Tulip mania).png",
+    "autor": "Unknown, 1637",
+    "licencia": "Public domain",
+    "leyenda": "La tulipomanía, primera burbuja financiera documentada (1636",
+    "termino": "Tulip mania 1637",
+    "ancho": 900,
+    "alto": 1166,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:13:16.438Z"
+  },
+  "his-048": {
+    "id": "his-048",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Karte_Gemeinde_Olivenza_2022.png/960px-Karte_Gemeinde_Olivenza_2022.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Karte_Gemeinde_Olivenza_2022.png",
+    "titulo": "Karte Gemeinde Olivenza 2022.png",
+    "autor": "Tschubby",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Mapa de Olivenza, territorio disputado entre España y Portug",
+    "termino": "Olivenza map",
+    "ancho": 900,
+    "alto": 636,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:20.164Z"
+  },
+  "his-052": {
+    "id": "his-052",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Treaty_of_Verdun_843.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Treaty_of_Verdun_843.png",
+    "titulo": "Treaty of Verdun 843.png",
+    "autor": "Great Politburo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "División del Imperio carolingio en el Tratado de Verdún (843",
+    "termino": "Treaty of Verdun 843 map",
+    "ancho": 900,
+    "alto": 673,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:24.424Z"
+  },
+  "tec-002": {
+    "id": "tec-002",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Von_Neumann_Architecture-Enhanced_Version.jpg/960px-Von_Neumann_Architecture-Enhanced_Version.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Von_Neumann_Architecture-Enhanced_Version.jpg",
+    "titulo": "Von Neumann Architecture-Enhanced Version.jpg",
+    "autor": "SKTEC1977",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Diagrama de la arquitectura de von Neumann",
+    "termino": "Von Neumann architecture diagram",
+    "ancho": 900,
+    "alto": 506,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:35.994Z"
+  },
+  "eco-048": {
+    "id": "eco-048",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Economics_production_possibility_frontier_comparison.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Economics_production_possibility_frontier_comparison.jpg",
+    "titulo": "Economics production possibility frontier comparison.jpg",
+    "autor": "OpenStax College",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Ventaja comparativa: costo relativo más bajo",
+    "termino": "comparative advantage PPF",
+    "ancho": 900,
+    "alto": 463,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:20.236Z"
+  },
+  "fil-009": {
+    "id": "fil-009",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Jeremy_Bentham_UCL_founder.jpg/960px-Jeremy_Bentham_UCL_founder.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Jeremy_Bentham_UCL_founder.jpg",
+    "titulo": "Jeremy Bentham UCL founder.jpg",
+    "autor": "morebyless",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Retrato de Jeremy Bentham",
+    "termino": "Bentham auto-icon UCL",
+    "ancho": 900,
+    "alto": 752,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:23.921Z"
+  },
+  "fil-010": {
+    "id": "fil-010",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Edmund_Husserl_c._1930.webp/960px-Edmund_Husserl_c._1930.webp?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Edmund_Husserl_c._1930.webp",
+    "titulo": "Edmund Husserl c. 1930.webp",
+    "autor": "Unknown author Unknown author",
+    "licencia": "Public domain",
+    "leyenda": "Retrato de Edmund Husserl",
+    "termino": "Edmund Husserl portrait",
+    "ancho": 900,
+    "alto": 1061,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:27.402Z"
+  },
+  "fil-011": {
+    "id": "fil-011",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Michel_Foucault_MET_153881.jpg/960px-Michel_Foucault_MET_153881.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Michel_Foucault_MET_153881.jpg",
+    "titulo": "Michel Foucault MET 153881.jpg",
+    "autor": "Giovanni Battista Nini",
+    "licencia": "CC0",
+    "leyenda": "Retrato de Michel Foucault",
+    "termino": "Michel Foucault portrait",
+    "ancho": 900,
+    "alto": 929,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:30.877Z"
+  },
+  "fil-027": {
+    "id": "fil-027",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Edmund_Husserl_1910s.jpg/960px-Edmund_Husserl_1910s.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Edmund_Husserl_1910s.jpg",
+    "titulo": "Edmund Husserl 1910s.jpg",
+    "autor": "Unknown (Mondadori Publishers)",
+    "licencia": "Public domain",
+    "leyenda": "Retrato de Edmund Husserl",
+    "termino": "Husserl philosopher photograph",
+    "ancho": 900,
+    "alto": 1290,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:34.469Z"
+  },
+  "fil-028": {
+    "id": "fil-028",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Messkirch_Heidegger-Haus_Tafel_detail.jpg/960px-Messkirch_Heidegger-Haus_Tafel_detail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Messkirch_Heidegger-Haus_Tafel_detail.jpg",
+    "titulo": "Messkirch Heidegger-Haus Tafel detail.jpg",
+    "autor": "Photo: Andreas Praefcke",
+    "licencia": "CC BY 3.0",
+    "leyenda": "Retrato de Martin Heidegger",
+    "termino": "Martin Heidegger portrait",
+    "ancho": 900,
+    "alto": 1120,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:38.880Z"
+  },
+  "fil-042": {
+    "id": "fil-042",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg/960px-Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg",
+    "titulo": "Defensive bank at Deddington motte and bailey castle - geograph.org.uk - 6699433.jpg",
+    "autor": "Sandy Gerrard",
+    "licencia": "CC BY-SA 2.0",
+    "leyenda": "Esquema de castillo motte-and-bailey",
+    "termino": "Motte and bailey castle plan",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:47.164Z"
+  },
+  "fil-057": {
+    "id": "fil-057",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Immanuel_Kant_-_Gemaelde_1.jpg/960px-Immanuel_Kant_-_Gemaelde_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Immanuel_Kant_-_Gemaelde_1.jpg",
+    "titulo": "Immanuel Kant - Gemaelde 1.jpg",
+    "autor": "Johann Gottlieb Becker (1720-1782)",
+    "licencia": "Public domain",
+    "leyenda": "Immanuel Kant, filósofo",
+    "termino": "Immanuel Kant portrait",
+    "ancho": 900,
+    "alto": 1175,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:14:50.544Z"
+  },
+  "geo-024": {
+    "id": "geo-024",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Ancient_Courses_Mississippi_River_Meander_Belt%2C_Plate_22_Sheet_07.jpg/960px-Ancient_Courses_Mississippi_River_Meander_Belt%2C_Plate_22_Sheet_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ancient_Courses_Mississippi_River_Meander_Belt,_Plate_22_Sheet_07.jpg",
+    "titulo": "Ancient Courses Mississippi River Meander Belt, Plate 22 Sheet 07.jpg",
+    "autor": "US Army Corps of Engineers – Mississippi River Commission, Harold N. Fisk",
+    "licencia": "Public domain",
+    "leyenda": "Curso del río Misisipi, solo en EE. UU.",
+    "termino": "Mississippi River map course",
+    "ancho": 900,
+    "alto": 1299,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:15:09.998Z"
+  },
+  "geo-033": {
+    "id": "geo-033",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg/960px-Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Cyrtodactylus_santana_(10.3897-zookeys.1139.96508.figure1)_location_map.jpg",
+    "titulo": "Cyrtodactylus santana (10.3897-zookeys.1139.96508.figure1) location map.jpg",
+    "autor": "Chan, Kin Onn; Grismer, L. Lee; Santana, Fernando; Pinto, Pedro; Loke, Frances W.; Conaboy, Nathan (11 January 2023). \" Scratching the surface: a new species of Bent-toed gecko (Squamata, Gekkonidae, ",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Línea de Wallace entre Bali y Lombok",
+    "termino": "Wallacea biogeographical boundary map",
+    "ancho": 900,
+    "alto": 584,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:13.798Z"
+  },
+  "geo-035": {
+    "id": "geo-035",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg/960px-Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg",
+    "titulo": "Iberian Peninsula at Night - NASA Earth Observatory.jpg",
+    "autor": "NASA's Earth Observatory",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Portugal da al Atlántico, no al Mediterráneo",
+    "termino": "Iberian Peninsula map Mediterranean Atlantic",
+    "ancho": 900,
+    "alto": 600,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:17.782Z"
+  },
+  "his-005": {
+    "id": "his-005",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Prise_de_la_Bastille_clean.jpg/960px-Prise_de_la_Bastille_clean.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Prise_de_la_Bastille_clean.jpg",
+    "titulo": "Prise de la Bastille clean.jpg",
+    "autor": "Jean-Pierre Houël",
+    "licencia": "Public domain",
+    "leyenda": "Toma de la Bastilla, 1789",
+    "termino": "Storming of the Bastille 1789 painting",
+    "ancho": 900,
+    "alto": 684,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:21.561Z"
+  },
+  "his-036": {
+    "id": "his-036",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Samuel_Greg%2C_textile_merchant.jpg/960px-Samuel_Greg%2C_textile_merchant.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Samuel_Greg,_textile_merchant.jpg",
+    "titulo": "Samuel Greg, textile merchant.jpg",
+    "autor": "British School",
+    "licencia": "Public domain",
+    "leyenda": "Máquina de vapor de Watt, 1769",
+    "termino": "Industrial Revolution textile mill Britain",
+    "ancho": 900,
+    "alto": 1139,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:24.989Z"
+  },
+  "his-039": {
+    "id": "his-039",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg/960px-Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Peace_of_Westphalia,_Treaty_of_Osnabr%C3%BCck.jpg",
+    "titulo": "Peace of Westphalia, Treaty of Osnabrück.jpg",
+    "autor": "parties of the Peace of Westphalia",
+    "licencia": "Public domain",
+    "leyenda": "Tratado de Westfalia, 1648",
+    "termino": "Peace of Westphalia 1648 treaty document",
+    "ancho": 900,
+    "alto": 665,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:29.041Z"
+  },
+  "his-044": {
+    "id": "his-044",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg/960px-Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg",
+    "titulo": "Europe at the fall of the Western Roman Empire in 476.jpg",
+    "autor": "Droysen/Andrée; G. Kossina rev.",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Caída del Imperio Romano de Occidente",
+    "termino": "Fall of Western Roman Empire 476 map",
+    "ancho": 900,
+    "alto": 575,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:32.834Z"
+  },
+  "his-047": {
+    "id": "his-047",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Opening_of_the_Estates_General_at_Versailles_on_5th_May_1789.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Opening_of_the_Estates_General_at_Versailles_on_5th_May_1789.jpg",
+    "titulo": "Opening of the Estates General at Versailles on 5th May 1789.jpg",
+    "autor": "Louis Charles Auguste Couder-1839",
+    "licencia": "Public domain",
+    "leyenda": "Estados Generales de 1789",
+    "termino": "Estates General 1789 Versailles",
+    "ancho": 900,
+    "alto": 497,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:40.511Z"
+  },
+  "his-064": {
+    "id": "his-064",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Marche_sel.jpg/960px-Marche_sel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Marche_sel.jpg",
+    "titulo": "Marche sel.jpg",
+    "autor": "Yann ( talk )",
+    "licencia": "Public domain",
+    "leyenda": "Marcha de la Sal de Gandhi, 1930",
+    "termino": "Gandhi Salt March 1930 Dandi",
+    "ancho": 900,
+    "alto": 604,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:44.813Z"
+  },
+  "log-032": {
+    "id": "log-032",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Gluehlampe_01_KMJ.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Gluehlampe_01_KMJ.jpg",
+    "titulo": "Gluehlampe 01 KMJ.jpg",
+    "autor": "KMJ",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Bombilla incandescente, clave del acertijo por su calor",
+    "termino": "Incandescent light bulb",
+    "ancho": 900,
+    "alto": 1495,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:16:12.875Z"
+  },
+  "log-048": {
+    "id": "log-048",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Greek_philosopher_busts.jpg/960px-Greek_philosopher_busts.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Greek_philosopher_busts.jpg",
+    "titulo": "Greek philosopher busts.jpg",
+    "autor": "Matt Neale from UK",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Busto de Sócrates, filósofo griego clásico",
+    "termino": "Socrates ancient Greek philosopher bust",
+    "ancho": 900,
+    "alto": 603,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:16:20.627Z"
+  },
+  "tec-050": {
+    "id": "tec-050",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Constellation_satellites_in_low_Earth_orbits_%28artist%E2%80%99s_impression%2C_not_to_scale%29_%28noirlab2022b%29.jpg/960px-Constellation_satellites_in_low_Earth_orbits_%28artist%E2%80%99s_impression%2C_not_to_scale%29_%28noirlab2022b%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Constellation_satellites_in_low_Earth_orbits_(artist%E2%80%99s_impression,_not_to_scale)_(noirlab2022b).jpg",
+    "titulo": "Constellation satellites in low Earth orbits (artist’s impression, not to scale) (noirlab2022b).jpg",
+    "autor": "NOIRLab/ NSF /AURA/P. Marenfeld",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Órbitas LEO (Starlink) y GEO frente a cables de fibra submar",
+    "termino": "Starlink satellite constellation orbit",
+    "ancho": 900,
+    "alto": 1157,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:16:39.118Z"
+  },
+  "tec-054": {
+    "id": "tec-054",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/DZ6_3018_Overlooking_the_skyline_of_Na_Kluea_Pattaya_-_low-rise_hotels_and_apartments_line_the_street_as_the_Gulf_of_Thailand_shimmers_on_the_horizon_at_dusk.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:DZ6_3018_Overlooking_the_skyline_of_Na_Kluea_Pattaya_-_low-rise_hotels_and_apartments_line_the_street_as_the_Gulf_of_Thailand_shimmers_on_the_horizon_at_dusk.jpg",
+    "titulo": "DZ6 3018 Overlooking the skyline of Na Kluea Pattaya - low-rise hotels and apartments line the street as the Gulf of Thailand shimmers on the horizon at dusk.jpg",
+    "autor": "PattayaPatrol",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Torre de telefonía móvil en zona urbana, conexión habitual",
+    "termino": "cellular tower antenna urban",
+    "ancho": 900,
+    "alto": 599,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:16:42.676Z"
+  },
+  "art-020": {
+    "id": "art-020",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Modern_art_wall_splashed_handyman_dripped_free-form_painting.jpg/960px-Modern_art_wall_splashed_handyman_dripped_free-form_painting.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Modern_art_wall_splashed_handyman_dripped_free-form_painting.jpg",
+    "titulo": "Modern art wall splashed handyman dripped free-form painting.jpg",
+    "autor": "Tomwsulcer",
+    "licencia": "Public domain",
+    "leyenda": "Técnica del dripping de Jackson Pollock",
+    "termino": "Jackson Pollock action painting",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:17:18.922Z"
+  },
+  "art-048": {
+    "id": "art-048",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Sandro_Botticelli_046.jpg/960px-Sandro_Botticelli_046.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Sandro_Botticelli_046.jpg",
+    "titulo": "Sandro Botticelli 046.jpg",
+    "autor": "Sandro Botticelli",
+    "licencia": "Public domain",
+    "leyenda": "Pintura al temple (témpera) con yema de huevo",
+    "termino": "Sandro Botticelli Birth of Venus tempera",
+    "ancho": 900,
+    "alto": 581,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:17:22.916Z"
+  },
+  "art-077": {
+    "id": "art-077",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Jean-L%C3%A9on_G%C3%A9r%C3%B4me_-_Diogenes_-_Walters_37131.jpg/960px-Jean-L%C3%A9on_G%C3%A9r%C3%B4me_-_Diogenes_-_Walters_37131.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Jean-L%C3%A9on_G%C3%A9r%C3%B4me_-_Diogenes_-_Walters_37131.jpg",
+    "titulo": "Jean-Léon Gérôme - Diogenes - Walters 37131.jpg",
+    "autor": "Jean-Léon Gérôme",
+    "licencia": "Public domain",
+    "leyenda": "Pintura académica de tema histórico/mitológico",
+    "termino": "Jean-Léon Gérôme historical painting",
+    "ancho": 900,
+    "alto": 661,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:17:26.864Z"
+  },
+  "art-081": {
+    "id": "art-081",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Academic_nude_%28Tuxen%29.jpg/960px-Academic_nude_%28Tuxen%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Academic_nude_(Tuxen).jpg",
+    "titulo": "Academic nude (Tuxen).jpg",
+    "autor": "Laurits Tuxen",
+    "licencia": "Public domain",
+    "leyenda": "Tradición académica de terminar cuadros en estudio",
+    "termino": "Academic studio painting 19th century",
+    "ancho": 900,
+    "alto": 1138,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:17:31.315Z"
+  },
+  "art-083": {
+    "id": "art-083",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Bauhaus_3_Chair.jpg/960px-Bauhaus_3_Chair.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Bauhaus_3_Chair.jpg",
+    "titulo": "Bauhaus 3 Chair.jpg",
+    "autor": "Lorkan",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Principio Bauhaus: forma sigue a la función",
+    "termino": "Bauhaus chair Wassily",
+    "ancho": 900,
+    "alto": 675,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:17:35.509Z"
+  },
+  "fil-021": {
+    "id": "fil-021",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Greek_philosopher_busts.jpg/960px-Greek_philosopher_busts.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Greek_philosopher_busts.jpg",
+    "titulo": "Greek philosopher busts.jpg",
+    "autor": "Matt Neale from UK",
+    "licencia": "CC BY 2.0",
+    "leyenda": "Sócrates, filósofo griego clásico",
+    "termino": "Socrates ancient Greek philosopher bust",
+    "ancho": 900,
+    "alto": 603,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:18:15.344Z"
+  },
+  "fil-031": {
+    "id": "fil-031",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Lipu_tenpo_nanpa_soweli_-_utala_pi_ilo_tawa.png/960px-Lipu_tenpo_nanpa_soweli_-_utala_pi_ilo_tawa.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Lipu_tenpo_nanpa_soweli_-_utala_pi_ilo_tawa.png",
+    "titulo": "Lipu tenpo nanpa soweli - utala pi ilo tawa.png",
+    "autor": "Aronora",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Dilema del tranvía de Philippa Foot",
+    "termino": "Philippa Foot trolley problem",
+    "ancho": 900,
+    "alto": 618,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:18:24.047Z"
+  },
+  "fil-040": {
+    "id": "fil-040",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/IsaiahBerlin1983.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:IsaiahBerlin1983.jpg",
+    "titulo": "IsaiahBerlin1983.jpg",
+    "autor": "Rob C. Croes (ANEFO)",
+    "licencia": "CC0",
+    "leyenda": "Isaiah Berlin, filósofo político británico",
+    "termino": "Isaiah Berlin political philosopher",
+    "ancho": 900,
+    "alto": 1200,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:18:27.940Z"
+  },
+  "fil-047": {
+    "id": "fil-047",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/John_Rawls_%281971_photo_portrait%29.jpg/960px-John_Rawls_%281971_photo_portrait%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:John_Rawls_(1971_photo_portrait).jpg",
+    "titulo": "John Rawls (1971 photo portrait).jpg",
+    "autor": "Published by the Belknap Press of Harvard University Press . Photograph taken by Alec Rawls, John's son. The portrait was uncredited on the original dust jacket, but Alec is identified as its photogra",
+    "licencia": "Public domain",
+    "leyenda": "John Rawls, filósofo político estadounidense",
+    "termino": "John Rawls philosopher portrait",
+    "ancho": 900,
+    "alto": 1260,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:18:31.584Z"
+  },
+  "geo-004": {
+    "id": "geo-004",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Slab_window_cross-section.png/960px-Slab_window_cross-section.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Slab_window_cross-section.png",
+    "titulo": "Slab window cross-section.png",
+    "autor": "Candyyeung168",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Subducción de la placa de Nazca bajo la Sudamericana",
+    "termino": "Nazca Plate subduction diagram",
+    "ancho": 900,
+    "alto": 662,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:18:48.428Z"
+  },
+  "geo-012": {
+    "id": "geo-012",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/The_British_Empire.png/960px-The_British_Empire.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:The_British_Empire.png",
+    "titulo": "The British Empire.png",
+    "autor": "The Red Hat of Pat Ferrick",
+    "licencia": "Public domain",
+    "leyenda": "Francia y sus territorios en 13 husos horarios",
+    "termino": "France time zones map overseas territories",
+    "ancho": 900,
+    "alto": 458,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:19:11.869Z"
+  },
+  "geo-031": {
+    "id": "geo-031",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Deserts-ar.png/960px-Deserts-ar.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Deserts-ar.png",
+    "titulo": "Deserts-ar.png",
+    "autor": "Original: Emilfaro at English Wikipedia (Original Uploader) Derivative: باسم",
+    "licencia": "Public domain",
+    "leyenda": "Comparación de extensión: Sahara vs desierto antártico",
+    "termino": "Largest deserts world map",
+    "ancho": 900,
+    "alto": 300,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:19:21.354Z"
+  },
+  "geo-044": {
+    "id": "geo-044",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/1875_-_Johnson%27s_Charts_of_Comparative_Heights_of_Mountains_and_Lengths_of_Rivers_of_Africa%2C_Asia%2C_Europe%2C_South_%26_North_America.jpg/960px-1875_-_Johnson%27s_Charts_of_Comparative_Heights_of_Mountains_and_Lengths_of_Rivers_of_Africa%2C_Asia%2C_Europe%2C_South_%26_North_America.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:1875_-_Johnson%27s_Charts_of_Comparative_Heights_of_Mountains_and_Lengths_of_Rivers_of_Africa,_Asia,_Europe,_South_%26_North_America.jpg",
+    "titulo": "1875 - Johnson's Charts of Comparative Heights of Mountains and Lengths of Rivers of Africa, Asia, Europe, South & North America.jpg",
+    "autor": "Alvin Jewett Johnson",
+    "licencia": "Public domain",
+    "leyenda": "Longitud comparada del Rin, Danubio, Volga y Nilo",
+    "termino": "European rivers map length comparison",
+    "ancho": 900,
+    "alto": 1225,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:19:31.439Z"
+  },
+  "geo-046": {
+    "id": "geo-046",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/2020_EPI_Map_World.png/960px-2020_EPI_Map_World.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:2020_EPI_Map_World.png",
+    "titulo": "2020 EPI Map World.png",
+    "autor": "Angerdan",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Fronteras terrestres de Canadá, México, Brasil y China",
+    "termino": "Canada Mexico Brazil China land borders map",
+    "ancho": 900,
+    "alto": 504,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:19:36.131Z"
+  },
+  "his-011": {
+    "id": "his-011",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Karl_Marx_by_John_Jabez_Edwin_Mayall_1875_-_Restored.png/960px-Karl_Marx_by_John_Jabez_Edwin_Mayall_1875_-_Restored.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Karl_Marx_by_John_Jabez_Edwin_Mayall_1875_-_Restored.png",
+    "titulo": "Karl Marx by John Jabez Edwin Mayall 1875 - Restored.png",
+    "autor": "John Jabez Edwin Mayall",
+    "licencia": "Public domain",
+    "leyenda": "Karl Marx, creador del materialismo histórico",
+    "termino": "Karl Marx portrait",
+    "ancho": 900,
+    "alto": 1332,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:19:54.829Z"
   }
 }
