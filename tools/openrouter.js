@@ -91,6 +91,9 @@ export function extraerJson(texto) {
 /**
  * Llama a OpenRouter recorriendo una cascada de modelos.
  * @param {object} opciones
+ * @param {object} [opciones.extra] Campos adicionales para el body (p. ej. `reasoning` para
+ *   modelos de razonamiento que necesitan desactivarlo explícitamente). Se aplican igual a
+ *   todos los modelos de la cascada; un modelo que no reconozca el campo lo ignora.
  * @returns {Promise<{texto: string, modelo: string, coste: number, usage: object}>}
  */
 export async function llamar({
@@ -103,6 +106,7 @@ export async function llamar({
   topeEur = 0,
   fetchImpl = fetch,
   rutaLog = RUTA_LOG_DEFECTO,
+  extra = {},
 }) {
   const errores = [];
   let primeraLlamada = true;
@@ -134,6 +138,7 @@ export async function llamar({
       temperature: temperatura,
       max_tokens: maxTokens,
       ...(json ? { response_format: { type: 'json_object' } } : {}),
+      ...extra,
     };
 
     let respuesta;

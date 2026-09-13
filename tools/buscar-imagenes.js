@@ -35,6 +35,32 @@ const MODELOS_IMAGENES = [
   'google/gemma-4-31b-it:free',
 ];
 
+// Cascada de modelos ':free' CON VISIÓN. GET https://openrouter.ai/api/v1/models (13-sep-2026)
+// lista 10 modelos ':free' con "image" en architecture.input_modalities; de esos, se probaron en
+// vivo contra la API real (script suelto, sin tocar código de producción) los candidatos
+// razonables y solo estos tres respondieron de verdad viendo la imagen:
+//   - inclusionai/ling-3.0-flash-vl:free: funciona, pero SOLO sin response_format json_object
+//     (con json_object devuelve 400 "does not support feature: structured-outputs") y con
+//     `reasoning: {enabled:false, exclude:true}` en el body (si no, no responde a tiempo).
+//   - google/gemma-4-31b-it:free y google/gemma-4-26b-a4b-it:free: estructuralmente válidos
+//     (mismo proveedor "Google AI Studio"), de reserva si el primero falla.
+// Descartados tras probarlos en vivo (no un supuesto, comprobado con curl/fetch directo):
+//   - nex-agi/nex-n2.5-pro:free / nex-n2.5-mini:free: fallan siempre en visión (timeout de 60s+
+//     el "pro"; HTTP 400 "The request is invalid" el "mini", con o sin `reasoning`) -- aunque SÍ
+//     sirven para las tareas de solo texto de MODELOS_IMAGENES.
+//   - nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free: el proveedor no consigue descargar la
+//     imagen de upload.wikimedia.org (HTTP 403 Forbidden desde su lado, no del nuestro).
+//   - thinkingmachines/inkling-small:free: HTTP 403, "only available on agentic harnesses".
+//   - dots-studio/dots-3-note-preview:free: agota max_tokens en su propio razonamiento interno
+//     antes de llegar a responder (finish_reason "length", content null) y en la única respuesta
+//     obtenida describió la imagen real como "en blanco" -- no fiable.
+const MODELOS_VISION = [
+  'inclusionai/ling-3.0-flash-vl:free',
+  'google/gemma-4-31b-it:free',
+  'google/gemma-4-26b-a4b-it:free',
+];
+const EXTRA_VISION = { reasoning: { enabled: false, exclude: true } };
+
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 // Wikimedia exige un User-Agent identificable (https://meta.wikimedia.org/wiki/User-Agent_policy).
 const USER_AGENT = 'ONE-app/0.1 (aprendizaje personal; contacto via GitHub)';
@@ -52,7 +78,15 @@ function esperar(ms) {
 }
 
 function parsearArgs(argv) {
-  const args = { area: null, soloPendientes: false, limite: 0, aplicar: false, ayuda: false, revalidar: false };
+  const args = {
+    area: null,
+    soloPendientes: false,
+    limite: 0,
+    aplicar: false,
+    ayuda: false,
+    revalidar: false,
+    revalidarVisual: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
@@ -61,6 +95,7 @@ function parsearArgs(argv) {
     else if (a === '--limite') args.limite = Number(argv[++i]);
     else if (a === '--aplicar') args.aplicar = true;
     else if (a === '--revalidar') args.revalidar = true;
+    else if (a === '--revalidar-visual') args.revalidarVisual = true;
   }
   return args;
 }
@@ -68,6 +103,7 @@ function parsearArgs(argv) {
 function imprimirAyuda() {
   console.log(`Uso: node tools/buscar-imagenes.js [--area X] [--solo-pendientes] [--limite N] [--aplicar]
        node tools/buscar-imagenes.js --revalidar [--aplicar]
+       node tools/buscar-imagenes.js --revalidar-visual [--limite N] [--aplicar]
 
 Busca en Wikimedia Commons una imagen libre para las preguntas de datos/banco.json donde una
 imagen aporte de verdad (ilustra el mecanismo, la obra, el lugar o la persona de la pregunta,
@@ -78,12 +114,19 @@ Opciones:
   --area <area>       Solo esta área (economia, historia, ciencia, tecnologia, geografia,
                        filosofia, arte, logica).
   --solo-pendientes   Salta las preguntas que ya tienen entrada en datos/imagenes.json.
-  --limite <n>        Procesa como mucho N preguntas (tras aplicar --area/--solo-pendientes).
+  --limite <n>        Procesa como mucho N preguntas (tras aplicar --area/--solo-pendientes),
+                       o N imágenes con --revalidar-visual.
   --aplicar           Escribe datos/imagenes.json y datos/imagenes.log. Sin esto, solo informa.
-  --revalidar         Re-comprueba la relevancia (paso C) de las imágenes YA guardadas en
-                       datos/imagenes.json, sin repetir la búsqueda en Commons ni el paso A.
+  --revalidar         Re-comprueba la relevancia por TÍTULO (paso C) de las imágenes YA guardadas
+                       en datos/imagenes.json, sin repetir la búsqueda en Commons ni el paso A.
                        Útil tras mejorar el prompt del paso C (p. ej. contra homónimos). Quita
                        del fichero las que ya no pasen la comprobación.
+  --revalidar-visual  Re-comprueba CADA imagen ya guardada (nuevas y viejas) con un modelo
+                       ':free' que VE la miniatura (400px), no solo el título -- detecta fallos
+                       que el paso C por texto no puede ver (imagen borrosa, recortada, del
+                       objeto equivocado a pesar de un título correcto...). Descarta lo que el
+                       modelo marca "false" o lo que no responde tras 2 intentos. Guarda progreso
+                       parcial en datos/imagenes.json tras cada lote (con --aplicar).
   --ayuda             Muestra esta ayuda y sale.
 `);
 }
@@ -96,21 +139,27 @@ function promptSistemaPasoA() {
     'Decides si a cada pregunta de un quiz le conviene una imagen de apoyo en la tarjeta de ' +
     'respuesta. Criterio: la imagen vale si ilustra el MECANISMO, la OBRA, el LUGAR o la PERSONA ' +
     'concretos de la pregunta -- nunca como mera decoración.\n' +
-    'Por defecto "aporta": false en preguntas abstractas (definiciones, lógica formal, economía ' +
-    'conceptual, ideas sin objeto físico) salvo que haya un gráfico o lugar concreto que mostrar. ' +
-    'Suele ser "aporta": true en arte (mostrar la obra), geografía (mapa o foto del lugar), ' +
-    'historia (persona, lugar o documento concreto) y ciencia (fenómeno visible, instrumento, ' +
-    'imagen real). Ante la duda, false.\n' +
+    'Por defecto "aporta": false en lógica formal, definiciones puras y preguntas sin ningún ' +
+    'referente visual. Es "aporta": true, con criterio AMPLIO, en cualquiera de estos casos, sea ' +
+    'cual sea el área: (1) retrato de una PERSONA nombrada (filósofo, científico, artista, ' +
+    'gobernante, economista...); (2) mapa de un LUGAR, país o frontera concreta; (3) gráfico o ' +
+    'diagrama del FENÓMENO en sí (curva de oferta y demanda, inflación, una red, un ciclo, un ' +
+    'proceso técnico) cuando exista como imagen libre reconocible, no un dibujo genérico; ' +
+    '(4) portada o fotograma de una OBRA de cine o literatura; (5) foto de un EDIFICIO u OBJETO ' +
+    'concreto (monumento, instrumento, artefacto). Ante la duda, false.\n' +
     'IMPORTANTE en test4/ordenar/error: la imagen debe ilustrar la RESPUESTA CORRECTA ("correcta" ' +
     'en test4, el orden de "items" en ordenar, el dato correcto -no el "sospechoso"- en error), ' +
     'nunca una de las opciones incorrectas ni otra obra/lugar/persona del mismo autor o tema.\n' +
-    'Si aporta es true, propón 1 o 2 "terminos" de búsqueda para Wikimedia Commons EN INGLÉS ' +
+    'Si aporta es true, propón de 1 a 3 "terminos" de búsqueda para Wikimedia Commons EN INGLÉS ' +
     '(los títulos de Commons suelen estar en inglés), específicos y sin ambigüedad -- ejemplo ' +
-    'bueno: "Starry Night Van Gogh painting"; ejemplo malo: "art" o "painting". Para una PERSONA, ' +
-    'añade siempre su profesión/campo y época o nacionalidad para evitar homónimos (ejemplo bueno: ' +
-    '"Aristotle ancient Greek philosopher bust"; ejemplo malo: "Aristotle portrait", que en Commons ' +
-    'puede devolver a otra persona con un nombre parecido). Añade una "leyenda" corta en ESPAÑOL ' +
-    '(máximo 60 caracteres) para el pie de la imagen.\n' +
+    'bueno: "Starry Night Van Gogh painting"; ejemplo malo: "art" o "painting". Da varios términos ' +
+    'alternativos (no solo sinónimos del mismo: prueba también un encuadre distinto, p. ej. la ' +
+    'obra completa Y un detalle famoso) para que si el primero no encuentra nada libre en Commons ' +
+    'haya otra opción real. Para una PERSONA, añade siempre su profesión/campo y época o ' +
+    'nacionalidad para evitar homónimos (ejemplo bueno: "Aristotle ancient Greek philosopher bust"; ' +
+    'ejemplo malo: "Aristotle portrait", que en Commons puede devolver a otra persona con un ' +
+    'nombre parecido). Añade una "leyenda" corta en ESPAÑOL (máximo 60 caracteres) para el pie de ' +
+    'la imagen.\n' +
     'Devuelve SOLO JSON con la forma {"resultados":[{"id":"…","aporta":true|false,' +
     '"terminos":["…"],"leyenda":"…"}]}. Si aporta es false, omite terminos y leyenda.'
   );
@@ -423,6 +472,223 @@ async function revalidar(banco, existentes, args, registrar, lineasLog) {
   console.log(`\nEscrito ${RUTA_IMAGENES} (${Object.keys(resultado).length} imágenes en total) y ${RUTA_LOG}.`);
 }
 
+// --- Revalidación visual: paso C pero VIENDO la miniatura, no solo el título -----------------
+
+// El thumburl guardado pide iiurlwidth=900 a Commons; para --revalidar-visual el encargo pide
+// mandar la miniatura de 400px (menos tokens de imagen, de sobra para que un modelo de visión
+// juzgue relevancia). IMPORTANTE, comprobado en vivo el 13-sep-2026: NO vale construir la URL a
+// mano cambiando "960px-" por "400px-" en el thumburl ya guardado -- upload.wikimedia.org solo
+// sirve por URL directa los anchos que ya were generados/cacheados de antes (para ese fichero,
+// probado con curl: 960px y 500px devuelven 200; 100/200/300/400/600/640/800 devuelven 400 "Use
+// thumbnail sizes listed on..."). Hay que pedirle el ancho a la propia API de Commons (como hace
+// buscarEnCommons en el paso B) para que sea ELLA quien genere/cachee esa miniatura y devuelva
+// una URL que sí sirve directamente. Si la consulta falla, se usa la URL de 900px ya guardada
+// (permitido por el encargo: "o la de 900 si no hay otra").
+async function obtenerUrlMiniatura(titulo, anchoDeseado, fetchImpl = fetch) {
+  const params = new URLSearchParams({
+    action: 'query',
+    format: 'json',
+    prop: 'imageinfo',
+    titles: `File:${titulo}`,
+    iiprop: 'url',
+    iiurlwidth: String(anchoDeseado),
+  });
+  const url = `${COMMONS_API}?${params.toString()}`;
+  for (let intento = 1; intento <= REINTENTOS_COMMONS; intento++) {
+    let respuesta;
+    try {
+      respuesta = await fetchImpl(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(COMMONS_TIMEOUT_MS) });
+    } catch {
+      await esperar(1000 * intento);
+      continue;
+    }
+    if (respuesta.status === 429 || respuesta.status === 403) {
+      await esperar(3000 * intento);
+      continue;
+    }
+    if (!respuesta.ok) return null;
+    let datos;
+    try {
+      datos = await respuesta.json();
+    } catch {
+      return null;
+    }
+    const paginas = datos?.query?.pages ? Object.values(datos.query.pages) : [];
+    const info = paginas[0]?.imageinfo?.[0];
+    if (!info?.thumburl) return null;
+    return normalizarUrlUpload(info.thumburl);
+  }
+  return null;
+}
+
+function promptSistemaVisual() {
+  return (
+    'Ves la miniatura de una imagen de Wikimedia Commons candidata a ilustrar la tarjeta de ' +
+    'respuesta de una pregunta de quiz. Te doy el enunciado, el "concepto_correcto" (lo que la ' +
+    'imagen DEBE mostrar) y la leyenda propuesta para el pie de foto. Marca "relevante": true ' +
+    'SOLO si lo que VES en la imagen corresponde de verdad a ese concepto concreto -- la persona, ' +
+    'lugar, obra u objeto exactos, no un homónimo, no otra obra/persona/lugar parecido, no algo ' +
+    'genérico o meramente decorativo, no una opción incorrecta, no un diagrama que no muestre lo ' +
+    'que la leyenda promete. Si la imagen está borrosa, recortada de forma que no se reconoce el ' +
+    'sujeto, o es claramente de otra cosa a pesar de lo que diga el título, también "relevante": ' +
+    'false. Ante la duda, false.\n' +
+    'Devuelve SOLO JSON: {"relevante":true|false,"motivo":"…"} (motivo breve, en español).'
+  );
+}
+
+// 2 intentos por imagen (pedido en el encargo): si ambos fallan (red, JSON inválido, los 4
+// modelos de MODELOS_VISION agotados), se descarta la imagen -- a diferencia del paso C por
+// título, aquí un fallo del modelo NO conserva la imagen, porque esta es la última pasada de
+// calidad antes de publicar y el encargo pide explícitamente descartar "lo que no responde".
+const REINTENTOS_IMAGEN_VISUAL = 2;
+const PAUSA_ENTRE_IMAGENES_MS = 1200; // cortesía para no saturar la cascada de modelos ':free'
+
+async function comprobarImagenVisual(pregunta, imagen, registrar, etiqueta) {
+  await esperar(PAUSA_COMMONS_MS);
+  const urlMiniatura = (await obtenerUrlMiniatura(imagen.titulo, 400)) || imagen.url;
+  if (urlMiniatura === imagen.url) {
+    await registrar(`${etiqueta}: no se pudo obtener miniatura de 400px de Commons, se usa la de 900px ya guardada`);
+  }
+
+  const textoUsuario =
+    `Enunciado: ${pregunta.enunciado}\n` +
+    `Concepto correcto (lo que debe mostrar la imagen): ${conceptoCorrecto(pregunta)}\n` +
+    `Leyenda propuesta: ${imagen.leyenda || '(sin leyenda)'}`;
+  const mensajes = [
+    { role: 'system', content: promptSistemaVisual() },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: textoUsuario },
+        { type: 'image_url', image_url: { url: urlMiniatura } },
+      ],
+    },
+  ];
+
+  let ultimoError = 'sin detalle';
+  for (let intento = 1; intento <= REINTENTOS_IMAGEN_VISUAL; intento++) {
+    try {
+      const salida = await llamar({
+        modelos: MODELOS_VISION,
+        mensajes,
+        // json:false a propósito: inclusionai/ling-3.0-flash-vl:free (primero de la cascada)
+        // devuelve HTTP 400 "does not support feature: structured-outputs" con
+        // response_format:json_object (comprobado en vivo el 13-sep-2026). El prompt ya pide
+        // "Devuelve SOLO JSON" y extraerJson() limpia fences/texto suelto si hiciera falta.
+        json: false,
+        temperatura: 0.2,
+        maxTokens: 400,
+        permitirPago: false,
+        extra: EXTRA_VISION,
+      });
+      const datos = extraerJson(salida.texto);
+      const relevante = datos.relevante === true;
+      return { relevante, motivo: typeof datos.motivo === 'string' ? datos.motivo : '', modelo: salida.modelo, fallo: false };
+    } catch (err) {
+      ultimoError = err.message;
+      await registrar(`${etiqueta}: FALLO visual (intento ${intento}/${REINTENTOS_IMAGEN_VISUAL}) — ${err.message}`);
+      if (intento < REINTENTOS_IMAGEN_VISUAL) await esperar(3000);
+    }
+  }
+  return { relevante: false, motivo: `sin respuesta visual tras ${REINTENTOS_IMAGEN_VISUAL} intentos: ${ultimoError}`, modelo: null, fallo: true };
+}
+
+// Backoff del encargo si los modelos gratis se saturan en cadena (429/502): 30s, 60s, 120s.
+// Se dispara cuando SEGUIDAS_SATURACION imágenes consecutivas fallan del todo (los 2 intentos,
+// contra los 4 modelos de MODELOS_VISION cada uno) -- señal de saturación real de la cascada
+// entera, no mala suerte de una imagen concreta. Tras 3 rondas de backoff sin que la cascada se
+// recupere, se para el barrido (con lo conseguido ya guardado) en vez de seguir fallando en bucle.
+const BACKOFF_SATURACION_MS = [30000, 60000, 120000];
+const SEGUIDAS_SATURACION = 5;
+const TAMANO_LOTE_VISUAL = 15; // cuántas imágenes se procesan entre cada guardado a disco
+
+async function revalidarVisual(banco, existentes, args, registrar, lineasLog) {
+  const porId = new Map(banco.map((p) => [p.id, p]));
+  let entradas = Object.entries(existentes)
+    .filter(([id]) => porId.has(id))
+    .map(([id, img]) => ({ id, pregunta: porId.get(id), imagen: img }));
+  if (args.limite > 0) entradas = entradas.slice(0, args.limite);
+
+  await registrar(`\n=== buscar-imagenes --revalidar-visual ${new Date().toISOString()} — ${entradas.length} imágenes a revisar ===`);
+  if (entradas.length === 0) {
+    console.log('Nada que revalidar.');
+    return;
+  }
+
+  const resultado = { ...existentes };
+  const descartadas = new Map(); // id -> motivo
+  let seguidasSaturadas = 0;
+  let rondasBackoff = 0;
+  let detenidoPorSaturacion = false;
+
+  const lotes = partirEnLotes(entradas, TAMANO_LOTE_VISUAL);
+  for (let i = 0; i < lotes.length && !detenidoPorSaturacion; i++) {
+    const lote = lotes[i];
+    await registrar(`\n-- lote visual ${i + 1}/${lotes.length} (${lote.length} imágenes) --`);
+    for (const entrada of lote) {
+      const etiqueta = `  ${entrada.id}`;
+      const r = await comprobarImagenVisual(entrada.pregunta, entrada.imagen, registrar, etiqueta);
+      if (!r.relevante) {
+        descartadas.set(entrada.id, r.motivo);
+        delete resultado[entrada.id];
+        await registrar(`${etiqueta}: descartada — ${r.motivo}`);
+      } else {
+        await registrar(`${etiqueta}: OK (${r.modelo}) — ${r.motivo || 'relevante'}`);
+      }
+
+      if (r.fallo) {
+        seguidasSaturadas++;
+        if (seguidasSaturadas >= SEGUIDAS_SATURACION) {
+          if (rondasBackoff >= BACKOFF_SATURACION_MS.length) {
+            await registrar(
+              `\nSaturación persistente tras ${rondasBackoff} rondas de backoff: se detiene --revalidar-visual aquí. Progreso ya guardado.`,
+            );
+            detenidoPorSaturacion = true;
+            break;
+          }
+          const espera = BACKOFF_SATURACION_MS[rondasBackoff];
+          rondasBackoff++;
+          await registrar(`\nCascada de modelos de visión saturada (${SEGUIDAS_SATURACION} fallos seguidos): backoff ${espera / 1000}s (ronda ${rondasBackoff}/${BACKOFF_SATURACION_MS.length}).`);
+          await esperar(espera);
+          seguidasSaturadas = 0;
+        }
+      } else {
+        seguidasSaturadas = 0;
+      }
+
+      await esperar(PAUSA_ENTRE_IMAGENES_MS);
+    }
+
+    // Progreso parcial tras cada lote, pedido explícitamente en el encargo: si el proceso se
+    // corta a mitad (saturación, corte de red...), lo ya revisado no se pierde.
+    if (args.aplicar) {
+      await writeFile(RUTA_IMAGENES, JSON.stringify(resultado, null, 2), 'utf8');
+      await appendFile(RUTA_LOG, `${lineasLog.splice(0).join('\n')}\n`, 'utf8');
+    } else {
+      lineasLog.length = 0; // en modo informe no se acumula el log completo en memoria
+    }
+  }
+
+  await registrar(`\nRevisadas: ${entradas.length}. Descartadas por visión: ${descartadas.size}. Quedan: ${Object.keys(resultado).length}.`);
+  if (descartadas.size > 0) {
+    await registrar('Detalle de las descartadas en la revalidación visual:');
+    for (const [id, motivo] of descartadas) await registrar(`  ${id}: ${motivo}`);
+  }
+  if (detenidoPorSaturacion) {
+    await registrar('\nAVISO: barrido detenido por saturación antes de terminar. Quedan imágenes sin revalidar visualmente (se conservan tal cual, sin descartar por no haber podido comprobarlas).');
+  }
+
+  if (!args.aplicar) {
+    console.log('\n(sin --aplicar: no se ha escrito datos/imagenes.json ni datos/imagenes.log)');
+    return;
+  }
+  // Flush final: las líneas del resumen (Revisadas/Descartadas/AVISO) se generaron después del
+  // último guardado por lote y aún no se han escrito a disco.
+  await writeFile(RUTA_IMAGENES, JSON.stringify(resultado, null, 2), 'utf8');
+  if (lineasLog.length > 0) await appendFile(RUTA_LOG, `${lineasLog.splice(0).join('\n')}\n`, 'utf8');
+  console.log(`\nEscrito ${RUTA_IMAGENES} (${Object.keys(resultado).length} imágenes en total) y ${RUTA_LOG}.`);
+}
+
 // --- Programa principal ---------------------------------------------------------------------
 
 async function main() {
@@ -448,6 +714,10 @@ async function main() {
 
   if (args.revalidar) {
     await revalidar(banco, existentes, args, registrar, lineasLog);
+    return;
+  }
+  if (args.revalidarVisual) {
+    await revalidarVisual(banco, existentes, args, registrar, lineasLog);
     return;
   }
 
@@ -494,7 +764,7 @@ async function main() {
     let encontrada = null;
     let terminoUsado = null;
     let motivos = [];
-    for (const termino of decision.terminos.slice(0, 2)) {
+    for (const termino of decision.terminos.slice(0, 3)) {
       if (!primeraLlamadaCommons) await esperar(PAUSA_COMMONS_MS);
       primeraLlamadaCommons = false;
       const { paginas, error } = await buscarEnCommons(termino);

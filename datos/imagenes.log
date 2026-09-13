@@ -315,3 +315,117 @@ Detalle de las descartadas en la revalidación:
   his-061: La imagen muestra un sólido de Teodosio I, no representa la afirmación errónea sobre Constantino y el cristianismo como religión oficial en 313.
   his-064: La imagen probablemente muestra la Marcha de la Sal, pero no ilustra la afirmación errónea de que dicha marcha provocó la independencia inmediata de la India.
   tec-054: La imagen muestra una torre de radio celular, no una conexión directa a satélites, y por lo tanto no ilustra la afirmación errónea sobre el uso habitual de satélites en la mayoría de ciudades.
+--solo-pendientes: 105 ya tenían entrada, 190 pendientes.
+
+=== buscar-imagenes 2026-09-13T08:40:08.071Z — 190 preguntas candidatas ===
+paso A arte lote 1/2: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: respuesta no es JSON (The operation was aborted due to timeout) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Unexpected token '.', "[...]" is not valid JSON) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429
+paso A arte lote 1/2: 20 juzgadas, 15 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A arte lote 2/2: 1 juzgadas, 0 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A ciencia lote 1/1: 19 juzgadas, 16 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A economia lote 1/2: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: respuesta no es JSON (The operation was aborted due to timeout) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Unexpected token 'W', "We need to"... is not valid JSON) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429
+paso A economia lote 1/2: 20 juzgadas, 17 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A economia lote 2/2: FALLO paso A (intento 1) — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Unexpected end of JSON input) | nvidia/nemotron-3-super-120b-a12b:free: respuesta no es JSON (The operation was aborted due to timeout) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429
+paso A economia lote 2/2: respuesta vacía (intento 2, nvidia/nemotron-3-super-120b-a12b:free), reintentando
+paso A economia lote 2/2: 0 juzgadas, 0 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A filosofia lote 1/2: 20 juzgadas, 17 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A filosofia lote 2/2: 15 juzgadas, 11 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A geografia lote 1/1: 17 juzgadas, 17 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A historia lote 1/1: 16 juzgadas, 15 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A logica lote 1/2: 20 juzgadas, 7 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A logica lote 2/2: 1 juzgadas, 1 aportan (nvidia/nemotron-3-super-120b-a12b:free)
+paso A tecnologia lote 1/2: 20 juzgadas, 6 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso A tecnologia lote 2/2: 3 juzgadas, 3 aportan (nvidia/nemotron-3-ultra-550b-a55b:free)
+
+Aportan imagen según el modelo: 125/190
+Con candidato de Commons: 87/125
+paso C lote 1/5: 20 comprobadas, 11 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+paso C lote 2/5: 20 comprobadas, 4 descartadas por relevancia (nvidia/nemotron-3-super-120b-a12b:free)
+paso C lote 3/5: 20 comprobadas, 13 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+paso C lote 4/5: FALLO paso C — Ningún modelo respondió. Detalle: nvidia/nemotron-3-ultra-550b-a55b:free: JSON inválido (Unexpected end of JSON input) | nvidia/nemotron-3-super-120b-a12b:free: JSON inválido (Expected property name or '}' in JSON at position 2 (line 2 column 1)) | nex-agi/nex-n2.5-pro:free: respuesta no es JSON (The operation was aborted due to timeout) | google/gemma-4-31b-it:free: HTTP 429 (se conservan las imágenes de este lote sin comprobar)
+paso C lote 5/5: 0 comprobadas, 0 descartadas por relevancia (nvidia/nemotron-3-ultra-550b-a55b:free)
+
+=== Resumen por área ===
+  economia: 38 preguntas, 17 aportan, 2 con imagen, 15 sin imagen
+  historia: 16 preguntas, 15 aportan, 13 con imagen, 2 sin imagen
+  ciencia: 19 preguntas, 16 aportan, 2 con imagen, 14 sin imagen
+  tecnologia: 23 preguntas, 9 aportan, 9 con imagen, 0 sin imagen
+  geografia: 17 preguntas, 17 aportan, 5 con imagen, 12 sin imagen
+  filosofia: 35 preguntas, 28 aportan, 18 con imagen, 10 sin imagen
+  arte: 21 preguntas, 15 aportan, 5 con imagen, 10 sin imagen
+  logica: 21 preguntas, 8 aportan, 5 con imagen, 3 sin imagen
+
+Total candidatas: 190
+Aportan (paso A): 125
+Con imagen final: 59
+Descartadas por licencia/tamaño/tipo (paso B): 38
+Descartadas por relevancia (paso C): 28
+
+Detalle sin imagen (paso B):
+  art-010: "glazing oil painting technique diagram": sin resultados; "oil painting glaze layers cross section": sin resultados; "Rembrandt glazing detail": sin resultados
+  art-084: "Everydays First 5000 Days Beeple": sin resultados; "Beeple Christie's auction 2021": sin resultados; "Beeple digital collage NFT": sin resultados
+  art-088: "art market ecosystem diagram": HTTP 429; "primary secondary art market flow chart": sin resultados; "gallery museum auction value chain": sin resultados
+  cie-008: "Abundance of elements in Earth's crust pie chart": sin resultados; "Earth crust elemental composition diagram": sin resultados
+  cie-009: "Water molecule polar covalent bond diagram": sin resultados; "H2O dipole moment 3D illustration": sin resultados
+  cie-010: "Boyle's law pressure volume graph": ningún resultado con licencia/tamaño/tipo válidos; "Isothermal process PV curve diagram": sin resultados
+  cie-030: "States of matter diagram solid liquid gas plasma": HTTP 429; "Phase of matter particle arrangement illustration": sin resultados
+  cie-058: "Particle motion in states of matter diagram": sin resultados; "Kinetic energy solid liquid gas plasma comparison illustration": sin resultados
+  cie-068: "DNA replication semiconservative diagram": sin resultados; "Meselson-Stahl experiment density gradient centrifugation": sin resultados
+  cie-073: "Glymphatic system brain waste clearance diagram": sin resultados; "Slow wave sleep beta amyloid clearance illustration": sin resultados
+  cie-075: "Airfoil downwash lift diagram Newton": sin resultados; "Wing airflow deflection lift force illustration": sin resultados
+  cie-077: "Vitamin D synthesis skin UVB diagram": HTTP 429; "7-dehydrocholesterol to previtamin D3 cutaneous pathway": sin resultados
+  cie-081: "Fever mechanism hypothalamus immune response diagram": sin resultados; "Body temperature set point infection prostaglandin illustration": sin resultados
+  cie-085: "Glymphatic system memory consolidation sleep diagram": sin resultados; "Slow wave sleep synaptic homeostasis illustration": sin resultados
+  cie-090: "Sleep hypnogram first cycle N1 N2 N3 REM": sin resultados; "Sleep architecture diagram first night cycle stages": sin resultados
+  cie-091: "Lifecycle greenhouse gas emissions electricity sources chart IPCC": sin resultados; "Carbon footprint per kWh coal gas solar nuclear bar chart": HTTP 429
+  cie-094: "Sleep stages REM vs deep sleep N3 EEG diagram": sin resultados; "Polysomnography rapid eye movement slow wave sleep comparison": sin resultados
+  eco-006: "Phillips curve original short run inverse graph": sin resultados; "Phillips curve diagram 1958": sin resultados
+  eco-007: "Solow model diagram capital output per worker steady state": sin resultados; "Solow growth model diagram": ningún resultado con licencia/tamaño/tipo válidos
+  eco-010: "Solow model technological progress diagram steady state": sin resultados; "Solow tech progress diagram": sin resultados
+  eco-030: "supply and demand diagram upward supply curve": sin resultados; "supply curve upward slope": ningún resultado con licencia/tamaño/tipo válidos
+  eco-033: "zero-sum game payoff matrix matching pennies": sin resultados; "zero-sum game diagram": sin resultados
+  eco-037: "Ronald Coase economist portrait": sin resultados; "Ronald Coase photo": ningún resultado con licencia/tamaño/tipo válidos
+  eco-043: "monetary policy transmission diagram interest rate": sin resultados; "central bank interest rate transmission": sin resultados
+  eco-065: "Solow model steady state diagram no technological growth": sin resultados; "Solow no tech growth diagram": sin resultados
+  eco-073: "monetary policy transmission Euribor mortgage diagram": sin resultados; "Euribor mortgage rate diagram": sin resultados
+  eco-074: "Uber business model commission diagram": sin resultados; "Uber revenue model diagram": sin resultados
+  fil-024: "Saul Kripke portrait": sin resultados; "Kripke philosopher Princeton": sin resultados
+  fil-031: "Philippa Foot portrait": sin resultados; "Philippa Foot philosopher Oxford": sin resultados
+  fil-041: "Black box machine learning diagram": sin resultados; "Neural network black box illustration": sin resultados; "Explainable AI black box schematic": sin resultados
+  fil-045: "The Human Condition Hannah Arendt book cover": HTTP 429; "Hannah Arendt The Human Condition first edition": sin resultados; "La condition humaine Arendt couverture": sin resultados
+  geo-059: "Nigeria United States population projection 2050 chart": sin resultados; "UN World Population Prospects Nigeria USA graph": sin resultados; "Nigeria USA population projection 2050": HTTP 429
+  geo-060: "Tokyo Seoul metro annual ridership comparison chart": sin resultados; "Tokyo Metro Seoul Metropolitan Subway passengers graph": sin resultados; "world metro systems ridership comparison": sin resultados
+  his-059: "East India Company stock certificate 18th century": sin resultados; "East India House London stock exchange": HTTP 429
+  his-062: "Treaty of Versailles 1919 map France Germany border": sin resultados; "France Germany border 1919 Versailles": sin resultados
+  log-044: "Pareto frontier negotiation": sin resultados; "Win-win negotiation diagram": sin resultados
+  log-046: "Minsky cycle diagram": HTTP 429; "Financial bubble stages chart": sin resultados
+  log-047: "Market structure spectrum diagram": sin resultados; "Monopoly perfect competition continuum": sin resultados
+
+Detalle descartadas por relevancia (paso C):
+  art-020: Muestra una pintura amateur al estilo dripping, no una obra de Jackson Pollock ni su retrato.
+  art-048: Imagen de una rueda de color, no relacionada con la técnica del temple (huevo).
+  art-074: Muestra el Ayuntamiento de Ottawa, edificio de estilo Internacional, no brutalismo con hormigón expuesto.
+  art-081: Retrato de Suzanne Hoschedé; no muestra la ruptura de la tradición académica de terminar cuadros en estudio.
+  art-082: Still promocional de Ciudadano Kane; no ilustra la estructura narrativa no lineal basada en flashbacks.
+  art-083: Foto de los maestros de la Bauhaus; no muestra el principio 'forma sigue a la función'.
+  art-089: Fleurón de un libro sobre controversia de ordenación; no representa el orden de etapas hacia el canon.
+  eco-019: Foto de una tienda de fish and chips; nada que ver con el teorema de imposibilidad de Arrow.
+  eco-067: Gráficos de fabricación estadounidense; no ilustran la relación entre PIB nominal y real con inflación.
+  eco-069: Diagrama de la crisis de hipotecas subprime; no muestra el efecto de subir tipos de interés sobre créditos.
+  eco-070: Imagen de un tranvía eléctrico de Viena; no relaciona con subsidiar plataformas de dos caras.
+  eco-072: La imagen muestra el efecto de un campo magnético, no tiene relación con el efecto de anclaje en psicología.
+  fil-015: La imagen muestra una página de una publicación sobre George Washington, no tiene relación con Putnam ni el externalismo semántico.
+  fil-021: Muestra un busto de Platón, no ilustra el dato erróneo sobre Sócrates y La República.
+  fil-023: Retrato de Peter Christianowich Wittgenstein, no de Ludwig Wittgenstein, por lo que no corresponde al enunciado.
+  fil-040: La imagen muestra una placa conmemorativa de la residencia de Isaiah Berlin, no ilustra el concepto filosófico de 'libertad negativa' (ausencia de interferencia externa).
+  fil-047: El retrato de John Rawls muestra al autor, pero no representa el 'velo de la ignorancia', que es el recurso conceptual preguntado.
+  fil-055: La imagen muestra retratos de nobles con el título 'King of Ockham' (barones de Ockham), no a Guillermo de Ockham (filósofo del s. XIV) ni su 'navaja'; hay confusión de homónimos (título nobiliario vs. filósofo).
+  geo-004: El diagrama muestra una 'ventana de placa' (slab window), un fenómeno geológico distinto, no la subducción de la placa de Nazca bajo la Sudamericana.
+  geo-010: La imagen es una simulación de fracción de hierba hace 24.000 años, no muestra el desierto antártico ni su extensión.
+  geo-012: El mapa muestra el Imperio Británico, mientras que el concepto correcto es Francia (por sus territorios de ultramar).
+  geo-022: Es un mapa antiguo de Escandinavia, no muestra las ciudades citadas (Lisboa, Copenhague, Helsinki, Tromsø) ni sus latitudes.
+  geo-031: Misma imagen que geo-010 (simulación paleoclimática), no ilustra ni el Sahara ni el desierto antártico.
+  geo-043: La imagen es un marcador histórico en Texas (EE. UU.), sin relación con capitales sudamericanas ni sus latitudes.
+  geo-044: Vista de Sudáfrica desde la EEI, no muestra ninguno de los ríos citados (Rin, Danubio, Volga, Nilo).
+  geo-046: Mapa mundial del Índice de Rendimiento Ambiental 2020, no muestra fronteras terrestres ni el orden pedido.
+  geo-053: Repite el diagrama de 'slab window' de geo-004, que no ilustra la subducción de Nazca bajo el Pacífico (falsa) ni bajo Sudamérica (verdadera).
+  geo-066: Mapa de porcentaje de población musulmana en el mundo, irrelevante para la demografía japonesa (baja natalidad y alta esperanza de vida).
