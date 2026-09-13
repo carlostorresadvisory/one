@@ -432,7 +432,23 @@ main#app {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  /* C1 (ola final), causa raíz encontrada: `overflow: hidden` convertía a
+     #mazo en un contenedor de SCROLL de verdad (las tarjetas vecinas en
+     translateY(±100%) hacen que scrollHeight sea 2× clientHeight). Al
+     sustituir el nodo de la tarjeta actual (manejarRespuesta), Chromium
+     desplazaba scrollTop y TODAS las tarjetas (position:absolute; inset:0,
+     con su transform ya correcto) subían esa misma cantidad en pantalla —
+     esto era la causa real del "desajuste de posición" que las rondas 1-2 de
+     la Tarea 2 taparon con un autocorrector (corregirPosicionSiHaceFalta, ya
+     eliminado) sin llegar a encontrarla. `overflow: clip` no crea contenedor
+     de scroll (a diferencia de `hidden`): sigue recortando el contenido igual,
+     pero scrollTop deja de existir como concepto aplicable. Las dos
+     declaraciones, en ese orden: `hidden` es el valor de respaldo para
+     Safari < 16 (sin soporte de `clip`), `clip` la gana en todo lo demás.
+     `overflow-anchor: none` se probó y NO arregla esto (no es scroll
+     anchoring: es que el contenedor pudiera scrollear en absoluto). */
   overflow: hidden;
+  overflow: clip;
   touch-action: none;
 }
 

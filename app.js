@@ -389,19 +389,13 @@ function registrarPistaMazoMostrada(veces) {
   }
 }
 
-function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
+function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = true, puntosNeutros = false } = {}) {
   let lista = tarjetasIniciales.slice();
   let indice = 0;
   let pistaVisibleActual = true;
   // Nodos que YA han pasado por un render (para no transicionar su PRIMERA
   // aparición, ver comentario en render() más abajo).
   const nodosYaMostrados = new WeakSet();
-  // Tope de la red de seguridad de corregirPosicionSiHaceFalta (ronda 2 de
-  // revisión): cuántas veces seguidas se ha intentado corregir el MISMO
-  // índice sin que la medida llegue a coincidir. Se reinicia en cuanto
-  // coincide o en cuanto el índice cambia de verdad (intentarIr).
-  let intentosCorreccion = 0;
-  const MAX_INTENTOS_CORRECCION = 2;
 
   const puntos = document.createElement('div');
   puntos.className = 'mazo-puntos';
@@ -426,13 +420,27 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
     return Boolean(vista && !vista.hidden);
   }
 
+  /** Un punto por HUECO rellenado (spec v0.1c §2.2), no por nodo del mazo:
+   * hallazgo adversarial B3, confirmado. La tarjeta de cierre de la partida
+   * (spec §2.4) no es un hueco — se marca con `dataset.puntoOculto` al
+   * construirse (ver construirTarjetaCierre) y no pinta punto. En el mazo de
+   * RESUMEN (repaso, `puntosNeutros`) la semántica respondida/sin responder no
+   * aplica a la tarjeta de cifras ni a la final (nunca llevan
+   * `dataset.respondida`, a diferencia de cada tarjeta de repaso, que SÍ lo
+   * lleva a 'true' por ser una tarjeta ya respondida reutilizada): pintarlas
+   * distinto daba una columna incoherente (mezcla de aro y relleno sin
+   * relación con nada). Con `puntosNeutros` todos los puntos del resumen son
+   * neutros (aro), y solo el actual se tiñe en cian — "un punto por tarjeta". */
   function pintarPuntos() {
     puntos.innerHTML = '';
     lista.forEach((nodo, i) => {
+      if (nodo.dataset && nodo.dataset.puntoOculto === 'true') return;
       const punto = document.createElement('span');
       punto.className = 'mazo-punto';
-      const respondida = Boolean(nodo.dataset && nodo.dataset.respondida === 'true');
-      punto.classList.toggle('mazo-punto--respondida', respondida);
+      if (!puntosNeutros) {
+        const respondida = Boolean(nodo.dataset && nodo.dataset.respondida === 'true');
+        punto.classList.toggle('mazo-punto--respondida', respondida);
+      }
       punto.classList.toggle('mazo-punto--actual', i === indice);
       puntos.appendChild(punto);
     });
@@ -455,20 +463,22 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
   }
 
   /** Se llama una vez por cada índice NUEVO mostrado (no en cada render): decide
-   * si esta vista cuenta para el límite de 5 y avanza el contador persistente. */
+   * si esta vista cuenta para el límite de 5 y avanza el contador persistente.
+   * Hallazgo adversarial B4, confirmado: `montarMazo` es genérico y también se
+   * monta sobre el resumen (repaso, spec v0.1c §6) — sin distinción, navegar
+   * por el repaso gastaba del mismo contador de "vistas de la pista" que la
+   * partida, agotando el límite de 5 (spec §2.2, "las 5 primeras tarjetas de
+   * la vida de la app") con vistas que no son preguntas de partida. Con
+   * `contarPista: false` (repaso) se sigue LEYENDO el contador persistente
+   * (para reflejar bien si el límite global ya se agotó) pero no se
+   * incrementa: solo la partida "gasta" del presupuesto de 5. */
   function contarVistaParaPista() {
     const vistas = contarPistaMazoMostrada();
     pistaVisibleActual = vistas < LIMITE_PISTA_MAZO;
-    registrarPistaMazoMostrada(vistas + 1);
+    if (contarPista) registrarPistaMazoMostrada(vistas + 1);
   }
 
-  // `saltarAjuste`/`esCorreccion` (ronda 2 de revisión) solo los usa
-  // corregirPosicionSiHaceFalta: su reposicionamiento no cambia el contenido
-  // de ningún nodo, así que no hace falta recalcular el encaje (ajustarEncaje
-  // ya se aplicó en el render "real" que precedió a la corrección), y sus
-  // propios render() internos no deben reprogramar otra ronda de vigilancia
-  // (si no, cada corrección se re-armaría a sí misma sin límite).
-  function render(conTransicion, { saltarAjuste = false, esCorreccion = false } = {}) {
+  function render(conTransicion) {
     const enDom = new Set(contenedor.querySelectorAll('.tarjeta-mazo'));
     for (let offset = -1; offset <= 1; offset += 1) {
       const i = indice + offset;
@@ -495,65 +505,28 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
       nodo.style.transform = `translateY(calc(${offset * 100}% + ${colchon}px))`;
       if (nodo.parentElement !== contenedor) contenedor.insertBefore(nodo, puntos);
       enDom.delete(nodo);
-      if (!saltarAjuste) ajustarEncaje(nodo);
+      ajustarEncaje(nodo);
     }
     // Solo se mantienen en el DOM la actual, la anterior y la siguiente (spec
     // v0.1c §2.2): el resto se retira.
     enDom.forEach((nodo) => nodo.remove());
     pintarPuntos();
     pintarChevronYPista();
-    if (!esCorreccion) requestAnimationFrame(corregirPosicionSiHaceFalta);
-  }
-
-  /** Red de seguridad DEFENSIVA (hallazgo real de la ronda 1, visto en
-   * captura a 430×932 con contenido largo): muy de vez en cuando la tarjeta
-   * actual quedaba mal posicionada tras un render pese a tener el `transform`
-   * correcto ya computado. Sigue sin aislarse la causa exacta pese a probar
-   * (ronda 1 y 2): fusionar los dos actualizarTarjetas() de una respuesta en
-   * uno solo, mover la animación de acierto/fallo a un elemento sin relación
-   * con el transform de posición, una variable CSS para el offset, no
-   * transicionar la primera aparición de un nodo, reafirmar a mano el mismo
-   * `transform` (con o sin pasar por 'none' de por medio) — nada de eso lo
-   * arregla. Lo único que sí lo arregla de forma reproducible es un render()
-   * con el índice REALMENTE distinto y de vuelta (probable pista para quien
-   * retome esto: algo del propio motor de layout de Chromium con tantas
-   * lecturas forzadas seguidas en ajustarEncaje deja "pegada" la posición del
-   * offset actual hasta que un cambio de índice de verdad la recalcula desde
-   * cero). Por eso este parche existe y por eso está acotado:
-   * - Tope de `MAX_INTENTOS_CORRECCION` intentos seguidos para el MISMO
-   *   índice (se reinicia solo si la medida llega a coincidir o si cambia el
-   *   índice de verdad, ver intentarIr) — si el desajuste no fuera el bug
-   *   transitorio de siempre, esto evita un bucle de renders sin fin.
-   * - Los dos render() internos van marcados `esCorreccion` (no reprograman
-   *   otra ronda de vigilancia: solo la vigila el render "real" que los
-   *   originó) y `saltarAjuste` (no hay contenido nuevo que reencajar, solo
-   *   reposicionar; ajustarEncaje ya corrió en el render real). */
-  function corregirPosicionSiHaceFalta() {
-    const nodo = lista[indice];
-    if (!nodo || !nodo.isConnected) {
-      intentosCorreccion = 0;
-      return;
-    }
-    const mazoTop = contenedor.getBoundingClientRect().top;
-    const nodoTop = nodo.getBoundingClientRect().top;
-    if (Math.abs(nodoTop - mazoTop) <= 2) {
-      intentosCorreccion = 0;
-      return;
-    }
-    if (intentosCorreccion >= MAX_INTENTOS_CORRECCION) {
-      // Dos intentos sin arreglarlo: esto ya no es el bug transitorio
-      // conocido. Se deja de insistir (nada de bucle sin fin); el próximo
-      // cambio de índice real vuelve a tener su propia oportunidad de asentar.
-      return;
-    }
-    const original = indice;
-    const vecino = original + 1 < lista.length ? original + 1 : original - 1;
-    if (vecino === original || vecino < 0 || vecino >= lista.length) return;
-    intentosCorreccion += 1;
-    indice = vecino;
-    render(false, { saltarAjuste: true, esCorreccion: true });
-    indice = original;
-    render(false, { saltarAjuste: true, esCorreccion: true });
+    // Red de seguridad de la causa raíz de C1 (ola final): `.mazo` tenía
+    // `overflow: hidden`, lo que lo convertía en contenedor de SCROLL de
+    // verdad (las tarjetas vecinas en `translateY(±100%)` hacen que
+    // `scrollHeight` sea el doble de `clientHeight`). Al sustituir el nodo de
+    // la tarjeta actual (manejarRespuesta -> actualizarTarjetas), Chromium
+    // desplazaba el `scrollTop` del contenedor y TODAS las tarjetas
+    // (`position:absolute; inset:0`, ya con su `transform` correcto) subían
+    // esa misma cantidad en pantalla — el "desajuste de posición" que las
+    // rondas 1-2 de la Tarea 2 taparon con un autocorrector
+    // (corregirPosicionSiHaceFalta, ahora eliminado) sin haber encontrado
+    // nunca la causa real. El fix de fondo es CSS (`.mazo { overflow: clip }`,
+    // que no crea contenedor de scroll); esto es solo el cinturón para
+    // navegadores sin soporte de `overflow: clip` (Safari < 16), donde `.mazo`
+    // sigue cayendo al `overflow: hidden` de respaldo.
+    if (contenedor.scrollTop !== 0) contenedor.scrollTop = 0;
   }
 
   function animarRebote(sentido) {
@@ -578,7 +551,6 @@ function montarMazo(contenedor, tarjetasIniciales, { alCambiar } = {}) {
     }
     if (nuevo === indice) return;
     indice = nuevo;
-    intentosCorreccion = 0; // cambio de índice de verdad: la vigilancia arranca de cero.
     contarVistaParaPista();
     render(true);
     if (alCambiar) alCambiar(indice);
@@ -993,7 +965,12 @@ function finalizarPartida() {
   contenedorMazoResumen.innerHTML = '';
   mazoResumenControlador = montarMazo(
     contenedorMazoResumen,
-    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas })
+    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas }),
+    // contarPista: false (B4) — navegar el repaso no gasta del presupuesto de
+    // 5 vistas de la pista vertical, que es de la PARTIDA. puntosNeutros: true
+    // (B3) — la semántica respondida/sin responder no aplica a la tarjeta de
+    // cifras ni a la final; los puntos del resumen son neutros salvo el actual.
+    { contarPista: false, puntosNeutros: true }
   );
   mostrarVista('resumen');
 }
@@ -1930,6 +1907,9 @@ function construirTarjetaCierre() {
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta tarjeta-cierre';
   tarjeta.dataset.test = 'mazo-cierre';
+  // No es un hueco (spec v0.1c §2.2/§2.4): no pinta punto en la columna del
+  // mazo (hallazgo adversarial B3, confirmado; ver pintarPuntos).
+  tarjeta.dataset.puntoOculto = 'true';
 
   const pendientesN = mazo.filter((h) => !h.respondida).length;
   // Marca cuántas quedaban AL CONSTRUIRSE: actualizarEstadoMazo la usa para
