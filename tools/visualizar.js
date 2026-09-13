@@ -128,6 +128,14 @@ export function validarVisual(visual) {
           }
         });
       }
+      // "fuente" opcional (fijado por Carlos, 13-sep-2026, tras ver en producción un "barras" con
+      // porcentajes inventados para ilustrar una técnica pictórica): de dónde sale el dato real.
+      // La app no la pinta -- la usa el verificador para distinguir un dato real de uno
+      // ilustrativo/inventado. Opcional AQUÍ (validación de esquema); el verificador es quien la
+      // exige de facto para aceptar el visual (ver promptSistemaVerificador).
+      if (visual.fuente !== undefined && visual.fuente !== null) {
+        limite(errores, typeof visual.fuente === 'string' && visual.fuente.length > 0 && visual.fuente.length <= 40, 'barras.fuente inválida (1-40 caracteres)');
+      }
       break;
     }
     case 'comparacion': {
@@ -160,6 +168,10 @@ export function validarVisual(visual) {
     case 'dato': {
       limite(errores, esTextoNoVacio(visual.cifra) && visual.cifra.length <= 8, 'dato.cifra inválida (1-8 caracteres)');
       limite(errores, esTextoNoVacio(visual.texto) && visual.texto.length <= 40, 'dato.texto inválido (1-40 caracteres)');
+      // "fuente" opcional, mismo motivo que en "barras" (ver arriba).
+      if (visual.fuente !== undefined && visual.fuente !== null) {
+        limite(errores, typeof visual.fuente === 'string' && visual.fuente.length > 0 && visual.fuente.length <= 40, 'dato.fuente inválida (1-40 caracteres)');
+      }
       break;
     }
     default:
@@ -217,14 +229,26 @@ function promptSistemaGenerador(criterioTexto) {
     '  - linea-tiempo: {"tipo":"linea-tiempo","hitos":[{"ano":"…","texto":"…"}, …],"leyenda":"…"} 3-5 ' +
     'hitos, "ano" ≤ 9 caracteres, "texto" ≤ 22.\n' +
     '  - barras: {"tipo":"barras","titulo":"…","items":[{"etiqueta":"…","valor":0,"unidad":"…"}, …],' +
-    '"leyenda":"…"} 2-5 items, "etiqueta" ≤ 16, "valor" NUMÉRICO real (nunca inventado), "unidad" ≤ 6 ' +
-    '(opcional), "titulo" opcional.\n' +
+    '"leyenda":"…","fuente":"…"} 2-5 items, "etiqueta" ≤ 16, "valor" NUMÉRICO real (nunca inventado), ' +
+    '"unidad" ≤ 6 (opcional), "titulo" opcional.\n' +
     '  - comparacion: {"tipo":"comparacion","columnas":[{"titulo":"…","puntos":["…"]}, …],"leyenda":' +
     '"…"} EXACTAMENTE 2 columnas, 2-3 puntos cada una, "titulo" ≤ 16, cada punto ≤ 28.\n' +
     '  - flujo: {"tipo":"flujo","pasos":["…", …],"leyenda":"…"} 2-4 pasos, ≤ 18 caracteres cada uno.\n' +
-    '  - dato: {"tipo":"dato","cifra":"…","texto":"…","leyenda":"…"} "cifra" ≤ 8 caracteres, "texto" ≤ ' +
-    '40. Último recurso cuando nada más encaja.\n' +
-    '"leyenda" ≤ 60 caracteres en todos los tipos.\n' +
+    '  - dato: {"tipo":"dato","cifra":"…","texto":"…","leyenda":"…","fuente":"…"} "cifra" ≤ 8 ' +
+    'caracteres, "texto" ≤ 40. Último recurso cuando nada más encaja.\n' +
+    '"leyenda" ≤ 60 caracteres en todos los tipos.\n\n' +
+    'REGLA DURA sobre "barras" y "dato" (nunca la rompas): sus números son SIEMPRE hechos reales, ' +
+    'publicados y reconocibles -- años, población, PIB, distancias, temperaturas, porcentajes de una ' +
+    'estadística real, fechas. PROHIBIDO inventar un porcentaje o una cifra "para ilustrar" un ' +
+    'concepto (ejemplo de lo que NUNCA hay que hacer: inventarte "40 % / 60 %" para representar el ' +
+    'efecto de una técnica pictórica -- eso no es un dato, es una ilustración inventada, y se ' +
+    'rechaza siempre). Si el concepto es CUALITATIVO (una técnica artística, una idea filosófica, ' +
+    'una falacia lógica, un proceso, una corriente de pensamiento) usa "comparacion", "flujo", ' +
+    '"linea-tiempo" o "formula" -- NUNCA "barras" ni "dato" para eso. Cuando SÍ uses "barras" o ' +
+    '"dato", añade siempre "fuente" (≤ 40 caracteres): de dónde sale el dato real, con año si aplica ' +
+    '(ejemplos: "Banco Mundial 2023", "INE 2024", "NASA", "Eurostat 2022"); la app no la pinta, pero ' +
+    'sin ella el visual se rechaza. Si no tienes un dato real y verificable con fuente, NO propongas ' +
+    'barras/dato: usa otro tipo.\n' +
     'Si "necesita_visual" es false, no incluyas la clave "visual" (o ponla a null).\n\n' +
     'Devuelve SOLO JSON con la forma exacta: {"explicacion":"…","visual":{...}|null}'
   );
@@ -253,6 +277,12 @@ function promptSistemaVerificador(criterioTexto) {
     'datos son reales y comprobables (nunca inventados ni aproximados sin base), ilustran la ' +
     '"respuesta_correcta" indicada (nunca una opción incorrecta ni el dato erróneo cuando se avisa de ' +
     'cuál es), y el tipo de visual elegido es razonable para el tema.\n' +
+    'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "barras" o "dato": pregúntate explícitamente -- ' +
+    '¿estos números son un hecho verificable con la fuente indicada, o son cifras ilustrativas o ' +
+    'inventadas para representar la idea (p. ej. un "60 % / 40 %" inventado para ilustrar el efecto ' +
+    'de una técnica artística, en vez de una estadística real)? Si son ilustrativos/inventados, o si ' +
+    'falta el campo "fuente" en un "barras"/"dato", "visualOk" es false con motivo "cifras no ' +
+    'verificables" (aunque el resto del visual esté bien formado).\n' +
     'Ante la duda, false. Devuelve SOLO JSON con la forma exacta: {"explicacionOk":true|false,' +
     '"visualOk":true|false,"motivo":"…"} ("motivo" explica cualquier false, breve y en español; puede ' +
     'ir vacío si todo es true).'
@@ -371,31 +401,56 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
   });
 
   const datos = extraerJson(salida.texto);
-  let motivo = typeof datos.motivo === 'string' ? datos.motivo : '';
+  const motivoModelo = typeof datos.motivo === 'string' ? datos.motivo : '';
+
   // Comprobación en código, no solo criterio del modelo: visto en vivo el 13-sep-2026 (primera
   // pregunta de la ejecución completa, art-001) que el verificador puede dar explicacionOk:true a
   // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
   // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
   const dentroDelLimite = contarPalabras(propuesta.explicacion) <= 40;
   const explicacionOk = datos.explicacionOk === true && dentroDelLimite;
-  if (datos.explicacionOk === true && !dentroDelLimite) {
-    motivo = `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`;
+  let motivoExplicacion = '';
+  if (!explicacionOk) {
+    motivoExplicacion = !dentroDelLimite
+      ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`
+      : motivoModelo || 'explicación rechazada sin motivo';
   }
 
   let visualOk;
-
+  let motivoVisual = '';
   if (!necesitaVisual) {
     visualOk = true;
   } else if (!propuesta.visual) {
     visualOk = false;
-    motivo = motivo || 'el generador no devolvió ningún visual';
+    motivoVisual = motivoModelo || 'el generador no devolvió ningún visual';
   } else {
     const esquema = validarVisual(propuesta.visual);
-    visualOk = datos.visualOk === true && esquema.ok;
-    if (!esquema.ok) motivo = `esquema inválido: ${esquema.errores.join('; ')}`;
+    // Guardarraíl en código, no solo criterio del modelo (mismo principio que el límite de 40
+    // palabras): fijado por Carlos el 13-sep-2026 tras ver en producción un "barras" con
+    // porcentajes inventados (40 %/60 %) para ilustrar una técnica pictórica. "barras"/"dato" sin
+    // "fuente" se rechazan siempre, sin depender de que el modelo se acuerde de comprobarlo.
+    const esBarrasODato = propuesta.visual.tipo === 'barras' || propuesta.visual.tipo === 'dato';
+    const sinFuente = esBarrasODato && !esTextoNoVacio(propuesta.visual.fuente);
+    visualOk = datos.visualOk === true && esquema.ok && !sinFuente;
+    if (!visualOk) {
+      motivoVisual = !esquema.ok
+        ? `esquema inválido: ${esquema.errores.join('; ')}`
+        : sinFuente
+          ? 'cifras no verificables: falta fuente'
+          : motivoModelo || 'visual rechazado sin motivo';
+    }
   }
 
-  return { explicacionOk, visualOk, motivo, modelo: salida.modelo, coste: salida.coste };
+  // Un solo campo "motivo" en la interfaz (contrato del brief), pero visto en vivo el 13-sep-2026
+  // (art-010) que si se sobrescribe sin más, el motivo del visual tapaba el de la explicación
+  // cuando fallaban los dos a la vez -- el log mostraba "explicación conservada" con un motivo que
+  // en realidad hablaba del visual. Se combinan etiquetados para que nunca se pierda ninguno.
+  const motivo =
+    [!explicacionOk && `explicación: ${motivoExplicacion}`, !visualOk && necesitaVisual && `visual: ${motivoVisual}`]
+      .filter(Boolean)
+      .join(' | ') || motivoModelo;
+
+  return { explicacionOk, visualOk, motivo, motivoExplicacion, motivoVisual, modelo: salida.modelo, coste: salida.coste };
 }
 
 /**
@@ -433,7 +488,7 @@ export async function resolverPregunta(pregunta, opciones = {}) {
     if (verif.visualOk) {
       visualFinal = propuesta.visual;
     } else {
-      const motivoPrevio = verif.motivo || 'visual rechazado sin motivo';
+      const motivoPrevio = verif.motivoVisual || verif.motivo || 'visual rechazado sin motivo';
       const reintento = await generarVisualYExplicacion(pregunta, {
         ...opciones,
         necesitaVisual: true,
@@ -452,7 +507,7 @@ export async function resolverPregunta(pregunta, opciones = {}) {
         visualFinal = reintento.visual;
       } else {
         visualFinal = null;
-        motivoVisualRechazo = verif2.motivo || motivoPrevio;
+        motivoVisualRechazo = verif2.motivoVisual || verif2.motivo || motivoPrevio;
       }
     }
   }
@@ -462,7 +517,7 @@ export async function resolverPregunta(pregunta, opciones = {}) {
   return {
     explicacion: explicacionCambiada ? propuesta.explicacion : pregunta.explicacion,
     explicacionCambiada,
-    motivoExplicacionRechazo: explicacionCambiada ? null : verif.motivo || 'explicación rechazada sin motivo',
+    motivoExplicacionRechazo: explicacionCambiada ? null : verif.motivoExplicacion || verif.motivo || 'explicación rechazada sin motivo',
     visual: visualFinal,
     motivoVisualRechazo,
     modeloGenerador: propuesta.modelo,

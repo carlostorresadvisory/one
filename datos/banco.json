@@ -1,7 +1,7 @@
 [
   {
     "enunciado": "La Mona Lisa fue pintada por Leonardo da Vinci.",
-    "explicacion": "Leonardo da Vinci es el autor de la famosa retrato conocido como La Mona Lisa, conservado en el Louvre.",
+    "explicacion": "Leonardo la pintó entre 1503 y 1519 usando la técnica del sfumato, que difumina los contornos y crea esa atmósfera enigmática. El robo de 1911 en el Louvre la convirtió en el icono global que es hoy.",
     "nivel": 1,
     "respuesta": true,
     "id": "art-001",
@@ -14,7 +14,7 @@
   },
   {
     "enunciado": "El movimiento impresionista se originó en Italia a finales del siglo XIX.",
-    "explicacion": "El impresionismo surgió en Francia, con artistas como Monet, Renoir y Degas, no en Italia.",
+    "explicacion": "El impresionismo nació en París en los años 1870, cuando un grupo de pintores rechazados por el Salón oficial organizó sus propias exposiciones independientes. El nombre proviene del cuadro \"Impresión, sol naciente\" de Monet, que un crítico usó para burlarse.",
     "nivel": 2,
     "respuesta": false,
     "id": "art-002",
@@ -66,7 +66,7 @@
   },
   {
     "enunciado": "El pintor español Francisco de Goya fue miembro fundador del movimiento impresionista.",
-    "explicacion": "Goya vivió en los siglos XVIII‑XIX y su obra precede al Impresionismo; los fundadores de este movimiento fueron artistas franceses como Monet, Renoir y Degas.",
+    "explicacion": "Goya murió en 1828, antes de que surgiera el Impresionismo (década de 1860); sus obras, como los Pinturas Negras, pertenecen al Romanticismo y anticipan el expresionismo, no al movimiento francés liderado por Monet.",
     "nivel": 5,
     "respuesta": false,
     "id": "art-007",
@@ -79,7 +79,7 @@
   },
   {
     "enunciado": "¿Cuál de las siguientes obras es de Leonardo da Vinci?",
-    "explicacion": "La Última Cena (1495-1498) es un mural de Leonardo en el convento de Santa Maria delle Grazie en Milán; las otras obras pertenecen a Van Gogh, Munch y Dalí respectivamente.",
+    "explicacion": "La Última Cena innova al captar el instante psicológico tras el anuncio de la traición, usando la perspectiva para centrar la mirada en Cristo; su técnica experimental sobre muro seco provocó su rápido deterioro.",
     "nivel": 2,
     "opciones": [
       "La última cena",

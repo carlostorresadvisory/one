@@ -282,6 +282,81 @@ test('verificarVisualYExplicacion: sin visual propuesto pero necesitándolo, vis
   assert.ok(r.motivo);
 });
 
+test('verificarVisualYExplicacion: "barras"/"dato" sin fuente se rechazan aunque el modelo diga visualOk:true', async () => {
+  // Visto en vivo el 13-sep-2026 (art-010, ejecución real): el generador propuso un "barras" con
+  // porcentajes inventados (40 %/60 %) para ilustrar una técnica pictórica, y el verificador lo dio
+  // por bueno. La ausencia de "fuente" en barras/dato debe bastar para rechazar, en código, sin
+  // depender de que el modelo se acuerde de comprobarlo.
+  const llamarFalso = async ({ modelos }) => ({
+    texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }),
+    modelo: modelos[0],
+    coste: 0,
+    usage: {},
+  });
+  const propuestaBarras = {
+    explicacion: 'Explicación corta.',
+    visual: { tipo: 'barras', items: [{ etiqueta: 'Capa base', valor: 40 }, { etiqueta: 'Veladura', valor: 60 }], leyenda: 'x' },
+    modelo: 'a/uno:free',
+  };
+  const rBarras = await verificarVisualYExplicacion(preguntaBase(), propuestaBarras, { llamar: llamarFalso });
+  assert.equal(rBarras.visualOk, false);
+  assert.match(rBarras.motivo, /cifras no verificables/);
+
+  const propuestaDato = {
+    explicacion: 'Explicación corta.',
+    visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y' },
+    modelo: 'a/uno:free',
+  };
+  const rDato = await verificarVisualYExplicacion(preguntaBase(), propuestaDato, { llamar: llamarFalso });
+  assert.equal(rDato.visualOk, false);
+  assert.match(rDato.motivo, /cifras no verificables/);
+});
+
+test('verificarVisualYExplicacion: "barras" con fuente real se acepta', async () => {
+  const llamarFalso = async ({ modelos }) => ({
+    texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }),
+    modelo: modelos[0],
+    coste: 0,
+    usage: {},
+  });
+  const propuesta = {
+    explicacion: 'Explicación corta.',
+    visual: {
+      tipo: 'barras',
+      items: [{ etiqueta: 'España', valor: 3.2, unidad: '%' }, { etiqueta: 'Zona euro', valor: 2.9, unidad: '%' }],
+      leyenda: 'Inflación 2025',
+      fuente: 'Eurostat 2025',
+    },
+    modelo: 'a/uno:free',
+  };
+  const r = await verificarVisualYExplicacion(preguntaBase(), propuesta, { llamar: llamarFalso });
+  assert.equal(r.visualOk, true);
+});
+
+test('resolverPregunta: cuando explicación y visual fallan a la vez, el motivo de cada uno no se pisa', async () => {
+  // Visto en vivo el 13-sep-2026 (art-010): el motivo mostrado para "explicación conservada" era en
+  // realidad el motivo del visual (esquema inválido), porque ambos compartían una sola variable.
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({
+          explicacion: 'x '.repeat(45).trim(), // 45 palabras: supera el límite
+          visual: { tipo: 'flujo', pasos: ['un paso muchísimo más largo de lo permitido'], leyenda: 'y' }, // esquema inválido (1 paso, no 2-4)
+        }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const r = await resolverPregunta(preguntaBase(), { llamar: llamarFalso, necesitaVisual: true });
+  assert.equal(r.explicacionCambiada, false);
+  assert.match(r.motivoExplicacionRechazo, /45 palabras/);
+  assert.equal(r.visual, null);
+  assert.match(r.motivoVisualRechazo, /esquema inválido/);
+});
+
 // --- resolverPregunta: flujo generar → verificar → reintento único ----------------------------
 
 test('resolverPregunta: si el visual pasa la verificación a la primera, no reintenta', async () => {
@@ -291,7 +366,7 @@ test('resolverPregunta: si el visual pasa la verificación a la primera, no rein
     if (modelos === GENERADOR_VISUAL) {
       llamadasGenerador++;
       return {
-        texto: JSON.stringify({ explicacion: 'Corta y válida.', visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y' } }),
+        texto: JSON.stringify({ explicacion: 'Corta y válida.', visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y', fuente: 'INE 2024' } }),
         modelo: modelos[0],
         coste: 0.0001,
         usage: {},
@@ -317,7 +392,7 @@ test('resolverPregunta: reintenta una vez el visual y lo deja en null si vuelve 
       return {
         texto: JSON.stringify({
           explicacion: 'Corta y válida.',
-          visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y' },
+          visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y', fuente: 'INE 2024' },
         }),
         modelo: modelos[0],
         coste: 0.0001,
