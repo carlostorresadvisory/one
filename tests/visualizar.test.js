@@ -1,11 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import {
   validarVisual,
+  validarFuente,
   contarPalabras,
   generarVisualYExplicacion,
   verificarVisualYExplicacion,
   resolverPregunta,
+  reverificarVisualesGuardados,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
   GENERADOR_SOLO_PAGO,
@@ -37,6 +40,7 @@ function visualValido(tipo) {
           { etiqueta: 'Zona euro', valor: 2.9, unidad: '%' },
         ],
         leyenda: 'Inflación interanual 2025',
+        fuente: 'Eurostat 2025',
       };
     case 'comparacion':
       return {
@@ -50,7 +54,7 @@ function visualValido(tipo) {
     case 'flujo':
       return { tipo: 'flujo', pasos: ['Ahorro', 'Inversión', 'Producción', 'Renta'], leyenda: 'Ciclo económico simplificado' };
     case 'dato':
-      return { tipo: 'dato', cifra: '3%', texto: 'Inflación de España al cierre de 2025', leyenda: 'Inflación 2025' };
+      return { tipo: 'dato', cifra: '3%', texto: 'Inflación de España al cierre de 2025', leyenda: 'Inflación 2025', fuente: 'INE 2024' };
     default:
       throw new Error(`tipo de prueba desconocido: ${tipo}`);
   }
@@ -154,6 +158,66 @@ test('validarVisual rechaza null/objeto vacío sin lanzar', () => {
   assert.equal(validarVisual({}).ok, false);
 });
 
+// --- validarFuente / guardarraíl de "fuente" (ronda de corrección 1, 13-sep-2026) -------------
+// Hallazgo del revisor + el controlador: el guardarraíl anterior solo exigía que "fuente" fuera
+// texto no vacío, y eso dejaba pasar "Concepto físico estándar", "Datos geográficos estándar",
+// etc. (~45% de falsos positivos, 12 de 28 barras/dato retirados a mano). Ahora "fuente" exige
+// 8-40 caracteres, un año de 4 dígitos y el nombre de una institución/publicación, y rechaza
+// frases que delatan una cifra genérica/ilustrativa.
+
+test('validarFuente rechaza una fuente sin año', () => {
+  const r = validarFuente('U.S.Geological Survey');
+  assert.equal(r.ok, false);
+  assert.match(r.motivo, /año/);
+});
+
+test('validarFuente rechaza frases genéricas (estándar, concepto, cálculo propio...)', () => {
+  for (const fuente of ['Concepto físico estándar', 'Datos geográficos estándar', 'Cálculo propio sobre enunciado', 'Estimación propia 2024', 'Análisis genérico 2022']) {
+    const r = validarFuente(fuente);
+    assert.equal(r.ok, false, `"${fuente}" debería rechazarse`);
+  }
+});
+
+test('validarFuente rechaza fuente demasiado corta (< 8 caracteres) o sin institución reconocible', () => {
+  assert.equal(validarFuente('2024').ok, false); // solo el año, < 8 caracteres
+  assert.equal(validarFuente('a 2024').ok, false); // < 8 caracteres
+});
+
+test('validarFuente acepta una fuente real con año e institución', () => {
+  for (const fuente of ['Banco Mundial 2023', 'INE 2024', 'IPCC 2014', "Christie's 2021"]) {
+    const r = validarFuente(fuente);
+    assert.equal(r.ok, true, `"${fuente}" debería aceptarse: ${r.motivo}`);
+  }
+});
+
+test('validarVisual rechaza "barras"/"dato" sin fuente, con fuente sin año o con frase genérica', () => {
+  const sinFuente = visualValido('barras');
+  delete sinFuente.fuente;
+  assert.equal(validarVisual(sinFuente).ok, false);
+
+  const sinAno = visualValido('dato');
+  sinAno.fuente = 'Instituto Nacional de Estadística';
+  assert.equal(validarVisual(sinAno).ok, false);
+
+  const generica = visualValido('barras');
+  generica.fuente = 'Concepto físico estándar 2024';
+  assert.equal(validarVisual(generica).ok, false);
+});
+
+test('validarVisual rechaza "barras"/"dato" cuyo título o leyenda sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")', () => {
+  const tituloTipico = visualValido('barras');
+  tituloTipico.titulo = 'Margen típico del sector';
+  assert.equal(validarVisual(tituloTipico).ok, false);
+
+  const leyendaAproximada = visualValido('barras');
+  leyendaAproximada.leyenda = 'Reparto aproximado de ingresos';
+  assert.equal(validarVisual(leyendaAproximada).ok, false);
+
+  const leyendaEstimada = visualValido('dato');
+  leyendaEstimada.leyenda = 'Cifra estimada para 2025';
+  assert.equal(validarVisual(leyendaEstimada).ok, false);
+});
+
 // --- contarPalabras --------------------------------------------------------------------------
 
 test('contarPalabras cuenta palabras separadas por espacios', () => {
@@ -248,15 +312,39 @@ test('generarVisualYExplicacion: reintenta una vez si "explicacion" viene vacía
   assert.equal(r.coste, 0.0002); // suma de las dos llamadas
 });
 
-test('generarVisualYExplicacion: si "explicacion" falta en las dos veces, se rinde con explicacion vacía', async () => {
+test('generarVisualYExplicacion: si "explicacion" falta en las tres veces, se rinde con explicacion vacía', async () => {
+  // Ronda de corrección 1 (13-sep-2026): 3 intentos ahora, no 2 (el tercero es el intento
+  // reforzado "máximo 32 palabras, dos frases" para el caso de explicación demasiado larga; una
+  // explicación vacía agota los mismos 3 intentos antes de rendirse).
   let llamadas = 0;
   const llamarFalso = async ({ modelos }) => {
     llamadas++;
     return { texto: JSON.stringify({ visual: null }), modelo: modelos[0], coste: 0, usage: {} }; // sin "explicacion"
   };
   const r = await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
-  assert.equal(llamadas, 2, 'debe intentarlo exactamente dos veces, ni una ni tres');
+  assert.equal(llamadas, 3, 'debe intentarlo exactamente tres veces, ni dos ni cuatro');
   assert.equal(r.explicacion, '');
+});
+
+test('generarVisualYExplicacion: si la explicación se pasa de 40 palabras dos veces, un tercer intento pide máximo 32 palabras', async () => {
+  // Hallazgo 3 de la ronda de corrección 1: antes solo se reintentaba una "explicacion" vacía;
+  // ahora también se reintenta (hasta un tercer intento, con instrucción más estricta) una
+  // "explicacion" que se pasa de 40 palabras.
+  let llamadas = 0;
+  const notasVistas = [];
+  const explicacionLarga = Array.from({ length: 45 }, (_, i) => `palabra${i}`).join(' ');
+  const explicacionCorta = 'Explicación corta y válida tras el tercer intento reforzado.';
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    llamadas++;
+    notasVistas.push(mensajes[1].content);
+    const explicacion = llamadas < 3 ? explicacionLarga : explicacionCorta;
+    return { texto: JSON.stringify({ explicacion, visual: null }), modelo: modelos[0], coste: 0.0001, usage: {} };
+  };
+  const r = await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
+  assert.equal(llamadas, 3, 'debe parar en el tercer intento en cuanto una propuesta cumple el límite');
+  assert.equal(r.explicacion, explicacionCorta);
+  assert.match(notasVistas[1], /45 palabras/, 'el segundo intento debe avisar de cuántas palabras se pasó');
+  assert.match(notasVistas[2], /máximo 32 palabras/i, 'el tercer intento debe pedir explícitamente 32 palabras');
 });
 
 // --- verificarVisualYExplicacion ---------------------------------------------------------------
@@ -370,7 +458,7 @@ test('verificarVisualYExplicacion: "barras"/"dato" sin fuente se rechazan aunque
   };
   const rBarras = await verificarVisualYExplicacion(preguntaBase(), propuestaBarras, { llamar: llamarFalso });
   assert.equal(rBarras.visualOk, false);
-  assert.match(rBarras.motivo, /cifras no verificables/);
+  assert.match(rBarras.motivo, /fuente/i);
 
   const propuestaDato = {
     explicacion: 'Explicación corta.',
@@ -379,7 +467,7 @@ test('verificarVisualYExplicacion: "barras"/"dato" sin fuente se rechazan aunque
   };
   const rDato = await verificarVisualYExplicacion(preguntaBase(), propuestaDato, { llamar: llamarFalso });
   assert.equal(rDato.visualOk, false);
-  assert.match(rDato.motivo, /cifras no verificables/);
+  assert.match(rDato.motivo, /fuente/i);
 });
 
 test('verificarVisualYExplicacion: "barras" con fuente real se acepta', async () => {
@@ -540,4 +628,74 @@ test('resolverPregunta: si explicacionOk es false, conserva la explicación orig
   assert.equal(r.explicacion, pregunta.explicacion);
   assert.equal(r.explicacionCambiada, false);
   assert.match(r.motivoExplicacionRechazo, /error/);
+});
+
+// --- reverificarVisualesGuardados (modo --reverificar-visuales, hallazgo 4) --------------------
+
+function preguntaConVisual(id, tipo, visual) {
+  return { ...preguntaBase(), id, area: 'economia', explicacion: 'Explicación ya aceptada.', visual: { tipo, ...visual } };
+}
+
+test('reverificarVisualesGuardados: solo revisa los tipos pedidos, sin tocar otros visuales guardados', async () => {
+  const preguntas = [
+    preguntaConVisual('eco-a', 'barras', { items: [{ etiqueta: 'x', valor: 1 }, { etiqueta: 'y', valor: 2 }], leyenda: 'z', fuente: 'INE 2024' }),
+    preguntaConVisual('eco-b', 'flujo', { pasos: ['uno', 'dos'], leyenda: 'z' }), // no es barras/dato: no se toca
+  ];
+  const llamarFalso = async ({ modelos }) => ({ texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }), modelo: modelos[0], coste: 0.0002, usage: {} });
+  const r = await reverificarVisualesGuardados(preguntas, { llamar: llamarFalso, pausaMs: 0 });
+  assert.equal(r.revisadas, 1, 'flujo no es barras/dato, no debe entrar en la revisión');
+  assert.deepEqual(r.mantenidos, ['eco-a']);
+  assert.equal(r.retirados.length, 0);
+});
+
+test('reverificarVisualesGuardados: NO regenera -- si el verificador rechaza, retira (visual queda fuera), no reintenta generar', async () => {
+  const preguntas = [
+    preguntaConVisual('eco-c', 'barras', { items: [{ etiqueta: 'x', valor: 1 }, { etiqueta: 'y', valor: 2 }], leyenda: 'z', fuente: 'INE 2024' }),
+  ];
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: false, motivo: 'cifra no reproducible: valor de "x"' }), modelo: modelos[0], coste: 0.0002, usage: {} };
+  };
+  const r = await reverificarVisualesGuardados(preguntas, { llamar: llamarFalso, pausaMs: 0 });
+  assert.equal(llamadas, 1, 'una sola llamada al verificador -- este modo nunca regenera ni reintenta');
+  assert.equal(r.mantenidos.length, 0);
+  assert.deepEqual(r.retirados, [{ id: 'eco-c', tipo: 'barras', motivo: 'cifra no reproducible: valor de "x"' }]);
+});
+
+test('reverificarVisualesGuardados: respeta el tope de gasto y se detiene antes de agotarlo', async () => {
+  const preguntas = [
+    preguntaConVisual('eco-d', 'dato', { cifra: '1', texto: 'x', leyenda: 'y', fuente: 'INE 2024' }),
+    preguntaConVisual('eco-e', 'dato', { cifra: '2', texto: 'x', leyenda: 'y', fuente: 'INE 2024' }),
+  ];
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }), modelo: modelos[0], coste: 0.01, usage: {} };
+  };
+  const r = await reverificarVisualesGuardados(preguntas, {
+    llamar: llamarFalso,
+    pausaMs: 0,
+    permitirPago: true,
+    topeEur: 0.005,
+    costeAcumuladoInicial: 0.006, // ya superado ANTES de intentar la primera pregunta candidata
+  });
+  assert.equal(llamadas, 0, 'no debe llamar al verificador ni una vez si el tope ya estaba agotado');
+  assert.equal(r.detenidoPorTope, true);
+  assert.equal(r.mantenidos.length, 0);
+  assert.equal(r.retirados.length, 0);
+});
+
+// --- CLI: --sin-gratis sin --permitir-pago (hallazgo 5) -----------------------------------------
+
+test('CLI: --sin-gratis sin --permitir-pago falla con error claro y exit code 1, sin llegar a leer el banco', () => {
+  const resultado = spawnSync(process.execPath, ['tools/visualizar.js', '--sin-gratis', '--limite', '1'], {
+    encoding: 'utf8',
+    cwd: process.cwd(), // node --test tests/*.test.js ya se ejecuta desde la raíz del proyecto
+  });
+  assert.equal(resultado.status, 1);
+  assert.match(resultado.stderr, /--sin-gratis/);
+  assert.match(resultado.stderr, /--permitir-pago/);
+  // No debe imprimir nada de "candidatas" ni tocar el banco: falla ANTES de procesar nada.
+  assert.doesNotMatch(resultado.stdout, /candidatas/);
 });

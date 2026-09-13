@@ -92,6 +92,82 @@ function limite(errores, cond, mensaje) {
   if (!cond) errores.push(mensaje);
 }
 
+// --- Ronda de corrección 1 (13-sep-2026): guardarraíl de "fuente" endurecido -------------------
+// La revisión (controlador + revisor adversarial) encontró ~45% de falsos positivos en
+// "barras"/"dato": el guardarraíl anterior solo exigía que "fuente" existiera y tuviera
+// contenido, y eso dejaba pasar "Concepto físico estándar", "Datos geográficos estándar",
+// "Cálculo propio sobre enunciado" -- frases con forma de fuente pero sin año ni institución real
+// (el controlador retiró 12 de 28 a mano tras verlas en producción). Ahora "fuente" es obligatoria
+// en código, con formato: 8-40 caracteres, un año de 4 dígitos, y algo de texto además del año
+// (el nombre de la institución/publicación); se rechaza si contiene una frase que delata una
+// cifra genérica/ilustrativa en vez de un dato real con procedencia.
+
+const REGEX_ANIO_FUENTE = /\b(18|19|20)\d{2}\b/;
+
+// Comparación sin distinguir mayúsculas ni tildes (pedido explícitamente): "estándar" debe pillar
+// también "Estandar", "ESTÁNDAR", etc.
+function normalizarTexto(texto) {
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+const FRASES_FUENTE_NO_VERIFICABLE = [
+  'estandar',
+  'concepto',
+  'aproximad',
+  'tipic',
+  'generic',
+  'de manual',
+  'calculo propio',
+  'estimacion propia',
+  'analisis',
+];
+
+/**
+ * Valida el campo `fuente` obligatorio de un visual `barras`/`dato` (ronda de corrección 1,
+ * 13-sep-2026): 8-40 caracteres, año de 4 dígitos, nombre de institución/publicación reconocible,
+ * y ninguna frase que delate una cifra genérica o ilustrativa disfrazada de fuente real.
+ * @param {any} fuente
+ * @returns {{ok: boolean, motivo: string}} `motivo`, si no ok, empieza tras "fuente " (p. ej.
+ *   "fuente obligatoria", "fuente sin año...").
+ */
+export function validarFuente(fuente) {
+  if (!esTextoNoVacio(fuente)) {
+    return { ok: false, motivo: 'obligatoria' };
+  }
+  if (fuente.length < 8 || fuente.length > 40) {
+    return { ok: false, motivo: 'inválida (8-40 caracteres)' };
+  }
+  if (!REGEX_ANIO_FUENTE.test(fuente)) {
+    return { ok: false, motivo: 'sin año (debe incluir un año de 4 dígitos, p. ej. "2023")' };
+  }
+  const normalizada = normalizarTexto(fuente);
+  const fraseProhibida = FRASES_FUENTE_NO_VERIFICABLE.find((f) => normalizada.includes(f));
+  if (fraseProhibida) {
+    return { ok: false, motivo: `genérica o no verificable (contiene "${fraseProhibida}")` };
+  }
+  // Debe quedar el nombre de una institución/publicación además del año: quita el año y toda la
+  // puntuación/dígitos, y exige al menos 3 letras reales (p. ej. "INE" en "INE 2024").
+  const soloLetras = fuente.replace(REGEX_ANIO_FUENTE, '').replace(/[^\p{L}]/gu, '');
+  if (soloLetras.length < 3) {
+    return { ok: false, motivo: 'sin nombre de institución o publicación reconocible' };
+  }
+  return { ok: true, motivo: '' };
+}
+
+// Mismo hallazgo, otro disfraz (controlador, revisión humana 13-sep-2026): "típica"/"aproximada"/
+// "estimada" en el TÍTULO o la LEYENDA de un "barras"/"dato" son la misma cifra ilustrativa que la
+// del campo "fuente", solo que en el texto visible de la tarjeta en vez de en la procedencia.
+const FRASES_ILUSTRATIVO_EN_TEXTO = ['tipic', 'aproximad', 'estimad'];
+
+function contieneFraseIlustrativa(texto) {
+  if (!esTextoNoVacio(texto)) return false;
+  const normalizado = normalizarTexto(texto);
+  return FRASES_ILUSTRATIVO_EN_TEXTO.some((f) => normalizado.includes(f));
+}
+
 /**
  * Valida un objeto `visual` contra el esquema y los límites de la spec §2. Nunca lanza: siempre
  * devuelve `{ ok, errores[] }`. También la usa tools/validar-banco.js.
@@ -151,14 +227,16 @@ export function validarVisual(visual) {
           }
         });
       }
-      // "fuente" opcional (fijado por Carlos, 13-sep-2026, tras ver en producción un "barras" con
-      // porcentajes inventados para ilustrar una técnica pictórica): de dónde sale el dato real.
-      // La app no la pinta -- la usa el verificador para distinguir un dato real de uno
-      // ilustrativo/inventado. Opcional AQUÍ (validación de esquema); el verificador es quien la
-      // exige de facto para aceptar el visual (ver promptSistemaVerificador).
-      if (visual.fuente !== undefined && visual.fuente !== null) {
-        limite(errores, typeof visual.fuente === 'string' && visual.fuente.length > 0 && visual.fuente.length <= 40, 'barras.fuente inválida (1-40 caracteres)');
-      }
+      // "fuente" OBLIGATORIA (endurecido en la ronda de corrección 1, 13-sep-2026: antes era
+      // opcional en el esquema y solo se exigía "no vacía" en el verificador -- eso dejaba pasar
+      // "Concepto físico estándar", "Datos geográficos estándar", "Cálculo propio sobre
+      // enunciado"... con pinta de fuente pero sin año ni institución real). Ver validarFuente().
+      const resultadoFuenteBarras = validarFuente(visual.fuente);
+      if (!resultadoFuenteBarras.ok) errores.push(`barras.fuente ${resultadoFuenteBarras.motivo}`);
+      // Mismo hallazgo, otro disfraz: "típica"/"aproximada"/"estimada" en el título o la leyenda
+      // son la misma cifra ilustrativa, esta vez en el texto visible en vez de en la fuente.
+      if (contieneFraseIlustrativa(visual.titulo)) errores.push('barras.titulo sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")');
+      if (contieneFraseIlustrativa(visual.leyenda)) errores.push('barras.leyenda sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")');
       break;
     }
     case 'comparacion': {
@@ -191,10 +269,10 @@ export function validarVisual(visual) {
     case 'dato': {
       limite(errores, esTextoNoVacio(visual.cifra) && visual.cifra.length <= 8, 'dato.cifra inválida (1-8 caracteres)');
       limite(errores, esTextoNoVacio(visual.texto) && visual.texto.length <= 40, 'dato.texto inválido (1-40 caracteres)');
-      // "fuente" opcional, mismo motivo que en "barras" (ver arriba).
-      if (visual.fuente !== undefined && visual.fuente !== null) {
-        limite(errores, typeof visual.fuente === 'string' && visual.fuente.length > 0 && visual.fuente.length <= 40, 'dato.fuente inválida (1-40 caracteres)');
-      }
+      // "fuente" OBLIGATORIA, mismo motivo y misma regla que en "barras" (ver arriba).
+      const resultadoFuenteDato = validarFuente(visual.fuente);
+      if (!resultadoFuenteDato.ok) errores.push(`dato.fuente ${resultadoFuenteDato.motivo}`);
+      if (contieneFraseIlustrativa(visual.leyenda)) errores.push('dato.leyenda sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")');
       break;
     }
     default:
@@ -243,10 +321,11 @@ function promptSistemaGenerador(criterioTexto) {
     'VISUAL (solo si "necesita_visual" es true): un objeto de DATOS -- nunca un dibujo, la app lo ' +
     'pinta con plantillas propias -- que ilustre la "respuesta_correcta" indicada (nunca una opción ' +
     'incorrecta ni el dato erróneo cuando se te avisa de cuál es). Elige el tipo más natural para el ' +
-    'tema (economía → formula/barras; historia → linea-tiempo; filosofía → comparacion/flujo; lógica → ' +
-    'flujo/comparacion; ciencia → formula/flujo; geografía/tecnología → barras/dato) y respeta ' +
-    'EXACTAMENTE uno de estos esquemas y límites (todos los datos deben ser reales y comprobables, ' +
-    'nunca inventados):\n' +
+    'tema (economía → formula/comparacion; historia → linea-tiempo; filosofía → comparacion/flujo; ' +
+    'lógica → flujo/comparacion; ciencia → formula/flujo; geografía/tecnología → formula/comparacion; ' +
+    '"barras"/"dato" NUNCA son el tipo por defecto de ningún área -- son el ÚLTIMO RECURSO, ver la ' +
+    'REGLA DURA más abajo) y respeta EXACTAMENTE uno de estos esquemas y límites (todos los datos ' +
+    'deben ser reales y comprobables, nunca inventados):\n' +
     '  - formula: {"tipo":"formula","texto":"…","leyenda":"…"} texto ≤ 40 caracteres, notación plana ' +
     '(×, −, /, =), SIN LaTeX -- nunca "\\" ni "$", se pintaría literal. Ej.: "PIB = C + I + G + (X − ' +
     'M)".\n' +
@@ -263,18 +342,28 @@ function promptSistemaGenerador(criterioTexto) {
     '  - dato: {"tipo":"dato","cifra":"…","texto":"…","leyenda":"…","fuente":"…"} "cifra" ≤ 8 ' +
     'caracteres, "texto" ≤ 40. Último recurso cuando nada más encaja.\n' +
     '"leyenda" ≤ 60 caracteres en todos los tipos.\n\n' +
-    'REGLA DURA sobre "barras" y "dato" (nunca la rompas): sus números son SIEMPRE hechos reales, ' +
-    'publicados y reconocibles -- años, población, PIB, distancias, temperaturas, porcentajes de una ' +
-    'estadística real, fechas. PROHIBIDO inventar un porcentaje o una cifra "para ilustrar" un ' +
-    'concepto (ejemplo de lo que NUNCA hay que hacer: inventarte "40 % / 60 %" para representar el ' +
-    'efecto de una técnica pictórica -- eso no es un dato, es una ilustración inventada, y se ' +
-    'rechaza siempre). Si el concepto es CUALITATIVO (una técnica artística, una idea filosófica, ' +
-    'una falacia lógica, un proceso, una corriente de pensamiento) usa "comparacion", "flujo", ' +
-    '"linea-tiempo" o "formula" -- NUNCA "barras" ni "dato" para eso. Cuando SÍ uses "barras" o ' +
-    '"dato", añade siempre "fuente" (≤ 40 caracteres): de dónde sale el dato real, con año si aplica ' +
-    '(ejemplos: "Banco Mundial 2023", "INE 2024", "NASA", "Eurostat 2022"); la app no la pinta, pero ' +
-    'sin ella el visual se rechaza. Si no tienes un dato real y verificable con fuente, NO propongas ' +
-    'barras/dato: usa otro tipo.\n' +
+    'REGLA DURA sobre "barras" y "dato" (nunca la rompas -- endurecida en la ronda de corrección 1, ' +
+    '13-sep-2026, tras encontrar en producción cifras inventadas o "típicas" coladas como reales): ' +
+    'son el ÚLTIMO RECURSO, nunca la opción por defecto. Solo valen para magnitudes PUBLICADAS y ' +
+    'AMPLIAMENTE CONOCIDAS: población, PIB, superficie, latitud/longitud, fechas, densidades ' +
+    'físicas (densidad, punto de fusión/ebullición...), emisiones de CO2 de fuentes oficiales (p. ' +
+    'ej. tablas del IPCC) o cuotas de mercado de informes ya publicados. PROHIBIDO usar "barras" o ' +
+    '"dato" para: múltiplos de valoración de empresas (PER, EV/EBITDA...), márgenes "típicos" de un ' +
+    'sector, repartos porcentuales de los ingresos de una empresa concreta, efectos estimados de ' +
+    'una política económica, o cualquier ranking/orden (1, 2, 3...) -- para todo eso usa ' +
+    '"comparacion", "flujo" o "formula", NUNCA "barras"/"dato". Igual si el concepto es CUALITATIVO ' +
+    '(una técnica artística, una idea filosófica, una falacia lógica, un proceso, una corriente de ' +
+    'pensamiento): "comparacion", "flujo", "linea-tiempo" o "formula", NUNCA "barras" ni "dato". ' +
+    'PROHIBIDO inventar un porcentaje o una cifra "para ilustrar" un concepto (ejemplo de lo que ' +
+    'NUNCA hay que hacer: inventarte "40 % / 60 %" para representar el efecto de una técnica ' +
+    'pictórica -- eso no es un dato, es una ilustración inventada, y se rechaza siempre). Cuando SÍ ' +
+    'uses "barras" o "dato", "fuente" es OBLIGATORIA y tiene un formato ESTRICTO que se comprueba en ' +
+    'código: 8-40 caracteres, con un año de 4 dígitos Y el nombre de la institución o publicación ' +
+    'concreta (ejemplos válidos: "Banco Mundial 2023", "INE 2024", "NASA 2023", "Eurostat 2022"); ' +
+    'NUNCA "estándar", "concepto", "aproximado", "típico", "genérico", "de manual", "cálculo ' +
+    'propio", "estimación propia" ni "análisis" -- esas frases se RECHAZAN siempre, aunque el dato ' +
+    'en sí sea correcto. Si no tienes un dato real, publicado y verificable con esa fuente exacta, ' +
+    'NO propongas barras/dato: usa otro tipo.\n' +
     'Si "necesita_visual" es false, no incluyas la clave "visual" (o ponla a null).\n\n' +
     'Devuelve SOLO JSON con la forma exacta: {"explicacion":"…","visual":{...}|null}'
   );
@@ -303,12 +392,17 @@ function promptSistemaVerificador(criterioTexto) {
     'datos son reales y comprobables (nunca inventados ni aproximados sin base), ilustran la ' +
     '"respuesta_correcta" indicada (nunca una opción incorrecta ni el dato erróneo cuando se avisa de ' +
     'cuál es), y el tipo de visual elegido es razonable para el tema.\n' +
-    'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "barras" o "dato": pregúntate explícitamente -- ' +
-    '¿estos números son un hecho verificable con la fuente indicada, o son cifras ilustrativas o ' +
-    'inventadas para representar la idea (p. ej. un "60 % / 40 %" inventado para ilustrar el efecto ' +
-    'de una técnica artística, en vez de una estadística real)? Si son ilustrativos/inventados, o si ' +
-    'falta el campo "fuente" en un "barras"/"dato", "visualOk" es false con motivo "cifras no ' +
-    'verificables" (aunque el resto del visual esté bien formado).\n' +
+    'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "barras" o "dato" -- AUTOVERIFICACIÓN FORZADA, no ' +
+    'una impresión general (ronda de corrección 1, 13-sep-2026: "¿parece inventado?" dejaba pasar ' +
+    'demasiadas cifras "típicas"): para CADA cifra de "barras"/"dato", reconstruye TÚ MISMO, con tu ' +
+    'propio conocimiento, el valor que esperarías para ese dato concreto con esa fuente y ese año. ' +
+    'Si no puedes reproducirlo con confianza razonable (±15 %), o el valor propuesto difiere ' +
+    'claramente de tu propia reconstrucción, "visualOk" es false con motivo "cifra no reproducible: ' +
+    '<cuál>" (aunque el resto del visual esté bien formado y tenga "fuente"). Una serie de índices u ' +
+    'órdenes ORDINALES inventados (1, 2, 3, 4 sin unidad real detrás) es SIEMPRE false. Una ' +
+    'proyección o cifra de una tecnología futura o aún no comercializada (p. ej. "baterías de ' +
+    'estado sólido: 500 Wh/kg") es SIEMPRE false salvo que sea una cifra concreta ya publicada por ' +
+    'la institución citada en "fuente" (no una expectativa genérica del sector).\n' +
     'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "linea-tiempo": comprueba que los "hitos" están en ' +
     'orden cronológico ascendente (el año más antiguo primero); si están desordenados, "visualOk" es ' +
     'false con motivo "hitos desordenados cronológicamente".\n' +
@@ -356,26 +450,24 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     rutaLog,
   } = opciones;
 
-  // Reintento único si el modelo no trae "explicacion" (ausente, vacía o de otro tipo): fijado
-  // tras la pasada adversarial del 13-sep-2026 -- eso es un fallo de generación, no una propuesta
-  // válida que simplemente no guste; nunca se acepta "" como explicación. Si el reintento también
-  // falla, se devuelve explicacion:'' (igual que antes) y quien llama (verificarVisualYExplicacion)
-  // la rechaza siempre, conservando la del banco.
+  // Hasta 3 intentos (endurecido en la ronda de corrección 1, 13-sep-2026 -- antes eran 2 y solo
+  // reintentaban una "explicacion" ausente/vacía): el primer intento normal; si falla por vacía O
+  // por pasarse de 40 palabras, un segundo intento con feedback específico; si el segundo sigue
+  // fallando, un TERCER intento con la instrucción más estricta posible ("máximo 32 palabras, dos
+  // frases"). Si tras los 3 sigue sin cumplir, se devuelve igualmente la última propuesta no vacía
+  // (o '' si nunca llegó ninguna) -- quien llama (verificarVisualYExplicacion) la rechaza siempre
+  // que siga > 40 palabras o vacía, y resolverPregunta conserva la explicación original del banco.
   let explicacion = '';
   let visual = null;
   let modeloUsado = '';
   let costeTotal = 0;
-  const INTENTOS_EXPLICACION = 2;
+  const INTENTOS_EXPLICACION = 3;
+  let notaReintento = '';
 
   for (let intento = 0; intento < INTENTOS_EXPLICACION; intento++) {
     const mensajes = [
       { role: 'system', content: promptSistemaGenerador(criterio) },
-      {
-        role: 'user',
-        content:
-          promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) +
-          (intento > 0 ? '\n\nIMPORTANTE: en el intento anterior no devolviste "explicacion" (vacía o ausente). Esta vez inclúyela SIEMPRE, no vacía.' : ''),
-      },
+      { role: 'user', content: promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) + notaReintento },
     ];
 
     const salida = await llamarFn({
@@ -394,12 +486,26 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
 
     const datos = extraerJson(salida.texto);
     const explicacionCandidata = typeof datos.explicacion === 'string' ? datos.explicacion.trim() : '';
+    const palabras = contarPalabras(explicacionCandidata);
+
     if (explicacionCandidata) {
       explicacion = explicacionCandidata;
       visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
-      break;
     }
-    // explicación ausente/vacía/no-texto: intenta una vez más si queda intento, si no se rinde.
+    if (explicacionCandidata && palabras <= 40) {
+      break; // válida: no gasta el/los intento(s) que quedaran
+    }
+
+    // Prepara la nota del siguiente intento, si queda alguno.
+    if (intento === 0) {
+      notaReintento = explicacionCandidata
+        ? `\n\nIMPORTANTE: en el intento anterior tu "explicacion" tenía ${palabras} palabras (> 40, se habría rechazado). Recórtala sin perder el hecho clave.`
+        : '\n\nIMPORTANTE: en el intento anterior no devolviste "explicacion" (vacía o ausente). Esta vez inclúyela SIEMPRE, no vacía.';
+    } else if (intento === 1) {
+      notaReintento =
+        '\n\nIMPORTANTE: este es tu ÚLTIMO intento. Escribe "explicacion" en MÁXIMO 32 palabras, exactamente ' +
+        'dos frases, sin perder el hecho clave. Cuenta las palabras antes de terminar.';
+    }
   }
 
   return { explicacion, visual, modelo: modeloUsado, coste: costeTotal };
@@ -483,20 +589,17 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     visualOk = false;
     motivoVisual = motivoModelo || 'el generador no devolvió ningún visual';
   } else {
-    const esquema = validarVisual(propuesta.visual);
     // Guardarraíl en código, no solo criterio del modelo (mismo principio que el límite de 40
     // palabras): fijado por Carlos el 13-sep-2026 tras ver en producción un "barras" con
-    // porcentajes inventados (40 %/60 %) para ilustrar una técnica pictórica. "barras"/"dato" sin
-    // "fuente" se rechazan siempre, sin depender de que el modelo se acuerde de comprobarlo.
-    const esBarrasODato = propuesta.visual.tipo === 'barras' || propuesta.visual.tipo === 'dato';
-    const sinFuente = esBarrasODato && !esTextoNoVacio(propuesta.visual.fuente);
-    visualOk = datos.visualOk === true && esquema.ok && !sinFuente;
+    // porcentajes inventados (40 %/60 %) para ilustrar una técnica pictórica. validarVisual()
+    // exige "fuente" con formato estricto en "barras"/"dato" (ver validarFuente, ronda de
+    // corrección 1) -- esquema.ok ya cubre esto solo, así que el verificador SIEMPRE lo aplica sin
+    // depender de que el modelo se acuerde de comprobarlo (antes había aquí una comprobación
+    // ad-hoc duplicada de "fuente no vacía"; ahora validarVisual es la única fuente de verdad).
+    const esquema = validarVisual(propuesta.visual);
+    visualOk = datos.visualOk === true && esquema.ok;
     if (!visualOk) {
-      motivoVisual = !esquema.ok
-        ? `esquema inválido: ${esquema.errores.join('; ')}`
-        : sinFuente
-          ? 'cifras no verificables: falta fuente'
-          : motivoModelo || 'visual rechazado sin motivo';
+      motivoVisual = !esquema.ok ? `esquema inválido: ${esquema.errores.join('; ')}` : motivoModelo || 'visual rechazado sin motivo';
     }
   }
 
@@ -591,10 +694,113 @@ export async function resolverPregunta(pregunta, opciones = {}) {
   };
 }
 
+/**
+ * Ronda de corrección 1 (13-sep-2026), modo `--reverificar-visuales`: pasa por el verificador (con
+ * las reglas ACTUALES, incluido el guardarraíl de "fuente" endurecido) los visuales YA guardados en
+ * el banco, SIN regenerar nada -- solo confirma si el visual existente se sostiene o no. Es la
+ * función "produce" testeable de ese modo; la CLI (ejecutarReverificarVisuales) hace la I/O de
+ * disco y aplica los `null` resultantes a datos/banco.json.
+ * @param {object[]} preguntas normalmente el banco completo
+ * @param {object} opciones
+ * @param {string[]} [opciones.tipos] tipos de visual a revisar; por defecto ['barras','dato']
+ * @param {Function} [opciones.llamar] inyectable para tests
+ * @param {boolean} [opciones.permitirPago]
+ * @param {number} [opciones.topeEur]
+ * @param {boolean} [opciones.sinGratis] usa VERIFICADOR_SOLO_PAGO en vez de VERIFICADOR_VISUAL
+ * @param {number} [opciones.costeAcumuladoInicial] coste ya gastado hoy, para el corte proactivo
+ *   por tope (el mismo que usa la CLI normal); 0 en tests.
+ * @param {number} [opciones.pausaMs] pausa entre llamadas; 0 en tests para no ralentizarlos.
+ * @param {Function} [opciones.onProgreso] callback(linea) opcional, para que la CLI vaya
+ *   imprimiendo/logueando en vivo sin que esta función toque consola ni disco.
+ * @returns {Promise<{revisadas: number, mantenidos: string[], retirados: {id:string,tipo:string,motivo:string}[], fallos: Map<string,string>, costeTotal: number, detenidoPorTope: boolean}>}
+ */
+export async function reverificarVisualesGuardados(preguntas, opciones = {}) {
+  const {
+    tipos = ['barras', 'dato'],
+    llamar: llamarFn = llamarReal,
+    permitirPago = false,
+    topeEur = 0,
+    sinGratis = false,
+    costeAcumuladoInicial = 0,
+    pausaMs = PAUSA_ENTRE_PREGUNTAS_MS,
+    onProgreso,
+  } = opciones;
+
+  const avisar = (linea) => {
+    if (typeof onProgreso === 'function') onProgreso(linea);
+  };
+
+  const candidatas = (preguntas || []).filter((p) => p && p.visual && tipos.includes(p.visual.tipo));
+  const mantenidos = [];
+  const retirados = [];
+  const fallos = new Map();
+  let costeAcumulado = costeAcumuladoInicial;
+  let detenidoPorTope = false;
+
+  for (const pregunta of candidatas) {
+    if (permitirPago && topeEur > 0 && costeAcumulado >= topeEur) {
+      avisar(`\nTope de gasto alcanzado (${costeAcumulado.toFixed(4)} € >= ${topeEur} €): se detiene aquí. Progreso ya guardado.`);
+      detenidoPorTope = true;
+      break;
+    }
+
+    let verif;
+    try {
+      verif = await verificarVisualYExplicacion(
+        pregunta,
+        { explicacion: pregunta.explicacion, visual: pregunta.visual, modelo: null },
+        {
+          llamar: llamarFn,
+          necesitaVisual: true,
+          permitirPago,
+          topeEur,
+          ...(sinGratis ? { modelos: VERIFICADOR_SOLO_PAGO } : {}),
+        },
+      );
+    } catch (err) {
+      fallos.set(pregunta.id, err.message);
+      avisar(`  ${pregunta.id}: FALLO — ${err.message}`);
+      if (pausaMs > 0) await esperar(pausaMs);
+      continue;
+    }
+
+    costeAcumulado += verif.coste;
+    if (verif.visualOk) {
+      mantenidos.push(pregunta.id);
+      avisar(`  ${pregunta.id} [${pregunta.visual.tipo}]: mantenido`);
+    } else {
+      const motivo = verif.motivoVisual || verif.motivo || 'rechazado en re-verificación';
+      retirados.push({ id: pregunta.id, tipo: pregunta.visual.tipo, motivo });
+      avisar(`  ${pregunta.id} [${pregunta.visual.tipo}]: RETIRADO — ${motivo}`);
+    }
+    if (pausaMs > 0) await esperar(pausaMs);
+  }
+
+  return {
+    revisadas: candidatas.length,
+    mantenidos,
+    retirados,
+    fallos,
+    costeTotal: costeAcumulado - costeAcumuladoInicial,
+    detenidoPorTope,
+  };
+}
+
 // --- CLI ----------------------------------------------------------------------------------------
 
 function parsearArgs(argv) {
-  const args = { soloPendientes: false, area: null, limite: 0, aplicar: false, permitirPago: false, topeEur: 0, sinGratis: false, ayuda: false };
+  const args = {
+    soloPendientes: false,
+    area: null,
+    limite: 0,
+    aplicar: false,
+    permitirPago: false,
+    topeEur: 0,
+    sinGratis: false,
+    ayuda: false,
+    reverificarVisuales: false,
+    tipos: [],
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
@@ -605,6 +811,13 @@ function parsearArgs(argv) {
     else if (a === '--permitir-pago') args.permitirPago = true;
     else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
     else if (a === '--sin-gratis') args.sinGratis = true;
+    else if (a === '--reverificar-visuales') args.reverificarVisuales = true;
+    else if (a === '--tipos') {
+      args.tipos = (argv[++i] || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
   }
   return args;
 }
@@ -612,6 +825,7 @@ function parsearArgs(argv) {
 function imprimirAyuda() {
   console.log(`Uso: node tools/visualizar.js [--solo-pendientes] [--area X] [--limite N] [--aplicar]
        node tools/visualizar.js --aplicar --permitir-pago --tope-eur 0.5
+       node tools/visualizar.js --reverificar-visuales [--tipos barras,dato] --aplicar --permitir-pago --sin-gratis --tope-eur 0.3
 
 Genera una explicación corta (≤ 40 palabras) y, para las preguntas sin imagen de Commons, un
 visual verificado (datos, nunca dibujo) para cada pregunta de datos/banco.json.
@@ -627,6 +841,13 @@ Opciones:
   --sin-gratis        Salta del todo la cascada ':free' (generador y verificador van directos al
                        modelo de pago barato). Requiere --permitir-pago. Pensado para cuando los
                        modelos gratis están saturados y frenan la ejecución masiva.
+  --reverificar-visuales
+                       Modo aparte (ronda de corrección 1, 13-sep-2026): NO genera nada nuevo --
+                       pasa los visuales YA guardados en datos/banco.json (de los tipos en
+                       --tipos, por defecto barras,dato) otra vez por el verificador con las
+                       reglas actuales; los que fallen quedan en visual:null + motivo en
+                       datos/visuales.log. Respeta --aplicar/--permitir-pago/--tope-eur/--sin-gratis.
+  --tipos <lista>     Con --reverificar-visuales: tipos separados por comas (por defecto barras,dato).
   --ayuda             Muestra esta ayuda y sale.
 `);
 }
@@ -666,15 +887,92 @@ function tieneVisualValido(p) {
   return p && p.visual && validarVisual(p.visual).ok;
 }
 
+// CLI del modo --reverificar-visuales (ronda de corrección 1, 13-sep-2026): hace la I/O de disco y
+// delega toda la lógica de decisión en reverificarVisualesGuardados (arriba), que es la función
+// testeable sin tocar datos/banco.json ni datos/visuales.log de verdad.
+async function ejecutarReverificarVisuales(args) {
+  const tiposObjetivo = args.tipos.length > 0 ? args.tipos : ['barras', 'dato'];
+  const tipoDesconocido = tiposObjetivo.find((t) => !TIPOS_VISUAL.includes(t));
+  if (tipoDesconocido) {
+    console.error(`--tipos: tipo de visual desconocido "${tipoDesconocido}". Válidos: ${TIPOS_VISUAL.join(', ')}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  const lineasLog = [];
+  const registrar = (linea) => {
+    console.log(linea);
+    lineasLog.push(linea);
+  };
+
+  const banco = JSON.parse(await readFile(RUTA_BANCO, 'utf8'));
+
+  registrar(
+    `\n=== reverificar-visuales ${new Date().toISOString()} — tipos [${tiposObjetivo.join(', ')}] ` +
+      `${args.aplicar ? '' : '(SIN --aplicar: solo informa) '}` +
+      `${args.permitirPago ? `(pago permitido, tope ${args.topeEur} €)` : '(solo modelos gratis)'} ===`,
+  );
+
+  const costeInicial = await costeAcumuladoHoy(RUTA_LOG_LLAMADAS);
+  const resultado = await reverificarVisualesGuardados(banco, {
+    tipos: tiposObjetivo,
+    permitirPago: args.permitirPago,
+    topeEur: args.topeEur,
+    sinGratis: args.sinGratis,
+    costeAcumuladoInicial: costeInicial,
+    onProgreso: registrar,
+  });
+
+  registrar('\n=== Resumen reverificar-visuales ===');
+  registrar(`Visuales guardados de tipo [${tiposObjetivo.join(', ')}]: ${resultado.revisadas}`);
+  registrar(`Mantenidos: ${resultado.mantenidos.length}`);
+  registrar(`Retirados: ${resultado.retirados.length}`);
+  if (resultado.detenidoPorTope) registrar('AVISO: ejecución detenida por tope de gasto antes de terminar.');
+  if (resultado.fallos.size > 0) {
+    registrar(`Fallos de cascada: ${resultado.fallos.size}`);
+    for (const [id, motivo] of resultado.fallos) registrar(`  ${id}: ${motivo}`);
+  }
+  registrar(`\nCoste real de esta ejecución (suma de 'coste' de las respuestas de la API): ${resultado.costeTotal.toFixed(6)} $`);
+
+  if (!args.aplicar) {
+    console.log('\n(sin --aplicar: no se ha escrito datos/banco.json ni datos/visuales.log)');
+    return;
+  }
+
+  if (resultado.retirados.length > 0) {
+    const porId = new Map(banco.map((p) => [p.id, p]));
+    for (const { id } of resultado.retirados) {
+      const p = porId.get(id);
+      if (p) p.visual = null;
+    }
+    await writeFile(RUTA_BANCO, JSON.stringify(banco, null, 2), 'utf8');
+  }
+  await appendFile(RUTA_LOG, `${lineasLog.splice(0).join('\n')}\n`, 'utf8');
+  console.log(`\nEscrito ${resultado.retirados.length > 0 ? RUTA_BANCO + ' y ' : ''}${RUTA_LOG}.`);
+}
+
 async function main() {
   const args = parsearArgs(process.argv.slice(2));
   if (args.ayuda) {
     imprimirAyuda();
     return;
   }
+  // Fijado en la ronda de corrección 1 (13-sep-2026): --sin-gratis solo tiene sentido si hay un
+  // modelo de pago al que caer -- sin --permitir-pago se quedaría sin ningún modelo posible
+  // (esModeloGratis() los descarta a todos) y fallaría tarde, a mitad de la primera pregunta, tras
+  // ya haber leído/impreso candidatas. Se corta aquí, antes de tocar nada.
+  if (args.sinGratis && !args.permitirPago) {
+    console.error('--sin-gratis requiere --permitir-pago (sin él no quedaría ningún modelo posible en la cascada).');
+    process.exitCode = 1;
+    return;
+  }
   if (args.area && !AREAS.includes(args.area)) {
     console.error(`Área desconocida: ${args.area}. Válidas: ${AREAS.join(', ')}`);
     process.exitCode = 1;
+    return;
+  }
+  if (args.reverificarVisuales) {
+    await ejecutarReverificarVisuales(args);
     return;
   }
 
