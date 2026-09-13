@@ -912,7 +912,7 @@
   },
   {
     "enunciado": "Ordena, desde la primera etapa hasta la última, los pasos habituales por los que pasa una obra contemporánea antes de alcanzar máxima visibilidad en el mercado.",
-    "explicacion": "El orden revela el mecanismo: la creación y documentación generan prueba de autoría; la galería construye mercado y narrativa; la compra institucional otorga validación pública; la reventa en subasta produce precio de mercado y liquidez —factores clave en debates sobre transparencia y deaccessioning en museos contemporáneos.",
+    "explicacion": "El orden refleja cómo se construye valor: la galería crea mercado, la compra institucional valida, y la subasta fija precio. Así se entienden debates recientes sobre transparencia en el mercado del arte.",
     "nivel": 5,
     "criterio": "de primera etapa a etapa final",
     "items": [
@@ -942,7 +942,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el camino típico por el que una obra polémica pasa hasta convertirse en parte del canon artístico.",
-    "explicacion": "El canon se forja por acumulación institucional: cada etapa (exhibir, polemizar, coleccionar, enseñar) añade legitimidad y borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad de arte: la polémica se volvió consenso.",
+    "explicacion": "Cada institución (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.",
     "nivel": 2,
     "criterio": "de menor a mayor: fase en el proceso de controversia a canonización",
     "items": [
@@ -962,7 +962,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según su aparición histórica entre estos movimientos artísticos y el tipo de ruptura que representaron.",
-    "explicacion": "Cada movimiento surge en un contexto distinto y reacciona a anteriores: el Renacimiento rehace modelos clásicos, el impresionismo rompe con la iluminación académica, el dadaísmo cuestiona la lógica y el sentido tras la guerra, y el arte conceptual prioriza la idea sobre el objeto; ese orden muestra la progresiva radicalización de las preguntas sobre la función del arte.",
+    "explicacion": "Cada movimiento reacciona al anterior: el Renacimiento recupera los modelos clásicos, el impresionismo rompe con la academia, el dadaísmo cuestiona la lógica tras la guerra y el conceptual prioriza la idea. Reflejan una radicalización creciente de qué es el arte.",
     "nivel": 3,
     "criterio": "de menor a mayor: aparición histórica y grado de ruptura respecto al precedente",
     "items": [
@@ -1004,7 +1004,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El urinario de Duchamp (Fountain) se valora por introducir el concepto del 'readymade': cuestiona qué hace que algo sea arte al privilegiar la intención y el contexto sobre la destreza técnica; por eso no se aprecia por su manufactura. Esta discusión conecta con debates recientes sobre el papel del concepto en obras digitales y NFTs.",
+    "explicacion": "El urinario de Duchamp no se valora por su manufactura, sino por el readymade: la intención y el contexto definen qué es arte, no la destreza técnica. Esa idea resuena hoy en el debate sobre NFTs y arte conceptual.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Por qué importan estas obras",
@@ -1198,7 +1198,7 @@
   },
   {
     "enunciado": "¿Cuál es el elemento químico más abundante en la corteza terrestre?",
-    "explicacion": "El oxígeno constituye aproximadamente el 46 % en peso de la corteza terrestre, siendo el elemento más abundante.",
+    "explicacion": "Porque forma parte de silicatos y óxidos, los minerales más comunes de las rocas. El oxígeno representa casi la mitad de la masa de la corteza, más que el silicio (28 %) y el aluminio (8 %).",
     "nivel": 1,
     "opciones": [
       "Oxígeno",
@@ -1214,34 +1214,7 @@
     "confianza": 0.99,
     "verificado": true,
     "verificador": "nex-agi/nex-n2.5-pro:free",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Abundancia en la corteza terrestre (% en peso)",
-      "items": [
-        {
-          "etiqueta": "Oxígeno",
-          "valor": 46,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Silicio",
-          "valor": 28,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Aluminio",
-          "valor": 8,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Hierro",
-          "valor": 5,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "Elementos más comunes en la corteza terrestre",
-      "fuente": "U.S.Geological Survey"
-    }
+    "visual": null
   },
   {
     "enunciado": "¿Qué tipo de enlace químico se forma entre los átomos de hidrógeno y oxígeno en una molécula de agua?",
@@ -1476,7 +1449,7 @@
   },
   {
     "enunciado": "Ordena los siguientes estados de la materia de menor a mayor energía cinética media de sus partículas.",
-    "explicacion": "En un sólido las partículas vibran en posiciones fijas, en un líquido se mueven más libremente, en un gas se desplazan rápidamente y en un plasma están ionizadas con energías muy altas.",
+    "explicacion": "La energía cinética media crece al pasar de sólido a plasma: las partículas vibran fijas, luego se deslizan, luego vuelan libres y al final se ionizan. El plasma, el estado más común del universo, es el que más energía concentra.",
     "nivel": 1,
     "criterio": "de menor a mayor energía cinética media",
     "items": [
@@ -1493,32 +1466,14 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Energía cinética media",
-      "items": [
-        {
-          "etiqueta": "Sólido",
-          "valor": 1,
-          "unidad": "u.a."
-        },
-        {
-          "etiqueta": "Líquido",
-          "valor": 10,
-          "unidad": "u.a."
-        },
-        {
-          "etiqueta": "Gas",
-          "valor": 100,
-          "unidad": "u.a."
-        },
-        {
-          "etiqueta": "Plasma",
-          "valor": 10000,
-          "unidad": "u.a."
-        }
+      "tipo": "flujo",
+      "pasos": [
+        "sólido",
+        "líquido",
+        "gas",
+        "plasma"
       ],
-      "leyenda": "Escala logarítmica ilustrativa (u.a. = unidades arbitrarias)",
-      "fuente": "Concepto físico estándar"
+      "leyenda": "De menor a mayor energía cinética media de las partículas"
     }
   },
   {
@@ -1570,7 +1525,7 @@
   },
   {
     "enunciado": "El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la mayor cantidad de proteínas beta-amiloides asociadas al Alzheimer.",
-    "explicacion": "El sueño profundo activa el sistema glinfático, que bombea líquido cefalorraquídeo y arrastra desechos como la beta-amiloide. Perder una noche de ondas lentas eleva esta proteína un 30%, según un estudio de 2023.",
+    "explicacion": "El sistema glinfático bombea líquido cefalorraquídeo durante el sueño profundo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder ondas lentas una noche eleva esta proteína un 30%.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1584,7 +1539,7 @@
   },
   {
     "enunciado": "Un avión se sustenta principalmente por la diferencia de presión creada al desviar el aire hacia abajo, no por el efecto Venturi sobre el ala.",
-    "explicacion": "El ala desvía aire hacia abajo; por la tercera ley de Newton, el aire empuja el ala hacia arriba, generando sustentación. El efecto Venturi describe el flujo, pero no la fuerza neta, como confirmó la NASA en 2024 con simulaciones.",
+    "explicacion": "El ala desvía aire hacia abajo generando una fuerza de reacción ascendente (tercera ley de Newton). La NASA confirmó en 2024 que este modelo explica la sustentación mejor que el efecto Venturi, aún enseñado en muchos libros.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -1598,7 +1553,7 @@
   },
   {
     "enunciado": "El cuerpo humano sintetiza la mayor parte de su vitamina D a partir de la radiación UVB del sol, no de la dieta.",
-    "explicacion": "La piel transforma 7-dehidrocolesterol en vitamina D3 al recibir rayos UVB; la dieta apenas aporta un 10-20 %. Por eso, en inviernos nórdicos o con poca exposición, los niveles caen incluso comiendo pescado azul o lácteos enriquecidos.",
+    "explicacion": "La piel usa la radiación UVB para convertir 7-dehidrocolesterol en vitamina D3; la dieta apenas cubre un 10-20 %. Por eso, en inviernos nórdicos, los niveles caen aunque se coma pescado azul o lácteos enriquecidos.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1610,22 +1565,26 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Fuentes de vitamina D",
-      "items": [
+      "tipo": "comparacion",
+      "columnas": [
         {
-          "etiqueta": "Sol (UVB)",
-          "valor": 80,
-          "unidad": "%"
+          "titulo": "Sol (UVB)",
+          "puntos": [
+            "80-90 % del total",
+            "Síntesis en la piel",
+            "Depende de exposición"
+          ]
         },
         {
-          "etiqueta": "Dieta",
-          "valor": 20,
-          "unidad": "%"
+          "titulo": "Dieta",
+          "puntos": [
+            "10-20 % del total",
+            "Pescado azul, lácteos",
+            "Insuficiente en invierno"
+          ]
         }
       ],
-      "leyenda": "Aporte aproximado en adultos con exposición solar moderada",
-      "fuente": "Endocrine Society 2023"
+      "leyenda": "Fuente: NIH 2023"
     }
   },
   {
@@ -1639,7 +1598,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El hipotálamo eleva el termostato corporal para acelerar las defensas y ralentizar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas podía alargar la infección.",
+    "explicacion": "El hipotálamo eleva el termostato corporal para que las defensas actúen más rápido y los patógenos se multipliquen peor. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.",
     "id": "cie-081",
     "area": "ciencia",
     "tipo": "test4",
@@ -1807,7 +1766,7 @@
       "Azul",
       "Violeta"
     ],
-    "explicacion": "La energía de un fotón es inversamente proporcional a su longitud de onda; el violeta tiene la onda más corta y mayor energía, mientras que el rojo tiene la más larga y menor energía. Este principio explica por qué el cielo se ve azul (dispersión de Rayleigh favorece longitudes de onda cortas) y por qué la radiación ultravioleta (aún más energía) daña la piel.",
+    "explicacion": "La energía de un fotón es inversa a su longitud de onda: el violeta, onda corta, tiene más energía que el rojo, onda larga. Por eso el cielo es azul: la luz azul se dispersa más.",
     "nivel": 1,
     "hilo": 3,
     "id": "cie-089",
@@ -1857,7 +1816,7 @@
       "Fotovoltaica",
       "Nuclear"
     ],
-    "explicacion": "El carbón emite ~800-1000 gCO₂eq/kWh; el gas, ~400-500; la solar, ~40-50 (fabricación); la nuclear, ~12 (minado y construcción). La taxonomía verde de la UE (2022) clasifica nuclear y gas como «transitorios», desatando debate: el gas emite 30-40× más que la nuclear, pero la nuclear gestiona residuos radiactivos a largo plazo.",
+    "explicacion": "El carbón emite 800-1000 gCO₂eq/kWh; el gas, 400-500; la solar, 40-50; la nuclear, ~12. La taxonomía verde de la UE (2022) clasifica gas y nuclear como transitorios, generando debate.",
     "nivel": 4,
     "hilo": 2,
     "id": "cie-091",
@@ -1869,7 +1828,7 @@
     "verificador": "nex-agi/nex-n2.5-pro:free",
     "visual": {
       "tipo": "barras",
-      "titulo": "Emisiones de CO₂ por kWh (ciclo de vida)",
+      "titulo": "Emisiones de CO₂ por kWh",
       "items": [
         {
           "etiqueta": "Carbón",
@@ -1892,8 +1851,8 @@
           "unidad": "g"
         }
       ],
-      "leyenda": "gCO₂eq/kWh, ciclo de vida completo",
-      "fuente": "IPCC 2014"
+      "leyenda": "Ciclo de vida completo, gCO₂eq/kWh",
+      "fuente": "IPCC 2022"
     }
   },
   {
@@ -2399,7 +2358,7 @@
   },
   {
     "enunciado": "Cuando el banco central eleva el tipo de interés oficial, los créditos al consumo y las hipotecas tienden a encarecerse.",
-    "explicacion": "El tipo oficial encarece el crédito entre bancos, y estos trasladan ese coste a préstamos e hipotecas para mantener márgenes. En 2023, las subidas del BCE dispararon las cuotas hipotecarias en España hasta un 30%.",
+    "explicacion": "El banco central fija el precio del dinero entre bancos, que luego trasladan ese coste a préstamos e hipotecas para mantener su margen. En 2023, las subidas del BCE elevaron las cuotas hipotecarias en España hasta un 30%.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -2411,22 +2370,9 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Cuota hipotecaria media en España",
-      "items": [
-        {
-          "etiqueta": "2022",
-          "valor": 600,
-          "unidad": "€"
-        },
-        {
-          "etiqueta": "2023",
-          "valor": 780,
-          "unidad": "€"
-        }
-      ],
-      "leyenda": "Estimación media mensual (Banco de España 2023)",
-      "fuente": "Banco de España 2023"
+      "tipo": "formula",
+      "texto": "Tipo oficial → Préstamos caros",
+      "leyenda": "El coste del dinero se transmite a hipotecas y créditos."
     }
   },
   {
@@ -2455,7 +2401,7 @@
   },
   {
     "enunciado": "La crisis financiera global de 2008 fue causada principalmente por una burbuja en los mercados de materias primas.",
-    "explicacion": "Falso: la crisis derivó sobre todo de la burbuja inmobiliaria y de la titulización de hipotecas de alto riesgo, combinadas con apalancamiento y fallos en la supervisión, no por un choque en commodities. Entender esa cadena (hipotecas→titulización→bancos y shadow banking) ayuda a comparar con crisis posteriores y a analizar propuestas regulatorias.",
+    "explicacion": "Falso: la crisis de 2008 nació de la burbuja inmobiliaria y la titulización de hipotecas basura, no de materias primas. Esa cadena —hipotecas, bonos, apalancamiento bancario— se repite en cada crisis y explica los debates regulatorios actuales.",
     "nivel": 4,
     "respuesta": false,
     "hilo": 2,
@@ -2469,7 +2415,7 @@
   },
   {
     "enunciado": "El efecto de anclaje desaparece por completo si se muestran al sujeto datos estadísticos objetivos sobre la media del fenómeno.",
-    "explicacion": "Falso: mostrar datos reduce el sesgo pero no suele eliminar el anclaje, porque las estimaciones iniciales influyen en el punto de partida del ajuste; por eso las decisiones siguen sesgadas incluso cuando hay información disponible, lo que tiene implicaciones para cómo diseñar avisos financieros o comparadores de precios.",
+    "explicacion": "El anclaje persiste porque la primera cifra actúa como punto de partida del ajuste mental, que suele ser insuficiente. En 2023, estudios de la Fed mostraron que incluso con datos objetivos, los inversores seguían anclados en precios previos de activos.",
     "nivel": 5,
     "respuesta": false,
     "hilo": 6,
@@ -2537,7 +2483,7 @@
   },
   {
     "enunciado": "Las plataformas de dos lados como Uber o Airbnb obtienen la mayor parte de sus ingresos de la publicidad que venden a terceros, no de comisiones por transacción.",
-    "explicacion": "Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.",
+    "explicacion": "Su ingreso principal es la comisión (take-rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.",
     "nivel": 3,
     "respuesta": false,
     "hilo": 3,
@@ -2549,22 +2495,24 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Ingresos de Uber (2023)",
-      "items": [
+      "tipo": "comparacion",
+      "columnas": [
         {
-          "etiqueta": "Comisiones",
-          "valor": 85,
-          "unidad": "%"
+          "titulo": "Plataforma",
+          "puntos": [
+            "Ingreso por comisión",
+            "Valor según transacciones"
+          ]
         },
         {
-          "etiqueta": "Publicidad",
-          "valor": 15,
-          "unidad": "%"
+          "titulo": "Medio tradic.",
+          "puntos": [
+            "Ingreso por publicidad",
+            "Valor según audiencia"
+          ]
         }
       ],
-      "leyenda": "Comisiones por viajes: 85% de los ingresos; publicidad: 15%.",
-      "fuente": "Informe anual de Uber 2023"
+      "leyenda": "Modelo de negocio: comisión vs. publicidad"
     }
   },
   {
@@ -2621,7 +2569,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los inversores compran esperando vender más caro a alguien aún más optimista, ignorando el valor real. En la burbuja de los tulipanes del siglo XVII, un bulbo llegó a costar lo mismo que una casa.",
+    "explicacion": "La teoría del tonto mayor explica que los compradores adquieren un activo sobrevalorado confiando en venderlo después a alguien aún más irracional. En 2021, el precio del Bitcoin superó los 60.000 dólares sin respaldo intrínseco.",
     "id": "eco-077",
     "area": "economia",
     "tipo": "test4",
@@ -2641,7 +2589,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El arancel encarece el acero importado para que el nacional sea más competitivo, protegiendo empleo local. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.",
+    "explicacion": "El arancel encarece el acero importado para que el local gane competitividad en precio, protegiendo empleo e industria. En 2025, la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.",
     "id": "eco-078",
     "area": "economia",
     "tipo": "test4",
@@ -2649,24 +2597,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Efecto de aranceles al acero en EE. UU. (2022)",
-      "items": [
-        {
-          "etiqueta": "Producción acero",
-          "valor": 5,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Precio coches",
-          "valor": 3,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "Variación estimada por aranceles al acero en 2022",
-      "fuente": "Peterson Institute 2023"
-    }
+    "visual": null
   },
   {
     "enunciado": "¿Qué economista postuló que la desigualdad tiende a aumentar cuando la rentabilidad del capital (r) supera la tasa de crecimiento de la economía (g)?",
@@ -2741,7 +2672,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los préstamos subprime se empaquetaron en MBS y CDO, recibieron calificaciones AAA pese a su riesgo y se vendieron a bancos de todo el mundo; cuando los impagos subieron, el valor de esos activos colapsó y contagió el sistema. El mismo patrón de opacidad y apalancamiento reaparece en debates sobre criptoactivos.",
+    "explicacion": "Los préstamos subprime se empaquetaron en bonos (MBS, CDO) con calificación AAA, y se vendieron globalmente. Al impagarse, esos activos colapsaron y contagiaron a bancos de todo el mundo.",
     "id": "eco-081",
     "area": "economia",
     "tipo": "test4",
@@ -2778,7 +2709,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.92,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Más usuarios",
+        "Más valor",
+        "Más ingresos"
+      ],
+      "leyenda": "Círculo virtuoso de las plataformas de dos lados"
+    }
   },
   {
     "enunciado": "¿Qué estrategia han adoptado muchas multinacionales desde 2022 para reducir la dependencia de un único país proveedor?",
@@ -2791,7 +2731,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "La pandemia y la guerra en Ucrania mostraron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.",
+    "explicacion": "La pandemia y la guerra en Ucrania mostraron que depender de un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.",
     "id": "eco-083",
     "area": "economia",
     "tipo": "test4",
@@ -2799,29 +2739,7 @@
     "confianza": 0.9,
     "verificado": true,
     "verificador": "z-ai/glm-4.7-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Nuevos centros de producción (2023)",
-      "items": [
-        {
-          "etiqueta": "Vietnam",
-          "valor": 15,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "México",
-          "valor": 12,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "India",
-          "valor": 10,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "Incremento de inversión extranjera directa respecto a 2020",
-      "fuente": "UNCTAD 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "Cuando un banco central sube los tipos de interés de referencia, ¿cuál es el mecanismo principal por el que se frena la inflación?",
@@ -2862,7 +2780,7 @@
       "Burbuja puntocom 2000 (NASDAQ)",
       "Gran Crash 1929 (Dow Jones)"
     ],
-    "explicacion": "Las caídas reflejan el apalancamiento y la liquidez de cada mercado. La de 2008 fue la más contenida; la de 1929, la más devastadora. El colapso cripto de 2022 reavivó el debate sobre la regulación de stablecoins.",
+    "explicacion": "El apalancamiento amplifica las caídas. 2008 fue la más contenida por la intervención de bancos centrales; 1929, la más devastadora por la falta de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.",
     "nivel": 2,
     "hilo": 2,
     "id": "eco-086",
@@ -2872,34 +2790,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Caídas máximas (peak-to-trough)",
-      "items": [
-        {
-          "etiqueta": "2008 (S&P 500)",
-          "valor": 57,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Cripto 2022",
-          "valor": 70,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Puntocom 2000",
-          "valor": 78,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "1929 (Dow Jones)",
-          "valor": 89,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "De menor a mayor caída porcentual",
-      "fuente": "Yahoo Finance / FRED 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena los modelos de negocio típicos por el múltiplo medio EV/EBITDA que suelen recibir en bolsa, de menor a mayor.",
@@ -2910,7 +2801,7 @@
       "Software como servicio (SaaS)",
       "Plataformas de marketplace / red"
     ],
-    "explicacion": "Los inversores pagan más por negocios escalables y recurrentes. La manufactura requiere mucha inversión y crece despacio; los marketplaces, con efectos de red, escalan casi sin coste y generan expectativas de crecimiento que multiplican su valor.",
+    "explicacion": "Los inversores valoran más los negocios escalables. La manufactura requiere mucha inversión fija; los marketplaces escalan casi sin coste, lo que dispara su múltiplo. Ejemplo: Mercado Libre cotiza a ~30x EBITDA, un fabricante a ~8x.",
     "nivel": 3,
     "hilo": 3,
     "id": "eco-087",
@@ -2920,38 +2811,11 @@
     "confianza": 0.9,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "EV/EBITDA típico por modelo de negocio",
-      "items": [
-        {
-          "etiqueta": "Manufactura",
-          "valor": 7,
-          "unidad": "×"
-        },
-        {
-          "etiqueta": "Bienes básicos",
-          "valor": 11,
-          "unidad": "×"
-        },
-        {
-          "etiqueta": "SaaS",
-          "valor": 25,
-          "unidad": "×"
-        },
-        {
-          "etiqueta": "Marketplace",
-          "valor": 40,
-          "unidad": "×"
-        }
-      ],
-      "leyenda": "Múltiplo EV/EBITDA medio en bolsa (2020-2024)",
-      "fuente": "Wall Street Journal, 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena de menor a mayor según la velocidad típica de reacción ante un aumento repentino de la inflación.",
-    "explicacion": "Los salarios tardan por contratos plurianuales; los tipos oficiales requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos a cualquier noticia.",
+    "explicacion": "Los salarios tardan por contratos fijos; los tipos requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos. En 2022, las expectativas subieron antes de que los salarios se indexaran.",
     "nivel": 1,
     "criterio": "de menor a mayor velocidad de reacción ante un aumento repentino de la inflación",
     "items": [
@@ -2971,7 +2835,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según la rapidez con que suelen formarse burbujas especulativas.",
-    "explicacion": "La velocidad de una burbuja depende de la liquidez y accesibilidad del mercado. Activos digitales sin fricciones se inflan en semanas; inmuebles, con trámites lentos, tardan años. Los NFT llegaron a subir 1000 % en días en 2021.",
+    "explicacion": "La velocidad depende de la liquidez y accesibilidad del mercado: los activos digitales sin fricciones se inflan en semanas, mientras que los inmuebles, con trámites lentos, tardan años. En 2021, los NFT llegaron a subir 1000 % en días.",
     "nivel": 2,
     "criterio": "de menor a mayor velocidad en la formación de burbujas especulativas",
     "items": [
@@ -2987,7 +2851,17 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Inmuebles",
+        "Bolsa tecnológica",
+        "Criptomonedas",
+        "NFT"
+      ],
+      "leyenda": "De menor a mayor velocidad de formación de burbuja."
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor según el margen operativo típico de la industria.",
@@ -3008,38 +2882,11 @@
     "confianza": 0.85,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Margen operativo típico por industria",
-      "items": [
-        {
-          "etiqueta": "Aerolíneas",
-          "valor": 5,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Minoristas",
-          "valor": 8,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Bancos",
-          "valor": 25,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "SaaS",
-          "valor": 45,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "Margen operativo estimado sobre ingresos (2023)",
-      "fuente": "NYU Stern 2023"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministro.",
-    "explicacion": "La vulnerabilidad aumenta con la especialización y el tiempo de reposición: el petróleo es un commodity almacenable y sustituible; los chips avanzados dependen de fábricas únicas, como se vio en la crisis de 2021 que paralizó la producción automotriz global.",
+    "explicacion": "La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas, como en la crisis de 2021 que paralizó la automoción global.",
     "nivel": 4,
     "criterio": "de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministro",
     "items": [
@@ -3057,32 +2904,24 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Vulnerabilidad a interrupciones",
-      "items": [
+      "tipo": "comparacion",
+      "columnas": [
         {
-          "etiqueta": "Petróleo crudo",
-          "valor": 1,
-          "unidad": ""
+          "titulo": "Menos vulnerable",
+          "puntos": [
+            "Petróleo crudo",
+            "Almacenable y sustituible"
+          ]
         },
         {
-          "etiqueta": "Frutas frescas",
-          "valor": 2,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "Automóviles",
-          "valor": 3,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "Semiconductores",
-          "valor": 4,
-          "unidad": ""
+          "titulo": "Más vulnerable",
+          "puntos": [
+            "Semiconductores avanzados",
+            "Fábricas únicas mundiales"
+          ]
         }
       ],
-      "leyenda": "Menor a mayor vulnerabilidad (1-4)",
-      "fuente": "Análisis de cadenas de suministro 2022"
+      "leyenda": "Menor a mayor dependencia de cadenas globales"
     }
   },
   {
@@ -3230,26 +3069,36 @@
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
       "tipo": "barras",
-      "titulo": "Volumen del comercio mundial",
+      "titulo": "Volumen del comercio mundial (2019=100)",
       "items": [
         {
           "etiqueta": "2019",
           "valor": 100,
-          "unidad": "índice"
+          "unidad": ""
         },
         {
           "etiqueta": "2020",
-          "valor": 88,
-          "unidad": "índice"
+          "valor": 92,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "2021",
+          "valor": 106,
+          "unidad": ""
         },
         {
           "etiqueta": "2022",
-          "valor": 104,
-          "unidad": "índice"
+          "valor": 112,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "2023",
+          "valor": 115,
+          "unidad": ""
         }
       ],
-      "leyenda": "Base 100 = 2019, OMC 2023",
-      "fuente": "OMC 2023"
+      "leyenda": "Fuente: OMC, World Trade Statistical Review 2024",
+      "fuente": "OMC 2024"
     }
   },
   {
@@ -3619,7 +3468,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Wittgenstein nunca abandonó el análisis del lenguaje; en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un rechazo total que no ocurrió.",
+    "explicacion": "Wittgenstein no rechazó el análisis lógico, sino que pasó de buscar una estructura lógica ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Etapas de Wittgenstein",
@@ -3649,7 +3498,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.",
+    "explicacion": "Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -3794,7 +3643,7 @@
   },
   {
     "enunciado": "La navaja de Ockham sugiere que, entre explicaciones equivalentes, la más simple suele ser la preferida.",
-    "explicacion": "La navaja de Ockham es un principio de parsimonia: al comparar hipótesis que explican igual, la que requiere menos suposiciones tiene más probabilidad de ser cierta. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.",
+    "explicacion": "Es un principio de parsimonia que no busca la verdad absoluta, sino eficiencia: cuanto menos se asume, más difícil es equivocarse. Einstein lo resumió: \"Tan simple como sea posible, pero no más\".",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -4041,7 +3890,7 @@
       "Velo de ignorancia",
       "Principio de precaución"
     ],
-    "explicacion": "La navaja de Ockham es del siglo XIV; el dilema del tranvía, de 1967; el velo de ignorancia, de 1971; el principio de precaución se consolidó en 1992. Este último guía hoy la regulación europea de IA.",
+    "explicacion": "La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.",
     "nivel": 1,
     "hilo": 1,
     "id": "fil-048",
@@ -4107,7 +3956,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El sesgo algorítmico no implica intención: surge de datos históricos sesgados, variables proxy o decisiones de diseño, no de que la máquina quiera discriminar. Por eso las soluciones actúan sobre datos y objetivos, no sobre la 'maldad' del algoritmo.",
+    "explicacion": "El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Términos en ética de IA",
@@ -4320,7 +4169,7 @@
   },
   {
     "enunciado": "¿Cuál es el desierto más extenso del mundo por superficie?",
-    "explicacion": "La Antártida recibe menos de 50 mm de lluvia al año, menos que el Sahara, por eso es un desierto polar. Es tan grande que podría albergar Europa y EE.UU. juntos y aún sobraría espacio.",
+    "explicacion": "Un desierto se define por su escasez de precipitaciones, no por su calor: la Antártida recibe menos de 50 mm anuales, menos que el Sáhara. Es tan vasta que podría contener Europa y EE.UU. juntos, y aún sobraría espacio.",
     "nivel": 2,
     "opciones": [
       "Sahara",
@@ -4337,27 +4186,26 @@
     "verificado": true,
     "verificador": "nex-agi/nex-n2.5-pro:free",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Mayores desiertos del mundo",
-      "items": [
+      "tipo": "comparacion",
+      "columnas": [
         {
-          "etiqueta": "Antártico",
-          "valor": 14.2,
-          "unidad": "M km²"
+          "titulo": "Antártico",
+          "puntos": [
+            "< 50 mm de lluvia al año",
+            "14,2 millones de km²",
+            "Desierto polar"
+          ]
         },
         {
-          "etiqueta": "Sahara",
-          "valor": 9.2,
-          "unidad": "M km²"
-        },
-        {
-          "etiqueta": "Ártico",
-          "valor": 5.4,
-          "unidad": "M km²"
+          "titulo": "Sáhara",
+          "puntos": [
+            "~ 25 mm de lluvia al año",
+            "9,2 millones de km²",
+            "Desierto cálido"
+          ]
         }
       ],
-      "leyenda": "Superficie en millones de km². Fuente: Britannica",
-      "fuente": "Britannica 2023"
+      "leyenda": "La Antártida es el mayor desierto del mundo por superficie."
     }
   },
   {
@@ -4400,7 +4248,7 @@
   },
   {
     "enunciado": "Ordena las siguientes ciudades de menor a mayor según su latitud (posición norte‑sur).",
-    "explicacion": "La latitud mide la distancia al ecuador: a mayor latitud, más al norte. Lisboa (38°N) es la más meridional, seguida de Copenhague (56°N), Helsinki (60°N) y Tromsø (69°N), que ya está dentro del círculo polar ártico.",
+    "explicacion": "La latitud mide la distancia al ecuador: a mayor número, más al norte. Lisboa (38°N) está muy al sur; Tromsø (69°N) casi en el Ártico, donde el sol de medianoche es visible en verano.",
     "nivel": 5,
     "criterio": "de menor a mayor latitud",
     "items": [
@@ -4417,32 +4265,24 @@
     "verificado": true,
     "verificador": "nex-agi/nex-n2.5-pro:free",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Latitud de las ciudades (N)",
-      "items": [
+      "tipo": "comparacion",
+      "columnas": [
         {
-          "etiqueta": "Lisboa",
-          "valor": 38,
-          "unidad": "°N"
+          "titulo": "Menor latitud",
+          "puntos": [
+            "Lisboa (38°N)",
+            "Copenhague (56°N)"
+          ]
         },
         {
-          "etiqueta": "Copenhague",
-          "valor": 56,
-          "unidad": "°N"
-        },
-        {
-          "etiqueta": "Helsinki",
-          "valor": 60,
-          "unidad": "°N"
-        },
-        {
-          "etiqueta": "Tromsø",
-          "valor": 69,
-          "unidad": "°N"
+          "titulo": "Mayor latitud",
+          "puntos": [
+            "Helsinki (60°N)",
+            "Tromsø (69°N)"
+          ]
         }
       ],
-      "leyenda": "Menor latitud = más al sur",
-      "fuente": "Datos geográficos estándar"
+      "leyenda": "De menor a mayor latitud norte"
     }
   },
   {
@@ -4724,34 +4564,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Latitud de capitales sudamericanas",
-      "items": [
-        {
-          "etiqueta": "Bogotá",
-          "valor": 4.7,
-          "unidad": "°N"
-        },
-        {
-          "etiqueta": "Quito",
-          "valor": 0.2,
-          "unidad": "°S"
-        },
-        {
-          "etiqueta": "Lima",
-          "valor": 12,
-          "unidad": "°S"
-        },
-        {
-          "etiqueta": "Buenos Aires",
-          "valor": 34.6,
-          "unidad": "°S"
-        }
-      ],
-      "leyenda": "De norte a sur: Bogotá, Quito, Lima, Buenos Aires",
-      "fuente": "Coordenadas geográficas oficiales"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena los siguientes ríos mundiales de menor a mayor longitud.",
@@ -4869,7 +4682,7 @@
   },
   {
     "enunciado": "La población de Nigeria superará a la de Estados Unidos antes de 2050 según proyecciones de la ONU.",
-    "explicacion": "Las revisiones de 2022 y 2024 de las Perspectivas de Población Mundial sitúan a Nigeria en torno a 400 millones de habitantes para 2050, frente a unos 380 millones de EE. UU., reflejando una fecundidad aún alta y una migración neta moderada que alimenta el debate sobre presión demográfica y mercado laboral global.",
+    "explicacion": "Nigeria crece por su alta tasa de fecundidad (5 hijos por mujer frente a 1,7 en EE. UU.), mientras EE. UU. depende de la inmigración. Para 2050, la ONU proyecta 400 millones de nigerianos frente a 380 millones de estadounidenses.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -4882,21 +4695,21 @@
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
       "tipo": "barras",
-      "titulo": "Población proyectada en 2050",
+      "titulo": "Población proyectada 2050 (millones)",
       "items": [
         {
           "etiqueta": "Nigeria",
           "valor": 400,
-          "unidad": "mill."
+          "unidad": "M"
         },
         {
-          "etiqueta": "EE.UU.",
+          "etiqueta": "EE. UU.",
           "valor": 380,
-          "unidad": "mill."
+          "unidad": "M"
         }
       ],
-      "leyenda": "Proyecciones ONU 2024 (cifras redondeadas)",
-      "fuente": "ONU, World Population Prospects 2024"
+      "leyenda": "Proyecciones ONU (World Population Prospects 2024)",
+      "fuente": "ONU 2024"
     }
   },
   {
@@ -5005,10 +4818,31 @@
     "verificado": true,
     "verificador": "google/gemma-4-31b-it:free",
     "visual": {
-      "tipo": "dato",
-      "cifra": "1,3",
-      "texto": "hijos por mujer en Japón (2023)",
-      "leyenda": "Una de las tasas de natalidad más bajas del mundo",
+      "tipo": "barras",
+      "titulo": "% población mayor de 65 años (2023)",
+      "items": [
+        {
+          "etiqueta": "Japón",
+          "valor": 29,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Italia",
+          "valor": 24,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "España",
+          "valor": 20,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Mundial",
+          "valor": 10,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Japón lidera el envejecimiento global",
       "fuente": "Banco Mundial 2023"
     }
   },
@@ -5463,7 +5297,7 @@
   },
   {
     "enunciado": "La primera revolución industrial se originó en Gran Bretaña gracias a la combinación de abundantes y accesibles yacimientos de carbón, una densa red de navegación fluvial y un sistema de patentes que protegía la innovación técnica.",
-    "explicacion": "Esos tres factores redujeron el coste de la energía, facilitaron el transporte de materias primas y dieron incentivos a inventores como Watt; la misma lógica de 'energía barata + instituciones que premian la innovación' se cita hoy para explicar el auge de la IA en EE. UU. y China (2023‑2025).",
+    "explicacion": "Carbón barato, canales fluviales y patentes redujeron costes energéticos y de transporte, incentivando inventos como la máquina de Watt. Hoy, energía e instituciones similares explican el auge de la IA en EE. UU. y China (2023-2025).",
     "nivel": 5,
     "respuesta": true,
     "hilo": 5,
@@ -5475,27 +5309,26 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "barras",
-      "titulo": "Producción de carbón en 1800",
-      "items": [
+      "tipo": "linea-tiempo",
+      "hitos": [
         {
-          "etiqueta": "Gran Bretaña",
-          "valor": 15,
-          "unidad": "Mt"
+          "ano": "1709",
+          "texto": "Coque barato"
         },
         {
-          "etiqueta": "Francia",
-          "valor": 1,
-          "unidad": "Mt"
+          "ano": "1769",
+          "texto": "Patente de Watt"
         },
         {
-          "etiqueta": "Alemania",
-          "valor": 0.5,
-          "unidad": "Mt"
+          "ano": "1776",
+          "texto": "Motor Boulton-Watt"
+        },
+        {
+          "ano": "1800",
+          "texto": "Expansión industrial"
         }
       ],
-      "leyenda": "El carbón británico era abundante y barato",
-      "fuente": "Paul Bairoch, 1991"
+      "leyenda": "Carbón y patentes impulsaron la Revolución Industrial"
     }
   },
   {
@@ -5580,7 +5413,7 @@
   },
   {
     "enunciado": "¿Por qué la frontera entre Francia y Alemania sigue aproximadamente el curso del río Rin?",
-    "explicacion": "El Tratado de Verdún dividió el Imperio carolingio en tres reinos; la parte occidental (futura Francia) y la oriental (futura Alemania) quedaron separadas por el Rin, estableciendo una línea que pervivió en sucesivos acuerdos. Hoy esa frontera histórica subyace a la cooperación franco‑alemana en la UE.",
+    "explicacion": "El Tratado de Verdún (843) repartió el Imperio carolingio en tres reinos; la parte occidental y la oriental quedaron separadas por el Rin, línea que pervivió en acuerdos posteriores. Esa frontera histórica explica hoy la cooperación franco‑alemana en la UE.",
     "nivel": 2,
     "opciones": [
       "Tratado de Versalles de 1919",
@@ -5765,7 +5598,7 @@
     ],
     "nivel": 3,
     "hilo": 5,
-    "explicacion": "El Banco de Ámsterdam (1609) pionero la moneda de giro y la estabilidad cambiaria; el patrón oro (hacia 1870) ancló las divisas al metal facilitando el primer gran auge de la globalización; Bretton Woods (1944) sustituyó el oro por el dólar convertible, y su colapso en 1971 abrió la era de flotación libre que hoy permite a los bancos centrales subir tipos contra la inflación (2022-2024) sin defender una paridad fija.",
+    "explicacion": "Unificó el dinero en una moneda de giro fiable, base del comercio global. Hoy los bancos centrales usan tipos flotantes para controlar la inflación, algo impensable con el patrón oro.",
     "id": "his-060",
     "area": "historia",
     "tipo": "ordenar",
@@ -5868,7 +5701,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La Marcha de la Sal (1930) fue un acto de desobediencia civil que movilizó a la opinión pública y presionó al Imperio británico, pero la independencia de la India no llegó hasta 1947, tras la Segunda Guerra Mundial y la partición. La marcha no provocó una independencia inmediata.",
+    "explicacion": "La Marcha de la Sal fue un acto de desobediencia civil masivo, pero la independencia india no llegó hasta 1947, tras la guerra y la partición. Un dato: la marcha duró 24 días y recorrió 390 kilómetros.",
     "nivel": 4,
     "tarjeta": {
       "titulo": "Decisiones que cambiaron la historia",
@@ -5903,7 +5736,7 @@
   },
   {
     "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
-    "explicacion": "La negación de 'todos' es 'al menos uno no'. Basta un solo suspenso para refutar la afirmación universal. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.",
+    "explicacion": "Para negar 'todos', basta con que exista al menos uno que no cumpla. Una excepción desmonta cualquier afirmación universal, como en debates donde un solo contraejemplo invalida una generalización.",
     "nivel": 1,
     "opciones": [
       "Ningún estudiante aprobó el examen",
@@ -6116,7 +5949,7 @@
   },
   {
     "enunciado": "En el problema de Monty Hall, cambiar de puerta después de que el presentador abra una puerta con una cabra no altera la probabilidad de ganar el coche; sigue siendo 1/3.",
-    "explicacion": "En el problema de Monty Hall, la probabilidad de ganar al cambiar es 2/3 porque el presentador siempre revela una cabra, concentrando la probabilidad inicial del 2/3 en la puerta restante; mantener la elección original deja solo 1/3. Un artículo de 2023 en 'Nature' recordó este contraejemplo para ilustrar sesgos de intuición.",
+    "explicacion": "Al cambiar, la probabilidad sube a 2/3 porque el presentador, al revelar una cabra, concentra el 2/3 inicial en la puerta restante. El matemático Paul Erdős solo aceptó la solución al ver una simulación.",
     "nivel": 2,
     "respuesta": false,
     "hilo": 2,
@@ -6297,7 +6130,7 @@
   },
   {
     "enunciado": "Una enfermedad afecta a 1 de cada 1.000 personas. Existe una prueba que acierta el 99 % de las veces (falla un 1 % tanto con enfermos como con sanos). A una persona elegida al azar le sale positivo. ¿Cuál es la probabilidad aproximada de que realmente esté enferma?",
-    "explicacion": "De 100.000 personas, unas 100 están enfermas y la prueba captura a 99 de ellas; pero el 1 % de las 99.900 sanas (unas 999) también da positivo. Por eso solo ~99 de ~1.098 positivos son enfermos: menos del 10 %. Esta 'falacia de la tasa base' explica por qué los sistemas de detección de fraude o lavado de dinero generan miles de alertas falsas que los bancos deben filtrar a mano.",
+    "explicacion": "La prueba genera muchos positivos falsos porque el 1% de los sanos supera a los enfermos reales. De 1.098 positivos, solo 99 están enfermos. Por eso los bancos filtran miles de alertas de fraude a mano.",
     "nivel": 3,
     "opciones": [
       "Cerca del 99 %",
@@ -6314,24 +6147,7 @@
     "confianza": 1,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Resultados de la prueba",
-      "items": [
-        {
-          "etiqueta": "Enfermos +",
-          "valor": 99,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "Sanos +",
-          "valor": 999,
-          "unidad": ""
-        }
-      ],
-      "leyenda": "De cada ~1.098 positivos, solo 99 son reales (~9 %)",
-      "fuente": "Cálculo propio sobre enunciado"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena a estas cuatro personas de menor a mayor altura sabiendo que: Ana es más alta que Bea, Bea es más alta que Carlos y Carlos es más alto que Dani.",
@@ -6445,7 +6261,7 @@
   },
   {
     "enunciado": "Ordena los tipos de estructura de mercado por el número de competidores (de menos a más).",
-    "explicacion": "El número de competidores determina el poder de fijar precios: menos rivales, más control. El monopolio es un único vendedor; la competencia perfecta, un ideal teórico con muchos. Hoy, los reguladores europeos vigilan a las grandes tecnológicas por prácticas oligopólicas.",
+    "explicacion": "Cuanto menos competidores, más poder para fijar precios. Monopolio (uno), oligopolio (pocos), competencia monopolística (muchos con poder de marca) y competencia perfecta (infinitos). La UE multó a Google en 2024 por abusos de oligopolio en publicidad.",
     "nivel": 4,
     "criterio": "de menos a más",
     "items": [
@@ -6465,7 +6281,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El silogismo clásico establece que si todos los humanos son mortales y Sócrates es humano, la conclusión necesaria es que Sócrates es mortal; la tarjeta dice que es inmortal, lo que rompe la validez del razonamiento. Este tipo de error lógico aparece a menudo en discursos políticos recientes (p. ej., debates de 2023 sobre falacias formales).",
+    "explicacion": "El silogismo es válido solo si la conclusión se deduce necesariamente de las premisas. Decir que Sócrates es inmortal cuando ambas premisas lo declaran mortal es un error formal, no de contenido.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Silogismo clásico",
@@ -6527,7 +6343,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Una correlación alta no implica causalidad; puede ser espuria o debida a una variable oculta, como mostró el debate de 2023 sobre la relación entre consumo de helados y ahogamientos. La tarjeta afirma lo contrario en la primera fila.",
+    "explicacion": "La correlación mide asociación, no causa; ambas pueden subir juntas por una tercera variable, como el calor con helados y ahogamientos. Es la falacia clásica que la tarjeta presenta erróneamente como verdad.",
     "nivel": 4,
     "tarjeta": {
       "titulo": "Correlación y causalidad",
@@ -6554,7 +6370,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Correlación",
+          "puntos": [
+            "Es solo asociación",
+            "No prueba causa",
+            "Puede ser espuria"
+          ]
+        },
+        {
+          "titulo": "Causalidad",
+          "puntos": [
+            "Requiere mecanismo",
+            "Control de variables",
+            "Evidencia experimental"
+          ]
+        }
+      ],
+      "leyenda": "Diferenciar ambas evita errores en análisis de datos."
+    }
   },
   {
     "enunciado": "La arquitectura de von Neumann separa la memoria de instrucciones y datos.",
@@ -6641,7 +6479,7 @@
   },
   {
     "enunciado": "¿Cuál es la función principal de un resolvedor DNS?",
-    "explicacion": "Es la agenda de Internet: traduce nombres legibles como 'google.com' a direcciones IP numéricas que las máquinas entienden. Sin él, cada clic exigiría memorizar secuencias de números. Hoy procesa billones de consultas diarias, invisibles pero esenciales.",
+    "explicacion": "El DNS traduce nombres de dominio a direcciones IP, como una agenda telefónica de internet. Sin él, cada web requeriría memorizar una IP numérica, inviable para el usuario actual.",
     "nivel": 3,
     "opciones": [
       "Almacenar páginas web en caché",
@@ -6656,7 +6494,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Escribes dominio",
+        "Consulta DNS",
+        "Obtienes IP",
+        "Conectas al sitio"
+      ],
+      "leyenda": "El DNS traduce nombres a IPs en milisegundos"
+    }
   },
   {
     "enunciado": "Ordena los siguientes conceptos informáticos según su nivel de abstracción.",
@@ -6770,7 +6618,7 @@
   },
   {
     "enunciado": "Los modelos de lenguaje grandes se entrenan únicamente con texto de dominio público.",
-    "explicacion": "Los LLMs se entrenan con texto protegido por derechos de autor, no solo con dominio público. Ha generado demandas de autores y editoriales en 2023‑2024 sobre el uso justo.",
+    "explicacion": "No: usan además textos protegidos por derechos de autor, porque necesitan volúmenes imposibles de conseguir solo con dominio público. Eso ha generado demandas de autores y editoriales en 2023-2024, un debate aún abierto sobre el límite del uso legítimo.",
     "nivel": 1,
     "respuesta": false,
     "hilo": 1,
@@ -6781,24 +6629,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "z-ai/glm-4.7-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Derechos de autor en datos de entrenamiento",
-      "items": [
-        {
-          "etiqueta": "Con derechos",
-          "valor": 90,
-          "unidad": "%"
-        },
-        {
-          "etiqueta": "Dominio público",
-          "valor": 10,
-          "unidad": "%"
-        }
-      ],
-      "leyenda": "Estimación de The Verge, 2023",
-      "fuente": "The Verge, 2023"
-    }
+    "visual": null
   },
   {
     "enunciado": "La mayor parte del tráfico internacional de Internet viaja por cables submarinos de fibra óptica.",
@@ -6836,7 +6667,7 @@
   },
   {
     "enunciado": "Las baterías de estado sólido prometen mayor densidad energética y mayor seguridad que las de iones de litio actuales.",
-    "explicacion": "El electrolito sólido no es inflamable, evitando incendios, y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.",
+    "explicacion": "El electrolito sólido no se incendia y permite ánodo de litio metálico, que almacena más energía que el grafito. Toyota presentó en 2024 un prototipo que carga 500 km en 10 minutos.",
     "nivel": 4,
     "respuesta": true,
     "hilo": 5,
@@ -6846,7 +6677,8 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": null
   },
   {
     "enunciado": "¿Qué característica del iPhone original (2007) fue la clave que permitió la explosión de aplicaciones y el uso intensivo de internet móvil?",
@@ -6907,7 +6739,7 @@
       "Solo funciona en condiciones de microgravedad, lo que obliga a fabricar en órbita"
     ],
     "correcta": 0,
-    "explicacion": "La litografía EUV exige precisión atómica: cada máquina cuesta 150 millones de dólares y solo ASML la fabrica, con piezas de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.",
+    "explicacion": "La litografía EUV requiere precisión atómica y solo ASML la fabrica, con componentes de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.",
     "nivel": 4,
     "hilo": 3,
     "id": "tec-043",
@@ -6917,13 +6749,7 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "dato",
-      "cifra": "400 M$",
-      "texto": "cuesta un solo escáner EUV de ASML",
-      "leyenda": "El monopolio neerlandés controla la frontera de los chips",
-      "fuente": "ASML 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "¿Cuál es el obstáculo físico-químico fundamental que impide usar ánodos de litio metálico en baterías comerciales y alcanzar densidades energéticas muy superiores a las de iones de litio actuales?",
@@ -6996,7 +6822,7 @@
     "correcta": 3,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "La fibra óptica submarina ofrece menor latencia y mayor capacidad que los satélites, por eso las rutas intercontinentales dependen de ella. Satélites como Starlink solo complementan en zonas sin cable.",
+    "explicacion": "Los cables submarinos concentran la capacidad de transmisión intercontinental porque la luz viaja más rápido que las ondas de radio por satélite. Menos del 1 % del tráfico usa satélites, y Starlink solo cubre zonas sin cable.",
     "id": "tec-046",
     "area": "tecnologia",
     "tipo": "test4",
@@ -7016,7 +6842,7 @@
     "correcta": 0,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "ASML es el único proveedor mundial de máquinas EUV; cada equipo necesita miles de componentes de alta precisión de proveedores de varios países, lo que la convierte en un punto de control geopolítico (restricciones de exportación 2022‑2024).",
+    "explicacion": "ASML es el único fabricante mundial de máquinas EUV, lo que la convierte en un punto de control geopolítico. Cada equipo integra miles de componentes de alta precisión de varios países, limitando la producción de chips avanzados.",
     "id": "tec-047",
     "area": "tecnologia",
     "tipo": "test4",
@@ -7036,7 +6862,7 @@
     "correcta": 2,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El remitente cifra el mensaje con la clave pública del destinatario, y solo su clave privada (que nunca sale de su dispositivo) puede descifrarlo. Por eso ni Telegram, ni WhatsApp, ni un gobierno pueden leerlo aunque tengan los servidores.",
+    "explicacion": "Solo el destinatario tiene la clave privada que descifra el mensaje, así ni el proveedor ni un atacante pueden leerlo. Es como una cerradura que solo abre la llave que nunca sale de tu bolsillo.",
     "id": "tec-048",
     "area": "tecnologia",
     "tipo": "test4",
@@ -7067,7 +6893,7 @@
   },
   {
     "enunciado": "Ordena los siguientes nodos de fabricación de semiconductores de menos avanzado a más avanzado (de mayor a menor tamaño de transistor).",
-    "explicacion": "Un nodo más pequeño permite colocar más transistores en el mismo área, lo que aumenta el rendimiento y reduce el consumo energético por operación. La producción en 3 nm de TSMC comenzó en 2022 y marcó un hito en la carrera de litografía avanzada.",
+    "explicacion": "Los nodos más pequeños empaquetan más transistores, mejorando rendimiento y eficiencia. TSMC inició la producción en 3 nm en 2022, un hito en la miniaturización.",
     "nivel": 3,
     "criterio": "de mayor a menor tamaño de nodo (de menos avanzado a más avanzado)",
     "items": [
@@ -7089,27 +6915,27 @@
       "hitos": [
         {
           "ano": "2011",
-          "texto": "Nodo de 28 nm"
+          "texto": "28 nm"
         },
         {
           "ano": "2014",
-          "texto": "Nodo de 14 nm"
+          "texto": "14 nm"
         },
         {
           "ano": "2018",
-          "texto": "Nodo de 7 nm"
+          "texto": "7 nm"
         },
         {
           "ano": "2022",
-          "texto": "Nodo de 3 nm"
+          "texto": "3 nm"
         }
       ],
-      "leyenda": "Cada salto duplica la densidad de transistores por área."
+      "leyenda": "Cada salto duplica la densidad de transistores por mm²"
     }
   },
   {
     "enunciado": "Ordena los siguientes tipos de clave simétrica de menor a mayor resistencia frente a un ataque de fuerza bruta.",
-    "explicacion": "Cada bit extra duplica el número de claves posibles, haciendo la de 256 bits 2^192 veces más compleja que la de 64. En 2025, el NIST recomienda ya 256 bits como mínimo frente a futuros ordenadores cuánticos.",
+    "explicacion": "Cada bit extra duplica el número de claves posibles. Una clave de 256 bits es 2^192 veces más compleja que una de 64 bits, por lo que el NIST ya recomienda 256 bits como mínimo frente a futuros ordenadores cuánticos.",
     "nivel": 4,
     "criterio": "de menor a mayor resistencia",
     "items": [
@@ -7126,34 +6952,7 @@
     "confianza": 1,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Combinaciones posibles",
-      "items": [
-        {
-          "etiqueta": "64 bits",
-          "valor": 18446744073709552000,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "128 bits",
-          "valor": 3.402823669209385e+38,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "192 bits",
-          "valor": 6.277101735386681e+57,
-          "unidad": ""
-        },
-        {
-          "etiqueta": "256 bits",
-          "valor": 1.157920892373162e+77,
-          "unidad": ""
-        }
-      ],
-      "leyenda": "Cada bit adicional duplica el espacio de claves",
-      "fuente": "NIST 2025"
-    }
+    "visual": null
   },
   {
     "enunciado": "Ordena los siguientes tipos de baterías de vehículo eléctrico de menor a mayor densidad de energía específica (Wh/kg).",
@@ -7174,34 +6973,7 @@
     "confianza": 1,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": {
-      "tipo": "barras",
-      "titulo": "Densidad de energía típica (Wh/kg)",
-      "items": [
-        {
-          "etiqueta": "Plomo-ácido",
-          "valor": 40,
-          "unidad": "Wh/kg"
-        },
-        {
-          "etiqueta": "NiMH",
-          "valor": 100,
-          "unidad": "Wh/kg"
-        },
-        {
-          "etiqueta": "LFP",
-          "valor": 160,
-          "unidad": "Wh/kg"
-        },
-        {
-          "etiqueta": "NMC",
-          "valor": 250,
-          "unidad": "Wh/kg"
-        }
-      ],
-      "leyenda": "Valores típicos de celdas comerciales, no máximos teóricos.",
-      "fuente": "US DOE 2024"
-    }
+    "visual": null
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -7320,7 +7092,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Un 'backdoor' introduce claves o vías de acceso adicionales; eso aumenta la superficie de ataque y por tanto la probabilidad de que actores maliciosos exploten esa puerta, degradando la seguridad para todos. Este punto es central en debates recientes sobre cifrado y accesos legales, donde la técnica se sacrifica por la posibilidad de intercepción.",
+    "explicacion": "Un backdoor introduce claves adicionales, lo que amplía la superficie de ataque y facilita su explotación por actores maliciosos, degradando la seguridad. Este debate resurge con las leyes de cifrado en la UE y EE. UU. (2022-2026).",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Cifrado y seguridad práctica",

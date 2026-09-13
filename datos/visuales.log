@@ -1644,3 +1644,665 @@ Detalle rechazos de explicación (motivo):
   tec-057: explicación de 49 palabras (> 40)
 
 Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.026119 $
+--solo-pendientes: 248 ya resueltas, 47 pendientes.
+
+=== visualizar 2026-09-13T14:10:25.109Z — 47 preguntas candidatas (pago permitido, tope 0.1 €) ===
+
+-- lote 1/6 (8 preguntas) --
+
+Tope de gasto alcanzado (0.2117 € >= 0.1 €): se detiene aquí. Progreso ya guardado.
+
+=== Resumen ===
+  economia: 9 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  historia: 4 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  ciencia: 7 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  tecnologia: 8 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  geografia: 1 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  filosofia: 5 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  arte: 4 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  logica: 9 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+
+Total candidatas: 47
+Resueltas: 0
+Fallos de cascada (red/todos los modelos): 0
+Rechazadas por verificación (explicación): 0
+Rechazadas por verificación (visual, tras reintento): 0
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 26
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.000000 $
+AVISO: ejecución detenida por tope de gasto antes de terminar. Progreso ya guardado.
+
+=== revisión humana de barras/dato (controlador, 2026-09-13 16:15) — 12 visuales retirados ===
+  cie-058 [barras]: retirado — unidades arbitrarias (u.a.), no datos
+  eco-074 [barras]: retirado — reparto 85/15 no coincide con las cuentas de Uber (publicidad ~3 %)
+  eco-078 [barras]: retirado — efectos porcentuales no atribuibles a una fuente concreta
+  eco-083 [barras]: retirado — porcentajes sin magnitud definida
+  eco-087 [barras]: retirado — múltiplos típicos presentados como hechos
+  eco-091 [barras]: retirado — margen operativo SaaS 45 % erróneo (sector con márgenes bajos o negativos)
+  eco-092 [barras]: retirado — ranking ordinal inventado (1-4)
+  eco-096 [barras]: retirado — índice 2020=88 erróneo (OMC: caída ~5 %)
+  geo-010 [barras]: retirado — desierto Ártico 5,4 M km² erróneo (~13,9)
+  geo-066 [dato]: retirado — 1,3 hijos por mujer: dato 2023 es 1,20
+  tec-037 [barras]: retirado — reparto 90/10 no verificable
+  tec-052 [barras]: retirado — cifras de 20-77 dígitos ilegibles en barras
+--solo-pendientes: 237 ya resueltas, 58 pendientes.
+
+=== visualizar 2026-09-13T14:12:05.505Z — 58 preguntas candidatas (pago permitido, tope 0.3 €) ===
+
+-- lote 1/8 (8 preguntas) --
+  art-088: explicación actualizada; sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: El orden revela el mecanismo: la creación y documentación generan prueba de autoría; la galería construye mercado y narrativa; la compra institucional otorga validación pública; la reventa en subasta produce precio de mercado y liquidez —factores clave en debates sobre transparencia y deaccessioning en museos contemporáneos.
+    explicación después: El orden refleja cómo se construye valor: la galería crea mercado, la compra institucional valida, y la subasta fija precio. Así se entienden debates recientes sobre transparencia en el mercado del arte.
+  art-089: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El camino de la polémica al canon: acumulación de legitimidad institucional")
+    explicación antes: El canon se forja por acumulación institucional: cada etapa (exhibir, polemizar, coleccionar, enseñar) añade legitimidad y borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad de arte: la polémica se volvió consenso.
+    explicación después: Cada etapa institucional (exhibir, polemizar, coleccionar, enseñar) añade capas de legitimidad que borran la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy es canon en toda facultad de arte: la polémica se volvió consenso.
+  art-090: explicación conservada (explicación de 44 palabras (> 40)); sin visual (esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+  art-091: explicación conservada (explicación de 48 palabras (> 40)); ya tiene imagen
+  cie-058: explicación conservada (explicación de 57 palabras (> 40)); sin visual (cifras no verificables)
+  cie-068: explicación conservada (explicación de 43 palabras (> 40)); sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  cie-073: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Estudio de 2023 sobre privación de sueño y riesgo de Alzheimer"; dato.texto inválido (1-40 caracteres))
+    explicación antes: El sueño profundo activa el sistema glinfático, que bombea líquido cefalorraquídeo y arrastra desechos como la beta-amiloide. Perder una noche de ondas lentas eleva esta proteína un 30%, según un estudio de 2023.
+    explicación después: Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.
+  cie-075: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Tercera ley de Newton: acción y reacción generan la sustentación."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres))
+    explicación antes: El ala desvía aire hacia abajo; por la tercera ley de Newton, el aire empuja el ala hacia arriba, generando sustentación. El efecto Venturi describe el flujo, pero no la fuerza neta, como confirmó la NASA en 2024 con simulaciones.
+    explicación después: El ala empuja aire hacia abajo y, por reacción (tercera ley de Newton), el aire empuja el ala hacia arriba. La NASA confirmó en 2024 que el modelo de desviación explica la sustentación mejor que el efecto Venturi.
+
+-- lote 2/8 (8 preguntas) --
+  cie-081: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el calor corporal como arma inmunitaria.")
+    explicación antes: El hipotálamo eleva el termostato corporal para acelerar las defensas y ralentizar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas podía alargar la infección.
+    explicación después: El hipotálamo sube el termostato corporal para acelerar las defensas y frenar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.
+  cie-082: explicación conservada (explicación de 42 palabras (> 40)); ya tiene imagen
+  cie-089: explicación conservada (explicación de 45 palabras (> 40)); ya tiene imagen
+  cie-091: explicación conservada (explicación de 46 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Emisiones de CO₂ por kWh","items":[{"etiqueta":"Carbón","valor":820,"unidad":"g"},{"etiqueta":"Gas natural","valor":490,"unidad":"g"},{"etiqueta":"Fotovoltaica","valor":45,"unidad":"g"},{"etiqueta":"Nuclear","valor":12,"unidad":"g"}],"leyenda":"Emisiones medias en gCO₂eq/kWh (ciclo de vida completo)","fuente":"IPCC 2014"}
+  eco-071: explicación actualizada; ya tiene imagen
+    explicación antes: Falso: la crisis derivó sobre todo de la burbuja inmobiliaria y de la titulización de hipotecas de alto riesgo, combinadas con apalancamiento y fallos en la supervisión, no por un choque en commodities. Entender esa cadena (hipotecas→titulización→bancos y shadow banking) ayuda a comparar con crisis posteriores y a analizar propuestas regulatorias.
+    explicación después: Falso: la crisis de 2008 nació de la burbuja inmobiliaria y la titulización de hipotecas basura, no de materias primas. Esa cadena —hipotecas, bonos, apalancamiento bancario— se repite en cada crisis y explica los debates regulatorios actuales.
+  eco-072: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres))
+  eco-074: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Las comisiones por viajes suponen >95 % de los ingresos de Uber.")
+    explicación antes: Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+    explicación después: Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+  eco-077: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Burbuja de los tulipanes, ejemplo clásico de la teoría del tonto mayor"; linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres))
+    explicación antes: Los inversores compran esperando vender más caro a alguien aún más optimista, ignorando el valor real. En la burbuja de los tulipanes del siglo XVII, un bulbo llegó a costar lo mismo que una casa.
+    explicación después: Los inversores compran esperando vender más caro a un 'tonto mayor', ignorando el valor real. En la burbuja de los tulipanes (1637), un bulbo llegó a costar lo mismo que una casa.
+
+-- lote 3/8 (8 preguntas) --
+  eco-078: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+    explicación antes: El arancel encarece el acero importado para que el nacional sea más competitivo, protegiendo empleo local. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.
+    explicación después: El arancel sube el precio del acero importado para que el local sea más competitivo, protegiendo empleo e industria. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.
+  eco-081: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Cómo la titulización propagó la crisis de 2008 al sistema financiero mundial."; flujo.pasos[3] inválido (1-18 caracteres))
+  eco-082: explicación conservada (explicación de 44 palabras (> 40)); visual flujo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"flujo","pasos":["Más usuarios","Más valor","Más ingresos"],"leyenda":"Círculo virtuoso de las plataformas de dos lados"}
+  eco-083: explicación conservada (explicación de 44 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Producción manufacturera global","items":[{"etiqueta":"China","valor":29,"unidad":"%"},{"etiqueta":"Vietnam","valor":2,"unidad":"%"},{"etiqueta":"México","valor":2,"unidad":"%"}],"leyenda":"Cuota de producción manufacturera mundial (2023)","fuente":"UNIDO 2024"}
+  eco-087: explicación actualizada; visual barras OK (deepseek/deepseek-v4-flash)
+    explicación antes: Los inversores pagan más por negocios escalables y recurrentes. La manufactura requiere mucha inversión y crece despacio; los marketplaces, con efectos de red, escalan casi sin coste y generan expectativas de crecimiento que multiplican su valor.
+    explicación después: Los inversores pagan más por negocios escalables y recurrentes. La manufactura requiere mucha inversión; los marketplaces escalan casi sin coste, lo que multiplica su valor.
+    visual: {"tipo":"barras","titulo":"Múltiplo EV/EBITDA típico","items":[{"etiqueta":"Manufactura","valor":8,"unidad":"x"},{"etiqueta":"Bienes consumo","valor":12,"unidad":"x"},{"etiqueta":"SaaS","valor":25,"unidad":"x"},{"etiqueta":"Marketplace","valor":35,"unidad":"x"}],"leyenda":"Múltiplo medio por sector (2020-2024)","fuente":"Damodaran 2024"}
+  eco-089: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad de reacción ante un repunte de la inflación, de menor a mayor."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Los salarios tardan por contratos plurianuales; los tipos oficiales requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos a cualquier noticia.
+    explicación después: Los salarios tardan por contratos fijos; los tipos requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos. En 2022, las expectativas subieron antes de que los salarios se indexaran.
+  eco-090: explicación conservada (explicación de 49 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad creciente de burbujas según liquidez y accesibilidad")
+  eco-091: explicación conservada (La explicación propuesta es demasiado corta y omite la comparación entre bancos y supermercados. Los datos del visual no se corresponden con la respuesta correcta indicada, ya que los bancos deberían tener un margen mayor que los supermercados y menor que SaaS, y el valor de los bancos (25%) es superior al de SaaS (70%) en el visual.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Margen operativo (EBIT/Ingresos) estimado para grandes empresas, 2023.")
+
+-- lote 4/8 (8 preguntas) --
+  eco-092: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "De menor a mayor vulnerabilidad a interrupciones en la cadena de suministro.")
+    explicación antes: La vulnerabilidad aumenta con la especialización y el tiempo de reposición: el petróleo es un commodity almacenable y sustituible; los chips avanzados dependen de fábricas únicas, como se vio en la crisis de 2021 que paralizó la producción automotriz global.
+    explicación después: La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas, como en la crisis de 2021 que paralizó la automoción global.
+  eco-096: explicación conservada (explicación de 47 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Volumen del comercio mundial (2019=100)","items":[{"etiqueta":"2019","valor":100,"unidad":""},{"etiqueta":"2020","valor":92,"unidad":""},{"etiqueta":"2021","valor":106,"unidad":""},{"etiqueta":"2022","valor":112,"unidad":""},{"etiqueta":"2023","valor":115,"unidad":""}],"leyenda":"Fuente: OMC, World Trade Statistical Review 2024","fuente":"OMC 2024"}
+  eco-097: explicación conservada (La explicacion_propuesta contradice la explicacion_actual al invertir el significado del sesgo de confirmación. El visual propuesto también es incorrecto porque la columna "Dato erróneo" describe lo opuesto al sesgo de confirmación, y la leyenda "El sesgo real es confirmar, no contradecir" no se alinea con la explicacion_propuesta.); sin visual (La explicacion_propuesta es casi idéntica a la explicacion_actual, pero la pregunta pide encontrar el dato erróneo en la tarjeta, y la explicacion_propuesta no señala cuál es el dato erróneo. El visual propuesto no ilustra el dato erróneo, sino que intenta ilustrar el sesgo real y el dato erróneo de forma separada, y la leyenda es confusa.)
+  fil-023: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Ambas etapas analizan el lenguaje, pero con enfoques distintos."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Wittgenstein nunca abandonó el análisis del lenguaje; en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un rechazo total que no ocurrió.
+    explicación después: Wittgenstein nunca rechazó el análisis del lenguaje: en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica. Es un error común atribuirle un rechazo total que no ocurrió.
+  fil-024: explicación conservada (explicación de 52 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+  fil-035: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La navaja de Ockham favorece la explicación con menos suposiciones."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: La navaja de Ockham es un principio de parsimonia: al comparar hipótesis que explican igual, la que requiere menos suposiciones tiene más probabilidad de ser cierta. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.
+    explicación después: La navaja de Ockham es un principio de parsimonia: entre hipótesis que explican igual, la que requiere menos suposiciones es preferible. No garantiza verdad, sino eficiencia. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.
+  fil-048: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+    explicación antes: La navaja de Ockham es del siglo XIV; el dilema del tranvía, de 1967; el velo de ignorancia, de 1971; el principio de precaución se consolidó en 1992. Este último guía hoy la regulación europea de IA.
+    explicación después: La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, base de la regulación europea de IA.
+  fil-056: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo algorítmico es un problema de diseño, no de intención.")
+    explicación antes: El sesgo algorítmico no implica intención: surge de datos históricos sesgados, variables proxy o decisiones de diseño, no de que la máquina quiera discriminar. Por eso las soluciones actúan sobre datos y objetivos, no sobre la 'maldad' del algoritmo.
+    explicación después: El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa de la máquina. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.
+
+-- lote 5/8 (8 preguntas) --
+  geo-010: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La Antártida recibe menos de 50 mm de lluvia al año, menos que el Sahara, por eso es un desierto polar. Es tan grande que podría albergar Europa y EE.UU. juntos y aún sobraría espacio.
+    explicación después: Un desierto se define por su escasez de precipitaciones, no por su calor: la Antártida recibe menos de 50 mm anuales, menos que el Sáhara. Es tan vasta que podría contener Europa y EE.UU. juntos, y aún sobraría espacio.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Antártico","puntos":["< 50 mm de lluvia al año","14,2 millones de km²","Desierto polar"]},{"titulo":"Sáhara","puntos":["~ 25 mm de lluvia al año","9,2 millones de km²","Desierto cálido"]}],"leyenda":"La Antártida es el mayor desierto del mundo por superficie."}
+  geo-059: explicación conservada (explicación de 58 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Población estimada en 2050 (millones)","items":[{"etiqueta":"Nigeria","valor":400,"unidad":"M"},{"etiqueta":"EE. UU.","valor":380,"unidad":"M"}],"leyenda":"Proyecciones ONU 2024 (revisión WPP)","fuente":"UN World Pop. Prospects 2024"}
+  geo-066: explicación conservada (explicación de 52 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"% población mayor de 65 años (2023)","items":[{"etiqueta":"Japón","valor":29,"unidad":"%"},{"etiqueta":"Italia","valor":24,"unidad":"%"},{"etiqueta":"España","valor":20,"unidad":"%"},{"etiqueta":"Mundial","valor":10,"unidad":"%"}],"leyenda":"Japón lidera el envejecimiento global","fuente":"Banco Mundial 2023"}
+  his-046: explicación conservada (explicación de 51 palabras (> 40)); visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1709","texto":"Coque barato"},{"ano":"1769","texto":"Patente de Watt"},{"ano":"1776","texto":"Motor Boulton-Watt"},{"ano":"1800","texto":"Expansión industrial"}],"leyenda":"Carbón y patentes impulsaron la Revolución Industrial"}
+  his-052: explicación actualizada; ya tiene imagen
+    explicación antes: El Tratado de Verdún dividió el Imperio carolingio en tres reinos; la parte occidental (futura Francia) y la oriental (futura Alemania) quedaron separadas por el Rin, estableciendo una línea que pervivió en sucesivos acuerdos. Hoy esa frontera histórica subyace a la cooperación franco‑alemana en la UE.
+    explicación después: El Tratado de Verdún (843) repartió el Imperio carolingio en tres reinos; la parte occidental y la oriental quedaron separadas por el Rin, línea que pervivió en acuerdos posteriores. Esa frontera histórica explica hoy la cooperación franco‑alemana en la UE.
+  his-060: explicación conservada (explicación de 74 palabras (> 40)); ya tiene imagen
+  his-064: explicación conservada (explicación de 48 palabras (> 40)); ya tiene imagen
+  log-008: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Lógica aristotélica: la negación de 'todos' es 'al menos uno no'."; comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: La negación de 'todos' es 'al menos uno no'. Basta un solo suspenso para refutar la afirmación universal. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.
+    explicación después: Para negar 'todos', basta con que exista al menos uno que no cumpla. Una excepción desmonta cualquier afirmación universal, como en debates donde un solo contraejemplo invalida una generalización.
+
+-- lote 6/8 (8 preguntas) --
+  log-033: explicación conservada (explicación de 50 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El presentador revela una cabra, concentrando la probabilidad en la puerta no elegida."; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  log-036: explicación conservada (La explicación propuesta introduce un ejemplo específico (margaritas) que no estaba en la explicación original y que no es necesario para entender la falacia. Además, la explicación propuesta es más larga que la original y no mejora la claridad. El visual propuesto, aunque conceptualmente correcto, utiliza un tipo de visualización ('flujo') que no es el más adecuado para representar este tipo de razonamiento lógico, y la leyenda es redundante con los pasos. La explicación original es más concisa y clara.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La característica del grupo general no se hereda en el subgrupo."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  log-037: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La probabilidad inicial se concentra en la puerta no elegida."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres))
+    explicación antes: Al abrir una puerta perdedora, el presentador concentra la probabilidad 2/3 en la puerta restante; cambiar duplica tus opciones. Este principio se cita en análisis de toma de decisiones financieras recientes (2024) para ilustrar la actualización bayesiana.
+    explicación después: Al abrir una puerta perdedora, el presentador concentra la probabilidad 2/3 en la puerta restante; cambiar duplica tus opciones. Este principio se cita en análisis de toma de decisiones financieras recientes (2024) para ilustrar la actualización bayesiana.
+  log-040: FALLO — Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unterminated string in JSON at position 2272 (line 1 column 2273))
+  log-047: explicación conservada (explicación de 51 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos)
+  log-048: explicación conservada (explicación de 46 palabras (> 40)); ya tiene imagen
+  log-050: explicación conservada (La explicacion_propuesta no aclara el error de la tarjeta, sino que define correctamente la falacia ad hominem. El visual propuesto no contiene el dato erróneo que se pide encontrar en la tarjeta, sino que compara dos conceptos. Por tanto, no se ajusta a la pregunta ni a la respuesta correcta.); sin visual (La explicacion_propuesta no aclara que el dato erróneo es la definición de la falacia ad hominem, sino que la tarjeta la invierte. El visual propuesto no ilustra un error, sino que compara dos conceptos, y la leyenda no se corresponde con la respuesta correcta.)
+  log-051: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: Una correlación alta no implica causalidad; puede ser espuria o debida a una variable oculta, como mostró el debate de 2023 sobre la relación entre consumo de helados y ahogamientos. La tarjeta afirma lo contrario en la primera fila.
+    explicación después: La correlación mide asociación, no causa; ambas pueden subir juntas por una tercera variable, como el calor con helados y ahogamientos. Es la falacia clásica que la tarjeta presenta erróneamente como verdad.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Correlación","puntos":["Es solo asociación","No prueba causa","Puede ser espuria"]},{"titulo":"Causalidad","puntos":["Requiere mecanismo","Control de variables","Evidencia experimental"]}],"leyenda":"Diferenciar ambas evita errores en análisis de datos."}
+
+-- lote 7/8 (8 preguntas) --
+  tec-015: explicación actualizada; sin visual (esquema inválido: flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: Es la agenda de Internet: traduce nombres legibles como 'google.com' a direcciones IP numéricas que las máquinas entienden. Sin él, cada clic exigiría memorizar secuencias de números. Hoy procesa billones de consultas diarias, invisibles pero esenciales.
+    explicación después: Actúa como un traductor automático: convierte nombres de dominio (como 'google.com') en direcciones IP numéricas que los ordenadores usan para localizar servidores. Sin él, navegar requeriría memorizar largas secuencias de números, como en los años 80.
+  tec-037: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Procedencia de los datos de entrenamiento de GPT-3, según OpenAI (2020).")
+    explicación antes: Los LLMs se entrenan con texto protegido por derechos de autor, no solo con dominio público. Ha generado demandas de autores y editoriales en 2023‑2024 sobre el uso justo.
+    explicación después: Se entrenan con datos protegidos por derechos de autor, no solo dominio público, porque necesitan enormes volúmenes de texto. Esto ha provocado demandas de autores y editoriales en 2023-2024 sobre el uso de sus obras sin permiso.
+
+[progreso] 50/58 candidatas procesadas, coste acumulado hoy 0.2354 €.
+  tec-040: explicación conservada (explicación de 46 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Densidad energética de baterías (Wh/kg)","items":[{"etiqueta":"Iones de litio","valor":250,"unidad":"Wh/kg"},{"etiqueta":"Estado sólido","valor":500,"unidad":"Wh/kg"}],"leyenda":"El litio metálico duplica la capacidad del grafito.","fuente":"Estudios de laboratorio 2023"}
+  tec-046: explicación actualizada; sin visual (esquema inválido: dato.texto inválido (1-40 caracteres))
+    explicación antes: La fibra óptica submarina ofrece menor latencia y mayor capacidad que los satélites, por eso las rutas intercontinentales dependen de ella. Satélites como Starlink solo complementan en zonas sin cable.
+    explicación después: Los cables submarinos concentran la capacidad de transmisión intercontinental porque la luz viaja más rápido que las ondas de radio por satélite. Menos del 1 % del tráfico usa satélites, y Starlink solo cubre zonas sin cable.
+  tec-047: explicación conservada (explicación de 49 palabras (> 40)); sin visual (esquema inválido: barras.items[0].etiqueta inválida (1-16 caracteres))
+  tec-048: explicación conservada (explicación de 49 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado asimétrico garantiza que solo el destinatario lea el mensaje."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  tec-051: explicación conservada (explicación de 43 palabras (> 40)); visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"2011","texto":"28 nm (masivo)"},{"ano":"2014","texto":"14 nm (FinFET)"},{"ano":"2018","texto":"7 nm (EUV)"},{"ano":"2022","texto":"3 nm (TSMC)"}],"leyenda":"Evolución de nodos de fabricación de semiconductores"}
+  tec-052: explicación actualizada; sin visual (esquema inválido: barras.fuente inválida (1-40 caracteres))
+    explicación antes: Cada bit extra duplica el número de claves posibles, haciendo la de 256 bits 2^192 veces más compleja que la de 64. En 2025, el NIST recomienda ya 256 bits como mínimo frente a futuros ordenadores cuánticos.
+    explicación después: Cada bit extra duplica el número de claves posibles, así que una de 256 bits es 2^192 veces más compleja que una de 64. Por eso el NIST ya recomienda 256 bits como mínimo frente a futuros ordenadores cuánticos.
+
+-- lote 8/8 (2 preguntas) --
+  tec-053: explicación conservada (explicación de 51 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Densidad de energía típica (Wh/kg)","items":[{"etiqueta":"Plomo-ácido","valor":40,"unidad":"Wh/kg"},{"etiqueta":"NiMH","valor":100,"unidad":"Wh/kg"},{"etiqueta":"LFP","valor":160,"unidad":"Wh/kg"},{"etiqueta":"NMC","valor":250,"unidad":"Wh/kg"}],"leyenda":"Valores aproximados de celdas comerciales actuales.","fuente":"US DOE 2023"}
+  tec-057: explicación conservada (explicación de 68 palabras (> 40)); ya tiene imagen
+
+=== Resumen ===
+  economia: 15 procesadas, 7 explicación actualizada, 4 visual generado (flujo:1, barras:3)
+  historia: 4 procesadas, 1 explicación actualizada, 1 visual generado (linea-tiempo:1)
+  ciencia: 8 procesadas, 3 explicación actualizada, 1 visual generado (barras:1)
+  tecnologia: 10 procesadas, 4 explicación actualizada, 3 visual generado (barras:2, linea-tiempo:1)
+  geografia: 3 procesadas, 1 explicación actualizada, 3 visual generado (comparacion:1, barras:2)
+  filosofia: 5 procesadas, 4 explicación actualizada, 0 visual generado (ninguno)
+  arte: 4 procesadas, 2 explicación actualizada, 0 visual generado (ninguno)
+  logica: 9 procesadas, 3 explicación actualizada, 1 visual generado (comparacion:1)
+
+Total candidatas: 58
+Resueltas: 57
+Fallos de cascada (red/todos los modelos): 1
+Rechazadas por verificación (explicación): 32
+Rechazadas por verificación (visual, tras reintento): 35
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 30
+
+Detalle rechazos de visual (motivo):
+  art-088: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  art-089: esquema inválido: leyenda inválida (1-60 caracteres): "El camino de la polémica al canon: acumulación de legitimidad institucional"
+  art-090: esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  cie-058: cifras no verificables
+  cie-068: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  cie-073: esquema inválido: leyenda inválida (1-60 caracteres): "Estudio de 2023 sobre privación de sueño y riesgo de Alzheimer"; dato.texto inválido (1-40 caracteres)
+  cie-075: esquema inválido: leyenda inválida (1-60 caracteres): "Tercera ley de Newton: acción y reacción generan la sustentación."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres)
+  cie-081: esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el calor corporal como arma inmunitaria."
+  eco-072: esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres)
+  eco-074: esquema inválido: leyenda inválida (1-60 caracteres): "Las comisiones por viajes suponen >95 % de los ingresos de Uber."
+  eco-077: esquema inválido: leyenda inválida (1-60 caracteres): "Burbuja de los tulipanes, ejemplo clásico de la teoría del tonto mayor"; linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres)
+  eco-078: esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres)
+  eco-081: esquema inválido: leyenda inválida (1-60 caracteres): "Cómo la titulización propagó la crisis de 2008 al sistema financiero mundial."; flujo.pasos[3] inválido (1-18 caracteres)
+  eco-089: esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad de reacción ante un repunte de la inflación, de menor a mayor."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  eco-090: esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad creciente de burbujas según liquidez y accesibilidad"
+  eco-091: esquema inválido: leyenda inválida (1-60 caracteres): "Margen operativo (EBIT/Ingresos) estimado para grandes empresas, 2023."
+  eco-092: esquema inválido: leyenda inválida (1-60 caracteres): "De menor a mayor vulnerabilidad a interrupciones en la cadena de suministro."
+  eco-097: La explicacion_propuesta es casi idéntica a la explicacion_actual, pero la pregunta pide encontrar el dato erróneo en la tarjeta, y la explicacion_propuesta no señala cuál es el dato erróneo. El visual propuesto no ilustra el dato erróneo, sino que intenta ilustrar el sesgo real y el dato erróneo de forma separada, y la leyenda es confusa.
+  fil-023: esquema inválido: leyenda inválida (1-60 caracteres): "Ambas etapas analizan el lenguaje, pero con enfoques distintos."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-024: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-035: esquema inválido: leyenda inválida (1-60 caracteres): "La navaja de Ockham favorece la explicación con menos suposiciones."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  fil-048: esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  fil-056: esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo algorítmico es un problema de diseño, no de intención."
+  log-008: esquema inválido: leyenda inválida (1-60 caracteres): "Lógica aristotélica: la negación de 'todos' es 'al menos uno no'."; comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  log-033: esquema inválido: leyenda inválida (1-60 caracteres): "El presentador revela una cabra, concentrando la probabilidad en la puerta no elegida."; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  log-036: esquema inválido: leyenda inválida (1-60 caracteres): "La característica del grupo general no se hereda en el subgrupo."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  log-037: esquema inválido: leyenda inválida (1-60 caracteres): "La probabilidad inicial se concentra en la puerta no elegida."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres)
+  log-047: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos
+  log-050: La explicacion_propuesta no aclara que el dato erróneo es la definición de la falacia ad hominem, sino que la tarjeta la invierte. El visual propuesto no ilustra un error, sino que compara dos conceptos, y la leyenda no se corresponde con la respuesta correcta.
+  tec-015: esquema inválido: flujo.pasos[2] inválido (1-18 caracteres)
+  tec-037: esquema inválido: leyenda inválida (1-60 caracteres): "Procedencia de los datos de entrenamiento de GPT-3, según OpenAI (2020)."
+  tec-046: esquema inválido: dato.texto inválido (1-40 caracteres)
+  tec-047: esquema inválido: barras.items[0].etiqueta inválida (1-16 caracteres)
+  tec-048: esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado asimétrico garantiza que solo el destinatario lea el mensaje."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  tec-052: esquema inválido: barras.fuente inválida (1-40 caracteres)
+
+Detalle rechazos de explicación (motivo):
+  art-090: explicación de 44 palabras (> 40)
+  art-091: explicación de 48 palabras (> 40)
+  cie-058: explicación de 57 palabras (> 40)
+  cie-068: explicación de 43 palabras (> 40)
+  cie-082: explicación de 42 palabras (> 40)
+  cie-089: explicación de 45 palabras (> 40)
+  cie-091: explicación de 46 palabras (> 40)
+  eco-072: explicación de 41 palabras (> 40)
+  eco-081: explicación de 41 palabras (> 40)
+  eco-082: explicación de 44 palabras (> 40)
+  eco-083: explicación de 44 palabras (> 40)
+  eco-090: explicación de 49 palabras (> 40)
+  eco-091: La explicación propuesta es demasiado corta y omite la comparación entre bancos y supermercados. Los datos del visual no se corresponden con la respuesta correcta indicada, ya que los bancos deberían tener un margen mayor que los supermercados y menor que SaaS, y el valor de los bancos (25%) es superior al de SaaS (70%) en el visual.
+  eco-096: explicación de 47 palabras (> 40)
+  eco-097: La explicacion_propuesta contradice la explicacion_actual al invertir el significado del sesgo de confirmación. El visual propuesto también es incorrecto porque la columna "Dato erróneo" describe lo opuesto al sesgo de confirmación, y la leyenda "El sesgo real es confirmar, no contradecir" no se alinea con la explicacion_propuesta.
+  fil-024: explicación de 52 palabras (> 40)
+  geo-059: explicación de 58 palabras (> 40)
+  geo-066: explicación de 52 palabras (> 40)
+  his-046: explicación de 51 palabras (> 40)
+  his-060: explicación de 74 palabras (> 40)
+  his-064: explicación de 48 palabras (> 40)
+  log-033: explicación de 50 palabras (> 40)
+  log-036: La explicación propuesta introduce un ejemplo específico (margaritas) que no estaba en la explicación original y que no es necesario para entender la falacia. Además, la explicación propuesta es más larga que la original y no mejora la claridad. El visual propuesto, aunque conceptualmente correcto, utiliza un tipo de visualización ('flujo') que no es el más adecuado para representar este tipo de razonamiento lógico, y la leyenda es redundante con los pasos. La explicación original es más concisa y clara.
+  log-047: explicación de 51 palabras (> 40)
+  log-048: explicación de 46 palabras (> 40)
+  log-050: La explicacion_propuesta no aclara el error de la tarjeta, sino que define correctamente la falacia ad hominem. El visual propuesto no contiene el dato erróneo que se pide encontrar en la tarjeta, sino que compara dos conceptos. Por tanto, no se ajusta a la pregunta ni a la respuesta correcta.
+  tec-040: explicación de 46 palabras (> 40)
+  tec-047: explicación de 49 palabras (> 40)
+  tec-048: explicación de 49 palabras (> 40)
+  tec-051: explicación de 43 palabras (> 40)
+  tec-053: explicación de 51 palabras (> 40)
+  tec-057: explicación de 68 palabras (> 40)
+
+Detalle fallos de cascada:
+  log-040: Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unterminated string in JSON at position 2272 (line 1 column 2273))
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.027157 $
+
+=== reverificar-visuales 2026-09-13T14:39:21.755Z — tipos [barras, dato] (pago permitido, tope 0.32 €) ===
+  art-084 [dato]: mantenido
+  cie-008 [barras]: RETIRADO — esquema inválido: barras.fuente sin año (debe incluir un año de 4 dígitos, p. ej. "2023")
+  cie-077 [barras]: RETIRADO — esquema inválido: barras.leyenda sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")
+  cie-091 [barras]: mantenido
+  eco-069 [barras]: RETIRADO — cifra no reproducible: 780
+  eco-083 [barras]: RETIRADO — cifra no reproducible: Vietnam 2%, México 2%
+  eco-086 [barras]: RETIRADO — cifra no reproducible: 2008 (S&P 500) 57%
+  eco-087 [barras]: RETIRADO — esquema inválido: barras.titulo sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")
+  eco-096 [barras]: mantenido
+  geo-009 [dato]: mantenido
+  geo-022 [barras]: RETIRADO — esquema inválido: barras.fuente sin año (debe incluir un año de 4 dígitos, p. ej. "2023")
+  geo-043 [barras]: RETIRADO — esquema inválido: barras.fuente sin año (debe incluir un año de 4 dígitos, p. ej. "2023")
+  geo-059 [barras]: RETIRADO — esquema inválido: barras.titulo sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")
+  geo-060 [barras]: mantenido
+  geo-066 [barras]: mantenido
+  log-040 [barras]: RETIRADO — esquema inválido: barras.fuente sin año (debe incluir un año de 4 dígitos, p. ej. "2023")
+  tec-038 [barras]: mantenido
+  tec-040 [barras]: RETIRADO — cifra no reproducible: 500 Wh/kg
+  tec-043 [dato]: RETIRADO — cifra no reproducible: 400 M$
+  tec-053 [barras]: RETIRADO — esquema inválido: barras.titulo sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada"); barras.leyenda sugiere una cifra ilustrativa ("típica"/"aproximada"/"estimada")
+
+=== Resumen reverificar-visuales ===
+Visuales guardados de tipo [barras, dato]: 20
+Mantenidos: 7
+Retirados: 13
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.003455 $
+--solo-pendientes: 238 ya resueltas, 57 pendientes.
+
+=== visualizar 2026-09-13T14:40:34.863Z — 57 preguntas candidatas (pago permitido, tope 0.38 €) ===
+
+-- lote 1/8 (8 preguntas) --
+  art-089: explicación actualizada; sin visual (esquema inválido: flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Cada etapa institucional (exhibir, polemizar, coleccionar, enseñar) añade capas de legitimidad que borran la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy es canon en toda facultad de arte: la polémica se volvió consenso.
+    explicación después: Cada institución (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.
+  art-090: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "De recuperar lo clásico a negar el objeto: la ruptura se acelera.")
+    explicación antes: Cada movimiento surge en un contexto distinto y reacciona a anteriores: el Renacimiento rehace modelos clásicos, el impresionismo rompe con la iluminación académica, el dadaísmo cuestiona la lógica y el sentido tras la guerra, y el arte conceptual prioriza la idea sobre el objeto; ese orden muestra la progresiva radicalización de las preguntas sobre la función del arte.
+    explicación después: Cada movimiento reacciona al anterior: el Renacimiento recupera los modelos clásicos, el impresionismo rompe con la academia, el dadaísmo cuestiona la lógica tras la guerra y el conceptual prioriza la idea. Reflejan una radicalización creciente de qué es el arte.
+  art-091: explicación actualizada; ya tiene imagen
+    explicación antes: El urinario de Duchamp (Fountain) se valora por introducir el concepto del 'readymade': cuestiona qué hace que algo sea arte al privilegiar la intención y el contexto sobre la destreza técnica; por eso no se aprecia por su manufactura. Esta discusión conecta con debates recientes sobre el papel del concepto en obras digitales y NFTs.
+    explicación después: El urinario de Duchamp no se valora por su manufactura, sino por el readymade: la intención y el contexto definen qué es arte, no la destreza técnica. Esa idea resuena hoy en el debate sobre NFTs y arte conceptual.
+  cie-008: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Oxígeno, silicio y aluminio suman el 82 % en peso de la corteza (Garrels & Mackenzie 1971)")
+    explicación antes: El oxígeno constituye aproximadamente el 46 % en peso de la corteza terrestre, siendo el elemento más abundante.
+    explicación después: Porque forma parte de silicatos y óxidos, los minerales más comunes de las rocas. El oxígeno representa casi la mitad de la masa de la corteza, más que el silicio (28 %) y el aluminio (8 %).
+  cie-058: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: En un sólido las partículas vibran en posiciones fijas, en un líquido se mueven más libremente, en un gas se desplazan rápidamente y en un plasma están ionizadas con energías muy altas.
+    explicación después: La energía cinética media crece al pasar de sólido a plasma: las partículas vibran fijas, luego se deslizan, luego vuelan libres y al final se ionizan. El plasma, el estado más común del universo, es el que más energía concentra.
+    visual: {"tipo":"flujo","pasos":["sólido","líquido","gas","plasma"],"leyenda":"De menor a mayor energía cinética media de las partículas"}
+  cie-068: explicación conservada (La explicacion_propuesta no es correcta. La explicacion_actual dice que cada nueva molécula contiene una hebra parental y una recién sintetizada, mientras que la explicacion_propuesta dice que cada nueva molécula conserva una hebra original y sintetiza otra nueva. La explicacion_propuesta es una reformulación de la explicacion_actual, no una corrección.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Replicación semiconservativa: cada hija conserva una hebra parental")
+  cie-073: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de limpieza cerebral durante el sueño de ondas lentas."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.
+    explicación después: El sistema glinfático bombea líquido cefalorraquídeo durante el sueño profundo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder ondas lentas una noche eleva esta proteína un 30%.
+  cie-075: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres))
+    explicación antes: El ala empuja aire hacia abajo y, por reacción (tercera ley de Newton), el aire empuja el ala hacia arriba. La NASA confirmó en 2024 que el modelo de desviación explica la sustentación mejor que el efecto Venturi.
+    explicación después: El ala desvía aire hacia abajo generando una fuerza de reacción ascendente (tercera ley de Newton). La NASA confirmó en 2024 que este modelo explica la sustentación mejor que el efecto Venturi, aún enseñado en muchos libros.
+
+-- lote 2/8 (8 preguntas) --
+  cie-077: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La piel transforma 7-dehidrocolesterol en vitamina D3 al recibir rayos UVB; la dieta apenas aporta un 10-20 %. Por eso, en inviernos nórdicos o con poca exposición, los niveles caen incluso comiendo pescado azul o lácteos enriquecidos.
+    explicación después: La piel usa la radiación UVB para convertir 7-dehidrocolesterol en vitamina D3; la dieta apenas cubre un 10-20 %. Por eso, en inviernos nórdicos, los niveles caen aunque se coma pescado azul o lácteos enriquecidos.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Sol (UVB)","puntos":["80-90 % del total","Síntesis en la piel","Depende de exposición"]},{"titulo":"Dieta","puntos":["10-20 % del total","Pescado azul, lácteos","Insuficiente en invierno"]}],"leyenda":"Fuente: NIH 2023"}
+  cie-081: explicación actualizada; sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres))
+    explicación antes: El hipotálamo sube el termostato corporal para acelerar las defensas y frenar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.
+    explicación después: El hipotálamo eleva el termostato corporal para que las defensas actúen más rápido y los patógenos se multipliquen peor. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.
+  cie-082: explicación conservada (explicación de 41 palabras (> 40)); ya tiene imagen
+  cie-089: explicación actualizada; ya tiene imagen
+    explicación antes: La energía de un fotón es inversamente proporcional a su longitud de onda; el violeta tiene la onda más corta y mayor energía, mientras que el rojo tiene la más larga y menor energía. Este principio explica por qué el cielo se ve azul (dispersión de Rayleigh favorece longitudes de onda cortas) y por qué la radiación ultravioleta (aún más energía) daña la piel.
+    explicación después: La energía de un fotón es inversa a su longitud de onda: el violeta, onda corta, tiene más energía que el rojo, onda larga. Por eso el cielo es azul: la luz azul se dispersa más.
+  cie-091: explicación actualizada; visual barras OK (deepseek/deepseek-v4-flash)
+    explicación antes: El carbón emite ~800-1000 gCO₂eq/kWh; el gas, ~400-500; la solar, ~40-50 (fabricación); la nuclear, ~12 (minado y construcción). La taxonomía verde de la UE (2022) clasifica nuclear y gas como «transitorios», desatando debate: el gas emite 30-40× más que la nuclear, pero la nuclear gestiona residuos radiactivos a largo plazo.
+    explicación después: El carbón emite 800-1000 gCO₂eq/kWh; el gas, 400-500; la solar, 40-50; la nuclear, ~12. La taxonomía verde de la UE (2022) clasifica gas y nuclear como transitorios, generando debate.
+    visual: {"tipo":"barras","titulo":"Emisiones de CO₂ por kWh","items":[{"etiqueta":"Carbón","valor":900,"unidad":"g"},{"etiqueta":"Gas","valor":450,"unidad":"g"},{"etiqueta":"Solar","valor":45,"unidad":"g"},{"etiqueta":"Nuclear","valor":12,"unidad":"g"}],"leyenda":"Ciclo de vida completo, gCO₂eq/kWh","fuente":"IPCC 2022"}
+  eco-069: explicación actualizada; visual formula OK (deepseek/deepseek-v4-flash)
+    explicación antes: El tipo oficial encarece el crédito entre bancos, y estos trasladan ese coste a préstamos e hipotecas para mantener márgenes. En 2023, las subidas del BCE dispararon las cuotas hipotecarias en España hasta un 30%.
+    explicación después: El banco central fija el precio del dinero entre bancos, que luego trasladan ese coste a préstamos e hipotecas para mantener su margen. En 2023, las subidas del BCE elevaron las cuotas hipotecarias en España hasta un 30%.
+    visual: {"tipo":"formula","texto":"Tipo oficial → Préstamos caros","leyenda":"El coste del dinero se transmite a hipotecas y créditos."}
+  eco-072: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mostrar la media del fenómeno no elimina el anclaje, solo lo atenúa.")
+    explicación antes: Falso: mostrar datos reduce el sesgo pero no suele eliminar el anclaje, porque las estimaciones iniciales influyen en el punto de partida del ajuste; por eso las decisiones siguen sesgadas incluso cuando hay información disponible, lo que tiene implicaciones para cómo diseñar avisos financieros o comparadores de precios.
+    explicación después: El anclaje persiste porque la primera cifra actúa como punto de partida del ajuste mental, que suele ser insuficiente. En 2023, estudios de la Fed mostraron que incluso con datos objetivos, los inversores seguían anclados en precios previos de activos.
+  eco-074: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+    explicación después: Su ingreso principal es la comisión (take-rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Plataforma","puntos":["Ingreso por comisión","Valor según transacciones"]},{"titulo":"Medio tradic.","puntos":["Ingreso por publicidad","Valor según audiencia"]}],"leyenda":"Modelo de negocio: comisión vs. publicidad"}
+--solo-pendientes: 238 ya resueltas, 57 pendientes.
+
+=== visualizar 2026-09-13T14:42:04.645Z — 57 preguntas candidatas (pago permitido, tope 0.38 €) ===
+
+-- lote 1/8 (8 preguntas) --
+  art-089: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Camino típico de controversia a canon en el arte contemporáneo.")
+    explicación antes: Cada etapa institucional (exhibir, polemizar, coleccionar, enseñar) añade capas de legitimidad que borran la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy es canon en toda facultad de arte: la polémica se volvió consenso.
+    explicación después: Cada etapa institucional (exhibir, polemizar, coleccionar, enseñar) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy es canon en toda facultad de arte.
+  art-090: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "De menor a mayor ruptura histórica: cada paso cuestiona más el arte previo.")
+    explicación antes: Cada movimiento surge en un contexto distinto y reacciona a anteriores: el Renacimiento rehace modelos clásicos, el impresionismo rompe con la iluminación académica, el dadaísmo cuestiona la lógica y el sentido tras la guerra, y el arte conceptual prioriza la idea sobre el objeto; ese orden muestra la progresiva radicalización de las preguntas sobre la función del arte.
+    explicación después: Cada movimiento reacciona al anterior: Renacimiento recupera lo clásico, impresionismo rompe la luz académica, dadaísmo niega la lógica tras la guerra, arte conceptual antepone la idea al objeto. Es la progresiva radicalización del arte.
+  art-091: explicación actualizada; ya tiene imagen
+    explicación antes: El urinario de Duchamp (Fountain) se valora por introducir el concepto del 'readymade': cuestiona qué hace que algo sea arte al privilegiar la intención y el contexto sobre la destreza técnica; por eso no se aprecia por su manufactura. Esta discusión conecta con debates recientes sobre el papel del concepto en obras digitales y NFTs.
+    explicación después: El urinario de Duchamp (Fountain) se valora por el 'readymade': la intención y el contexto priman sobre la destreza técnica. Esta idea resuena hoy en el debate sobre el valor conceptual de los NFTs.
+  cie-008: explicación actualizada; visual formula OK (deepseek/deepseek-v4-flash)
+    explicación antes: El oxígeno constituye aproximadamente el 46 % en peso de la corteza terrestre, siendo el elemento más abundante.
+    explicación después: El oxígeno es el más abundante porque forma parte de los silicatos, los minerales mayoritarios de la corteza. Un dato sorprendente: casi la mitad del peso del suelo que pisamos es oxígeno.
+    visual: {"tipo":"formula","texto":"O: 46 % | Si: 28 % | Al: 8 %","leyenda":"Abundancia en peso en la corteza terrestre según la USGS."}
+  cie-058: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: En un sólido las partículas vibran en posiciones fijas, en un líquido se mueven más libremente, en un gas se desplazan rápidamente y en un plasma están ionizadas con energías muy altas.
+    explicación después: La energía cinética media crece porque las partículas pasan de vibrar fijas a moverse libres, y el plasma añade ionización extrema. Del hielo al sol, cada salto multiplica el desorden térmico.
+    visual: {"tipo":"flujo","pasos":["Sólido vibra fijo","Líquido se desliza","Gas vuela libre","Plasma ionizado"],"leyenda":"De menor a mayor energía cinética media de las partículas."}
+  cie-068: explicación conservada (La explicación propuesta es correcta y concisa, pero la explicación actual es más clara al contrastar directamente la idea de 'doble hélice original intacta' con el mecanismo semiconservativo. El visual es adecuado y la leyenda refuerza el concepto.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Replicación semiconservativa: cada nueva doble hélice tiene una hebra parental."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  cie-073: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sueño profundo activa el sistema glinfático, que elimina desechos como la beta-amiloide."; flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.
+    explicación después: El sistema glinfático bombea líquido cefalorraquídeo durante el sueño profundo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 halló que perder una noche de ondas lentas eleva esta proteína un 30%.
+  cie-075: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La sustentación real es por desviación de aire, no por Venturi.")
+    explicación antes: El ala empuja aire hacia abajo y, por reacción (tercera ley de Newton), el aire empuja el ala hacia arriba. La NASA confirmó en 2024 que el modelo de desviación explica la sustentación mejor que el efecto Venturi.
+    explicación después: La sustentación real viene de desviar aire hacia abajo (tercera ley de Newton), no de que el aire viaje más rápido sobre el ala. La NASA lo aclaró en 2024 desmontando el mito del efecto Venturi.
+
+-- lote 2/8 (8 preguntas) --
+  cie-077: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La síntesis cutánea cubre el 80-90 %; la dieta es secundaria."; flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: La piel transforma 7-dehidrocolesterol en vitamina D3 al recibir rayos UVB; la dieta apenas aporta un 10-20 %. Por eso, en inviernos nórdicos o con poca exposición, los niveles caen incluso comiendo pescado azul o lácteos enriquecidos.
+    explicación después: La piel convierte colesterol en vitamina D3 al recibir rayos UVB; la dieta solo aporta un 10-20 %. Por eso, incluso comiendo pescado azul, los niveles caen en inviernos nórdicos sin sol.
+  cie-081: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el cuerpo se calienta para combatir la infección."; flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: El hipotálamo sube el termostato corporal para acelerar las defensas y frenar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.
+    explicación después: El hipotálamo ajusta al alza el termostato corporal para que las defensas actúen más rápido y los patógenos se multipliquen peor. En la COVID‑19 se debatió si bajar fiebres moderadas alargaba la infección.
+  cie-082: explicación actualizada; ya tiene imagen
+    explicación antes: Los gases de efecto invernadero son transparentes a la luz visible pero absorben la radiación infrarroja de onda larga que emite el planeta, reemitándola también hacia la superficie y atrapando calor. El sexto informe del IPCC (2023) destacó el papel desproporcionado del metano en el calentamiento a corto plazo.
+    explicación después: Son transparentes a la luz solar pero absorben la radiación infrarroja que emite la Tierra, reenviando parte de vuelta a la superficie. El IPCC (2023) subrayó que el metano es 80 veces más potente que el CO₂ a corto plazo.
+  cie-089: explicación actualizada; ya tiene imagen
+    explicación antes: La energía de un fotón es inversamente proporcional a su longitud de onda; el violeta tiene la onda más corta y mayor energía, mientras que el rojo tiene la más larga y menor energía. Este principio explica por qué el cielo se ve azul (dispersión de Rayleigh favorece longitudes de onda cortas) y por qué la radiación ultravioleta (aún más energía) daña la piel.
+    explicación después: La energía del fotón es inversa a su longitud de onda: el violeta, con onda más corta, tiene más energía que el rojo. Por eso el cielo es azul (dispersión de Rayleigh) y los UV dañan la piel.
+  cie-091: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: El carbón emite ~800-1000 gCO₂eq/kWh; el gas, ~400-500; la solar, ~40-50 (fabricación); la nuclear, ~12 (minado y construcción). La taxonomía verde de la UE (2022) clasifica nuclear y gas como «transitorios», desatando debate: el gas emite 30-40× más que la nuclear, pero la nuclear gestiona residuos radiactivos a largo plazo.
+    explicación después: El carbón emite ~900 gCO₂eq/kWh, el gas ~450, la solar ~45 y la nuclear ~12. La UE clasifica gas y nuclear como «transitorios» en su taxonomía verde de 2022, pero el gas emite 30-40 veces más que la nuclear.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Carbón","puntos":["~900 gCO₂eq/kWh","Combustión directa","Mayor emisor"]},{"titulo":"Gas natural","puntos":["~450 gCO₂eq/kWh","Ciclo combinado","Emite 30-40× más que nuclear"]}],"leyenda":"Emisiones medias de CO₂ por kWh (ciclo de vida completo)."}
+  eco-069: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Evolución del tipo oficial del BCE y efecto en hipotecas (2022-2023)"; linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres))
+    explicación antes: El tipo oficial encarece el crédito entre bancos, y estos trasladan ese coste a préstamos e hipotecas para mantener márgenes. En 2023, las subidas del BCE dispararon las cuotas hipotecarias en España hasta un 30%.
+    explicación después: El tipo oficial encarece el crédito interbancario; los bancos lo trasladan a préstamos e hipotecas para mantener márgenes. En 2023, las subidas del BCE elevaron las cuotas hipotecarias en España hasta un 30%.
+  eco-072: explicación actualizada; sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: Falso: mostrar datos reduce el sesgo pero no suele eliminar el anclaje, porque las estimaciones iniciales influyen en el punto de partida del ajuste; por eso las decisiones siguen sesgadas incluso cuando hay información disponible, lo que tiene implicaciones para cómo diseñar avisos financieros o comparadores de precios.
+    explicación después: Los datos objetivos no eliminan el anclaje porque ajustamos desde el punto de inicio, no desde cero. En los juicios por daños, las cifras iniciales de los abogados influyen incluso cuando el juez conoce estadísticas reales.
+  eco-074: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+    explicación antes: Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+    explicación después: Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.
+
+-- lote 3/8 (8 preguntas) --
+  eco-077: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos tiene "ano" repetido)
+    explicación antes: Los inversores compran esperando vender más caro a un 'tonto mayor', ignorando el valor real. En la burbuja de los tulipanes (1637), un bulbo llegó a costar lo mismo que una casa.
+    explicación después: La teoría del tonto mayor explica que los compradores adquieren un activo sobrevalorado confiando en venderlo después a alguien aún más irracional. En 2021, el precio del Bitcoin superó los 60.000 dólares sin respaldo intrínseco.
+  eco-078: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El arancel sube el precio de importación para dar ventaja al productor nacional.")
+    explicación antes: El arancel sube el precio del acero importado para que el local sea más competitivo, protegiendo empleo e industria. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.
+    explicación después: El arancel encarece el acero importado para que el local gane competitividad en precio, protegiendo empleo e industria. En 2025, la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.
+  eco-081: explicación actualizada; sin visual (esquema inválido: flujo.pasos debe tener 2-4 elementos)
+    explicación antes: Los préstamos subprime se empaquetaron en MBS y CDO, recibieron calificaciones AAA pese a su riesgo y se vendieron a bancos de todo el mundo; cuando los impagos subieron, el valor de esos activos colapsó y contagió el sistema. El mismo patrón de opacidad y apalancamiento reaparece en debates sobre criptoactivos.
+    explicación después: Los préstamos subprime se empaquetaron en bonos (MBS, CDO) con calificación AAA, y se vendieron globalmente. Al impagarse, esos activos colapsaron y contagiaron a bancos de todo el mundo.
+  eco-083: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Estrategia de reducción de dependencia de un único país desde 2022")
+    explicación antes: La pandemia y la guerra en Ucrania mostraron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.
+    explicación después: La pandemia y la guerra en Ucrania mostraron que depender de un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.
+  eco-086: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[1].puntos debe tener 2-3 elementos)
+    explicación antes: Las caídas reflejan el apalancamiento y la liquidez de cada mercado. La de 2008 fue la más contenida; la de 1929, la más devastadora. El colapso cripto de 2022 reavivó el debate sobre la regulación de stablecoins.
+    explicación después: El apalancamiento amplifica las caídas. 2008 fue la más contenida por la intervención de bancos centrales; 1929, la más devastadora por la falta de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.
+  eco-087: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "EV/EBITDA: ~8x manufactura, ~12x consumo, ~20x SaaS, ~30x marketplace"; comparacion.columnas[1].puntos debe tener 2-3 elementos)
+    explicación antes: Los inversores pagan más por negocios escalables y recurrentes. La manufactura requiere mucha inversión; los marketplaces escalan casi sin coste, lo que multiplica su valor.
+    explicación después: Los inversores valoran más los negocios escalables. La manufactura requiere mucha inversión fija; los marketplaces escalan casi sin coste, lo que dispara su múltiplo. Ejemplo: Mercado Libre cotiza a ~30x EBITDA, un fabricante a ~8x.
+  eco-089: explicación conservada (La explicación propuesta es idéntica a la actual y no aporta nada nuevo. El visual propuesto es una comparación de velocidad, pero la pregunta pide ordenar por velocidad de reacción, no comparar velocidades máximas o típicas. Además, los 'puntos' en las columnas no son comparables directamente y la leyenda repite el enunciado.); sin visual (La explicación propuesta es idéntica a la actual y no añade valor. El visual propuesto es un flujo, no un ordenamiento, y la leyenda indica 'de menor a mayor' pero los pasos no están ordenados de menor a mayor velocidad de reacción.)
+  eco-090: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: La velocidad de una burbuja depende de la liquidez y accesibilidad del mercado. Activos digitales sin fricciones se inflan en semanas; inmuebles, con trámites lentos, tardan años. Los NFT llegaron a subir 1000 % en días en 2021.
+    explicación después: La velocidad depende de la liquidez y accesibilidad del mercado: los activos digitales sin fricciones se inflan en semanas, mientras que los inmuebles, con trámites lentos, tardan años. En 2021, los NFT llegaron a subir 1000 % en días.
+    visual: {"tipo":"flujo","pasos":["Inmuebles","Bolsa tecnológica","Criptomonedas","NFT"],"leyenda":"De menor a mayor velocidad de formación de burbuja."}
+
+-- lote 3/8 (8 preguntas) --
+  eco-077: explicación conservada (La explicación propuesta no menciona el mecanismo clave de la explicación actual (comprar esperando vender más caro a un 'tonto mayor') y se centra en los algoritmos de alta frecuencia, que es un detalle no esencial. El visual propuesto es una comparación conceptual que no aporta datos verificables ni ilustra el mecanismo de la burbuja de forma clara.); sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+  eco-078: explicación actualizada; sin visual (cifra no reproducible: El arancel del 25 % aplicado a 500 € daría 625 € (500 * 1.25), pero el texto dice "Acero importado: 625 €" en la columna "Con arancel", lo cual es correcto. Sin embargo, la "leyenda" indica "El arancel del 25 % invierte la ventaja de precio", lo cual es falso ya que el acero local sigue siendo más barato (550 €) que el importado (625 €) incluso con el arancel. Además, la comparación de precios entre "Sin arancel" y "Con arancel" no muestra una inversión de la ventaja de precio, sino un encarecimiento del producto importado.)
+    explicación antes: El arancel sube el precio del acero importado para que el local sea más competitivo, protegiendo empleo e industria. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.
+    explicación después: El arancel encarece el acero importado, dando ventaja de precio al producto local para conservar empleos industriales. En 2025, la UE reactivó aranceles al acero ruso, elevando costes en construcción pero reforzando su siderurgia.
+  eco-081: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La titulización propagó la crisis de 2008 al sistema bancario global"; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Los préstamos subprime se empaquetaron en MBS y CDO, recibieron calificaciones AAA pese a su riesgo y se vendieron a bancos de todo el mundo; cuando los impagos subieron, el valor de esos activos colapsó y contagió el sistema. El mismo patrón de opacidad y apalancamiento reaparece en debates sobre criptoactivos.
+    explicación después: Los préstamos subprime se empaquetaron en bonos con calificación AAA y se vendieron globalmente; al colapsar los impagos, el sistema bancario se contagió. El patrón de opacidad y apalancamiento reaparece hoy en los criptoactivos.
+  eco-083: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Estrategia China + 1: diversificar para asegurar el suministro")
+    explicación antes: La pandemia y la guerra en Ucrania mostraron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.
+    explicación después: La pandemia y la guerra en Ucrania revelaron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar el suministro si un nodo falla.
+  eco-086: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+    explicación antes: Las caídas reflejan el apalancamiento y la liquidez de cada mercado. La de 2008 fue la más contenida; la de 1929, la más devastadora. El colapso cripto de 2022 reavivó el debate sobre la regulación de stablecoins.
+    explicación después: La caída depende del apalancamiento y la liquidez del mercado: a más crédito fácil, más profundo el desplome. El cripto de 2022, pese a su volatilidad, no alcanzó el 90 % del crash de 1929.
+  eco-087: explicación conservada (La explicación propuesta es demasiado corta y pierde la referencia a la recurrencia. El visual propuesto no ordena los elementos de menor a mayor múltiplo como pide el enunciado, sino que los divide en dos grupos y no incluye todos los elementos de la respuesta correcta.); sin visual (esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres))
+  eco-089: explicación conservada (La explicación propuesta es más larga que el límite de 40 palabras. El visual propuesto usa un tipo de gráfico ('flujo') que no es adecuado para ordenar elementos por velocidad de reacción; además, los 'pasos' no están ordenados de menor a mayor velocidad como indica la leyenda y la respuesta correcta.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad de reacción ante un aumento de inflación, de menor a mayor."; comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+  eco-090: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+    explicación antes: La velocidad de una burbuja depende de la liquidez y accesibilidad del mercado. Activos digitales sin fricciones se inflan en semanas; inmuebles, con trámites lentos, tardan años. Los NFT llegaron a subir 1000 % en días en 2021.
+    explicación después: La velocidad de una burbuja depende de la liquidez y accesibilidad del mercado: los inmuebles tardan años por sus trámites lentos, mientras que los NFT se inflaron en días en 2021. Cuanto menos fricción, más rápido se forma la espuma.
+
+-- lote 4/8 (8 preguntas) --
+  eco-091: explicación conservada (explicación de 42 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[1].puntos debe tener 2-3 elementos)
+  eco-092: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas, como en la crisis de 2021 que paralizó la automoción global.
+    explicación después: La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas, como en la crisis de 2021 que paralizó la automoción global.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Menos vulnerable","puntos":["Petróleo crudo","Almacenable y sustituible"]},{"titulo":"Más vulnerable","puntos":["Semiconductores avanzados","Fábricas únicas mundiales"]}],"leyenda":"Menor a mayor dependencia de cadenas globales"}
+  eco-097: explicación conservada (La explicación propuesta contradice la explicación actual y la respuesta correcta al afirmar que el sesgo de confirmación nos hace buscar información que respalda nuestras creencias, cuando la explicación actual y la respuesta correcta indican que es al revés (buscamos lo que confirma, no lo que contradice). El visual propuesto no ilustra un error, sino el mecanismo descrito.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo de confirmación busca confirmar, no contradecir nuestras ideas."; comparacion.columnas[0].titulo inválido (1-16 caracteres))
+  fil-023: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El lenguaje no se rechaza: se reorienta del análisis formal al uso práctico."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Wittgenstein nunca rechazó el análisis del lenguaje: en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica. Es un error común atribuirle un rechazo total que no ocurrió.
+    explicación después: Wittgenstein no rechazó el análisis lógico, sino que pasó de buscar una estructura lógica ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.
+  fil-024: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Kripke: no son equivalentes; una verdad metafísica puede descubrirse empíricamente."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[2] inválido (1-28 caracteres))
+    explicación antes: Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.
+    explicación después: Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.
+  fil-035: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Principio de parsimonia: simplicidad como criterio de eficiencia."; flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: La navaja de Ockham es un principio de parsimonia: entre hipótesis que explican igual, la que requiere menos suposiciones es preferible. No garantiza verdad, sino eficiencia. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.
+    explicación después: Es un principio de parsimonia que no busca la verdad absoluta, sino eficiencia: cuanto menos se asume, más difícil es equivocarse. Einstein lo resumió: "Tan simple como sea posible, pero no más".
+  fil-048: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+    explicación antes: La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, base de la regulación europea de IA.
+    explicación después: La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.
+  fil-056: explicación actualizada; sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa de la máquina. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.
+    explicación después: El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.
+
+-- lote 4/8 (8 preguntas) --
+  eco-091: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: Sectores intensivos en capital y con competencia de precio tienen márgenes bajos; empresas con activos físicos y altos costes variables (ej. aerolíneas) pierden margen; bancos generan ingresos por margen financiero pero con costes regulatorios; plataformas SaaS son asset-light y escalan con costes marginales bajos, generando márgenes elevados. Esta estructura explica por qué los inversores valoran fuertemente modelos de negocio escalables.
+    explicación después: Los márgenes bajos reflejan alta competencia y costes fijos elevados (aerolíneas, supermercados). Bancos tienen márgenes por intermediación financiera, pero SaaS escala sin costes variables, logrando los mayores márgenes. Esto explica por qué los inversores premian modelos escalables.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Menor margen","puntos":["Aerolíneas (1-3%)","Supermercados (2-5%)"]},{"titulo":"Mayor margen","puntos":["Bancos (20-30%)","SaaS (70-80%)"]}],"leyenda":"Margen operativo típico por industria (EBIT/ingresos)"}
+  eco-092: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La especialización y falta de reposición elevan el riesgo (crisis 2021).")
+    explicación antes: La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas, como en la crisis de 2021 que paralizó la automoción global.
+    explicación después: La vulnerabilidad crece con la especialización y el tiempo de reposición: el petróleo es almacenable y sustituible; los chips dependen de fábricas únicas. En 2021, la escasez de semiconductores paralizó la automoción global.
+  eco-097: explicación conservada (La explicacion_propuesta contradice la explicacion_actual y la respuesta_correcta. La explicacion_actual dice que buscamos info que confirma y evitamos la que contradice, mientras que la propuesta dice que buscamos info que respalda y no desafía. La respuesta_correcta indica que el dato erróneo es "Sesgo de confirmación: buscamos info que contradice nuestras creencias", lo cual es una contradicción en sí misma y no el error a encontrar. El visual propuesto ilustra el sesgo de confirmación como un ciclo de búsqueda de confirmación e ignorancia de lo que contradice, lo cual es correcto, pero la leyenda y el enunciado del quiz no son claros sobre qué es el error a encontrar.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo de confirmación nos lleva a reforzar lo que ya creemos, no a buscar lo que lo contradice."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+  fil-023: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Ambos valoran el análisis, pero cambia el enfoque: de la lógica al uso cotidiano."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Wittgenstein nunca rechazó el análisis del lenguaje: en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica. Es un error común atribuirle un rechazo total que no ocurrió.
+    explicación después: Wittgenstein no rechazó el análisis del lenguaje, sino que evolucionó: de una lógica ideal a los juegos de lenguaje, donde el significado surge del uso en contextos concretos, no de una estructura subyacente.
+  fil-024: explicación actualizada; sin visual (La explicación propuesta no aclara el error de la tarjeta, sino que repite la idea correcta. El visual propuesto no ilustra un dato erróneo, sino que compara dos conceptos, y la columna 'Kripke real' no contiene información errónea.)
+    explicación antes: Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.
+    explicación después: Kripke separó necesidad metafísica de epistémica: una verdad puede ser necesaria en todos los mundos posibles pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.
+  fil-035: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Entre explicaciones equivalentes, la simple gana por eficiencia.")
+    explicación antes: La navaja de Ockham es un principio de parsimonia: entre hipótesis que explican igual, la que requiere menos suposiciones es preferible. No garantiza verdad, sino eficiencia. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.
+    explicación después: La navaja de Ockham prioriza la explicación con menos supuestos, no por ser verdadera sino por ser más testeable y práctica. Einstein lo resumió: 'Todo tan simple como sea posible, pero no más'.
+  fil-048: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+    explicación antes: La navaja de Ockham (s. XIV) es el más antiguo; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, base de la regulación europea de IA.
+    explicación después: La navaja de Ockham (s. XIV) es la más antigua; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, base de la regulación europea de IA.
+  fil-056: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo surge de los datos, no de la intención del algoritmo."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa de la máquina. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.
+    explicación después: El sesgo algorítmico no requiere intención: surge de datos históricos sesgados o variables proxy, no de una decisión maliciosa de la máquina. Por eso las soluciones corrigen datos y objetivos, no la 'maldad' del algoritmo.
+
+-- lote 5/8 (8 preguntas) --
+  geo-022: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La latitud mide la distancia al ecuador: a mayor latitud, más al norte. Lisboa (38°N) es la más meridional, seguida de Copenhague (56°N), Helsinki (60°N) y Tromsø (69°N), que ya está dentro del círculo polar ártico.
+    explicación después: La latitud mide la distancia al ecuador: a mayor número, más al norte. Lisboa (38°N) está muy al sur; Tromsø (69°N) casi en el Ártico, donde el sol de medianoche es visible en verano.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Menor latitud","puntos":["Lisboa (38°N)","Copenhague (56°N)"]},{"titulo":"Mayor latitud","puntos":["Helsinki (60°N)","Tromsø (69°N)"]}],"leyenda":"De menor a mayor latitud norte"}
+  geo-043: explicación conservada (La explicación propuesta no menciona la latitud de todas las ciudades, omitiendo la de Lima y Buenos Aires, y la relación con el clima es una generalización excesiva para la pregunta.); sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+  geo-059: explicación actualizada; visual barras OK (deepseek/deepseek-v4-flash)
+    explicación antes: Las revisiones de 2022 y 2024 de las Perspectivas de Población Mundial sitúan a Nigeria en torno a 400 millones de habitantes para 2050, frente a unos 380 millones de EE. UU., reflejando una fecundidad aún alta y una migración neta moderada que alimenta el debate sobre presión demográfica y mercado laboral global.
+    explicación después: Nigeria crece por su alta tasa de fecundidad (5 hijos por mujer frente a 1,7 en EE. UU.), mientras EE. UU. depende de la inmigración. Para 2050, la ONU proyecta 400 millones de nigerianos frente a 380 millones de estadounidenses.
+    visual: {"tipo":"barras","titulo":"Población proyectada 2050 (millones)","items":[{"etiqueta":"Nigeria","valor":400,"unidad":"M"},{"etiqueta":"EE. UU.","valor":380,"unidad":"M"}],"leyenda":"Proyecciones ONU (World Population Prospects 2024)","fuente":"ONU 2024"}
+  his-046: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Factores que impulsaron la Revolución Industrial en Gran Bretaña"; flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Esos tres factores redujeron el coste de la energía, facilitaron el transporte de materias primas y dieron incentivos a inventores como Watt; la misma lógica de 'energía barata + instituciones que premian la innovación' se cita hoy para explicar el auge de la IA en EE. UU. y China (2023‑2025).
+    explicación después: Carbón barato, canales fluviales y patentes redujeron costes energéticos y de transporte, incentivando inventos como la máquina de Watt. Hoy, energía e instituciones similares explican el auge de la IA en EE. UU. y China (2023-2025).
+  his-060: explicación actualizada; ya tiene imagen
+    explicación antes: El Banco de Ámsterdam (1609) pionero la moneda de giro y la estabilidad cambiaria; el patrón oro (hacia 1870) ancló las divisas al metal facilitando el primer gran auge de la globalización; Bretton Woods (1944) sustituyó el oro por el dólar convertible, y su colapso en 1971 abrió la era de flotación libre que hoy permite a los bancos centrales subir tipos contra la inflación (2022-2024) sin defender una paridad fija.
+    explicación después: Unificó el dinero en una moneda de giro fiable, base del comercio global. Hoy los bancos centrales usan tipos flotantes para controlar la inflación, algo impensable con el patrón oro.
+  his-064: explicación actualizada; ya tiene imagen
+    explicación antes: La Marcha de la Sal (1930) fue un acto de desobediencia civil que movilizó a la opinión pública y presionó al Imperio británico, pero la independencia de la India no llegó hasta 1947, tras la Segunda Guerra Mundial y la partición. La marcha no provocó una independencia inmediata.
+    explicación después: La Marcha de la Sal fue un acto de desobediencia civil masivo, pero la independencia india no llegó hasta 1947, tras la guerra y la partición. Un dato: la marcha duró 24 días y recorrió 390 kilómetros.
+  log-008: FALLO — Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unexpected end of JSON input)
+  log-033: explicación actualizada; sin visual (esquema inválido: flujo.pasos[1] inválido (1-18 caracteres))
+    explicación antes: En el problema de Monty Hall, la probabilidad de ganar al cambiar es 2/3 porque el presentador siempre revela una cabra, concentrando la probabilidad inicial del 2/3 en la puerta restante; mantener la elección original deja solo 1/3. Un artículo de 2023 en 'Nature' recordó este contraejemplo para ilustrar sesgos de intuición.
+    explicación después: Al cambiar, la probabilidad sube a 2/3 porque el presentador, al revelar una cabra, concentra el 2/3 inicial en la puerta restante. El matemático Paul Erdős solo aceptó la solución al ver una simulación.
+
+-- lote 6/8 (8 preguntas) --
+  log-036: explicación conservada (La explicacion propuesta confunde la falacia del consecuente con la falacia del silogismo inválido. El visual propuesto no es correcto porque los pasos no reflejan la lógica del enunciado y la leyenda es una repetición de la explicación errónea.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La conclusión no se sigue porque el subconjunto 'rosas' podría estar fuera del subconjunto 'flores que se marchitan rápido'."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  log-037: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+    explicación antes: Al abrir una puerta perdedora, el presentador concentra la probabilidad 2/3 en la puerta restante; cambiar duplica tus opciones. Este principio se cita en análisis de toma de decisiones financieras recientes (2024) para ilustrar la actualización bayesiana.
+    explicación después: Al abrir una puerta perdedora, el presentador concentra la probabilidad 2/3 en la puerta restante; cambiar duplica tus opciones. Este principio se cita en análisis de toma de decisiones financieras recientes (2024) para ilustrar la actualización bayesiana.
+  log-040: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Con 100.000 personas: 100 enfermas, 99.900 sanas. La prueba falla en el 1 % de cada grupo."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: De 100.000 personas, unas 100 están enfermas y la prueba captura a 99 de ellas; pero el 1 % de las 99.900 sanas (unas 999) también da positivo. Por eso solo ~99 de ~1.098 positivos son enfermos: menos del 10 %. Esta 'falacia de la tasa base' explica por qué los sistemas de detección de fraude o lavado de dinero generan miles de alertas falsas que los bancos deben filtrar a mano.
+    explicación después: La prueba genera muchos positivos falsos porque el 1% de los sanos supera a los enfermos reales. De 1.098 positivos, solo 99 están enfermos. Por eso los bancos filtran miles de alertas de fraude a mano.
+  log-047: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "De menos a más competidores: Monopolio → Oligopolio → Monopolio competitivo → Competencia perfecta"; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos)
+    explicación antes: El número de competidores determina el poder de fijar precios: menos rivales, más control. El monopolio es un único vendedor; la competencia perfecta, un ideal teórico con muchos. Hoy, los reguladores europeos vigilan a las grandes tecnológicas por prácticas oligopólicas.
+    explicación después: Cuanto menos competidores, más poder para fijar precios. Monopolio (uno), oligopolio (pocos), competencia monopolística (muchos con poder de marca) y competencia perfecta (infinitos). La UE multó a Google en 2024 por abusos de oligopolio en publicidad.
+  log-048: explicación actualizada; ya tiene imagen
+    explicación antes: El silogismo clásico establece que si todos los humanos son mortales y Sócrates es humano, la conclusión necesaria es que Sócrates es mortal; la tarjeta dice que es inmortal, lo que rompe la validez del razonamiento. Este tipo de error lógico aparece a menudo en discursos políticos recientes (p. ej., debates de 2023 sobre falacias formales).
+    explicación después: El silogismo es válido solo si la conclusión se deduce necesariamente de las premisas. Decir que Sócrates es inmortal cuando ambas premisas lo declaran mortal es un error formal, no de contenido.
+  log-050: explicación conservada (La explicacion propuesta no aclara que el error está en la tarjeta, sino que repite la explicacion actual. El visual propuesto no es adecuado para ilustrar el error en la tarjeta, ya que presenta dos definiciones correctas y no la definición errónea que se supone que está en la tarjeta.); sin visual (esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres))
+  tec-015: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: Actúa como un traductor automático: convierte nombres de dominio (como 'google.com') en direcciones IP numéricas que los ordenadores usan para localizar servidores. Sin él, navegar requeriría memorizar largas secuencias de números, como en los años 80.
+    explicación después: El DNS traduce nombres de dominio a direcciones IP, como una agenda telefónica de internet. Sin él, cada web requeriría memorizar una IP numérica, inviable para el usuario actual.
+    visual: {"tipo":"flujo","pasos":["Escribes dominio","Consulta DNS","Obtienes IP","Conectas al sitio"],"leyenda":"El DNS traduce nombres a IPs en milisegundos"}
+  tec-037: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El entrenamiento mezcla ambas fuentes, lo que genera conflictos legales."; comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Se entrenan con datos protegidos por derechos de autor, no solo dominio público, porque necesitan enormes volúmenes de texto. Esto ha provocado demandas de autores y editoriales en 2023-2024 sobre el uso de sus obras sin permiso.
+    explicación después: No: usan además textos protegidos por derechos de autor, porque necesitan volúmenes imposibles de conseguir solo con dominio público. Eso ha generado demandas de autores y editoriales en 2023-2024, un debate aún abierto sobre el límite del uso legítimo.
+
+-- lote 7/8 (8 preguntas) --
+  tec-040: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El estado sólido duplica la densidad y elimina el riesgo de incendio."; comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres))
+    explicación antes: El electrolito sólido no es inflamable, evitando incendios, y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.
+    explicación después: El electrolito sólido no se incendia y permite ánodo de litio metálico, que almacena más energía que el grafito. Toyota presentó en 2024 un prototipo que carga 500 km en 10 minutos.
+  tec-043: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La cadena de suministro multipaís permite bloquear la venta de máquinas EUV."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: La litografía EUV exige precisión atómica: cada máquina cuesta 150 millones de dólares y solo ASML la fabrica, con piezas de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.
+    explicación después: La litografía EUV requiere precisión atómica y solo ASML la fabrica, con componentes de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.
+
+[progreso] 50/57 candidatas procesadas, coste acumulado hoy 0.2780 €.
+  tec-046: explicación conservada (La explicacion propuesta no aclara el porqué de la respuesta correcta, que es la capacidad de transmisión masiva y la latencia de la fibra óptica frente a los satélites. El visual propuesto no es correcto porque la pregunta pide un porcentaje y el visual no lo muestra de forma clara, además de que la fuente citada (TeleGeography) no es accesible para verificar los datos.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Casi todo el tráfico internacional viaja por cable submarino.")
+  tec-047: explicación actualizada; sin visual (esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+    explicación antes: ASML es el único proveedor mundial de máquinas EUV; cada equipo necesita miles de componentes de alta precisión de proveedores de varios países, lo que la convierte en un punto de control geopolítico (restricciones de exportación 2022‑2024).
+    explicación después: ASML es el único fabricante mundial de máquinas EUV, lo que la convierte en un punto de control geopolítico. Cada equipo integra miles de componentes de alta precisión de varios países, limitando la producción de chips avanzados.
+  tec-048: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado de extremo a extremo usa pares de claves asimétricas para garantizar privacidad."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: El remitente cifra el mensaje con la clave pública del destinatario, y solo su clave privada (que nunca sale de su dispositivo) puede descifrarlo. Por eso ni Telegram, ni WhatsApp, ni un gobierno pueden leerlo aunque tengan los servidores.
+    explicación después: Solo el destinatario tiene la clave privada que descifra el mensaje, así ni el proveedor ni un atacante pueden leerlo. Es como una cerradura que solo abre la llave que nunca sale de tu bolsillo.
+  tec-051: explicación actualizada; visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    explicación antes: Un nodo más pequeño permite colocar más transistores en el mismo área, lo que aumenta el rendimiento y reduce el consumo energético por operación. La producción en 3 nm de TSMC comenzó en 2022 y marcó un hito en la carrera de litografía avanzada.
+    explicación después: Los nodos más pequeños empaquetan más transistores, mejorando rendimiento y eficiencia. TSMC inició la producción en 3 nm en 2022, un hito en la miniaturización.
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"2011","texto":"28 nm"},{"ano":"2014","texto":"14 nm"},{"ano":"2018","texto":"7 nm"},{"ano":"2022","texto":"3 nm"}],"leyenda":"Cada salto duplica la densidad de transistores por mm²"}
+  tec-052: explicación actualizada; sin visual (El visual propuesto solo compara 64 bits con 256 bits, omitiendo las claves de 128 y 192 bits que son parte de la respuesta correcta y del enunciado. Además, la información de 'Vulnerable hoy' y 'Resiste cuánticos' es una simplificación excesiva y no representa la complejidad real de los ataques.)
+    explicación antes: Cada bit extra duplica el número de claves posibles, así que una de 256 bits es 2^192 veces más compleja que una de 64. Por eso el NIST ya recomienda 256 bits como mínimo frente a futuros ordenadores cuánticos.
+    explicación después: Cada bit extra duplica el número de claves posibles. Una clave de 256 bits es 2^192 veces más compleja que una de 64 bits, por lo que el NIST ya recomienda 256 bits como mínimo frente a futuros ordenadores cuánticos.
+  AVISO: tec-053 costó 0.002047 € (> 0,0015 € esperado por pregunta).
+  tec-053: explicación conservada (explicación de 43 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Densidad energética típica de baterías de vehículo eléctrico (fuente: DOE 2023)")
+
+-- lote 8/8 (1 preguntas) --
+  tec-057: explicación actualizada; ya tiene imagen
+    explicación antes: Un 'backdoor' introduce claves o vías de acceso adicionales; eso aumenta la superficie de ataque y por tanto la probabilidad de que actores maliciosos exploten esa puerta, degradando la seguridad para todos. Este punto es central en debates recientes sobre cifrado y accesos legales, donde la técnica se sacrifica por la posibilidad de intercepción.
+    explicación después: Un backdoor introduce claves adicionales, lo que amplía la superficie de ataque y facilita su explotación por actores maliciosos, degradando la seguridad. Este debate resurge con las leyes de cifrado en la UE y EE. UU. (2022-2026).
+
+=== Resumen ===
+  economia: 14 procesadas, 11 explicación actualizada, 4 visual generado (formula:1, comparacion:2, flujo:1)
+  historia: 3 procesadas, 3 explicación actualizada, 0 visual generado (ninguno)
+  ciencia: 10 procesadas, 8 explicación actualizada, 3 visual generado (flujo:1, comparacion:1, barras:1)
+  tecnologia: 11 procesadas, 9 explicación actualizada, 2 visual generado (flujo:1, linea-tiempo:1)
+  geografia: 3 procesadas, 2 explicación actualizada, 2 visual generado (comparacion:1, barras:1)
+  filosofia: 5 procesadas, 5 explicación actualizada, 0 visual generado (ninguno)
+  arte: 3 procesadas, 3 explicación actualizada, 0 visual generado (ninguno)
+  logica: 8 procesadas, 5 explicación actualizada, 0 visual generado (ninguno)
+
+Total candidatas: 57
+Resueltas: 56
+Fallos de cascada (red/todos los modelos): 1
+Rechazadas por verificación (explicación): 10
+Rechazadas por verificación (visual, tras reintento): 38
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 34
+
+Detalle rechazos de visual (motivo):
+  art-089: esquema inválido: flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  art-090: esquema inválido: leyenda inválida (1-60 caracteres): "De recuperar lo clásico a negar el objeto: la ruptura se acelera."
+  cie-008: esquema inválido: leyenda inválida (1-60 caracteres): "Oxígeno, silicio y aluminio suman el 82 % en peso de la corteza (Garrels & Mackenzie 1971)"
+  cie-068: esquema inválido: leyenda inválida (1-60 caracteres): "Replicación semiconservativa: cada hija conserva una hebra parental"
+  cie-073: esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de limpieza cerebral durante el sueño de ondas lentas."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  cie-075: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres)
+  cie-081: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres)
+  eco-072: esquema inválido: leyenda inválida (1-60 caracteres): "Mostrar la media del fenómeno no elimina el anclaje, solo lo atenúa."
+  eco-077: esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos tiene "ano" repetido
+  eco-078: esquema inválido: leyenda inválida (1-60 caracteres): "El arancel sube el precio de importación para dar ventaja al productor nacional."
+  eco-081: esquema inválido: flujo.pasos debe tener 2-4 elementos
+  eco-083: esquema inválido: leyenda inválida (1-60 caracteres): "Estrategia de reducción de dependencia de un único país desde 2022"
+  eco-086: esquema inválido: comparacion.columnas[1].puntos debe tener 2-3 elementos
+  eco-087: esquema inválido: leyenda inválida (1-60 caracteres): "EV/EBITDA: ~8x manufactura, ~12x consumo, ~20x SaaS, ~30x marketplace"; comparacion.columnas[1].puntos debe tener 2-3 elementos
+  eco-089: La explicación propuesta es idéntica a la actual y no añade valor. El visual propuesto es un flujo, no un ordenamiento, y la leyenda indica 'de menor a mayor' pero los pasos no están ordenados de menor a mayor velocidad de reacción.
+  eco-091: esquema inválido: comparacion.columnas[1].puntos debe tener 2-3 elementos
+  eco-097: esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo de confirmación busca confirmar, no contradecir nuestras ideas."; comparacion.columnas[0].titulo inválido (1-16 caracteres)
+  fil-023: esquema inválido: leyenda inválida (1-60 caracteres): "El lenguaje no se rechaza: se reorienta del análisis formal al uso práctico."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-024: esquema inválido: leyenda inválida (1-60 caracteres): "Kripke: no son equivalentes; una verdad metafísica puede descubrirse empíricamente."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[2] inválido (1-28 caracteres)
+  fil-035: esquema inválido: leyenda inválida (1-60 caracteres): "Principio de parsimonia: simplicidad como criterio de eficiencia."; flujo.pasos[2] inválido (1-18 caracteres)
+  fil-048: esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  fil-056: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  geo-043: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  his-046: esquema inválido: leyenda inválida (1-60 caracteres): "Factores que impulsaron la Revolución Industrial en Gran Bretaña"; flujo.pasos[3] inválido (1-18 caracteres)
+  log-033: esquema inválido: flujo.pasos[1] inválido (1-18 caracteres)
+  log-036: esquema inválido: leyenda inválida (1-60 caracteres): "La conclusión no se sigue porque el subconjunto 'rosas' podría estar fuera del subconjunto 'flores que se marchitan rápido'."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  log-037: esquema inválido: comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres)
+  log-040: esquema inválido: leyenda inválida (1-60 caracteres): "Con 100.000 personas: 100 enfermas, 99.900 sanas. La prueba falla en el 1 % de cada grupo."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  log-047: esquema inválido: leyenda inválida (1-60 caracteres): "De menos a más competidores: Monopolio → Oligopolio → Monopolio competitivo → Competencia perfecta"; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos
+  log-050: esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres)
+  tec-037: esquema inválido: leyenda inválida (1-60 caracteres): "El entrenamiento mezcla ambas fuentes, lo que genera conflictos legales."; comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  tec-040: esquema inválido: leyenda inválida (1-60 caracteres): "El estado sólido duplica la densidad y elimina el riesgo de incendio."; comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres)
+  tec-043: esquema inválido: leyenda inválida (1-60 caracteres): "La cadena de suministro multipaís permite bloquear la venta de máquinas EUV."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  tec-046: esquema inválido: leyenda inválida (1-60 caracteres): "Casi todo el tráfico internacional viaja por cable submarino."
+  tec-047: esquema inválido: linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  tec-048: esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado de extremo a extremo usa pares de claves asimétricas para garantizar privacidad."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  tec-052: El visual propuesto solo compara 64 bits con 256 bits, omitiendo las claves de 128 y 192 bits que son parte de la respuesta correcta y del enunciado. Además, la información de 'Vulnerable hoy' y 'Resiste cuánticos' es una simplificación excesiva y no representa la complejidad real de los ataques.
+  tec-053: esquema inválido: leyenda inválida (1-60 caracteres): "Densidad energética típica de baterías de vehículo eléctrico (fuente: DOE 2023)"
+
+Detalle rechazos de explicación (motivo):
+  cie-068: La explicacion_propuesta no es correcta. La explicacion_actual dice que cada nueva molécula contiene una hebra parental y una recién sintetizada, mientras que la explicacion_propuesta dice que cada nueva molécula conserva una hebra original y sintetiza otra nueva. La explicacion_propuesta es una reformulación de la explicacion_actual, no una corrección.
+  cie-082: explicación de 41 palabras (> 40)
+  eco-089: La explicación propuesta es idéntica a la actual y no aporta nada nuevo. El visual propuesto es una comparación de velocidad, pero la pregunta pide ordenar por velocidad de reacción, no comparar velocidades máximas o típicas. Además, los 'puntos' en las columnas no son comparables directamente y la leyenda repite el enunciado.
+  eco-091: explicación de 42 palabras (> 40)
+  eco-097: La explicación propuesta contradice la explicación actual y la respuesta correcta al afirmar que el sesgo de confirmación nos hace buscar información que respalda nuestras creencias, cuando la explicación actual y la respuesta correcta indican que es al revés (buscamos lo que confirma, no lo que contradice). El visual propuesto no ilustra un error, sino el mecanismo descrito.
+  geo-043: La explicación propuesta no menciona la latitud de todas las ciudades, omitiendo la de Lima y Buenos Aires, y la relación con el clima es una generalización excesiva para la pregunta.
+  log-036: La explicacion propuesta confunde la falacia del consecuente con la falacia del silogismo inválido. El visual propuesto no es correcto porque los pasos no reflejan la lógica del enunciado y la leyenda es una repetición de la explicación errónea.
+  log-050: La explicacion propuesta no aclara que el error está en la tarjeta, sino que repite la explicacion actual. El visual propuesto no es adecuado para ilustrar el error en la tarjeta, ya que presenta dos definiciones correctas y no la definición errónea que se supone que está en la tarjeta.
+  tec-046: La explicacion propuesta no aclara el porqué de la respuesta correcta, que es la capacidad de transmisión masiva y la latencia de la fibra óptica frente a los satélites. El visual propuesto no es correcto porque la pregunta pide un porcentaje y el visual no lo muestra de forma clara, además de que la fuente citada (TeleGeography) no es accesible para verificar los datos.
+  tec-053: explicación de 43 palabras (> 40)
+
+Detalle fallos de cascada:
+  log-008: Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unexpected end of JSON input)
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.040892 $
