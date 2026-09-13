@@ -120,7 +120,8 @@ function esTextoValido(t) {
  * hay un alto de viewBox compartido. `aspect-ratio` en línea (mismo valor que
  * el viewBox) es lo que permite a `.visual-svg` (estilos.css) usar
  * `height:auto` — el dibujo ocupa solo lo que necesita, nunca más. */
-function crearSvg(alto) {
+function crearSvg(altoContenido) {
+  const alto = Math.max(ALTO_MINIMO, altoContenido);
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${alto}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -187,6 +188,11 @@ const ANCHO = 320;
 // vez de repartir un alto fijo entre ellas (que es justo lo que dejaba
 // hueco vacío cuando había menos filas que el máximo de 5).
 const ALTO_FILA = 36;
+// Alto mínimo del viewBox (hallazgo adversarial v0.1e #5): con poco contenido
+// (p. ej. 2 barras sin título = 84) el SVG quedaba por debajo de los 90 px reales
+// que la cascada de encaje da por sentados (spec v0.1d §4). A ~305 px de ancho
+// de tarjeta, 100 unidades ≈ 95 px reales.
+const ALTO_MINIMO = 100;
 
 /** Parte una fórmula por el primer "=" (V2): izquierda se queda con el "="
  * pegado ("Superávit ="), derecha es el resto. Sin "=" en el texto (no
@@ -298,7 +304,7 @@ function formatearValor(v) {
 function plantillaBarras(visual) {
   if (!Array.isArray(visual.items)) return null;
   const items = visual.items
-    .filter((it) => it && esTextoValido(it.etiqueta) && typeof it.valor === 'number' && Number.isFinite(it.valor))
+    .filter((it) => it && esTextoValido(it.etiqueta) && typeof it.valor === 'number' && Number.isFinite(it.valor) && it.valor > 0) // magnitudes comparables: ceros y negativos no se dibujan (adversarial v0.1e #4)
     .slice(0, 5);
   if (!items.length) return null;
 
@@ -324,7 +330,7 @@ function plantillaBarras(visual) {
   const anchoBarraMax = 72;
   const xValor = xBarra + anchoBarraMax + 6;
   const anchoValor = Math.max(20, ANCHO - xValor - 4);
-  const maxValor = Math.max(...items.map((it) => Math.abs(it.valor)), 1e-9);
+  const maxValor = Math.max(...items.map((it) => it.valor));
 
   items.forEach((it, i) => {
     const y = cabecera + i * ALTO_FILA + ALTO_FILA / 2;
@@ -334,7 +340,7 @@ function plantillaBarras(visual) {
     svg.appendChild(crearTexto(xEtiqueta, y, etiquetaTexto, { tamano: 13, color: 'var(--texto)' }));
 
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarraMax, altoBarra, 'var(--texto-suave)', 0.2));
-    const anchoBarra = Math.max(3, (Math.abs(it.valor) / maxValor) * anchoBarraMax);
+    const anchoBarra = Math.max(3, (it.valor / maxValor) * anchoBarraMax);
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarra, altoBarra, 'var(--acento)', 1));
 
     const unidad = esTextoValido(it.unidad) ? ` ${it.unidad.trim()}` : '';
@@ -504,6 +510,6 @@ export function construirVisual(visual) {
   if (!svg) return null;
 
   svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', esTextoValido(visual.leyenda) ? visual.leyenda.trim() : '');
+  svg.setAttribute('aria-label', esTextoValido(visual.leyenda) ? visual.leyenda.trim() : `Visual: ${visual.tipo}`); // nunca vacío (adversarial v0.1e #9)
   return svg;
 }
