@@ -39,13 +39,17 @@ Por defecto solo se usan modelos `:free`. La cola de pago barato de la cascada (
 
 ## Imágenes (Wikimedia Commons)
 
-`datos/imagenes.json` (`{id: {...}}`) da una imagen de apoyo a las preguntas donde de verdad aporta: la obra en arte, un mapa o foto del lugar en geografía, la persona/lugar/documento en historia, el fenómeno visible en ciencia. Nunca decoración, y nunca en preguntas abstractas (definiciones, lógica formal, economía conceptual) salvo que haya algo concreto que mostrar.
+`datos/imagenes.json` (`{id: {...}}`) da una imagen de apoyo a las preguntas donde de verdad aporta, con criterio amplio: la obra en arte, un mapa o foto del lugar en geografía, la persona/lugar/documento en historia, el fenómeno visible en ciencia, un retrato de persona nombrada, un gráfico o diagrama reconocible del fenómeno (curvas de oferta y demanda, inflación, redes), una portada o fotograma de una obra de cine/literatura, o un edificio/objeto concreto. Nunca decoración, y nunca en lógica formal, definiciones puras ni preguntas sin referente visual.
 
 ```
 node tools/buscar-imagenes.js [--area X] [--solo-pendientes] [--limite N] [--aplicar]
+node tools/buscar-imagenes.js --revalidar [--aplicar]
+node tools/buscar-imagenes.js --revalidar-visual [--limite N] [--aplicar]
 ```
 
-Sin `--aplicar` solo informa (no toca disco). Tres pasos, sin ningún dato confidencial: (A) un modelo `:free` decide si la pregunta se beneficia de imagen y propone términos de búsqueda en inglés; (B) la API pública de Commons (sin clave) busca esos términos y se queda con el primer resultado con licencia libre, tamaño mínimo y tipo de fichero válidos; (C) un modelo `:free` comprueba que la imagen encontrada ilustra de verdad la respuesta correcta, no solo el tema general, y descarta las que no.
+Sin `--aplicar` solo informa (no toca disco). Tres pasos para encontrar candidatas, sin ningún dato confidencial: (A) un modelo `:free` decide si la pregunta se beneficia de imagen y propone hasta 3 términos de búsqueda alternativos en inglés; (B) la API pública de Commons (sin clave) busca esos términos y se queda con el primer resultado con licencia libre, tamaño mínimo y tipo de fichero válidos; (C) un modelo `:free` comprueba **por título y descripción** que la imagen encontrada ilustra de verdad la respuesta correcta, no solo el tema general, y descarta las que no. `--revalidar` repite solo el paso C sobre lo ya guardado.
+
+**`--revalidar-visual`**: paso adicional que un modelo `:free` **con visión** (`inclusionai/ling-3.0-flash-vl:free`, con reserva en `google/gemma-4-31b-it:free` y `google/gemma-4-26b-a4b-it:free`) hace VIENDO la miniatura de la imagen (pedida a la API de Commons a 400px, no construida a mano: Wikimedia solo sirve por URL directa los anchos ya generados/cacheados de antes), no solo leyendo el título — detecta lo que el paso C por texto no puede ver (recortes, homónimos con foto real pero de otra persona, imagen borrosa o genérica pese a un título correcto). Se aplica sobre TODAS las imágenes guardadas, nuevas y viejas. Descarta lo que el modelo marca `relevante:false` o lo que no responde tras 2 intentos, y guarda progreso parcial en `datos/imagenes.json` tras cada lote de 15 (con `--aplicar`), con backoff de 30/60/120s si la cascada de modelos gratis se satura.
 
 **Licencias admitidas**: Public domain, CC0, CC BY (cualquier versión) y CC BY-SA (cualquier versión). Se rechazan siempre: NC (no comercial), ND (sin obra derivada), "fair use" y cualquier imagen sin licencia clara. Cada entrada guarda `autor`, `licencia` y `pagina` (el enlace a la página de Commons): la interfaz debe mostrar esa atribución (autor · licencia · enlace) junto a la imagen. `tools/validar-banco.js` comprueba, si existe `datos/imagenes.json`, que cada id está en el banco, que la url es https de `upload.wikimedia.org` y que la licencia es una de las permitidas.
 

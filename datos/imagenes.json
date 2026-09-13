@@ -71,30 +71,6 @@
     "ancho": 900,
     "alto": 582
   },
-  "art-014": {
-    "id": "art-014",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg/960px-Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Dolceacqua43_-_Artista_locale_mentre_dipinge_un_acquarello.jpg",
-    "titulo": "Dolceacqua43 - Artista locale mentre dipinge un acquarello.jpg",
-    "autor": "Dongio",
-    "licencia": "Public domain",
-    "leyenda": "Técnica de acuarela",
-    "termino": "Watercolor painting technique",
-    "ancho": 900,
-    "alto": 675
-  },
-  "art-018": {
-    "id": "art-018",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg/960px-Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Las_Meninas,_by_Diego_Vel%C3%A1zquez,_from_Prado_in_Google_Earth.jpg",
-    "titulo": "Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg",
-    "autor": "Diego Velázquez",
-    "licencia": "Public domain",
-    "leyenda": "Las Meninas de Velázquez",
-    "termino": "Las Meninas Velázquez painting",
-    "ancho": 900,
-    "alto": 1036
-  },
   "art-030": {
     "id": "art-030",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/960px-VanGogh-starry_night_ballance1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -191,18 +167,6 @@
     "ancho": 900,
     "alto": 598
   },
-  "art-072": {
-    "id": "art-072",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:%22Guernica%22_by_Picasso_at_MOMA,_NYC.jpg",
-    "titulo": "\"Guernica\" by Picasso at MOMA, NYC.jpg",
-    "autor": "Gotfryd, Bernard",
-    "licencia": "Public domain",
-    "leyenda": "Guernica de Picasso",
-    "termino": "Guernica Picasso painting",
-    "ancho": 900,
-    "alto": 605
-  },
   "art-076": {
     "id": "art-076",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -251,18 +215,6 @@
     "ancho": 900,
     "alto": 1311
   },
-  "art-094": {
-    "id": "art-094",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Microcosm_of_London_Plate_006_-_Auction_Room%2C_Christie%27s_%28edited%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Microcosm_of_London_Plate_006_-_Auction_Room,_Christie%27s_(edited).jpg",
-    "titulo": "Microcosm of London Plate 006 - Auction Room, Christie's (edited).jpg",
-    "autor": "Thomas Rowlandson (1756–1827) and Augustus Charles Pugin (1762–1832) (after) John Bluck (fl. 1791–1819), Joseph Constantine Stadler (fl. 1780–1812), Thomas Sutherland (1785–1838), J. Hill, and Harrade",
-    "licencia": "Public domain",
-    "leyenda": "Sala de subastas Christie's, donde se venden obras",
-    "termino": "Christie's auction room interior",
-    "ancho": 900,
-    "alto": 670
-  },
   "cie-016": {
     "id": "cie-016",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Atmosphere_Composition_Hand_Mnemonic.png/960px-Atmosphere_Composition_Hand_Mnemonic.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -274,42 +226,6 @@
     "termino": "Earth atmosphere composition pie chart nitrogen oxygen",
     "ancho": 900,
     "alto": 1500
-  },
-  "cie-031": {
-    "id": "cie-031",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/Biological_cell-2010-14-11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Biological_cell-2010-14-11.jpg",
-    "titulo": "Biological cell-2010-14-11.jpg",
-    "autor": "Biological_cell.svg : MesserWoland and Szczepan1990 derivative work: MrArifnajafov ( talk )",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Mitocondria: central energética productora de ATP",
-    "termino": "Animal cell organelles diagram mitochondria",
-    "ancho": 900,
-    "alto": 411
-  },
-  "cie-041": {
-    "id": "cie-041",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Mitochondrial_DNA_lg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Mitochondrial_DNA_lg.jpg",
-    "titulo": "Mitochondrial DNA lg.jpg",
-    "autor": "National Human Genome Research Institute",
-    "licencia": "Public domain",
-    "leyenda": "Mitocondria, central energética de la célula",
-    "termino": "Mitochondria cell powerhouse diagram",
-    "ancho": 900,
-    "alto": 1006
-  },
-  "cie-047": {
-    "id": "cie-047",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/Feynman_diagrams_of_photon-photon_scattering.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Feynman_diagrams_of_photon-photon_scattering.jpg",
-    "titulo": "Feynman diagrams of photon-photon scattering.jpg",
-    "autor": "ATLAS Collaboration",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Fotón mediador de la interacción electromagnética",
-    "termino": "Feynman diagram photon electromagnetic interaction",
-    "ancho": 900,
-    "alto": 258
   },
   "cie-052": {
     "id": "cie-052",
@@ -334,30 +250,6 @@
     "termino": "Isaac Newton portrait",
     "ancho": 900,
     "alto": 1537
-  },
-  "cie-084": {
-    "id": "cie-084",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Space_sustainability_urgency_in_earth_orbits_white.png/960px-Space_sustainability_urgency_in_earth_orbits_white.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Space_sustainability_urgency_in_earth_orbits_white.png",
-    "titulo": "Space sustainability urgency in earth orbits white.png",
-    "autor": "Pablo Carlos Budassi",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Satélite geoestacionario a 35 786 km sobre el ecuador",
-    "termino": "geostationary orbit diagram",
-    "ancho": 900,
-    "alto": 756
-  },
-  "cie-089": {
-    "id": "cie-089",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/TORNAI-SpectrumOfMedicalImaging.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:TORNAI-SpectrumOfMedicalImaging.jpg",
-    "titulo": "TORNAI-SpectrumOfMedicalImaging.jpg",
-    "autor": "Martin Tornai",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Energía fotónica aumenta de rojo a violeta",
-    "termino": "visible spectrum photon energy diagram",
-    "ancho": 900,
-    "alto": 630
   },
   "cie-092": {
     "id": "cie-092",
@@ -394,42 +286,6 @@
     "termino": "Milton Friedman portrait",
     "ancho": 900,
     "alto": 1123
-  },
-  "eco-079": {
-    "id": "eco-079",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Thomas_Piketty2.jpg/960px-Thomas_Piketty2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Thomas_Piketty2.jpg",
-    "titulo": "Thomas Piketty2.jpg",
-    "autor": "librairie mollat",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Thomas Piketty, autor de El capital en el siglo XXI",
-    "termino": "Thomas Piketty",
-    "ancho": 900,
-    "alto": 1145
-  },
-  "eco-095": {
-    "id": "eco-095",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Lehman_Brothers_Times_Square_by_David_Shankbone.jpg/960px-Lehman_Brothers_Times_Square_by_David_Shankbone.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Lehman_Brothers_Times_Square_by_David_Shankbone.jpg",
-    "titulo": "Lehman Brothers Times Square by David Shankbone.jpg",
-    "autor": "David Shankbone",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Sede de Lehman Brothers en Nueva York, epicentro de la quieb",
-    "termino": "Lehman Brothers headquarters New York 2008",
-    "ancho": 900,
-    "alto": 1200
-  },
-  "fil-006": {
-    "id": "fil-006",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Jean_Paul_Sartre_1965.jpg/960px-Jean_Paul_Sartre_1965.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Jean_Paul_Sartre_1965.jpg",
-    "titulo": "Jean Paul Sartre 1965.jpg",
-    "autor": "Unknown author Unknown author",
-    "licencia": "CC BY-SA 3.0 nl",
-    "leyenda": "Jean-Paul Sartre, existencialista",
-    "termino": "Jean-Paul Sartre portrait",
-    "ancho": 900,
-    "alto": 1178
   },
   "fil-007": {
     "id": "fil-007",
@@ -503,54 +359,6 @@
     "ancho": 900,
     "alto": 1260
   },
-  "geo-001": {
-    "id": "geo-001",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Strait_of_Gibraltar_from_Plane.jpg/960px-Strait_of_Gibraltar_from_Plane.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Strait_of_Gibraltar_from_Plane.jpg",
-    "titulo": "Strait of Gibraltar from Plane.jpg",
-    "autor": "Florian Sauerland",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "El Estrecho de Gibraltar une Mediterráneo y Atlántico",
-    "termino": "Strait of Gibraltar map",
-    "ancho": 900,
-    "alto": 506
-  },
-  "geo-005": {
-    "id": "geo-005",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/AMH-8032-KB_Map_of_the_Pacific_Ocean%2C_with_Australia_and_the_west_coast_of_South_America.jpg/960px-AMH-8032-KB_Map_of_the_Pacific_Ocean%2C_with_Australia_and_the_west_coast_of_South_America.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:AMH-8032-KB_Map_of_the_Pacific_Ocean,_with_Australia_and_the_west_coast_of_South_America.jpg",
-    "titulo": "AMH-8032-KB Map of the Pacific Ocean, with Australia and the west coast of South America.jpg",
-    "autor": "Jacques-Nicolas Bellin / Jakob van der Schley / Pieter de Hondt",
-    "licencia": "Public domain",
-    "leyenda": "Océano Pacífico baña la costa oeste de Sudamérica",
-    "termino": "Pacific Ocean South America west coast map",
-    "ancho": 900,
-    "alto": 561
-  },
-  "geo-028": {
-    "id": "geo-028",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/China_edcp_relief_location_map_Gobi_de.jpg/960px-China_edcp_relief_location_map_Gobi_de.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:China_edcp_relief_location_map_Gobi_de.jpg",
-    "titulo": "China edcp relief location map Gobi de.jpg",
-    "autor": "WeHaKa",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "El desierto de Gobi está en Asia, no en Sudamérica",
-    "termino": "Gobi Desert map Asia",
-    "ancho": 900,
-    "alto": 717
-  },
-  "geo-032": {
-    "id": "geo-032",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/Andes_mountain_range_in_Winter%2C_Chile_June_2025.jpg/960px-Andes_mountain_range_in_Winter%2C_Chile_June_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Andes_mountain_range_in_Winter,_Chile_June_2025.jpg",
-    "titulo": "Andes mountain range in Winter, Chile June 2025.jpg",
-    "autor": "MattWithX1",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Los Andes atraviesan siete países sudamericanos",
-    "termino": "Andes mountain range South America map",
-    "ancho": 900,
-    "alto": 675
-  },
   "geo-034": {
     "id": "geo-034",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/USA_states_atlantic_coast.png/960px-USA_states_atlantic_coast.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -562,18 +370,6 @@
     "termino": "Atlantic Ocean east coast United States map",
     "ancho": 900,
     "alto": 556
-  },
-  "geo-042": {
-    "id": "geo-042",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/European_ministates_map.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:European_ministates_map.png",
-    "titulo": "European ministates map.png",
-    "autor": "Paasikivi",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Microestados europeos ordenados por superficie",
-    "termino": "European microstates map Vatican City Monaco San Marino Liechtenstein",
-    "ancho": 900,
-    "alto": 976
   },
   "geo-052": {
     "id": "geo-052",
@@ -611,30 +407,6 @@
     "ancho": 900,
     "alto": 506
   },
-  "geo-064": {
-    "id": "geo-064",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Nile_River_and_delta_from_orbit.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Nile_River_and_delta_from_orbit.jpg",
-    "titulo": "Nile River and delta from orbit.jpg",
-    "autor": "Jacques Descloitres, MODIS Rapid Response Team, NASA/sh",
-    "licencia": "Public domain",
-    "leyenda": "Valle del Nilo, zona fértil en el desierto",
-    "termino": "Nile Valley Egypt satellite view green desert",
-    "ancho": 900,
-    "alto": 707
-  },
-  "his-007": {
-    "id": "his-007",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Le_si%C3%A8ge_de_Constantinople_%281453%29_by_Jean_Le_Tavernier_after_1455.jpg/960px-Le_si%C3%A8ge_de_Constantinople_%281453%29_by_Jean_Le_Tavernier_after_1455.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Le_si%C3%A8ge_de_Constantinople_(1453)_by_Jean_Le_Tavernier_after_1455.jpg",
-    "titulo": "Le siège de Constantinople (1453) by Jean Le Tavernier after 1455.jpg",
-    "autor": "",
-    "licencia": "Public domain",
-    "leyenda": "Caída de Constantinopla 1453",
-    "termino": "Fall of Constantinople 1453",
-    "ancho": 900,
-    "alto": 1330
-  },
   "his-008": {
     "id": "his-008",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Machu_Picchu%2C_Per%C3%BA%2C_2015-07-30%2C_DD_47.JPG/960px-Machu_Picchu%2C_Per%C3%BA%2C_2015-07-30%2C_DD_47.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -659,18 +431,6 @@
     "ancho": 900,
     "alto": 697
   },
-  "his-012": {
-    "id": "his-012",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Tomb_of_Cyrus_the_Great.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Tomb_of_Cyrus_the_Great.jpg",
-    "titulo": "Tomb of Cyrus the Great.jpg",
-    "autor": "Mohammad Reza Domiri Ganji محمدرضا دومیری گنجی",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Ciro el Grande, fundador persa",
-    "termino": "Cyrus the Great",
-    "ancho": 900,
-    "alto": 1351
-  },
   "his-013": {
     "id": "his-013",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Romulus_Augustulus_and_Odoacer.jpg/960px-Romulus_Augustulus_and_Odoacer.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -694,42 +454,6 @@
     "termino": "Pyramids of Giza",
     "ancho": 900,
     "alto": 598
-  },
-  "log-037": {
-    "id": "log-037",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Monty_Hall_Problem_Simulation.png/960px-Monty_Hall_Problem_Simulation.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Monty_Hall_Problem_Simulation.png",
-    "titulo": "Monty Hall Problem Simulation.png",
-    "autor": "Aldaron",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Cambiar de puerta duplica la opción de ganar",
-    "termino": "Monty Hall problem switch door",
-    "ancho": 900,
-    "alto": 561
-  },
-  "log-039": {
-    "id": "log-039",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/8/80/Beach_at_Dunraven_Bay_on_a_hot_Summer%27s_day_-_geograph.org.uk_-_900349.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Beach_at_Dunraven_Bay_on_a_hot_Summer%27s_day_-_geograph.org.uk_-_900349.jpg",
-    "titulo": "Beach at Dunraven Bay on a hot Summer's day - geograph.org.uk - 900349.jpg",
-    "autor": "Alan Bowring",
-    "licencia": "CC BY-SA 2.0",
-    "leyenda": "El calor veraniego une helados y ahogamientos",
-    "termino": "Hot summer beach crowd",
-    "ancho": 900,
-    "alto": 675
-  },
-  "art-046": {
-    "id": "art-046",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/VanGogh-starry_night_ballance1.jpg/960px-VanGogh-starry_night_ballance1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:VanGogh-starry_night_ballance1.jpg",
-    "titulo": "VanGogh-starry night ballance1.jpg",
-    "autor": "Vincent van Gogh",
-    "licencia": "Public domain",
-    "leyenda": "La noche estrellada, Vincent van Gogh, 1889",
-    "termino": "The Starry Night Vincent van Gogh",
-    "ancho": 900,
-    "alto": 718
   },
   "art-064": {
     "id": "art-064",
@@ -827,30 +551,6 @@
     "ancho": 900,
     "alto": 910
   },
-  "cie-083": {
-    "id": "cie-083",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Rayleigh_mie_fry3a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Rayleigh_mie_fry3a.jpg",
-    "titulo": "Rayleigh mie fry3a.jpg",
-    "autor": "The Good Doctor Fry",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Dispersión de Rayleigh hace que el cielo se vea azul",
-    "termino": "Rayleigh scattering sky blue diagram",
-    "ancho": 900,
-    "alto": 719
-  },
-  "cie-086": {
-    "id": "cie-086",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Impulsdiagramm_downwash.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Impulsdiagramm_downwash.png",
-    "titulo": "Impulsdiagramm downwash.png",
-    "autor": "Zuburgl",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Desvío del aire (downwash) y sustentación por 3ª ley de Newt",
-    "termino": "Airfoil downwash diagram",
-    "ancho": 900,
-    "alto": 623
-  },
   "cie-087": {
     "id": "cie-087",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Epigenetic_mechanisms.png/960px-Epigenetic_mechanisms.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -887,18 +587,6 @@
     "ancho": 900,
     "alto": 593
   },
-  "geo-009": {
-    "id": "geo-009",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Rio_Grande_river_Laredo.jpg/960px-Rio_Grande_river_Laredo.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Rio_Grande_river_Laredo.jpg",
-    "titulo": "Rio Grande river Laredo.jpg",
-    "autor": "Miguel Angel Omaña Rojas",
-    "licencia": "CC BY 4.0",
-    "leyenda": "El Río Grande forma gran parte de la frontera EE. UU.–México",
-    "termino": "Rio Grande river border US Mexico",
-    "ancho": 900,
-    "alto": 506
-  },
   "geo-011": {
     "id": "geo-011",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/Ural_Mountains%2C_Russia_%28ASTER%29.jpg/960px-Ural_Mountains%2C_Russia_%28ASTER%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -934,54 +622,6 @@
     "termino": "Sierra Madre Occidental Mexico mountains",
     "ancho": 900,
     "alto": 635
-  },
-  "geo-062": {
-    "id": "geo-062",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Strait_of_Malacca_highlighted.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Strait_of_Malacca_highlighted.png",
-    "titulo": "Strait of Malacca highlighted.png",
-    "autor": "Derives from png uploaded by User:Wolrd blank map",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "El 80% del petróleo que importa China cruza el estrecho de M",
-    "termino": "Strait of Malacca map",
-    "ancho": 900,
-    "alto": 900
-  },
-  "geo-065": {
-    "id": "geo-065",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_%28Image_2_of_3%29.jpg/960px-Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_%28Image_2_of_3%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Flickr_-_DVIDSHUB_-_USS_Porter_damaged_in_collision_with_oil_tanker_(Image_2_of_3).jpg",
-    "titulo": "Flickr - DVIDSHUB - USS Porter damaged in collision with oil tanker (Image 2 of 3).jpg",
-    "autor": "DVIDSHUB",
-    "licencia": "CC BY 2.0",
-    "leyenda": "Por Ormuz pasa ~20% del petróleo mundial",
-    "termino": "Hormuz Strait oil tankers",
-    "ancho": 900,
-    "alto": 599
-  },
-  "his-006": {
-    "id": "his-006",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Signing_of_the_Treaty_of_Versailles%2C_by_John_Christen_Johansen.jpg/960px-Signing_of_the_Treaty_of_Versailles%2C_by_John_Christen_Johansen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Signing_of_the_Treaty_of_Versailles,_by_John_Christen_Johansen.jpg",
-    "titulo": "Signing of the Treaty of Versailles, by John Christen Johansen.jpg",
-    "autor": "John Christen Johansen",
-    "licencia": "Public domain",
-    "leyenda": "Firma del Tratado de Versalles, 1919",
-    "termino": "Treaty of Versailles 1919 signing",
-    "ancho": 900,
-    "alto": 981
-  },
-  "his-018": {
-    "id": "his-018",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg/960px-Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Nicolaus_Copernicus._Reproduction_of_line_engraving.jpg",
-    "titulo": "Nicolaus Copernicus. Reproduction of line engraving.jpg",
-    "autor": "J. Falck",
-    "licencia": "Public domain",
-    "leyenda": "Modelo heliocéntrico de Copérnico, 1543",
-    "termino": "Nicolaus Copernicus portrait",
-    "ancho": 900,
-    "alto": 1171
   },
   "his-031": {
     "id": "his-031",
@@ -1043,18 +683,6 @@
     "ancho": 900,
     "alto": 1200
   },
-  "his-040": {
-    "id": "his-040",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/GallicEmpire262.png/960px-GallicEmpire262.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:GallicEmpire262.png",
-    "titulo": "GallicEmpire262.png",
-    "autor": "Original - ArdadN ; edit - Wario2.",
-    "licencia": "Public domain",
-    "leyenda": "Diocleciano reorganiza el Imperio tras la crisis del s. III",
-    "termino": "Crisis of the Third Century map",
-    "ancho": 900,
-    "alto": 946
-  },
   "his-041": {
     "id": "his-041",
     "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Treaty_of_Verdun_843.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
@@ -1067,30 +695,6 @@
     "ancho": 900,
     "alto": 673
   },
-  "his-042": {
-    "id": "his-042",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_%28Indianapolis%29.jpg/960px-Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_%28Indianapolis%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Franz_von_Lenbach_-_Bildnis_Otto_Eduard_Leopold_von_Bismarck_(Indianapolis).jpg",
-    "titulo": "Franz von Lenbach - Bildnis Otto Eduard Leopold von Bismarck (Indianapolis).jpg",
-    "autor": "Franz von Lenbach",
-    "licencia": "Public domain",
-    "leyenda": "Bismarck proclama el Imperio alemán en Versalles, 1871",
-    "termino": "Otto von Bismarck portrait",
-    "ancho": 900,
-    "alto": 1125
-  },
-  "his-043": {
-    "id": "his-043",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_%28Tulip_mania%29.png/960px-Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_%28Tulip_mania%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Tooneel_van_Flora_Handel_der_Floristen_in_Amsterdam_1637_(Tulip_mania).png",
-    "titulo": "Tooneel van Flora Handel der Floristen in Amsterdam 1637 (Tulip mania).png",
-    "autor": "Unknown, 1637",
-    "licencia": "Public domain",
-    "leyenda": "La tulipomanía, primera burbuja financiera documentada (1636",
-    "termino": "Tulip mania 1637",
-    "ancho": 900,
-    "alto": 1166
-  },
   "his-045": {
     "id": "his-045",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/C._1713-1721_Europe_%28treaty_adjustments%29.jpg/960px-C._1713-1721_Europe_%28treaty_adjustments%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1102,18 +706,6 @@
     "termino": "Treaty of Utrecht 1713 map",
     "ancho": 900,
     "alto": 697
-  },
-  "his-048": {
-    "id": "his-048",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Karte_Gemeinde_Olivenza_2022.png/960px-Karte_Gemeinde_Olivenza_2022.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Karte_Gemeinde_Olivenza_2022.png",
-    "titulo": "Karte Gemeinde Olivenza 2022.png",
-    "autor": "Tschubby",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Mapa de Olivenza, territorio disputado entre España y Portug",
-    "termino": "Olivenza map",
-    "ancho": 900,
-    "alto": 636
   },
   "his-049": {
     "id": "his-049",
@@ -1138,30 +730,6 @@
     "termino": "Roman denarius debasement series",
     "ancho": 900,
     "alto": 355
-  },
-  "his-052": {
-    "id": "his-052",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Treaty_of_Verdun_843.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Treaty_of_Verdun_843.png",
-    "titulo": "Treaty of Verdun 843.png",
-    "autor": "Great Politburo",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "División del Imperio carolingio en el Tratado de Verdún (843",
-    "termino": "Treaty of Verdun 843 map",
-    "ancho": 900,
-    "alto": 673
-  },
-  "his-053": {
-    "id": "his-053",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Atlantic_Revolutions.png/960px-Atlantic_Revolutions.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Atlantic_Revolutions.png",
-    "titulo": "Atlantic Revolutions.png",
-    "autor": "Aldan-2",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Territorios de la Corona de Aragón antes de los Decretos de ",
-    "termino": "Crown of Aragon map 1714",
-    "ancho": 900,
-    "alto": 912
   },
   "his-055": {
     "id": "his-055",
@@ -1199,30 +767,6 @@
     "ancho": 900,
     "alto": 698
   },
-  "log-033": {
-    "id": "log-033",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Monty_Hall_Problem_Simulation.png/960px-Monty_Hall_Problem_Simulation.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Monty_Hall_Problem_Simulation.png",
-    "titulo": "Monty Hall Problem Simulation.png",
-    "autor": "Aldaron",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Problema de Monty Hall con tres puertas",
-    "termino": "Monty Hall problem doors",
-    "ancho": 900,
-    "alto": 561
-  },
-  "tec-002": {
-    "id": "tec-002",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Von_Neumann_Architecture-Enhanced_Version.jpg/960px-Von_Neumann_Architecture-Enhanced_Version.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Von_Neumann_Architecture-Enhanced_Version.jpg",
-    "titulo": "Von Neumann Architecture-Enhanced Version.jpg",
-    "autor": "SKTEC1977",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Diagrama de la arquitectura de von Neumann",
-    "termino": "Von Neumann architecture diagram",
-    "ancho": 900,
-    "alto": 506
-  },
   "tec-033": {
     "id": "tec-033",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/IP_stack_connections.drawio.png/960px-IP_stack_connections.drawio.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1234,42 +778,6 @@
     "termino": "TCP/IP stack diagram",
     "ancho": 900,
     "alto": 1065
-  },
-  "tec-038": {
-    "id": "tec-038",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/6/64/Submarine_cable_terminus_building_at_Skewjack_-_geograph.org.uk_-_1302332.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Submarine_cable_terminus_building_at_Skewjack_-_geograph.org.uk_-_1302332.jpg",
-    "titulo": "Submarine cable terminus building at Skewjack - geograph.org.uk - 1302332.jpg",
-    "autor": "Rod Allday",
-    "licencia": "CC BY-SA 2.0",
-    "leyenda": "Mapa de cables submarinos de fibra óptica",
-    "termino": "submarine fiber optic cable map world",
-    "ancho": 900,
-    "alto": 600
-  },
-  "tec-046": {
-    "id": "tec-046",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/6/64/Submarine_cable_terminus_building_at_Skewjack_-_geograph.org.uk_-_1302332.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Submarine_cable_terminus_building_at_Skewjack_-_geograph.org.uk_-_1302332.jpg",
-    "titulo": "Submarine cable terminus building at Skewjack - geograph.org.uk - 1302332.jpg",
-    "autor": "Rod Allday",
-    "licencia": "CC BY-SA 2.0",
-    "leyenda": "Mapa de cables submarinos de fibra óptica",
-    "termino": "submarine fiber optic cable map world",
-    "ancho": 900,
-    "alto": 600
-  },
-  "art-006": {
-    "id": "art-006",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Aldo_Palazzeschi%2C_Carlo_Carr%C3%A0%2C_Giovanni_Papini%2C_Umberto_Boccioni%2C_Filippo_Tommaso_Marinetti%2C_1914.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Aldo_Palazzeschi,_Carlo_Carr%C3%A0,_Giovanni_Papini,_Umberto_Boccioni,_Filippo_Tommaso_Marinetti,_1914.jpg",
-    "titulo": "Aldo Palazzeschi, Carlo Carrà, Giovanni Papini, Umberto Boccioni, Filippo Tommaso Marinetti, 1914.jpg",
-    "autor": "Mario Nunes Vais",
-    "licencia": "Public domain",
-    "leyenda": "Marinetti y el manifiesto futurista",
-    "termino": "Filippo Tommaso Marinetti portrait",
-    "ancho": 900,
-    "alto": 1117
   },
   "art-013": {
     "id": "art-013",
@@ -1343,30 +851,6 @@
     "ancho": 900,
     "alto": 927
   },
-  "eco-003": {
-    "id": "eco-003",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/7/7e/U.S._Phillips_Curve_2000_to_2013.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:U.S._Phillips_Curve_2000_to_2013.png",
-    "titulo": "U.S. Phillips Curve 2000 to 2013.png",
-    "autor": "Farcaster",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Curva de Phillips a largo plazo (vertical)",
-    "termino": "Phillips curve inflation unemployment diagram",
-    "ancho": 900,
-    "alto": 675
-  },
-  "eco-048": {
-    "id": "eco-048",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Economics_production_possibility_frontier_comparison.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Economics_production_possibility_frontier_comparison.jpg",
-    "titulo": "Economics production possibility frontier comparison.jpg",
-    "autor": "OpenStax College",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Ventaja comparativa: costo relativo más bajo",
-    "termino": "comparative advantage PPF",
-    "ancho": 900,
-    "alto": 463
-  },
   "fil-002": {
     "id": "fil-002",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Jean_Paul_Sartre_1965.jpg/960px-Jean_Paul_Sartre_1965.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1415,42 +899,6 @@
     "ancho": 900,
     "alto": 1482
   },
-  "fil-009": {
-    "id": "fil-009",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Jeremy_Bentham_UCL_founder.jpg/960px-Jeremy_Bentham_UCL_founder.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Jeremy_Bentham_UCL_founder.jpg",
-    "titulo": "Jeremy Bentham UCL founder.jpg",
-    "autor": "morebyless",
-    "licencia": "CC BY 2.0",
-    "leyenda": "Retrato de Jeremy Bentham",
-    "termino": "Bentham auto-icon UCL",
-    "ancho": 900,
-    "alto": 752
-  },
-  "fil-010": {
-    "id": "fil-010",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/Edmund_Husserl_c._1930.webp/960px-Edmund_Husserl_c._1930.webp?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Edmund_Husserl_c._1930.webp",
-    "titulo": "Edmund Husserl c. 1930.webp",
-    "autor": "Unknown author Unknown author",
-    "licencia": "Public domain",
-    "leyenda": "Retrato de Edmund Husserl",
-    "termino": "Edmund Husserl portrait",
-    "ancho": 900,
-    "alto": 1061
-  },
-  "fil-011": {
-    "id": "fil-011",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Michel_Foucault_MET_153881.jpg/960px-Michel_Foucault_MET_153881.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Michel_Foucault_MET_153881.jpg",
-    "titulo": "Michel Foucault MET 153881.jpg",
-    "autor": "Giovanni Battista Nini",
-    "licencia": "CC0",
-    "leyenda": "Retrato de Michel Foucault",
-    "termino": "Michel Foucault portrait",
-    "ancho": 900,
-    "alto": 929
-  },
   "fil-018": {
     "id": "fil-018",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Immanuel_Kant_-_Gemaelde_1.jpg/960px-Immanuel_Kant_-_Gemaelde_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1462,30 +910,6 @@
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
     "alto": 1175
-  },
-  "fil-027": {
-    "id": "fil-027",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Edmund_Husserl_1910s.jpg/960px-Edmund_Husserl_1910s.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Edmund_Husserl_1910s.jpg",
-    "titulo": "Edmund Husserl 1910s.jpg",
-    "autor": "Unknown (Mondadori Publishers)",
-    "licencia": "Public domain",
-    "leyenda": "Retrato de Edmund Husserl",
-    "termino": "Husserl philosopher photograph",
-    "ancho": 900,
-    "alto": 1290
-  },
-  "fil-028": {
-    "id": "fil-028",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Messkirch_Heidegger-Haus_Tafel_detail.jpg/960px-Messkirch_Heidegger-Haus_Tafel_detail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Messkirch_Heidegger-Haus_Tafel_detail.jpg",
-    "titulo": "Messkirch Heidegger-Haus Tafel detail.jpg",
-    "autor": "Photo: Andreas Praefcke",
-    "licencia": "CC BY 3.0",
-    "leyenda": "Retrato de Martin Heidegger",
-    "termino": "Martin Heidegger portrait",
-    "ancho": 900,
-    "alto": 1120
   },
   "fil-029": {
     "id": "fil-029",
@@ -1510,18 +934,6 @@
     "termino": "Immanuel Kant portrait",
     "ancho": 900,
     "alto": 1175
-  },
-  "fil-035": {
-    "id": "fil-035",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Various_heads_including_7th_Baron_King_of_Ockham%2C_1st_Earl_Granville%2C_5th_Earl_de_la_Warr_and_1st_Earl_Amherst_of_Arracan_by_Sir_George_Hayter.jpg/960px-Various_heads_including_7th_Baron_King_of_Ockham%2C_1st_Earl_Granville%2C_5th_Earl_de_la_Warr_and_1st_Earl_Amherst_of_Arracan_by_Sir_George_Hayter.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Various_heads_including_7th_Baron_King_of_Ockham,_1st_Earl_Granville,_5th_Earl_de_la_Warr_and_1st_Earl_Amherst_of_Arracan_by_Sir_George_Hayter.jpg",
-    "titulo": "Various heads including 7th Baron King of Ockham, 1st Earl Granville, 5th Earl de la Warr and 1st Earl Amherst of Arracan by Sir George Hayter.jpg",
-    "autor": "George Hayter",
-    "licencia": "Public domain",
-    "leyenda": "Retrato de Guillermo de Ockham",
-    "termino": "William of Ockham portrait",
-    "ancho": 900,
-    "alto": 610
   },
   "fil-036": {
     "id": "fil-036",
@@ -1559,30 +971,6 @@
     "ancho": 900,
     "alto": 474
   },
-  "fil-042": {
-    "id": "fil-042",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg/960px-Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Defensive_bank_at_Deddington_motte_and_bailey_castle_-_geograph.org.uk_-_6699433.jpg",
-    "titulo": "Defensive bank at Deddington motte and bailey castle - geograph.org.uk - 6699433.jpg",
-    "autor": "Sandy Gerrard",
-    "licencia": "CC BY-SA 2.0",
-    "leyenda": "Esquema de castillo motte-and-bailey",
-    "termino": "Motte and bailey castle plan",
-    "ancho": 900,
-    "alto": 675
-  },
-  "fil-057": {
-    "id": "fil-057",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Immanuel_Kant_-_Gemaelde_1.jpg/960px-Immanuel_Kant_-_Gemaelde_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Immanuel_Kant_-_Gemaelde_1.jpg",
-    "titulo": "Immanuel Kant - Gemaelde 1.jpg",
-    "autor": "Johann Gottlieb Becker (1720-1782)",
-    "licencia": "Public domain",
-    "leyenda": "Immanuel Kant, filósofo",
-    "termino": "Immanuel Kant portrait",
-    "ancho": 900,
-    "alto": 1175
-  },
   "geo-023": {
     "id": "geo-023",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Antarctica_6400px_from_Blue_Marble.jpg/960px-Antarctica_6400px_from_Blue_Marble.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1595,18 +983,6 @@
     "ancho": 900,
     "alto": 900
   },
-  "geo-024": {
-    "id": "geo-024",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Ancient_Courses_Mississippi_River_Meander_Belt%2C_Plate_22_Sheet_07.jpg/960px-Ancient_Courses_Mississippi_River_Meander_Belt%2C_Plate_22_Sheet_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Ancient_Courses_Mississippi_River_Meander_Belt,_Plate_22_Sheet_07.jpg",
-    "titulo": "Ancient Courses Mississippi River Meander Belt, Plate 22 Sheet 07.jpg",
-    "autor": "US Army Corps of Engineers – Mississippi River Commission, Harold N. Fisk",
-    "licencia": "Public domain",
-    "leyenda": "Curso del río Misisipi, solo en EE. UU.",
-    "termino": "Mississippi River map course",
-    "ancho": 900,
-    "alto": 1299
-  },
   "geo-025": {
     "id": "geo-025",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Kilimanjaro%2C_Tanzania%2C_2024-05-22%2C_DD_110.jpg/960px-Kilimanjaro%2C_Tanzania%2C_2024-05-22%2C_DD_110.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1618,30 +994,6 @@
     "termino": "Mount Kilimanjaro Tanzania",
     "ancho": 900,
     "alto": 387
-  },
-  "geo-033": {
-    "id": "geo-033",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg/960px-Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Cyrtodactylus_santana_(10.3897-zookeys.1139.96508.figure1)_location_map.jpg",
-    "titulo": "Cyrtodactylus santana (10.3897-zookeys.1139.96508.figure1) location map.jpg",
-    "autor": "Chan, Kin Onn; Grismer, L. Lee; Santana, Fernando; Pinto, Pedro; Loke, Frances W.; Conaboy, Nathan (11 January 2023). \" Scratching the surface: a new species of Bent-toed gecko (Squamata, Gekkonidae, ",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Línea de Wallace entre Bali y Lombok",
-    "termino": "Wallacea biogeographical boundary map",
-    "ancho": 900,
-    "alto": 584
-  },
-  "geo-035": {
-    "id": "geo-035",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg/960px-Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Iberian_Peninsula_at_Night_-_NASA_Earth_Observatory.jpg",
-    "titulo": "Iberian Peninsula at Night - NASA Earth Observatory.jpg",
-    "autor": "NASA's Earth Observatory",
-    "licencia": "CC BY 2.0",
-    "leyenda": "Portugal da al Atlántico, no al Mediterráneo",
-    "termino": "Iberian Peninsula map Mediterranean Atlantic",
-    "ancho": 900,
-    "alto": 600
   },
   "his-003": {
     "id": "his-003",
@@ -1667,30 +1019,6 @@
     "ancho": 900,
     "alto": 738
   },
-  "his-005": {
-    "id": "his-005",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Prise_de_la_Bastille_clean.jpg/960px-Prise_de_la_Bastille_clean.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Prise_de_la_Bastille_clean.jpg",
-    "titulo": "Prise de la Bastille clean.jpg",
-    "autor": "Jean-Pierre Houël",
-    "licencia": "Public domain",
-    "leyenda": "Toma de la Bastilla, 1789",
-    "termino": "Storming of the Bastille 1789 painting",
-    "ancho": 900,
-    "alto": 684
-  },
-  "his-036": {
-    "id": "his-036",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Samuel_Greg%2C_textile_merchant.jpg/960px-Samuel_Greg%2C_textile_merchant.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Samuel_Greg,_textile_merchant.jpg",
-    "titulo": "Samuel Greg, textile merchant.jpg",
-    "autor": "British School",
-    "licencia": "Public domain",
-    "leyenda": "Máquina de vapor de Watt, 1769",
-    "termino": "Industrial Revolution textile mill Britain",
-    "ancho": 900,
-    "alto": 1139
-  },
   "his-037": {
     "id": "his-037",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/William_Orpen_%E2%80%93_The_Signing_of_Peace_in_the_Hall_of_Mirrors%2C_Versailles_1919%2C_Ausschnitt.jpg/960px-William_Orpen_%E2%80%93_The_Signing_of_Peace_in_the_Hall_of_Mirrors%2C_Versailles_1919%2C_Ausschnitt.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1702,54 +1030,6 @@
     "termino": "Treaty of Versailles signing 1919 Hall of Mirrors",
     "ancho": 900,
     "alto": 322
-  },
-  "his-039": {
-    "id": "his-039",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg/960px-Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Peace_of_Westphalia,_Treaty_of_Osnabr%C3%BCck.jpg",
-    "titulo": "Peace of Westphalia, Treaty of Osnabrück.jpg",
-    "autor": "parties of the Peace of Westphalia",
-    "licencia": "Public domain",
-    "leyenda": "Tratado de Westfalia, 1648",
-    "termino": "Peace of Westphalia 1648 treaty document",
-    "ancho": 900,
-    "alto": 665
-  },
-  "his-044": {
-    "id": "his-044",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg/960px-Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Europe_at_the_fall_of_the_Western_Roman_Empire_in_476.jpg",
-    "titulo": "Europe at the fall of the Western Roman Empire in 476.jpg",
-    "autor": "Droysen/Andrée; G. Kossina rev.",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Caída del Imperio Romano de Occidente",
-    "termino": "Fall of Western Roman Empire 476 map",
-    "ancho": 900,
-    "alto": 575
-  },
-  "his-046": {
-    "id": "his-046",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Coal_Road%2C_Colsterdale_-_geograph.org.uk_-_1276084.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Coal_Road,_Colsterdale_-_geograph.org.uk_-_1276084.jpg",
-    "titulo": "Coal Road, Colsterdale - geograph.org.uk - 1276084.jpg",
-    "autor": "Gordon Hatton",
-    "licencia": "CC BY-SA 2.0",
-    "leyenda": "Carbón, canales y patentes en Gran Bretaña",
-    "termino": "British coal mines 18th century",
-    "ancho": 900,
-    "alto": 675
-  },
-  "his-047": {
-    "id": "his-047",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Opening_of_the_Estates_General_at_Versailles_on_5th_May_1789.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Opening_of_the_Estates_General_at_Versailles_on_5th_May_1789.jpg",
-    "titulo": "Opening of the Estates General at Versailles on 5th May 1789.jpg",
-    "autor": "Louis Charles Auguste Couder-1839",
-    "licencia": "Public domain",
-    "leyenda": "Estados Generales de 1789",
-    "termino": "Estates General 1789 Versailles",
-    "ancho": 900,
-    "alto": 497
   },
   "his-054": {
     "id": "his-054",
@@ -1787,42 +1067,6 @@
     "ancho": 900,
     "alto": 1325
   },
-  "his-064": {
-    "id": "his-064",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Marche_sel.jpg/960px-Marche_sel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Marche_sel.jpg",
-    "titulo": "Marche sel.jpg",
-    "autor": "Yann ( talk )",
-    "licencia": "Public domain",
-    "leyenda": "Marcha de la Sal de Gandhi, 1930",
-    "termino": "Gandhi Salt March 1930 Dandi",
-    "ancho": 900,
-    "alto": 604
-  },
-  "log-032": {
-    "id": "log-032",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Gluehlampe_01_KMJ.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Gluehlampe_01_KMJ.jpg",
-    "titulo": "Gluehlampe 01 KMJ.jpg",
-    "autor": "KMJ",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Bombilla incandescente, clave del acertijo por su calor",
-    "termino": "Incandescent light bulb",
-    "ancho": 900,
-    "alto": 1495
-  },
-  "log-035": {
-    "id": "log-035",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/The_topology_of_2x2_games.jpg/960px-The_topology_of_2x2_games.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:The_topology_of_2x2_games.jpg",
-    "titulo": "The topology of 2x2 games.jpg",
-    "autor": "// st pasha »",
-    "licencia": "Public domain",
-    "leyenda": "Matriz de pagos del dilema del prisionero",
-    "termino": "Prisoner's dilemma payoff matrix",
-    "ancho": 900,
-    "alto": 695
-  },
   "log-042": {
     "id": "log-042",
     "url": "https://upload.wikimedia.org/wikipedia/commons/5/56/Birthday_paradox.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
@@ -1834,30 +1078,6 @@
     "termino": "Birthday paradox probability graph",
     "ancho": 900,
     "alto": 552
-  },
-  "log-048": {
-    "id": "log-048",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Greek_philosopher_busts.jpg/960px-Greek_philosopher_busts.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Greek_philosopher_busts.jpg",
-    "titulo": "Greek philosopher busts.jpg",
-    "autor": "Matt Neale from UK",
-    "licencia": "CC BY 2.0",
-    "leyenda": "Busto de Sócrates, filósofo griego clásico",
-    "termino": "Socrates ancient Greek philosopher bust",
-    "ancho": 900,
-    "alto": 603
-  },
-  "log-051": {
-    "id": "log-051",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/FossilfuelsvsCOP.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:FossilfuelsvsCOP.png",
-    "titulo": "FossilfuelsvsCOP.png",
-    "autor": "Greglocock",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Ejemplo de correlación espuria: helados y ahogamientos",
-    "termino": "correlation does not imply causation illustration",
-    "ancho": 900,
-    "alto": 473
   },
   "tec-041": {
     "id": "tec-041",
@@ -1871,90 +1091,6 @@
     "ancho": 900,
     "alto": 1357
   },
-  "tec-043": {
-    "id": "tec-043",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/10nm_metal_layer_pattern_shift_through_focus.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:10nm_metal_layer_pattern_shift_through_focus.png",
-    "titulo": "10nm metal layer pattern shift through focus.png",
-    "autor": "Guiding light",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Escáner EUV de ASML para litografía de semiconductores",
-    "termino": "ASML TWINSCAN NXE lithography",
-    "ancho": 900,
-    "alto": 330
-  },
-  "tec-044": {
-    "id": "tec-044",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/The_hidden_fires_of_the_Flame_Nebula.jpg/960px-The_hidden_fires_of_the_Flame_Nebula.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:The_hidden_fires_of_the_Flame_Nebula.jpg",
-    "titulo": "The hidden fires of the Flame Nebula.jpg",
-    "autor": "ESO/J. Emerson/VISTA. Acknowledgment: Cambridge Astronomical Survey Unit",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Dendritas de litio en ánodo metálico (microscopía electrónic",
-    "termino": "dendrite growth lithium battery",
-    "ancho": 900,
-    "alto": 1095
-  },
-  "tec-047": {
-    "id": "tec-047",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/10nm_metal_layer_pattern_shift_through_focus.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:10nm_metal_layer_pattern_shift_through_focus.png",
-    "titulo": "10nm metal layer pattern shift through focus.png",
-    "autor": "Guiding light",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Escáner EUV de ASML, único proveedor mundial",
-    "termino": "ASML TWINSCAN NXE lithography",
-    "ancho": 900,
-    "alto": 330
-  },
-  "tec-050": {
-    "id": "tec-050",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Constellation_satellites_in_low_Earth_orbits_%28artist%E2%80%99s_impression%2C_not_to_scale%29_%28noirlab2022b%29.jpg/960px-Constellation_satellites_in_low_Earth_orbits_%28artist%E2%80%99s_impression%2C_not_to_scale%29_%28noirlab2022b%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Constellation_satellites_in_low_Earth_orbits_(artist%E2%80%99s_impression,_not_to_scale)_(noirlab2022b).jpg",
-    "titulo": "Constellation satellites in low Earth orbits (artist’s impression, not to scale) (noirlab2022b).jpg",
-    "autor": "NOIRLab/ NSF /AURA/P. Marenfeld",
-    "licencia": "CC BY 4.0",
-    "leyenda": "Órbitas LEO (Starlink) y GEO frente a cables de fibra submar",
-    "termino": "Starlink satellite constellation orbit",
-    "ancho": 900,
-    "alto": 1157
-  },
-  "tec-054": {
-    "id": "tec-054",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/DZ6_3018_Overlooking_the_skyline_of_Na_Kluea_Pattaya_-_low-rise_hotels_and_apartments_line_the_street_as_the_Gulf_of_Thailand_shimmers_on_the_horizon_at_dusk.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:DZ6_3018_Overlooking_the_skyline_of_Na_Kluea_Pattaya_-_low-rise_hotels_and_apartments_line_the_street_as_the_Gulf_of_Thailand_shimmers_on_the_horizon_at_dusk.jpg",
-    "titulo": "DZ6 3018 Overlooking the skyline of Na Kluea Pattaya - low-rise hotels and apartments line the street as the Gulf of Thailand shimmers on the horizon at dusk.jpg",
-    "autor": "PattayaPatrol",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Torre de telefonía móvil en zona urbana, conexión habitual",
-    "termino": "cellular tower antenna urban",
-    "ancho": 900,
-    "alto": 599
-  },
-  "tec-055": {
-    "id": "tec-055",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Simplified_neural_network_model_example.png/960px-Simplified_neural_network_model_example.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Simplified_neural_network_model_example.png",
-    "titulo": "Simplified neural network model example.png",
-    "autor": "Mikael Häggström , M.D. Author info - Reusing images - Conflicts of interest: None Mikael Häggström , M.D.",
-    "licencia": "CC0",
-    "leyenda": "Arquitectura Transformer: predicción del siguiente token",
-    "termino": "Neural network language model diagram",
-    "ancho": 900,
-    "alto": 1203
-  },
-  "tec-056": {
-    "id": "tec-056",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/10nm_metal_layer_pattern_shift_through_focus.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:10nm_metal_layer_pattern_shift_through_focus.png",
-    "titulo": "10nm metal layer pattern shift through focus.png",
-    "autor": "Guiding light",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Máquina de litografía EUV de ASML, esencial para chips avanz",
-    "termino": "ASML EUV lithography system",
-    "ancho": 900,
-    "alto": 330
-  },
   "tec-057": {
     "id": "tec-057",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/End-to-End_Encryption.png/960px-End-to-End_Encryption.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1966,5 +1102,65 @@
     "termino": "End-to-end encryption illustration",
     "ancho": 900,
     "alto": 1095
+  },
+  "art-002": {
+    "id": "art-002",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Monet_-_Impression%2C_Sunrise.jpg/960px-Monet_-_Impression%2C_Sunrise.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Monet_-_Impression,_Sunrise.jpg",
+    "titulo": "Monet - Impression, Sunrise.jpg",
+    "autor": "Claude Monet",
+    "licencia": "Public domain",
+    "leyenda": "Impresión, sol naciente de Monet (1872)",
+    "termino": "Impression Sunrise Monet painting",
+    "ancho": 900,
+    "alto": 698
+  },
+  "art-074": {
+    "id": "art-074",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Barbican_Estate_Lakeside_City_of_London_2026_10.jpg/960px-Barbican_Estate_Lakeside_City_of_London_2026_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Barbican_Estate_Lakeside_City_of_London_2026_10.jpg",
+    "titulo": "Barbican Estate Lakeside City of London 2026 10.jpg",
+    "autor": "Julian Herzog ( Website )",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Hormigón expuesto en arquitectura brutalista",
+    "termino": "Barbican Estate brutalist concrete",
+    "ancho": 900,
+    "alto": 1200
+  },
+  "cie-030": {
+    "id": "cie-030",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Energy_Arc_%28central_electrode_of_a_Plasma_Lamp%29.jpg/960px-Energy_Arc_%28central_electrode_of_a_Plasma_Lamp%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Energy_Arc_(central_electrode_of_a_Plasma_Lamp).jpg",
+    "titulo": "Energy Arc (central electrode of a Plasma Lamp).jpg",
+    "autor": "Blaise Frazier aka PiccoloNamek",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Ejemplo de plasma: lámpara de plasma",
+    "termino": "plasma lamp",
+    "ancho": 900,
+    "alto": 675
+  },
+  "cie-036": {
+    "id": "cie-036",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Max_Planck_%281858-1947%29.jpg/960px-Max_Planck_%281858-1947%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Max_Planck_(1858-1947).jpg",
+    "titulo": "Max Planck (1858-1947).jpg",
+    "autor": "Unknown author Unknown author , credited to Transocean Berlin (see imprint in the lower right corner)",
+    "licencia": "Public domain",
+    "leyenda": "Max Planck, físico alemán",
+    "termino": "Max Planck physicist portrait",
+    "ancho": 900,
+    "alto": 1264
+  },
+  "fil-045": {
+    "id": "fil-045",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/2014-08_Graffiti_Patrik_Wolters_alias_BeneR1_im_Team_mit_Kevin_Lasner_alias_koarts%2C_Hannah_Arendt_Niemand_hat_das_Recht_zu_gehorchen%2C_Geburtshaus_Lindener_Marktplatz_2_Ecke_Falkenstra%C3%9Fe_in_Hannover-Linden-Mitte.jpg/960px-thumbnail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:2014-08_Graffiti_Patrik_Wolters_alias_BeneR1_im_Team_mit_Kevin_Lasner_alias_koarts,_Hannah_Arendt_Niemand_hat_das_Recht_zu_gehorchen,_Geburtshaus_Lindener_Marktplatz_2_Ecke_Falkenstra%C3%9Fe_in_Hannover-Linden-Mitte.jpg",
+    "titulo": "2014-08 Graffiti Patrik Wolters alias BeneR1 im Team mit Kevin Lasner alias koarts, Hannah Arendt Niemand hat das Recht zu gehorchen, Geburtshaus Lindener Marktplatz 2 Ecke Falkenstraße in Hannover-Linden-Mitte.jpg",
+    "autor": "Bernd Schwabe in Hannover",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Hannah Arendt, acción y condición humana",
+    "termino": "Hannah Arendt philosopher portrait",
+    "ancho": 900,
+    "alto": 585
   }
 }
