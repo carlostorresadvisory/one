@@ -65,3 +65,127 @@ Detalle rechazos de explicación (motivo):
   art-081: explicación de 42 palabras (> 40)
 
 Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.001647 $
+--solo-pendientes: 121 ya resueltas, 174 pendientes.
+
+=== visualizar 2026-09-13T12:47:48.929Z — 174 preguntas candidatas (pago permitido, tope 0.4 €) ===
+
+-- lote 1/22 (8 preguntas) --
+  art-006: explicación actualizada; visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    explicación antes: El Futurismo fue fundado por Filippo Tommaso Marinetti en 1909 con la publicación de su manifiesto en Milán.
+    explicación después: Marinetti publicó su manifiesto en 1909 exaltando la velocidad y la tecnología, rechazando el arte del pasado. El movimiento influyó en el diseño de automóviles y en la estética de las vanguardias rusas.
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1909","texto":"Manifiesto futurista"},{"ano":"1910","texto":"Pintura futurista"},{"ano":"1914","texto":"Escultura futurista"},{"ano":"1916","texto":"Declive del movimiento"}],"leyenda":"Evolución del futurismo italiano (1909-1916)"}
+  art-010: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: La veladura superpone capas translúcidas sobre pintura seca; la luz atraviesa, rebota en el fondo y vuelve filtrada, creando profundidad imposible con mezcla directa. Tiziano la llevó al extremo: sus últimos rostros tienen hasta cincuenta capas invisibles al ojo.
+    explicación después: La veladura usa capas translúcidas sobre pintura seca; la luz las atraviesa, rebota en el fondo y vuelve filtrada, creando profundidad. Tiziano aplicaba hasta cincuenta capas en los rostros, logrando una luminosidad imposible con mezcla directa.
+    visual: {"tipo":"flujo","pasos":["Capa base seca","Capa translúcida","Luz atraviesa","Profundidad"],"leyenda":"Así crea la veladura su luminosidad"}
+  art-076: explicación actualizada; ya tiene imagen
+    explicación antes: Guernica representa el bombardeo de la ciudad vasca durante la Guerra Civil y, mediante su estilo cubista y paleta monocromo, comunica el horror de la guerra, convirtiéndose en un símbolo antifascista y de protesta que sigue siendo relevante en debates sobre memoria histórica.
+    explicación después: Porque convirtió un bombardeo real contra civiles en un símbolo universal del horror bélico, usando un lenguaje plástico rompedor que amplificó su denuncia. Su fuerza sigue viva: cada vez que un conflicto actual busca icono, Guernica vuelve a citarse.
+  art-081: explicación conservada (explicación de 44 palabras (> 40)); ya tiene imagen
+  art-083: explicación conservada (explicación de 41 palabras (> 40)); ya tiene imagen
+  art-084: explicación actualizada; visual dato OK (deepseek/deepseek-v4-flash)
+    explicación antes: La venta de Beeple en Christie's legitimó ante coleccionistas e instituciones un formato que hasta entonces circulaba solo en círculos cripto, desencadenando un debate sobre propiedad, especulación y conservación que sigue vigente tras el desplome del mercado NFT en 2022-2023.
+    explicación después: La venta en Christie's legitimó el arte digital ante el mercado tradicional, al convertir un archivo con certificado blockchain en una obra coleccionable. El desplome posterior de los NFT mostró la volatilidad especulativa del formato.
+    visual: {"tipo":"dato","cifra":"69,3 M$","texto":"Precio de Everydays: The First 5000 Days","leyenda":"Subasta de Christie's, 2021","fuente":"Christie's 2021"}
+  art-085: explicación conservada (explicación de 57 palabras (> 40)); visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1656","texto":"Las Meninas"},{"ano":"1889","texto":"La noche estrellada"},{"ano":"1917","texto":"Fountain"},{"ano":"1937","texto":"Guernica"}],"leyenda":"De la perspectiva al gesto político: 1656-1937"}
+  art-086: explicación actualizada; visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    explicación antes: Colocarlos en el tiempo muestra el patrón: cada movimiento surge por un choque con las normas técnicas, sociales o institucionales previas (p. ej. la imprenta y mecenazgo, la industrialización, la modernidad de entreguerras, la globalización digital). Esa sucesión ayuda a explicar por qué cada ruptura era tanto estética como social.
+    explicación después: Cada movimiento nace como choque contra las normas establecidas, desde el mecenazgo renacentista hasta la globalización digital. Por ejemplo, el impresionismo rompió con la pintura academicista al plasmar la luz natural al aire libre, una revolución técnica y social.
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1400","texto":"Renacimiento"},{"ano":"1860","texto":"Impresionismo"},{"ano":"1905","texto":"Vanguardias"},{"ano":"1960","texto":"Arte contemporáneo"}],"leyenda":"Reacción a normas previas: arte, técnica y sociedad"}
+
+-- lote 2/22 (8 preguntas) --
+  art-087: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Hitos que redefinieron el cine, del montaje al fenómeno global")
+    explicación antes: La progresión ilustra cómo la innovación formal (plano-secuencia y montaje), luego el salto a la libertad narrativa y el pastiche, y finalmente la crítica social global han ido reconfigurando el cine; entender esa línea ayuda a ver por qué obras recientes ganan visibilidad internacional y cómo cambia la distribución en la era del streaming.
+    explicación después: Cada película introdujo un quiebre narrativo o industrial: el montaje moderno (Kane), la libertad formal (Sin aliento), el pastiche posmoderno (Pulp Fiction) y la crítica social global (Parásitos). Su orden temporal muestra cómo el cine se reinventa.
+  art-088: explicación conservada (explicación de 41 palabras (> 40)); visual flujo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"flujo","pasos":["Creación y doc.","Galería promueve","Museo compra","Subasta revende"],"leyenda":"Pasos de la obra hacia máxima visibilidad en el mercado"}
+  art-089: FALLO — Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unexpected non-whitespace character after JSON at position 51 (line 2 column 1))
+  art-090: FALLO — Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unexpected non-whitespace character after JSON at position 51 (line 2 column 1))
+  art-091: explicación conservada (explicación de 61 palabras (> 40)); ya tiene imagen
+  art-092: explicación conservada (explicación de 41 palabras (> 40)); ya tiene imagen
+  art-093: explicación actualizada; ya tiene imagen
+    explicación antes: Don Quijote no es una defensa pura de la novela realista; Cervantes usa recursos metatextuales y juegos narrativos (narradores ficticios, comentarios sobre la ficción) que anticipan la novela moderna y su autoconciencia. Esa complejidad explica su influencia continua en cómo se piensa la ficción hoy.
+    explicación después: Cervantes no defiende el realismo puro; introduce narradores ficticios y comentarios sobre la ficción, anticipando la novela moderna y su autoconciencia. Esa complejidad lo mantiene vigente en debates literarios actuales.
+  art-094: explicación actualizada; ya tiene imagen
+    explicación antes: El mercado primario (ventas privadas) y el secundario (subastas) están interconectados: ventas privadas fijan referencias de precio, influyen en expectativas y pueden preceder o evitar subasta pública; por eso no son independientes. Esa interdependencia es central en las discusiones recientes sobre transparencia y garantías en grandes casas de subastas.
+    explicación después: El mercado primario (ventas privadas) y el secundario (subastas) se influyen mutuamente: las ventas privadas fijan precios de referencia que afectan las expectativas en subastas. Esta interdependencia es clave en debates recientes sobre transparencia en casas como Christie’s.
+
+-- lote 3/22 (8 preguntas) --
+  cie-006: explicación conservada (explicación de 43 palabras (> 40)); visual flujo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"flujo","pasos":["Neutrino electrón","Oscila a muón","Masa necesaria"],"leyenda":"El cambio de tipo (oscilación) implica masa no nula."}
+  cie-007: explicación conservada (explicación de 56 palabras (> 40)); visual formula OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"formula","texto":"Δx · Δp ≥ ℏ/2","leyenda":"Producto de incertidumbres mínimo"}
+  cie-008: explicación conservada (explicación de 49 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Abundancia en la corteza terrestre (% en peso)","items":[{"etiqueta":"Oxígeno","valor":46,"unidad":"%"},{"etiqueta":"Silicio","valor":28,"unidad":"%"},{"etiqueta":"Aluminio","valor":8,"unidad":"%"},{"etiqueta":"Hierro","valor":5,"unidad":"%"}],"leyenda":"Elementos más comunes en la corteza terrestre","fuente":"U.S.Geological Survey"}
+  cie-009: explicación actualizada; visual formula OK (deepseek/deepseek-v4-flash)
+    explicación antes: El enlace O–H en el agua es covalente con una marcada polaridad debido a la diferencia de electronegatividad entre oxígeno e hidrógeno.
+    explicación después: El oxígeno atrae electrones con más fuerza que el hidrógeno, creando un enlace covalente polar. Esta asimetría permite que el agua disuelva tantas sustancias, desde la sal hasta el azúcar.
+    visual: {"tipo":"formula","texto":"O−H (covalente polar)","leyenda":"Diferencia de electronegatividad: 1,24 (Pauling)"}
+  cie-010: explicación actualizada; visual formula OK (deepseek/deepseek-v4-flash)
+    explicación antes: La ley de Boyle establece que, a temperatura constante, la presión de una cantidad fija de gas es inversamente proporcional a su volumen.
+    explicación después: A temperatura constante, la presión de un gas es inversamente proporcional a su volumen: al comprimirlo, las moléculas chocan más contra las paredes. Lo descubrió Robert Boyle en 1662 usando una bomba de vacío y un tubo en J.
+    visual: {"tipo":"formula","texto":"P × V = k","leyenda":"Ley de Boyle: producto constante a temperatura fija"}
+  cie-058: explicación conservada (explicación de 48 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Energía cinética media","items":[{"etiqueta":"Sólido","valor":1,"unidad":"u.a."},{"etiqueta":"Líquido","valor":10,"unidad":"u.a."},{"etiqueta":"Gas","valor":100,"unidad":"u.a."},{"etiqueta":"Plasma","valor":10000,"unidad":"u.a."}],"leyenda":"Escala logarítmica ilustrativa (u.a. = unidades arbitrarias)","fuente":"Concepto físico estándar"}
+  cie-068: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Replicación semiconservativa: cada hélice nueva tiene una hebra vieja y una nueva."; flujo.pasos[2] inválido (1-18 caracteres))
+  cie-073: explicación conservada (La explicación propuesta no menciona el sistema glinfático, que es clave en la explicación actual. El visual propuesto indica un aumento del 20% de beta-amiloide, pero la explicación actual no cuantifica este aumento, por lo que el visual no ilustra directamente la explicación propuesta.); sin visual (esquema inválido: flujo.pasos[2] inválido (1-18 caracteres))
+
+-- lote 4/22 (8 preguntas) --
+  cie-075: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La sustentación se debe al impulso del aire desviado, no solo al efecto Venturi."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres))
+    explicación antes: El ala empuja aire hacia abajo (tercera ley de Newton) generando una reacción ascendente; el efecto Venturi explica parte de la distribución de presión, pero la fuerza neta proviene del impulso del aire.
+    explicación después: La sustentación viene de la tercera ley de Newton: el ala desvía aire hacia abajo y el aire empuja el ala hacia arriba. El efecto Venturi solo describe la forma del flujo, no la fuerza neta.
+  cie-077: explicación actualizada; visual barras OK (deepseek/deepseek-v4-flash)
+    explicación antes: La piel convierte 7‑dehidrocolesterol en pre‑vitamina D3 bajo luz UVB; la ingesta dietética aporta solo una fracción menor. Estudios de 2023 mostraron que la exposición solar sigue siendo la fuente principal incluso en poblaciones suplementadas.
+    explicación después: La piel transforma 7-dehidrocolesterol en vitamina D3 al recibir rayos UVB; la dieta apenas aporta un 10-20 %. Por eso, en inviernos nórdicos o con poca exposición, los niveles caen incluso comiendo pescado azul o lácteos enriquecidos.
+    visual: {"tipo":"barras","titulo":"Fuentes de vitamina D","items":[{"etiqueta":"Sol (UVB)","valor":80,"unidad":"%"},{"etiqueta":"Dieta","valor":20,"unidad":"%"}],"leyenda":"Aporte aproximado en adultos con exposición solar moderada","fuente":"Endocrine Society 2023"}
+  cie-081: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el hipotálamo eleva la temperatura corporal para potenciar la respuesta inmune y dificultar la replicación del patógeno."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: La fiebre es una respuesta regulada: el hipotálamo sube el punto de consigna térmica, lo que aumenta la actividad de linfocitos y macrófagos y, al mismo tiempo, inhibe el crecimiento de muchos virus y bacterias. Durante la pandemia de COVID‑19 (2022‑2023) se debatió si tratar la fiebre moderada podía retrasar la eliminación del virus.
+    explicación después: El hipotálamo eleva el termostato corporal para acelerar las defensas y ralentizar patógenos. Durante la COVID‑19 se discutió si bajar la fiebre moderada alargaba la infección.
+  cie-082: explicación conservada (explicación de 45 palabras (> 40)); ya tiene imagen
+  cie-083: explicación actualizada; ya tiene imagen
+    explicación antes: El fenómeno es la dispersión de Rayleigh: las moléculas de N₂ y O₂ dispersan la luz en proporción inversa a la cuarta potencia de la longitud de onda, por lo que el azul (≈450 nm) se dispersa mucho más que el rojo. Mediciones de satélites en 2022 mostraron cómo los aerosoles volcánicos pueden tornar el cielo más pálido al aumentar la dispersión de todas las longitudes de onda.
+    explicación después: La luz del sol choca con las moléculas de aire, que dispersan más las ondas cortas (azul) que las largas (rojo). Es como un tamiz: el azul se desvía y nos llega desde todas direcciones, mientras el rojo pasa recto.
+  cie-084: explicación actualizada; ya tiene imagen
+    explicación antes: A esa altitud el período orbital coincide exactamente con el día sideral (≈23 h 56 min), por lo que el satélite gira con la Tierra y su posición relativa al suelo no cambia. En 2023‑2024 se lanzaron varias plataformas de comunicaciones de nueva generación que aprovechan esta órbita para cubrir regiones enteras sin necesidad de constelaciones móviles.
+    explicación después: A 35.786 km de altitud, el período orbital iguala el día sideral, por lo que el satélite gira sincronizado con la Tierra. Esta órbita única permite que antenas fijas apunten siempre al mismo punto, ideal para comunicaciones y meteorología.
+  cie-085: explicación conservada (La explicación propuesta no menciona la consolidación de la memoria a largo plazo, que es el núcleo de la pregunta. El visual propuesto, aunque describe el proceso glinfático, no ilustra directamente la consolidación de la memoria.); visual flujo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"flujo","pasos":["Día: aprendes","Noche: limpieza","Refuerzo sináptico","Recuerdo fijado"],"leyenda":"Ciclo de consolidación de memoria durante el sueño profundo"}
+  cie-086: explicación actualizada; ya tiene imagen
+    explicación antes: El ala desvía una gran masa de aire hacia abajo (downwash); por acción-reacción, el aire empuja el ala hacia arriba; la diferencia de presión (Bernoulli) es la manifestación macroscópica de ese desvío, no la causa única; esta explicación unificada se ha popularizado en divulgación reciente (2022-2024).
+    explicación después: La sustentación se explica por la tercera ley de Newton: el ala desvía aire hacia abajo y, por reacción, recibe empuje hacia arriba. La diferencia de presión es la manifestación de ese desvío, no la causa única.
+
+-- lote 5/22 (8 preguntas) --
+  cie-088: explicación actualizada; ya tiene imagen
+    explicación antes: La curva de aprendizaje (ley de Wright) impulsa mejoras en fabricación, cadena de suministro e instalación; cada duplicación acumulada abarata ~20-30% el módulo, una dinámica observada desde 2010 y confirmada en el informe de la Agencia Internacional de la Energía de 2023, independiente de subsidios coyunturales.
+    explicación después: La ley de Wright: cada vez que se duplica la capacidad instalada, el coste unitario cae un ~20-30% por mejoras en fabricación y logística. Un panel cuesta hoy un 90% menos que en 2010, según la AIE.
+  cie-089: explicación conservada (explicación de 44 palabras (> 40)); ya tiene imagen
+  cie-090: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Primer ciclo nocturno: descenso progresivo y ascenso a sueño REM")
+    explicación antes: El cerebro desciende progresivamente desde la vigilia (N1) al sueño profundo reparador (N3) antes de ascender al REM, donde soñamos y consolidamos memoria emocional. Privar al cuerpo de N3 —común con alcohol o apnea— impide la limpieza metabólica del cerebro (sistema glinfático), clave para prevenir neurodegeneración.
+    explicación después: El cerebro desciende de vigilia a sueño profundo (N3) para reparación física, luego asciende a REM para consolidar memoria emocional. Sin N3, el sistema glinfático no limpia toxinas cerebrales, vinculado al alzhéimer.
+  cie-091: explicación conservada (explicación de 41 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Emisiones de CO₂ por kWh (ciclo de vida)","items":[{"etiqueta":"Carbón","valor":900,"unidad":"gCO₂eq"},{"etiqueta":"Gas natural","valor":450,"unidad":"gCO₂eq"},{"etiqueta":"Fotovoltaica","valor":45,"unidad":"gCO₂eq"},{"etiqueta":"Nuclear","valor":12,"unidad":"gCO₂eq"}],"leyenda":"Fuente: IPCC 2014, datos representativos redondeados","fuente":"IPCC 2014"}
+  cie-092: explicación conservada (explicación de 51 palabras (> 40)); ya tiene imagen
+  cie-094: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La fase REM no es sueño profundo; se caracteriza por una actividad cerebral similar a la vigilia y es donde ocurren la mayoría de los sueños vívidos. El sueño profundo corresponde a la fase N3 (ondas lentas). Estudios de 2023 han reforzado el papel del REM en la consolidación de la memoria emocional.
+    explicación después: El sueño profundo es fase N3 (ondas lentas), no REM. En REM el cerebro está casi tan activo como despierto y ahí ocurren los sueños vívidos.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Sueño profundo","puntos":["Fase N3 (ondas lentas)","Cerebro poco activo","Reparación física"]},{"titulo":"Fase REM","puntos":["Actividad cerebral alta","Sueños vívidos","Memoria emocional"]}],"leyenda":"El dato erróneo confunde REM con sueño profundo."}
+  eco-002: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "En competencia perfecta, el precio iguala el ingreso marginal y el medio.")
+    explicación antes: En la competencia perfecta hay muchos compradores y vendedores, productos homogéneos y libre entrada/salida, de modo que cada firma enfrenta una demanda perfectamente elástica y debe aceptar el precio de mercado como dado.
+    explicación después: Cada empresa es tan pequeña respecto al mercado que su producción no altera el precio. Como un agricultor que vende trigo al precio que marca el día, no puede subirlo sin perder todos sus clientes.
+  eco-003: FALLO — Ningún modelo respondió. Detalle: google/gemini-2.5-flash-lite: JSON inválido (Unexpected non-whitespace character after JSON at position 238 (line 2 column 1))
+
+-- lote 6/22 (8 preguntas) --
+  eco-006: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La curva de Phillips original (1958) describía una relación inversa a corto plazo; a largo plazo la curva es vertical, ya que las expectativas de inflación ajustan el desempleo a su tasa natural.
+    explicación después: La curva de Phillips original solo describe el corto plazo; a largo plazo la relación desaparece porque las expectativas ajustan la inflación, dejando el desempleo en su tasa natural.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Corto plazo","puntos":["Inflación ↑ → Desempleo ↓","Expectativas rígidas"]},{"titulo":"Largo plazo","puntos":["Inflación ↑ → Desempleo =","Expectativas adaptativas"]}],"leyenda":"La curva es vertical a largo plazo (Friedman, 1968)."}
+  eco-007: explicación conservada (explicación de 48 palabras (> 40)); sin visual (esquema inválido: flujo.pasos[3] inválido (1-18 caracteres))
+  eco-009: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de política monetaria expansiva al reducir el coeficiente de reservas"; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  eco-010: explicación conservada (explicación de 41 palabras (> 40)); visual formula OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"formula","texto":"y = A · f(k)","leyenda":"Producción por trabajador: capital y tecnología."}
+  eco-019: explicación conservada (explicación de 44 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El teorema muestra que no existe un sistema de votación ideal que cumpla todos los criterios simultáneamente."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[2] inválido (1-28 caracteres))
+  eco-030: explicación conservada (explicación de 43 palabras (> 40)); visual formula OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"formula","texto":"Oferta: P ↑ → Q ↑","leyenda":"Pendiente positiva: precio y cantidad ofrecida suben juntos."}
+  eco-031: explicación conservada (explicación de 44 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Activos = ocupados + parados; excluye inactivos (jubilados, estudiantes).")
+  eco-033: explicación conservada (explicación de 49 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "En suma cero la suma total nunca es positiva, a diferencia de un juego de suma positiva.")
