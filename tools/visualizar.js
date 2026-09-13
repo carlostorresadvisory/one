@@ -59,6 +59,14 @@ export const VERIFICADOR_VISUAL = [
   'google/gemini-2.5-flash-lite',
 ];
 
+// Cascadas SOLO de pago (--sin-gratis): fijado por el controlador el 13-sep-2026 -- con los
+// modelos ':free' saturados todo el día (429/timeout en cadena), la ejecución masiva llevaba más
+// de 25 minutos sin resolver una sola pregunta. Mismos dos modelos de pago que ya usan las
+// cascadas normales como último escalón (nunca coinciden entre sí, así que no hace falta
+// excluirModelo para garantizar que el verificador es distinto del generador).
+export const GENERADOR_SOLO_PAGO = ['deepseek/deepseek-v4-flash'];
+export const VERIFICADOR_SOLO_PAGO = ['google/gemini-2.5-flash-lite'];
+
 // Visto en vivo el 13-sep-2026 (prueba en seco --limite 5 --tope-eur 0.05): con maxTokens:700 el
 // JSON queda truncado ("Unexpected end of JSON input") en las tres preguntas de la cascada
 // (incluido el modelo de pago) cuando "necesita_visual" es true -- el objeto visual + la
@@ -103,6 +111,11 @@ export function validarVisual(visual) {
   switch (visual.tipo) {
     case 'formula': {
       limite(errores, esTextoNoVacio(visual.texto) && visual.texto.length <= 40, 'formula.texto inválido (1-40 caracteres)');
+      // Fijado por Carlos tras la pasada adversarial del 13-sep-2026: LaTeX crudo ("\frac{}",
+      // "$...$") se pintaría literal en el SVG de la app -- la notación es siempre plana.
+      if (esTextoNoVacio(visual.texto) && /[\\$]/.test(visual.texto)) {
+        errores.push('formula.texto no puede contener "\\" ni "$" (notación plana, sin LaTeX)');
+      }
       break;
     }
     case 'linea-tiempo': {
@@ -113,6 +126,12 @@ export function validarVisual(visual) {
           limite(errores, h && esTextoNoVacio(h.ano) && h.ano.length <= 9, `linea-tiempo.hitos[${i}].ano inválido (1-9 caracteres)`);
           limite(errores, h && esTextoNoVacio(h.texto) && h.texto.length <= 22, `linea-tiempo.hitos[${i}].texto inválido (1-22 caracteres)`);
         });
+        // Fijado tras la pasada adversarial: "ano" repetido no tiene sentido en una línea de
+        // tiempo (dos hitos en el mismo punto) y el generador lo produce alguna vez.
+        const anos = visual.hitos.map((h) => h && h.ano).filter((a) => typeof a === 'string');
+        if (new Set(anos).size !== anos.length) {
+          errores.push('linea-tiempo.hitos tiene "ano" repetido');
+        }
       }
       break;
     }
@@ -122,7 +141,11 @@ export function validarVisual(visual) {
       } else {
         visual.items.forEach((it, i) => {
           limite(errores, it && esTextoNoVacio(it.etiqueta) && it.etiqueta.length <= 16, `barras.items[${i}].etiqueta inválida (1-16 caracteres)`);
-          limite(errores, it && typeof it.valor === 'number' && Number.isFinite(it.valor), `barras.items[${i}].valor debe ser numérico`);
+          // > 0, no solo numérico/finito (fijado tras la pasada adversarial, 13-sep-2026): son
+          // magnitudes comparables en un gráfico de barras -- un cero o un negativo rompen el
+          // dibujo (barra de altura nula o invertida). Mismo hallazgo que hizo el revisor de la
+          // Tarea 2 en visuales.js del lado del pintado.
+          limite(errores, it && typeof it.valor === 'number' && Number.isFinite(it.valor) && it.valor > 0, `barras.items[${i}].valor debe ser numérico y > 0`);
           if (it && it.unidad !== undefined && it.unidad !== null) {
             limite(errores, typeof it.unidad === 'string' && it.unidad.length <= 6, `barras.items[${i}].unidad inválida (máx. 6 caracteres)`);
           }
@@ -225,12 +248,15 @@ function promptSistemaGenerador(criterioTexto) {
     'EXACTAMENTE uno de estos esquemas y límites (todos los datos deben ser reales y comprobables, ' +
     'nunca inventados):\n' +
     '  - formula: {"tipo":"formula","texto":"…","leyenda":"…"} texto ≤ 40 caracteres, notación plana ' +
-    '(×, −, /, =), SIN LaTeX. Ej.: "PIB = C + I + G + (X − M)".\n' +
+    '(×, −, /, =), SIN LaTeX -- nunca "\\" ni "$", se pintaría literal. Ej.: "PIB = C + I + G + (X − ' +
+    'M)".\n' +
     '  - linea-tiempo: {"tipo":"linea-tiempo","hitos":[{"ano":"…","texto":"…"}, …],"leyenda":"…"} 3-5 ' +
-    'hitos, "ano" ≤ 9 caracteres, "texto" ≤ 22.\n' +
+    'hitos EN ORDEN CRONOLÓGICO ASCENDENTE (el más antiguo primero), "ano" ≤ 9 caracteres y NUNCA ' +
+    'repetido entre hitos, "texto" ≤ 22.\n' +
     '  - barras: {"tipo":"barras","titulo":"…","items":[{"etiqueta":"…","valor":0,"unidad":"…"}, …],' +
-    '"leyenda":"…","fuente":"…"} 2-5 items, "etiqueta" ≤ 16, "valor" NUMÉRICO real (nunca inventado), ' +
-    '"unidad" ≤ 6 (opcional), "titulo" opcional.\n' +
+    '"leyenda":"…","fuente":"…"} 2-5 items, "etiqueta" ≤ 16, "valor" NUMÉRICO real y POSITIVO (> 0; ' +
+    'nunca inventado, nunca cero ni negativo -- si el dato real es una caída a cero o un cambio de ' +
+    'signo, usa otro tipo de visual), "unidad" ≤ 6 (opcional), "titulo" opcional.\n' +
     '  - comparacion: {"tipo":"comparacion","columnas":[{"titulo":"…","puntos":["…"]}, …],"leyenda":' +
     '"…"} EXACTAMENTE 2 columnas, 2-3 puntos cada una, "titulo" ≤ 16, cada punto ≤ 28.\n' +
     '  - flujo: {"tipo":"flujo","pasos":["…", …],"leyenda":"…"} 2-4 pasos, ≤ 18 caracteres cada uno.\n' +
@@ -283,6 +309,9 @@ function promptSistemaVerificador(criterioTexto) {
     'de una técnica artística, en vez de una estadística real)? Si son ilustrativos/inventados, o si ' +
     'falta el campo "fuente" en un "barras"/"dato", "visualOk" es false con motivo "cifras no ' +
     'verificables" (aunque el resto del visual esté bien formado).\n' +
+    'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "linea-tiempo": comprueba que los "hitos" están en ' +
+    'orden cronológico ascendente (el año más antiguo primero); si están desordenados, "visualOk" es ' +
+    'false con motivo "hitos desordenados cronológicamente".\n' +
     'Ante la duda, false. Devuelve SOLO JSON con la forma exacta: {"explicacionOk":true|false,' +
     '"visualOk":true|false,"motivo":"…"} ("motivo" explica cualquier false, breve y en español; puede ' +
     'ir vacío si todo es true).'
@@ -327,28 +356,53 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     rutaLog,
   } = opciones;
 
-  const mensajes = [
-    { role: 'system', content: promptSistemaGenerador(criterio) },
-    { role: 'user', content: promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) },
-  ];
+  // Reintento único si el modelo no trae "explicacion" (ausente, vacía o de otro tipo): fijado
+  // tras la pasada adversarial del 13-sep-2026 -- eso es un fallo de generación, no una propuesta
+  // válida que simplemente no guste; nunca se acepta "" como explicación. Si el reintento también
+  // falla, se devuelve explicacion:'' (igual que antes) y quien llama (verificarVisualYExplicacion)
+  // la rechaza siempre, conservando la del banco.
+  let explicacion = '';
+  let visual = null;
+  let modeloUsado = '';
+  let costeTotal = 0;
+  const INTENTOS_EXPLICACION = 2;
 
-  const salida = await llamarFn({
-    modelos,
-    mensajes,
-    json: true,
-    temperatura: 0.6,
-    maxTokens: 1500,
-    permitirPago,
-    topeEur,
-    extra: SIN_RAZONAMIENTO,
-    ...(rutaLog ? { rutaLog } : {}),
-  });
+  for (let intento = 0; intento < INTENTOS_EXPLICACION; intento++) {
+    const mensajes = [
+      { role: 'system', content: promptSistemaGenerador(criterio) },
+      {
+        role: 'user',
+        content:
+          promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) +
+          (intento > 0 ? '\n\nIMPORTANTE: en el intento anterior no devolviste "explicacion" (vacía o ausente). Esta vez inclúyela SIEMPRE, no vacía.' : ''),
+      },
+    ];
 
-  const datos = extraerJson(salida.texto);
-  const explicacion = typeof datos.explicacion === 'string' ? datos.explicacion.trim() : '';
-  const visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
+    const salida = await llamarFn({
+      modelos,
+      mensajes,
+      json: true,
+      temperatura: 0.6,
+      maxTokens: 1500,
+      permitirPago,
+      topeEur,
+      extra: SIN_RAZONAMIENTO,
+      ...(rutaLog ? { rutaLog } : {}),
+    });
+    costeTotal += salida.coste;
+    modeloUsado = salida.modelo;
 
-  return { explicacion, visual, modelo: salida.modelo, coste: salida.coste };
+    const datos = extraerJson(salida.texto);
+    const explicacionCandidata = typeof datos.explicacion === 'string' ? datos.explicacion.trim() : '';
+    if (explicacionCandidata) {
+      explicacion = explicacionCandidata;
+      visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
+      break;
+    }
+    // explicación ausente/vacía/no-texto: intenta una vez más si queda intento, si no se rinde.
+  }
+
+  return { explicacion, visual, modelo: modeloUsado, coste: costeTotal };
 }
 
 /**
@@ -408,12 +462,17 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
   // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
   // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
   const dentroDelLimite = contarPalabras(propuesta.explicacion) <= 40;
-  const explicacionOk = datos.explicacionOk === true && dentroDelLimite;
+  // Igual de objetivo: una explicación vacía nunca es válida, tras el reintento de
+  // generarVisualYExplicacion o no (fijado tras la pasada adversarial del 13-sep-2026).
+  const explicacionVacia = !esTextoNoVacio(propuesta.explicacion);
+  const explicacionOk = datos.explicacionOk === true && dentroDelLimite && !explicacionVacia;
   let motivoExplicacion = '';
   if (!explicacionOk) {
-    motivoExplicacion = !dentroDelLimite
-      ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`
-      : motivoModelo || 'explicación rechazada sin motivo';
+    motivoExplicacion = explicacionVacia
+      ? 'el generador no produjo una explicación válida (vacía tras reintentar)'
+      : !dentroDelLimite
+        ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`
+        : motivoModelo || 'explicación rechazada sin motivo';
   }
 
   let visualOk;
@@ -469,13 +528,19 @@ export async function resolverPregunta(pregunta, opciones = {}) {
   const necesitaVisual = opciones.necesitaVisual !== false;
   let coste = 0;
 
-  const propuesta = await generarVisualYExplicacion(pregunta, { ...opciones, necesitaVisual });
+  // opciones.modelosGenerador/modelosVerificador (distintos de "modelos" a secas) permiten forzar
+  // una cascada concreta para cada papel sin que se mezclen entre sí -- los usa la CLI con
+  // --sin-gratis para saltar del todo los modelos ':free' cuando están saturados (fijado por el
+  // controlador el 13-sep-2026: la cascada gratis llevaba 25+ min sin resolver una sola pregunta).
+  const opcionesGenerador = { ...opciones, necesitaVisual, ...(opciones.modelosGenerador ? { modelos: opciones.modelosGenerador } : {}) };
+  const opcionesVerificador = { ...opciones, necesitaVisual, ...(opciones.modelosVerificador ? { modelos: opciones.modelosVerificador } : {}) };
+
+  const propuesta = await generarVisualYExplicacion(pregunta, opcionesGenerador);
   coste += propuesta.coste;
 
   const verif = await verificarVisualYExplicacion(pregunta, propuesta, {
-    ...opciones,
+    ...opcionesVerificador,
     excluirModelo: propuesta.modelo,
-    necesitaVisual,
   });
   coste += verif.coste;
 
@@ -490,15 +555,13 @@ export async function resolverPregunta(pregunta, opciones = {}) {
     } else {
       const motivoPrevio = verif.motivoVisual || verif.motivo || 'visual rechazado sin motivo';
       const reintento = await generarVisualYExplicacion(pregunta, {
-        ...opciones,
-        necesitaVisual: true,
+        ...opcionesGenerador,
         motivoRechazo: motivoPrevio,
       });
       coste += reintento.coste;
       const verif2 = await verificarVisualYExplicacion(pregunta, reintento, {
-        ...opciones,
+        ...opcionesVerificador,
         excluirModelo: reintento.modelo,
-        necesitaVisual: true,
       });
       coste += verif2.coste;
       modeloVisual = reintento.modelo;
@@ -531,7 +594,7 @@ export async function resolverPregunta(pregunta, opciones = {}) {
 // --- CLI ----------------------------------------------------------------------------------------
 
 function parsearArgs(argv) {
-  const args = { soloPendientes: false, area: null, limite: 0, aplicar: false, permitirPago: false, topeEur: 0, ayuda: false };
+  const args = { soloPendientes: false, area: null, limite: 0, aplicar: false, permitirPago: false, topeEur: 0, sinGratis: false, ayuda: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--ayuda' || a === '-h' || a === '--help') args.ayuda = true;
@@ -541,6 +604,7 @@ function parsearArgs(argv) {
     else if (a === '--aplicar') args.aplicar = true;
     else if (a === '--permitir-pago') args.permitirPago = true;
     else if (a === '--tope-eur') args.topeEur = Number(argv[++i]);
+    else if (a === '--sin-gratis') args.sinGratis = true;
   }
   return args;
 }
@@ -560,6 +624,9 @@ Opciones:
                        Sin esto, solo informa (pero las llamadas a la API SÍ se hacen y SÍ cuestan).
   --permitir-pago     Permite caer a un modelo de pago barato si los gratis fallan.
   --tope-eur <n>      Tope de gasto en euros hoy (solo con --permitir-pago).
+  --sin-gratis        Salta del todo la cascada ':free' (generador y verificador van directos al
+                       modelo de pago barato). Requiere --permitir-pago. Pensado para cuando los
+                       modelos gratis están saturados y frenan la ejecución masiva.
   --ayuda             Muestra esta ayuda y sale.
 `);
 }
@@ -650,6 +717,7 @@ async function main() {
   let costeAcumulado = await costeAcumuladoHoy(RUTA_LOG_LLAMADAS);
   const costeInicial = costeAcumulado;
   let detenidoPorTope = false;
+  let procesadas = 0; // candidatas ya intentadas (éxito o fallo), para el aviso de progreso cada 50
 
   const lotes = partirEnLotes(candidatas, TAMANO_LOTE);
   for (let i = 0; i < lotes.length && !detenidoPorTope; i++) {
@@ -670,16 +738,27 @@ async function main() {
           permitirPago: args.permitirPago,
           topeEur: args.topeEur,
           necesitaVisual,
+          ...(args.sinGratis ? { modelosGenerador: GENERADOR_SOLO_PAGO, modelosVerificador: VERIFICADOR_SOLO_PAGO } : {}),
         });
       } catch (err) {
         fallos.set(pregunta.id, err.message);
         await registrar(`  ${pregunta.id}: FALLO — ${err.message}`);
+        procesadas++;
+        if (procesadas % 50 === 0) await registrar(`\n[progreso] ${procesadas}/${candidatas.length} candidatas intentadas, coste acumulado hoy ${costeAcumulado.toFixed(4)} €.`);
         await esperar(PAUSA_ENTRE_PREGUNTAS_MS);
         continue;
       }
 
       costeAcumulado += resultado.coste;
       resultados.set(pregunta.id, resultado);
+      procesadas++;
+
+      // Aviso pedido por el controlador (13-sep-2026): si una sola pregunta cuesta más de
+      // 0,0015 €, avisar antes de seguir (no bloquea -- el tope global sigue siendo la barrera
+      // real, esto es solo una señal de que algo se sale de lo esperado por pregunta).
+      if (resultado.coste > 0.0015) {
+        await registrar(`  AVISO: ${pregunta.id} costó ${resultado.coste.toFixed(6)} € (> 0,0015 € esperado por pregunta).`);
+      }
 
       const trazaVisual = !necesitaVisual
         ? 'ya tiene imagen'
@@ -696,6 +775,9 @@ async function main() {
       }
       if (resultado.visual) {
         await registrar(`    visual: ${JSON.stringify(resultado.visual)}`);
+      }
+      if (procesadas % 50 === 0) {
+        await registrar(`\n[progreso] ${procesadas}/${candidatas.length} candidatas procesadas, coste acumulado hoy ${costeAcumulado.toFixed(4)} €.`);
       }
 
       await esperar(PAUSA_ENTRE_PREGUNTAS_MS);

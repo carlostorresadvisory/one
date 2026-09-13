@@ -8,6 +8,8 @@ import {
   resolverPregunta,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
+  GENERADOR_SOLO_PAGO,
+  VERIFICADOR_SOLO_PAGO,
 } from '../tools/visualizar.js';
 
 // --- validarVisual --------------------------------------------------------------------------
@@ -95,6 +97,35 @@ test('validarVisual rechaza barras con valor no numérico', () => {
   const r = validarVisual(v);
   assert.equal(r.ok, false);
   assert.ok(r.errores.some((e) => /valor/.test(e)));
+});
+
+test('validarVisual rechaza barras con valor cero o negativo', () => {
+  // Fijado tras la pasada adversarial del 13-sep-2026: 0 o negativo rompe el dibujo de barras.
+  const vCero = visualValido('barras');
+  vCero.items[0].valor = 0;
+  assert.equal(validarVisual(vCero).ok, false);
+
+  const vNegativo = visualValido('barras');
+  vNegativo.items[0].valor = -5;
+  assert.equal(validarVisual(vNegativo).ok, false);
+});
+
+test('validarVisual rechaza formula con "\\" o "$" (LaTeX crudo)', () => {
+  const vBackslash = visualValido('formula');
+  vBackslash.texto = 'PIB = \\frac{X}{Y}';
+  assert.equal(validarVisual(vBackslash).ok, false);
+
+  const vDolar = visualValido('formula');
+  vDolar.texto = '$PIB = C + I$';
+  assert.equal(validarVisual(vDolar).ok, false);
+});
+
+test('validarVisual rechaza linea-tiempo con "ano" repetido', () => {
+  const v = visualValido('linea-tiempo');
+  v.hitos[1].ano = v.hitos[0].ano; // duplica el primer año
+  const r = validarVisual(v);
+  assert.equal(r.ok, false);
+  assert.ok(r.errores.some((e) => /repetido/.test(e)));
 });
 
 test('validarVisual rechaza comparacion con 3 columnas (distinto de 2)', () => {
@@ -202,6 +233,32 @@ test('generarVisualYExplicacion: pasa el motivoRechazo al prompt de usuario en e
   assert.match(contenidoUsuario, /el dato de la cifra no era real/);
 });
 
+test('generarVisualYExplicacion: reintenta una vez si "explicacion" viene vacía, y usa la del reintento si llega bien', async () => {
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    if (llamadas === 1) {
+      return { texto: JSON.stringify({ explicacion: '', visual: null }), modelo: modelos[0], coste: 0.0001, usage: {} };
+    }
+    return { texto: JSON.stringify({ explicacion: 'Ahora sí llega.', visual: null }), modelo: modelos[0], coste: 0.0001, usage: {} };
+  };
+  const r = await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
+  assert.equal(llamadas, 2);
+  assert.equal(r.explicacion, 'Ahora sí llega.');
+  assert.equal(r.coste, 0.0002); // suma de las dos llamadas
+});
+
+test('generarVisualYExplicacion: si "explicacion" falta en las dos veces, se rinde con explicacion vacía', async () => {
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    return { texto: JSON.stringify({ visual: null }), modelo: modelos[0], coste: 0, usage: {} }; // sin "explicacion"
+  };
+  const r = await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
+  assert.equal(llamadas, 2, 'debe intentarlo exactamente dos veces, ni una ni tres');
+  assert.equal(r.explicacion, '');
+});
+
 // --- verificarVisualYExplicacion ---------------------------------------------------------------
 
 test('verificarVisualYExplicacion excluye el modelo generador de la cascada (excluirModelo)', async () => {
@@ -267,6 +324,19 @@ test('verificarVisualYExplicacion: explicacionOk pasa a false si supera 40 palab
   const r = await verificarVisualYExplicacion(preguntaBase(), propuesta, { llamar: llamarFalso, necesitaVisual: false });
   assert.equal(r.explicacionOk, false);
   assert.match(r.motivo, /45 palabras/);
+});
+
+test('verificarVisualYExplicacion: explicacion vacía nunca es explicacionOk, aunque el modelo diga true', async () => {
+  const llamarFalso = async ({ modelos }) => ({
+    texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }),
+    modelo: modelos[0],
+    coste: 0,
+    usage: {},
+  });
+  const propuesta = { explicacion: '', visual: null, modelo: 'a/uno:free' };
+  const r = await verificarVisualYExplicacion(preguntaBase(), propuesta, { llamar: llamarFalso, necesitaVisual: false });
+  assert.equal(r.explicacionOk, false);
+  assert.match(r.motivo, /vacía/);
 });
 
 test('verificarVisualYExplicacion: sin visual propuesto pero necesitándolo, visualOk false', async () => {
@@ -381,6 +451,38 @@ test('resolverPregunta: si el visual pasa la verificación a la primera, no rein
   assert.equal(r.visual.tipo, 'dato');
   assert.equal(r.explicacionCambiada, true);
   assert.ok(r.coste > 0);
+});
+
+test('resolverPregunta: con modelosGenerador/modelosVerificador (--sin-gratis) usa cada cascada en su papel, sin mezclarlas', async () => {
+  // verificarVisualYExplicacion siempre filtra excluirModelo (aunque no elimine nada), así que
+  // el array que llega a llamar() es una COPIA de VERIFICADOR_SOLO_PAGO, no la misma referencia
+  // -- se compara por contenido, no con ===.
+  const modelosVistos = { generador: [], verificador: [] };
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos[0] === GENERADOR_SOLO_PAGO[0]) {
+      modelosVistos.generador.push(modelos);
+      return {
+        texto: JSON.stringify({ explicacion: 'Corta y válida.', visual: { tipo: 'dato', cifra: '1', texto: 'x', leyenda: 'y', fuente: 'INE 2024' } }),
+        modelo: modelos[0],
+        coste: 0.0001,
+        usage: {},
+      };
+    }
+    if (modelos[0] === VERIFICADOR_SOLO_PAGO[0]) {
+      modelosVistos.verificador.push(modelos);
+      return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: '' }), modelo: modelos[0], coste: 0.0001, usage: {} };
+    }
+    throw new Error(`cascada inesperada: ${JSON.stringify(modelos)}`);
+  };
+  const r = await resolverPregunta(preguntaBase(), {
+    llamar: llamarFalso,
+    necesitaVisual: true,
+    modelosGenerador: GENERADOR_SOLO_PAGO,
+    modelosVerificador: VERIFICADOR_SOLO_PAGO,
+  });
+  assert.equal(modelosVistos.generador.length, 1);
+  assert.equal(modelosVistos.verificador.length, 1);
+  assert.equal(r.visual.tipo, 'dato');
 });
 
 test('resolverPregunta: reintenta una vez el visual y lo deja en null si vuelve a fallar', async () => {
