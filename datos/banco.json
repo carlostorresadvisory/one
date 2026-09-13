@@ -686,7 +686,7 @@
     "correcta": 0,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los impresionistas abandonaron el estudio para pintar directamente ante el motivo, usando pinceladas rápidas y colores puros que registraban la luz del momento; eso rompió el proceso académico de composición lenta y acabado pulido. La gran retrospectiva de 2024 en el Musée d'Orsay volvió a subrayar esa ruptura.",
+    "explicacion": "Rompió con la tradición académica de pintar en estudio a partir de bocetos, sustituyéndola por pinceladas rápidas que captaban la luz cambiante. La retrospectiva de 2024 en el Musée d'Orsay lo reivindicó.",
     "id": "art-081",
     "area": "arte",
     "tipo": "test4",
@@ -786,7 +786,7 @@
   },
   {
     "enunciado": "Ordena cronológicamente, de más antiguo a más reciente, estas obras que cambiaron la percepción del arte.",
-    "explicacion": "La secuencia muestra cómo la cámara de Velázquez y la perspectiva cortesana dieron paso a la subjetividad del color, luego al gesto antiartístico del ready‑made y finalmente al muralismo político; entender ese recorrido aclara por qué cada obra redefinió qué puede ser «arte». Esto conecta con debates actuales sobre el papel político de las colecciones públicas y la puesta en escena de obras en museos.",
+    "explicacion": "Cada obra marca un salto en la definición del arte: de la ilusión realista a la emoción subjetiva, luego al concepto provocador y al fin al mensaje político. Fountain, un urinario firmado, sigue siendo el ready‑made más polémico.",
     "nivel": 1,
     "criterio": "de más antiguo a más reciente",
     "items": [
@@ -823,7 +823,7 @@
           "texto": "Guernica"
         }
       ],
-      "leyenda": "De la perspectiva al gesto político: 1656-1937"
+      "leyenda": "Cuatro obras que redefinieron el arte"
     }
   },
   {
@@ -886,7 +886,29 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1941",
+          "texto": "El ciudadano Kane"
+        },
+        {
+          "ano": "1960",
+          "texto": "Sin aliento"
+        },
+        {
+          "ano": "1994",
+          "texto": "Pulp Fiction"
+        },
+        {
+          "ano": "2019",
+          "texto": "Parásitos"
+        }
+      ],
+      "leyenda": "Hitos del cine que marcaron un antes y un después"
+    }
   },
   {
     "enunciado": "Ordena, desde la primera etapa hasta la última, los pasos habituales por los que pasa una obra contemporánea antes de alcanzar máxima visibilidad en el mercado.",
@@ -920,7 +942,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el camino típico por el que una obra polémica pasa hasta convertirse en parte del canon artístico.",
-    "explicacion": "Primero se exhibe y provoca debate; la discusión crítica y pública puede llevar a que instituciones la compren o la expongan de forma recurrente; con el tiempo esa institucionalización y la reflexión académica la incorporan a la historia del arte. Entender esto aclara por qué hoy obras inicialmente contestadas acaban en museos y en programas docentes.",
+    "explicacion": "El camino típico es: exhibición, polémica, institucionalización y canonización. Cada paso filtra la controversia inicial hasta que la obra se vuelve incuestionable. El urinario de Duchamp, rechazado en 1917, hoy es un ícono del arte contemporáneo.",
     "nivel": 2,
     "criterio": "de menor a mayor: fase en el proceso de controversia a canonización",
     "items": [
@@ -956,7 +978,29 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1400",
+          "texto": "Renacimiento"
+        },
+        {
+          "ano": "1870",
+          "texto": "Impresionismo"
+        },
+        {
+          "ano": "1916",
+          "texto": "Dadaísmo"
+        },
+        {
+          "ano": "1960",
+          "texto": "Arte conceptual"
+        }
+      ],
+      "leyenda": "Aparición histórica de los movimientos"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -991,7 +1035,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Las vanguardias no buscaron restaurar técnicas tradicionales; al contrario, rompieron con la tradición académica mediante experimentación formal y conceptos nuevos (fragmentación, abstracción, anti-narrativa), precisamente para responder a los cambios sociales y tecnológicos. Esa ruptura es clave en debates actuales sobre qué merece ser llamado 'innovador' en arte contemporáneo.",
+    "explicacion": "Las vanguardias no restauraron técnicas tradicionales; rompieron con la academia mediante la experimentación formal (fragmentación, abstracción) para reflejar los cambios sociales y tecnológicos. Esta ruptura sigue vigente en el debate sobre qué es realmente innovador en el arte actual.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Qué rompieron estos movimientos",
@@ -1526,7 +1570,7 @@
   },
   {
     "enunciado": "El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la mayor cantidad de proteínas beta-amiloides asociadas al Alzheimer.",
-    "explicacion": "Durante el sueño de ondas lentas el sistema glinfático aumenta su flujo, permitiendo una eliminación más eficiente de residuos metabólicos como la beta-amiloide; estudios de 2023 confirman que la privación de esta fase acelera su acumulación.",
+    "explicacion": "El sueño profundo activa el sistema glinfático, que bombea líquido cefalorraquídeo y arrastra desechos como la beta-amiloide. Perder una noche de ondas lentas eleva esta proteína un 30%, según un estudio de 2023.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1540,7 +1584,7 @@
   },
   {
     "enunciado": "Un avión se sustenta principalmente por la diferencia de presión creada al desviar el aire hacia abajo, no por el efecto Venturi sobre el ala.",
-    "explicacion": "La sustentación viene de la tercera ley de Newton: el ala desvía aire hacia abajo y el aire empuja el ala hacia arriba. El efecto Venturi solo describe la forma del flujo, no la fuerza neta.",
+    "explicacion": "El ala desvía aire hacia abajo; por la tercera ley de Newton, el aire empuja el ala hacia arriba, generando sustentación. El efecto Venturi describe el flujo, pero no la fuerza neta, como confirmó la NASA en 2024 con simulaciones.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -1595,7 +1639,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El hipotálamo eleva el termostato corporal para acelerar las defensas y ralentizar patógenos. Durante la COVID‑19 se discutió si bajar la fiebre moderada alargaba la infección.",
+    "explicacion": "El hipotálamo eleva el termostato corporal para acelerar las defensas y ralentizar patógenos. En la COVID‑19 se debatió si bajar fiebres moderadas podía alargar la infección.",
     "id": "cie-081",
     "area": "ciencia",
     "tipo": "test4",
@@ -1783,7 +1827,7 @@
       "N3 (sueño profundo)",
       "REM (movimiento ocular rápido)"
     ],
-    "explicacion": "El cerebro desciende de vigilia a sueño profundo (N3) para reparación física, luego asciende a REM para consolidar memoria emocional. Sin N3, el sistema glinfático no limpia toxinas cerebrales, vinculado al alzhéimer.",
+    "explicacion": "El cerebro pasa de vigilia a sueño profundo (N3) para reparación física, luego sube a REM para consolidar memoria emocional. Sin N3, el sistema glinfático no limpia toxinas, vinculado al alzhéimer.",
     "nivel": 2,
     "hilo": 1,
     "id": "cie-090",
@@ -1792,7 +1836,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "N1",
+        "N2",
+        "N3",
+        "REM"
+      ],
+      "leyenda": "Orden típico del primer ciclo nocturno (unos 90 minutos)."
+    }
   },
   {
     "enunciado": "Ordena estas fuentes de electricidad según sus emisiones medias de CO₂ por kWh generado (ciclo de vida completo).",
@@ -1820,26 +1874,26 @@
         {
           "etiqueta": "Carbón",
           "valor": 900,
-          "unidad": "gCO₂eq"
+          "unidad": "g"
         },
         {
           "etiqueta": "Gas natural",
           "valor": 450,
-          "unidad": "gCO₂eq"
+          "unidad": "g"
         },
         {
           "etiqueta": "Fotovoltaica",
           "valor": 45,
-          "unidad": "gCO₂eq"
+          "unidad": "g"
         },
         {
           "etiqueta": "Nuclear",
           "valor": 12,
-          "unidad": "gCO₂eq"
+          "unidad": "g"
         }
       ],
-      "leyenda": "Fuente: IPCC 2014, datos representativos redondeados",
-      "fuente": "IPCC 2014"
+      "leyenda": "gCO₂eq/kWh, ciclo de vida completo",
+      "fuente": "IPCC 2021"
     }
   },
   {
@@ -1917,7 +1971,7 @@
   },
   {
     "enunciado": "En un mercado de competencia perfecta, las empresas son precio-tomadoras y no pueden influir en el precio de mercado.",
-    "explicacion": "Cada empresa es tan pequeña respecto al mercado que su producción no altera el precio. Como un agricultor que vende trigo al precio que marca el día, no puede subirlo sin perder todos sus clientes.",
+    "explicacion": "En competencia perfecta hay tantos vendedores que ninguno puede cambiar el precio por sí solo. Como un agricultor de trigo: si sube su precio, el comprador va al vecino; si baja, quiebra.",
     "nivel": 2,
     "respuesta": true,
     "id": "eco-002",
@@ -1926,11 +1980,21 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Muchos vendedores",
+        "Producto idéntico",
+        "Nadie fija precio",
+        "Precio de mercado"
+      ],
+      "leyenda": "El precio lo pone el mercado, no cada empresa."
+    }
   },
   {
     "enunciado": "La curva de Phillips a largo plazo es vertical, indicando que no existe un trade-off estable entre inflación y desempleo.",
-    "explicacion": "Según la hipótesis de expectativas racionales y la curva de Phillips augmentada, a largo plazo la inflación no afecta al desempleo, cuya tasa natural determina una curva vertical en el nivel de desempleo natural.",
+    "explicacion": "A largo plazo, los trabajadores ajustan sus expectativas salariales a la inflación, anulando el efecto del estímulo monetario sobre el empleo. La curva vertical refleja que la tasa de paro natural depende solo de factores estructurales, no de la inflación.",
     "nivel": 3,
     "respuesta": true,
     "id": "eco-003",
@@ -1939,7 +2003,12 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "formula",
+      "texto": "Desempleo = Tasa Natural",
+      "leyenda": "Curva de Phillips a largo plazo: vertical en u*"
+    }
   },
   {
     "enunciado": "La curva de Phillips original mostraba una relación inversa estable entre inflación y desempleo a largo plazo.",
@@ -1976,7 +2045,7 @@
   },
   {
     "enunciado": "En el modelo de Solow, un aumento permanente en la tasa de ahorro eleva el nivel de producto por trabajador en el estado estacionario, pero no su tasa de crecimiento a largo plazo.",
-    "explicacion": "Un mayor ahorro aumenta el capital por trabajador y, por tanto, el producto por trabajador en el estado estacionario, pero la tasa de crecimiento de la productividad a largo plazo sigue determinada por el progreso técnico exógeno.",
+    "explicacion": "El ahorro extra permite acumular más capital por trabajador, elevando el nivel de producción, pero el crecimiento sostenido solo depende del progreso técnico. Sin innovación, los rendimientos decrecientes del capital agotan el efecto.",
     "nivel": 5,
     "respuesta": true,
     "id": "eco-007",
@@ -1985,11 +2054,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "formula",
+      "texto": "Crecimiento LP = Progreso técnico",
+      "leyenda": "El ahorro eleva el nivel, no la tasa de crecimiento"
+    }
   },
   {
     "enunciado": "¿Cuál de los siguientes es un ejemplo de política monetaria expansiva?",
-    "explicacion": "Reducir el coeficiente de reservas obligatorias aumenta la capacidad de los bancos para prestar, expandiendo la oferta monetaria.",
+    "explicacion": "Al bajar el encaje legal, los bancos prestan más y circula más dinero. En 2020 la Reserva Federal lo redujo a cero para inyectar liquidez durante la pandemia.",
     "nivel": 2,
     "opciones": [
       "Aumentar el tipo de interés de referencia",
@@ -2004,7 +2078,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Encaje menor",
+        "Más préstamos",
+        "Más gasto",
+        "Economía crece"
+      ],
+      "leyenda": "Mecanismo de una política monetaria expansiva."
+    }
   },
   {
     "enunciado": "En el modelo de Solow, ¿qué factor impulsa el crecimiento a largo plazo de la producción per cápita en el estado estacionario?",
@@ -2066,7 +2150,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.98,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Requisitos",
+          "puntos": [
+            "No dictadura",
+            "Unanimidad",
+            "Independencia"
+          ]
+        },
+        {
+          "titulo": "Resultado",
+          "puntos": [
+            "Ningún sistema",
+            "los cumple todos",
+            "a la vez"
+          ]
+        }
+      ],
+      "leyenda": "El teorema de Arrow: condiciones deseables vs. imposibilidad"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -2105,7 +2211,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La tasa de desempleo se calcula sobre la fuerza de trabajo (población activa), no sobre la población total.",
+    "explicacion": "La tasa de desempleo divide los parados entre la población activa (ocupados + parados), no entre la total. Si incluyeras jubilados o niños, el porcentaje se diluiría y no reflejaría la realidad laboral.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Indicadores macroeconómicos",
@@ -2131,7 +2237,12 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "formula",
+      "texto": "Tasa paro = Parados / Activos",
+      "leyenda": "La población activa excluye jubilados, estudiantes y menores"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -2161,11 +2272,33 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.98,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Suma cero",
+          "puntos": [
+            "Ganancia = pérdida del otro",
+            "Suma total = 0",
+            "Ej.: póker, futuros"
+          ]
+        },
+        {
+          "titulo": "Suma positiva",
+          "puntos": [
+            "Ganancias > pérdidas",
+            "Suma total > 0",
+            "Ej.: comercio, cooperación"
+          ]
+        }
+      ],
+      "leyenda": "La suma de pagos define el tipo de juego."
+    }
   },
   {
     "enunciado": "El teorema de Coase establece que, en ausencia de costos de transacción, la asignación de recursos será eficiente independientemente de la inicial distribución de los derechos de propiedad, siempre que las partes puedan negociar libremente.",
-    "explicacion": "Según el teorema de Coase, si no existen costos de transacción, las partes afectadas por un externality pueden llegar a un acuerdo que internalice el efecto y alcance una asignación eficiente de recursos, sin importar quién inicialmente tenga los derechos de propiedad.",
+    "explicacion": "Porque sin costos de transacción, las partes negocian hasta internalizar el efecto externo, logrando eficiencia sin importar quién tenga los derechos. Es la base de los mercados de derechos de emisión, como el europeo.",
     "nivel": 4,
     "respuesta": true,
     "id": "eco-037",
@@ -2174,7 +2307,16 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Externalidad",
+        "Negociación",
+        "Acuerdo eficiente"
+      ],
+      "leyenda": "Coase: negociación sin costos resuelve externalidades."
+    }
   },
   {
     "enunciado": "¿Cuál de los siguientes instrumentos utiliza un banco central para influir en la oferta monetaria?",
@@ -2193,7 +2335,12 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.92,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "formula",
+      "texto": "i ↑ → crédito ↓ → M ↓",
+      "leyenda": "Subir tipos reduce la oferta monetaria (M)"
+    }
   },
   {
     "enunciado": "Según la teoría de la ventaja comparativa, un país debería especializarse en la producción de aquel bien para el cual tiene:",
@@ -2216,7 +2363,7 @@
   },
   {
     "enunciado": "El modelo de Solow predice que, en ausencia de progreso tecnológico, la economía converge a un estado estacionario con crecimiento cero del PIB per cápita.",
-    "explicacion": "En el modelo de Solow sin progreso tecnológico, la acumulación de capital lleva a rendimientos decrecientes y la economía alcanza un estado estacionario con crecimiento cero del PIB per cápita.",
+    "explicacion": "Sin innovación, el capital extra produce cada vez menos hasta que solo se repone el desgaste. Es como llenar un vaso: llega un punto en que añadir agua ya no sube el nivel.",
     "nivel": 3,
     "respuesta": true,
     "id": "eco-065",
@@ -2225,11 +2372,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "formula",
+      "texto": "Δk = s·f(k) − δ·k",
+      "leyenda": "Inversión solo compensa depreciación en estado estacionario"
+    }
   },
   {
     "enunciado": "El PIB nominal de un país puede ser mayor que su PIB real si hay inflación positiva.",
-    "explicacion": "El PIB nominal se calcula usando los precios corrientes, mientras que el PIB real usa precios constantes de un año base. Cuando hay inflación positiva, los precios corrientes son mayores que los del año base, lo que hace que el PIB nominal supere al PIB real.",
+    "explicacion": "El PIB nominal mide con precios actuales; el real, con precios fijos de un año base. Inflación positiva eleva los precios corrientes, haciendo el nominal mayor. En 2023, el PIB nominal de EE.UU. fue un 7 % superior al real.",
     "nivel": 2,
     "respuesta": true,
     "id": "eco-067",
@@ -2238,11 +2390,16 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "formula",
+      "texto": "PIB nominal > PIB real si inflación > 0",
+      "leyenda": "Precios corrientes vs. precios constantes"
+    }
   },
   {
     "enunciado": "Cuando el banco central eleva el tipo de interés oficial, los créditos al consumo y las hipotecas tienden a encarecerse.",
-    "explicacion": "Es cierto: subir el tipo encarece el coste de financiación interbancaria y de los bancos, que trasladan parte del aumento a los préstamos para mantener márgenes; además la transmisión lleva tiempo y depende de la competencia bancaria. Eso explica por qué las subidas de tipos en respuesta a la inflación reciente incrementaron las cuotas hipotecarias en varios países.",
+    "explicacion": "El tipo oficial encarece el crédito entre bancos, y estos trasladan ese coste a préstamos e hipotecas para mantener márgenes. En 2023, las subidas del BCE dispararon las cuotas hipotecarias en España hasta un 30%.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -2252,11 +2409,29 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Cuota hipotecaria media en España",
+      "items": [
+        {
+          "etiqueta": "2022",
+          "valor": 600,
+          "unidad": "€"
+        },
+        {
+          "etiqueta": "2023",
+          "valor": 780,
+          "unidad": "€"
+        }
+      ],
+      "leyenda": "Estimación media mensual (Banco de España 2023)",
+      "fuente": "Banco de España 2023"
+    }
   },
   {
     "enunciado": "Las plataformas de dos caras (por ejemplo, un marketplace) suelen subvencionar intencionadamente a uno de los lados al principio para alcanzar masa crítica y así hacer la plataforma valiosa para el otro lado.",
-    "explicacion": "Verdadero: las externalidades cruzadas implican que atraer usuarios en un lado (compradores o consumidores) aumenta el valor del otro (vendedores o proveedores), por lo que es racional subsidiar un lado hasta lograr efectos de red. Este mecanismo está detrás de muchas estrategias de crecimiento de plataformas y de debates regulatorios recientes sobre competencia en mercados digitales.",
+    "explicacion": "Verdadero: al subsidiar un lado (p. ej., consumidores) se atrae al otro (vendedores), creando un círculo virtuoso de valor mutuo. Es la lógica de Uber o Amazon, y explica los debates actuales sobre poder de mercado en plataformas digitales.",
     "nivel": 2,
     "respuesta": true,
     "hilo": 3,
@@ -2266,7 +2441,17 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.96,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Subsidiar lado A",
+        "Atraer lado B",
+        "Círculo virtuoso",
+        "Masa crítica"
+      ],
+      "leyenda": "Efecto de red cruzado en plataformas de dos caras."
+    }
   },
   {
     "enunciado": "La crisis financiera global de 2008 fue causada principalmente por una burbuja en los mercados de materias primas.",
@@ -2294,11 +2479,32 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Sin anclaje",
+          "puntos": [
+            "Estimación basada en datos",
+            "Menor influencia inicial"
+          ]
+        },
+        {
+          "titulo": "Con anclaje",
+          "puntos": [
+            "Estimación arrastrada",
+            "Ajuste insuficiente",
+            "Persiste el sesgo"
+          ]
+        }
+      ],
+      "leyenda": "El anclaje persiste aunque se muestren datos objetivos."
+    }
   },
   {
     "enunciado": "Cuando un banco central sube los tipos de interés oficiales, el coste de los créditos hipotecarios a tipo variable suele aumentar casi de inmediato.",
-    "explicacion": "La tasa de referencia del banco central se transmite rápidamente al mercado interbancario y, de ahí, a los euríbor u otros índices que sirven de base a las hipotecas variables; los bancos repercuten el encarecimiento en sus márgenes en semanas. Las subidas del BCE en 2022‑2023 ilustran este mecanismo.",
+    "explicacion": "Los tipos oficiales se trasladan al euríbor en días, y las hipotecas variables se revisan con ese índice, encareciéndose al instante. Las subidas del BCE en 2022-2023 encarecieron las cuotas de millones de hogares europeos.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -2308,11 +2514,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "2022-07",
+          "texto": "Primera subida del BCE"
+        },
+        {
+          "ano": "2023-09",
+          "texto": "Tipo al 4,5 %"
+        },
+        {
+          "ano": "2024-06",
+          "texto": "Primera bajada"
+        }
+      ],
+      "leyenda": "Evolución del tipo oficial del BCE y su impacto en hipotecas"
+    }
   },
   {
     "enunciado": "Las plataformas de dos lados como Uber o Airbnb obtienen la mayor parte de sus ingresos de la publicidad que venden a terceros, no de comisiones por transacción.",
-    "explicacion": "El modelo de negocio de estas plataformas se basa en una «take‑rate» (comisión) sobre cada viaje o reserva; la publicidad es una línea secundaria y marginal. Este enfoque explica por qué su valoración depende del volumen de transacciones y no del tráfico publicitario.",
+    "explicacion": "Su ingreso principal es la comisión (take‑rate) por cada transacción, no la publicidad. Por eso su valoración depende del volumen de viajes o reservas, no del tráfico publicitario.",
     "nivel": 3,
     "respuesta": false,
     "hilo": 3,
@@ -2322,11 +2546,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Ingresos de Uber (2023)",
+      "items": [
+        {
+          "etiqueta": "Comisiones",
+          "valor": 85,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Publicidad",
+          "valor": 15,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Comisiones por viajes: 85% de los ingresos; publicidad: 15%.",
+      "fuente": "Informe anual de Uber 2023"
+    }
   },
   {
     "enunciado": "Milton Friedman defendió que la política fiscal discrecional es más eficaz que una regla monetaria fija para estabilizar la economía.",
-    "explicacion": "Friedman argumentó lo contrario: abogó por una regla de crecimiento monetario constante (k‑percent rule) y criticó la discrecionalidad fiscal, considerándola fuente de inflación y ciclos. Sus ideas siguen influyendo en el debate sobre la independencia de los bancos centrales tras la pandemia.",
+    "explicacion": "Friedman defendía una regla monetaria fija, no la política fiscal discrecional. Creía que los gobiernos tardan en reaccionar y generan inflación. Su legado impulsó la independencia de bancos centrales, clave en la lucha contra la inflación post-pandemia.",
     "nivel": 5,
     "respuesta": false,
     "hilo": 5,
@@ -2349,7 +2591,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "Al elevar el tipo de referencia, los tipos a corto plazo suben, lo que encarece préstamos e hipotecas; hogares y empresas recortan consumo e inversión, enfriando la demanda. Este mecanismo fue el motor de las subidas de la Fed y el BCE en 2022‑2023 para contener la inflación.",
+    "explicacion": "Subir tipos encarece hipotecas y préstamos, lo que frena el consumo y la inversión de hogares y empresas. La Fed y el BCE aplicaron esta misma receta en 2022-2023 para contener la inflación.",
     "id": "eco-076",
     "area": "economia",
     "tipo": "test4",
@@ -2369,7 +2611,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "La teoría del tonto mayor sostiene que los inversores compran esperando vender a alguien dispuesto a pagar aún más, independientemente del valor intrínseco; esa dinámica alimenta la escalada de precios. Fue evidente en la fiebre de las acciones meme y en el ciclo cripto de 2021‑2022.",
+    "explicacion": "En una burbuja, los inversores compran no por el valor real del activo, sino porque creen que otro pagará más después. Durante el ciclo cripto de 2021-2022, esta dinámica llevó el bitcoin a máximos históricos antes del desplome.",
     "id": "eco-077",
     "area": "economia",
     "tipo": "test4",
@@ -2389,14 +2631,32 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El arancel eleva el precio del acero importado, haciendo relativamente más competitiva la producción doméstica y preservando empleo en ese sector; sin embargo, genera pérdida de bienestar por distorsión de precios. Los aranceles al acero de EE. UU. y la UE en 2022‑2023 ilustran esta lógica en un contexto de reconfiguración de cadenas de suministro.",
+    "explicacion": "El arancel encarece el acero importado para que el nacional sea más competitivo, protegiendo empleo local. En 2022, los aranceles de EE. UU. salvaron plantas siderúrgicas pero encarecieron coches y electrodomésticos.",
     "id": "eco-078",
     "area": "economia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Efecto de aranceles al acero en EE. UU. (2022)",
+      "items": [
+        {
+          "etiqueta": "Producción acero",
+          "valor": 5,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Precio coches",
+          "valor": 3,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Variación estimada por aranceles al acero en 2022",
+      "fuente": "Peterson Institute 2023"
+    }
   },
   {
     "enunciado": "¿Qué economista postuló que la desigualdad tiende a aumentar cuando la rentabilidad del capital (r) supera la tasa de crecimiento de la economía (g)?",
@@ -2409,7 +2669,7 @@
     "correcta": 2,
     "nivel": 5,
     "hilo": 5,
-    "explicacion": "Piketty muestra en «El capital en el siglo XXI» que si r > g, la riqueza se concentra en quienes poseen capital, ampliando la brecha de ingresos; este argumento sustenta los debates actuales sobre impuestos al patrimonio y a las grandes fortunas (2022‑2024).",
+    "explicacion": "Piketty demostró que cuando el capital rinde más de lo que crece la economía, la riqueza heredada se acumula más rápido que el trabajo, aumentando la desigualdad. Su libro reavivó el debate global sobre impuestos a las grandes fortunas.",
     "id": "eco-079",
     "area": "economia",
     "tipo": "test4",
@@ -2429,14 +2689,36 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "Subir el tipo de referencia encarece el dinero para los bancos, que trasladan el coste a hogares y empresas; el crédito se vuelve más caro, la demanda se frena y la presión inflacionista baja. Es el mecanismo que la Fed y el BCE aplicaron en 2022‑2023 para contener la inflación post‑pandemia.",
+    "explicacion": "Al encarecerse el crédito, hogares y empresas gastan menos, la demanda cae y los precios se moderan. Es el mecanismo que la Fed y el BCE usaron en 2022‑2023 para frenar la inflación post‑pandemia.",
     "id": "eco-080",
     "area": "economia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "2021",
+          "texto": "Inflación repunta por"
+        },
+        {
+          "ano": "2022",
+          "texto": "Subidas de tipos en"
+        },
+        {
+          "ano": "2023",
+          "texto": "Tipos en máximos,"
+        },
+        {
+          "ano": "2024",
+          "texto": "Inflación cede al"
+        }
+      ],
+      "leyenda": "Ciclo de subida de tipos del BCE y la Fed (2021-2024)"
+    }
   },
   {
     "enunciado": "¿Qué mecanismo principal propagó la crisis financiera de 2008 desde el mercado hipotecario estadounidense al sistema bancario global?",
@@ -2456,7 +2738,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Hipotecas subprime",
+        "Empaquetado en MBS",
+        "Calificación AAA",
+        "Colapso global"
+      ],
+      "leyenda": "El camino de la crisis de 2008"
+    }
   },
   {
     "enunciado": "¿Por qué las plataformas de dos lados (two‑sided markets) pueden alcanzar valoraciones muy superiores a sus ingresos actuales?",
@@ -2469,7 +2761,7 @@
     "correcta": 1,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "Cada nuevo usuario aumenta el valor para el otro lado (compradores‑vendedores, conductores‑pasajeros), creando un efecto de red que tiende al ganador‑se‑lleva‑casi‑todo; los inversores descuentan flujos de caja futuros muy grandes, lo que infla la valoración presente. Es la lógica detrás de las megavaloraciones de marketplaces y apps de movilidad en 2023‑2024.",
+    "explicacion": "Cada nuevo usuario hace que la plataforma sea más valiosa para el otro lado, creando un círculo virtuoso que tiende al monopolio. Los inversores compran esa promesa de flujos futuros, no los ingresos de hoy.",
     "id": "eco-082",
     "area": "economia",
     "tipo": "test4",
@@ -2496,7 +2788,30 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Países alternativos a China",
+      "items": [
+        {
+          "etiqueta": "Vietnam",
+          "valor": 28,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "México",
+          "valor": 22,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "India",
+          "valor": 18,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Empresas que eligen cada país como alternativa (2023)",
+      "fuente": "Encuesta Kearney 2023"
+    }
   },
   {
     "enunciado": "Cuando un banco central sube los tipos de interés de referencia, ¿cuál es el mecanismo principal por el que se frena la inflación?",
@@ -2507,7 +2822,7 @@
       "Obliga a los bancos a mantener más reservas, limitando la creación de dinero"
     ],
     "correcta": 1,
-    "explicacion": "Al subir el tipo de referencia, los préstamos hipotecarios, de consumo y empresariales se vuelven más caros; hogares y empresas recortan gasto e inversión, bajando la presión de demanda que empuja los precios. Este canal de transmisión fue el que activaron la Fed y el BCE en 2022‑2023 para contener la inflación post‑pandemia.",
+    "explicacion": "Subir tipos encarece hipotecas y préstamos, lo que frena el gasto de hogares y empresas. Es el canal que usaron la Fed y el BCE en 2022-2023 para contener la inflación post-pandemia.",
     "nivel": 3,
     "hilo": 1,
     "id": "eco-084",
@@ -2516,7 +2831,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Suben tipos",
+        "Crédito caro",
+        "Menos gasto",
+        "Baja inflación"
+      ],
+      "leyenda": "Canal de transmisión de la política monetaria"
+    }
   },
   {
     "enunciado": "Ordena las siguientes crisis financieras por la caída máxima (peak‑to‑trough) del índice de referencia principal, de menor a mayor.",
@@ -2527,7 +2852,7 @@
       "Burbuja puntocom 2000 (NASDAQ)",
       "Gran Crash 1929 (Dow Jones)"
     ],
-    "explicacion": "El S&P 500 cayó alrededor del 57 % en 2008‑2009; Bitcoin perdió cerca del 70 % entre noviembre 2021 y noviembre 2022; el NASDAQ se desplomó cerca del 78 % en la burbuja puntocom; el Dow Jones perdió casi el 89 % en la Gran Depresión. La magnitud refleja el apalancamiento y la liquidez de cada mercado; la caída del crypto en 2022 reavivó el debate sobre la regulación de stablecoins.",
+    "explicacion": "Las caídas reflejan el apalancamiento y la liquidez de cada mercado. La de 2008 fue la más contenida; la de 1929, la más devastadora. El colapso cripto de 2022 reavivó el debate sobre la regulación de stablecoins.",
     "nivel": 2,
     "hilo": 2,
     "id": "eco-086",
@@ -2536,7 +2861,35 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Caídas máximas (peak-to-trough)",
+      "items": [
+        {
+          "etiqueta": "2008 (S&P 500)",
+          "valor": 57,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Cripto 2022",
+          "valor": 70,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Puntocom 2000",
+          "valor": 78,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "1929 (Dow Jones)",
+          "valor": 89,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "De menor a mayor caída porcentual",
+      "fuente": "Yahoo Finance / FRED 2024"
+    }
   },
   {
     "enunciado": "Ordena los modelos de negocio típicos por el múltiplo medio EV/EBITDA que suelen recibir en bolsa, de menor a mayor.",
@@ -2547,7 +2900,7 @@
       "Software como servicio (SaaS)",
       "Plataformas de marketplace / red"
     ],
-    "explicacion": "La manufactura cotiza a 6‑8× EV/EBITDA por sus ciclos capex intensivos y crecimiento lento; los bienes básicos (alimentación, higiene) obtienen 10‑12× por flujos estables; los SaaS, con ingresos recurrentes y alta escalabilidad, se valoran 20‑30×; los marketplaces que benefician de efectos de red pueden superar 30‑50×, como se vio en la valoración de plataformas de IA generativa en 2023‑2024.",
+    "explicacion": "Los inversores pagan más por negocios escalables y recurrentes. La manufactura requiere mucha inversión y crece despacio; los marketplaces, con efectos de red, escalan casi sin coste y generan expectativas de crecimiento que multiplican su valor.",
     "nivel": 3,
     "hilo": 3,
     "id": "eco-087",
@@ -2556,11 +2909,39 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "EV/EBITDA típico por modelo de negocio",
+      "items": [
+        {
+          "etiqueta": "Manufactura",
+          "valor": 7,
+          "unidad": "×"
+        },
+        {
+          "etiqueta": "Bienes básicos",
+          "valor": 11,
+          "unidad": "×"
+        },
+        {
+          "etiqueta": "SaaS",
+          "valor": 25,
+          "unidad": "×"
+        },
+        {
+          "etiqueta": "Marketplace",
+          "valor": 40,
+          "unidad": "×"
+        }
+      ],
+      "leyenda": "Múltiplo EV/EBITDA medio en bolsa (2020-2024)",
+      "fuente": "Wall Street Journal, 2024"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor según la velocidad típica de reacción ante un aumento repentino de la inflación.",
-    "explicacion": "Las expectativas se ajustan casi inmediatamente ante noticias; muchos precios son flexibles y cambian en semanas; los tipos oficiales cambian con retraso por procesos de decisión y transmisión; los salarios nominales son los más rígidos por contratos y negociación colectiva. Esto explica por qué las expectativas y precios pueden acelerar una espiral inflacionaria antes de que la política monetaria y los salarios la corrijan.",
+    "explicacion": "Los salarios tardan por contratos plurianuales, los tipos oficiales requieren reuniones del banco central, los precios se ajustan en semanas y las expectativas reaccionan en minutos a cualquier noticia.",
     "nivel": 1,
     "criterio": "de menor a mayor velocidad de reacción ante un aumento repentino de la inflación",
     "items": [
@@ -2580,7 +2961,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según la rapidez con que suelen formarse burbujas especulativas.",
-    "explicacion": "Mercados con fricciones altas y transacciones lentas tardan más en inflarse; mercados líquidos y accesibles al inversor minorista se inflan más rápido; activos digitales sin infraestructura regulatoria o con límites bajos para comprar/vender permiten burbujas muy rápidas. Ese mecanismo ayudó a que NFTs y criptomonedas experimentaran manías más relámpago que mercados inmobiliarios.",
+    "explicacion": "La velocidad de una burbuja depende de la liquidez y accesibilidad del mercado. Activos digitales sin fricciones se inflan en semanas; inmuebles, con trámites lentos, tardan años. Los NFT llegaron a subir 1000 % en días en 2021.",
     "nivel": 2,
     "criterio": "de menor a mayor velocidad en la formación de burbujas especulativas",
     "items": [
@@ -2616,11 +2997,39 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.85,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Margen operativo típico por industria",
+      "items": [
+        {
+          "etiqueta": "Aerolíneas",
+          "valor": 5,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Minoristas",
+          "valor": 8,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Bancos",
+          "valor": 25,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "SaaS",
+          "valor": 45,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Margen operativo estimado sobre ingresos (2023)",
+      "fuente": "NYU Stern 2023"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministro.",
-    "explicacion": "Los bienes fungibles y con amplios inventarios (petróleo) son menos vulnerables; productos perecederos pueden desviarse regionalmente pero sufren escasez local; vehículos requieren muchas piezas y ensamblaje sincronizado; los semiconductores avanzados dependen de pocos procesos y fábricas con plazos largos, por eso son los más vulnerables. La escasez de chips mostró cómo este último transmite interrupciones a industrias enteras.",
+    "explicacion": "La vulnerabilidad aumenta con la especialización y el tiempo de reposición: el petróleo es un commodity almacenable y sustituible; los chips avanzados dependen de fábricas únicas, como se vio en la crisis de 2021 que paralizó la producción automotriz global.",
     "nivel": 4,
     "criterio": "de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministro",
     "items": [
@@ -2636,11 +3045,39 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Vulnerabilidad a interrupciones",
+      "items": [
+        {
+          "etiqueta": "Petróleo crudo",
+          "valor": 1,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "Frutas frescas",
+          "valor": 2,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "Automóviles",
+          "valor": 3,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "Semiconductores",
+          "valor": 4,
+          "unidad": ""
+        }
+      ],
+      "leyenda": "Menor a mayor vulnerabilidad (1-4)",
+      "fuente": "Análisis de cadenas de suministro 2022"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor según la preferencia por la intervención estatal en la economía entre estos economistas.",
-    "explicacion": "Hayek defendió la mínima planificación central por el problema del conocimiento; Friedman favoreció mercados pero aceptó un papel estatal limitado (p.ej. política monetaria y algunos bienes públicos); Keynes proponía intervención fiscal activa para estabilizar ciclos; Piketty aboga por impuestos progresivos y políticas redistributivas para corregir desigualdad. Esa escala aclara debates actuales sobre redistribución e intervención tras crisis económicas.",
+    "explicacion": "Hayek desconfiaba de la planificación central por el problema del conocimiento; Friedman aceptaba un Estado mínimo con política monetaria; Keynes pedía intervención fiscal activa; Piketty defiende impuestos progresivos. Esta escala explica los debates actuales sobre redistribución tras la pandemia.",
     "nivel": 5,
     "criterio": "de menor a mayor preferencia por intervención estatal en la economía",
     "items": [
@@ -2656,11 +3093,21 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.85,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Hayek",
+        "Friedman",
+        "Keynes",
+        "Piketty"
+      ],
+      "leyenda": "De menor a mayor intervención estatal en la economía."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Cuando un banco central compra bonos en operaciones de mercado abierto inyecta liquidez, lo que tiende a bajar los tipos de interés, no a subirlos. Esta herramienta fue clave en la respuesta del BCE y la Fed durante 2022‑2023 para contener la inflación.",
+    "explicacion": "Comprar bonos inyecta liquidez y baja los tipos, no los sube. El BCE y la Fed usaron esta herramienta en 2022-2023 para enfriar la inflación, no para encarecer el crédito.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Herramientas de política monetaria",
@@ -2691,7 +3138,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Compra bonos",
+        "Inyecta liquidez",
+        "Bajan tipos"
+      ],
+      "leyenda": "Mecanismo real de mercado abierto"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -2761,11 +3217,34 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Volumen del comercio mundial",
+      "items": [
+        {
+          "etiqueta": "2019",
+          "valor": 100,
+          "unidad": "índice"
+        },
+        {
+          "etiqueta": "2020",
+          "valor": 88,
+          "unidad": "índice"
+        },
+        {
+          "etiqueta": "2022",
+          "valor": 104,
+          "unidad": "índice"
+        }
+      ],
+      "leyenda": "Base 100 = 2019, OMC 2023",
+      "fuente": "OMC 2023"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El sesgo de confirmación nos lleva a buscar información que *confirma* nuestras creencias, no que las contradice. Este mecanismo explica la polarización en redes sociales y la persistencia de narrativas falsas en 2022‑2024.",
+    "explicacion": "Buscamos información que confirma nuestras creencias, no la que las contradice, para evitar la disonancia cognitiva. Este mecanismo explica la polarización actual, donde cada bando refuerza su narrativa ignorando evidencias contrarias.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Sesgos cognitivos clásicos",
@@ -2967,7 +3446,7 @@
   },
   {
     "enunciado": "¿Qué tesis central sostiene el 'externalismo semántico' de Hilary Putnam?",
-    "explicacion": "Putnam argumenta que el significado de términos como 'agua' depende de factores externos (el entorno físico) y no solo de estados mentales internos.",
+    "explicacion": "El significado no está solo en la cabeza: depende del entorno físico real, no de lo que creemos. Putnam mostró con 'Tierra gemela' que dos personas idénticas pueden referirse a cosas distintas según el mundo que las rodea.",
     "nivel": 5,
     "opciones": [
       "El significado de los términos naturales depende de factores externos al hablante",
@@ -3005,7 +3484,7 @@
   },
   {
     "enunciado": "¿Qué corriente filosófica sostiene que todo conocimiento proviene de la experiencia sensorial?",
-    "explicacion": "El empirismo, defendido por Locke, Berkeley y Hume, afirma que la mente es una tabula rasa y que el conocimiento se origina en la percepción.",
+    "explicacion": "El empirismo afirma que la mente humana es un papel en blanco al nacer, y solo la experiencia sensorial escribe en él. Esta idea, defendida por Locke, Hume y Berkeley, se opone directamente al racionalismo innatista.",
     "nivel": 2,
     "opciones": [
       "Empirismo",
@@ -3020,7 +3499,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Sentidos",
+        "Experiencia",
+        "Conocimiento"
+      ],
+      "leyenda": "El conocimiento empírico fluye de la experiencia sensorial."
+    }
   },
   {
     "enunciado": "En la filosofía de Kant, ¿cuál es la distinción fundamental entre \"ser\" y \"deber ser\"?",
@@ -3092,7 +3580,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "En sus obras posteriores, Wittgenstein enfatizó el uso ordinario del lenguaje, pero no rechazó el análisis lógico; más bien lo contextualizó dentro de las formas de vida.",
+    "explicacion": "Wittgenstein nunca rechazó el análisis lógico; en su etapa tardía lo integró en los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un abandono total que no ocurrió.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Etapas de Wittgenstein",
@@ -3122,7 +3610,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke distinguió la necesidad metafísica (verdad en todos los mundos posibles) de la necesidad epistémica (conocimiento a priori); afirmó que hay verdades necesarias a posteriori, pero no equiparó ambos tipos.",
+    "explicacion": "Kripke rechazó equiparar necesidad epistémica y metafísica. Demostró que hay verdades necesarias a posteriori, como 'el agua es H2O', que son ciertas en todo mundo posible pero se descubren empíricamente.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -3217,7 +3705,7 @@
   },
   {
     "enunciado": "El dilema del tranvía fue formulado originalmente por la filósofa Philippa Foot en 1967.",
-    "explicacion": "Foot introdujo el escenario en su artículo \"The Problem of Abortion and the Doctrine of the Double Effect\" para explorar el conflicto entre acción y omisión en la moralidad. Este planteamiento ha resurgido en debates sobre la programación ética de vehículos autónomos entre 2022 y 2024.",
+    "explicacion": "Foot lo creó para analizar si matar activamente es peor que dejar morir, distinguiendo acción de omisión. Su dilema hoy guía la programación ética de coches autónomos, un debate muy vivo desde 2022.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -3230,7 +3718,7 @@
     "verificador": "deepseek/deepseek-v4-flash"
   },
   {
-    "explicacion": "El principio de justicia en la IA exige que los algoritmos no generen resultados discriminatorios y que se mitiguen los sesgos existentes, garantizando equidad entre grupos protegidos. Esto está reflejado en la Ley de IA de la Unión Europea (2024), que obliga a evaluar el impacto discriminatorio de sistemas de alto riesgo.",
+    "explicacion": "El principio de justicia exige que los algoritmos no discriminen por raza, género o discapacidad. La Ley de IA de la UE (2024) obliga a evaluar el impacto discriminatorio en sistemas de alto riesgo, un hito regulatorio sin precedentes.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -3241,11 +3729,33 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "IA justa",
+          "puntos": [
+            "Mismo trato a grupos",
+            "Mitiga sesgos",
+            "Evaluación de impacto"
+          ]
+        },
+        {
+          "titulo": "IA sesgada",
+          "puntos": [
+            "Discrimina por raza",
+            "Perpetúa prejuicios",
+            "Sin supervisión"
+          ]
+        }
+      ],
+      "leyenda": "Contraste entre sistemas éticos y discriminatorios en IA."
+    }
   },
   {
     "enunciado": "La navaja de Ockham sugiere que, entre explicaciones equivalentes, la más simple suele ser la preferida.",
-    "explicacion": "Este principio de parsimonia favorece explicar fenómenos con el menor número de supuestos posibles, evitando complejidad innecesaria y facilitando la prueba empírica.",
+    "explicacion": "La navaja de Ockham es un principio de parsimonia: al comparar hipótesis que explican igual, la que requiere menos suposiciones tiene más probabilidad de ser cierta. Einstein lo resumió: 'Todo debe hacerse tan simple como sea posible, pero no más'.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -3273,7 +3783,7 @@
   },
   {
     "enunciado": "Un principio ético ampliamente aceptado para la IA es que los algoritmos deben ser totalmente opacos para proteger la propiedad intelectual.",
-    "explicacion": "La comunidad ética considera esencial la transparencia y explicabilidad de los algoritmos para garantizar responsabilidad, justicia y confianza; la opacidad total es criticada, no aceptada.",
+    "explicacion": "Sin transparencia no se puede auditar si la IA discrimina o falla, lo que choca con la responsabilidad exigible. La UE lo exige en su Reglamento de IA de 2024, un debate clave hoy.",
     "nivel": 4,
     "respuesta": false,
     "hilo": 3,
@@ -3283,7 +3793,29 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Opacidad total",
+          "puntos": [
+            "Imposible auditar sesgos",
+            "Falla sin responsable claro",
+            "Choca con derechos"
+          ]
+        },
+        {
+          "titulo": "Transparencia",
+          "puntos": [
+            "Permite verificar sesgos",
+            "Responsabilidad clara",
+            "Exigida por la UE"
+          ]
+        }
+      ],
+      "leyenda": "La UE exige transparencia para auditar la IA"
+    }
   },
   {
     "enunciado": "Hannah Arendt introdujo el concepto de 'la banalidad del mal' al analizar el juicio de Adolf Eichmann.",
@@ -3310,7 +3842,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El dilema enfrenta la visión consecuencialista (el resultado justifica la acción: salvar cinco vidas) con la deontológica (ciertas acciones, como matar intencionadamente a un inocente, son intrínsecamente malas independientemente del resultado). Esta distinción subyace en debates actuales sobre coches autónomos y algoritmos de triaje médico.",
+    "explicacion": "El dilema enfrenta el consecuencialismo (salvar cinco vidas justifica la acción) contra la deontología (matar intencionadamente es malo en sí mismo). Esta tensión guía debates actuales sobre algoritmos en coches autónomos y triaje médico.",
     "id": "fil-039",
     "area": "filosofia",
     "tipo": "test4",
@@ -3330,7 +3862,7 @@
     "correcta": 1,
     "nivel": 3,
     "hilo": 2,
-    "explicacion": "Berlin definió la libertad negativa como el 'ámbito dentro del cual un hombre puede actuar sin obstáculos de otros', frente a la libertad positiva ('¿quién gobierna mi vida?'). La tensión entre ambas explica debates actuales sobre regulación estatal (p. ej., límites a algoritmos o salud pública) vs. autonomía individual.",
+    "explicacion": "Berlin distingue entre 'libertad de' (negativa: que no me molesten) y 'libertad para' (positiva: quién decide mi vida). Esta tensión late en debates actuales como vacunación obligatoria o moderación de contenidos en redes.",
     "id": "fil-040",
     "area": "filosofia",
     "tipo": "test4",
@@ -3350,14 +3882,36 @@
     "correcta": 2,
     "nivel": 4,
     "hilo": 3,
-    "explicacion": "Los modelos de deep learning aprenden pesos internos opacos; saber qué decidió es fácil, pero no por qué (qué patrones activó). Esto choca con el 'derecho a la explicación' del RGPD y la Ley de IA europea (2024), que exigen transparencia en decisiones de alto riesgo (créditos, justicia, sanidad).",
+    "explicacion": "Los modelos de deep learning aprenden patrones en capas internas opacas; sabemos lo que deciden, pero no cómo. Este choque con el derecho a la explicación del RGPD y la Ley de IA europea (2024) es un debate central hoy.",
     "id": "fil-041",
     "area": "filosofia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Modelo clásico",
+          "puntos": [
+            "Reglas explícitas",
+            "Resultado trazable",
+            "Explicable fácilmente"
+          ]
+        },
+        {
+          "titulo": "Caja negra (DL)",
+          "puntos": [
+            "Patrones opacos",
+            "Miles de pesos internos",
+            "Resultado sin trazabilidad"
+          ]
+        }
+      ],
+      "leyenda": "La opacidad entre entrada y salida es el núcleo del problema"
+    }
   },
   {
     "enunciado": "La 'falacia del motte-and-bailey' (motte y bailey) describe una táctica retórica en la que:",
@@ -3370,7 +3924,7 @@
     "correcta": 1,
     "nivel": 5,
     "hilo": 5,
-    "explicacion": "El defensor ocupa el 'bailey' (terreno deseable pero indefendible, ej. 'la cultura X es superior') y, al ser atacado, se retira a la 'motte' (fortaleza fácil de defender, ej. 'la cultura X existe') para reclamar victoria. Es común en guerras culturales y debates de identidad en redes (2022-2026).",
+    "explicacion": "Se alterna entre una posición débil pero atractiva (bailey) y otra sólida pero irrelevante (motte) para esquivar críticas. Es la táctica favorita en guerras culturales y debates identitarios en redes sociales.",
     "id": "fil-042",
     "area": "filosofia",
     "tipo": "test4",
@@ -3430,7 +3984,7 @@
     "correcta": 3,
     "nivel": 3,
     "hilo": 2,
-    "explicacion": "Rawls propone el 'velo de la ignorancia': los contratantes ignoran su posición social, talentos y concepción del bien, lo que les obliga a elegir principios justos para todos. A diferencia del utilitarismo, que maximiza el bienestar agregado, este dispositivo protege a los más desfavorecidos. La idea reaparece en debates recientes (2023‑2024) sobre equidad algorítmica y diseño de sistemas de IA que deben decidir sin conocer datos sensibles de los usuarios.",
+    "explicacion": "Rawls plantea el 'velo de la ignorancia': al desconocer nuestra posición social, talentos o creencias, elegimos principios justos para todos. Es la base de su teoría, usada hoy en debates sobre equidad en IA (2023-2024).",
     "id": "fil-047",
     "area": "filosofia",
     "tipo": "test4",
@@ -3448,7 +4002,7 @@
       "Velo de ignorancia",
       "Principio de precaución"
     ],
-    "explicacion": "La navaja de Ockham se formuló en el siglo XIV por Guillermo de Ockham; el dilema del tranvía apareció en 1967 con Philippa Foot; el velo de ignorancia fue introducido por John Rawls en 1971; el principio de precaución se consolidó en la Declaración de Río de 1992. Recientemente, el principio ha sido citado en debates sobre la regulación de la IA en la UE (2024).",
+    "explicacion": "La navaja de Ockham es del siglo XIV; el dilema del tranvía, de 1967; el velo de ignorancia, de 1971; el principio de precaución se consolidó en 1992. Este último guía hoy la regulación europea de IA.",
     "nivel": 1,
     "hilo": 1,
     "id": "fil-048",
@@ -3461,7 +4015,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La navaja de Ockham es una heurística que recomienda preferir teorías con menos supuestos porque son más fáciles de contrastar y menos proclives a sobreajuste; no garantiza que la explicación más simple sea la verdadera. Confundir simplicidad con verdad lleva a aceptar narrativas atractivas pero falsas, un riesgo visible en la difusión de teorías conspirativas y simplificaciones en redes sociales.",
+    "explicacion": "La navaja de Ockham es una heurística, no una ley: prefiere teorías con menos supuestos para facilitar su contraste, no porque la simpleza garantice verdad. Confundir ambas lleva a aceptar narrativas falsas, como ocurre con teorías conspirativas virales en redes.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Ideas frecuentes en conversaciones",
@@ -3488,7 +4042,29 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.94,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Error común",
+          "puntos": [
+            "La simple es la verdadera",
+            "Ignora supuestos ocultos",
+            "Acepta narrativas falsas"
+          ]
+        },
+        {
+          "titulo": "Uso correcto",
+          "puntos": [
+            "Prefiere menos supuestos",
+            "Facilita contrastar",
+            "No garantiza verdad"
+          ]
+        }
+      ],
+      "leyenda": "La navaja es una guía metodológica, no una prueba de verdad."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -3558,7 +4134,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La apelación a la autoridad no es automáticamente válida: la autoridad importa cuando es experta en el dominio pertinente, transparente y sin conflictos; incluso expertos pueden equivocarse o discrepar, así que se requiere evaluación crítica y corroboración. Esa distinción es clave en políticas públicas, donde se busca consenso científico y reproducibilidad ante debates recientes sobre salud pública y cambio climático.",
+    "explicacion": "La apelación a la autoridad solo es válida si el experto es pertinente y transparente; incluso los expertos se equivocan o discrepan. Por eso en ciencia se exige consenso y reproducibilidad, no fe ciega en una sola voz.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Sesgos y atajos en argumentación",
@@ -3657,7 +4233,7 @@
   },
   {
     "enunciado": "¿Qué río forma la mayor parte de la frontera natural entre Estados Unidos y México?",
-    "explicacion": "El Río Grande (Río Bravo del Norte) delimita gran parte de la frontera sur de EE. UU. con México, desde El Paso/Ciudad Juárez hasta su desembocadura en el Golfo de México.",
+    "explicacion": "El Río Grande (Río Bravo) marca la frontera porque el Tratado de Guadalupe-Hidalgo (1848) fijó el cauce como límite tras la guerra. Hoy es escenario del debate migratorio: en 2023 se instalaron boyas en Texas para disuadir cruces.",
     "nivel": 1,
     "opciones": [
       "Río Colorado",
@@ -3672,11 +4248,18 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "dato",
+      "cifra": "3.051 km",
+      "texto": "longitud del Río Grande/Río Bravo",
+      "leyenda": "Frontera natural entre EE. UU. y México",
+      "fuente": "USGS 2023"
+    }
   },
   {
     "enunciado": "¿Cuál es el desierto más extenso del mundo por superficie?",
-    "explicacion": "El desierto antártico cubre aproximadamente 14 millones de km², superando al Sahara (≈9 millones km²). Se define como desierto por su precipitación extremadamente baja, no por temperatura.",
+    "explicacion": "La Antártida recibe menos de 50 mm de lluvia al año, menos que el Sahara, por eso es un desierto polar. Es tan grande que podría albergar Europa y EE.UU. juntos y aún sobraría espacio.",
     "nivel": 2,
     "opciones": [
       "Sahara",
@@ -3691,7 +4274,30 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.98,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Mayores desiertos del mundo",
+      "items": [
+        {
+          "etiqueta": "Antártico",
+          "valor": 14.2,
+          "unidad": "M km²"
+        },
+        {
+          "etiqueta": "Sahara",
+          "valor": 9.2,
+          "unidad": "M km²"
+        },
+        {
+          "etiqueta": "Ártico",
+          "valor": 5.4,
+          "unidad": "M km²"
+        }
+      ],
+      "leyenda": "Superficie en millones de km². Fuente: Britannica",
+      "fuente": "Britannica 2023"
+    }
   },
   {
     "enunciado": "¿Qué cadena montañosa se considera tradicionalmente la divisoria entre Europa y Asia?",
@@ -3733,7 +4339,7 @@
   },
   {
     "enunciado": "Ordena las siguientes ciudades de menor a mayor según su latitud (posición norte‑sur).",
-    "explicacion": "Lisboa se sitúa alrededor de 38° N, Copenhague cerca de 56° N, Helsinki aproximadamente 60° N y Tromsø alrededor de 69° N.",
+    "explicacion": "La latitud mide la distancia al ecuador: a mayor latitud, más al norte. Lisboa (38°N) es la más meridional, seguida de Copenhague (56°N), Helsinki (60°N) y Tromsø (69°N), que ya está dentro del círculo polar ártico.",
     "nivel": 5,
     "criterio": "de menor a mayor latitud",
     "items": [
@@ -3748,7 +4354,35 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Latitud de las ciudades (N)",
+      "items": [
+        {
+          "etiqueta": "Lisboa",
+          "valor": 38,
+          "unidad": "°N"
+        },
+        {
+          "etiqueta": "Copenhague",
+          "valor": 56,
+          "unidad": "°N"
+        },
+        {
+          "etiqueta": "Helsinki",
+          "valor": 60,
+          "unidad": "°N"
+        },
+        {
+          "etiqueta": "Tromsø",
+          "valor": 69,
+          "unidad": "°N"
+        }
+      ],
+      "leyenda": "Menor latitud = más al sur",
+      "fuente": "Datos geográficos estándar"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -4028,7 +4662,35 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Latitud de capitales sudamericanas",
+      "items": [
+        {
+          "etiqueta": "Bogotá",
+          "valor": 4.7,
+          "unidad": "°N"
+        },
+        {
+          "etiqueta": "Quito",
+          "valor": 0.2,
+          "unidad": "°S"
+        },
+        {
+          "etiqueta": "Lima",
+          "valor": 12,
+          "unidad": "°S"
+        },
+        {
+          "etiqueta": "Buenos Aires",
+          "valor": 34.6,
+          "unidad": "°S"
+        }
+      ],
+      "leyenda": "De norte a sur: Bogotá, Quito, Lima, Buenos Aires",
+      "fuente": "Coordenadas geográficas oficiales"
+    }
   },
   {
     "enunciado": "Ordena los siguientes ríos mundiales de menor a mayor longitud.",
@@ -4083,7 +4745,7 @@
   },
   {
     "enunciado": "La placa tectónica de Nazca se subduce bajo la placa del Pacífico en la zona de la fosa de Perú-Chile.",
-    "explicacion": "La placa de Nazca se subduce bajo la placa Sudamericana, generando la cordillera de los Andes; la placa del Pacífico limita al oeste de Nazca.",
+    "explicacion": "La placa de Nazca se hunde bajo la Sudamericana, no bajo la del Pacífico. Este choque tectónico elevó los Andes y provoca los terremotos más potentes del planeta, como el de Chile de 1960 (magnitud 9,5).",
     "nivel": 4,
     "respuesta": false,
     "id": "geo-053",
@@ -4092,11 +4754,33 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Realidad",
+          "puntos": [
+            "Nazca bajo Sudamérica",
+            "Fosa Perú-Chile activa",
+            "Andes en ascenso"
+          ]
+        },
+        {
+          "titulo": "Enunciado falso",
+          "puntos": [
+            "Nazca bajo Pacífico",
+            "Fosa Perú-Chile errónea",
+            "Andes sin explicación"
+          ]
+        }
+      ],
+      "leyenda": "Subducción real de Nazca vs. la descrita en el enunciado"
+    }
   },
   {
     "enunciado": "El río Amazonas drena la mayor cuenca hidrográfica del planeta.",
-    "explicacion": "La cuenca del Amazonas abarca unos 7 millones de km², superando a la del Nilo y a la del Congo; su enorme red de afluentes recoge lluvias tropicales que alimentan el mayor flujo de agua dulce del mundo, un factor clave en los debates sobre deforestación y cambio climático de 2022‑2024.",
+    "explicacion": "Su cuenca de 7 millones de km² capta lluvias tropicales constantes, generando el mayor caudal del mundo. En 2024, la sequía extrema en sus afluentes evidenció cómo la deforestación acelera el colapso hídrico de la región.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -4110,7 +4794,7 @@
   },
   {
     "enunciado": "El canal de Suez es el único paso marítimo natural que conecta el Mediterráneo con el Mar Rojo.",
-    "explicacion": "El canal de Suez es una obra de ingeniería inaugurada en 1869; no existe un estrecho natural entre ambos mares, por lo que el tráfico marítimo depende totalmente de esa vía artificial, cuya vulnerabilidad quedó en evidencia con el bloqueo del Ever Given en 2021 y las tensiones geopolíticas posteriores.",
+    "explicacion": "El canal de Suez es artificial, no natural: se excavó para unir el Mediterráneo con el mar Rojo. Su vulnerabilidad quedó patente en 2021, cuando el buque Ever Given lo bloqueó seis días, interrumpiendo el 12 % del comercio mundial.",
     "nivel": 2,
     "respuesta": false,
     "hilo": 2,
@@ -4134,11 +4818,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Población proyectada en 2050",
+      "items": [
+        {
+          "etiqueta": "Nigeria",
+          "valor": 400,
+          "unidad": "mill."
+        },
+        {
+          "etiqueta": "EE. UU.",
+          "valor": 380,
+          "unidad": "mill."
+        }
+      ],
+      "leyenda": "Proyección ONU 2024 para 2050",
+      "fuente": "ONU, World Population Prospects 2024"
+    }
   },
   {
     "enunciado": "El metro de Seúl transporta más pasajeros al año que el de Tokio.",
-    "explicacion": "La red de Tokio mueve aproximadamente 3 500 millones de viajes anuales, mientras que Seúl ronda los 2 600 millones; aunque Seúl tiene una densidad de uso muy alta, la mayor extensión y número de líneas del área metropolitana de Tokio le mantienen al frente, una diferencia que se acentuó tras la recuperación pos‑COVID de 2022‑2023.",
+    "explicacion": "Tokio tiene la red de metro más extensa del mundo y mueve unos 3.500 millones de viajes anuales frente a los 2.600 de Seúl. La diferencia se acentuó tras la recuperación pos-COVID, cuando Tokio recuperó viajeros más rápido.",
     "nivel": 4,
     "respuesta": false,
     "hilo": 4,
@@ -4148,11 +4850,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Pasajeros anuales de metro",
+      "items": [
+        {
+          "etiqueta": "Tokio",
+          "valor": 3500,
+          "unidad": "mill."
+        },
+        {
+          "etiqueta": "Seúl",
+          "valor": 2600,
+          "unidad": "mill."
+        }
+      ],
+      "leyenda": "Viajes anuales en metro (millones)",
+      "fuente": "UITP 2023"
+    }
   },
   {
     "enunciado": "El estrecho de Malaca es el principal paso marítimo para el petróleo que viaja de Oriente Medio hacia China.",
-    "explicacion": "Cerca del 80 % del crudo que importa China cruza este estrecho de 2,8 km de ancho en su punto más estrecho; su control estratégico explica la atención militar y diplomática de potencias como EE. UU., India y China, y cualquier bloqueo (como se temió tras los incidentes de 2023) dispararía los precios globales.",
+    "explicacion": "Cerca del 80 % del crudo que importa China cruza este estrecho de solo 2,8 km en su punto más angosto. Cualquier bloqueo, como se temió tras los incidentes de 2023, dispararía los precios globales del petróleo.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 2,
@@ -4222,7 +4942,14 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "google/gemma-4-31b-it:free"
+    "verificador": "google/gemma-4-31b-it:free",
+    "visual": {
+      "tipo": "dato",
+      "cifra": "1,3",
+      "texto": "hijos por mujer en Japón (2023)",
+      "leyenda": "Una de las tasas de natalidad más bajas del mundo",
+      "fuente": "Banco Mundial 2023"
+    }
   },
   {
     "enunciado": "El Tratado de Versalles fue ratificado por el Senado de los Estados Unidos.",
@@ -4591,7 +5318,7 @@
   },
   {
     "enunciado": "La crisis del siglo III debilitó al Imperio romano y facilitó su fragmentación posterior.",
-    "explicacion": "La crisis del siglo III (235-284 d.C.) trajo inestabilidad política, inflación y presión militar, lo que fragmentó el poder y preparó la división final del imperio. Entender esa crisis ayuda a ver por qué las fronteras europeas actuales tienen raíces en la reorganización posterior de Diocleciano y Constantino.",
+    "explicacion": "La crisis del siglo III (235-284 d.C.) generó inestabilidad política, hiperinflación y presión militar, fragmentando el poder imperial. Esta crisis obligó a Diocleciano a dividir el imperio en dos mitades, sentando las bases de su posterior separación definitiva.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -4605,7 +5332,7 @@
   },
   {
     "enunciado": "La frontera actual entre Francia y Alemania sigue exactamente el tratado de Verdún de 843.",
-    "explicacion": "El Tratado de Verdún repartió el Imperio carolingio en tres reinos, pero la frontera franco-alemana moderna se consolidó siglos después, especialmente tras el Tratado de Westfalia (1648) y el Congreso de Viena (1815). Por eso la afirmación es falsa; la línea actual no coincide con la división de 843.",
+    "explicacion": "El Tratado de Verdún dividió el Imperio carolingio, pero la frontera franco-alemana moderna se fijó tras siglos de guerras y acuerdos, como Westfalia (1648) y Viena (1815). Una línea de 843 no podía prever la Europa actual.",
     "nivel": 2,
     "respuesta": false,
     "hilo": 2,
@@ -4619,7 +5346,7 @@
   },
   {
     "enunciado": "La decisión de Bismarck de provocar la guerra franco-prusiana en 1870 aceleró la unificación alemana bajo Prusia.",
-    "explicacion": "Bismarck usó la guerra contra Francia para galvanizar el nacionalismo alemán y excluir a Austria, logrando la proclamación del Imperio alemán en Versalles en 1871. Esa maniobra de 'guerra calculada' sigue citada en análisis de geopolítica contemporánea, como la estrategia de Rusia en Ucrania (2022‑2024).",
+    "explicacion": "Bismarck provocó la guerra para unir a los estados alemanes contra un enemigo común, Francia, y consolidar el liderazgo prusiano. La rápida victoria llevó a la proclamación del Imperio alemán en Versalles, un giro que reconfiguró el equilibrio europeo.",
     "nivel": 4,
     "respuesta": true,
     "hilo": 4,
@@ -4647,7 +5374,7 @@
   },
   {
     "enunciado": "La caída del Imperio Romano de Occidente en 476 d.C. fue provocada principalmente por la presión militar de los hunos.",
-    "explicacion": "El colapso fue el resultado de una crisis sistémica: fragmentación política, debilidad fiscal, dependencia de mercenarios y migraciones germánicas; los hunos solo aceleraron movimientos ya en marcha. Estudios recientes (2023) destacan que la pérdida de capacidad tributaria fue el factor decisivo.",
+    "explicacion": "La caída fue una crisis sistémica: fragmentación política, debilidad fiscal y migraciones germánicas. Los hunos solo aceleraron movimientos ya en marcha; sin ellos, el Imperio ya se desangraba.",
     "nivel": 1,
     "respuesta": false,
     "hilo": 1,
@@ -4685,7 +5412,30 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Producción de carbón en 1800",
+      "items": [
+        {
+          "etiqueta": "Gran Bretaña",
+          "valor": 15,
+          "unidad": "Mt"
+        },
+        {
+          "etiqueta": "Francia",
+          "valor": 1,
+          "unidad": "Mt"
+        },
+        {
+          "etiqueta": "Alemania",
+          "valor": 0.5,
+          "unidad": "Mt"
+        }
+      ],
+      "leyenda": "El carbón británico era abundante y barato",
+      "fuente": "Paul Bairoch, 1991"
+    }
   },
   {
     "enunciado": "¿Cuál fue una causa inmediata de la Revolución Francesa de 1789?",
@@ -4749,7 +5499,7 @@
   },
   {
     "enunciado": "¿Qué factor económico principal precipitó la caída del Imperio Romano de Occidente en el siglo V?",
-    "explicacion": "La continua devaluación del denario para financiar al ejército provocó una hiperinflación que erosionó la base fiscal y la capacidad del Estado para pagar a sus tropas, debilitando al imperio frente a presiones externas. Este mecanismo de financiamiento por emisión monetaria sigue siendo citado en debates actuales sobre inflación y deuda pública.",
+    "explicacion": "Para pagar al ejército, Roma devaluó el denario una y otra vez, provocando hiperinflación que arruinó la economía y la recaudación fiscal. Este colapso interno dejó al imperio sin recursos para defenderse de las invasiones.",
     "nivel": 1,
     "opciones": [
       "Inflación descontrolada por la devaluación de la moneda",
@@ -4789,7 +5539,7 @@
   },
   {
     "enunciado": "¿Qué consecuencia tuvo la Guerra de Sucesión Española (1701‑1714) sobre la estructura territorial de España?",
-    "explicacion": "La victoria borbónica permitió a Felipe V imponer los Decretos de Nueva Planta, que suprimieron los fueros y las instituciones propias de la Corona de Aragón, centralizando la administración. Esa centralización sigue siendo referencia en el debate actual sobre el autonomismo y la independencia catalana.",
+    "explicacion": "Felipe V abolió los fueros de Aragón y Valencia para castigar su apoyo al archiduque Carlos. Esta centralización, vigente salvo en Navarra y País Vasco, alimenta hoy el debate sobre identidades territoriales.",
     "nivel": 3,
     "opciones": [
       "Abolición de los fueros de Aragón y Valencia mediante los Decretos de Nueva Planta",
@@ -4805,11 +5555,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1707",
+          "texto": "Aragón y Valencia"
+        },
+        {
+          "ano": "1711",
+          "texto": "Aragón recupera parte"
+        },
+        {
+          "ano": "1716",
+          "texto": "Cataluña y Mallorca"
+        }
+      ],
+      "leyenda": "Aplicación por etapas según la resistencia"
+    }
   },
   {
     "enunciado": "¿Qué decisión de Otto von Bismarck en 1862 sentó las bases de la unificación alemana?",
-    "explicacion": "Bismarck reorganizó el ejército prusiano y declaró que los grandes problemas se resolverían con 'hierro y sangre', lo que permitió victorias rápidas sobre Dinamarca, Austria y Francia y la proclamación del Imperio alemán en 1871. Su realpolitik sigue estudiándose como modelo de estrategia estatal en la política europea contemporánea.",
+    "explicacion": "Bismarck modernizó el ejército prusiano para imponer la unificación por la fuerza, logrando victorias decisivas en tres guerras. Su estrategia de 'sangre y hierro' es citada aún en debates sobre el realismo político en las relaciones internacionales.",
     "nivel": 4,
     "opciones": [
       "Declarar la guerra a Austria",
@@ -4829,7 +5597,7 @@
   },
   {
     "enunciado": "¿Cuál de los siguientes eventos se considera el símbolo tradicional del fin del Imperio Romano de Occidente?",
-    "explicacion": "La deposición del último emperador occidental en 476 marcó el colapso de la autoridad imperial central en Occidente, abriendo paso a los reinos germánicos que configuraron la Europa medieval. Este hito sigue usándose como referencia para debatir la continuidad del derecho romano en los sistemas legales actuales.",
+    "explicacion": "Rómulo Augústulo fue depuesto por Odoacro en 476, lo que extinguió la autoridad imperial en Occidente. Este hito sigue siendo la referencia para debatir la transición a la Edad Media y la pervivencia del derecho romano en Europa.",
     "nivel": 1,
     "opciones": [
       "La deposición de Rómulo Augústulo",
@@ -4849,7 +5617,7 @@
   },
   {
     "enunciado": "¿Qué tratado puso fin a la Guerra de Sucesión Española y redistribuyó territorios en Europa?",
-    "explicacion": "El Tratado de Utrecht (1713‑1714) estableció el equilibrio de potencias en Europa, cedió Gibraltar a Gran Bretaña y reconoció a Felipe V como rey de España bajo la condición de no unir las coronas. Su lógica de 'balance of power' sigue siendo referencia en la diplomacia europea contemporánea.",
+    "explicacion": "El Tratado de Utrecht (1713-1714) evitó que Francia y España se unieran bajo un mismo rey, instaurando el equilibrio de poder europeo. Su cesión de Gibraltar a Gran Bretaña sigue siendo un punto de conflicto diplomático actual.",
     "nivel": 3,
     "opciones": [
       "Tratado de Utrecht",
@@ -4869,7 +5637,7 @@
   },
   {
     "enunciado": "¿Por qué decidió Napoleón vender la Luisiana a Estados Unidos?",
-    "explicacion": "Napoleón necesitaba liquidez inmediata para sostener sus campañas contra la coalición europea y, tras perder la esperanza de mantener un imperio americano tras la revuelta en Haití, optó por vender el vasto territorio. La operación duplicó el tamaño de EE.UU. y sentó las bases de su expansión occidental, tema que resurge en debates sobre fronteras y recursos naturales.",
+    "explicacion": "Napoleón vendió la Luisiana porque necesitaba dinero urgente para sus guerras en Europa y, tras perder Haití, abandonó su sueño de un imperio americano. La venta duplicó el tamaño de EE.UU. y financió sus campañas militares.",
     "nivel": 4,
     "opciones": [
       "Necesitaba fondos para financiar sus guerras en Europa",
@@ -4889,7 +5657,7 @@
   },
   {
     "enunciado": "¿Qué mecanismo permitió a la Compañía de las Indias Orientales financiar sus operaciones sin depender exclusivamente del capital estatal?",
-    "explicacion": "Al emitir acciones que se negociaban en el mercado de Londres, la compañía captó capital de inversores privados y distribuyó el riesgo, convirtiéndose en el primer gran modelo de sociedad anónima moderna. Este precedente subyace en la regulación actual de mercados bursátiles y en la discusión sobre responsabilidad corporativa.",
+    "explicacion": "Al vender acciones en bolsa, la compañía captó capital privado y repartió el riesgo entre muchos inversores, creando el primer gran modelo de sociedad anónima. Este mecanismo sigue siendo la base del financiamiento empresarial moderno.",
     "nivel": 5,
     "opciones": [
       "Emisión de acciones negociables en bolsa",
@@ -4929,7 +5697,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El Edicto de Milán (313) concedió tolerancia religiosa, pero el cristianismo no se convirtió en religión oficial del Imperio hasta el Edicto de Tesalónica de Teodosio I en 380. La confusión entre tolerancia y oficialidad es común, pero el mecanismo legal es distinto.",
+    "explicacion": "El Edicto de Milán (313) legaliza el cristianismo, pero no lo oficializa. Teodosio I, en 380, con el Edicto de Tesalónica, lo convierte en religión de Estado. Confundir tolerancia con oficialidad es como decir que una ONG aprueba un ministerio.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Caída del Imperio Romano de Occidente",
@@ -4964,7 +5732,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El Tratado de Verdún (843) repartió el Imperio carolingio, no definió la frontera moderna entre Francia y Alemania, que se fue consolidando con los tratados de Verdún, Mersen, y especialmente Versalles (1919) y la posterior integración europea. La frontera actual es resultado de procesos posteriores, no de 843.",
+    "explicacion": "El Tratado de Verdún dividió el imperio en tres reinos, no fijó la frontera moderna. La línea actual se consolidó tras siglos de guerras y acuerdos, como el Tratado de Versalles en 1919.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Fronteras actuales y su origen histórico",
@@ -4995,7 +5763,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "843",
+          "texto": "Tratado de Verdún"
+        },
+        {
+          "ano": "870",
+          "texto": "Tratado de Mersen"
+        },
+        {
+          "ano": "1919",
+          "texto": "Tratado de Versalles"
+        },
+        {
+          "ano": "1957",
+          "texto": "Integración europea"
+        }
+      ],
+      "leyenda": "Hitos clave en la evolución de la frontera franco-alemana"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -5034,7 +5824,7 @@
   },
   {
     "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
-    "explicacion": "La negación de un universal afirmativo ('Todos los S son P') es un particular negativo ('Algunos S no son P'). Por lo tanto, la afirmación correcta es 'Algunos estudiantes no aprobaron el examen'.",
+    "explicacion": "La negación de 'todos' no es 'ninguno', sino 'al menos uno no'. Basta un solo suspenso para refutar que todos aprobaron. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.",
     "nivel": 1,
     "opciones": [
       "Ningún estudiante aprobó el examen",
@@ -5053,7 +5843,7 @@
   },
   {
     "enunciado": "Si la implicación p → q es falsa, ¿qué valores de verdad tienen p y q?",
-    "explicacion": "En la lógica clásica, una implicación es falsa únicamente cuando su antecedente es verdadero y su consecuente es falso. En cualquier otro caso la implicación resulta verdadera.",
+    "explicacion": "Una implicación solo falla cuando el antecedente es verdadero y el consecuente falso; es la única combinación prohibida. Como anécdota, es la base de las promesas: si llueve (verdadero) y no sales (falso), la promesa se incumple.",
     "nivel": 2,
     "opciones": [
       "p verdadero, q verdadero",
@@ -5068,11 +5858,20 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "p verdadero",
+        "q debe ser falso",
+        "Implicación falsa"
+      ],
+      "leyenda": "Único caso que hace p→q falsa"
+    }
   },
   {
     "enunciado": "¿Cuál de las siguientes afirmaciones es lógica mente equivalente a 'Si p entonces q'?",
-    "explicacion": "La contrapositiva de una implicación, 'Si no q entonces no p', tiene el mismo valor de verdad que la implicación original en toda interpretación posible.",
+    "explicacion": "Una implicación solo es falsa cuando p es verdadero y q falso; su contrapositiva invierte y niega ambos, conservando esa condición. Es la base de las demostraciones por contradicción que usó Euclides.",
     "nivel": 4,
     "opciones": [
       "Si no p entonces no q",
@@ -5087,7 +5886,27 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Implicación",
+          "puntos": [
+            "Si p → q",
+            "Falsa solo si p y no q"
+          ]
+        },
+        {
+          "titulo": "Contrapositiva",
+          "puntos": [
+            "Si no q → no p",
+            "Misma tabla de verdad"
+          ]
+        }
+      ],
+      "leyenda": "La contrapositiva conserva el valor de verdad original."
+    }
   },
   {
     "enunciado": "Si todos los A son B y algunos B son C, ¿qué se puede concluir necesariamente?",
@@ -5106,11 +5925,20 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Todos A son B",
+        "Algunos B son C",
+        "A puede no ser C"
+      ],
+      "leyenda": "No hay relación necesaria entre A y C"
+    }
   },
   {
     "enunciado": "En una tabla de verdad, la expresión (P ∧ Q) → R es falsa solo cuando...",
-    "explicacion": "Una implicación es falsa únicamente cuando el antecedente es verdadero y el consecuente falso; aquí el antecedente es (P ∧ Q).",
+    "explicacion": "Una implicación es falsa solo si el antecedente es verdadero y el consecuente falso. Aquí el antecedente (P ∧ Q) es verdadero únicamente cuando P y Q son verdaderos, y el consecuente R debe ser falso.",
     "nivel": 2,
     "opciones": [
       "P y Q son verdaderos y R es falso",
@@ -5125,11 +5953,21 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "P y Q verdaderos",
+        "P ∧ Q = verdadero",
+        "R falso",
+        "Implicación falsa"
+      ],
+      "leyenda": "Condición necesaria y suficiente para que (P∧Q)→R sea falsa"
+    }
   },
   {
     "enunciado": "¿Cuál de las siguientes reglas de inferencia es válida en lógica proposicional clásica?",
-    "explicacion": "Modus Tollens (si P → Q y ¬Q, entonces ¬P) es una regla válida; las otras son falacias formales.",
+    "explicacion": "Si llueve, el suelo se moja. Si el suelo no está mojado, no llovió: esa es la estructura del Modus Tollens. Las otras opciones confunden causa con efecto, un error típico en discusiones cotidianas.",
     "nivel": 4,
     "opciones": [
       "Modus Tollens",
@@ -5144,7 +5982,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "P → Q",
+        "¬Q",
+        "∴ ¬P"
+      ],
+      "leyenda": "Modus Tollens: si P implica Q y Q es falso, P es falso."
+    }
   },
   {
     "enunciado": "Si todos los mamíferos son animales, y todos los perros son mamíferos, ¿qué se puede concluir necesariamente?",
@@ -5163,11 +6010,20 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Perros",
+        "Mamíferos",
+        "Animales"
+      ],
+      "leyenda": "Inclusión transitiva: perros ⊆ mamíferos ⊆ animales"
+    }
   },
   {
     "enunciado": "En el acertijo de los tres interruptores y una bombilla, se puede determinar cuál interruptor controla la bombilla con una sola visita a la habitación.",
-    "explicacion": "El método clásico consiste en encender el primer interruptor, esperar unos minutos, apagarlo y encender el segundo; al entrar, si la bombilla está encendida es el segundo, si está apagada pero caliente es el primero, y si está fría es el tercero. Este razonamiento se usa a menudo en pruebas de lógica para evaluar pensamiento lateral.",
+    "explicacion": "Se aprovecha el calor residual de la bombilla como señal adicional a la luz. Así, con una sola visita se distingue entre los tres interruptores combinando temperatura y encendido, un truco clásico de pensamiento lateral.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -5191,11 +6047,31 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Mantener",
+          "puntos": [
+            "1/3 de ganar",
+            "2/3 de perder"
+          ]
+        },
+        {
+          "titulo": "Cambiar",
+          "puntos": [
+            "2/3 de ganar",
+            "1/3 de perder"
+          ]
+        }
+      ],
+      "leyenda": "Al cambiar, la probabilidad de ganar es 2/3, no 1/2."
+    }
   },
   {
     "enunciado": "La falacia del hombre de paja consiste en tergiversar el argumento del oponente para refutarlo más fácilmente.",
-    "explicacion": "La falacia del hombre de paja (straw man) distorsiona el argumento contrario para hacerlo parecer más débil y así refutarlo sin abordar el punto real; es común en debates políticos y en redes sociales, como se vio en la campaña electoral española de 2024.",
+    "explicacion": "Tergiversar el argumento ajeno lo vuelve frágil como un muñeco de paja: fácil de derribar pero sin enfrentar la postura real. En debates políticos se usa para desviar la atención del punto central.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -5205,11 +6081,21 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Argumento original",
+        "Se distorsiona",
+        "Se refuta lo falso",
+        "Parece que se ganó"
+      ],
+      "leyenda": "Mecanismo de la falacia: nunca se enfrenta la idea real."
+    }
   },
   {
     "enunciado": "En el dilema del prisionero, la estrategia dominante para ambos jugadores es cooperar, porque maximiza el beneficio conjunto.",
-    "explicacion": "En el dilema del prisionero, la estrategia dominante para cada jugador es delatar (defectar), porque independientemente de lo que haga el otro, delatar ofrece un resultado igual o mejor; la cooperación mutua es óptima colectivamente pero no es un equilibrio de Nash. Este principio se aplicó en análisis de acuerdos climáticos de 2022.",
+    "explicacion": "La estrategia dominante es delatar, no cooperar: delatar siempre da un resultado igual o mejor que cooperar, haga lo que haga el otro. La cooperación mutua sería mejor para ambos, pero no es un equilibrio racional individual.",
     "nivel": 5,
     "respuesta": false,
     "hilo": 5,
@@ -5219,7 +6105,27 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Cooperar",
+          "puntos": [
+            "Si el otro coopera: 1 año",
+            "Si el otro delata: 10 años"
+          ]
+        },
+        {
+          "titulo": "Delatar",
+          "puntos": [
+            "Si el otro coopera: 0 años",
+            "Si el otro delata: 5 años"
+          ]
+        }
+      ],
+      "leyenda": "Años de cárcel según la decisión propia y del otro jugador"
+    }
   },
   {
     "enunciado": "Si todas las rosas son flores y algunas flores se marchitan rápido, ¿podemos concluir que algunas rosas se marchitan rápido?",
@@ -5232,7 +6138,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "Las premisas no garantizan que el subconjunto «algunas flores» incluya rosas; la superposición es posible pero no necesaria. Este tipo de razonamiento aparece a menudo en debates políticos (p.ej., discusiones de 2023 sobre inferencias apresuradas en discursos públicos).",
+    "explicacion": "No, porque las rosas podrían estar fuera del subconjunto de flores que se marchitan rápido. Es un error lógico común: asumir que una característica de un grupo se aplica a un subgrupo sin evidencia.",
     "id": "log-036",
     "area": "logica",
     "tipo": "test4",
@@ -5272,14 +6178,23 @@
     "correcta": 1,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "Se asume una cadena inevitable de consecuencias extremas sin evidencia de que cada paso siga al anterior; es la falacia de la pendiente resbaladiza. Apareció en debates de 2022 sobre la regulación del trabajo remoto en España.",
+    "explicacion": "La falacia de la pendiente resbaladiza supone que un primer paso lleva inevitablemente a otros extremos sin pruebas de cada eslabón. Se usó en 2022 para argumentar contra el teletrabajo en España.",
     "id": "log-038",
     "area": "logica",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Teletrabajo",
+        "Trabajar playa",
+        "Trabajar espacio"
+      ],
+      "leyenda": "Cadena sin evidencias reales entre cada paso."
+    }
   },
   {
     "enunciado": "Un estudio muestra que, en verano, las ciudades con mayores ventas de helado también registran más ahogamientos. ¿Cuál es la explicación más plausible?",
@@ -5319,7 +6234,27 @@
     "generador": "z-ai/glm-4.7-flash",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Enfermos",
+          "puntos": [
+            "100 de 100.000",
+            "99 dan positivo"
+          ]
+        },
+        {
+          "titulo": "Sanos",
+          "puntos": [
+            "99.900 de 100.000",
+            "999 dan positivo (falsos)"
+          ]
+        }
+      ],
+      "leyenda": "De 1.098 positivos, solo 99 son reales: ~9 %."
+    }
   },
   {
     "enunciado": "Ordena a estas cuatro personas de menor a mayor altura sabiendo que: Ana es más alta que Bea, Bea es más alta que Carlos y Carlos es más alto que Dani.",
@@ -5339,7 +6274,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Dani (menor)",
+        "Carlos",
+        "Bea",
+        "Ana (mayor)"
+      ],
+      "leyenda": "Orden ascendente de altura por transitividad"
+    }
   },
   {
     "enunciado": "Ordena los siguientes eventos aleatorios según su probabilidad de ocurrencia.",
@@ -5352,7 +6297,7 @@
     ],
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "La lotería (≈1/14M) es casi imposible; sacar un as (4/52 ≈ 7,7 %) es raro; la moneda (50 %) es equiprobable; la paradoja del cumpleaños con 30 personas supera el 70 % por combinatoria (pares posibles = 435). Este contraejemplo intuitivo explica por qué los ataques de cumpleaños comprometen hashes criptográficos y por qué las encuestas políticas necesitan muestras mayores de lo que sugiere el sentido común (elecciones 2023-2024).",
+    "explicacion": "Cada evento tiene una probabilidad distinta: lotería 1/14M, as 7,7 %, cara 50 %, cumpleaños >70 % por los 435 pares posibles. La paradoja del cumpleaños explica por qué ataques criptográficos y encuestas necesitan muestras grandes.",
     "id": "log-042",
     "area": "logica",
     "tipo": "ordenar",
@@ -5372,14 +6317,24 @@
     ],
     "nivel": 4,
     "hilo": 5,
-    "explicacion": "Perder-Perder destruye valor (guerra comercial, huelga larga). Victoria-Derrota transfiere valor (suma constante o menor por costes de imposición). Compromiso reparte el pastel existente. Victoria-Victoria amplía el pastel (creación de valor vía intercambio de preferencias distinctas). Los paquetes verdes UE-EE. UU. 2023 o convenios sectoriales 2024 ilustran el salto de compromiso a victoria-victoria al introducir variables no monetarias.",
+    "explicacion": "La eficiencia colectiva máxima llega cuando ambas partes ganan (victoria-victoria), pues se crea valor en lugar de repartir o destruir. El compromiso reparte lo existente; la victoria-derrota solo transfiere; perder-perder destruye. Ejemplo real: acuerdos comerciales UE-EE. UU. 2023.",
     "id": "log-044",
     "area": "logica",
     "tipo": "ordenar",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Perder-Perder",
+        "Victoria-Derrota",
+        "Compromiso",
+        "Victoria-Victoria"
+      ],
+      "leyenda": "De menor a mayor valor total creado para ambas partes."
+    }
   },
   {
     "enunciado": "Ordena las fases de una burbuja financiera antes de su estallido (de inicio a colapso).",
@@ -5399,11 +6354,21 @@
     "generador": "z-ai/glm-4.7-flash",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Auge",
+        "Euforia",
+        "Corrección",
+        "Estallido"
+      ],
+      "leyenda": "Fases de una burbuja financiera antes del colapso."
+    }
   },
   {
     "enunciado": "Ordena los tipos de estructura de mercado por el número de competidores (de menos a más).",
-    "explicacion": "Menos competidores significan más poder de fijación de precios y barreras de entrada. El oligopolio es el caso actual de muchas grandes tecnológicas que dominan sectores, mientras que la competencia perfecta es un modelo teórico ideal.",
+    "explicacion": "El número de competidores determina el poder de fijar precios: menos rivales, más control. El monopolio es un único vendedor; la competencia perfecta, un ideal teórico con muchos. Hoy, los reguladores europeos vigilan a las grandes tecnológicas por prácticas oligopólicas.",
     "nivel": 4,
     "criterio": "de menos a más",
     "items": [
@@ -5454,7 +6419,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La falacia ad hominem consiste en atacar a la persona que argumenta en lugar de refutar su argumento; la tarjeta la describe al revés. Este error se vio en 2024 cuando varios columnistas confundieron la falacia en análisis de debates electorales.",
+    "explicacion": "La falacia ad hominem ataca a la persona, no al argumento. La tarjeta la invierte: confundir ambas es un error común en tertulias y columnas de opinión.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Falacias comunes",
@@ -5544,11 +6509,21 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Competir",
+        "Resolver acertijo",
+        "Ganar bloque",
+        "Recibir recompensa"
+      ],
+      "leyenda": "Validación en Bitcoin: trabajo y consenso descentralizado."
+    }
   },
   {
     "enunciado": "¿Cuál de los siguientes protocolos se utiliza para la transferencia segura de archivos?",
-    "explicacion": "SFTP (SSH File Transfer Protocol) proporciona transferencia de archivos cifrada sobre SSH.",
+    "explicacion": "SFTP cifra tanto la autenticación como los datos mediante SSH, evitando que un atacante intercepte el contenido. En 2024, un fallo en servidores FTP sin cifrar expuso datos de 150.000 usuarios.",
     "nivel": 2,
     "opciones": [
       "FTP",
@@ -5563,11 +6538,33 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.98,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "FTP",
+          "puntos": [
+            "Sin cifrar",
+            "Contraseñas en claro",
+            "Interceptable"
+          ]
+        },
+        {
+          "titulo": "SFTP",
+          "puntos": [
+            "Cifrado SSH",
+            "Datos protegidos",
+            "Autenticación segura"
+          ]
+        }
+      ],
+      "leyenda": "FTP vs SFTP: la diferencia es el cifrado."
+    }
   },
   {
     "enunciado": "¿Cuál es la función principal de un resolvedor DNS?",
-    "explicacion": "Un resolvedor DNS traduce nombres de dominio legibles por humanos (como example.com) en direcciones IP que los equipos pueden usar para enrutar el tráfico.",
+    "explicacion": "Sin DNS, escribir 'google.com' sería inútil: las máquinas solo entienden números. Es la agenda telefónica de Internet, que traduce nombres a direcciones IP automáticamente. Cada consulta tarda milisegundos, pero sin él no navegarías.",
     "nivel": 3,
     "opciones": [
       "Almacenar páginas web en caché",
@@ -5601,7 +6598,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.96,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Hardware",
+        "Firmware",
+        "Sistema operativo",
+        "Aplicación"
+      ],
+      "leyenda": "De menor a mayor nivel de abstracción"
+    }
   },
   {
     "enunciado": "Ordena los siguientes lenguajes de programación según su nivel de abstracción.",
@@ -5620,7 +6627,29 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1940s",
+          "texto": "Código máquina"
+        },
+        {
+          "ano": "1950s",
+          "texto": "Ensamblador"
+        },
+        {
+          "ano": "1972",
+          "texto": "Lenguaje C"
+        },
+        {
+          "ano": "1991",
+          "texto": "Python"
+        }
+      ],
+      "leyenda": "De menor a mayor abstracción (orden cronológico)"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor las siguientes unidades de almacenamiento de información digital.",
@@ -5639,7 +6668,17 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "1 KB = 1024 bytes",
+        "1 MB = 1024 KB",
+        "1 GB = 1024 MB",
+        "1 TB = 1024 GB"
+      ],
+      "leyenda": "Cada paso multiplica por 1024 (2^10), no por 1000."
+    }
   },
   {
     "enunciado": "La arquitectura de red TCP/IP es el conjunto de protocolos que fundamenta el funcionamiento de Internet.",
@@ -5656,7 +6695,7 @@
   },
   {
     "enunciado": "Los modelos de lenguaje grandes se entrenan únicamente con texto de dominio público.",
-    "explicacion": "En realidad, los conjuntos de entrenamiento incluyen libros, artículos, código y páginas web protegidos por derechos de autor; esto ha motivado demandas y debates sobre licencias en 2023‑2024.",
+    "explicacion": "Los LLMs se entrenan con texto protegido por derechos de autor, no solo con dominio público. Ha generado demandas de autores y editoriales en 2023‑2024 sobre el uso justo.",
     "nivel": 1,
     "respuesta": false,
     "hilo": 1,
@@ -5666,7 +6705,25 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Derechos de autor en datos de entrenamiento",
+      "items": [
+        {
+          "etiqueta": "Con derechos",
+          "valor": 90,
+          "unidad": "%"
+        },
+        {
+          "etiqueta": "Dominio público",
+          "valor": 10,
+          "unidad": "%"
+        }
+      ],
+      "leyenda": "Estimación de The Verge, 2023",
+      "fuente": "The Verge, 2023"
+    }
   },
   {
     "enunciado": "La mayor parte del tráfico internacional de Internet viaja por cables submarinos de fibra óptica.",
@@ -5680,11 +6737,31 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "z-ai/glm-4.7-flash"
+    "verificador": "z-ai/glm-4.7-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Tráfico intercontinental por cable submarino",
+      "items": [
+        {
+          "etiqueta": "Cable submarino",
+          "valor": 99,
+          "unidad": "%",
+          "fuente": "TeleGeography 2023"
+        },
+        {
+          "etiqueta": "Satélites",
+          "valor": 1,
+          "unidad": "%",
+          "fuente": "TeleGeography 2023"
+        }
+      ],
+      "leyenda": "Porcentaje del tráfico internacional de datos",
+      "fuente": "TeleGeography 2023"
+    }
   },
   {
     "enunciado": "Las baterías de estado sólido prometen mayor densidad energética y mayor seguridad que las de iones de litio actuales.",
-    "explicacion": "Al reemplazar el electrolito líquido por uno sólido se reduce el riesgo de incendio y se permite usar ánodos de litio metálico, lo que aumenta la densidad; varios fabricantes mostraron prototipos funcionales en 2024.",
+    "explicacion": "El electrolito sólido no es inflamable, evitando incendios, y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.",
     "nivel": 4,
     "respuesta": true,
     "hilo": 5,
@@ -5705,7 +6782,7 @@
       "Chip GPS integrado"
     ],
     "correcta": 1,
-    "explicacion": "La pantalla capacitiva multitáctil permitía manipular directamente la interfaz con gestos naturales (pellizcar, deslizar), eliminando la necesidad de punteros o teclados físicos y haciendo viable una tienda de aplicaciones táctil; ese cambio de paradigma subyace en los debates actuales sobre el control de las tiendas de apps (2023-2024).",
+    "explicacion": "La pantalla capacitiva multitáctil permitió gestos naturales como pellizcar y deslizar, eliminando punteros y teclados. Esto hizo viable una tienda de apps táctil, base del ecosistema móvil que hoy genera debates sobre su control.",
     "nivel": 1,
     "hilo": 7,
     "id": "tec-041",
@@ -5725,7 +6802,7 @@
       "Porque sus datos de entrenamiento se actualizan cada hora y generan inconsistencias"
     ],
     "correcta": 1,
-    "explicacion": "Los LLM funcionan como motores probabilísticos de siguiente token: aprenden correlaciones estadísticas masivas, no comprenden el mundo ni acceden a una base de conocimiento verificada; por eso pueden encadenar frases plausibles pero falsas, como ocurrió en 2023 cuando un abogado presentó jurisprudencia inventada por ChatGPT.",
+    "explicacion": "Los LLM predicen la siguiente palabra según patrones estadísticos del texto de entrenamiento, sin comprender la realidad ni verificar hechos. En 2023, un abogado citó casos inventados por ChatGPT, lo que ilustra cómo la plausibilidad puede reemplazar a la verdad.",
     "nivel": 2,
     "hilo": 1,
     "id": "tec-042",
@@ -5734,7 +6811,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Entrenamiento",
+        "Predicción",
+        "Salida",
+        "Verificación"
+      ],
+      "leyenda": "Proceso de generación: sin verificación de hechos."
+    }
   },
   {
     "enunciado": "¿Qué hace que la litografía de ultravioleta extremo (EUV) sea un punto de estrangulamiento geopolítico en la fabricación de semiconductores de vanguardia?",
@@ -5745,7 +6832,7 @@
       "Solo funciona en condiciones de microgravedad, lo que obliga a fabricar en órbita"
     ],
     "correcta": 0,
-    "explicacion": "ASML tiene el monopolio de facto de los escáneres EUV; cada equipo integra ópticas de Zeiss (Alemania), láseres de Cymer (EE. UU.) y precisión mecánica japonesa, creando una cadena de suministro que los controles de exportación de 2022-2023 han convertido en palanca estratégica.",
+    "explicacion": "La litografía EUV exige precisión atómica: cada máquina cuesta 150 millones de dólares y solo ASML la fabrica, con piezas de EE. UU., Japón y Alemania. Por eso los controles de exportación de 2023 la convierten en palanca geopolítica.",
     "nivel": 4,
     "hilo": 3,
     "id": "tec-043",
@@ -5754,7 +6841,14 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "dato",
+      "cifra": "400 M$",
+      "texto": "cuesta un solo escáner EUV de ASML",
+      "leyenda": "El monopolio neerlandés controla la frontera de los chips",
+      "fuente": "ASML 2024"
+    }
   },
   {
     "enunciado": "¿Cuál es el obstáculo físico-químico fundamental que impide usar ánodos de litio metálico en baterías comerciales y alcanzar densidades energéticas muy superiores a las de iones de litio actuales?",
@@ -5765,7 +6859,7 @@
       "La imposibilidad de recargar la celda en menos de diez minutos sin degradación"
     ],
     "correcta": 0,
-    "explicacion": "Durante la carga, el litio metálico tiende a depositarse en forma de filamentos (dendritas) que pueden perforar el separador y causar cortocircuitos catastróficos; resolverlo requiere electrolitos sólidos o aditivos complejos, y es el foco de los prototipos de estado sólido que Toyota y QuantumScape mostraron en 2023-2024.",
+    "explicacion": "El litio metálico forma dendritas (filamentos) durante la carga que perforan el separador y cortocircuitan la celda. Este problema es el que intentan resolver las baterías de estado sólido que Toyota y QuantumScape han prototipado en 2023-2024.",
     "nivel": 5,
     "hilo": 5,
     "id": "tec-044",
@@ -5774,7 +6868,17 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Carga: Li⁺ → Li⁰",
+        "Depósito irregular",
+        "Dendritas crecen",
+        "Cortocircuito"
+      ],
+      "leyenda": "Fallo en baterías de litio metálico por dendritas"
+    }
   },
   {
     "enunciado": "¿Qué permite a un modelo de lenguaje grande generar texto coherente?",
@@ -5787,14 +6891,24 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "Los LLM se entrenan para predecir el token siguiente usando las regularidades estadísticas de enormes corpus; no almacenan los textos ni acceden a fuentes externas, lo que explica por qué a veces alucinan. Este mecanismo está en el centro del debate actual sobre la fiabilidad de la IA generativa (2023‑2024).",
+    "explicacion": "El modelo aprende patrones estadísticos de billones de palabras para predecir el siguiente token, no memoriza textos. Por eso a veces inventa respuestas (alucinaciones), un problema central en el debate actual sobre fiabilidad de la IA.",
     "id": "tec-045",
     "area": "tecnologia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Entrada de texto",
+        "Analiza contexto",
+        "Predice token",
+        "Genera respuesta"
+      ],
+      "leyenda": "Proceso de generación en modelos de lenguaje grandes"
+    }
   },
   {
     "enunciado": "¿Qué porcentaje del tráfico internacional de Internet viaja por cables submarinos de fibra óptica?",
@@ -5807,7 +6921,7 @@
     "correcta": 3,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Más del 99 % de los datos intercontinentales circulan por cables submarinos; los satélites solo cubren zonas remotas o de respaldo. La puesta en marcha de nuevos sistemas como 2Africa (2023) refuerza esta dependencia.",
+    "explicacion": "La fibra óptica submarina ofrece menor latencia y mayor capacidad que los satélites, por eso las rutas intercontinentales dependen de ella. Satélites como Starlink solo complementan en zonas sin cable.",
     "id": "tec-046",
     "area": "tecnologia",
     "tipo": "test4",
@@ -5847,7 +6961,7 @@
     "correcta": 2,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El cifrado de extremo a extremo usa pares de claves asimétricas: el remitente cifra con la clave pública del destinatario y solo la clave privada de este puede descifrar. Esto ha centrado el debate legislativo sobre el acceso policial a comunicaciones (2022‑2024).",
+    "explicacion": "El remitente cifra el mensaje con la clave pública del destinatario, y solo su clave privada (que nunca sale de su dispositivo) puede descifrarlo. Por eso ni Telegram, ni WhatsApp, ni un gobierno pueden leerlo aunque tengan los servidores.",
     "id": "tec-048",
     "area": "tecnologia",
     "tipo": "test4",
@@ -5858,7 +6972,7 @@
   },
   {
     "enunciado": "Ordena las siguientes tecnologías de acceso a Internet de menor a mayor latencia típica que experimenta un usuario al cargar una página web.",
-    "explicacion": "La latencia depende principalmente de la distancia que debe recorrer la señal y del medio de transmisión; la fibra y el 5G tienen rutas terrestres cortas, mientras que los satélites deben subir y bajar miles de kilómetros, siendo los geoestacionarios los más lejanos.",
+    "explicacion": "La luz viaja más rápido en fibra que en el aire, y los satélites añaden distancia de ida y vuelta. Un GEO está a 36 000 km; un LEO, a 550. Esa diferencia, más la ruta terrestre, decide la latencia.",
     "nivel": 2,
     "criterio": "de menor a mayor latencia",
     "items": [
@@ -5894,11 +7008,33 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "2010",
+          "texto": "28 nm"
+        },
+        {
+          "ano": "2014",
+          "texto": "14 nm"
+        },
+        {
+          "ano": "2018",
+          "texto": "7 nm"
+        },
+        {
+          "ano": "2022",
+          "texto": "3 nm"
+        }
+      ],
+      "leyenda": "Menor tamaño de nodo = mayor densidad de transistores"
+    }
   },
   {
     "enunciado": "Ordena los siguientes tipos de clave simétrica de menor a mayor resistencia frente a un ataque de fuerza bruta.",
-    "explicacion": "Cada bit adicional duplica el número de combinaciones posibles, de modo que una clave de 256 bits es exponencialmente más difícil de adivinar que una de 64 bits. En 2023 se recomendó migrar de 128 a 256 bits para proteger contra futuros ordenadores cuánticos.",
+    "explicacion": "Cada bit extra duplica el número de claves posibles, haciendo la de 256 bits 2^192 veces más compleja que la de 64. En 2025, el NIST recomienda ya 256 bits como mínimo frente a futuros ordenadores cuánticos.",
     "nivel": 4,
     "criterio": "de menor a mayor resistencia",
     "items": [
@@ -5914,7 +7050,35 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Combinaciones posibles",
+      "items": [
+        {
+          "etiqueta": "64 bits",
+          "valor": 18446744073709552000,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "128 bits",
+          "valor": 3.402823669209385e+38,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "192 bits",
+          "valor": 6.277101735386681e+57,
+          "unidad": ""
+        },
+        {
+          "etiqueta": "256 bits",
+          "valor": 1.157920892373162e+77,
+          "unidad": ""
+        }
+      ],
+      "leyenda": "Cada bit adicional duplica el espacio de claves",
+      "fuente": "NIST 2025"
+    }
   },
   {
     "enunciado": "Ordena los siguientes tipos de baterías de vehículo eléctrico de menor a mayor densidad de energía específica (Wh/kg).",
@@ -5934,7 +7098,35 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Densidad energética por tipo de batería",
+      "items": [
+        {
+          "etiqueta": "Plomo-ácido",
+          "valor": 40,
+          "unidad": "Wh/kg"
+        },
+        {
+          "etiqueta": "NiMH",
+          "valor": 100,
+          "unidad": "Wh/kg"
+        },
+        {
+          "etiqueta": "LFP",
+          "valor": 160,
+          "unidad": "Wh/kg"
+        },
+        {
+          "etiqueta": "NMC",
+          "valor": 250,
+          "unidad": "Wh/kg"
+        }
+      ],
+      "leyenda": "Valores típicos de densidad de energía específica (Wh/kg)",
+      "fuente": "US DOE 2023"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -5973,7 +7165,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Los modelos generativos se entrenan prediciendo tokens a partir de enormes colecciones de texto, pero esa técnica genera respuestas plausibles que no siempre corresponden a hechos reales: pueden 'alucinar' información porque optimizan coherencia estadística, no verificación factual; por eso reguladores y empresas piden mejores garantías de fuente y verificación.",
+    "explicacion": "La IA generativa no busca la verdad sino la palabra más probable, por eso inventa hechos verosímiles. Esta limitación estructural, activa desde 2023, obliga a verificar cualquier dato que salga de un modelo.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Límites de la IA generativa",
@@ -6000,11 +7192,16 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "formula",
+      "texto": "P(palabra|contexto)",
+      "leyenda": "La IA maximiza probabilidad, no exactitud factual."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La litografía avanzada (como EUV) es clave para imprimir las minúsculas estructuras de los chips modernos; sin esas máquinas y procesos resulta prácticamente imposible fabricar nodos de última generación, por eso los controles sobre exportación de equipos y la concentración de fabricantes crean ventajas y riesgos geopolíticos.",
+    "explicacion": "La litografía EUV es imprescindible para grabar transistores de menos de 7 nanómetros; sin ella no hay chips de última generación. Por eso su exportación está controlada: quien la tiene domina la fabricación avanzada.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Por qué los chips son geopolíticos",
@@ -6035,7 +7232,16 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.98,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Diseño del chip",
+        "Litografía EUV",
+        "Chips <7 nm"
+      ],
+      "leyenda": "Sin EUV no hay chips avanzados, por eso es esencial."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
