@@ -35,17 +35,78 @@ async function assertTarjetaSinScroll(page) {
     const tarjeta = document.querySelector('.tarjeta-mazo--actual');
     if (!tarjeta) return null;
     const contenido = tarjeta.querySelector('.tarjeta-contenido');
+    // Hallazgo C1 (revisión final v0.1e): `.tarjeta-contenido.scrollHeight` NO ve un desborde
+    // que ocurre DENTRO de un hijo suyo (p. ej. `.zona-imagen`) cuando ese hijo tiene overflow
+    // visible y flex-shrink:0 en su propio descendiente (el SVG del visual) -- en flexbox, el
+    // desborde de un flex item no siempre propaga al scrollHeight del contenedor flex, así que
+    // `ajustarEncaje.cabe()` (que solo mira `.tarjeta-contenido`) puede dar por bueno un encaje
+    // que en pantalla se ve roto. Dos comprobaciones nuevas que SÍ lo ven:
+    //  1) el mismo contrato scrollHeight<=clientHeight pero aplicado a CADA HIJO DIRECTO de
+    //     `.tarjeta-contenido` (no solo al propio `.tarjeta-contenido`), para pillar un desborde
+    //     interno de cualquier hijo aunque no llegue a sumar al de su padre.
+    //  2) geometría real: ningún hijo de `.zona-imagen` (el SVG del visual, su leyenda, o la
+    //     imagen+pie) puede sobresalir del rectángulo de `.zona-imagen` -- ni por arriba ni por
+    //     abajo -- más de 1px, medido con getBoundingClientRect (no depende de scrollHeight en
+    //     absoluto, así que ve el desborde aunque el flujo normal de scrollHeight no lo cuente).
+    // OJO: esto NO debe pillar el recorte intencional por line-clamp (`.enunciado`/
+    // `.explicacion` en tarjeta--enunciado-clamp/--explicacion-clamp, ver ajustarEncaje/
+    // calcularLineasClamp en app.js): esos elementos usan `display:-webkit-box;
+    // overflow:hidden` a propósito, y en Chromium su `scrollHeight` SIGUE devolviendo el
+    // alto del texto COMPLETO sin recortar (es justo lo que calcularLineasClamp explota
+    // para calcular cuántas líneas caben) aunque el recorte visual funcione perfectamente
+    // (el texto de más nunca se pinta, con "…" al final). Eso es una verdad ya conocida y
+    // aceptada del propio diseño, no el bug de C1: C1 es un desborde que SÍ se pinta fuera
+    // de su caja porque el padre tiene `overflow:visible` (el default). Por eso el
+    // contrato scrollHeight<=clientHeight por hijo solo se exige cuando el propio hijo
+    // tiene `overflow` visible en su eje vertical -- con overflow:hidden/clip/scroll/auto
+    // el navegador ya garantiza que nada se pinta fuera de la caja, así que un
+    // scrollHeight mayor ahí es ruido esperado, no una señal de un desborde real.
+    const hijosContenido = contenido
+      ? Array.from(contenido.children)
+          .filter((hijo) => getComputedStyle(hijo).overflowY === 'visible')
+          .map((hijo) => ({
+            clase: hijo.getAttribute('class') || hijo.tagName,
+            alto: hijo.scrollHeight,
+            visible: hijo.clientHeight,
+          }))
+      : [];
+    const desbordesZonaImagen = [];
+    if (contenido) {
+      contenido.querySelectorAll('.zona-imagen').forEach((zona) => {
+        const rectZona = zona.getBoundingClientRect();
+        Array.from(zona.children).forEach((hijo) => {
+          const rectHijo = hijo.getBoundingClientRect();
+          desbordesZonaImagen.push({
+            clase: hijo.getAttribute('class') || hijo.tagName,
+            sobresaleArriba: rectZona.top - rectHijo.top,
+            sobresaleAbajo: rectHijo.bottom - rectZona.bottom,
+          });
+        });
+      });
+    }
     return {
       alto: tarjeta.scrollHeight,
       visible: tarjeta.clientHeight,
       contenidoAlto: contenido ? contenido.scrollHeight : null,
       contenidoVisible: contenido ? contenido.clientHeight : null,
+      hijosContenido,
+      desbordesZonaImagen,
     };
   });
   expect(medidas).not.toBeNull();
   expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
   if (medidas.contenidoAlto !== null) {
     expect(medidas.contenidoAlto).toBeLessThanOrEqual(medidas.contenidoVisible + 2);
+  }
+  for (const hijo of medidas.hijosContenido) {
+    expect(
+      hijo.alto,
+      `.${hijo.clase} desborda su propia caja dentro de .tarjeta-contenido (scrollHeight ${hijo.alto} > clientHeight ${hijo.visible})`
+    ).toBeLessThanOrEqual(hijo.visible + 2);
+  }
+  for (const d of medidas.desbordesZonaImagen) {
+    expect(d.sobresaleArriba, `.${d.clase} sobresale por ARRIBA de su .zona-imagen (${d.sobresaleArriba.toFixed(1)}px)`).toBeLessThanOrEqual(1);
+    expect(d.sobresaleAbajo, `.${d.clase} sobresale por ABAJO de su .zona-imagen (${d.sobresaleAbajo.toFixed(1)}px)`).toBeLessThanOrEqual(1);
   }
 }
 
@@ -1373,6 +1434,65 @@ test.describe('ONE · integración e2e', () => {
     await assertTarjetaSinScroll(page);
   });
 
+  // Hallazgo M2 (revisión final v0.1e): antes, si la imagen de Commons fallaba al
+  // cargar, el hueco se quedaba vacío del todo aunque la pregunta SÍ tuviera un
+  // visual generado (spec v0.1e §2) -- la prioridad fija imagen->visual de
+  // construirTarjetaRespondida se decide en el momento de construir la tarjeta,
+  // cuando la imagen "existe" a efectos de datos aunque su carga real falle
+  // después de forma asíncrona. Ahora el `error` del <img> intenta
+  // construirBloqueVisual como respaldo antes de rendirse. Mismo patrón que el
+  // test de arriba (URL 404 real vía tools/servir.js), pero con una pregunta
+  // sintética que SÍ trae `visual`.
+  test('M2 (revisión final v0.1e): si la imagen de Commons falla al cargar, el visual de respaldo aparece en su lugar', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const idSintetico = 'sintetico-m2-imagen-rota-con-visual';
+    const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
+    const preguntaSintetica = { ...visualesEjemplo.dato, id: idSintetico };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
+    await page.evaluate(
+      (id) =>
+        window.__one.forzarImagen(id, {
+          id,
+          url: 'datos/no-existe-m2.png',
+          pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo.png',
+          titulo: 'Ejemplo',
+          autor: 'Autor de ejemplo',
+          licencia: 'CC0',
+          leyenda: 'Imagen rota a propósito (M2)',
+          termino: 'ejemplo',
+          ancho: 1,
+          alto: 1,
+        }),
+      idSintetico
+    );
+    await page.evaluate(
+      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'm2-imagen-rota-visual' }),
+      idSintetico
+    );
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    // El onerror del <img> es asíncrono (espera a la respuesta 404 real): las
+    // aserciones de Playwright reintentan hasta que el respaldo se pinta.
+    await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="visual"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual-pie"]')).toHaveText(preguntaSintetica.visual.leyenda);
+    // El respaldo cuenta como "hay imagen" a efectos de alineación arriba
+    // (spec v0.1d §3): la marca no debe perderse solo porque la imagen
+    // concreta haya fallado si hay un visual que la sustituya.
+    await expect(t.locator('.tarjeta-contenido')).toHaveClass(/tarjeta-contenido--imagen/);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+  });
+
   // --- v0.1d: gesto, contador, fila compacta, confianza compacta, imagen ---
 
   test('mazo v0.1d §1: contador de la cabecera (respondidas/total en partida)', async ({ page }) => {
@@ -1504,11 +1624,24 @@ test.describe('ONE · integración e2e', () => {
 
   test('mazo v0.1d §1: indicador de gesto visible antes de deslizar, se apaga tras un deslizamiento con éxito', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
+    // Hallazgo I1 (revisión final v0.1e): la pista textual ("Desliza ↑ para la
+    // siguiente...") y el chevrón se solapaban 16px cuando las dos estaban
+    // visibles a la vez (las 5 primeras tarjetas de la vida de la app). El
+    // arreglo apaga el chevrón mientras la pista textual esté activa (sobra:
+    // la pista ya explica el gesto). Este test quiere aislar el chevrón en sí
+    // (independiente de la pista), así que se simula el presupuesto de la
+    // pista YA agotado (`one.pistaMazo` en localStorage, ver
+    // contarPistaMazoMostrada/LIMITE_PISTA_MAZO=5 en app.js) ANTES de entrar
+    // en la partida -- si no, en un contexto de test recién creado (localStorage
+    // vacío) la pista se mostraría en su lugar y el chevrón, correctamente,
+    // no se vería.
+    await page.evaluate(() => localStorage.setItem('one.pistaMazo', '5'));
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="comenzar"]').click();
 
     const indicador = page.locator('[data-test="mazo-gesto"]');
+    await expect(page.locator('[data-test="pista-mazo"]')).toBeHidden();
     await expect(indicador).toBeVisible();
 
     // Navegar con teclado NO enseña el gesto (solo cuenta un deslizamiento
@@ -1658,9 +1791,17 @@ test.describe('ONE · visuales v0.1e', () => {
 
       const visual = t.locator('[data-test="visual"]');
       await expect(visual).toBeVisible();
+      // assertTarjetaSinScroll ya se ha llamado arriba (con su comprobación
+      // geométrica reforzada, hallazgo C1): en este punto el SVG está
+      // GARANTIZADO contenido en su `.zona-imagen` (no desbordado), así que
+      // `caja.height` mide el dibujo ya encajado -- antes del arreglo C1
+      // (`.visual-svg` con `flex:0 0 auto; max-height:100%`), esta misma
+      // lectura podía devolver un alto mayor de 88 sin que eso dijera nada
+      // sobre si el SVG cabía de verdad (podía desbordar y aun así medir
+      // "suficiente"). Mínimo de la cascada de encaje (spec v0.1d §4): 90px,
+      // con el mismo margen de 2px que ya usa assertTarjetaSinScroll para
+      // redondeos.
       const caja = await visual.boundingBox();
-      // Mínimo de la cascada de encaje (spec v0.1d §4): 90px, con el mismo
-      // margen de 2px que ya usa assertTarjetaSinScroll para redondeos.
       expect(caja.height).toBeGreaterThanOrEqual(88);
 
       const leyenda = t.locator('[data-test="visual-pie"]');
@@ -1708,6 +1849,61 @@ test.describe('ONE · visuales v0.1e', () => {
     await expect(t.locator('[data-test="imagen"]')).toBeVisible();
     await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
   });
+});
+
+// ============================================================================
+// C1 (revisión final v0.1e, Critical): el SVG del visual desbordaba su caja y
+// tapaba la respuesta correcta -- `.visual-svg` con `flex:0 0 auto;
+// max-height:100%` mide ese 100% contra `.zona-imagen--visual` ignorando el
+// `gap` y `.visual-pie` (leyenda) que van debajo en la misma caja, y como
+// `.tarjeta-contenido` está en overflow:visible (nunca hidden/scroll), el
+// desborde no aumenta su scrollHeight -- `ajustarEncaje.cabe()` no lo ve. El
+// revisor lo midió en vivo a 393×852 CON las zonas seguras reales de un
+// iPhone (notch/Dynamic Island arriba, home indicator abajo): 72 de 96
+// tarjetas con visual desbordaban, peores casos cie-085/fil-041/fil-055
+// (10px) y eco-065 (8px) -- las 4 preguntas de este bloque, tomadas del banco
+// REAL (no sintéticas), respondidas MAL a propósito (fallarPreguntaActual):
+// la respuesta incorrecta es justo lo que el SVG desbordado tapaba.
+// env(safe-area-inset-*) vale 0 en Chromium headless (no hay notch que
+// simular de por sí), así que se inyecta el mismo padding que aplicaría iOS.
+// ============================================================================
+test.describe('ONE · C1 visual desbordado con zonas seguras del iPhone', () => {
+  const CASOS_PEORES_C1 = ['cie-085', 'fil-041', 'fil-055', 'eco-065'];
+
+  for (const id of CASOS_PEORES_C1) {
+    test(`C1 ${id}: a 393×852 con zonas seguras del iPhone, la tarjeta respondida (mal) no desborda su visual`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 393, height: 852 });
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      // Zonas seguras reales de un iPhone con notch/Dynamic Island (59px
+      // arriba) y home indicator (34px abajo) -- las mismas que midió el
+      // revisor en vivo para encontrar el desborde de hasta 10px.
+      await page.addStyleTag({
+        content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
+      });
+
+      await page.evaluate((ids) => window.__one.empezarPartida({ ids, etiqueta: 'c1-zonas-seguras' }), [id]);
+
+      const t = tarjetaActual(page);
+      await fallarPreguntaActual(page);
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+
+      await assertSinScroll(page);
+      // Aserción reforzada C1 (ver assertTarjetaSinScroll): ve el desborde
+      // geométrico real del SVG aunque scrollHeight no lo cuente.
+      await assertTarjetaSinScroll(page);
+
+      // El visual sigue existiendo y visible (nunca se quita, spec v0.1d §4):
+      // lo que se arregla es que quepa, no que desaparezca.
+      await expect(t.locator('[data-test="visual"]')).toBeVisible();
+    });
+  }
 });
 
 // ============================================================================
