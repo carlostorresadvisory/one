@@ -1,0 +1,133 @@
+{
+  "formula": {
+    "id": "visual-formula",
+    "area": "economia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "Un gobierno tiene superávit fiscal cuando sus ingresos superan a sus gastos públicos.",
+    "explicacion": "El superávit es la diferencia positiva entre lo que un Estado ingresa y lo que gasta en un periodo. Es como cuando a ti te sobra dinero a fin de mes.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "formula",
+      "texto": "Superávit = Ingresos − Gastos públicos",
+      "leyenda": "Fórmula del superávit fiscal: ingresos menos gastos"
+    }
+  },
+  "linea-tiempo": {
+    "id": "visual-linea-tiempo",
+    "area": "historia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "La Revolución Francesa comenzó en 1789 con la toma de la Bastilla.",
+    "explicacion": "Ese asalto a una prisión-fortaleza de París se convirtió en el símbolo del fin del Antiguo Régimen. Por eso Francia celebra el 14 de julio como fiesta nacional.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        { "ano": "486 a.C.", "texto": "Caída de Babilonia" },
+        { "ano": "1789", "texto": "Toma de la Bastilla" },
+        { "ano": "1929", "texto": "Crac del 29 en EEUU" },
+        { "ano": "1969", "texto": "Llegada a la Luna" },
+        { "ano": "1989", "texto": "Caída del Muro Berlín" }
+      ],
+      "leyenda": "Hitos históricos usados para ilustrar la respuesta"
+    }
+  },
+  "barras": {
+    "id": "visual-barras",
+    "area": "geografia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "El peso económico del mundo se reparte de forma muy desigual entre sus grandes regiones.",
+    "explicacion": "Unas pocas regiones concentran la mayor parte de la producción mundial. Se nota en cosas tan cotidianas como dónde se fabrica la tecnología que usamos cada día.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "barras",
+      "titulo": "Peso económico por gran región, 2023",
+      "items": [
+        { "etiqueta": "Norteamérica", "valor": 26.9, "unidad": "bill $" },
+        { "etiqueta": "Unión Europea", "valor": 15.8, "unidad": "bill $" },
+        { "etiqueta": "China", "valor": 17.7, "unidad": "bill $" },
+        { "etiqueta": "Asia (resto)", "valor": 12.4, "unidad": "bill $" },
+        { "etiqueta": "África", "valor": 2.8, "unidad": "bill $" }
+      ],
+      "leyenda": "Peso económico aproximado por gran región del mundo"
+    }
+  },
+  "comparacion": {
+    "id": "visual-comparacion",
+    "area": "filosofia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "El racionalismo defiende que la razón, no la experiencia, es la vía principal para conocer la verdad.",
+    "explicacion": "Descartes y otros racionalistas creían que ciertas ideas ya están en la mente antes de la experiencia. Hoy discutimos algo parecido al hablar de intuiciones innatas frente a lo aprendido.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Racionalismo",
+          "puntos": ["Conocimiento por la razón", "Ideas innatas en la mente", "Descartes, su gran referente"]
+        },
+        {
+          "titulo": "Empirismo",
+          "puntos": ["Conocimiento por experiencia", "Los sentidos como base", "Locke y Hume, sus referentes"]
+        }
+      ],
+      "leyenda": "Diferencias clave entre racionalismo y empirismo"
+    }
+  },
+  "flujo": {
+    "id": "visual-flujo",
+    "area": "logica",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "El método científico sigue un proceso ordenado: observar, formular una hipótesis, probar y concluir.",
+    "explicacion": "Ese orden evita sacar conclusiones antes de comprobar los datos. Es el mismo criterio que usamos, sin darnos cuenta, al diagnosticar por qué el wifi de casa no funciona.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "flujo",
+      "pasos": ["Observar problema", "Formular hipótesis", "Probar hipótesis", "Sacar conclusiones"],
+      "leyenda": "Pasos del método científico aplicados a esta pregunta"
+    }
+  },
+  "dato": {
+    "id": "visual-dato",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "nivel": 1,
+    "enunciado": "Construir una aplicación móvil típica cuesta de media varias decenas de miles de euros.",
+    "explicacion": "El coste depende de la complejidad, pero un encargo típico ronda esa cifra entre diseño, desarrollo y pruebas. Es similar a presupuestar la reforma de una cocina grande.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true,
+    "visual": {
+      "tipo": "dato",
+      "cifra": "45.000 €",
+      "texto": "Coste medio de construir una app típica",
+      "leyenda": "Coste medio estimado de construir una app móvil típica"
+    }
+  }
+}

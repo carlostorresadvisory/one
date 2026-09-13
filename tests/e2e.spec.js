@@ -1612,3 +1612,100 @@ test.describe('ONE · integración e2e', () => {
     await capturar({ width: 430, height: 932 }, '430');
   });
 });
+
+// ============================================================================
+// v0.1e: visuales generados (spec v0.1e §2/§4, construirVisual en visuales.js)
+// -- un dibujo SVG en la misma caja que la imagen, para las preguntas que no
+// tienen imagen de Commons. Un test por tipo desde datos/visuales.ejemplo.json
+// (un ejemplo por tipo, con los máximos de longitud que permite la spec §2 —
+// no ejemplos cortos y cómodos, para comprobar de verdad que el recorte de
+// texto del módulo funciona), más el caso de prioridad "imagen y visual ->
+// gana la imagen". Describe aparte (no depende del banco de ejemplo cargado
+// por la app: inyectarPregunta añade la pregunta sintética al banco YA
+// cargado, así que no importa si viene de /?ejemplo=1 o del banco real).
+// ============================================================================
+test.describe('ONE · visuales v0.1e', () => {
+  const TIPOS_VISUAL = ['formula', 'linea-tiempo', 'barras', 'comparacion', 'flujo', 'dato'];
+
+  for (const tipo of TIPOS_VISUAL) {
+    test(`visual v0.1e "${tipo}": se pinta en la tarjeta respondida, cabe sin scroll y muestra su leyenda`, async ({
+      page,
+    }) => {
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
+      const pregunta = visualesEjemplo[tipo];
+      expect(pregunta).toBeTruthy();
+
+      await page.evaluate((p) => window.__one.inyectarPregunta(p), pregunta);
+      await page.evaluate(
+        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: `visual-${id}` }),
+        pregunta.id
+      );
+
+      const t = tarjetaActual(page);
+      // Sin responder no debe verse ni dar pistas (mismo contrato que la imagen).
+      await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+      await t.locator('[data-test="vf-verdadero"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+
+      const visual = t.locator('[data-test="visual"]');
+      await expect(visual).toBeVisible();
+      const caja = await visual.boundingBox();
+      // Mínimo de la cascada de encaje (spec v0.1d §4): 90px, con el mismo
+      // margen de 2px que ya usa assertTarjetaSinScroll para redondeos.
+      expect(caja.height).toBeGreaterThanOrEqual(88);
+
+      const leyenda = t.locator('.visual-pie');
+      await expect(leyenda).toBeVisible();
+      await expect(leyenda).toHaveText(pregunta.visual.leyenda);
+
+      await page.screenshot({ path: `${CAPTURAS}/v0.1e-${tipo}-375.png` });
+    });
+  }
+
+  test('visual v0.1e: con imagen Y visual en la misma pregunta, gana la imagen (spec v0.1e §2, prioridad fija)', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
+      page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json())),
+    ]);
+    // Id sintético (no reutiliza uno del banco real/de ejemplo): mismo motivo
+    // que el resto de sintéticos de este fichero (ver "cascada de encaje paso
+    // a paso" más arriba) — evita depender de qué traiga el banco en cada
+    // momento y de cómo resuelva un id duplicado la selección por filtro.
+    const idSintetico = 'sintetico-visual-e-imagen';
+    const preguntaSintetica = { ...visualesEjemplo.dato, id: idSintetico };
+    const imagenForzada = { ...imagenesEjemplo['his-001'], id: idSintetico };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
+    await page.evaluate(
+      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'visual-y-imagen' }),
+      idSintetico
+    );
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+  });
+});
