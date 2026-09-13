@@ -1663,7 +1663,7 @@ test.describe('ONE · visuales v0.1e', () => {
       // margen de 2px que ya usa assertTarjetaSinScroll para redondeos.
       expect(caja.height).toBeGreaterThanOrEqual(88);
 
-      const leyenda = t.locator('.visual-pie');
+      const leyenda = t.locator('[data-test="visual-pie"]');
       await expect(leyenda).toBeVisible();
       await expect(leyenda).toHaveText(pregunta.visual.leyenda);
 

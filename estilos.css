@@ -1250,6 +1250,20 @@ main#app {
   font-size: 22px;
   font-weight: 600;
   margin: 0;
+  /* Causa raíz de V3 (ronda 1 de revisión v0.1e): el "✓"/"✗" salía recortado
+     por la izquierda ("✓ +6 XP" se veía como "⁄ +6 XP") en capturas tomadas
+     mientras corría feedback-pulso (scale(1.08) a los 40%). El texto vive
+     pegado al borde izquierdo de .tarjeta-contenido (sin margen propio) y esa
+     caja tiene overflow:hidden (red de seguridad del encaje, más abajo en
+     esta hoja): con el pivote de escala por defecto (centro), un scale>1
+     empuja el borde izquierdo del texto MÁS ALLÁ del límite recortado — se
+     pierde el trazo corto del glifo, quedando solo la diagonal larga (se lee
+     como "⁄"). No ocurría siempre porque depende de en qué punto exacto de
+     los 300ms cae la captura; con transform-origin:left el pivote es el
+     propio borde izquierdo, que nunca se mueve — la animación crece hacia la
+     derecha, dentro de la caja, así que el recorte deja de ser posible en
+     cualquier instante de la animación, no solo en el que capturase antes. */
+  transform-origin: left center;
 }
 
 .feedback-texto--ok { color: var(--ok); }
@@ -1398,19 +1412,34 @@ main#app {
 
 /* --- visual generado (spec v0.1e §2/§4): un SVG dibujado por la propia app
    (visuales.js) en vez de una foto, cuando la pregunta no tiene imagen de
-   Commons (ver construirBloqueVisual en app.js). Vive en la MISMA caja
-   flexible que la imagen (.zona-imagen ya definida arriba: flex:1 1 auto,
-   min-height:90px, max-height:55vh — el visual es "imagen" a todos los
-   efectos de la cascada de encaje de v0.1d §4), con la clase extra
-   zona-imagen--visual solo para distinguir el origen en el DOM/tests. El
-   <svg data-test="visual"> ocupa el hueco igual que <img> arriba: flex:1 1
-   auto, ancho 100% — el viewBox interno (fijo, ver visuales.js) y
-   preserveAspectRatio deciden la composición y la escalan sin deformarla. */
+   Commons (ver construirBloqueVisual en app.js). El CONTENEDOR
+   (.zona-imagen--visual) vive en la MISMA caja flexible que la imagen
+   (.zona-imagen ya definida arriba: flex:1 1 auto, min-height:90px,
+   max-height:55vh — el visual sigue siendo "imagen" a todos los efectos de
+   la cascada de encaje de v0.1d §4, y sigue absorbiendo el sobrante igual
+   que una foto).
+   El <svg> de DENTRO ya NO se fuerza a height:100% (ronda 1 de revisión, V1:
+   "las imágenes deberían protagonizar", no dejar fondo vacío alrededor del
+   dibujo). Cada plantilla de visuales.js calcula su propio alto de viewBox
+   según su contenido real (filas, líneas...) y fija `aspect-ratio` en línea
+   igual a ese viewBox; aquí solo hace falta `width:100%; height:auto` para
+   que el SVG ocupe EXACTAMENTE lo que su aspect-ratio pide (nunca más), con
+   `max-height:100%` como red de seguridad si la caja se queda más baja que
+   eso (el 90px mínimo de la cascada). El fondo oscuro (`background`) vive en
+   el propio <svg>, así que nunca es más grande que el dibujo. Si la caja
+   flexible da más alto del que el SVG necesita, `justify-content:center` en
+   `.zona-imagen--visual` centra el bloque svg+leyenda en el sobrante en vez
+   de dejarlo pegado arriba con hueco vacío debajo (o dentro). */
+.zona-imagen--visual {
+  justify-content: center;
+}
+
 .zona-imagen--visual .visual-svg {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: block;
+  flex: 0 0 auto;
   width: 100%;
+  height: auto;
+  max-height: 100%;
+  display: block;
   border-radius: 12px;
   background: var(--fondo);
 }

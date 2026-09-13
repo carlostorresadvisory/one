@@ -798,6 +798,24 @@ if (new URLSearchParams(location.search).get('test') === '1') {
   };
 }
 
+/** Calcula y aplica el recorte por `line-clamp` de `el` para que `contenedor`
+ * (su `.tarjeta-contenido`) quepa en el alto que tiene disponible: líneas =
+ * floor(alturaLibre / lineHeight), con `minimo` como suelo (1 para la
+ * explicación, 2 para el enunciado — ver las dos llamadas en ajustarEncaje).
+ * Ronda 1 de revisión: antes este cálculo estaba duplicado (explicación y
+ * enunciado por separado); ahora vive en un solo sitio, con el margen de
+ * seguridad de 4px también en un solo sitio (el redondeo del alto de línea
+ * real frente al lineHeight calculado aquí puede dejar unos pocos px de
+ * sobra que sin este margen se cuelan por encima de la tolerancia). */
+function calcularLineasClamp(el, contenedor, minimo) {
+  const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight) || 18;
+  const restoAltura = contenedor.scrollHeight - el.scrollHeight;
+  const alturaLibre = contenedor.clientHeight - restoAltura - 4;
+  const lineas = Math.max(minimo, Math.floor(alturaLibre / lineHeight));
+  el.style.webkitLineClamp = String(lineas);
+  return lineas;
+}
+
 /**
  * Regla de encaje sin scroll (spec v0.1c §4.2). Ninguna tarjeta hace scroll ni
  * cambia tamaños de letra: lo que cede espacio es la respuesta ya fija y, si
@@ -865,12 +883,7 @@ function ajustarEncaje(tarjetaNodo) {
 
     if (!enunciadoEl || !contenidoEl) return;
     tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
-    const estiloEnunciado = window.getComputedStyle(enunciadoEl);
-    const lineHeightEnunciado = parseFloat(estiloEnunciado.lineHeight) || 20;
-    const restoAlturaEnunciado = contenidoEl.scrollHeight - enunciadoEl.scrollHeight;
-    const alturaLibreEnunciado = contenidoEl.clientHeight - restoAlturaEnunciado - 4;
-    const lineasEnunciado = Math.max(2, Math.floor(alturaLibreEnunciado / lineHeightEnunciado));
-    enunciadoEl.style.webkitLineClamp = String(lineasEnunciado);
+    calcularLineasClamp(enunciadoEl, contenidoEl, 2);
     return;
   }
 
@@ -917,15 +930,7 @@ function ajustarEncaje(tarjetaNodo) {
   if (cabe()) return;
 
   tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
-  const estilo = window.getComputedStyle(explicacionEl);
-  const lineHeight = parseFloat(estilo.lineHeight) || 18;
-  const restoAltura = contenidoEl.scrollHeight - explicacionEl.scrollHeight;
-  // Margen de seguridad de unos px (mismo hallazgo): el redondeo del alto de
-  // línea real frente al lineHeight calculado aquí puede dejar unos pocos px
-  // de sobra que sin este margen se cuelan por encima de la tolerancia.
-  const alturaLibre = contenidoEl.clientHeight - restoAltura - 4;
-  const lineas = Math.max(1, Math.floor(alturaLibre / lineHeight));
-  explicacionEl.style.webkitLineClamp = String(lineas);
+  calcularLineasClamp(explicacionEl, contenidoEl, 1);
 }
 
 // ============================================================================
@@ -2023,6 +2028,7 @@ function construirBloqueVisual(pregunta) {
 
   const leyenda = document.createElement('p');
   leyenda.className = 'visual-pie';
+  leyenda.dataset.test = 'visual-pie';
   leyenda.textContent = (pregunta.visual && pregunta.visual.leyenda) || '';
   zona.appendChild(leyenda);
 

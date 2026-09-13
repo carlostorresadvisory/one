@@ -55,7 +55,7 @@
     "respuesta": true,
     "visual": {
       "tipo": "barras",
-      "titulo": "Peso económico por gran región, 2023",
+      "titulo": "PIB por gran región, 2023",
       "items": [
         { "etiqueta": "Norteamérica", "valor": 26.9, "unidad": "bill $" },
         { "etiqueta": "Unión Europea", "valor": 15.8, "unidad": "bill $" },
