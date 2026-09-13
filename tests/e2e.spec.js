@@ -1013,7 +1013,12 @@ test.describe('ONE · integración e2e', () => {
     // de prueba), sin scroll ni cortes.
     async function capturar(viewport, sufijo) {
       await page.setViewportSize(viewport);
+      // Estado limpio en CADA captura (ronda de corrección 1: antes se
+      // reutilizaba localStorage entre 375 y 430, así que la segunda salía
+      // con XP/nivel arrastrados de la primera en vez de partir igual).
       await page.goto('/?test=1');
+      await page.evaluate(() => localStorage.clear());
+      await page.reload();
       await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
       await page.locator('[data-test="cerebro"]').click();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
@@ -1027,12 +1032,30 @@ test.describe('ONE · integración e2e', () => {
       // 0): se despliega si hace falta ANTES de esperar a que cargue — un
       // <img loading="lazy"> oculto con display:none no llega a dispararse.
       await revelarImagenSiPlegada(t);
-      // Espera a que la imagen real termine de cargar (red), no solo a que la
-      // caja 16:9 ya esté reservada por CSS: la captura debe mostrarla cargada.
-      await page.waitForFunction(() => {
+      // Espera a que el JPEG real esté DECODIFICADO y listo para pintar, no
+      // solo descargado (ronda de corrección 1: `img.complete &&
+      // naturalWidth > 0` se cumple antes de que el navegador termine de
+      // pintar el bitmap, y la captura de 430 salía con la caja en blanco).
+      // img.decode() resuelve justo cuando ya se puede pintar sin más
+      // decodificación pendiente; dos requestAnimationFrame de margen
+      // aseguran que ESE frame decodificado ya se compuso en pantalla antes
+      // del screenshot.
+      await page.evaluate(async () => {
         const img = document.querySelector('[data-test="imagen"] img');
-        return Boolean(img && img.complete && img.naturalWidth > 0);
-      }, { timeout: 15000 });
+        if (!img) return;
+        try {
+          await img.decode();
+        } catch (err) {
+          // Fallback si decode() no está disponible o falla (aun cargada):
+          // esperar a 'load' como red de seguridad.
+          if (!img.complete) {
+            await new Promise((resolve) => img.addEventListener('load', resolve, { once: true }));
+          }
+        }
+      });
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      );
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
       await page.screenshot({ path: `${CAPTURAS}/v0.1c-imagen-${sufijo}.png` });
