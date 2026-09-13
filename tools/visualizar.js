@@ -31,6 +31,7 @@ const RUTA_IMAGENES = 'datos/imagenes.json';
 const RUTA_EXPLICACIONES_LARGAS = 'datos/explicaciones-largas.json';
 const RUTA_LOG = 'datos/visuales.log';
 const RUTA_LOG_LLAMADAS = 'datos/llamadas.log'; // mismo log de coste que usa tools/openrouter.js
+const RUTA_VISUALES_EXCLUIDOS = 'datos/visuales-excluidos.json'; // lista de exclusión manual (M5, ver aplicarExclusionVisual)
 
 // Duplicado a propósito de validar-banco.js#AREAS: tools/validar-banco.js importa validarVisual
 // de AQUÍ (ver más abajo), así que este fichero no puede importar de validar-banco.js sin crear
@@ -887,6 +888,34 @@ function tieneVisualValido(p) {
   return p && p.visual && validarVisual(p.visual).ok;
 }
 
+/**
+ * Hallazgo M5 (revisión final v0.1e): seis visuales retirados a mano por el controlador tras
+ * revisión humana (datos/visuales.log, "revisión humana") volvían a aparecer en pasadas
+ * posteriores del pipeline -- el generador no sabe que un id concreto ya falló para un tipo
+ * concreto, así que lo vuelve a proponer, y puede volver a pasar la verificación automática
+ * (mismo motivo por el que hizo falta ojo humano la primera vez). `exclusiones` es el contenido
+ * de datos/visuales-excluidos.json: `{ [id]: { tipos: string[], motivo: string } }`.
+ *
+ * Función PURA (sin I/O): recibe el id de la pregunta, el visual ya resuelto (o null) y el mapa
+ * de exclusiones ya cargado, y decide si ese visual concreto se descarta.
+ * - Si el id no tiene entrada en `exclusiones`, no hay nada que filtrar: se devuelve tal cual.
+ * - Si la tiene y `tipos` incluye el tipo del visual propuesto, se descarta (null).
+ * - Si `tipos` está vacío (`[]`), NINGÚN visual vale para ese id -- no solo los tipos listados --
+ *   así que también se descarta cualquier tipo.
+ * @param {string} id
+ * @param {object|null} visual visual ya resuelto por resolverPregunta (o null si no hubo)
+ * @param {Record<string, {tipos: string[], motivo?: string}>} exclusiones
+ * @returns {object|null} el mismo `visual`, o `null` si está excluido
+ */
+export function aplicarExclusionVisual(id, visual, exclusiones) {
+  if (!visual) return visual;
+  const entrada = exclusiones && exclusiones[id];
+  if (!entrada) return visual;
+  const tipos = Array.isArray(entrada.tipos) ? entrada.tipos : [];
+  if (tipos.length === 0) return null; // sin tipos permitidos = ningún visual para este id
+  return tipos.includes(visual.tipo) ? null : visual;
+}
+
 // CLI del modo --reverificar-visuales (ronda de corrección 1, 13-sep-2026): hace la I/O de disco y
 // delega toda la lógica de decisión en reverificarVisualesGuardados (arriba), que es la función
 // testeable sin tocar datos/banco.json ni datos/visuales.log de verdad.
@@ -985,6 +1014,8 @@ async function main() {
   const banco = JSON.parse(await readFile(RUTA_BANCO, 'utf8'));
   const imagenes = JSON.parse(await readFile(RUTA_IMAGENES, 'utf8').catch(() => '{}'));
   let explicacionesLargas = JSON.parse(await readFile(RUTA_EXPLICACIONES_LARGAS, 'utf8').catch(() => '{}'));
+  // M5: lista de exclusión manual (ver aplicarExclusionVisual) -- sin fichero, {} (nada excluido).
+  const exclusionesVisual = JSON.parse(await readFile(RUTA_VISUALES_EXCLUIDOS, 'utf8').catch(() => '{}'));
 
   let candidatas = args.area ? banco.filter((p) => p.area === args.area) : banco.slice();
   if (args.soloPendientes) {
@@ -1048,6 +1079,22 @@ async function main() {
       }
 
       costeAcumulado += resultado.coste;
+
+      // M5: la lista de exclusión manual gana sobre lo que diga la verificación automática --
+      // un tipo/id ya rechazado a mano (datos/visuales-excluidos.json) no debe volver a colarse
+      // solo porque esta pasada lo verificó "ok" (es justo el fallo que produjo la lista).
+      if (resultado.visual) {
+        const visualFiltrado = aplicarExclusionVisual(pregunta.id, resultado.visual, exclusionesVisual);
+        if (!visualFiltrado) {
+          const entrada = exclusionesVisual[pregunta.id];
+          resultado = {
+            ...resultado,
+            visual: null,
+            motivoVisualRechazo: `excluido por revisión humana (datos/visuales-excluidos.json${entrada && entrada.motivo ? `: ${entrada.motivo}` : ''})`,
+          };
+        }
+      }
+
       resultados.set(pregunta.id, resultado);
       procesadas++;
 

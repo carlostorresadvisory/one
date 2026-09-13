@@ -9,6 +9,7 @@ import {
   verificarVisualYExplicacion,
   resolverPregunta,
   reverificarVisualesGuardados,
+  aplicarExclusionVisual,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
   GENERADOR_SOLO_PAGO,
@@ -231,6 +232,55 @@ test('contarPalabras ignora espacios múltiples y bordes', () => {
 test('contarPalabras devuelve 0 para texto vacío o no string', () => {
   assert.equal(contarPalabras(''), 0);
   assert.equal(contarPalabras(undefined), 0);
+});
+
+// --- aplicarExclusionVisual (M5, revisión final v0.1e) ----------------------------------------
+
+test('aplicarExclusionVisual: sin visual, devuelve null tal cual (nada que filtrar)', () => {
+  assert.equal(aplicarExclusionVisual('eco-096', null, { 'eco-096': { tipos: ['barras', 'dato'] } }), null);
+});
+
+test('aplicarExclusionVisual: id sin entrada en exclusiones, el visual pasa igual', () => {
+  const visual = { tipo: 'barras', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-001', visual, { 'eco-096': { tipos: ['barras'] } }), visual);
+});
+
+test('aplicarExclusionVisual: tipo del visual está en la lista de tipos excluidos -> null', () => {
+  const visual = { tipo: 'barras', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-096', visual, { 'eco-096': { tipos: ['barras', 'dato'] } }), null);
+});
+
+test('aplicarExclusionVisual: tipo del visual NO está en la lista de tipos excluidos -> pasa', () => {
+  const visual = { tipo: 'linea-tiempo', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-096', visual, { 'eco-096': { tipos: ['barras', 'dato'] } }), visual);
+});
+
+test('aplicarExclusionVisual: "tipos" vacío excluye TODOS los tipos para ese id, no solo los listados', () => {
+  const visual = { tipo: 'flujo', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-096', visual, { 'eco-096': { tipos: [] } }), null);
+});
+
+test('aplicarExclusionVisual: "tipos" ausente (solo motivo) se trata como vacío -> excluye todo', () => {
+  const visual = { tipo: 'flujo', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-096', visual, { 'eco-096': { motivo: 'sin tipos' } }), null);
+});
+
+test('aplicarExclusionVisual: sin mapa de exclusiones (undefined/{}), el visual pasa igual', () => {
+  const visual = { tipo: 'barras', leyenda: 'x' };
+  assert.equal(aplicarExclusionVisual('eco-096', visual, {}), visual);
+  assert.equal(aplicarExclusionVisual('eco-096', visual, undefined), visual);
+});
+
+test('datos/visuales-excluidos.json: cada entrada tiene forma válida ({tipos: string[], motivo: string})', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const contenido = JSON.parse(await readFile(new URL('../datos/visuales-excluidos.json', import.meta.url), 'utf8'));
+  const ids = Object.keys(contenido);
+  assert.ok(ids.length > 0, 'la lista de exclusión no debería estar vacía tras la revisión humana');
+  for (const id of ids) {
+    const entrada = contenido[id];
+    assert.ok(Array.isArray(entrada.tipos), `${id}: "tipos" debe ser un array`);
+    assert.ok(typeof entrada.motivo === 'string' && entrada.motivo.length > 0, `${id}: "motivo" debe ser texto no vacío`);
+  }
 });
 
 // --- generarVisualYExplicacion ----------------------------------------------------------------
