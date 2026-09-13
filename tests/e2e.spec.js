@@ -3,6 +3,7 @@
 // resumen (carrusel "Para repasar") -> HUB, contra el banco de ejemplo, más una
 // partida de humo contra el banco real. Playwright headless a 375x812.
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 const CAPTURAS = 'docs/capturas';
 
@@ -20,14 +21,33 @@ async function assertSinScroll(page) {
 /** Ninguna TARJETA hace scroll tampoco (spec v0.1c §4.2). Es un contrato más
  * estricto que assertSinScroll: cada tarjeta del mazo recorta su propio
  * contenido con overflow:hidden, así que un desbordamiento interno no se vería
- * en el scrollHeight de la .vista (ver ajustarEncaje en app.js). */
+ * en el scrollHeight de la .vista (ver ajustarEncaje en app.js).
+ *
+ * Comprueba TAMBIÉN `.tarjeta-contenido` (Tarea 3b, hallazgo con art-003 a
+ * 430×932), no solo la tarjeta entera: la tarjeta tiene tamaño FIJO (absoluta
+ * sobre #mazo), así que su scrollHeight nunca refleja que .tarjeta-contenido
+ * (flex:1, min-height:0, sin overflow:hidden propio) se quede sin sitio — ese
+ * desborde no escapa de la tarjeta, se solapa en silencio con la zona de
+ * acción (Preguntar a/Siguiente) o recorta el enunciado por debajo de sus
+ * propias 5 líneas sin puntos suspensivos, y el viejo contrato (solo tarjeta)
+ * no lo veía. */
 async function assertTarjetaSinScroll(page) {
   const medidas = await page.evaluate(() => {
     const tarjeta = document.querySelector('.tarjeta-mazo--actual');
-    return tarjeta ? { alto: tarjeta.scrollHeight, visible: tarjeta.clientHeight } : null;
+    if (!tarjeta) return null;
+    const contenido = tarjeta.querySelector('.tarjeta-contenido');
+    return {
+      alto: tarjeta.scrollHeight,
+      visible: tarjeta.clientHeight,
+      contenidoAlto: contenido ? contenido.scrollHeight : null,
+      contenidoVisible: contenido ? contenido.clientHeight : null,
+    };
   });
   expect(medidas).not.toBeNull();
   expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
+  if (medidas.contenidoAlto !== null) {
+    expect(medidas.contenidoAlto).toBeLessThanOrEqual(medidas.contenidoVisible + 2);
+  }
 }
 
 /** El radar absorbe el espacio libre del HUB (spec "pantalla completa"
@@ -160,6 +180,19 @@ async function avanzarTrasRespuesta(page) {
   if (await page.locator('[data-vista="pregunta"]').isVisible()) {
     await esperarAsentamientoMazo(page);
   }
+}
+
+/** Tarea 3b (spec v0.1c §4.2 paso 0): con una imagen real de por medio (16:9,
+ * hasta 34vh) es NORMAL que una tarjeta corta necesite plegarla para caber,
+ * sobre todo a 375px — la propia regla de encaje existe para eso. Si
+ * `[data-test="imagen"]` ya está visible tras responder, no hace falta tocar
+ * nada; si no, la tarjeta está en tarjeta--sin-imagen y hay que tocar "Ver
+ * imagen" para desplegarla antes de comprobar el pie o hacer la captura. */
+async function revelarImagenSiPlegada(tarjetaLocator) {
+  const imagen = tarjetaLocator.locator('[data-test="imagen"]');
+  if (await imagen.isVisible()) return;
+  await tarjetaLocator.locator('[data-test="ver-imagen"]').click();
+  await expect(imagen).toBeVisible();
 }
 
 /** vf: FALSO/VERDADERO viven ahora DENTRO de la tarjeta, en su zona de acción
@@ -814,5 +847,234 @@ test.describe('ONE · integración e2e', () => {
 
     await comprobarEnViewport({ width: 375, height: 812 }, '375');
     await comprobarEnViewport({ width: 430, height: 932 }, '430');
+  });
+
+  // --- Tarea 3b: imágenes de Wikimedia Commons (spec v0.1c §4) ---
+  test('Tarea 3b: imagen de Wikimedia Commons en la tarjeta respondida (banco de ejemplo)', async ({ page }) => {
+    // datos/imagenes.ejemplo.json trae dos entradas a propósito distintas para
+    // cubrir las dos ramas de atribución (requisito 3 del brief): his-001 con
+    // autor y licencia CC BY-SA (la exige) y art-001 en Public domain sin autor
+    // (no la exige: "Dominio público · Commons" basta). Ninguna depende de la
+    // red (data: URI de 1×1), así el test no depende de Wikimedia.
+    async function comprobarEnViewport(viewport) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      await page.evaluate(
+        (ids) => window.__one.empezarPartida({ ids, etiqueta: 'imagen-tarea-3b' }),
+        ['his-001', 'art-001']
+      );
+
+      const t = tarjetaActual(page);
+
+      // Hueco 0 (his-001, vf, CC BY-SA con autor): nunca antes de responder
+      // (no debe dar pistas).
+      await expect(t).toHaveAttribute('data-indice', '0');
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+      await t.locator('[data-test="vf-verdadero"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      // Con poco alto disponible (375px) puede que la propia regla de encaje
+      // pliegue la imagen (paso 0): revelarImagenSiPlegada la despliega si hace
+      // falta, sin dar por hecho ni que se pliega ni que no.
+      await revelarImagenSiPlegada(t);
+      const pie0 = t.locator('[data-test="imagen-pie"]');
+      await expect(pie0).toContainText('Autor de ejemplo');
+      await expect(pie0).toContainText('CC BY-SA 4.0');
+      await expect(pie0.locator('a')).toHaveText('Commons');
+      await expect(pie0.locator('a')).toHaveAttribute('target', '_blank');
+      await expect(pie0.locator('a')).toHaveAttribute('rel', 'noopener');
+      await avanzarTrasRespuesta(page);
+
+      // Hueco 1 (art-001, test4, Public domain sin autor): atribución
+      // simplificada, sin autor ni "undefined" colgando.
+      await expect(t).toHaveAttribute('data-indice', '1');
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+      await t.locator('[data-test="opcion-0"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await revelarImagenSiPlegada(t);
+      const pie1 = t.locator('[data-test="imagen-pie"]');
+      await expect(pie1).toContainText('Dominio público');
+      await expect(pie1).not.toContainText('undefined');
+      await expect(pie1.locator('a')).toHaveText('Commons');
+    }
+
+    await comprobarEnViewport({ width: 375, height: 812 });
+    await comprobarEnViewport({ width: 430, height: 932 });
+  });
+
+  test('Tarea 3b §4.2: la imagen es lo primero que se pliega si la tarjeta desborda', async ({ page }) => {
+    // Desbordamiento FORZADO de forma determinista (en vez de confiar en cuál
+    // sea la "peor" pregunta real en cada momento, que puede cambiar según lo
+    // que otro agente vaya añadiendo a datos/banco.json en paralelo): se sirve
+    // el banco de ejemplo real (ya probado en el resto de la suite) más una
+    // pregunta añadida con una explicación deliberadamente larguísima, y se le
+    // fuerza una imagen vía window.__one.forzarImagen (data: URI de 1×1, sin
+    // depender de la red ni de datos/imagenes.json).
+    // El service worker (sw.js) cachea datos/banco.json (stale-while-revalidate):
+    // sin desactivarlo, la segunda navegación de este test (viewport 430) podría
+    // servirlo desde caché en vez de respetar el page.route de abajo.
+    await page.addInitScript(() => {
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.register = () => Promise.reject(new Error('SW deshabilitado en este e2e'));
+      }
+    });
+
+    const bancoEjemplo = JSON.parse(readFileSync('datos/banco.ejemplo.json', 'utf8'));
+    const idForzado = 'forzado-desborde-3b';
+    const preguntaForzada = {
+      id: idForzado,
+      area: 'historia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: 'Pregunta de prueba (Tarea 3b) para forzar el desborde de la tarjeta.',
+      explicacion:
+        'Explicación deliberadamente larguísima para forzar el desborde de la tarjeta y comprobar que la imagen es lo primero en plegarse, antes que la respuesta o la propia explicación (paso 0 de ajustarEncaje, spec v0.1c-3b §4.2). '.repeat(6),
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+    const bancoForzado = [...bancoEjemplo, preguntaForzada];
+    await page.route('**/datos/banco.json', (route) =>
+      route.fulfill({ contentType: 'application/json', body: JSON.stringify(bancoForzado) })
+    );
+
+    const imagenForzada = {
+      id: idForzado,
+      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo-peor-caso.png',
+      titulo: 'Ejemplo-peor-caso.png',
+      autor: 'Autor forzado',
+      licencia: 'CC BY 4.0',
+      leyenda: 'Imagen forzada para el e2e del peor caso',
+      termino: 'ejemplo',
+      ancho: 1,
+      alto: 1,
+    };
+
+    async function comprobarEnViewport(viewport, sufijo) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
+      await page.evaluate(
+        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'imagen-peor-caso' }),
+        idForzado
+      );
+
+      const t = tarjetaActual(page);
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+
+      await t.locator('[data-test="vf-verdadero"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await expect(t).toHaveClass(/tarjeta--sin-imagen/);
+      await expect(t.locator('[data-test="imagen"]')).toBeHidden();
+      const verImagen = t.locator('[data-test="ver-imagen"]');
+      await expect(verImagen).toBeVisible();
+      await expect(verImagen).toHaveText('Ver imagen');
+
+      // Alternancia: un toque despliega la imagen sustituyendo la explicación...
+      await verImagen.click();
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+      await expect(t.locator('[data-test="explicacion"]')).toBeHidden();
+
+      // ...y otro toque, ahora sobre la propia imagen, la vuelve a plegar.
+      await t.locator('[data-test="imagen"]').click();
+      await expect(t.locator('[data-test="imagen"]')).toBeHidden();
+      await expect(t.locator('[data-test="explicacion"]')).toBeVisible();
+      await expect(verImagen).toBeVisible();
+
+      await page.screenshot({ path: `${CAPTURAS}/v0.1c-imagen-peor-caso-${sufijo}.png` });
+    }
+
+    await comprobarEnViewport({ width: 375, height: 812 }, '375');
+    await comprobarEnViewport({ width: 430, height: 932 }, '430');
+  });
+
+  test('Tarea 3b: capturas con art-003 respondida (banco real) a 375×812 y 430×932', async ({ page }) => {
+    // art-003 (La noche estrellada, Public domain) ya tiene entrada real en
+    // datos/imagenes.json: capturas pedidas en el brief para revisión visual,
+    // con la imagen realmente cargada desde Wikimedia Commons (no una imagen
+    // de prueba), sin scroll ni cortes.
+    async function capturar(viewport, sufijo) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-003'], etiqueta: 'captura-imagen' }));
+
+      const t = tarjetaActual(page);
+      await t.locator('[data-test="vf-verdadero"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      // Con poco alto disponible puede que el encaje pliegue la imagen (paso
+      // 0): se despliega si hace falta ANTES de esperar a que cargue — un
+      // <img loading="lazy"> oculto con display:none no llega a dispararse.
+      await revelarImagenSiPlegada(t);
+      // Espera a que la imagen real termine de cargar (red), no solo a que la
+      // caja 16:9 ya esté reservada por CSS: la captura debe mostrarla cargada.
+      await page.waitForFunction(() => {
+        const img = document.querySelector('[data-test="imagen"] img');
+        return Boolean(img && img.complete && img.naturalWidth > 0);
+      }, { timeout: 15000 });
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      await page.screenshot({ path: `${CAPTURAS}/v0.1c-imagen-${sufijo}.png` });
+    }
+
+    await capturar({ width: 375, height: 812 }, '375');
+    await capturar({ width: 430, height: 932 }, '430');
+  });
+
+  test('Tarea 3b: imagen rota (404) se quita entera, sin dejar una caja vacía', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // URL relativa que el propio servidor de test (tools/servir.js) responde
+    // con 404: dispara el onerror real del <img>, no uno simulado.
+    await page.evaluate(() =>
+      window.__one.forzarImagen('his-001', {
+        id: 'his-001',
+        url: 'datos/no-existe-3b.png',
+        pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo.png',
+        titulo: 'Ejemplo',
+        autor: 'Autor de ejemplo',
+        licencia: 'CC0',
+        leyenda: 'Imagen rota a propósito',
+        termino: 'ejemplo',
+        ancho: 1,
+        alto: 1,
+      })
+    );
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'imagen-rota' }));
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    // El onerror del <img> es asíncrono (espera a la respuesta 404 real):
+    // toHaveCount reintenta hasta que construirBloqueImagen() quita el bloque.
+    await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="imagen-pie"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="ver-imagen"]')).toHaveCount(0);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
   });
 });

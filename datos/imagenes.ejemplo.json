@@ -1,0 +1,26 @@
+{
+  "his-001": {
+    "id": "his-001",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-toma-bastilla.png",
+    "titulo": "Ejemplo-toma-bastilla.png",
+    "autor": "Autor de ejemplo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "La toma de la Bastilla, 14 de julio de 1789 (imagen de ejemplo para el e2e)",
+    "termino": "Storming of the Bastille painting",
+    "ancho": 1,
+    "alto": 1
+  },
+  "art-001": {
+    "id": "art-001",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-noche-estrellada.png",
+    "titulo": "Ejemplo-noche-estrellada.png",
+    "autor": "",
+    "licencia": "Public domain",
+    "leyenda": "La noche estrellada de Van Gogh (imagen de ejemplo para el e2e)",
+    "termino": "Starry Night Van Gogh painting",
+    "ancho": 1,
+    "alto": 1
+  }
+}

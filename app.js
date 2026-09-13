@@ -47,6 +47,10 @@ function hoy() { return hoyLocal(); }
 let estado = cargarEstado(hoy());
 let banco = [];
 let bancoPorId = new Map();
+// Imágenes de Wikimedia Commons por id de pregunta (Tarea 3b): se cargan junto
+// al banco en iniciar(); si falta el fichero o el fetch falla, queda vacío y
+// la app sigue igual (la imagen es una mejora, no un requisito de la tarjeta).
+let imagenesPorId = new Map();
 
 // --- mazo de la partida en curso (spec v0.1c §2.1) ---
 // `mazo` son los huecos ya alcanzados, en orden; máximo N_PARTIDA. Un hueco se
@@ -328,12 +332,30 @@ function mostrarAvisoCuerpo() {
 // --- carga del banco y arranque ---
 async function iniciar() {
   const params = new URLSearchParams(location.search);
-  const rutaBanco = params.get('ejemplo') === '1' ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
+  const esEjemplo = params.get('ejemplo') === '1';
+  const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
   const respuesta = await fetch(rutaBanco);
   banco = await respuesta.json();
   bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  imagenesPorId = await cargarImagenes(esEjemplo);
   actualizarCabecera();
   mostrarVista('inicio');
+}
+
+/** Carga `datos/imagenes.json` (o `.ejemplo.json` con `?ejemplo=1`, ruta
+ * relativa, Tarea 3b): objeto `{ [idPregunta]: {...} }` que se guarda como
+ * Map por id. Si el fichero no existe o el fetch falla (red, 404...), se
+ * queda vacío y la app sigue igual sin imágenes. */
+async function cargarImagenes(esEjemplo) {
+  const ruta = esEjemplo ? 'datos/imagenes.ejemplo.json' : 'datos/imagenes.json';
+  try {
+    const respuesta = await fetch(ruta);
+    if (!respuesta.ok) return new Map();
+    const datos = await respuesta.json();
+    return new Map(Object.entries(datos));
+  } catch (err) {
+    return new Map();
+  }
 }
 
 // ============================================================================
@@ -708,6 +730,14 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     empezarPartida(filtro) {
       empezarPartida(filtro);
     },
+    // Inyecta/quita una imagen para un id concreto del banco (Tarea 3b): para
+    // que el e2e pueda forzar el peor caso "explicación larga + imagen" sobre
+    // una pregunta real sin depender de qué ids tenga datos/imagenes.json en
+    // cada momento (otro agente lo sigue completando en paralelo).
+    forzarImagen(id, datos) {
+      if (datos) imagenesPorId.set(id, datos);
+      else imagenesPorId.delete(id);
+    },
   };
 }
 
@@ -719,31 +749,58 @@ if (new URLSearchParams(location.search).get('test') === '1') {
  */
 function ajustarEncaje(tarjetaNodo) {
   if (!tarjetaNodo) return;
-  tarjetaNodo.classList.remove('tarjeta--compacta-1', 'tarjeta--compacta-2');
+  tarjetaNodo.classList.remove('tarjeta--sin-imagen', 'tarjeta--compacta-1', 'tarjeta--compacta-2');
   delete tarjetaNodo.dataset.expandido;
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
 
-  if (tarjetaNodo.scrollHeight <= tarjetaNodo.clientHeight + 2) return;
+  // Se mide `.tarjeta-contenido`, NO la tarjeta entera (hallazgo de la Tarea
+  // 3b probando con art-003 + su imagen real a 430×932): la tarjeta es una
+  // caja de tamaño FIJO (posicionada en absoluto sobre #mazo, spec v0.1c
+  // §4.1), así que su propio scrollHeight nunca puede superar su clientHeight
+  // salvo que algo escape de su borde — y `.tarjeta-contenido` (flex:1 auto,
+  // min-height:0, sin overflow:hidden propio) puede desbordar SU hueco
+  // asignado sin que eso llegue nunca a notarse en la tarjeta: ese desborde
+  // queda invisible para tarjeta.scrollHeight y en su lugar se solapa en
+  // silencio con la zona de acción (Preguntar a/Siguiente), o recorta el
+  // enunciado por debajo de sus propias 5 líneas sin puntos suspensivos. La
+  // caja que de verdad compite por espacio, y la única que hay que medir, es
+  // .tarjeta-contenido frente a lo que le queda tras reservar la zona de
+  // acción (ver también flex-shrink:0 en estilos.css, que evita que flexbox
+  // encoja esos hijos en silencio antes de que la cascada de aquí actúe).
+  const contenidoEl = tarjetaNodo.querySelector('.tarjeta-contenido');
+  const cabe = () => !contenidoEl || contenidoEl.scrollHeight <= contenidoEl.clientHeight + 2;
+  if (cabe()) return;
+
+  // Paso 0 (Tarea 3b): la imagen es lo primero que se pliega, antes de tocar
+  // la respuesta o la explicación (spec v0.1c-3b §4.2). Sin imagen en esta
+  // tarjeta, no hay nada que hacer aquí y se pasa directo al paso 1.
+  if (tarjetaNodo.querySelector('.imagen')) {
+    tarjetaNodo.classList.add('tarjeta--sin-imagen');
+    if (cabe()) return;
+  }
 
   // Paso 1: la respuesta compacta se reduce a una sola línea.
   tarjetaNodo.classList.add('tarjeta--compacta-1');
-  if (tarjetaNodo.scrollHeight <= tarjetaNodo.clientHeight + 2) return;
+  if (cabe()) return;
 
   // Paso 2: si aún no cabe, la explicación se recorta a las líneas que quepan.
   tarjetaNodo.classList.add('tarjeta--compacta-2');
-  if (!explicacionEl) return;
+  if (!explicacionEl || !contenidoEl) return;
   const estilo = window.getComputedStyle(explicacionEl);
   const lineHeight = parseFloat(estilo.lineHeight) || 18;
-  const restoAltura = tarjetaNodo.scrollHeight - explicacionEl.scrollHeight;
-  const alturaLibre = tarjetaNodo.clientHeight - restoAltura;
+  const restoAltura = contenidoEl.scrollHeight - explicacionEl.scrollHeight;
+  // Margen de seguridad de unos px (mismo hallazgo): el redondeo del alto de
+  // línea real frente al lineHeight calculado aquí puede dejar unos pocos px
+  // de sobra que sin este margen se cuelan por encima de la tolerancia.
+  const alturaLibre = contenidoEl.clientHeight - restoAltura - 4;
   const lineas = Math.max(1, Math.floor(alturaLibre / lineHeight));
   explicacionEl.style.webkitLineClamp = String(lineas);
 }
 
-/** Alterna, dentro de una tarjeta compactada, cuál de las dos piezas (respuesta
- * completa / explicación completa) se ve entera — nunca las dos, nunca scroll
- * (spec v0.1c §4.2). */
+/** Alterna, dentro de una tarjeta plegada, cuál de las piezas (respuesta
+ * completa / explicación completa / imagen, Tarea 3b) se ve entera — nunca
+ * más de una a la vez, nunca scroll (spec v0.1c §4.2). */
 function alternarEncaje(tarjetaNodo, cual) {
   const actual = tarjetaNodo.dataset.expandido || '';
   tarjetaNodo.dataset.expandido = actual === cual ? '' : cual;
@@ -1679,10 +1736,89 @@ function construirBloqueFeedback(pregunta, hueco) {
   return feedback;
 }
 
+// ============================================================================
+// --- Imagen de Wikimedia Commons (Tarea 3b, spec v0.1c §4): solo en la
+// tarjeta YA RESPONDIDA (partida y repaso, misma función), entre la respuesta
+// compacta y el feedback — nunca antes de responder (no debe dar pistas).
+// Datos en `imagenesPorId` (cargados en iniciar()); si la pregunta no tiene
+// entrada, no se pinta nada y la tarjeta queda igual que sin esta tarea.
+// ============================================================================
+
+/** Pie de atribución (segunda línea del figcaption): "Commons" siempre es un
+ * enlace a la página del fichero. Dominio público y CC0 no exigen citar
+ * autor (a diferencia de CC BY/CC BY-SA, que sí lo exigen): con esas dos
+ * licencias basta "Dominio público · Commons" / "CC0 · Commons". */
+function construirAtribucionImagen(datos) {
+  const p = document.createElement('p');
+  p.className = 'imagen-pie-atribucion';
+  const exigeAutor = datos.licencia !== 'Public domain' && datos.licencia !== 'CC0';
+  const licenciaTexto = datos.licencia === 'Public domain' ? 'Dominio público' : datos.licencia;
+  const prefijo = exigeAutor && datos.autor ? `${datos.autor} · ${licenciaTexto} · ` : `${licenciaTexto} · `;
+  p.appendChild(document.createTextNode(prefijo));
+  const enlace = document.createElement('a');
+  enlace.href = datos.pagina;
+  enlace.target = '_blank';
+  enlace.rel = 'noopener';
+  enlace.textContent = 'Commons';
+  p.appendChild(enlace);
+  return p;
+}
+
+/** Bloque de imagen: figura 16:9 + pie, y el enlace discreto "Ver imagen" que
+ * usa el paso 0 de ajustarEncaje cuando hay que plegarla para caber sin
+ * scroll. Devuelve `null` si la pregunta no tiene imagen (nada que pintar). */
+function construirBloqueImagen(pregunta) {
+  const datos = imagenesPorId.get(pregunta.id);
+  if (!datos) return null;
+
+  const zona = document.createElement('div');
+  zona.className = 'zona-imagen';
+
+  const figura = document.createElement('figure');
+  figura.className = 'imagen';
+  figura.dataset.test = 'imagen';
+
+  const img = document.createElement('img');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.alt = datos.leyenda || '';
+  img.referrerPolicy = 'no-referrer';
+  img.src = datos.url;
+  // Imagen rota (404, sin red...): se quita el bloque entero (nada de cajas
+  // rotas) y se recalcula el encaje por si la tarjeta dependía de ella para
+  // caber sin scroll.
+  img.addEventListener('error', () => {
+    const tarjeta = zona.closest('.tarjeta');
+    zona.remove();
+    if (tarjeta) ajustarEncaje(tarjeta);
+  });
+  figura.appendChild(img);
+
+  const pie = document.createElement('figcaption');
+  pie.className = 'imagen-pie';
+  pie.dataset.test = 'imagen-pie';
+  const leyenda = document.createElement('p');
+  leyenda.className = 'imagen-pie-leyenda';
+  leyenda.textContent = datos.leyenda || '';
+  pie.appendChild(leyenda);
+  pie.appendChild(construirAtribucionImagen(datos));
+  figura.appendChild(pie);
+
+  const verImagen = document.createElement('button');
+  verImagen.className = 'ver-imagen';
+  verImagen.dataset.test = 'ver-imagen';
+  verImagen.textContent = 'Ver imagen';
+
+  zona.appendChild(figura);
+  zona.appendChild(verImagen);
+  return zona;
+}
+
 /**
  * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
  * cabecera, enunciado, confianza (activa, salvo soloLectura), respuesta
- * compacta + resumen a una línea (para tarjeta--compacta-1), feedback y, en la
+ * compacta + resumen a una línea (para tarjeta--compacta-1), imagen de
+ * Wikimedia Commons si la pregunta tiene una (Tarea 3b), feedback y, en la
  * zona de acción, la fila "Preguntar a" (construirPreguntarA) y, salvo
  * soloLectura, "esta pregunta está mal" + Siguiente.
  */
@@ -1716,6 +1852,23 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false } = {
   zonaRespuesta.appendChild(respuestaCompacta);
   zonaRespuesta.appendChild(resumenRespuesta);
   contenido.appendChild(zonaRespuesta);
+
+  const bloqueImagen = construirBloqueImagen(pregunta);
+  if (bloqueImagen) {
+    const figuraImagen = bloqueImagen.querySelector('.imagen');
+    const verImagen = bloqueImagen.querySelector('.ver-imagen');
+    verImagen.addEventListener('click', (ev) => {
+      if (!tarjeta.classList.contains('tarjeta--sin-imagen')) return;
+      ev.stopPropagation();
+      alternarEncaje(tarjeta, 'imagen');
+    });
+    figuraImagen.addEventListener('click', (ev) => {
+      if (tarjeta.dataset.expandido !== 'imagen') return;
+      ev.stopPropagation();
+      alternarEncaje(tarjeta, 'imagen');
+    });
+    contenido.appendChild(bloqueImagen);
+  }
 
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
   tarjeta.appendChild(contenido);

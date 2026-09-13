@@ -603,8 +603,35 @@ main#app {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  /* "safe center" (Tarea 3b, hallazgo con art-003 + imagen real a 430×932):
+     centrado normal cuando cabe, pero si el contenido desborda se ancla
+     arriba en vez de repartir el desborde mitad arriba/mitad abajo. Con
+     "center" a secas, un desborde queda mitad OCULTO POR ARRIBA (fuera de
+     tarjeta-mazo, que recorta con overflow:hidden) sin que scrollHeight lo
+     detecte (solo ve el desborde "hacia adelante"): ajustarEncaje cree que
+     cabe y dos cosas se rompen en silencio — el enunciado se recorta por
+     debajo de sus propias 5 líneas sin puntos suspensivos (ver la regla
+     flex-shrink:0 de abajo) y elementos de la zona de acción (p. ej. "Ver
+     imagen") pueden quedar clicables solo a medias. Con "safe" el navegador
+     nunca deja contenido inalcanzable por el lado de inicio. Sin soporte, el
+     valor completo se ignora y cae a "normal" (equivale a flex-start): mismo
+     comportamiento seguro. */
+  justify-content: safe center;
   gap: 10px;
+}
+
+/* flex-shrink:0 en cada hijo directo (Tarea 3b, mismo hallazgo): sin esto,
+   cuando el contenido no cabe, flexbox encoge en silencio cabecera/enunciado/
+   confianza/etc. por debajo de su tamaño natural en vez de desbordar — y como
+   varios de ellos ya llevan su propio overflow:hidden (el enunciado por su
+   line-clamp de 5 líneas, la explicación en tarjeta--compacta-2), ese encogido
+   recorta texto SIN avisar y sin que scrollHeight vea overflow alguno:
+   ajustarEncaje nunca llega a activar su cascada (imagen -> respuesta ->
+   explicación). Con flex-shrink:0 el que no quepa se convierte en overflow
+   real y medible, y es la cascada de ajustarEncaje (JS), no el algoritmo de
+   reparto de flexbox, quien decide qué cede espacio y en qué orden. */
+.tarjeta-contenido > * {
+  flex-shrink: 0;
 }
 
 /* Zona de respuesta (spec v0.1c §4.1 punto 4): ya no absorbe espacio propio
@@ -1053,6 +1080,82 @@ main#app {
   -webkit-line-clamp: unset !important;
   overflow: visible;
 }
+
+/* --- imagen de Wikimedia Commons (Tarea 3b, spec v0.1c §4) ---
+   Solo en la tarjeta respondida, entre la respuesta compacta y el feedback
+   (construirBloqueImagen en app.js). Es lo primero que se pliega si la
+   tarjeta desborda (paso 0 de ajustarEncaje, antes que tarjeta--compacta-1/2):
+   la figura pasa a oculta y queda el enlace discreto "Ver imagen", que la
+   despliega sustituyendo la explicación mientras está abierta (mismo patrón
+   de alternancia que respuesta/explicación, vía data-expandido="imagen"). */
+.zona-imagen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.imagen {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.imagen img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 34vh;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--fondo);
+}
+
+.imagen-pie {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.imagen-pie-leyenda {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto);
+}
+
+.imagen-pie-atribucion {
+  margin: 0;
+  font-size: 11px;
+  color: var(--texto-suave);
+}
+
+.imagen-pie-atribucion a {
+  color: var(--acento);
+}
+
+/* Oculto salvo que la tarjeta necesite plegar la imagen para caber (paso 0). */
+.ver-imagen {
+  display: none;
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: none;
+  align-items: center;
+  color: var(--texto-suave);
+  text-decoration: underline;
+  font-size: 12px;
+}
+
+.tarjeta--sin-imagen .imagen { display: none; }
+.tarjeta--sin-imagen .ver-imagen { display: inline-flex; }
+
+/* Alternancia: un toque en "Ver imagen" despliega la figura sustituyendo la
+ * explicación; un toque en la imagen ya desplegada la vuelve a plegar. */
+.tarjeta--sin-imagen[data-expandido="imagen"] .imagen { display: flex; }
+.tarjeta--sin-imagen[data-expandido="imagen"] .ver-imagen { display: none; }
+.tarjeta--sin-imagen[data-expandido="imagen"] .explicacion { display: none; }
 
 /* --- resumen / repaso vertical (spec v0.1c §6) ---
    La vista resumen ES un mazo (#mazo-resumen.mazo, mismo componente que la
