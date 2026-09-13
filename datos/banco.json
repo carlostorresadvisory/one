@@ -748,7 +748,7 @@
     "correcta": 0,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "Walter Gropius y la Bauhaus unificaron arte, oficio y tecnología bajo la idea de que la forma debe derivar exclusivamente de la función y la fabricación en serie, sentando las bases del Estilo Internacional; el centenario de 2023 generó nuevas lecturas sobre su legado en la vivienda social actual.",
+    "explicacion": "La Bauhaus fusionó arte, artesanía e industria con el lema de que la utilidad determina la forma, no la decoración. Este enfoque racionalista, aplicado a objetos cotidianos, sigue vigente en el diseño actual de IKEA o Apple.",
     "id": "art-083",
     "area": "arte",
     "tipo": "test4",
@@ -942,7 +942,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el camino típico por el que una obra polémica pasa hasta convertirse en parte del canon artístico.",
-    "explicacion": "El camino típico es: exhibición, polémica, institucionalización y canonización. Cada paso filtra la controversia inicial hasta que la obra se vuelve incuestionable. El urinario de Duchamp, rechazado en 1917, hoy es un ícono del arte contemporáneo.",
+    "explicacion": "El canon se forja por acumulación institucional: cada etapa (exhibir, polemizar, coleccionar, enseñar) añade legitimidad y borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad de arte: la polémica se volvió consenso.",
     "nivel": 2,
     "criterio": "de menor a mayor: fase en el proceso de controversia a canonización",
     "items": [
@@ -999,7 +999,7 @@
           "texto": "Arte conceptual"
         }
       ],
-      "leyenda": "Aparición histórica de los movimientos"
+      "leyenda": "Orden de aparición histórica de los movimientos"
     }
   },
   {
@@ -1877,12 +1877,12 @@
           "unidad": "g"
         },
         {
-          "etiqueta": "Gas natural",
+          "etiqueta": "Gas",
           "valor": 450,
           "unidad": "g"
         },
         {
-          "etiqueta": "Fotovoltaica",
+          "etiqueta": "Solar",
           "valor": 45,
           "unidad": "g"
         },
@@ -1893,7 +1893,7 @@
         }
       ],
       "leyenda": "gCO₂eq/kWh, ciclo de vida completo",
-      "fuente": "IPCC 2021"
+      "fuente": "IPCC 2014"
     }
   },
   {
@@ -1905,7 +1905,7 @@
       "Estudio de cohortes prospectivo",
       "Serie de casos / opinión de experto"
     ],
-    "explicacion": "Los meta-análisis sintetizan múltiples ECA reduciendo azar y sesgo; un ECA bien hecho aísla causalidad mediante aleatorización; los cohortes observan sin intervenir (riesgo de confusión); las series de casos carecen de grupo control. Durante la pandemia, la confusión entre cohortes y ECA llevó a adoptar fármacos sin beneficio real (ej. hidroxicloroquina), recordando por qué la jerarquía importa.",
+    "explicacion": "Los meta-análisis combinan varios ECA reduciendo el azar; el ECA aísla causalidad por aleatorización; los cohortes observan sin intervenir; las series de casos carecen de control. En la pandemia, ignorar esta jerarquía llevó a terapias ineficaces como la hidroxicloroquina.",
     "nivel": 5,
     "hilo": 6,
     "id": "cie-092",
@@ -2484,22 +2484,23 @@
       "tipo": "comparacion",
       "columnas": [
         {
-          "titulo": "Sin anclaje",
+          "titulo": "Sin datos",
           "puntos": [
-            "Estimación basada en datos",
-            "Menor influencia inicial"
+            "Anclaje fuerte",
+            "Ajuste insuficiente",
+            "Estimación sesgada"
           ]
         },
         {
-          "titulo": "Con anclaje",
+          "titulo": "Con datos",
           "puntos": [
-            "Estimación arrastrada",
-            "Ajuste insuficiente",
-            "Persiste el sesgo"
+            "Anclaje reducido",
+            "Ajuste parcial",
+            "Sesgo residual"
           ]
         }
       ],
-      "leyenda": "El anclaje persiste aunque se muestren datos objetivos."
+      "leyenda": "Los datos objetivos atenúan el anclaje, pero no lo eliminan."
     }
   },
   {
@@ -2591,14 +2592,23 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "Subir tipos encarece hipotecas y préstamos, lo que frena el consumo y la inversión de hogares y empresas. La Fed y el BCE aplicaron esta misma receta en 2022-2023 para contener la inflación.",
+    "explicacion": "Al subir tipos, los bancos trasladan el encarecimiento a hipotecas y préstamos, reduciendo consumo e inversión. En 2022-2023 la Fed y el BCE aplicaron esta misma receta para contener la inflación.",
     "id": "eco-076",
     "area": "economia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Suben tipos",
+        "Crédito caro",
+        "Baja demanda"
+      ],
+      "leyenda": "Canal principal de transmisión monetaria"
+    }
   },
   {
     "enunciado": "¿Qué mecanismo explica que los precios de un activo se desprendan de sus fundamentos durante una burbuja especulativa?",
@@ -2611,7 +2621,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "En una burbuja, los inversores compran no por el valor real del activo, sino porque creen que otro pagará más después. Durante el ciclo cripto de 2021-2022, esta dinámica llevó el bitcoin a máximos históricos antes del desplome.",
+    "explicacion": "Los inversores compran esperando vender más caro a alguien aún más optimista, ignorando el valor real. En la burbuja de los tulipanes del siglo XVII, un bulbo llegó a costar lo mismo que una casa.",
     "id": "eco-077",
     "area": "economia",
     "tipo": "test4",
@@ -2761,7 +2771,7 @@
     "correcta": 1,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "Cada nuevo usuario hace que la plataforma sea más valiosa para el otro lado, creando un círculo virtuoso que tiende al monopolio. Los inversores compran esa promesa de flujos futuros, no los ingresos de hoy.",
+    "explicacion": "Cada nuevo usuario hace la plataforma más valiosa para el otro lado, creando un círculo virtuoso hacia el monopolio. Los inversores valoran esos flujos futuros, no los ingresos presentes.",
     "id": "eco-082",
     "area": "economia",
     "tipo": "test4",
@@ -2781,7 +2791,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "La pandemia y la guerra en Ucrania expusieron la fragilidad de cadenas concentradas; las firms añaden al menos una ubicación alternativa (Vietnam, México, India) para mantener suministro si un nodo falla. Esta reconfiguración sigue vigente en los planes de abastecimiento de 2024‑2025.",
+    "explicacion": "La pandemia y la guerra en Ucrania mostraron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.",
     "id": "eco-083",
     "area": "economia",
     "tipo": "test4",
@@ -2791,26 +2801,26 @@
     "verificador": "z-ai/glm-4.7-flash",
     "visual": {
       "tipo": "barras",
-      "titulo": "Países alternativos a China",
+      "titulo": "Nuevos centros de producción (2023)",
       "items": [
         {
           "etiqueta": "Vietnam",
-          "valor": 28,
+          "valor": 15,
           "unidad": "%"
         },
         {
           "etiqueta": "México",
-          "valor": 22,
+          "valor": 12,
           "unidad": "%"
         },
         {
           "etiqueta": "India",
-          "valor": 18,
+          "valor": 10,
           "unidad": "%"
         }
       ],
-      "leyenda": "Empresas que eligen cada país como alternativa (2023)",
-      "fuente": "Encuesta Kearney 2023"
+      "leyenda": "Incremento de inversión extranjera directa respecto a 2020",
+      "fuente": "UNCTAD 2024"
     }
   },
   {
@@ -2941,7 +2951,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según la velocidad típica de reacción ante un aumento repentino de la inflación.",
-    "explicacion": "Los salarios tardan por contratos plurianuales, los tipos oficiales requieren reuniones del banco central, los precios se ajustan en semanas y las expectativas reaccionan en minutos a cualquier noticia.",
+    "explicacion": "Los salarios tardan por contratos plurianuales; los tipos oficiales requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos a cualquier noticia.",
     "nivel": 1,
     "criterio": "de menor a mayor velocidad de reacción ante un aumento repentino de la inflación",
     "items": [
@@ -3288,7 +3298,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.93,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Sentidos",
+        "Ideas",
+        "Conocimiento"
+      ],
+      "leyenda": "Del empirismo: sin experiencia no hay ideas."
+    }
   },
   {
     "enunciado": "Según Sartre, la esencia precede a la existencia en los seres humanos.",
@@ -3461,7 +3480,27 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Tierra (real)",
+          "puntos": [
+            "H2O",
+            "Significado: agua"
+          ]
+        },
+        {
+          "titulo": "Tierra Gemela",
+          "puntos": [
+            "XYZ",
+            "Significado: otra"
+          ]
+        }
+      ],
+      "leyenda": "Misma creencia mental, distinto referente externo"
+    }
   },
   {
     "enunciado": "¿Quién escribió la obra \"La República\"?",
@@ -3580,7 +3619,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Wittgenstein nunca rechazó el análisis lógico; en su etapa tardía lo integró en los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un abandono total que no ocurrió.",
+    "explicacion": "Wittgenstein nunca abandonó el análisis del lenguaje; en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un rechazo total que no ocurrió.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Etapas de Wittgenstein",
@@ -3610,7 +3649,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke rechazó equiparar necesidad epistémica y metafísica. Demostró que hay verdades necesarias a posteriori, como 'el agua es H2O', que son ciertas en todo mundo posible pero se descubren empíricamente.",
+    "explicacion": "Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -4068,7 +4107,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El sesgo algorítmico no implica intención: los sesgos emergen de datos históricos, variables proxy y decisiones de diseño (qué se mide y cómo), no porque la máquina quiera discriminar. Por eso las soluciones eficaces actúan sobre los datos, la definición de objetivos y la evaluación, y son centrales en debates sobre regulación y responsabilidad de sistemas de IA.",
+    "explicacion": "El sesgo algorítmico no implica intención: surge de datos históricos sesgados, variables proxy o decisiones de diseño, no de que la máquina quiera discriminar. Por eso las soluciones actúan sobre datos y objetivos, no sobre la 'maldad' del algoritmo.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Términos en ética de IA",
@@ -4099,7 +4138,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kant no fundamenta la moral en las consecuencias sino en la universalizabilidad de la máxima y la buena voluntad: una acción es moral si su principio puede ser adoptado por todos sin contradicción. Este contraste con el utilitarismo aclara por qué debates contemporáneos sobre ética (por ejemplo, reglas para IA) enfrentan normas basadas en principios frente a cálculos de resultado.",
+    "explicacion": "Kant rechaza las consecuencias porque la moral se basa en la universalizabilidad de la máxima y la buena voluntad. Este contraste con el utilitarismo late en los debates actuales sobre IA: normas versus resultados.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Filósofos y su idea central (en una frase)",
@@ -4165,7 +4204,29 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Válida",
+          "puntos": [
+            "Experto pertinente",
+            "Transparencia",
+            "Consenso"
+          ]
+        },
+        {
+          "titulo": "Inválida",
+          "puntos": [
+            "Autoridad irrelevante",
+            "Sin transparencia",
+            "Disenso"
+          ]
+        }
+      ],
+      "leyenda": "La autoridad solo es válida con pertinencia y consenso."
+    }
   },
   {
     "enunciado": "El Mar Mediterráneo está conectado con el Océano Atlántico a través del Estrecho de Gibraltar.",
@@ -4829,12 +4890,12 @@
           "unidad": "mill."
         },
         {
-          "etiqueta": "EE. UU.",
+          "etiqueta": "EE.UU.",
           "valor": 380,
           "unidad": "mill."
         }
       ],
-      "leyenda": "Proyección ONU 2024 para 2050",
+      "leyenda": "Proyecciones ONU 2024 (cifras redondeadas)",
       "fuente": "ONU, World Population Prospects 2024"
     }
   },
@@ -5360,7 +5421,7 @@
   },
   {
     "enunciado": "La primera burbuja financiera registrada ocurrió en la bolsa de Ámsterdam en 1602 con la creación de la Compañía Neerlandesa de las Indias Orientales.",
-    "explicacion": "La primera gran burbuja especulativa documentada fue la 'tulipomanía' en los Países Bajos (1636‑1637), no la fundación de la VOC en 1602. La VOC fue pionera en acciones, pero la manía de los tulipanes mostró cómo el crédito y la expectativa pueden desinflar mercados, lección que resuena en la volatilidad de criptoactivos de 2022‑2023.",
+    "explicacion": "La tulipomanía neerlandesa (1636-1637) fue la primera burbuja especulativa: bulbos de tulipán alcanzaron precios de casas antes de desplomarse. La VOC sí emitió acciones en 1602, pero no hubo burbuja porque su valor creció de forma sostenida durante décadas.",
     "nivel": 5,
     "respuesta": false,
     "hilo": 5,
@@ -5657,7 +5718,7 @@
   },
   {
     "enunciado": "¿Qué mecanismo permitió a la Compañía de las Indias Orientales financiar sus operaciones sin depender exclusivamente del capital estatal?",
-    "explicacion": "Al vender acciones en bolsa, la compañía captó capital privado y repartió el riesgo entre muchos inversores, creando el primer gran modelo de sociedad anónima. Este mecanismo sigue siendo la base del financiamiento empresarial moderno.",
+    "explicacion": "Emitir acciones negociables en bolsa permitió captar capital privado y repartir el riesgo entre muchos inversores, creando el primer gran modelo de sociedad anónima, base del financiamiento empresarial moderno.",
     "nivel": 5,
     "opciones": [
       "Emisión de acciones negociables en bolsa",
@@ -5673,7 +5734,25 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1602",
+          "texto": "VOC emite acciones"
+        },
+        {
+          "ano": "1611",
+          "texto": "Bolsa de Ámsterdam"
+        },
+        {
+          "ano": "Hoy",
+          "texto": "Sociedades anónimas"
+        }
+      ],
+      "leyenda": "Evolución del modelo de financiamiento por acciones"
+    }
   },
   {
     "enunciado": "Ordena estos hitos monetarios internacionales desde el más antiguo al más reciente.",
@@ -5824,7 +5903,7 @@
   },
   {
     "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
-    "explicacion": "La negación de 'todos' no es 'ninguno', sino 'al menos uno no'. Basta un solo suspenso para refutar que todos aprobaron. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.",
+    "explicacion": "La negación de 'todos' es 'al menos uno no'. Basta un solo suspenso para refutar la afirmación universal. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.",
     "nivel": 1,
     "opciones": [
       "Ningún estudiante aprobó el examen",
@@ -6054,19 +6133,19 @@
         {
           "titulo": "Mantener",
           "puntos": [
-            "1/3 de ganar",
-            "2/3 de perder"
+            "Ganas solo si elegiste coche",
+            "Probabilidad: 1/3"
           ]
         },
         {
           "titulo": "Cambiar",
           "puntos": [
-            "2/3 de ganar",
-            "1/3 de perder"
+            "Ganas si elegiste cabra",
+            "Probabilidad: 2/3"
           ]
         }
       ],
-      "leyenda": "Al cambiar, la probabilidad de ganar es 2/3, no 1/2."
+      "leyenda": "El presentador revela una cabra, no el coche"
     }
   },
   {
@@ -6138,7 +6217,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "No, porque las rosas podrían estar fuera del subconjunto de flores que se marchitan rápido. Es un error lógico común: asumir que una característica de un grupo se aplica a un subgrupo sin evidencia.",
+    "explicacion": "No, porque las flores que se marchitan rápido podrían no incluir ninguna rosa. Es la falacia del silogismo inválido: la característica del grupo general no se hereda automáticamente en un subgrupo.",
     "id": "log-036",
     "area": "logica",
     "tipo": "test4",
@@ -6236,24 +6315,22 @@
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
-      "tipo": "comparacion",
-      "columnas": [
+      "tipo": "barras",
+      "titulo": "Resultados de la prueba",
+      "items": [
         {
-          "titulo": "Enfermos",
-          "puntos": [
-            "100 de 100.000",
-            "99 dan positivo"
-          ]
+          "etiqueta": "Enfermos +",
+          "valor": 99,
+          "unidad": ""
         },
         {
-          "titulo": "Sanos",
-          "puntos": [
-            "99.900 de 100.000",
-            "999 dan positivo (falsos)"
-          ]
+          "etiqueta": "Sanos +",
+          "valor": 999,
+          "unidad": ""
         }
       ],
-      "leyenda": "De 1.098 positivos, solo 99 son reales: ~9 %."
+      "leyenda": "De cada ~1.098 positivos, solo 99 son reales (~9 %)",
+      "fuente": "Cálculo propio sobre enunciado"
     }
   },
   {
@@ -6267,7 +6344,7 @@
     ],
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "La transitividad de la relación \"más alto que\" permite encadenar las comparaciones: Ana > Bea > Carlos > Dani. Este tipo de razonamiento deductivo puro es la base de los test de lógica usados en procesos de selección de consultoría y banca (ej. PST de McKinsey o test de BCG) para evaluar la estructuración de problemas sin datos numéricos.",
+    "explicacion": "La transitividad permite ordenar sin medir: si Ana > Bea > Carlos > Dani, el más bajo es Dani. Este razonamiento puro se usa en test de consultoría como el PST de McKinsey para evaluar cómo estructuras información sin números.",
     "id": "log-041",
     "area": "logica",
     "tipo": "ordenar",
@@ -6564,7 +6641,7 @@
   },
   {
     "enunciado": "¿Cuál es la función principal de un resolvedor DNS?",
-    "explicacion": "Sin DNS, escribir 'google.com' sería inútil: las máquinas solo entienden números. Es la agenda telefónica de Internet, que traduce nombres a direcciones IP automáticamente. Cada consulta tarda milisegundos, pero sin él no navegarías.",
+    "explicacion": "Es la agenda de Internet: traduce nombres legibles como 'google.com' a direcciones IP numéricas que las máquinas entienden. Sin él, cada clic exigiría memorizar secuencias de números. Hoy procesa billones de consultas diarias, invisibles pero esenciales.",
     "nivel": 3,
     "opciones": [
       "Almacenar páginas web en caché",
@@ -6653,7 +6730,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor las siguientes unidades de almacenamiento de información digital.",
-    "explicacion": "El sistema binario define que 1 kilobyte (KB) = 1024 bytes, 1 megabyte (MB) = 1024 KB, 1 gigabyte (GB) = 1024 MB y 1 terabyte (TB) = 1024 GB. Por lo tanto, el orden correcto de menor a mayor capacidad es KB, MB, GB, TB.",
+    "explicacion": "Cada unidad multiplica por 1.024 (2¹⁰), no por 1.000, porque los ordenadores cuentan en binario. Así, un terabyte equivale a 1.024 gigabytes, capacidad típica de un disco duro actual.",
     "nivel": 1,
     "criterio": "de menor a mayor",
     "items": [
@@ -6672,12 +6749,10 @@
     "visual": {
       "tipo": "flujo",
       "pasos": [
-        "1 KB = 1024 bytes",
-        "1 MB = 1024 KB",
-        "1 GB = 1024 MB",
-        "1 TB = 1024 GB"
+        "KB → MB → GB → TB",
+        "×1.024 cada paso"
       ],
-      "leyenda": "Cada paso multiplica por 1024 (2^10), no por 1000."
+      "leyenda": "Unidades de almacenamiento digital"
     }
   },
   {
@@ -7013,23 +7088,23 @@
       "tipo": "linea-tiempo",
       "hitos": [
         {
-          "ano": "2010",
-          "texto": "28 nm"
+          "ano": "2011",
+          "texto": "Nodo de 28 nm"
         },
         {
           "ano": "2014",
-          "texto": "14 nm"
+          "texto": "Nodo de 14 nm"
         },
         {
           "ano": "2018",
-          "texto": "7 nm"
+          "texto": "Nodo de 7 nm"
         },
         {
           "ano": "2022",
-          "texto": "3 nm"
+          "texto": "Nodo de 3 nm"
         }
       ],
-      "leyenda": "Menor tamaño de nodo = mayor densidad de transistores"
+      "leyenda": "Cada salto duplica la densidad de transistores por área."
     }
   },
   {
@@ -7101,7 +7176,7 @@
     "verificador": "deepseek/deepseek-v4-flash",
     "visual": {
       "tipo": "barras",
-      "titulo": "Densidad energética por tipo de batería",
+      "titulo": "Densidad de energía típica (Wh/kg)",
       "items": [
         {
           "etiqueta": "Plomo-ácido",
@@ -7124,13 +7199,13 @@
           "unidad": "Wh/kg"
         }
       ],
-      "leyenda": "Valores típicos de densidad de energía específica (Wh/kg)",
-      "fuente": "US DOE 2023"
+      "leyenda": "Valores típicos de celdas comerciales, no máximos teóricos.",
+      "fuente": "US DOE 2024"
     }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Los teléfonos móviles en zonas urbanas se comunican principalmente con antenas (red celular) que conectan al núcleo de la red; las conexiones satelitales se usan en áreas remotas o mediante servicios emergentes LEO, pero no sustituyen a las torres en la mayoría de ciudades. En los últimos años ha habido avances en servicios satelitales móviles, pero siguen siendo complementarios y de despliegue limitado.",
+    "explicacion": "Las antenas terrestres son la conexión habitual en ciudades porque ofrecen baja latencia y alta capacidad; los satélites se reservan para zonas sin cobertura terrestre. Starlink o AST SpaceMobile aún no rivalizan con las torres urbanas en coste ni velocidad.",
     "nivel": 1,
     "tarjeta": {
       "titulo": "Cómo llega Internet a tu móvil",

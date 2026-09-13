@@ -1412,3 +1412,235 @@ Detalle rechazos de explicación (motivo):
   tec-057: explicación de 49 palabras (> 40)
 
 Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.033342 $
+--solo-pendientes: 235 ya resueltas, 60 pendientes.
+
+=== visualizar 2026-09-13T13:54:29.587Z — 60 preguntas candidatas (pago permitido, tope 0.4 €) ===
+
+-- lote 1/8 (8 preguntas) --
+  art-083: explicación actualizada; ya tiene imagen
+    explicación antes: Walter Gropius y la Bauhaus unificaron arte, oficio y tecnología bajo la idea de que la forma debe derivar exclusivamente de la función y la fabricación en serie, sentando las bases del Estilo Internacional; el centenario de 2023 generó nuevas lecturas sobre su legado en la vivienda social actual.
+    explicación después: La Bauhaus fusionó arte, artesanía e industria con el lema de que la utilidad determina la forma, no la decoración. Este enfoque racionalista, aplicado a objetos cotidianos, sigue vigente en el diseño actual de IKEA o Apple.
+  art-088: explicación conservada (explicación de 48 palabras (> 40)); sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  art-089: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Fases del proceso: polémica inicial convertida en aceptación definitiva.")
+    explicación antes: El camino típico es: exhibición, polémica, institucionalización y canonización. Cada paso filtra la controversia inicial hasta que la obra se vuelve incuestionable. El urinario de Duchamp, rechazado en 1917, hoy es un ícono del arte contemporáneo.
+    explicación después: El canon se forja por acumulación institucional: cada etapa (exhibir, polemizar, coleccionar, enseñar) añade legitimidad y borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad de arte: la polémica se volvió consenso.
+  art-090: explicación conservada (explicación de 44 palabras (> 40)); visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1400","texto":"Renacimiento"},{"ano":"1870","texto":"Impresionismo"},{"ano":"1916","texto":"Dadaísmo"},{"ano":"1960","texto":"Arte conceptual"}],"leyenda":"Orden de aparición histórica de los movimientos"}
+  art-091: explicación conservada (explicación de 47 palabras (> 40)); ya tiene imagen
+  cie-068: explicación conservada (La explicación propuesta no es correcta porque afirma que la doble hélice original permanece intacta, lo cual contradice el concepto de replicación semiconservativa. Además, la explicación propuesta se excede en la longitud permitida.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Cada nueva molécula de ADN contiene una hebra original y una sintetizada."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  cie-073: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sistema glinfático limpia el cerebro durante el sueño de ondas lentas"; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: El sueño profundo activa el sistema glinfático, que bombea líquido cefalorraquídeo y arrastra desechos como la beta-amiloide. Perder una noche de ondas lentas eleva esta proteína un 30%, según un estudio de 2023.
+    explicación después: El sueño profundo activa el sistema glinfático, que bombea líquido cefalorraquídeo y arrastra desechos como la beta-amiloide. Perder una noche de ondas lentas eleva esta proteína un 30%, según un estudio de 2023.
+  cie-075: explicación conservada (La explicación propuesta no es más clara que la actual y añade la afirmación errónea de que la NASA confirmó que el efecto Venturi es un mito, lo cual no es correcto. El visual propuesto no es verificable y la leyenda es una simplificación excesiva.); sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+
+-- lote 2/8 (8 preguntas) --
+  cie-081: explicación conservada (explicación de 48 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el calor corporal es una herramienta inmunitaria."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  cie-082: explicación conservada (explicación de 43 palabras (> 40)); ya tiene imagen
+  cie-089: explicación conservada (explicación de 48 palabras (> 40)); ya tiene imagen
+  cie-091: explicación conservada (explicación de 41 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Emisiones de CO₂ por kWh (ciclo de vida)","items":[{"etiqueta":"Carbón","valor":900,"unidad":"g"},{"etiqueta":"Gas","valor":450,"unidad":"g"},{"etiqueta":"Solar","valor":45,"unidad":"g"},{"etiqueta":"Nuclear","valor":12,"unidad":"g"}],"leyenda":"gCO₂eq/kWh, ciclo de vida completo","fuente":"IPCC 2014"}
+  cie-092: explicación actualizada; ya tiene imagen
+    explicación antes: Los meta-análisis sintetizan múltiples ECA reduciendo azar y sesgo; un ECA bien hecho aísla causalidad mediante aleatorización; los cohortes observan sin intervenir (riesgo de confusión); las series de casos carecen de grupo control. Durante la pandemia, la confusión entre cohortes y ECA llevó a adoptar fármacos sin beneficio real (ej. hidroxicloroquina), recordando por qué la jerarquía importa.
+    explicación después: Los meta-análisis combinan varios ECA reduciendo el azar; el ECA aísla causalidad por aleatorización; los cohortes observan sin intervenir; las series de casos carecen de control. En la pandemia, ignorar esta jerarquía llevó a terapias ineficaces como la hidroxicloroquina.
+  eco-071: explicación conservada (explicación de 46 palabras (> 40)); ya tiene imagen
+  eco-072: explicación conservada (explicación de 46 palabras (> 40)); visual comparacion OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Sin datos","puntos":["Anclaje fuerte","Ajuste insuficiente","Estimación sesgada"]},{"titulo":"Con datos","puntos":["Anclaje reducido","Ajuste parcial","Sesgo residual"]}],"leyenda":"Los datos objetivos atenúan el anclaje, pero no lo eliminan."}
+  eco-076: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: Subir tipos encarece hipotecas y préstamos, lo que frena el consumo y la inversión de hogares y empresas. La Fed y el BCE aplicaron esta misma receta en 2022-2023 para contener la inflación.
+    explicación después: Al subir tipos, los bancos trasladan el encarecimiento a hipotecas y préstamos, reduciendo consumo e inversión. En 2022-2023 la Fed y el BCE aplicaron esta misma receta para contener la inflación.
+    visual: {"tipo":"flujo","pasos":["Suben tipos","Crédito caro","Baja demanda"],"leyenda":"Canal principal de transmisión monetaria"}
+
+-- lote 3/8 (8 preguntas) --
+  eco-077: explicación actualizada; sin visual (La explicación propuesta es una paráfrasis de la explicación actual y no aporta valor nuevo. El visual propuesto no es adecuado para explicar la 'Teoría del tonto mayor', ya que se centra en comparar conceptos abstractos en lugar de ilustrar la dinámica de compra-venta basada en la expectativa de reventa.)
+    explicación antes: En una burbuja, los inversores compran no por el valor real del activo, sino porque creen que otro pagará más después. Durante el ciclo cripto de 2021-2022, esta dinámica llevó el bitcoin a máximos históricos antes del desplome.
+    explicación después: Los inversores compran esperando vender más caro a alguien aún más optimista, ignorando el valor real. En la burbuja de los tulipanes del siglo XVII, un bulbo llegó a costar lo mismo que una casa.
+  eco-081: explicación conservada (explicación de 45 palabras (> 40)); sin visual (esquema inválido: flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  eco-082: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El efecto red multiplica el valor percibido frente a los ingresos presentes."; comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[2] inválido (1-28 caracteres))
+    explicación antes: Cada nuevo usuario hace que la plataforma sea más valiosa para el otro lado, creando un círculo virtuoso que tiende al monopolio. Los inversores compran esa promesa de flujos futuros, no los ingresos de hoy.
+    explicación después: Cada nuevo usuario hace la plataforma más valiosa para el otro lado, creando un círculo virtuoso hacia el monopolio. Los inversores valoran esos flujos futuros, no los ingresos presentes.
+  eco-083: explicación actualizada; visual barras OK (deepseek/deepseek-v4-flash)
+    explicación antes: La pandemia y la guerra en Ucrania expusieron la fragilidad de cadenas concentradas; las firms añaden al menos una ubicación alternativa (Vietnam, México, India) para mantener suministro si un nodo falla. Esta reconfiguración sigue vigente en los planes de abastecimiento de 2024‑2025.
+    explicación después: La pandemia y la guerra en Ucrania mostraron que concentrar la producción en un solo país es frágil. La estrategia “China + 1” añade una segunda ubicación (Vietnam, México, India) para garantizar suministro si un nodo falla.
+    visual: {"tipo":"barras","titulo":"Nuevos centros de producción (2023)","items":[{"etiqueta":"Vietnam","valor":15,"unidad":"%"},{"etiqueta":"México","valor":12,"unidad":"%"},{"etiqueta":"India","valor":10,"unidad":"%"}],"leyenda":"Incremento de inversión extranjera directa respecto a 2020","fuente":"UNCTAD 2024"}
+  eco-089: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad de reacción ante un shock de inflación (de menor a mayor)")
+    explicación antes: Los salarios tardan por contratos plurianuales, los tipos oficiales requieren reuniones del banco central, los precios se ajustan en semanas y las expectativas reaccionan en minutos a cualquier noticia.
+    explicación después: Los salarios tardan por contratos plurianuales; los tipos oficiales requieren reuniones del banco central; los precios se ajustan en semanas; las expectativas reaccionan en minutos a cualquier noticia.
+  eco-090: explicación conservada (explicación de 45 palabras (> 40)); sin visual (esquema inválido: barras.items[0].etiqueta inválida (1-16 caracteres); barras.items[1].etiqueta inválida (1-16 caracteres); barras.items[2].unidad inválida (máx. 6 caracteres))
+  eco-091: explicación conservada (La explicación propuesta es correcta pero se excede del límite de 40 palabras. Los datos del visual no se corresponden con la respuesta correcta indicada, ya que los bancos suelen tener márgenes inferiores a los supermercados y SaaS.); sin visual (La explicación propuesta no es correcta porque los supermercados minoristas suelen tener márgenes operativos más bajos que las aerolíneas. El visual propuesto tampoco es correcto, ya que los márgenes de los supermercados minoristas (3%) y los bancos comerciales (25%) están invertidos en relación con la respuesta correcta. Además, la fuente indicada para el visual (NYU Stern 2024) no proporciona datos verificables sobre márgenes operativos típicos por sector de esta manera.)
+  eco-097: explicación conservada (La explicacion propuesta no es correcta porque el enunciado pide encontrar el dato erróneo, y la explicacion propuesta describe el sesgo de confirmación correctamente, pero no señala cual es el dato erróneo. El visual propuesto tampoco es correcto porque el dato erróneo que se debe ilustrar es "Sesgo de confirmación: buscamos info que contradice nuestras creencias", y el visual propuesto ilustra el sesgo de confirmación correctamente y el dato erróneo de forma invertida, pero no señala cual es el dato erróneo.); sin visual (La explicacion propuesta no es correcta. El sesgo de confirmacion es buscar informacion que confirma nuestras creencias, no lo contrario. La explicacion propuesta dice que el sesgo de confirmacion busca informacion que contradice nuestras creencias, lo cual es incorrecto.)
+
+-- lote 4/8 (8 preguntas) --
+  fil-001: explicación conservada (explicación de 41 palabras (> 40)); visual flujo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"flujo","pasos":["Sentidos","Ideas","Conocimiento"],"leyenda":"Del empirismo: sin experiencia no hay ideas."}
+  fil-015: explicación conservada (explicación de 44 palabras (> 40)); visual comparacion OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Tierra (real)","puntos":["H2O","Significado: agua"]},{"titulo":"Tierra Gemela","puntos":["XYZ","Significado: otra"]}],"leyenda":"Misma creencia mental, distinto referente externo"}
+  fil-023: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Ambas etapas analizan el lenguaje; la segunda amplía el enfoque, no lo abandona."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Wittgenstein nunca rechazó el análisis lógico; en su etapa tardía lo integró en los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un abandono total que no ocurrió.
+    explicación después: Wittgenstein nunca abandonó el análisis del lenguaje; en su etapa tardía lo reorientó hacia los juegos de lenguaje y formas de vida, criticando el esencialismo, no la lógica misma. Es un error común atribuirle un rechazo total que no ocurrió.
+  fil-024: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Kripke: no son equivalentes. El agua es H2O es necesario pero se descubre empíricamente."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Kripke rechazó equiparar necesidad epistémica y metafísica. Demostró que hay verdades necesarias a posteriori, como 'el agua es H2O', que son ciertas en todo mundo posible pero se descubren empíricamente.
+    explicación después: Kripke distinguió necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. Su obra 'El nombrar y la necesidad' revolucionó la filosofía del lenguaje en los 70.
+  fil-035: explicación conservada (explicación de 47 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+  fil-048: explicación conservada (explicación de 43 palabras (> 40)); sin visual (esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+  fil-056: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo algorítmico no requiere intención, sino datos y diseño."; comparacion.columnas[1].puntos[2] inválido (1-28 caracteres))
+    explicación antes: El sesgo algorítmico no implica intención: los sesgos emergen de datos históricos, variables proxy y decisiones de diseño (qué se mide y cómo), no porque la máquina quiera discriminar. Por eso las soluciones eficaces actúan sobre los datos, la definición de objetivos y la evaluación, y son centrales en debates sobre regulación y responsabilidad de sistemas de IA.
+    explicación después: El sesgo algorítmico no implica intención: surge de datos históricos sesgados, variables proxy o decisiones de diseño, no de que la máquina quiera discriminar. Por eso las soluciones actúan sobre datos y objetivos, no sobre la 'maldad' del algoritmo.
+  fil-057: explicación actualizada; ya tiene imagen
+    explicación antes: Kant no fundamenta la moral en las consecuencias sino en la universalizabilidad de la máxima y la buena voluntad: una acción es moral si su principio puede ser adoptado por todos sin contradicción. Este contraste con el utilitarismo aclara por qué debates contemporáneos sobre ética (por ejemplo, reglas para IA) enfrentan normas basadas en principios frente a cálculos de resultado.
+    explicación después: Kant rechaza las consecuencias porque la moral se basa en la universalizabilidad de la máxima y la buena voluntad. Este contraste con el utilitarismo late en los debates actuales sobre IA: normas versus resultados.
+
+-- lote 5/8 (8 preguntas) --
+  fil-058: explicación actualizada; visual comparacion OK (deepseek/deepseek-v4-flash)
+    explicación antes: La apelación a la autoridad solo es válida si el experto es pertinente y transparente; incluso los expertos se equivocan o discrepan. Por eso en ciencia se exige consenso y reproducibilidad, no fe ciega en una sola voz.
+    explicación después: La apelación a la autoridad solo es válida si el experto es pertinente y transparente; incluso los expertos se equivocan o discrepan. Por eso en ciencia se exige consenso y reproducibilidad, no fe ciega en una sola voz.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Válida","puntos":["Experto pertinente","Transparencia","Consenso"]},{"titulo":"Inválida","puntos":["Autoridad irrelevante","Sin transparencia","Disenso"]}],"leyenda":"La autoridad solo es válida con pertinencia y consenso."}
+  geo-059: explicación conservada (explicación de 61 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Población proyectada en 2050","items":[{"etiqueta":"Nigeria","valor":400,"unidad":"mill."},{"etiqueta":"EE.UU.","valor":380,"unidad":"mill."}],"leyenda":"Proyecciones ONU 2024 (cifras redondeadas)","fuente":"ONU, World Population Prospects 2024"}
+  his-043: explicación actualizada; ya tiene imagen
+    explicación antes: La primera gran burbuja especulativa documentada fue la 'tulipomanía' en los Países Bajos (1636‑1637), no la fundación de la VOC en 1602. La VOC fue pionera en acciones, pero la manía de los tulipanes mostró cómo el crédito y la expectativa pueden desinflar mercados, lección que resuena en la volatilidad de criptoactivos de 2022‑2023.
+    explicación después: La tulipomanía neerlandesa (1636-1637) fue la primera burbuja especulativa: bulbos de tulipán alcanzaron precios de casas antes de desplomarse. La VOC sí emitió acciones en 1602, pero no hubo burbuja porque su valor creció de forma sostenida durante décadas.
+  his-046: explicación conservada (explicación de 46 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Innovaciones que impulsaron la Revolución Industrial en Gran Bretaña (1709-1776)"; linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres))
+  his-052: explicación conservada (explicación de 48 palabras (> 40)); ya tiene imagen
+  his-059: explicación actualizada; visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    explicación antes: Al vender acciones en bolsa, la compañía captó capital privado y repartió el riesgo entre muchos inversores, creando el primer gran modelo de sociedad anónima. Este mecanismo sigue siendo la base del financiamiento empresarial moderno.
+    explicación después: Emitir acciones negociables en bolsa permitió captar capital privado y repartir el riesgo entre muchos inversores, creando el primer gran modelo de sociedad anónima, base del financiamiento empresarial moderno.
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1602","texto":"VOC emite acciones"},{"ano":"1611","texto":"Bolsa de Ámsterdam"},{"ano":"Hoy","texto":"Sociedades anónimas"}],"leyenda":"Evolución del modelo de financiamiento por acciones"}
+  his-060: explicación conservada (explicación de 58 palabras (> 40)); ya tiene imagen
+  his-064: explicación conservada (explicación de 45 palabras (> 40)); ya tiene imagen
+
+-- lote 6/8 (8 preguntas) --
+  log-008: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: La negación de 'todos' no es 'ninguno', sino 'al menos uno no'. Basta un solo suspenso para refutar que todos aprobaron. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.
+    explicación después: La negación de 'todos' es 'al menos uno no'. Basta un solo suspenso para refutar la afirmación universal. Es la lógica aristotélica que usamos al debatir: una excepción desmonta una regla universal.
+  log-033: explicación conservada (explicación de 61 palabras (> 40)); visual comparacion OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Mantener","puntos":["Ganas solo si elegiste coche","Probabilidad: 1/3"]},{"titulo":"Cambiar","puntos":["Ganas si elegiste cabra","Probabilidad: 2/3"]}],"leyenda":"El presentador revela una cabra, no el coche"}
+  log-036: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La conclusión no se sigue: el grupo 'flores que se marchitan' puede no incluir rosas."; flujo.pasos[1] inválido (1-18 caracteres))
+    explicación antes: No, porque las rosas podrían estar fuera del subconjunto de flores que se marchitan rápido. Es un error lógico común: asumir que una característica de un grupo se aplica a un subgrupo sin evidencia.
+    explicación después: No, porque las flores que se marchitan rápido podrían no incluir ninguna rosa. Es la falacia del silogismo inválido: la característica del grupo general no se hereda automáticamente en un subgrupo.
+  log-037: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  log-040: explicación conservada (explicación de 56 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Resultados de la prueba","items":[{"etiqueta":"Enfermos +","valor":99,"unidad":""},{"etiqueta":"Sanos +","valor":999,"unidad":""}],"leyenda":"De cada ~1.098 positivos, solo 99 son reales (~9 %)","fuente":"Cálculo propio sobre enunciado"}
+  log-041: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: La transitividad de la relación "más alto que" permite encadenar las comparaciones: Ana > Bea > Carlos > Dani. Este tipo de razonamiento deductivo puro es la base de los test de lógica usados en procesos de selección de consultoría y banca (ej. PST de McKinsey o test de BCG) para evaluar la estructuración de problemas sin datos numéricos.
+    explicación después: La transitividad permite ordenar sin medir: si Ana > Bea > Carlos > Dani, el más bajo es Dani. Este razonamiento puro se usa en test de consultoría como el PST de McKinsey para evaluar cómo estructuras información sin números.
+    visual: {"tipo":"flujo","pasos":["Dani (menor)","Carlos","Bea","Ana (mayor)"],"leyenda":"Orden ascendente de altura por transitividad"}
+  log-047: explicación conservada (La explicación propuesta omite el concepto de 'competencia monopolística', que es clave para ordenar correctamente los tipos de estructura de mercado. El visual propuesto, aunque intenta ilustrar el orden, usa una notación numérica para 'Oligopolio' (2-4) que no es precisa, ya que un oligopolio puede tener más de 4 competidores. Además, la leyenda del visual no aclara la relación entre los pasos y el enunciado de forma directa.); sin visual (esquema inválido: flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+  log-048: explicación conservada (explicación de 41 palabras (> 40)); ya tiene imagen
+
+-- lote 7/8 (8 preguntas) --
+  log-050: explicación conservada (explicación de 46 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La tarjeta intercambia víctima y ataque: el error es la inversión.")
+  log-051: explicación conservada (La explicación propuesta no aclara que la tarjeta afirma lo contrario de la regla, sino que la explica. El visual propuesto no contiene el dato erróneo que se pide encontrar en la tarjeta, sino que ilustra la regla general.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "La tarjeta afirma lo que dice la columna izquierda; lo correcto es la derecha."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+
+[progreso] 50/60 candidatas procesadas, coste acumulado hoy 0.2080 €.
+  tec-015: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Así viaja tu consulta: del navegador al servidor DNS y de vuelta con la dirección correcta."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Sin DNS, escribir 'google.com' sería inútil: las máquinas solo entienden números. Es la agenda telefónica de Internet, que traduce nombres a direcciones IP automáticamente. Cada consulta tarda milisegundos, pero sin él no navegarías.
+    explicación después: Es la agenda de Internet: traduce nombres legibles como 'google.com' a direcciones IP numéricas que las máquinas entienden. Sin él, cada clic exigiría memorizar secuencias de números. Hoy procesa billones de consultas diarias, invisibles pero esenciales.
+  tec-022: explicación actualizada; visual flujo OK (deepseek/deepseek-v4-flash)
+    explicación antes: El sistema binario define que 1 kilobyte (KB) = 1024 bytes, 1 megabyte (MB) = 1024 KB, 1 gigabyte (GB) = 1024 MB y 1 terabyte (TB) = 1024 GB. Por lo tanto, el orden correcto de menor a mayor capacidad es KB, MB, GB, TB.
+    explicación después: Cada unidad multiplica por 1.024 (2¹⁰), no por 1.000, porque los ordenadores cuentan en binario. Así, un terabyte equivale a 1.024 gigabytes, capacidad típica de un disco duro actual.
+    visual: {"tipo":"flujo","pasos":["KB → MB → GB → TB","×1.024 cada paso"],"leyenda":"Unidades de almacenamiento digital"}
+  tec-040: explicación conservada (explicación de 41 palabras (> 40)); sin visual (esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres))
+  tec-046: explicación conservada (explicación de 44 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Los satélites como Starlink cubren menos del 1 % del tráfico global."; dato.texto inválido (1-40 caracteres))
+  tec-047: explicación conservada (explicación de 56 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Cada paso requiere precisión atómica; sin vacío, la luz se pierde."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+  tec-048: explicación conservada (explicación de 44 palabras (> 40)); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado asimétrico asegura que solo el destinatario lee el mensaje."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres))
+
+-- lote 8/8 (4 preguntas) --
+  tec-051: explicación conservada (explicación de 49 palabras (> 40)); visual linea-tiempo OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"2011","texto":"Nodo de 28 nm"},{"ano":"2014","texto":"Nodo de 14 nm"},{"ano":"2018","texto":"Nodo de 7 nm"},{"ano":"2022","texto":"Nodo de 3 nm"}],"leyenda":"Cada salto duplica la densidad de transistores por área."}
+  tec-053: explicación conservada (explicación de 51 palabras (> 40)); visual barras OK (deepseek/deepseek-v4-flash)
+    visual: {"tipo":"barras","titulo":"Densidad de energía típica (Wh/kg)","items":[{"etiqueta":"Plomo-ácido","valor":40,"unidad":"Wh/kg"},{"etiqueta":"NiMH","valor":100,"unidad":"Wh/kg"},{"etiqueta":"LFP","valor":160,"unidad":"Wh/kg"},{"etiqueta":"NMC","valor":250,"unidad":"Wh/kg"}],"leyenda":"Valores típicos de celdas comerciales, no máximos teóricos.","fuente":"US DOE 2024"}
+  tec-054: explicación actualizada; ya tiene imagen
+    explicación antes: Los teléfonos móviles en zonas urbanas se comunican principalmente con antenas (red celular) que conectan al núcleo de la red; las conexiones satelitales se usan en áreas remotas o mediante servicios emergentes LEO, pero no sustituyen a las torres en la mayoría de ciudades. En los últimos años ha habido avances en servicios satelitales móviles, pero siguen siendo complementarios y de despliegue limitado.
+    explicación después: Las antenas terrestres son la conexión habitual en ciudades porque ofrecen baja latencia y alta capacidad; los satélites se reservan para zonas sin cobertura terrestre. Starlink o AST SpaceMobile aún no rivalizan con las torres urbanas en coste ni velocidad.
+  tec-057: explicación conservada (explicación de 49 palabras (> 40)); ya tiene imagen
+
+=== Resumen ===
+  economia: 11 procesadas, 5 explicación actualizada, 3 visual generado (comparacion:1, flujo:1, barras:1)
+  historia: 6 procesadas, 2 explicación actualizada, 1 visual generado (linea-tiempo:1)
+  ciencia: 8 procesadas, 2 explicación actualizada, 1 visual generado (barras:1)
+  tecnologia: 10 procesadas, 3 explicación actualizada, 3 visual generado (flujo:1, linea-tiempo:1, barras:1)
+  geografia: 1 procesadas, 0 explicación actualizada, 1 visual generado (barras:1)
+  filosofia: 9 procesadas, 5 explicación actualizada, 3 visual generado (flujo:1, comparacion:2)
+  arte: 5 procesadas, 2 explicación actualizada, 1 visual generado (linea-tiempo:1)
+  logica: 10 procesadas, 3 explicación actualizada, 3 visual generado (comparacion:1, barras:1, flujo:1)
+
+Total candidatas: 60
+Resueltas: 60
+Fallos de cascada (red/todos los modelos): 0
+Rechazadas por verificación (explicación): 38
+Rechazadas por verificación (visual, tras reintento): 30
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 26
+
+Detalle rechazos de visual (motivo):
+  art-088: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  art-089: esquema inválido: leyenda inválida (1-60 caracteres): "Fases del proceso: polémica inicial convertida en aceptación definitiva."
+  cie-068: esquema inválido: leyenda inválida (1-60 caracteres): "Cada nueva molécula de ADN contiene una hebra original y una sintetizada."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  cie-073: esquema inválido: leyenda inválida (1-60 caracteres): "El sistema glinfático limpia el cerebro durante el sueño de ondas lentas"; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  cie-075: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  cie-081: esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo de la fiebre: el calor corporal es una herramienta inmunitaria."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  eco-077: La explicación propuesta es una paráfrasis de la explicación actual y no aporta valor nuevo. El visual propuesto no es adecuado para explicar la 'Teoría del tonto mayor', ya que se centra en comparar conceptos abstractos en lugar de ilustrar la dinámica de compra-venta basada en la expectativa de reventa.
+  eco-081: esquema inválido: flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  eco-082: esquema inválido: leyenda inválida (1-60 caracteres): "El efecto red multiplica el valor percibido frente a los ingresos presentes."; comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[2] inválido (1-28 caracteres)
+  eco-089: esquema inválido: leyenda inválida (1-60 caracteres): "Velocidad de reacción ante un shock de inflación (de menor a mayor)"
+  eco-090: esquema inválido: barras.items[0].etiqueta inválida (1-16 caracteres); barras.items[1].etiqueta inválida (1-16 caracteres); barras.items[2].unidad inválida (máx. 6 caracteres)
+  eco-091: La explicación propuesta no es correcta porque los supermercados minoristas suelen tener márgenes operativos más bajos que las aerolíneas. El visual propuesto tampoco es correcto, ya que los márgenes de los supermercados minoristas (3%) y los bancos comerciales (25%) están invertidos en relación con la respuesta correcta. Además, la fuente indicada para el visual (NYU Stern 2024) no proporciona datos verificables sobre márgenes operativos típicos por sector de esta manera.
+  eco-097: La explicacion propuesta no es correcta. El sesgo de confirmacion es buscar informacion que confirma nuestras creencias, no lo contrario. La explicacion propuesta dice que el sesgo de confirmacion busca informacion que contradice nuestras creencias, lo cual es incorrecto.
+  fil-023: esquema inválido: leyenda inválida (1-60 caracteres): "Ambas etapas analizan el lenguaje; la segunda amplía el enfoque, no lo abandona."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-024: esquema inválido: leyenda inválida (1-60 caracteres): "Kripke: no son equivalentes. El agua es H2O es necesario pero se descubre empíricamente."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-035: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  fil-048: esquema inválido: linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  fil-056: esquema inválido: leyenda inválida (1-60 caracteres): "El sesgo algorítmico no requiere intención, sino datos y diseño."; comparacion.columnas[1].puntos[2] inválido (1-28 caracteres)
+  his-046: esquema inválido: leyenda inválida (1-60 caracteres): "Innovaciones que impulsaron la Revolución Industrial en Gran Bretaña (1709-1776)"; linea-tiempo.hitos[0].texto inválido (1-22 caracteres); linea-tiempo.hitos[1].texto inválido (1-22 caracteres); linea-tiempo.hitos[2].texto inválido (1-22 caracteres); linea-tiempo.hitos[3].texto inválido (1-22 caracteres)
+  log-008: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[2] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  log-036: esquema inválido: leyenda inválida (1-60 caracteres): "La conclusión no se sigue: el grupo 'flores que se marchitan' puede no incluir rosas."; flujo.pasos[1] inválido (1-18 caracteres)
+  log-037: esquema inválido: flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  log-047: esquema inválido: flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  log-050: esquema inválido: leyenda inválida (1-60 caracteres): "La tarjeta intercambia víctima y ataque: el error es la inversión."
+  log-051: esquema inválido: leyenda inválida (1-60 caracteres): "La tarjeta afirma lo que dice la columna izquierda; lo correcto es la derecha."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres)
+  tec-015: esquema inválido: leyenda inválida (1-60 caracteres): "Así viaja tu consulta: del navegador al servidor DNS y de vuelta con la dirección correcta."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  tec-040: esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres)
+  tec-046: esquema inválido: leyenda inválida (1-60 caracteres): "Los satélites como Starlink cubren menos del 1 % del tráfico global."; dato.texto inválido (1-40 caracteres)
+  tec-047: esquema inválido: leyenda inválida (1-60 caracteres): "Cada paso requiere precisión atómica; sin vacío, la luz se pierde."; flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+  tec-048: esquema inválido: leyenda inválida (1-60 caracteres): "El cifrado asimétrico asegura que solo el destinatario lee el mensaje."; flujo.pasos[0] inválido (1-18 caracteres); flujo.pasos[1] inválido (1-18 caracteres); flujo.pasos[2] inválido (1-18 caracteres)
+
+Detalle rechazos de explicación (motivo):
+  art-088: explicación de 48 palabras (> 40)
+  art-090: explicación de 44 palabras (> 40)
+  art-091: explicación de 47 palabras (> 40)
+  cie-068: La explicación propuesta no es correcta porque afirma que la doble hélice original permanece intacta, lo cual contradice el concepto de replicación semiconservativa. Además, la explicación propuesta se excede en la longitud permitida.
+  cie-075: La explicación propuesta no es más clara que la actual y añade la afirmación errónea de que la NASA confirmó que el efecto Venturi es un mito, lo cual no es correcto. El visual propuesto no es verificable y la leyenda es una simplificación excesiva.
+  cie-081: explicación de 48 palabras (> 40)
+  cie-082: explicación de 43 palabras (> 40)
+  cie-089: explicación de 48 palabras (> 40)
+  cie-091: explicación de 41 palabras (> 40)
+  eco-071: explicación de 46 palabras (> 40)
+  eco-072: explicación de 46 palabras (> 40)
+  eco-081: explicación de 45 palabras (> 40)
+  eco-090: explicación de 45 palabras (> 40)
+  eco-091: La explicación propuesta es correcta pero se excede del límite de 40 palabras. Los datos del visual no se corresponden con la respuesta correcta indicada, ya que los bancos suelen tener márgenes inferiores a los supermercados y SaaS.
+  eco-097: La explicacion propuesta no es correcta porque el enunciado pide encontrar el dato erróneo, y la explicacion propuesta describe el sesgo de confirmación correctamente, pero no señala cual es el dato erróneo. El visual propuesto tampoco es correcto porque el dato erróneo que se debe ilustrar es "Sesgo de confirmación: buscamos info que contradice nuestras creencias", y el visual propuesto ilustra el sesgo de confirmación correctamente y el dato erróneo de forma invertida, pero no señala cual es el dato erróneo.
+  fil-001: explicación de 41 palabras (> 40)
+  fil-015: explicación de 44 palabras (> 40)
+  fil-035: explicación de 47 palabras (> 40)
+  fil-048: explicación de 43 palabras (> 40)
+  geo-059: explicación de 61 palabras (> 40)
+  his-046: explicación de 46 palabras (> 40)
+  his-052: explicación de 48 palabras (> 40)
+  his-060: explicación de 58 palabras (> 40)
+  his-064: explicación de 45 palabras (> 40)
+  log-033: explicación de 61 palabras (> 40)
+  log-037: explicación de 41 palabras (> 40)
+  log-040: explicación de 56 palabras (> 40)
+  log-047: La explicación propuesta omite el concepto de 'competencia monopolística', que es clave para ordenar correctamente los tipos de estructura de mercado. El visual propuesto, aunque intenta ilustrar el orden, usa una notación numérica para 'Oligopolio' (2-4) que no es precisa, ya que un oligopolio puede tener más de 4 competidores. Además, la leyenda del visual no aclara la relación entre los pasos y el enunciado de forma directa.
+  log-048: explicación de 41 palabras (> 40)
+  log-050: explicación de 46 palabras (> 40)
+  log-051: La explicación propuesta no aclara que la tarjeta afirma lo contrario de la regla, sino que la explica. El visual propuesto no contiene el dato erróneo que se pide encontrar en la tarjeta, sino que ilustra la regla general.
+  tec-040: explicación de 41 palabras (> 40)
+  tec-046: explicación de 44 palabras (> 40)
+  tec-047: explicación de 56 palabras (> 40)
+  tec-048: explicación de 44 palabras (> 40)
+  tec-051: explicación de 49 palabras (> 40)
+  tec-053: explicación de 51 palabras (> 40)
+  tec-057: explicación de 49 palabras (> 40)
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.026119 $
