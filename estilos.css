@@ -459,7 +459,12 @@ main#app {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  touch-action: pan-y;
+  /* M4 (hallazgo adversarial, confirmado): sin efecto. `.tarjeta` vive siempre
+     dentro de `.mazo` (touch-action: none), y el "used touch-action" de un
+     descendiente es la INTERSECCIÓN con el de sus ancestros hasta el
+     scrolling ancestor más cercano — con `none` en `.mazo`, cualquier valor
+     que se ponga aquí queda anulado. Se borra en vez de dejar un `pan-y` que
+     sugiere (falsamente) que el scroll nativo vertical está permitido. */
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
@@ -994,8 +999,13 @@ main#app {
    430×932): separar el elemento animado del elemento posicionado por el mazo
    lo evita de raíz, sin depender de entender el porqué exacto del motor de
    renderizado. */
-.tarjeta.correcto { outline: 2px solid var(--ok); }
-.tarjeta.incorrecto { outline: 2px solid var(--ko); }
+/* outline-offset negativo (I2, hallazgo confirmado): el offset positivo por
+   defecto dibuja el borde FUERA de la caja, y `.tarjeta-mazo` (el padre real
+   posicionado por el mazo) tiene overflow:hidden — se recortaba entero, y el
+   único px que llegaba a asomar lo hacía sobre la tarjeta vecina. Con -2px el
+   borde vive DENTRO de los límites de `.tarjeta`, siempre visible. */
+.tarjeta.correcto { outline: 2px solid var(--ok); outline-offset: -2px; }
+.tarjeta.incorrecto { outline: 2px solid var(--ko); outline-offset: -2px; }
 .tarjeta.correcto > .tarjeta-contenido { animation: tarjeta-pulso 0.35s ease; }
 .tarjeta.incorrecto > .tarjeta-contenido { animation: tarjeta-sacude 0.4s ease; }
 
