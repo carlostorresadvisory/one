@@ -46,9 +46,16 @@ export const GENERADOR_VISUAL = [
   'deepseek/deepseek-v4-flash',
 ];
 
+// Solo 1 modelo ':free' antes de caer al de pago (a diferencia del generador, que prueba 2):
+// visto en vivo el 13-sep-2026 en la ejecución real que 'nex-agi/nex-n2.5-pro:free' -- cuando
+// responde en vez de fallar rápido -- tarda sistemáticamente 60-120s por llamada, y al ser el
+// segundo de la cascada duplicaba el tiempo de CADA verificación (la mayoría de las preguntas
+// necesitan 1-2 verificaciones). 'google/gemma-4-31b-it:free' falla rápido (HTTP 429 en <2s) o
+// responde rápido; quitar el intermedio lento y caer directo al de pago (rápido, fiable, barato)
+// respeta igual "que caiga al pago sin insistir demasiado" y evita la mayor causa de lentitud
+// observada, sin tocar el presupuesto real (el sobrecoste es de decimas de céntimo).
 export const VERIFICADOR_VISUAL = [
   'google/gemma-4-31b-it:free',
-  'nex-agi/nex-n2.5-pro:free',
   'google/gemini-2.5-flash-lite',
 ];
 
