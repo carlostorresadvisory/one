@@ -1,5 +1,10 @@
 // Validación del banco de preguntas (contrato en docs/superpowers/plans/2026-09-12-one-v0.md).
 import { readFile } from 'node:fs/promises';
+// validarVisual vive en tools/visualizar.js (spec v0.1e §2-3: ese fichero es quien define el
+// esquema del campo `visual`, porque en v0.2 lo reutilizará el generador infinito). Importarlo
+// de allí es una dependencia en un solo sentido (visualizar.js NO importa de aquí) para no crear
+// un ciclo entre los dos módulos.
+import { validarVisual, contarPalabras } from './visualizar.js';
 
 export const AREAS = [
   'economia',
@@ -46,6 +51,13 @@ export function validarPregunta(p) {
   // debe ser un entero positivo (el índice dentro de HILOS_POR_AREA del área, ver criterio.js).
   if (p.hilo !== undefined && p.hilo !== null && (!Number.isInteger(p.hilo) || p.hilo < 1)) {
     errores.push(`hilo inválido: ${p.hilo}`);
+  }
+  // "visual" es opcional (campo nuevo v0.1e: solo lo llevan las preguntas sin imagen de Commons,
+  // y algunas se quedan sin ninguno de los dos si la verificación lo rechazó dos veces) — si
+  // viene, debe cumplir el esquema y los límites de la spec v0.1e §2.
+  if (p.visual !== undefined && p.visual !== null) {
+    const { ok, errores: erroresVisual } = validarVisual(p.visual);
+    if (!ok) errores.push(...erroresVisual.map((e) => `visual: ${e}`));
   }
 
   switch (p.tipo) {
@@ -177,6 +189,12 @@ export function validarBanco(banco) {
 
     if (p && AREAS.includes(p.area)) {
       porArea[p.area] = (porArea[p.area] || 0) + 1;
+    }
+
+    // Aviso, no error (objetivo v0.1e, no contrato duro del banco previo): explicación > 40
+    // palabras. No bloquea la validación para no romper bancos anteriores a esta tarea.
+    if (p && esTexto(p.explicacion) && contarPalabras(p.explicacion) > 40) {
+      avisos.push(`[${p.id || `índice ${i}`}] explicación de ${contarPalabras(p.explicacion)} palabras (> 40)`);
     }
   });
 
