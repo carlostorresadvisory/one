@@ -1429,19 +1429,48 @@ main#app {
    el propio <svg>, así que nunca es más grande que el dibujo. Si la caja
    flexible da más alto del que el SVG necesita, `justify-content:center` en
    `.zona-imagen--visual` centra el bloque svg+leyenda en el sobrante en vez
-   de dejarlo pegado arriba con hueco vacío debajo (o dentro). */
+   de dejarlo pegado arriba con hueco vacío debajo (o dentro).
+
+   Hallazgo C1 (revisión final v0.1e, medido en vivo): con `flex:0 0 auto` +
+   `max-height:100%`, el 100% se resuelve contra el alto de
+   `.zona-imagen--visual`, pero esa regla NO sabe nada del `gap` (4px) ni de
+   `.visual-pie` (leyenda) que van DEBAJO del SVG dentro de la misma caja —
+   así que cuando el `aspect-ratio` del SVG pide más alto del que cabe, el
+   conjunto real (svg + gap + leyenda) supera la caja y, como `flex-shrink:0`
+   se niega a encogerlo, el SVG (fondo opaco `var(--fondo)`) desborda por
+   encima y por debajo de `.zona-imagen` — con `.tarjeta-contenido` en
+   overflow:visible (nunca overflow:hidden/scroll), ese desborde nunca llega
+   a sumar a `scrollHeight`, así que `ajustarEncaje.cabe()` no lo ve: pasa a
+   `zona-respuesta` (que sí va después en el DOM, pero queda "debajo" del
+   SVG opaco a efectos visuales porque el desborde ocupa exactamente ese
+   hueco) y a `.explicacion`/feedback. Arreglo probado en vivo: dejar que el
+   SVG SÍ pueda encogerse (`flex:0 1 auto`, `min-height:0`) y quitar el
+   `max-height:100%` (ya sobra: con `flex-shrink` activo el propio algoritmo
+   de flexbox reparte lo que hay, no hace falta un tope en porcentaje que
+   ignora hermanos); la leyenda (`.visual-pie`) se fija con `flex:none` para
+   que nunca sea ella la que ceda espacio (mismo patrón que `.imagen` +
+   `.imagen-pie`: `.imagen{flex:1 1 auto;min-height:0}` +
+   `.imagen-pie{flex:none}`). `min-height:112px` en `.zona-imagen--visual`
+   conserva el suelo de 90px de dibujo de la spec v0.1d §4 (90 + 4 de gap +
+   ~18 de leyenda a una línea). */
 .zona-imagen--visual {
   justify-content: center;
+  min-height: 112px;
 }
 
 .zona-imagen--visual .visual-svg {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-height: 0;
   width: 100%;
   height: auto;
-  max-height: 100%;
+  max-height: none;
   display: block;
   border-radius: 12px;
   background: var(--fondo);
+}
+
+.zona-imagen--visual .visual-pie {
+  flex: none;
 }
 
 /* --- resumen / repaso vertical (spec v0.1c §6) ---
