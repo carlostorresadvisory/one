@@ -3,28 +3,32 @@
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
 const CACHE = 'one-v9';
 
-const ESTATICOS = [
-  './',
-  'estilos.css',
-  'app.js',
-  'motor.js',
-  'visuales.js',
-  'manifest.json',
-  'datos/banco.json',
-  'datos/imagenes.json',
-  'iconos/180.png',
-  'iconos/192.png',
-  'iconos/512.png',
-];
+// Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
+// `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
+// aunque un núcleo con import estático (p. ej. `visuales.js`, que `app.js`
+// importa con `import ... from` y por tanto NO puede tolerar un 404) se
+// quedara sin cachear: offline, el navegador activa el service worker nuevo
+// (ya "instalado" sin fallos aparentes), pero la app no arranca porque el
+// import estático de `visuales.js` no tiene ni red ni caché — muerta sin
+// ningún error visible para el usuario. Ahora el NÚCLEO se cachea con
+// `cache.addAll` (atómico: si falla uno solo, falla la instalación entera,
+// el navegador sigue sirviendo el service worker anterior — one-v8 — hasta
+// que un despliegue con el núcleo completo consiga instalarse). Lo
+// SECUNDARIO (iconos, manifest, el catálogo de imágenes) sigue siendo
+// tolerante: que falte un icono no debe tumbar la app.
+const NUCLEO = ['./', 'index.html', 'app.js', 'motor.js', 'visuales.js', 'estilos.css', 'datos/banco.json'];
+
+const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(CACHE).then((cache) =>
-      Promise.all(
-        ESTATICOS.map((ruta) => cache.add(ruta).catch(() => {
-          // Un recurso que falte no debe romper la instalación.
-        }))
-      )
+      Promise.all([
+        cache.addAll(NUCLEO),
+        ...SECUNDARIOS.map((ruta) => cache.add(ruta).catch(() => {
+          // Un recurso secundario que falte no debe romper la instalación.
+        })),
+      ])
     )
   );
   self.skipWaiting();
