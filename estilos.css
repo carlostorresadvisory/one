@@ -1455,7 +1455,7 @@ main#app {
    ~18 de leyenda a una línea). */
 .zona-imagen--visual {
   justify-content: center;
-  min-height: 112px;
+  min-height: 128px; /* 90 de dibujo + 4 de gap + 34 de leyenda a DOS líneas (re-review de la ola final: con 112 y leyenda larga el SVG quedaba en 88) */
 }
 
 .zona-imagen--visual .visual-svg {
