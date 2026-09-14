@@ -630,7 +630,7 @@ test('pedirSubtemas: excluir de 35 elementos se recorta a los ÚLTIMOS 30 en el 
   assert.deepEqual(cuerpo.excluir, excluir.slice(-30)); // los últimos 30, no los primeros
 });
 
-test('pedirSubtemas: cada elemento de excluir se recorta a 120 caracteres en el body', async () => {
+test('pedirSubtemas: cada elemento de excluir se recorta a 160 caracteres en el body', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [] } }]);
   const elementoLargo = 'x'.repeat(200);
@@ -642,8 +642,8 @@ test('pedirSubtemas: cada elemento de excluir se recorta a 120 caracteres en el 
   });
   const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
   assert.equal(cuerpo.excluir.length, 1);
-  assert.equal(cuerpo.excluir[0].length, 120);
-  assert.equal(cuerpo.excluir[0], 'x'.repeat(120));
+  assert.equal(cuerpo.excluir[0].length, 160);
+  assert.equal(cuerpo.excluir[0], 'x'.repeat(160));
 });
 
 test('pedirSubtemas: el recorte de excluir también entra en la clave de caché (35 y 30+5 elementos que recortan igual comparten caché)', async () => {

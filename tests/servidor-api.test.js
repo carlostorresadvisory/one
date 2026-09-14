@@ -17,6 +17,7 @@ import {
   rellenoNocturnoSiToca,
   comprobarEscritura,
   esperarInactividad,
+  RUTA_ELEMENTO_MAX_LONGITUD,
 } from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
 
@@ -493,7 +494,7 @@ test('POST /generar con la cola de fondo llena responde 503', async () => {
 // no-string, o con caracteres de control.
 for (const [descripcion, rutaMala] of [
   ['más de 6 elementos', Array.from({ length: 7 }, (_, i) => `hilo-${i}`)],
-  ['un elemento de más de 80 caracteres', ['x'.repeat(81)]],
+  ['un elemento de más de 160 caracteres', ['x'.repeat(161)]],
   ['un elemento con carácter de control', ['hilo\u000amalicioso']],
   ['un elemento que no es string', [42]],
   ['no es un array', 'hilo-1'],
@@ -672,7 +673,7 @@ test('POST /subtemas con excluir inválido responde 400 "Exclusión inválida" (
     const casos = [
       { excluir: 'no-es-un-array' },
       { excluir: Array.from({ length: 31 }, (_, i) => `hilo-${i}`) },
-      { excluir: ['x'.repeat(121)] },
+      { excluir: ['x'.repeat(161)] },
       { excluir: ['con\x00control'] },
     ];
     for (const caso of casos) {
@@ -835,6 +836,54 @@ test('POST /subtemas con ruta inválida (más de 6 elementos) responde 400 (A5)'
     });
     assert.equal(resp.status, 400);
     assert.equal(typeof (await resp.json()).error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): ningún hilo de
+// tools/criterio.js#HILOS_POR_AREA puede superar RUTA_ELEMENTO_MAX_LONGITUD -- si alguno lo hace,
+// `rutaValida` (servidor/index.js) rechaza con 400 "Ruta inválida" en cuanto ese hilo se usa como
+// elemento de `ruta` (al elegirlo en el anillo 1, avanzar() lo mete tal cual, sin acortar). Falla
+// esta prueba SOLA (sin arrancar servidor) si algún hilo nuevo que se añada en el futuro vuelve a
+// pasarse del límite.
+test('HILOS_POR_AREA: ningún hilo supera RUTA_ELEMENTO_MAX_LONGITUD (si no, el anillo 1 queda inalcanzable -- C1)', () => {
+  for (const [area, hilos] of Object.entries(HILOS_POR_AREA)) {
+    for (const hilo of hilos) {
+      assert.ok(
+        hilo.length <= RUTA_ELEMENTO_MAX_LONGITUD,
+        `${area}: "${hilo}" mide ${hilo.length} caracteres, por encima de RUTA_ELEMENTO_MAX_LONGITUD (${RUTA_ELEMENTO_MAX_LONGITUD})`,
+      );
+    }
+  }
+});
+
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): reproduce el hallazgo de la
+// revisión final ejecutando la app -- tocar CUALQUIER hilo del anillo 1 (`ruta: [hilo]`) no debe
+// responder 400. Antes, 26 de los 50 hilos (incluidos 4 de los 5 que Carlos pidió para esta
+// versión) medían más de 80 caracteres y dejaban el átomo en un callejón sin salida. `llamar` es
+// falso (nunca red real): cada combinación [area, ruta] es una clave de caché distinta, así que
+// las 50 llamadas son necesarias, no un fallo del test.
+test('POST /subtemas: ningún hilo de HILOS_POR_AREA usado como ruta responde 400 "Ruta inválida" (C1)', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({ subtemas: ['Un subtema cualquiera propuesto por el modelo falso'] }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    for (const [area, hilos] of Object.entries(HILOS_POR_AREA)) {
+      for (const hilo of hilos) {
+        // eslint-disable-next-line no-await-in-loop -- recorrido secuencial deliberado: cada hilo
+        // es una petición real distinta contra el mismo servidor, no hay nada que paralelizar.
+        const resp = await fetch(`${base}/subtemas`, {
+          method: 'POST',
+          headers: cabeceras(),
+          body: JSON.stringify({ area, ruta: [hilo] }),
+        });
+        assert.notEqual(resp.status, 400, `${area}: "${hilo}" (${hilo.length} car.) respondió 400 "Ruta inválida"`);
+      }
+    }
   } finally {
     await cerrar();
   }

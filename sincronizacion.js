@@ -472,14 +472,18 @@ const cacheSubtemas = new Map();
 const TOPE_CACHE_SUBTEMAS = 50;
 
 // Ronda de revisión combinada (Tarea 3+4, Important): MISMOS límites que el servidor
-// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD -- 30 elementos, 120
+// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD -- 30 elementos, 160
 // caracteres cada uno) -- sin este recorte, un anillo visitado con "Más…" varias veces seguidas
 // (5-6 toques) acumula más de 30 `completo` en `excluir` y el servidor responde 400 "Exclusión
 // inválida", que `pedirSubtemas` (más abajo) convierte en `null` como cualquier otro fallo --
 // `manejarMasAtomo` en app.js lo trataba antes igual que "agotado", así que el anillo quedaba roto
 // en silencio a partir de ese toque.
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): 120 se quedaba corto frente a
+// los hilos de tools/criterio.js#HILOS_POR_AREA (hasta 112 caracteres) -- subido a 160, igual que
+// servidor/index.js#EXCLUIR_ELEMENTO_MAX_LONGITUD/RUTA_ELEMENTO_MAX_LONGITUD (misma cifra en los
+// tres sitios, a mano: cruzar los comentarios si alguno cambia).
 const EXCLUIR_MAX_ELEMENTOS = 30;
-const EXCLUIR_ELEMENTO_MAX_LONGITUD = 120;
+const EXCLUIR_ELEMENTO_MAX_LONGITUD = 160;
 
 /** Recorta `excluir` a los ÚLTIMOS `EXCLUIR_MAX_ELEMENTOS` (los más recientes son los que de
  * verdad importan para no repetir la página que se acaba de ver) y cada elemento a

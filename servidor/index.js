@@ -40,14 +40,26 @@ const MAX_ESTADO_DEFECTO = 10;
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
 const RUTA_MAX_ELEMENTOS = 6;
-const RUTA_ELEMENTO_MAX_LONGITUD = 80;
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): 80 se quedaba corto frente a
+// los propios hilos de tools/criterio.js#HILOS_POR_AREA (hasta 112 caracteres, comprobado con un
+// script en la revisión) -- cada elemento de `ruta` puede ser un hilo completo del anillo 1 (nunca
+// se acorta antes de avanzar, ver app.js#avanzar), así que rechazarlo aquí dejaba el átomo en un
+// callejón sin salida (400 en /subtemas y /generar) para 26 de los 50 hilos. 160 da margen sobre
+// el `completo` más largo posible: un hilo estático (≤112) o un subtema que ya haya propuesto el
+// modelo (≤ LONGITUD_MAX_SUBTEMA = 40). Exportada para que tests/servidor-api.test.js pueda
+// comprobar que ningún hilo de HILOS_POR_AREA la supera, sin duplicar el número a mano.
+export const RUTA_ELEMENTO_MAX_LONGITUD = 160;
 // eslint-disable-next-line no-control-regex -- a propósito: se rechazan caracteres de control.
 const RUTA_CARACTER_CONTROL = /[\x00-\x1f\x7f]/;
 // Tarea 2 (v0.2b3, spec §9): mismo criterio que `ruta` pero con límites propios -- `excluir` lleva
 // los "completos" ya mostrados en el anillo (pueden ser muchos más que los 6 de una ruta: cada
 // toque de "Más…" añade otra página entera a la lista).
 const EXCLUIR_MAX_ELEMENTOS = 30;
-const EXCLUIR_ELEMENTO_MAX_LONGITUD = 120;
+// Ronda final de arreglos (C1): mismo motivo y misma cifra que RUTA_ELEMENTO_MAX_LONGITUD de
+// arriba -- `excluir` lleva los mismos "completos" (hilos o subtemas del modelo) que `ruta`, así
+// que necesita el mismo margen. Cruzada con sincronizacion.js#EXCLUIR_ELEMENTO_MAX_LONGITUD
+// (recorte del lado del cliente, acotarExcluir) -- deben mantenerse iguales.
+const EXCLUIR_ELEMENTO_MAX_LONGITUD = 160;
 
 // === Utilidades pequeñas, sin estado =============================================================
 
