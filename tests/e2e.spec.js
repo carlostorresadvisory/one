@@ -3876,6 +3876,39 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'verde');
   });
 
+  // Ronda de revisión combinada (Tarea 4, tres Important): (a) el foco vuelve al botón que abrió
+  // la hoja al cerrarla, sea por Cancelar o por éxito -- sin esto, cerrar el diálogo deja el foco
+  // de teclado "perdido"; (c) el aria-label de los puntos de estado sigue llevando el estado real
+  // (gris/verde), no un texto de acción fijo.
+  test('foco: Cancelar (y el éxito) devuelven el foco al punto que abrió la hoja; su aria-label refleja el estado', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const punto = page.locator('[data-test="estado-servidor"]');
+    await expect(punto).toHaveAttribute('aria-label', /sin conectar/i);
+
+    // Cancelar: la hoja se cierra y el foco vuelve al punto que la abrió.
+    await punto.click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+
+    // Conectar de verdad: también tras el éxito el foco vuelve al punto, y su aria-label pasa a
+    // reflejar "conectado" (nunca queda fijo en un texto de acción genérico).
+    await punto.click();
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+    await expect(punto).toHaveAttribute('aria-label', /conectado/i);
+  });
+
   test('enlace no válido: aviso de error sin cerrar la hoja; también se abre desde el aviso del átomo; Cancelar/Escape cierran y vacían el campo', async ({
     page,
   }) => {

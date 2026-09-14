@@ -520,10 +520,16 @@ function reconstruirBanco() {
   bancoPorId = new Map(banco.map((p) => [p.id, p]));
 }
 
+// Ronda de revisión combinada (Tarea 4, Important — corrección de una instrucción anterior del
+// controlador): los dos puntos de estado son botones desde esta misma ronda (abren la hoja
+// "Conectar", ver más abajo), pero su `aria-label` NO debe fijarse a un texto de acción genérico
+// ("Estado del servidor") -- debe seguir comunicando el estado real (gris/verde/ámbar), igual que
+// antes de que fueran interactivos, con un empujón hacia la acción en el estado gris (el que de
+// verdad invita a tocar).
 const ETIQUETA_ESTADO_SERVIDOR = {
-  gris: 'Sin servidor configurado',
-  verde: 'Servidor sincronizado hoy',
-  ambar: 'Servidor configurado, el último intento falló',
+  gris: 'Servidor sin conectar, toca para conectar',
+  verde: 'Servidor conectado',
+  ambar: 'Servidor sin sincronizar hoy',
 };
 
 // Tarea 4 (v0.2b3, "Conectar desde la app instalada"): textos de `.atomo-ayuda`, la pista fija
@@ -539,17 +545,16 @@ function actualizarAyudaAtomo() {
   nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
 }
 
-/** Pinta el punto junto a "Comenzar" (data-estado) según `estadoServidor`. También el mismo punto
- * duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador): mismo estado,
- * mismo criterio de color, dos sitios donde se ve.
- *
- * Tarea 4 + revisión combinada: los DOS son ahora también botones que abren la hoja "Conectar"
- * (ver más abajo) -- su `aria-label` describe esa ACCIÓN ("Estado del servidor", fijo en el HTML)
- * y ya no se sobrescribe aquí con el estado puntual, a diferencia de antes (`ETIQUETA_ESTADO_SERVIDOR`
- * de arriba se queda momentáneamente sin uso). */
+/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También el
+ * mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador; Tarea 4 +
+ * revisión combinada: los dos son ahora también botones que abren la hoja "Conectar", ver más
+ * abajo, pero eso no cambia qué anuncia su `aria-label` -- sigue siendo el estado real
+ * (`ETIQUETA_ESTADO_SERVIDOR`), no una descripción genérica de la acción). */
 function actualizarPuntoServidor() {
   nodoEstadoServidor.dataset.estado = estadoServidor;
+  nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
   nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
+  nodoAtomoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
   actualizarAyudaAtomo();
 }
 
@@ -604,8 +609,15 @@ function mostrarAvisoConectado() {
   }, 2000);
 }
 
+// Ronda de revisión combinada (Tarea 4, Important): el botón que abrió la hoja (punto de estado
+// del HUB, del Átomo, o el propio aviso del Átomo) -- se le devuelve el foco al cerrar, sin
+// importar cómo (Cancelar, Escape o éxito). Sin esto, cerrar un diálogo modal deja el foco de
+// teclado "perdido" en <body>, un problema real para quien navega sin ratón/dedo.
+let nodoConectarDisparador = null;
+
 /** Abre la hoja con el campo vacío y sin el aviso de error de una vez anterior. */
 function abrirHojaConectar() {
+  nodoConectarDisparador = document.activeElement;
   nodoConectarError.hidden = true;
   nodoConectarTexto.value = '';
   nodoConectar.hidden = false;
@@ -614,11 +626,17 @@ function abrirHojaConectar() {
 
 /** Escape/Cancelar (brief): cierran y vacían el campo -- el texto pegado no debe sobrevivir a un
  * intento cancelado (ver también el comentario de cabecera de sincronizacion.js#guardarConfiguracionDesdeTexto:
- * nunca se registra ni se guarda salvo la configuración resultante). */
+ * nunca se registra ni se guarda salvo la configuración resultante). También la vía de éxito
+ * (manejarConectarOk la llama igual) -- así el foco vuelve al disparador en los tres casos, desde
+ * un solo sitio. */
 function cerrarHojaConectar() {
   nodoConectar.hidden = true;
   nodoConectarTexto.value = '';
   nodoConectarError.hidden = true;
+  if (nodoConectarDisparador && typeof nodoConectarDisparador.focus === 'function') {
+    nodoConectarDisparador.focus();
+  }
+  nodoConectarDisparador = null;
 }
 
 /** Botón "Conectar": valida y guarda con `guardarConfiguracionDesdeTexto` (sincronizacion.js,

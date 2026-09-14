@@ -128,13 +128,17 @@
              decorativo -- ahora también el disparador para abrir la hoja "Conectar" (mismo
              manejador que su gemelo del Átomo, ver app.js), con área táctil ampliada a 44px sin
              agrandar el punto visible (estilos.css). Carlos aterriza en el HUB al abrir la app
-             instalada, así que este es el punto que de verdad ve primero. -->
+             instalada, así que este es el punto que de verdad ve primero. `aria-label` estático
+             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (mismo
+             texto que el gris por defecto, tercera ronda de revisión combinada: el aria-label
+             fijo "Estado del servidor" de la ronda anterior era un error, corregido -- debe seguir
+             llevando el estado). -->
         <button
           type="button"
           class="punto-servidor"
           data-test="estado-servidor"
           data-estado="gris"
-          aria-label="Estado del servidor"
+          aria-label="Servidor sin conectar, toca para conectar"
         ></button>
       </div>
       <div class="hub-pie">
@@ -159,13 +163,15 @@
         <span class="atomo-ruta" data-test="atomo-ruta"></span>
         <!-- Tarea 4 ("Conectar desde la app instalada"): antes un <span> decorativo -- ahora
              también el disparador para abrir la hoja "Conectar" (ver app.js), con área táctil
-             ampliada a 44px sin agrandar el punto visible (estilos.css). -->
+             ampliada a 44px sin agrandar el punto visible (estilos.css). `aria-label` estático
+             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (ver el
+             comentario del punto gemelo del HUB, arriba en esta hoja). -->
         <button
           type="button"
           class="punto-servidor"
           data-test="atomo-estado-servidor"
           data-estado="gris"
-          aria-label="Estado del servidor"
+          aria-label="Servidor sin conectar, toca para conectar"
         ></button>
       </div>
       <!-- .atomo-cuerpo absorbe el espacio libre; el lienzo se queda arriba, pegado a la cabecera
@@ -233,7 +239,10 @@
       spellcheck="false"
       data-test="conectar-texto"
     >
-    <p class="hoja-conectar-error" data-test="conectar-error" hidden>Enlace no válido</p>
+    <!-- Ronda de revisión combinada (Tarea 4, Important): aria-live="polite" -- el texto aparece
+         sin que el foco se mueva (se queda en el campo), así que un lector de pantalla no se
+         enteraría del error sin esto (mismo criterio que atomo-aviso en la vista del Átomo). -->
+    <p class="hoja-conectar-error" data-test="conectar-error" hidden aria-live="polite">Enlace no válido</p>
     <div class="hoja-conectar-acciones">
       <button type="button" class="boton" data-test="conectar-cancelar">Cancelar</button>
       <button type="button" class="boton boton-principal" data-test="conectar-ok">Conectar</button>
