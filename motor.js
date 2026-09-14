@@ -470,7 +470,7 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
   // test4/error, array de índices ordenar) y si acertó. `opciones.respuesta`
   // es opcional — si no se pasa, `ultimaRespuesta` queda `undefined` (no rompe
   // llamadas existentes que no la envíen).
-  tarjeta.ultimaRespuesta = opciones.respuesta;
+  tarjeta.ultimaRespuesta = Array.isArray(opciones.respuesta) ? [...opciones.respuesta] : opciones.respuesta;
   tarjeta.ultimaCorrecta = correcta;
 
   // Recuperada: acierto sobre una tarjeta que YA estaba pendiente antes de esta
@@ -691,7 +691,7 @@ export function ordenarRepaso(estado, banco, hoy) {
       pregunta: bancoPorId.get(id),
       tarjeta,
       estadoRepaso: estadoRepasoDe(tarjeta),
-      diasDesde: diferenciaDias(tarjeta.ultimo, hoy),
+      diasDesde: Math.max(0, diferenciaDias(tarjeta.ultimo, hoy)), // reloj inconsistente: nunca negativo
       tramo: tramoDe(tarjeta),
     }));
 

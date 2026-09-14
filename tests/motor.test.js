@@ -874,6 +874,15 @@ describe('registrarRespuesta', () => {
     assert.equal(nuevo.tarjetas[pregunta.id].ultimaCorrecta, false);
     assert.equal(nuevo.tarjetas[pregunta.id].ultimaRespuesta, 0);
   });
+
+  test('ultimaRespuesta clona el array de ordenar: mutar el array del llamador después no afecta a la tarjeta (revisión Ronda 1)', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'ordenar', 1, '-ur-clon');
+    const respuestaLlamador = [1, 0, 2, 3];
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, false, HOY, { respuesta: respuestaLlamador });
+    respuestaLlamador[0] = 99; // muta el array original tras registrar la respuesta
+    assert.deepStrictEqual(nuevo.tarjetas[pregunta.id].ultimaRespuesta, [1, 0, 2, 3]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1014,6 +1023,13 @@ describe('ordenarRepaso', () => {
     assert.equal(porId['economia-test4-1'], 0);
     assert.equal(porId['historia-test4-1'], 1);
     assert.equal(porId['ciencia-test4-1'], 7);
+  });
+
+  test('diasDesde nunca es negativo, aunque tarjeta.ultimo sea posterior a hoy (reloj inconsistente, revisión Ronda 1)', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ ultimo: sumarDias(HOY, 3) });
+    const [r] = ordenarRepaso(estado, banco, HOY);
+    assert.equal(r.diasDesde, 0);
   });
 
   test('ignora tarjetas de ids fuera del banco', () => {
@@ -1522,6 +1538,32 @@ describe('exportar / importar', () => {
     const tarjeta = estado2.tarjetas[pregunta.id];
     assert.deepStrictEqual(tarjeta.ultimaRespuesta, [1, 0, 2, 3]);
     assert.equal(tarjeta.ultimaCorrecta, false);
+  });
+
+  test('importar sanea ultimaRespuesta con forma inválida (string, float) a undefined; boolean/entero/array se conservan (revisión Ronda 1)', () => {
+    const base = {
+      version: 2, xp: 0, combo: 0, racha: { dias: 0, ultimaFecha: null },
+      hoy: { fecha: HOY, respondidas: 0, aciertos: 0 },
+      areas: {}, reportadas: [], historial: [],
+    };
+    const tarjetaCon = (ultimaRespuesta) => ({
+      caja: 0, proximo: HOY, aciertos: 0, fallos: 0, ultimo: HOY, ultimoFallo: null,
+      pendiente: false, prioridad: 0, recuperada: false, fragil: false,
+      ultimaRespuesta,
+    });
+    const casos = {
+      'cadena': tarjetaCon('a'), // string: inválido
+      'flotante': tarjetaCon(1.5), // float: inválido
+      'booleana': tarjetaCon(false), // boolean: válido
+      'entera': tarjetaCon(2), // entero: válido
+      'arreglo': tarjetaCon([1, 0, 2]), // array de enteros: válido
+    };
+    const estado = importar(JSON.stringify({ ...base, tarjetas: casos }));
+    assert.equal(estado.tarjetas.cadena.ultimaRespuesta, undefined);
+    assert.equal(estado.tarjetas.flotante.ultimaRespuesta, undefined);
+    assert.equal(estado.tarjetas.booleana.ultimaRespuesta, false);
+    assert.equal(estado.tarjetas.entera.ultimaRespuesta, 2);
+    assert.deepStrictEqual(estado.tarjetas.arreglo.ultimaRespuesta, [1, 0, 2]);
   });
 });
 
