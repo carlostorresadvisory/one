@@ -918,6 +918,12 @@ async function manejarMasAtomo() {
   if (idPeticion !== atomoPeticionId || !atomoEstado) return;
 
   terminarCargaAtomo();
+  // Ronda final de arreglos (revisión, 14-sep-2026) -- Important (C3): terminarCargaAtomo() no
+  // toca `nodoAtomoAviso` (solo la fila-mientras) -- sin esto, "Buscando subtemas…" (puesto por
+  // empezarCargaAtomo/mostrarCargandoAtomo unas líneas arriba) se quedaba fijo bajo el anillo
+  // recién cargado, en las TRES ramas de abajo (éxito, error, página vacía): ni mostrarErrorMasAtomo
+  // ni el `masVacio` de más abajo tocan este nodo, solo crean/reutilizan uno propio aparte.
+  ocultarAvisoAtomo();
   if (subtemas === null) {
     // Error real (network/HTTP, 400 "Exclusión inválida" incluido): NO es "agotado" -- se
     // restaura el anillo tal y como estaba (subtemasPrevios === atomoSubtemasActuales aquí, nada

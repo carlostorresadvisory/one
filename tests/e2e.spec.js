@@ -3432,6 +3432,11 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     const cuerpoMas1 = cuerpos.find((c) => c.ruta.length === 0 && c.excluir.length === 4);
     expect(cuerpoMas1, 'debería haber una petición de "Más…" en el anillo 1 con excluir de 4 elementos').toBeTruthy();
     expect(cuerpoMas1.excluir.slice().sort()).toEqual(PAGINA1_ANILLO1.map((s) => s.completo).sort());
+    // C3 de la revisión final v0.2b3: tras un "Más…" con éxito, "Buscando subtemas…" (mismo nodo,
+    // data-test="atomo-cargando" mientras carga) debe quedar oculto -- antes se quedaba fijo bajo
+    // el anillo nuevo, indefinidamente (hasta avanzar o retroceder de anillo).
+    await expect(page.locator('[data-test="atomo-cargando"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="atomo-aviso"]')).toBeHidden();
 
     // Elegir "Finanzas corporativas y M&A" (página 2) -> anillo 2, "Más…" ahí también.
     await page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' }).click();
