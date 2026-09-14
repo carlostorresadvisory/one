@@ -3,7 +3,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { llamar, extraerJson, MODELOS } from './openrouter.js';
 import { validarPregunta, AREAS } from './validar-banco.js';
-import { textoCriterio, HILOS_POR_AREA } from './criterio.js';
+import { HILOS_POR_AREA } from './criterio.js';
+import { promptSistemaGenerador, EJEMPLOS } from './prompts-preguntas.js';
 
 const PREFIJOS = {
   economia: 'eco',
@@ -19,60 +20,11 @@ const PREFIJOS = {
 const TIPOS = ['vf', 'test4', 'ordenar', 'error'];
 const CANTIDAD_POR_TIPO = { vf: 7, test4: 9, ordenar: 5, error: 4 };
 
-// El criterio de utilidad (tools/criterio.js, fijado por Carlos 12-sep) va en el prompt de
-// sistema y depende del área (los hilos son distintos por área), así que es una función y no
-// una constante — cada llamada de generarArea() ya opera sobre una sola área.
-function promptSistema(area) {
-  return (
-    'Eres un autor de preguntas de un juego de aprendizaje para un adulto con formación ' +
-    'universitaria. Escribe en español. Devuelve SOLO un objeto JSON con la forma ' +
-    '{"preguntas": [ ... ]}, sin texto alrededor. Cada pregunta debe ser factualmente ' +
-    'correcta, inequívoca y con una sola respuesta válida. Nivel 1 = cultura general ' +
-    'sólida; nivel 5 = experto. Evita trivialidades y evita preguntas de fechas exactas ' +
-    'o cifras que cambien con el tiempo.\n\n' +
-    `${textoCriterio(area)}\n\n` +
-    'Cada pregunta debe indicar en qué hilo de los de arriba encaja, con el campo "hilo": ' +
-    'número (1 = el primero de la lista de hilos del área, 2 = el segundo, etc.). Reparte las ' +
-    'preguntas entre los hilos en vez de concentrarlas todas en uno. La "explicacion" tiene que ' +
-    'decir siempre el POR QUÉ (el mecanismo o la razón, no solo repetir el dato) en 1-3 frases y, ' +
-    'cuando encaje de forma natural, conectar con un hecho, debate o noticia reciente (2022-2026) ' +
-    'sin que la pregunta dependa de esa fecha para seguir siendo válida dentro de dos años. No ' +
-    'generes nada de lo que las reglas de utilidad de arriba prohíben.'
-  );
-}
-
-const EJEMPLOS = {
-  // Dos ejemplos para V/F: sin uno falso el generador sesga a "verdadero" (69 % en el primer lote).
-  vf: [
-    { enunciado: 'El agua hierve a 100°C al nivel del mar.', respuesta: true, hilo: 1 },
-    { enunciado: 'La Revolución Francesa comenzó en 1799.', respuesta: false, hilo: 1 },
-  ],
-  test4: {
-    enunciado: '¿Cuál es la capital de Francia?',
-    opciones: ['Madrid', 'París', 'Roma', 'Berlín'],
-    correcta: 1,
-    hilo: 1,
-  },
-  ordenar: {
-    enunciado: 'Ordena de menor a mayor.',
-    criterio: 'de menor a mayor',
-    items: ['1', '10', '100', '1000'],
-    hilo: 1,
-  },
-  error: {
-    enunciado: 'Encuentra el dato erróneo en la tarjeta.',
-    tarjeta: {
-      titulo: 'Planetas',
-      filas: [
-        { etiqueta: 'Mercurio', valor: 'más cercano al Sol' },
-        { etiqueta: 'Venus', valor: 'tiene lunas' },
-        { etiqueta: 'Marte', valor: 'planeta rojo' },
-      ],
-    },
-    sospechoso: 1,
-    hilo: 1,
-  },
-};
+// promptSistema(area) y EJEMPLOS vivían aquí; se extrajeron a tools/prompts-preguntas.js en la
+// Tarea 1 del plan v0.2b1-servidor para compartirlos con servidor/generacion.js sin duplicar
+// lógica de generación (spec v0.2 §3.1). Mismo texto exactamente cuando se llama solo con `area`
+// (comprobado con un diff literal antes de este cambio); ver ese fichero para el porqué de las
+// opciones nuevas (`ruta`, `nivelObjetivo`, `evitar`), que aquí no se usan.
 
 function esquemaTipo(tipo, numHilos) {
   const hilo = `, "hilo": 1..${numHilos} (número del hilo de la lista de arriba en el que encaja)`;
@@ -198,7 +150,7 @@ async function generarArea(area, opts, existentes = []) {
 
     for (const subcantidad of repartirEnSublotes(cantidad, TAMANO_SUBLOTE)) {
       const mensajes = [
-        { role: 'system', content: promptSistema(area) },
+        { role: 'system', content: promptSistemaGenerador(area) },
         { role: 'user', content: promptUsuario(area, tipo, subcantidad) },
       ];
 
