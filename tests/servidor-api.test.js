@@ -1,0 +1,498 @@
+// Tests de servidor/index.js (Tarea 3 del plan v0.2b1-servidor): API HTTP completa.
+// Sin red real: `producirTanda` (inyectado en la cola) y `llamar` (inyectado en el servidor, para
+// /subtemas) son funciones falsas. servidor/almacen.js y servidor/cola.js son los reales (Tareas
+// 1-2, no se tocan) sobre una carpeta temporal por test. Servidor siempre en puerto 0.
+// Spec que manda: docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md
+// §0, §3.1, §3.3, §3.5.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { crearAlmacen } from '../servidor/almacen.js';
+import { crearCola } from '../servidor/cola.js';
+import { crearServidor, esHoraNocturna, rellenoNocturnoSiToca } from '../servidor/index.js';
+import { HILOS_POR_AREA } from '../tools/criterio.js';
+
+const TOKEN = 'token-de-prueba-0123456789abcdef0123456789abcdef';
+const ORIGEN_PWA = 'https://carlostorresadvisory.github.io';
+const ORIGEN_LOCAL = 'http://localhost:8765';
+const ORIGEN_AJENO = 'https://otro-sitio.example.com';
+
+function cabeceras(extra = {}) {
+  return { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...extra };
+}
+
+async function carpetaTmp() {
+  return mkdtemp(path.join(os.tmpdir(), 'one-servidor-api-'));
+}
+
+// Espera activa con temporizador real, igual que en tests/servidor-cola.test.js (I/O de disco real
+// de por medio: un `await Promise.resolve()` no basta).
+async function hastaQue(condicion, { intentos = 400, esperaMs = 5 } = {}) {
+  for (let i = 0; i < intentos; i++) {
+    if (await condicion()) return;
+    await new Promise((resolver) => setTimeout(resolver, esperaMs));
+  }
+  throw new Error('hastaQue: la condición no se cumplió a tiempo');
+}
+
+function aprobada(area, n = 1, extra = {}) {
+  return {
+    id: `srv-${area.slice(0, 3)}-${Math.random().toString(36).slice(2, 8)}`,
+    area,
+    tipo: 'vf',
+    nivel: 2,
+    enunciado: `Enunciado ${area} #${n}`,
+    explicacion: 'una explicación corta',
+    respuesta: true,
+    visual: null,
+    ...extra,
+  };
+}
+
+function resultadoOk(area, n, aprobadasN = 1) {
+  const lista = Array.from({ length: aprobadasN }, (_, i) => aprobada(area, i));
+  return { aprobadas: lista, rechazadas: [], coste: 0.0001, modelos: ['modelo-falso'], fallos: [], pedidas: n, obtenidas: aprobadasN };
+}
+
+function resultadoVacio(n) {
+  return { aprobadas: [], rechazadas: [], coste: 0, modelos: [], fallos: [], pedidas: n, obtenidas: 0 };
+}
+
+// Crea almacen (real) + cola (real, con producirTanda falso) + servidor (puerto 0) para un test.
+// `producirTanda` y `llamar` son inyectables; por defecto no hacen nada útil (no se necesitan en
+// la mayoría de los tests).
+async function crearServidorDePrueba({ producirTanda, ...overridesServidor } = {}) {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const producirTandaFake = producirTanda || (async ({ n }) => resultadoVacio(n));
+  const cola = crearCola({ almacen, producirTanda: producirTandaFake, opciones: {} });
+  const servidor = crearServidor({
+    cola,
+    almacen,
+    token: TOKEN,
+    rutaDatos: dir,
+    ...overridesServidor,
+  });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const puerto = servidor.address().port;
+  const base = `http://127.0.0.1:${puerto}`;
+  return {
+    dir,
+    almacen,
+    cola,
+    servidor,
+    base,
+    cerrar: () =>
+      new Promise((resolve) => {
+        servidor.closeAllConnections?.();
+        servidor.close(() => resolve());
+      }),
+  };
+}
+
+// === GET /salud ================================================================================
+
+test('GET /salud sin token responde 200 con colchon/cola/gastoHoyEur', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/salud`);
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.ok, true);
+    assert.equal(typeof datos.version, 'string');
+    assert.equal(typeof datos.colchon.total, 'number');
+    assert.equal(typeof datos.colchon.listas, 'number');
+    assert.deepEqual(datos.colchon.porArea, {});
+    assert.equal(typeof datos.cola, 'number');
+    assert.equal(typeof datos.gastoHoyEur, 'number');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('GET /salud cuenta el colchón disponible por área y suma el gasto de llamadas.log', async () => {
+  const { base, dir, almacen, cerrar } = await crearServidorDePrueba();
+  try {
+    const ahora = new Date().toISOString();
+    await almacen.guardarColchon([
+      { id: 'srv-eco-a1', area: 'economia', creada: ahora, servida: null },
+      { id: 'srv-eco-a2', area: 'economia', creada: ahora, servida: ahora },
+      { id: 'srv-his-a1', area: 'historia', creada: ahora, servida: null },
+    ]);
+    const hoy = new Date().toISOString().slice(0, 10);
+    const lineas = [
+      { fecha: `${hoy}T10:00:00.000Z`, modelo: 'm', coste: 0.01, tokens: 10, ok: true },
+      { fecha: `${hoy}T11:00:00.000Z`, modelo: 'm', coste: 0.02, tokens: 10, ok: true },
+      { fecha: '2000-01-01T00:00:00.000Z', modelo: 'm', coste: 99, tokens: 10, ok: true },
+    ];
+    await writeFile(path.join(dir, 'llamadas.log'), lineas.map((l) => JSON.stringify(l)).join('\n') + '\n', 'utf8');
+
+    const resp = await fetch(`${base}/salud`);
+    const datos = await resp.json();
+    assert.equal(datos.colchon.total, 3);
+    assert.equal(datos.colchon.listas, 2, 'solo cuentan las no servidas');
+    assert.deepEqual(datos.colchon.porArea, { economia: 1, historia: 1 });
+    assert.ok(Math.abs(datos.gastoHoyEur - 0.03) < 1e-9, 'solo suma el gasto de hoy, no el de otra fecha');
+  } finally {
+    await cerrar();
+  }
+});
+
+// === Autenticación ==============================================================================
+
+test('cualquier otra ruta sin token o con token malo responde 401 sin cuerpo', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const sinToken = await fetch(`${base}/estado`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(sinToken.status, 401);
+    assert.equal((await sinToken.text()).length, 0);
+
+    const tokenMalo = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras({ Authorization: 'Bearer esto-no-es-el-token' }),
+      body: '{}',
+    });
+    assert.equal(tokenMalo.status, 401);
+    assert.equal((await tokenMalo.text()).length, 0);
+
+    const tokenOtraLongitud = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras({ Authorization: 'Bearer x' }),
+      body: '{}',
+    });
+    assert.equal(tokenOtraLongitud.status, 401);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /estado ================================================================================
+
+test('POST /estado devuelve hasta max no conocidas y dispara el relleno del colchón', async () => {
+  const { base, dir, almacen, cola, cerrar } = await crearServidorDePrueba();
+  try {
+    const ahora = new Date().toISOString();
+    await almacen.guardarColchon([
+      { id: 'srv-eco-a1', area: 'economia', tipo: 'vf', enunciado: 'E1', creada: ahora, servida: null },
+      { id: 'srv-eco-a2', area: 'economia', tipo: 'vf', enunciado: 'E2', creada: ahora, servida: null },
+      { id: 'srv-eco-a3', area: 'economia', tipo: 'vf', enunciado: 'E3', creada: ahora, servida: null },
+    ]);
+
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { areas: {}, idsConocidos: ['srv-eco-a1'] }, max: 5 }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.preguntas.length, 2, 'no debe devolver la que ya conoce el móvil');
+    assert.ok(datos.preguntas.every((p) => p.id !== 'srv-eco-a1'));
+    assert.equal(typeof datos.enCola, 'number');
+
+    const resumenGuardado = JSON.parse(await readFile(path.join(dir, 'ultimo-resumen.json'), 'utf8'));
+    assert.deepEqual(resumenGuardado.idsConocidos, ['srv-eco-a1']);
+
+    // Efecto de fondo: como el colchón (30 objetivo) está casi vacío, rellenarHaciaObjetivo debe
+    // haber encolado algo -- se comprueba en la cola en vez de esperar a que termine (el
+    // producirTanda falso por defecto no aprueba nada, pero SÍ se llama, así que la cola pasa a
+    // tener trabajos y termina vacía otra vez cuando terminan).
+    await hastaQue(() => cola.estadisticas().enCola > 0 || cola.estadisticas().activo > 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /estado con resumen ausente no rompe (resumen.areas puede faltar)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.preguntas, []);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /generar + GET /trabajo/:id ===========================================================
+
+test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con el pipeline falso', async () => {
+  const producirTandaFake = async ({ area, n }) => resultadoOk(area, n, n);
+  const { base, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });
+  try {
+    const resp = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: [], n: 3, urgente: true }),
+    });
+    assert.equal(resp.status, 200);
+    const cuerpo = await resp.json();
+    assert.ok(cuerpo.trabajoId);
+    assert.equal(typeof cuerpo.enCola, 'number');
+    assert.equal(typeof cuerpo.estimadoSeg, 'number');
+
+    let ultimoEstado;
+    await hastaQue(async () => {
+      const r = await fetch(`${base}/trabajo/${cuerpo.trabajoId}`, { headers: cabeceras() });
+      ultimoEstado = await r.json();
+      return ultimoEstado.hechas >= ultimoEstado.pedidas;
+    });
+    assert.equal(ultimoEstado.estado, 'lista');
+    assert.equal(ultimoEstado.preguntas.length, 3);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('GET /trabajo/:id con id desconocido responde 404', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/trabajo/no-existe`, { headers: cabeceras() });
+    assert.equal(resp.status, 404);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /generar sin area responde 400', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 400);
+    assert.equal(typeof (await resp.json()).error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /subtemas ==============================================================================
+
+test('POST /subtemas con ruta=[] devuelve HILOS_POR_AREA sin llamar al modelo', async () => {
+  let llamadas = 0;
+  const llamarFake = async () => {
+    llamadas++;
+    throw new Error('no debería llamarse para el anillo 1');
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: [] }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.subtemas.length, HILOS_POR_AREA.economia.length);
+    assert.ok(datos.subtemas.every((s) => typeof s.indice === 'number' && s.corto.length <= 40 && typeof s.completo === 'string'));
+    assert.equal(llamadas, 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas con ruta de 1 elemento llama una vez al modelo y cachea en anillos.json', async () => {
+  let llamadas = 0;
+  const llamarFake = async () => {
+    llamadas++;
+    return { texto: JSON.stringify({ subtemas: ['Sub uno', 'Sub dos', 'Sub tres', 'Sub cuatro'] }), modelo: 'modelo-falso', coste: 0 };
+  };
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const cuerpo = JSON.stringify({ area: 'economia', ruta: ['hilo-1'] });
+    const r1 = await fetch(`${base}/subtemas`, { method: 'POST', headers: cabeceras(), body: cuerpo });
+    assert.equal(r1.status, 200);
+    const d1 = await r1.json();
+    assert.equal(d1.subtemas.length, 4);
+    assert.equal(llamadas, 1);
+
+    const r2 = await fetch(`${base}/subtemas`, { method: 'POST', headers: cabeceras(), body: cuerpo });
+    assert.equal(r2.status, 200);
+    const d2 = await r2.json();
+    assert.deepEqual(d2.subtemas, d1.subtemas);
+    assert.equal(llamadas, 1, 'la segunda vez debe usar la caché, sin llamar de nuevo');
+
+    const anillos = JSON.parse(await readFile(path.join(dir, 'anillos.json'), 'utf8'));
+    assert.ok(anillos[JSON.stringify(['economia', ['hilo-1']])]);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas con área desconocida responde 400', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/subtemas`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'no-existe', ruta: [] }) });
+    assert.equal(resp.status, 400);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /reportar ==============================================================================
+
+test('POST /reportar saca la pregunta del colchón y la añade a reportadas', async () => {
+  const { base, almacen, cerrar } = await crearServidorDePrueba();
+  try {
+    await almacen.guardarColchon([{ id: 'srv-eco-z1', area: 'economia', enunciado: 'X', creada: new Date().toISOString(), servida: null }]);
+
+    const resp = await fetch(`${base}/reportar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ id: 'srv-eco-z1', motivo: 'mal redactada' }),
+    });
+    assert.equal(resp.status, 200);
+    assert.deepEqual(await resp.json(), { ok: true });
+
+    const colchon = await almacen.leerColchon();
+    assert.ok(!colchon.some((p) => p.id === 'srv-eco-z1'));
+    const reportadas = await almacen.leerReportadas();
+    assert.ok(reportadas.includes('srv-eco-z1'));
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /reportar sin id responde 400', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/reportar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 400);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === Límites de cuerpo y de peticiones ===========================================================
+
+test('cuerpo > 64 KB responde 413', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const grande = 'x'.repeat(70 * 1024);
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: {}, relleno: grande }),
+    });
+    assert.equal(resp.status, 413);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('61 peticiones en un minuto desde la misma IP: la 61 responde 429', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const estados = [];
+    for (let i = 0; i < 61; i++) {
+      const resp = await fetch(`${base}/salud`);
+      estados.push(resp.status);
+      await resp.text();
+    }
+    assert.equal(estados.slice(0, 60).every((s) => s === 200), true, 'las 60 primeras deben pasar');
+    assert.equal(estados[60], 429);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === CORS =========================================================================================
+
+test('CORS solo permite los dos orígenes fijados; preflight OPTIONS responde 204', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const preOk = await fetch(`${base}/estado`, { method: 'OPTIONS', headers: { Origin: ORIGEN_PWA } });
+    assert.equal(preOk.status, 204);
+    assert.equal(preOk.headers.get('access-control-allow-origin'), ORIGEN_PWA);
+
+    const preLocal = await fetch(`${base}/estado`, { method: 'OPTIONS', headers: { Origin: ORIGEN_LOCAL } });
+    assert.equal(preLocal.status, 204);
+    assert.equal(preLocal.headers.get('access-control-allow-origin'), ORIGEN_LOCAL);
+
+    const preAjeno = await fetch(`${base}/estado`, { method: 'OPTIONS', headers: { Origin: ORIGEN_AJENO } });
+    assert.equal(preAjeno.status, 204);
+    assert.equal(preAjeno.headers.get('access-control-allow-origin'), null);
+
+    const conOrigenPermitido = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_PWA } });
+    assert.equal(conOrigenPermitido.headers.get('access-control-allow-origin'), ORIGEN_PWA);
+
+    const conOrigenAjeno = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_AJENO } });
+    assert.equal(conOrigenAjeno.headers.get('access-control-allow-origin'), null);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === Errores en español, sin trazas ==============================================================
+
+test('errores responden {error} en español y sin trazas ni rutas internas', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const rutaDesconocida = await fetch(`${base}/no-existe`, { headers: cabeceras() });
+    assert.equal(rutaDesconocida.status, 404);
+    const datos = await rutaDesconocida.json();
+    assert.equal(typeof datos.error, 'string');
+    assert.ok(!('stack' in datos));
+    assert.ok(!datos.error.includes(process.cwd()), 'no debe filtrar rutas internas del disco');
+  } finally {
+    await cerrar();
+  }
+});
+
+// === Colchón nocturno =============================================================================
+
+test('esHoraNocturna: dentro y fuera de la ventana 2:00-7:00 Europe/Madrid, con y sin cambio de hora', () => {
+  assert.equal(esHoraNocturna(new Date('2026-09-14T00:30:00Z')), true); // CEST (verano): 02:30
+  assert.equal(esHoraNocturna(new Date('2026-09-14T04:59:00Z')), true); // CEST: 06:59
+  assert.equal(esHoraNocturna(new Date('2026-09-14T05:00:00Z')), false); // CEST: 07:00 (límite exclusivo)
+  assert.equal(esHoraNocturna(new Date('2026-09-14T23:59:00Z')), false); // CEST: 01:59
+  assert.equal(esHoraNocturna(new Date('2026-01-14T01:30:00Z')), true); // CET (invierno): 02:30
+  assert.equal(esHoraNocturna(new Date('2026-01-14T05:30:00Z')), true); // CET: 06:30
+  assert.equal(esHoraNocturna(new Date('2026-01-14T06:00:00Z')), false); // CET: 07:00
+  assert.equal(esHoraNocturna(new Date('2026-09-14T12:00:00Z')), false); // mediodía
+});
+
+test('rellenoNocturnoSiToca: dentro de la ventana llama a rellenarHaciaObjetivo con el último resumen', async () => {
+  const dir = await carpetaTmp();
+  await writeFile(
+    path.join(dir, 'ultimo-resumen.json'),
+    JSON.stringify({ areas: { economia: { nivel: 1, aciertoReciente: 0.2 } }, rutasAtomo: [] }),
+    'utf8',
+  );
+  const llamadas = [];
+  const colaFake = {
+    rellenarHaciaObjetivo: async (resumen, rutasAtomo) => {
+      llamadas.push({ resumen, rutasAtomo });
+      return [];
+    },
+  };
+
+  const dentro = await rellenoNocturnoSiToca({ cola: colaFake, rutaDatos: dir, fecha: new Date('2026-09-14T02:00:00Z') }); // 04:00 Madrid
+  assert.equal(dentro, true);
+  assert.equal(llamadas.length, 1);
+  assert.equal(llamadas[0].resumen.areas.economia.nivel, 1);
+
+  const fuera = await rellenoNocturnoSiToca({ cola: colaFake, rutaDatos: dir, fecha: new Date('2026-09-14T12:00:00Z') });
+  assert.equal(fuera, false);
+  assert.equal(llamadas.length, 1, 'fuera de la ventana no debe llamar de nuevo');
+});
+
+test('rellenoNocturnoSiToca: sin ultimo-resumen.json todavía, usa resumen vacío sin fallar', async () => {
+  const dir = await carpetaTmp();
+  const llamadas = [];
+  const colaFake = {
+    rellenarHaciaObjetivo: async (resumen, rutasAtomo) => {
+      llamadas.push({ resumen, rutasAtomo });
+      return [];
+    },
+  };
+  const hizo = await rellenoNocturnoSiToca({ cola: colaFake, rutaDatos: dir, fecha: new Date('2026-09-14T02:00:00Z') });
+  assert.equal(hizo, true);
+  assert.deepEqual(llamadas[0].resumen, {});
+  assert.deepEqual(llamadas[0].rutasAtomo, []);
+});
