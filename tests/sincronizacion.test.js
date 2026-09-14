@@ -18,11 +18,13 @@ import {
 } from '../sincronizacion.js';
 
 const URL_SERVIDOR = 'https://servidor.prueba';
+// Ronda final de revisión (adversarial A6+A13): `leerConfiguracion` ahora reutiliza
+// `sanearToken`/`sanearServidor` (antes solo comprobaba "string no vacío"), así que un token corto
+// como 'abc' YA NO pasa el saneado ni siquiera guardado directamente a mano en el localStorage
+// falso -- TOKEN se queda solo para el test que comprueba justo eso (más abajo);
+// `prepararGlobales({ conConfiguracion: true })` y el resto de tests de este fichero usan
+// TOKEN_VALIDO (16-128 caracteres, sin espacios ni control, Ronda 1 de revisión — Important #1).
 const TOKEN = 'abc';
-// Token de longitud válida (16-128, Ronda 1 de revisión — Important #1) para los tests de
-// guardarConfiguracionDesdeUrl: TOKEN ('abc') sigue sirviendo tal cual para el resto de tests de
-// este fichero, que escriben `one.servidor` directamente en el localStorage falso sin pasar por
-// el saneado (leerConfiguracion no impone longitud, solo guardarConfiguracionDesdeUrl).
 const TOKEN_VALIDO = 'token-de-prueba-1234567890';
 const HOY = '2026-09-14';
 
@@ -45,7 +47,7 @@ function prepararGlobales({ conConfiguracion = false } = {}) {
   if (conConfiguracion) {
     globalThis.localStorage.setItem(
       'one.servidor',
-      JSON.stringify({ url: URL_SERVIDOR, token: TOKEN })
+      JSON.stringify({ url: URL_SERVIDOR, token: TOKEN_VALIDO })
     );
   }
   return { llamadasReplaceState };
@@ -98,7 +100,13 @@ test('leerConfiguracion: null si falta url o token', () => {
 
 test('leerConfiguracion: devuelve {url, token} guardados', () => {
   prepararGlobales({ conConfiguracion: true });
-  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN });
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('leerConfiguracion: token corto guardado a mano (sin pasar por el saneado de guardarConfiguracionDesdeUrl) → null (adversarial A6+A13)', () => {
+  prepararGlobales();
+  globalThis.localStorage.setItem('one.servidor', JSON.stringify({ url: URL_SERVIDOR, token: TOKEN }));
+  assert.equal(leerConfiguracion(), null);
 });
 
 // === guardarConfiguracionDesdeUrl ===================================================================
@@ -122,6 +130,25 @@ test('guardarConfiguracionDesdeUrl: guarda url+token y limpia la URL preservando
   assert.equal(llamadasReplaceState.length, 1);
   const [, , urlLimpia] = llamadasReplaceState[0];
   assert.equal(urlLimpia, '/one/?test=1');
+});
+
+test('guardarConfiguracionDesdeUrl: sin history.replaceState (lanza), usa location.replace como último recurso (adversarial A2)', () => {
+  prepararGlobales();
+  const llamadasReplace = [];
+  globalThis.history = {
+    replaceState: () => {
+      throw new Error('sin history real');
+    },
+  };
+  globalThis.location = { replace: (url) => llamadasReplace.push(url) };
+  const guardo = guardarConfiguracionDesdeUrl({
+    search: `?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}`,
+    pathname: '/',
+  });
+  assert.equal(guardo, true); // la configuración se guarda igual, pase lo que pase con la URL
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+  assert.deepEqual(llamadasReplace, ['/']);
+  delete globalThis.location;
 });
 
 test('guardarConfiguracionDesdeUrl: falta uno de los dos parámetros → no guarda ni toca la URL', () => {
@@ -307,6 +334,22 @@ test('fusionarBancoExtra: excluye ids ya reportados (estado.reportadas)', () => 
   );
 });
 
+test('fusionarBancoExtra: purga de bancoExtra las que YA estaban guardadas y ahora están reportadas (Minor #12)', () => {
+  prepararGlobales();
+  const estadoSinReportar = crearEstado(HOY);
+  fusionarBancoExtra([{ id: 'srv-luego-reportada' }, { id: 'srv-normal' }], estadoSinReportar);
+  assert.deepEqual(leerBancoExtra().map((p) => p.id), ['srv-luego-reportada', 'srv-normal']);
+
+  // El jugador reporta 'srv-luego-reportada' DESPUÉS de que ya estuviera en bancoExtra: la
+  // siguiente sincronización (con nuevas vacías, o cualquiera) debe purgarla, no solo excluir
+  // reportadas de las nuevas.
+  const estadoConReportada = crearEstado(HOY);
+  estadoConReportada.reportadas = ['srv-luego-reportada'];
+  const resultado = fusionarBancoExtra([], estadoConReportada);
+  assert.deepEqual(resultado, { anadidas: 0, total: 1 });
+  assert.deepEqual(leerBancoExtra().map((p) => p.id), ['srv-normal']);
+});
+
 test('fusionarBancoExtra: excluye ids que colisionan con idsLocales (banco local)', () => {
   prepararGlobales();
   const estado = crearEstado(HOY);
@@ -355,7 +398,7 @@ test('sincronizarEstado: cabecera Authorization y cuerpo con resumen/idsConocido
   const { url, opciones } = fetchFalso.llamadas[0];
   assert.equal(url, `${URL_SERVIDOR}/estado`);
   assert.equal(opciones.method, 'POST');
-  assert.equal(opciones.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(opciones.headers.Authorization, `Bearer ${TOKEN_VALIDO}`);
   assert.ok(opciones.signal instanceof AbortSignal);
 
   const cuerpo = JSON.parse(opciones.body);
@@ -401,7 +444,7 @@ test('pedirTanda: POST /generar con urgente:true siempre, devuelve trabajoId/est
   assert.deepEqual(resultado, { trabajoId: 't-1', estimadoSeg: 90 });
   const { url, opciones } = fetchFalso.llamadas[0];
   assert.equal(url, `${URL_SERVIDOR}/generar`);
-  assert.equal(opciones.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(opciones.headers.Authorization, `Bearer ${TOKEN_VALIDO}`);
   const cuerpo = JSON.parse(opciones.body);
   assert.deepEqual(cuerpo, { area: 'economia', ruta: ['inflacion'], n: 10, urgente: true });
 });
@@ -411,6 +454,17 @@ test('pedirTanda: error del servidor → null', async () => {
   const fetchFalso = crearFetchFalso([{ ok: false, status: 503, cuerpo: { error: 'La cola está llena' } }]);
   const resultado = await pedirTanda({ area: 'economia', fetchImpl: fetchFalso });
   assert.equal(resultado, null);
+});
+
+test('pedirTanda: n inválido (ausente, negativo o decimal) se sanea a 10 (adversarial A12)', async () => {
+  for (const nInvalido of [undefined, -1, 0, 3.5, 'diez']) {
+    prepararGlobales({ conConfiguracion: true });
+    const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { trabajoId: 't-1', estimadoSeg: 10 } }]);
+    // eslint-disable-next-line no-await-in-loop -- test secuencial, sin solape de llamadas.
+    await pedirTanda({ area: 'economia', n: nInvalido, fetchImpl: fetchFalso });
+    const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+    assert.equal(cuerpo.n, 10, `n=${JSON.stringify(nInvalido)} debería sanearse a 10`);
+  }
 });
 
 test('consultarTrabajo: GET /trabajo/:id con el id codificado, devuelve el objeto tal cual', async () => {

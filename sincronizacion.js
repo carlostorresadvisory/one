@@ -16,6 +16,18 @@
 //   console.*, nunca viajan a ningún sitio salvo al propio servidor configurado.
 import { resumenProgreso, sumarDias } from './motor.js';
 
+// Ronda final de revisión (adversarial A1): `AbortSignal.timeout` no existe en iOS < 16.4 --
+// sin este polyfill, `peticionJson` lanzaría "AbortSignal.timeout is not a function" en vez de
+// devolver `null`, tumbando la app entera en un iPhone con Safari viejo. Mismo contrato que el
+// nativo: un `AbortSignal` que se aborta solo pasados `ms` milisegundos.
+if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout !== 'function') {
+  AbortSignal.timeout = function timeout(ms) {
+    const controlador = new AbortController();
+    setTimeout(() => controlador.abort(new Error('TimeoutError')), ms);
+    return controlador.signal;
+  };
+}
+
 const CLAVE_SERVIDOR = 'one.servidor';
 const CLAVE_BANCO_EXTRA = 'one.bancoExtra';
 const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
@@ -32,6 +44,12 @@ const TIMEOUT_MS = 10000;
 /**
  * Lee `{url, token}` guardado en `localStorage` (clave `one.servidor`). `null` si no hay nada
  * guardado, si el JSON está corrupto, o si falta alguno de los dos campos — nunca lanza.
+ *
+ * Ronda final de revisión (adversarial A6+A13): reutiliza `sanearToken`/`sanearServidor` (las
+ * mismas que ya usa `guardarConfiguracionDesdeUrl`) en vez de solo comprobar que sean strings no
+ * vacíos -- antes, un `one.servidor` corrupto a mano (o un token de una versión antigua sin el
+ * saneado de la Ronda 1) se leía tal cual y viajaba en cada petición futura. Devuelve el `url` ya
+ * normalizado a su origin, igual que al guardar.
  * @returns {{url: string, token: string} | null}
  */
 export function leerConfiguracion() {
@@ -39,9 +57,11 @@ export function leerConfiguracion() {
     const guardado = localStorage.getItem(CLAVE_SERVIDOR);
     if (!guardado) return null;
     const datos = JSON.parse(guardado);
-    if (!datos || typeof datos.url !== 'string' || typeof datos.token !== 'string') return null;
-    if (!datos.url || !datos.token) return null;
-    return { url: datos.url, token: datos.token };
+    if (!datos) return null;
+    const token = sanearToken(datos.token);
+    const origen = sanearServidor(datos.url);
+    if (!token || !origen) return null;
+    return { url: origen, token };
   } catch {
     return null;
   }
@@ -130,9 +150,22 @@ export function guardarConfiguracionDesdeUrl(location) {
   try {
     history.replaceState(null, '', urlLimpia);
   } catch {
-    // Sin `history` real (entorno de test sin ese global, o navegador muy antiguo): si se guardó
-    // configuración válida, ya quedó guardada, que es lo que de verdad importa para el resto de
-    // la app.
+    // Ronda final de revisión (adversarial A2): sin `history.replaceState` (navegador muy viejo,
+    // o el global no existe), el token/host quedarían colgando en la barra de direcciones -- un
+    // riesgo real (capturas de pantalla, historial compartido). Último recurso: navegar de verdad
+    // a la URL limpia con `location.replace` (no añade una entrada nueva al historial, igual que
+    // `replaceState`). Si tampoco existe (entorno de test sin `location` global), no queda nada
+    // más que hacer del lado del cliente -- la configuración, si era válida, ya se guardó arriba,
+    // que es lo que de verdad importa para el resto de la app.
+    try {
+      // `globalThis.location`, NUNCA el parámetro `location` de esta función (que solo trae
+      // `{search, pathname, hash}`, sin `.replace` -- lo shadowea por nombre, no es el mismo
+      // objeto): el fallback navega de verdad, así que tiene que ser el `location` real del
+      // navegador.
+      globalThis.location.replace(urlLimpia);
+    } catch {
+      // Ningún mecanismo de navegación disponible: ver comentario de arriba.
+    }
   }
   return guardado;
 }
@@ -195,9 +228,14 @@ function descartarConsolidadasAntiguas(lista, estado, exceso) {
  * @returns {{anadidas: number, total: number}}
  */
 export function fusionarBancoExtra(nuevas, estado, idsLocales) {
-  const actuales = leerBancoExtra();
-  const idsActuales = new Set(actuales.map((p) => p.id));
   const reportadas = new Set((estado && estado.reportadas) || []);
+  // Ronda final de revisión (Minor #12): purga también las que YA estaban en `bancoExtra` y
+  // ahora están en `estado.reportadas` -- antes el filtro de `reportadas` solo actuaba sobre
+  // `nuevas`, así que una pregunta reportada DESPUÉS de haber entrado en el banco (p. ej. el
+  // jugador la marca "está mal" en una sesión, y en la siguiente sincronización el servidor
+  // todavía no ha procesado el `/reportar`) se quedaba viva en `bancoExtra` indefinidamente.
+  const actuales = leerBancoExtra().filter((p) => !(p && reportadas.has(p.id)));
+  const idsActuales = new Set(actuales.map((p) => p.id));
   const vistos = new Set();
   const aAnadir = (Array.isArray(nuevas) ? nuevas : []).filter((p) => {
     if (!p || typeof p.id !== 'string') return false;
@@ -229,15 +267,32 @@ function cabeceras(token) {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
+/** Solo la ruta (sin origin) y el código -- nunca cuerpo, cabeceras, ni el token (Authorization
+ * viaja ahí). Ronda final de revisión (Minor #10): antes un fallo era enteramente silencioso, sin
+ * ni una línea en consola -- para depurar en vivo hace falta al menos un rastro mínimo y seguro. */
+function avisarFalloPeticion(url, motivo) {
+  try {
+    const ruta = new URL(url).pathname;
+    console.warn(`ONE servidor: ${ruta} ${motivo}`);
+  } catch {
+    // Si ni siquiera se puede parsear la URL para sacar la ruta, mejor no avisar que arriesgarse
+    // a filtrar la URL completa (con el token en query, si algún día lo llevara).
+  }
+}
+
 // Único punto que toca la red: siempre con timeout de 10 s y siempre `null` en vez de lanzar
 // (cuerpo no-JSON, HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede
 // limitarse a comprobar `datos === null` sin su propio try/catch repetido.
 async function peticionJson(fetchImpl, url, opciones) {
   try {
     const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (!respuesta.ok) return null;
+    if (!respuesta.ok) {
+      avisarFalloPeticion(url, String(respuesta.status));
+      return null;
+    }
     return await respuesta.json();
   } catch {
+    avisarFalloPeticion(url, 'red');
     return null;
   }
 }
@@ -310,13 +365,20 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
  * @param {{area: string, ruta?: string[], n?: number, fetchImpl?: Function}} params
  * @returns {Promise<{trabajoId: string, estimadoSeg: number} | null>}
  */
+const N_TANDA_DEFECTO = 10;
+
 export async function pedirTanda({ area, ruta = [], n, fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || !area) return null;
+  // Ronda final de revisión (adversarial A12): `n` inválido (undefined, NaN, negativo, decimal...)
+  // se sanea aquí a 10 en vez de mandarlo tal cual -- el servidor ya lo saneaba a su vez
+  // (servidor/index.js#manejarGenerar), pero es una petición más clara de leer en el log/red, y no
+  // depende de que el saneado del servidor no cambie nunca.
+  const nValido = Number.isInteger(n) && n > 0 ? n : N_TANDA_DEFECTO;
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/generar`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta, n, urgente: true }),
+    body: JSON.stringify({ area, ruta, n: nValido, urgente: true }),
   });
   if (!datos || typeof datos.trabajoId !== 'string') return null;
   return { trabajoId: datos.trabajoId, estimadoSeg: datos.estimadoSeg };
@@ -343,6 +405,10 @@ export async function consultarTrabajo(id, { fetchImpl = fetch } = {}) {
 }
 
 const cacheSubtemas = new Map();
+// Ronda final de revisión (adversarial A4): tope 50 -- una sesión muy larga explorando muchas
+// rutas distintas del átomo no debe acumular memoria sin límite. `Map` conserva el orden de
+// inserción, así que la PRIMERA clave es siempre la más antigua (se borra ella, no una al azar).
+const TOPE_CACHE_SUBTEMAS = 50;
 
 /**
  * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta]` (spec §4: "una sola
@@ -364,6 +430,9 @@ export async function pedirSubtemas({ area, ruta = [], fetchImpl = fetch } = {})
     body: JSON.stringify({ area, ruta }),
   });
   if (!datos || !Array.isArray(datos.subtemas)) return null;
+  if (cacheSubtemas.size >= TOPE_CACHE_SUBTEMAS) {
+    cacheSubtemas.delete(cacheSubtemas.keys().next().value);
+  }
   cacheSubtemas.set(clave, datos.subtemas);
   return datos.subtemas;
 }
