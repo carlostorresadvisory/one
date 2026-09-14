@@ -3974,6 +3974,39 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await expect(punto).toHaveAttribute('aria-label', /conectado/i);
   });
 
+  // Punto 7 del triaje final v0.2b3: la prueba de arriba solo cubría el punto del HUB
+  // (data-test="estado-servidor") -- misma comprobación (foco + aria-label), ahora desde su gemelo
+  // dentro de la cabecera del Átomo (data-test="atomo-estado-servidor").
+  test('foco (variante Átomo): Cancelar (y el éxito) devuelven el foco al punto del Átomo que abrió la hoja; su aria-label refleja el estado', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    const punto = page.locator('[data-test="atomo-estado-servidor"]');
+    await expect(punto).toHaveAttribute('aria-label', /sin conectar/i);
+
+    // Cancelar: la hoja se cierra y el foco vuelve al punto del Átomo que la abrió.
+    await punto.click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+
+    // Conectar de verdad: también tras el éxito el foco vuelve al punto del Átomo, y su
+    // aria-label pasa a reflejar "conectado".
+    await punto.click();
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+    await expect(punto).toHaveAttribute('aria-label', /conectado/i);
+  });
+
   test('enlace no válido: aviso de error sin cerrar la hoja; también se abre desde el aviso del átomo; Cancelar/Escape cierran y vacían el campo', async ({
     page,
   }) => {
