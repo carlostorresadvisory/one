@@ -2094,59 +2094,85 @@ main#app {
   cursor: pointer;
 }
 
+/* v0.2b3 Tarea 3 ("Ampliación"): "pop" de entrada cada vez que el texto del núcleo cambia (al
+   tocar un nodo, el estado ya cambió al instante en app.js -- esto es solo el acompañamiento
+   visual). `transform-box: fill-box` ancla la escala al centro del propio círculo, no al del
+   viewBox. Neutralizado por completo con prefers-reduced-motion (regla general al final de esta
+   hoja) -- ahí el cambio de estado sigue siendo inmediato, solo desaparece la animación. */
+.atomo-nucleo--entra {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: atomo-nucleo-entra 220ms ease-out;
+}
+
+@keyframes atomo-nucleo-entra {
+  from { transform: scale(0.85); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 .atomo-nodo-circulo {
   fill: var(--tarjeta);
   stroke: var(--acento);
   stroke-width: 1.5;
 }
 
+/* Texto DENTRO del nodo (v0.2b3: ya no debajo, ni etiqueta exterior) -- 10.5px para que quepan
+   hasta 3 líneas (envolverTexto(corto, 11, 3), ver atomo.js) sin desbordar el círculo de 38px. */
 .atomo-nodo-texto {
   fill: var(--texto);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
 }
 
-/* Órbita lenta (decisión #5: 60s/vuelta) con contra-rotación por nodo para que el texto quede
-   recto. `transform-box: view-box` ancla la rotación del grupo entero al centro del viewBox
-   (160,160), no a su caja variable; `fill-box` en cada nodo ancla su contra-rotación al centro
-   LOCAL de ese nodo (su propio círculo, ya trasladado a su posición en la órbita). La regla
-   general de "reducir movimiento" al final de esta hoja ya neutraliza cualquier animación
-   (`animation-duration: 0.001ms !important`); estas dos de aquí lo dejan explícito además. */
-.atomo-orbita {
-  transform-box: view-box;
-  transform-origin: 160px 160px;
-  animation: atomo-girar 60s linear infinite;
+.atomo-nodo-boton {
+  cursor: pointer;
 }
 
-/* Ronda 1 de revisión (Important #3): con la etiqueta bajo el círculo (no dentro), la caja de
-   contenido de este grupo (círculo + texto) deja de ser simétrica respecto a su centro real -- un
-   `transform-origin: center` con `fill-box` (que centra sobre esa caja asimétrica) haría que el
-   nodo "cabecee" en vez de quedarse quieto mientras contra-rota. `view-box` + `0px 0px` ancla el
-   giro al origen LOCAL de este grupo, que es exactamente el centro del nodo (su padre `.atomo-nodo`
-   ya lo trasladó ahí con `translate(x,y)`), sin depender de qué haya dentro. */
-.atomo-nodo-contra {
-  cursor: pointer;
-  transform-box: view-box;
-  transform-origin: 0px 0px;
-  animation: atomo-girar-inverso 60s linear infinite;
+/* Entrada de cada nodo del anillo (subtema, "Más…" o espera): sustituye a la órbita giratoria --
+   "el átomo es un árbol que se abre, no un sistema solar" (decisión del controlador, 14-sep). */
+.atomo-nodo {
+  animation: atomo-nodo-entra 220ms ease-out;
+}
+
+@keyframes atomo-nodo-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* "Más…" / "No hay más por ahora": círculo discontinuo, mismo estilo que los nodos de espera de
+   abajo pero CON texto y (salvo en `masVacio`) interactivo. */
+.atomo-nodo-circulo--mas {
+  stroke-dasharray: 4 3;
+}
+
+/* Nodos de espera (brief: "6 nodos vacíos discontinuos con un punto que late"): sin texto, no
+   pulsables (atomo.js no les pone role/tabindex ni handler; `pointer-events: none` aquí es
+   además defensivo). El punto late con una animación propia, independiente del fade de entrada. */
+.atomo-nodo-boton--esperando {
+  pointer-events: none;
+}
+
+.atomo-nodo-circulo--esperando {
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.atomo-nodo-punto {
+  fill: var(--acento);
+  animation: atomo-punto-late 1.1s ease-in-out infinite;
+}
+
+@keyframes atomo-punto-late {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
 }
 
 /* Ronda 1 de revisión (Minor #6): mismo anillo de foco que button:focus-visible (arriba), pero
    estos son <g role="button"> dentro de un SVG, no <button>, así que no lo heredan. */
 .atomo-nucleo:focus-visible,
-.atomo-nodo-contra:focus-visible {
+.atomo-nodo-boton:focus-visible {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
-}
-
-@keyframes atomo-girar {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes atomo-girar-inverso {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
 }
 
 .atomo-aviso {
@@ -2158,6 +2184,25 @@ main#app {
 
 .atomo-reintentar {
   align-self: center;
+}
+
+/* Fila "mientras" (v0.2b3 Tarea 3): bajo la ayuda, dos botones secundarios que ofrecen algo que
+   hacer mientras el anillo carga, falla, o se genera una tanda en segundo plano (ver
+   app.js#actualizarFilaMientras). Mismo patrón de `[hidden]` que .atomo-espera-acciones -- con
+   `display:flex` ya declarado, hace falta el override explícito. */
+.atomo-mientras {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.atomo-mientras[hidden] {
+  display: none;
+}
+
+.atomo-mientras .boton {
+  flex: 1;
+  font-size: 13px;
 }
 
 /* Botones fijos abajo (decisión #5): sigue a .atomo-cuerpo (flex:1), así que quedan pegados al
@@ -2218,7 +2263,12 @@ main#app {
 @media (prefers-reduced-motion: reduce) {
   .fondo-luz { animation: none; }
   .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
-  .atomo-orbita, .atomo-nodo-contra { animation: none; } /* órbita del Átomo, v0.2b2 §4 */
+  /* v0.2b3 Tarea 3: ya no hay órbita giratoria -- el "pop" del núcleo, la entrada de los nodos y
+     el punto que late de los nodos de espera se anulan aquí explícitamente (la regla genérica de
+     abajo ya los neutraliza también, esto lo deja explícito, mismo criterio que el resto de esta
+     hoja). El cambio de ESTADO (texto/cabecera/ruta) sigue siendo inmediato -- solo desaparece la
+     animación de acompañamiento. */
+  .atomo-nucleo--entra, .atomo-nodo, .atomo-nodo-punto { animation: none; }
 
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

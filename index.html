@@ -155,6 +155,15 @@
         <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
         <p class="atomo-ruta-completa" data-test="atomo-ruta-completa"></p>
         <p class="atomo-ayuda">Mantén pulsada un área del HUB para abrir su átomo</p>
+        <!-- Fila "mientras" (v0.2b3 Tarea 3, "Ampliación"): visible mientras el anillo carga,
+             mientras falla, o mientras se genera una tanda en segundo plano -- ver
+             app.js#actualizarFilaMientras. "Jugar el área" reutiliza empezarPartida({area}), la
+             misma función que usa el HUB al tocar una tarjeta de área; "Repasar" abre la pantalla
+             de repaso existente (abrirRepaso). -->
+        <div class="atomo-mientras" data-test="atomo-mientras" hidden>
+          <button type="button" class="boton" data-test="atomo-mientras-jugar">Jugar el área</button>
+          <button type="button" class="boton" data-test="atomo-mientras-repasar">Repasar</button>
+        </div>
         <!-- Adversarial A15: aria-live="polite" -- el texto cambia (conectar servidor / fallo al
              cargar subtemas) sin que el foco se mueva, así que un lector de pantalla no se
              enteraría sin esto. -->

@@ -196,6 +196,20 @@ let atomoConsultas = 0;
 // generando (esperaAtomo muestra los dos botones de siempre, no este).
 let atomoEsperaResultado = null;
 
+// --- Átomo dinámico (v0.2b3 Tarea 3, "Ampliación"): nodo "Más…", paginación y transición
+// inmediata al tocar (sin órbita giratoria, nodos de espera mientras se pide el anillo). ---
+// `mostrados` por anillo: completos ya mostrados en ESE anillo (decisión del controlador,
+// indexado por JSON.stringify(ruta) aunque en la práctica solo se lee/escribe la clave del anillo
+// vigente -- se reinicia entero al avanzar o retroceder a otra ruta, así "Más…" siempre empieza en
+// la página 1 al volver a visitar un anillo).
+let atomoMostrados = new Map();
+let atomoSubtemasActuales = []; // últimos subtemas pintados con éxito en el anillo vigente (para
+// restaurarlos si una página de "Más…" llega vacía).
+let atomoCargando = false; // true mientras /subtemas está en vuelo para el anillo vigente.
+let atomoFallo = false; // true tras un pedirSubtemas que devolvió null (aviso + Reintentar).
+let atomoAvisoLentoId = null; // setTimeout de 20s: "los modelos gratis van lentos...".
+let atomoTopeTimeoutId = null; // setTimeout de 2s del aviso "Máximo detalle: toca Generar".
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
@@ -232,6 +246,9 @@ const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar
 const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
 const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
 const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
+// Fila "mientras" (v0.2b3 Tarea 3): "Jugar el área"/"Repasar" visibles mientras el anillo carga,
+// mientras se genera una tanda en segundo plano, o si el anillo falló al cargar.
+const nodoAtomoMientras = document.querySelector('[data-test="atomo-mientras"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
@@ -616,15 +633,85 @@ function actualizarBotonGenerarAtomo() {
   nodoAtomoGenerar.textContent = 'Generar';
 }
 
+/** `nodoAtomoAviso` se reutiliza para tres textos distintos (conectar servidor / fallo al cargar /
+ * "Buscando subtemas…" mientras carga) -- `dataset.test` se resetea a 'atomo-aviso' aquí siempre,
+ * por si `mostrarCargandoAtomo` lo había dejado en 'atomo-cargando' (ver más abajo). */
 function mostrarAvisoAtomo(texto, { reintentar = false } = {}) {
+  nodoAtomoAviso.dataset.test = 'atomo-aviso';
   nodoAtomoAviso.textContent = texto;
   nodoAtomoAviso.hidden = false;
   nodoAtomoReintentar.hidden = !reintentar;
 }
 
 function ocultarAvisoAtomo() {
+  nodoAtomoAviso.dataset.test = 'atomo-aviso';
   nodoAtomoAviso.hidden = true;
   nodoAtomoReintentar.hidden = true;
+}
+
+/** Aviso mientras el anillo está en vuelo (`data-test="atomo-cargando"`, brief de la Ampliación):
+ * mismo nodo que mostrarAvisoAtomo, pero con su propio data-test mientras dura -- así un test
+ * puede distinguir "cargando" de "fallo" sin ambigüedad aunque sea el mismo elemento del DOM. */
+function mostrarCargandoAtomo() {
+  nodoAtomoAviso.dataset.test = 'atomo-cargando';
+  nodoAtomoAviso.textContent = 'Buscando subtemas…';
+  nodoAtomoAviso.hidden = false;
+  nodoAtomoReintentar.hidden = true;
+}
+
+/** Fila `atomo-mientras` ("Jugar el área"/"Repasar"): visible mientras el anillo carga, mientras
+ * falló, o mientras una tanda se genera en segundo plano (incluso si el jugador reabrió el átomo
+ * de OTRA área entre tanto) -- oculta solo cuando no hay nada de eso en vuelo (brief). */
+function actualizarFilaMientras() {
+  nodoAtomoMientras.hidden = !(atomoCargando || atomoFallo || Boolean(atomoTrabajoId));
+}
+
+/** Clave de `atomoMostrados` para el anillo vigente. */
+function claveAnilloAtomo() {
+  return JSON.stringify(atomoEstado.ruta);
+}
+
+/** Arranca el estado "cargando" de un anillo: aviso, fila-mientras, y el aviso de lentitud a los
+ * 20s (brief: "si la carga supera 20s, la ayuda dice..."). Común a cargarAnilloAtomo y
+ * manejarMasAtomo -- cualquier petición a /subtemas pasa por aquí. */
+function empezarCargaAtomo() {
+  atomoCargando = true;
+  atomoFallo = false;
+  mostrarCargandoAtomo();
+  actualizarFilaMientras();
+  clearTimeout(atomoAvisoLentoId);
+  atomoAvisoLentoId = setTimeout(() => {
+    if (!atomoCargando) return; // ya resolvió o se canceló (Atrás) antes de los 20s
+    nodoAtomoAviso.textContent = 'Los modelos gratis van lentos; puedes jugar o repasar mientras';
+  }, 20000);
+}
+
+/** Cierra el estado "cargando" (éxito, fallo o cancelación por Atrás) -- deja de avisar de
+ * lentitud y actualiza la fila-mientras acorde al resto del estado (fallo/trabajo en curso). */
+function terminarCargaAtomo() {
+  atomoCargando = false;
+  clearTimeout(atomoAvisoLentoId);
+  atomoAvisoLentoId = null;
+  actualizarFilaMientras();
+}
+
+/** "Máximo detalle: toca Generar" (brief, tope de 6 anillos): elemento propio con
+ * `data-test="atomo-tope"`, creado una sola vez y reutilizado -- vive junto al aviso de siempre,
+ * no lo sustituye (ese sigue disponible para "conectar servidor"/"fallo al cargar"). */
+let nodoAtomoTope = null;
+function mostrarAvisoTopeAtomo() {
+  if (!nodoAtomoTope) {
+    nodoAtomoTope = document.createElement('p');
+    nodoAtomoTope.className = 'atomo-aviso';
+    nodoAtomoTope.dataset.test = 'atomo-tope';
+    nodoAtomoAviso.insertAdjacentElement('afterend', nodoAtomoTope);
+  }
+  nodoAtomoTope.textContent = 'Máximo detalle: toca Generar';
+  nodoAtomoTope.hidden = false;
+  clearTimeout(atomoTopeTimeoutId);
+  atomoTopeTimeoutId = setTimeout(() => {
+    nodoAtomoTope.hidden = true;
+  }, 2000);
 }
 
 /** Pide el anillo correspondiente a `atomoEstado.ruta` y lo pinta. Decisión #1 del controlador:
@@ -632,7 +719,12 @@ function ocultarAvisoAtomo() {
  * apagado; con servidor pero `pedirSubtemas` devolviendo null, aviso de fallo + "Reintentar" --
  * Generar sigue disponible en ese caso (no depende del anillo actual, solo de la ruta YA
  * confirmada). `atomoPeticionId` descarta una respuesta tardía si el jugador ya avanzó/retrocedió
- * antes de que esta llegara (evita que un anillo viejo pise al nuevo). */
+ * antes de que esta llegara (evita que un anillo viejo pise al nuevo).
+ *
+ * v0.2b3 Tarea 3 ("Ampliación"): la cabecera/núcleo ya cambiaron ANTES de llamar aquí (ver
+ * manejarElegirSubtemaAtomo/manejarAtomoAtras) -- esta función solo añade el resto del cambio de
+ * pantalla "YA": nodos de espera mientras `pedirSubtemas` está en vuelo, en vez de dejar pintado
+ * el anillo anterior (pulsable, generando la ruta de basura que vio Carlos en el iPhone). */
 async function cargarAnilloAtomo() {
   if (!atomoEstado) return; // adversarial A7: la vista pudo cerrarse justo antes de esta llamada.
   actualizarCabeceraAtomo();
@@ -641,41 +733,103 @@ async function cargarAnilloAtomo() {
 
   const configuracion = leerConfiguracion();
   if (!configuracion) {
+    terminarCargaAtomo();
+    atomoFallo = false;
+    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('Conecta el servidor para generar preguntas nuevas');
     return;
   }
-  ocultarAvisoAtomo();
+
+  empezarCargaAtomo();
+  atomoInstancia.actualizar([], nucleoAtomoTexto(), { esperando: true });
 
   const idPeticion = (atomoPeticionId += 1);
   const subtemas = await pedirSubtemas({ area: atomoEstado.area, ruta: atomoEstado.ruta, fetchImpl: fetch });
   if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no es la petición vigente
 
+  terminarCargaAtomo();
   if (subtemas === null) {
+    atomoFallo = true;
+    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('No se pudieron cargar los subtemas', { reintentar: true });
     return;
   }
-  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto());
+  ocultarAvisoAtomo();
+  atomoMostrados.set(claveAnilloAtomo(), subtemas.map((s) => s.completo));
+  atomoSubtemasActuales = subtemas;
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
 }
 
+/** "Más…": pide la siguiente página del anillo VIGENTE (misma ruta, `excluir` = lo ya mostrado) --
+ * no avanza de anillo, así que pasa por el mismo estado "cargando" que cargarAnilloAtomo pero sin
+ * tocar la cabecera/ruta (no cambian). Página vacía/null: revierte a los subtemas anteriores con
+ * "No hay más por ahora" 2s (atomo.js#actualizar `masVacio`) y vuelve a "Más…". */
+async function manejarMasAtomo() {
+  if (!atomoEstado || atomoCargando) return;
+  const clave = claveAnilloAtomo();
+  const mostrados = atomoMostrados.get(clave) || [];
+  const subtemasPrevios = atomoSubtemasActuales;
+
+  empezarCargaAtomo();
+  atomoInstancia.actualizar([], nucleoAtomoTexto(), { esperando: true });
+
+  const idPeticion = (atomoPeticionId += 1);
+  const subtemas = await pedirSubtemas({
+    area: atomoEstado.area,
+    ruta: atomoEstado.ruta,
+    excluir: mostrados,
+    fetchImpl: fetch,
+  });
+  if (idPeticion !== atomoPeticionId || !atomoEstado) return;
+
+  terminarCargaAtomo();
+  if (!subtemas || subtemas.length === 0) {
+    atomoInstancia.actualizar(subtemasPrevios, nucleoAtomoTexto(), { conMas: true, masVacio: true });
+    setTimeout(() => {
+      if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no vigente
+      atomoInstancia.actualizar(atomoSubtemasActuales, nucleoAtomoTexto(), { conMas: true });
+    }, 2000);
+    return;
+  }
+  atomoMostrados.set(clave, [...mostrados, ...subtemas.map((s) => s.completo)]);
+  atomoSubtemasActuales = subtemas;
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
+}
+
+/** Tocar un nodo real: la cabecera/ruta/núcleo cambian AL INSTANTE (síncrono, antes de pedir nada
+ * al servidor) -- "al clicar tiene que pasar algo, cambiar la pantalla aunque sea mientras carga"
+ * (Carlos, 22:11). `cargarAnilloAtomo` se encarga del resto (nodos de espera + la petición). */
 function manejarElegirSubtemaAtomo(subtema) {
   const nuevoEstado = avanzar(atomoEstado, subtema);
-  if (nuevoEstado === atomoEstado) return; // ya en el máximo de 4 anillos (atomo.js#avanzar)
+  if (nuevoEstado === atomoEstado) {
+    mostrarAvisoTopeAtomo(); // ya en el máximo de 6 anillos (atomo.js#avanzar)
+    return;
+  }
   atomoEstado = nuevoEstado;
+  atomoMostrados = new Map(); // nuevo anillo: "Más…" empieza de página 1 (decisión del controlador)
   cargarAnilloAtomo();
 }
 
+/** Atrás cancela cualquier carga en vuelo (brief: "Atrás durante la carga") -- invalida la
+ * petición pendiente con `atomoPeticionId` y repinta el anillo anterior, que `pedirSubtemas` sirve
+ * de su propia caché en memoria si ya se había visitado. */
 function manejarAtomoAtras() {
   const nuevoEstado = retroceder(atomoEstado);
   if (nuevoEstado === atomoEstado) return; // ya en el anillo 1, nada que hacer
+  atomoPeticionId += 1; // invalida la petición vigente (si la había) antes de cambiar de ruta
+  terminarCargaAtomo();
   atomoEstado = nuevoEstado;
+  atomoMostrados = new Map();
   cargarAnilloAtomo();
 }
 
 /** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
 function abrirAtomo(area) {
   atomoEstado = crearEstadoAtomo(area);
+  atomoMostrados = new Map();
+  atomoFallo = false;
   if (atomoInstancia) atomoInstancia.destruir();
   atomoInstancia = crearAtomo({
     contenedor: nodoAtomoLienzo,
@@ -683,6 +837,7 @@ function abrirAtomo(area) {
     subtemas: [],
     alElegir: manejarElegirSubtemaAtomo,
     alVolver: manejarAtomoAtras,
+    alMas: manejarMasAtomo,
   });
   mostrarVista('atomo');
   cargarAnilloAtomo();
@@ -696,6 +851,8 @@ function limpiarAtomo() {
     atomoInstancia = null;
   }
   atomoEstado = null;
+  atomoFallo = false;
+  terminarCargaAtomo(); // cancela el aviso de lentitud pendiente y actualiza la fila-mientras
   ocultarAvisoAtomo(); // adversarial A7: barato, aunque la vista oculta ya lo impide visualmente.
 }
 
@@ -713,6 +870,7 @@ function finalizarTrabajoAtomo() {
   atomoTrabajoId = null;
   atomoTrabajoInfo = null;
   actualizarBotonGenerarAtomo();
+  actualizarFilaMientras(); // ya no hay tanda generándose: puede que la fila-mientras deba ocultarse
 }
 
 /** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
@@ -898,6 +1056,7 @@ async function manejarGenerarAtomo() {
   atomoTrabajoInfo = { corto };
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
+  actualizarFilaMientras(); // tanda generándose: si se reabre el átomo mientras tanto, se ve
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
 }
@@ -3130,6 +3289,13 @@ nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
 document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
+// Fila "atomo-mientras" (v0.2b3 Tarea 3): misma idea, dentro de la propia vista del átomo mientras
+// el anillo carga/falla o una tanda se genera en segundo plano -- "Jugar el área" reutiliza la
+// misma función que el HUB al tocar una tarjeta de área (empezarPartida({area})).
+document.querySelector('[data-test="atomo-mientras-jugar"]').addEventListener('click', () => {
+  if (atomoEstado) empezarPartida({ area: atomoEstado.area });
+});
+document.querySelector('[data-test="atomo-mientras-repasar"]').addEventListener('click', () => abrirRepaso());
 // Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
 // "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).
 nodoAtomoEsperaResultado.addEventListener('click', () => {
