@@ -2272,6 +2272,10 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
     await expect(actual.locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
 
+    // Minor 7 (ronda final de revisión): captura regenerada con el estado
+    // actual del repaso (respondidas primero).
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-375.png` });
+
     await page.keyboard.press('ArrowUp');
     await esperarAsentamientoMazo(page);
     await assertSinScroll(page);
@@ -2581,5 +2585,91 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
     await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('nivel 1');
     await expect(page.locator('[data-test="repaso-cierre"]')).toHaveCount(0);
+  });
+
+  // Ronda final de revisión (Opus, con el banco real a 393×852): C1
+  // (Critical, UX) — con 295 preguntas la columna de puntos era una raya
+  // inútil (el punto "actual" solo caía dentro de la caja cerca de la mitad
+  // del array) y se repintaba entera en cada deslizamiento (84 ms con CPU
+  // x4). Arreglo en mazo.js/pintarPuntos: por encima de 12 huecos, ventana de
+  // 9 puntos centrada en el índice actual.
+  test('C1 (Critical, ronda final de revisión de rendimiento): con el banco real, la columna de puntos pinta como mucho 9 y el punto actual siempre cae dentro de la caja', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    /** No basta con que `.mazo-punto--actual` exista en el DOM: antes de C1
+     * podía existir pero quedar fuera del área visible de `.mazo-puntos`
+     * (recortado por overflow) salvo cerca de la mitad del array. */
+    async function comprobarVentanaDePuntos() {
+      const conteo = await page.locator('.mazo-punto').count();
+      expect(conteo).toBeLessThanOrEqual(9);
+      const cajaColumna = await page.locator('.mazo-puntos').boundingBox();
+      const cajaActual = await page.locator('.mazo-punto--actual').boundingBox();
+      expect(cajaColumna).not.toBeNull();
+      expect(cajaActual).not.toBeNull();
+      expect(cajaActual.y, 'el punto actual queda por ENCIMA de .mazo-puntos').toBeGreaterThanOrEqual(
+        cajaColumna.y - 1
+      );
+      expect(
+        cajaActual.y + cajaActual.height,
+        'el punto actual queda por DEBAJO de .mazo-puntos'
+      ).toBeLessThanOrEqual(cajaColumna.y + cajaColumna.height + 1);
+    }
+
+    await comprobarVentanaDePuntos(); // índice 0, recién abierto.
+
+    // Banco real sin filtrar (295 preguntas, todas sin responder de fábrica):
+    // salto de test (window.__one.irA), no 150/294 ArrowUp reales.
+    await page.evaluate(() => window.__one.irA(150));
+    await esperarAsentamientoMazo(page);
+    await comprobarVentanaDePuntos();
+
+    await page.evaluate(() => window.__one.irA(294)); // última del banco real sin filtrar.
+    await esperarAsentamientoMazo(page);
+    await comprobarVentanaDePuntos();
+  });
+
+  // Ronda final de revisión: I1 (Important, rendimiento) — abrir el repaso
+  // con el banco real construía las ~295 tarjetas de golpe (2,5 s con CPU x4,
+  // 27.000 nodos). Arreglo: mismo mecanismo que la partida (huecos con
+  // `nodo: null` hasta la PRIMERA VEZ que se llega a ellos, ver
+  // mantenerVueltasRepaso/asegurarRepasoConstruidoHasta en app.js).
+  test('I1 (Important, ronda final de revisión de rendimiento): abrir el repaso con el banco real construye como mucho 3 tarjetas, y cada deslizamiento como mucho una más', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const construidasAlAbrir = await page.evaluate(() => window.__one.repasoNodosConstruidos());
+    expect(construidasAlAbrir).toBeLessThanOrEqual(3);
+
+    for (let i = 0; i < 10; i += 1) {
+      await page.keyboard.press('ArrowUp');
+      await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+    }
+
+    const construidasTrasDiez = await page.evaluate(() => window.__one.repasoNodosConstruidos());
+    expect(construidasTrasDiez).toBeLessThanOrEqual(13);
+
+    // La vuelta infinita y el contador n/N siguen funcionando con huecos
+    // perezosos: n/N se fija por vuelta (no por cuántos nodos hay
+    // construidos), así que se sigue viendo con normalidad.
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toBeVisible();
   });
 });

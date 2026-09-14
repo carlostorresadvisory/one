@@ -102,13 +102,17 @@ let repasoPartida = [];
 // ver con mazoResumenControlador (el repaso de UNA partida ya jugada): este
 // es el feed de TODO el banco (lo respondido + lo que falta por responder).
 let mazoRepasoControlador = null;
-// Nodos del mazo de repaso ahora mismo cargados (espejo de lo que tiene
-// `mazoRepasoControlador`, para poder concatenar/recortar sin tener que
-// leerlo de vuelta del controlador) y el tamaño de cada VUELTA que compone
-// `repasoNodos`, en el mismo orden (spec v0.2a.1 §7, "sin fin": se van
-// añadiendo vueltas completas y se retiran las más antiguas ya recorridas,
-// máximo ~2 vueltas en el DOM). Ver mantenerVueltasRepaso.
-let repasoNodos = [];
+// Huecos del repaso (I1, ronda final de revisión de rendimiento: abrir el
+// repaso con el banco real construía las ~295 tarjetas de golpe, 2,5 s con
+// CPU x4). Mismo mecanismo que el mazo de la partida (`mazo`/`rellenarHueco`
+// en app.js): cada hueco conoce ya su item, su posición y el total de SU
+// vuelta (baratos, sin DOM), pero `nodo` se queda `null` hasta la PRIMERA VEZ
+// que se llega a él (`mantenerVueltasRepaso`/`asegurarRepasoConstruidoHasta`
+// construyen como mucho uno por deslizamiento). `repasoVueltaTamanos` es el
+// tamaño de cada VUELTA dentro de `repasoHuecos`, en el mismo orden (spec
+// v0.2a.1 §7, "sin fin": se van conociendo vueltas completas — barato — y se
+// retiran las más antiguas ya recorridas del todo, máximo ~2 vueltas).
+let repasoHuecos = [];
 let repasoVueltaTamanos = [];
 // Filtro de área activo del repaso del HUB: 'todas' o una de AREAS. Se
 // recuerda en sessionStorage (spec v0.2 §2: "se recuerda en sessionStorage",
@@ -338,7 +342,7 @@ function limpiarRepasoMazo() {
     mazoRepasoControlador.destruir();
     mazoRepasoControlador = null;
   }
-  repasoNodos = [];
+  repasoHuecos = [];
   repasoVueltaTamanos = [];
 }
 
@@ -441,7 +445,20 @@ if (new URLSearchParams(location.search).get('test') === '1') {
   window.__one = {
     irA(indice) {
       const activo = mazosActivos.find((m) => m.estaVisible());
-      if (activo) activo.irA(indice);
+      if (!activo) return;
+      // El repaso construye sus tarjetas de forma perezosa (I1, ronda final
+      // de revisión de rendimiento): el gesto/tecla real siempre navega de
+      // uno en uno, así que mantenerVueltasRepaso solo necesita construir el
+      // actual + un colchón. Un salto de TEST directo a un índice lejano
+      // (irA(150), irA(294)...) necesita los huecos intermedios ya
+      // construidos o mazo.js lo rebota (`nuevo >= lista.length`) — se
+      // construyen aquí, solo para este salto, sin tocar el mecanismo
+      // perezoso normal.
+      if (activo === mazoRepasoControlador) {
+        asegurarRepasoConstruidoHasta(indice + 1);
+        mazoRepasoControlador.actualizarTarjetas(listaMazoRepaso(), 0);
+      }
+      activo.irA(indice);
     },
     // Arranca una partida filtrada a ids concretos (mismo mecanismo que Misión
     // de hoy/Pendientes): para que el e2e pueda forzar preguntas concretas del
@@ -466,16 +483,24 @@ if (new URLSearchParams(location.search).get('test') === '1') {
       bancoPorId.set(pregunta.id, pregunta);
       banco.push(pregunta);
     },
-    // Tamaño ahora mismo del array que respalda el mazo de repaso del HUB
-    // (v0.2a.1 §7, repaso "sin fin"): mazo.js ya limita a máximo 3 los nodos
-    // REALMENTE adjuntos al DOM en cada momento (ventana anterior/actual/
-    // siguiente, ver render() en mazo.js) sea cual sea el tamaño de este
-    // array — así que contar `.tarjeta` en el DOM no distinguiría un recorte
-    // de vueltas correcto de uno roto. Lo que de verdad puede crecer sin
-    // límite (y lo que mantenerVueltasRepaso acota a ~2 vueltas) es este
-    // array; el e2e comprueba ESTE número, no el recuento del DOM.
+    // Nº de ITEMS ya conocidos (baratos, sin DOM) de las vueltas del repaso
+    // cargadas ahora mismo (v0.2a.1 §7, repaso "sin fin"): lo que
+    // `mantenerVueltasRepaso` acota a ~2 vueltas al recortar la más antigua
+    // ya recorrida. Mazo.js ya limita a máximo 3 los nodos REALMENTE
+    // adjuntos al DOM en cada momento (ventana anterior/actual/siguiente, ver
+    // render() en mazo.js) sea cual sea el tamaño de este array — así que
+    // contar `.tarjeta` en el DOM no distinguiría un recorte de vueltas
+    // correcto de uno roto. El e2e comprueba ESTE número, no el recuento del DOM.
     repasoNodosLength() {
-      return repasoNodos.length;
+      return repasoHuecos.length;
+    },
+    // Nº de tarjetas REALMENTE construidas (I1, ronda final de revisión de
+    // rendimiento): `repasoHuecos` conoce todos los items de la vuelta, pero
+    // `nodo` se queda `null` hasta la primera vez que se llega a ese hueco.
+    // Al abrir debe ser ≤ 3; tras 10 deslizamientos, ≤ 13 (como mucho una
+    // tarjeta nueva por deslizamiento).
+    repasoNodosConstruidos() {
+      return listaMazoRepaso().length;
     },
   };
 }
@@ -1639,15 +1664,22 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta';
   tarjeta.dataset.test = 'tarjeta';
-  tarjeta.dataset.respondida = 'true';
   // Sin responder (v0.2a.1 §7, tramo 2 del repaso infinito): hueco.correcta
   // es undefined a propósito (nunca se ha respondido de verdad, ni acierto
   // ni fallo que marcar) — borde NEUTRO, ni verde ni rojo, sin la animación
   // de pulso/sacudida que sí llevan correcto/incorrecto (spec: "ni verde ni
-  // rojo: clase tarjeta--neutra").
+  // rojo: clase tarjeta--neutra"), y SIN `dataset.respondida` (Minor 1, ronda
+  // final de revisión: nunca se ha respondido de verdad, así que marcarla
+  // como "respondida" sería falso). `ajustarEncaje` (mazo.js) distingue la
+  // cascada de una pregunta ACTIVA sin responder mirando
+  // `dataset.respondida === 'false'`, no `!== 'true'`, así que esta tarjeta
+  // (construida con la MISMA forma que una respondida: zona de respuesta +
+  // feedback, no la de una pregunta activa) sigue cayendo en la cascada
+  // correcta aunque no lleve el atributo.
   if (hueco.correcta === undefined) {
     tarjeta.classList.add('tarjeta--neutra');
   } else {
+    tarjeta.dataset.respondida = 'true';
     tarjeta.classList.add(hueco.correcta ? 'correcto' : 'incorrecto');
   }
 
@@ -2187,18 +2219,59 @@ function actualizarFiltroRepasoFinal() {
   contenedorFiltroRepaso.classList.toggle('repaso-filtro--final', alFinal);
 }
 
+/** El PREFIJO de `repasoHuecos` ya construido en nodos DOM, en orden (I1,
+ * ronda final de revisión de rendimiento): mazo.js nunca debe ver un hueco
+ * sin construir, así que se corta en el primer `nodo` a `null`.
+ * `mantenerVueltasRepaso`/`asegurarRepasoConstruidoHasta` garantizan que el
+ * hueco actual y su colchón siempre están construidos ANTES de llamar a
+ * esto, así que el corte nunca deja fuera al que hace falta mostrar. */
+function listaMazoRepaso() {
+  const construidos = [];
+  for (const hueco of repasoHuecos) {
+    if (!hueco.nodo) break;
+    construidos.push(hueco.nodo);
+  }
+  return construidos;
+}
+
+/** Añade vueltas (solo ITEMS: baratos, sin construir DOM) a `repasoHuecos`
+ * hasta conocer al menos `hastaIndice + 1`, y construye los nodos DOM del 0
+ * hasta `hastaIndice` que todavía no lo estén. Uso: el salto de TEST directo
+ * (`window.__one.irA`), que a diferencia del gesto real (siempre ±1) puede
+ * pedir un índice lejano de golpe — recorre `repasoHuecos` desde el principio
+ * porque no sabe qué tramo ya estaba construido, a diferencia del camino
+ * normal (`mantenerVueltasRepaso`), que sí lo sabe y por eso solo mira dos
+ * posiciones por deslizamiento. */
+function asegurarRepasoConstruidoHasta(hastaIndice) {
+  while (repasoHuecos.length <= hastaIndice) {
+    const lista = construirFeedRepaso(estado, banco, hoy(), filtroRepaso);
+    if (lista.length === 0) break; // defensivo: no debería darse con banco no vacío
+    repasoVueltaTamanos.push(lista.length);
+    lista.forEach((item, i) => repasoHuecos.push({ item, posicion: i, total: lista.length, nodo: null }));
+  }
+  for (let i = 0; i <= hastaIndice && i < repasoHuecos.length; i += 1) {
+    const hueco = repasoHuecos[i];
+    if (!hueco.nodo) hueco.nodo = construirTarjetaRepaso(hueco.item, hueco.posicion, hueco.total);
+  }
+}
+
 /**
- * Sin fin de verdad (spec v0.2a.1 §7): mientras al usuario le queden ≤ 3
- * tarjetas por delante en `repasoNodos`, añade otra vuelta completa (feed
- * recalculado con el mismo filtro — así refleja cualquier cambio de estado
- * mientras tanto, aunque hoy no haya forma de responder desde el repaso y en
- * la práctica salga siempre igual). Para que el DOM no crezca sin límite se
- * conservan como máximo ~2 vueltas: al superar esa cuenta se retira la vuelta
- * más antigua (nunca la actual ni una que el usuario no haya recorrido ya del
- * todo) y se reajusta el índice hacia abajo con el segundo argumento de
- * `actualizarTarjetas` (cambio mínimo en mazo.js, ver su comentario) para que
- * el usuario no note ningún salto: sigue viendo exactamente la misma tarjeta.
- * `indice` es la posición ACTUAL dentro de `repasoNodos` (no dentro de una
+ * Sin fin de verdad (spec v0.2a.1 §7) Y perezoso (I1, ronda final de
+ * revisión de rendimiento: abrir el repaso con el banco real construía las
+ * ~295 tarjetas de golpe, 2,5 s con CPU x4 — 27.000 nodos). Tres pasos en
+ * cada cambio de índice:
+ *  1. Conocer más ITEMS (baratos, sin DOM) mientras al usuario le queden ≤ 3
+ *     por delante en `repasoHuecos` — feed recalculado con el mismo filtro.
+ *  2. Construir como mucho UN nodo nuevo: el actual, por si aún no existe
+ *     (primer montaje o justo tras un recorte de vuelta), y uno de colchón
+ *     por delante — mismo mecanismo que `asegurarSiguienteDisponible` en la
+ *     partida ("rellena la PRIMERA VEZ que se llega a él").
+ *  3. Retirar la vuelta más antigua ya recorrida del todo (items Y nodos),
+ *     máximo ~2 vueltas cargadas: al superarlas se recorta por delante y se
+ *     reajusta el índice hacia abajo con el segundo argumento de
+ *     `actualizarTarjetas` (cambio mínimo en mazo.js, ver su comentario) para
+ *     que el usuario no note ningún salto: sigue viendo la misma tarjeta.
+ * `indice` es la posición ACTUAL dentro de `repasoHuecos` (no dentro de una
  * vuelta). Se llama una vez a mano justo tras montar el mazo (mismo patrón
  * que `manejarCambioIndiceMazo(0)` en `empezarPartida`) y luego en cada
  * `alCambiar`.
@@ -2207,37 +2280,41 @@ function mantenerVueltasRepaso(indice) {
   let indiceRelativo = indice;
   let huboCambio = false;
 
-  // 1) Añadir vueltas mientras el colchón por delante sea de 3 tarjetas o menos.
-  while (repasoNodos.length - 1 - indiceRelativo <= 3) {
+  while (repasoHuecos.length - 1 - indiceRelativo <= 3) {
     const lista = construirFeedRepaso(estado, banco, hoy(), filtroRepaso);
     if (lista.length === 0) break; // defensivo: no debería darse con banco no vacío
-    const nodos = lista.map((item, i) => construirTarjetaRepaso(item, i, lista.length));
-    repasoVueltaTamanos.push(nodos.length);
-    repasoNodos = repasoNodos.concat(nodos);
-    huboCambio = true;
+    repasoVueltaTamanos.push(lista.length);
+    lista.forEach((item, i) => repasoHuecos.push({ item, posicion: i, total: lista.length, nodo: null }));
   }
 
-  // 2) Retirar la vuelta más antigua ya recorrida del todo, máximo ~2 vueltas
-  // en el DOM. Solo si el usuario ya la ha pasado entera (indiceRelativo, ya
-  // descontado lo retirado en esta misma pasada, cae en o después de ella) —
-  // nunca se recorta por delante de la tarjeta actual.
+  for (const i of [indiceRelativo, indiceRelativo + 1]) {
+    const hueco = repasoHuecos[i];
+    if (hueco && !hueco.nodo) {
+      hueco.nodo = construirTarjetaRepaso(hueco.item, hueco.posicion, hueco.total);
+      huboCambio = true;
+    }
+  }
+
   let ajuste = 0;
   while (repasoVueltaTamanos.length > 2 && repasoVueltaTamanos[0] <= indiceRelativo - ajuste) {
     ajuste += repasoVueltaTamanos.shift();
   }
   if (ajuste > 0) {
-    repasoNodos = repasoNodos.slice(ajuste);
+    repasoHuecos = repasoHuecos.slice(ajuste);
     huboCambio = true;
   }
 
-  if (huboCambio) mazoRepasoControlador.actualizarTarjetas(repasoNodos, ajuste);
+  if (huboCambio) mazoRepasoControlador.actualizarTarjetas(listaMazoRepaso(), ajuste);
 }
 
 /** Recalcula el feed completo, pinta los chips y (re)monta el mazo filtrado
  * (spec v0.2a.1 §7): se usa tanto para abrir la vista por primera vez como
  * para remontar tras cambiar de chip — nunca cambia de vista por sí misma
  * (ver abrirRepaso), así que un cambio de filtro no retriggerea la animación
- * de entrada de la vista. */
+ * de entrada de la vista. Construye el feed UNA sola vez (Minor 5, ronda
+ * final de revisión) y filtra el resultado ya calculado en vez de volver a
+ * recorrer `ordenarRepaso`/`listarNoRespondidas` una segunda vez solo para
+ * aplicar el filtro. */
 function renderRepaso() {
   limpiarRepasoMazo();
   const listaCompleta = construirFeedRepaso(estado, banco, hoy(), null);
@@ -2250,16 +2327,17 @@ function renderRepaso() {
     guardarFiltroRepaso(filtroRepaso);
   }
   renderFiltroRepaso(listaCompleta);
-  const primeraLista = construirFeedRepaso(estado, banco, hoy(), filtroRepaso);
+  const primeraLista =
+    filtroRepaso === 'todas' ? listaCompleta : listaCompleta.filter((item) => item.pregunta.area === filtroRepaso);
   repasoVueltaTamanos = [primeraLista.length];
-  repasoNodos = primeraLista.map((item, i) => construirTarjetaRepaso(item, i, primeraLista.length));
+  repasoHuecos = primeraLista.map((item, i) => ({ item, posicion: i, total: primeraLista.length, nodo: null }));
   contenedorMazoRepaso.innerHTML = '';
-  mazoRepasoControlador = montarMazo(contenedorMazoRepaso, repasoNodos, {
+  mazoRepasoControlador = montarMazo(contenedorMazoRepaso, [], {
     contarPista: false,
     puntosNeutros: true,
     alCambiar: mantenerVueltasRepaso,
   });
-  mantenerVueltasRepaso(0); // dispara el pre-relleno inicial (mismo patrón que empezarPartida).
+  mantenerVueltasRepaso(0); // construye el hueco 0 + colchón (I1) y aplica vuelta/recorte si hiciera falta.
 }
 
 /** Abre la vista de repaso del HUB (botón `data-test="repaso-hub"`, spec
@@ -2394,7 +2472,7 @@ function actualizarDestacados(resumen) {
   // darse nunca en producción (ver también el guarda defensivo del mismo
   // caso en mantenerVueltasRepaso).
   if (banco.length === 0) {
-    nodoRepasoHub.textContent = 'Sin banco';
+    nodoRepasoHub.textContent = 'Sin preguntas';
     marcarNoTocable(nodoRepasoHub);
   } else {
     nodoRepasoHub.textContent = 'Repaso';
