@@ -554,6 +554,39 @@ test('consultarTrabajo: 404 (trabajo no encontrado) → null', async () => {
   assert.equal(await consultarTrabajo('inexistente', { fetchImpl: fetchFalso }), null);
 });
 
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C2): `pedirSubtemas` debe usar el
+// timeout LARGO (90 s), no el de 10 s del resto de peticiones -- si no, la primera visita a
+// cualquier anillo ≥ 2 aborta antes de que la cascada gratis (30-90 s reales) llegue a responder.
+// `peticionJson` (interno, no exportado) construye el `AbortSignal` con `AbortSignal.timeout(ms)`
+// -- se espía esa llamada (el único punto observable desde fuera, ya que un AbortSignal no expone
+// su plazo) para comprobar QUÉ `ms` recibió cada función pública, sin depender de esperar un
+// timeout real.
+function espiarAbortSignalTimeout() {
+  const original = AbortSignal.timeout;
+  const llamadas = [];
+  AbortSignal.timeout = (ms) => {
+    llamadas.push(ms);
+    return original.call(AbortSignal, ms);
+  };
+  return { llamadas, restaurar: () => { AbortSignal.timeout = original; } };
+}
+
+test('pedirSubtemas usa el timeout largo (90 s), distinto del resto de peticiones (10 s) -- C2', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const espia = espiarAbortSignalTimeout();
+  try {
+    const fetchFalso = crearFetchFalso([
+      { ok: true, cuerpo: { subtemas: [] } },
+      { ok: true, cuerpo: { trabajoId: 't1', estimadoSeg: 90 } },
+    ]);
+    await pedirSubtemas({ area: 'economia', ruta: ['timeout-c2'], fetchImpl: fetchFalso });
+    await pedirTanda({ area: 'economia', fetchImpl: fetchFalso });
+    assert.deepEqual(espia.llamadas, [90000, 10000]);
+  } finally {
+    espia.restaurar();
+  }
+});
+
 test('pedirSubtemas: cachea en memoria por [area, ruta] — la segunda llamada no repite la petición', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'A', completo: 'A' }] } }]);

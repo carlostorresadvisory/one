@@ -38,6 +38,15 @@ const DIAS_RUTAS_ATOMO = 7;
 // indefinidamente. 10 s (brief de la tarea) porque aquí el jugador está esperando delante de la
 // pantalla, no un proceso de fondo — un valor mucho menor que los 120 s del generador en el VPS.
 const TIMEOUT_MS = 10000;
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C2): 10 s abortaba /subtemas antes
+// de que la cascada gratis (tools/openrouter.js, hasta 90 s reales por lote, con Gemini/':free' de
+// por medio) llegara a responder -- la PRIMERA visita a cualquier anillo ≥ 2 (o a la página en la
+// que se agotan los hilos estáticos) fallaba casi siempre con "No se pudieron cargar los
+// subtemas", y el aviso de lentitud de 20 s de app.js#empezarCargaAtomo quedaba como código
+// inalcanzable (la petición ya se había abortado antes). Solo /subtemas usa este timeout largo; el
+// resto de peticiones (/estado, /generar, /trabajo/:id, /reportar) siguen a TIMEOUT_MS (10 s):
+// ahí el jugador espera una respuesta rápida de verdad, no una generación de fondo.
+const TIMEOUT_SUBTEMAS_MS = 90000;
 
 // === Configuración (URL + token del servidor) ====================================================
 
@@ -341,12 +350,13 @@ function avisarFalloPeticion(url, motivo) {
   }
 }
 
-// Único punto que toca la red: siempre con timeout de 10 s y siempre `null` en vez de lanzar
-// (cuerpo no-JSON, HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede
-// limitarse a comprobar `datos === null` sin su propio try/catch repetido.
-async function peticionJson(fetchImpl, url, opciones) {
+// Único punto que toca la red: siempre con timeout (10 s por defecto, 90 s para /subtemas -- ver
+// `timeoutMs`/TIMEOUT_SUBTEMAS_MS más abajo) y siempre `null` en vez de lanzar (cuerpo no-JSON,
+// HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede limitarse a
+// comprobar `datos === null` sin su propio try/catch repetido.
+async function peticionJson(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
   try {
-    const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
     if (!respuesta.ok) {
       avisarFalloPeticion(url, String(respuesta.status));
       return null;
@@ -517,11 +527,18 @@ export async function pedirSubtemas({ area, ruta = [], excluir = [], fetchImpl =
   const clave = JSON.stringify([area, ruta, excluirAcotado]);
   if (cacheSubtemas.has(clave)) return cacheSubtemas.get(clave);
 
-  const datos = await peticionJson(fetchImpl, `${configuracion.url}/subtemas`, {
-    method: 'POST',
-    headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta, excluir: excluirAcotado }),
-  });
+  // Ronda final de arreglos (C2): TIMEOUT_SUBTEMAS_MS (90 s), no el TIMEOUT_MS de 10 s del resto de
+  // peticiones -- la cascada gratis (tools/openrouter.js) tarda 30-90 s reales por lote.
+  const datos = await peticionJson(
+    fetchImpl,
+    `${configuracion.url}/subtemas`,
+    {
+      method: 'POST',
+      headers: cabeceras(configuracion.token),
+      body: JSON.stringify({ area, ruta, excluir: excluirAcotado }),
+    },
+    TIMEOUT_SUBTEMAS_MS,
+  );
   if (!datos || !Array.isArray(datos.subtemas)) return null;
   if (cacheSubtemas.size >= TOPE_CACHE_SUBTEMAS) {
     cacheSubtemas.delete(cacheSubtemas.keys().next().value);
