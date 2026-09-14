@@ -471,6 +471,27 @@ const cacheSubtemas = new Map();
 // inserción, así que la PRIMERA clave es siempre la más antigua (se borra ella, no una al azar).
 const TOPE_CACHE_SUBTEMAS = 50;
 
+// Ronda de revisión combinada (Tarea 3+4, Important): MISMOS límites que el servidor
+// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD -- 30 elementos, 120
+// caracteres cada uno) -- sin este recorte, un anillo visitado con "Más…" varias veces seguidas
+// (5-6 toques) acumula más de 30 `completo` en `excluir` y el servidor responde 400 "Exclusión
+// inválida", que `pedirSubtemas` (más abajo) convierte en `null` como cualquier otro fallo --
+// `manejarMasAtomo` en app.js lo trataba antes igual que "agotado", así que el anillo quedaba roto
+// en silencio a partir de ese toque.
+const EXCLUIR_MAX_ELEMENTOS = 30;
+const EXCLUIR_ELEMENTO_MAX_LONGITUD = 120;
+
+/** Recorta `excluir` a los ÚLTIMOS `EXCLUIR_MAX_ELEMENTOS` (los más recientes son los que de
+ * verdad importan para no repetir la página que se acaba de ver) y cada elemento a
+ * `EXCLUIR_ELEMENTO_MAX_LONGITUD` caracteres -- antes de construir el body y la clave de caché,
+ * así que un `excluir` de sobra nunca llega a viajar entero ni a la red ni a la caché en memoria. */
+function acotarExcluir(excluir) {
+  const lista = Array.isArray(excluir) ? excluir : [];
+  return lista
+    .slice(-EXCLUIR_MAX_ELEMENTOS)
+    .map((elemento) => (typeof elemento === 'string' ? elemento.slice(0, EXCLUIR_ELEMENTO_MAX_LONGITUD) : elemento));
+}
+
 /**
  * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta, excluir]` (spec §4:
  * "una sola llamada al modelo por combinación, para siempre" en el servidor -- aquí, para no
@@ -480,20 +501,22 @@ const TOPE_CACHE_SUBTEMAS = 50;
  * `excluir` (v0.2b3 Tarea 3, nodo "Más…"): los `completo` de los subtemas ya mostrados en ESE
  * anillo, para que el servidor pagine la siguiente tanda sin repetir. Siempre viaja en el body
  * (`[]` por defecto, nunca se omite) y entra en la clave de caché -- misma `[area, ruta]` con un
- * `excluir` distinto es una página distinta, no la misma petición.
+ * `excluir` distinto es una página distinta, no la misma petición. Se acota con `acotarExcluir`
+ * (Ronda de revisión combinada, ver arriba) a los límites reales del servidor antes de nada.
  * @param {{area: string, ruta?: string[], excluir?: string[], fetchImpl?: Function}} params
  * @returns {Promise<object[] | null>}
  */
 export async function pedirSubtemas({ area, ruta = [], excluir = [], fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || !area) return null;
-  const clave = JSON.stringify([area, ruta, excluir]);
+  const excluirAcotado = acotarExcluir(excluir);
+  const clave = JSON.stringify([area, ruta, excluirAcotado]);
   if (cacheSubtemas.has(clave)) return cacheSubtemas.get(clave);
 
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/subtemas`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta, excluir }),
+    body: JSON.stringify({ area, ruta, excluir: excluirAcotado }),
   });
   if (!datos || !Array.isArray(datos.subtemas)) return null;
   if (cacheSubtemas.size >= TOPE_CACHE_SUBTEMAS) {

@@ -616,6 +616,47 @@ test('pedirSubtemas: la caché distingue por excluir — mismo [area, ruta] con 
   assert.equal(fetchFalso.llamadas.length, 2);
 });
 
+// Ronda de revisión combinada (Tarea 3+4, Important): mismos límites que el servidor
+// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD) -- sin este recorte, un
+// anillo visitado con "Más…" varias veces seguidas manda un `excluir` que el servidor rechaza con
+// 400 "Exclusión inválida".
+test('pedirSubtemas: excluir de 35 elementos se recorta a los ÚLTIMOS 30 en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [] } }]);
+  const excluir = Array.from({ length: 35 }, (_, i) => `subtema-${i}`); // subtema-0 .. subtema-34
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-largo'], excluir, fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.equal(cuerpo.excluir.length, 30);
+  assert.deepEqual(cuerpo.excluir, excluir.slice(-30)); // los últimos 30, no los primeros
+});
+
+test('pedirSubtemas: cada elemento de excluir se recorta a 120 caracteres en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [] } }]);
+  const elementoLargo = 'x'.repeat(200);
+  await pedirSubtemas({
+    area: 'economia',
+    ruta: ['excluir-elemento-largo'],
+    excluir: [elementoLargo],
+    fetchImpl: fetchFalso,
+  });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.equal(cuerpo.excluir.length, 1);
+  assert.equal(cuerpo.excluir[0].length, 120);
+  assert.equal(cuerpo.excluir[0], 'x'.repeat(120));
+});
+
+test('pedirSubtemas: el recorte de excluir también entra en la clave de caché (35 y 30+5 elementos que recortan igual comparten caché)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'F', completo: 'F' }] } }]);
+  const base = { area: 'economia', ruta: ['excluir-cache-recorte'] };
+  const excluir35 = Array.from({ length: 35 }, (_, i) => `s-${i}`);
+  const excluirYaRecortado = excluir35.slice(-30); // exactamente lo que acotarExcluir produce arriba
+  await pedirSubtemas({ ...base, excluir: excluir35, fetchImpl: fetchFalso });
+  await pedirSubtemas({ ...base, excluir: excluirYaRecortado, fetchImpl: fetchFalso });
+  assert.equal(fetchFalso.llamadas.length, 1); // misma clave de caché tras recortar: una sola petición real
+});
+
 test('reportarAlServidor: sin configuración, null y cero peticiones', async () => {
   prepararGlobales();
   const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { ok: true } }]);

@@ -3485,6 +3485,75 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await expect(page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' })).toBeVisible();
   });
 
+  // Ronda de revisión combinada (Tarea 3+4, Important): un 400 real del servidor ("Exclusión
+  // inválida", servidor/index.js#normalizarExcluir) en "Más…" ya NO se trata como "agotado" --
+  // `pedirSubtemas` sigue devolviendo `null` ante cualquier error HTTP, pero `manejarMasAtomo`
+  // ahora distingue ese `null` de un `[]` genuino (ver app.js). Servidor simulado a mano (en vez de
+  // `servidorAtomoV3Falso`, que solo sabe responder 200) para poder devolver el 400.
+  test('"Más…" con error del servidor (400 "Exclusión inválida"): aviso "No se pudo cargar más" 2s, sin marcar el anillo como agotado', async ({
+    page,
+  }) => {
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: '{"preguntas":[],"enCola":0}',
+          });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          const cuerpo = req.postDataJSON();
+          const excluir = Array.isArray(cuerpo.excluir) ? cuerpo.excluir : [];
+          if (excluir.length === 0) {
+            // Página 1 (anillo recién abierto): normal, sin excluir.
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              headers: CORS,
+              body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
+            });
+            return;
+          }
+          // "Más…" (excluir no vacío): el servidor real respondería 400 aquí si `excluir` se
+          // pasara de sus límites -- se simula directamente con el mismo código, sin depender de
+          // generar 31 elementos reales para disparar el rechazo del servidor.
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ error: 'Exclusión inválida' }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+
+    await page.locator('[data-test="atomo-mas"]').click();
+
+    await expect(page.locator('[data-test="atomo-mas-error"]')).toHaveText('No se pudo cargar más');
+    // NO es "agotado": ni el aviso "No hay más por ahora" ni el estado atomoFallo (que apagaría
+    // Generar) se disparan -- solo el aviso corto de arriba.
+    await expect(page.locator('[data-test="atomo-mas-vacio"]')).toHaveCount(0);
+    // Los 4 subtemas de la página 1 (los últimos con éxito) siguen ahí, y "Más…" sigue pulsable
+    // DE INMEDIATO (no hay que esperar a que el aviso de error desaparezca).
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    // El aviso desaparece solo, a los 2s.
+    await expect(page.locator('[data-test="atomo-mas-error"]')).toBeHidden({ timeout: 3000 });
+  });
+
   test('anillo cargando: nodos de espera, fila "atomo-mientras" y un toque durante la carga no cambia la ruta', async ({
     page,
   }) => {
