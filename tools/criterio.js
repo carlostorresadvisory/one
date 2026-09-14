@@ -48,6 +48,13 @@ export const HILOS_POR_AREA = {
     'Comercio, aranceles, cadenas de suministro y geopolítica económica actual',
     'Grandes economistas y sus ideas en una frase (Smith, Keynes, Hayek, Friedman, Piketty)',
     'Sesgos y decisiones: economía del comportamiento aplicada a la vida diaria',
+    // Añadidos en la Tarea 2 del plan v0.2b3 (spec §9, decisión de Carlos 14-sep 21:30): al FINAL
+    // de la lista, para no alterar los 6 primeros hilos (anillo 1 sin `excluir` sigue devolviendo
+    // los mismos 6 de siempre).
+    'Finanzas corporativas y M&A: valoración, múltiplos, apalancamiento y por qué fallan las operaciones',
+    'Reestructuraciones e insolvencia: cómo se salva o se liquida una empresa, concursos, quitas y esperas',
+    'Inversión y mercados financieros: acciones, bonos, fondos, riesgo y rentabilidad',
+    'Banca y regulación financiera: cómo funciona un banco, Basilea, por qué se rescatan',
   ],
   historia: [
     'Causas y consecuencias de los grandes giros (caída de Roma, Revolución francesa, guerras mundiales, Guerra Fría)',
@@ -63,6 +70,8 @@ export const HILOS_POR_AREA = {
     'Genética, evolución y neurociencia en lo que importa a una persona normal',
     'Espacio: qué sabemos y por qué importa (satélites, Marte, telescopios)',
     'Cómo se sabe lo que se sabe: método, ensayos clínicos, estadística que evita engaños',
+    // Añadido en la Tarea 2 del plan v0.2b3 (spec §9): al FINAL, mismo motivo que en "economia".
+    'Física moderna: relatividad, mecánica cuántica y qué significan de verdad (sin fórmulas)',
   ],
   tecnologia: [
     'Cómo funciona la IA generativa y qué la limita (datos, cómputo, alucinaciones, coste)',
