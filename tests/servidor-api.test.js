@@ -17,6 +17,7 @@ import {
   rellenoNocturnoSiToca,
   comprobarEscritura,
   esperarInactividad,
+  RUTA_ELEMENTO_MAX_LONGITUD,
 } from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
 
@@ -493,7 +494,7 @@ test('POST /generar con la cola de fondo llena responde 503', async () => {
 // no-string, o con caracteres de control.
 for (const [descripcion, rutaMala] of [
   ['más de 6 elementos', Array.from({ length: 7 }, (_, i) => `hilo-${i}`)],
-  ['un elemento de más de 80 caracteres', ['x'.repeat(81)]],
+  ['un elemento de más de 160 caracteres', ['x'.repeat(161)]],
   ['un elemento con carácter de control', ['hilo\u000amalicioso']],
   ['un elemento que no es string', [42]],
   ['no es un array', 'hilo-1'],
@@ -531,9 +532,255 @@ test('POST /subtemas con ruta=[] devuelve HILOS_POR_AREA sin llamar al modelo', 
     });
     assert.equal(resp.status, 200);
     const datos = await resp.json();
-    assert.equal(datos.subtemas.length, HILOS_POR_AREA.economia.length);
+    // Cambiado (Tarea 2, v0.2b3): antes el anillo 1 devolvía TODOS los hilos del área de una vez
+    // (economía tenía exactamente 6, así que coincidía por casualidad con HILOS_POR_AREA.economia.length).
+    // Ahora economía tiene 10 hilos (se añaden 4 de finanzas en esta misma tarea) y el anillo 1
+    // pagina de 6 en 6 -- sin `excluir`, la primera página son los 6 primeros, nunca la lista entera.
+    assert.equal(datos.subtemas.length, 6);
+    assert.ok(HILOS_POR_AREA.economia.length > 6, 'economía debe tener más de 6 hilos tras esta tarea');
     assert.ok(datos.subtemas.every((s) => typeof s.indice === 'number' && s.corto.length <= 40 && typeof s.completo === 'string'));
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      HILOS_POR_AREA.economia.slice(0, 6),
+    );
     assert.equal(llamadas, 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /subtemas con `excluir` (Tarea 2, v0.2b3) ==============================================
+// Spec: docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md §9.
+
+test('POST /subtemas anillo 1 con excluir=primeros 6 devuelve los hilos 7.. sin llamar al modelo (caso a/b del brief)', async () => {
+  let llamadas = 0;
+  const llamarFake = async () => {
+    llamadas++;
+    throw new Error('no debería llamarse: aún quedan hilos sin excluir');
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    // Economía: 10 hilos tras esta tarea -- excluir los 6 primeros deja 4 sin excluir.
+    const primeraPagina = HILOS_POR_AREA.economia.slice(0, 6);
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: [], excluir: primeraPagina }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.subtemas.length, 4, 'economía: 10 hilos - 6 excluidos = 4');
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      HILOS_POR_AREA.economia.slice(6),
+    );
+    // Los índices son 0..n-1 DENTRO de la página, no la posición global en HILOS_POR_AREA.
+    assert.deepEqual(datos.subtemas.map((s) => s.indice), [0, 1, 2, 3]);
+    assert.equal(llamadas, 0);
+
+    // Ciencia: 7 hilos tras esta tarea -- excluir los 6 primeros deja 1 sin excluir.
+    const primeraPaginaCiencia = HILOS_POR_AREA.ciencia.slice(0, 6);
+    const respCiencia = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'ciencia', ruta: [], excluir: primeraPaginaCiencia }),
+    });
+    const datosCiencia = await respCiencia.json();
+    assert.equal(datosCiencia.subtemas.length, 1, 'ciencia: 7 hilos - 6 excluidos = 1');
+    assert.equal(llamadas, 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas anillo 1 con TODOS los hilos excluidos llama al modelo con excluir en el prompt (caso c del brief)', async () => {
+  let mensajesVistos = null;
+  const llamarFake = async ({ modelos, mensajes }) => {
+    mensajesVistos = mensajes;
+    return { texto: JSON.stringify({ subtemas: ['Nuevo A', 'Nuevo B'] }), modelo: modelos[0], coste: 0 };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    // Historia: 5 hilos, ninguno nuevo en esta tarea -- excluirlos todos agota la lista estática.
+    const todosLosHilos = HILOS_POR_AREA.historia;
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'historia', ruta: [], excluir: todosLosHilos }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.subtemas.map((s) => s.completo), ['Nuevo A', 'Nuevo B']);
+    assert.ok(mensajesVistos, 'debería haber llamado al modelo');
+    const promptUsuario = mensajesVistos[1].content;
+    for (const hilo of todosLosHilos) assert.ok(promptUsuario.includes(hilo), `el prompt debe incluir "${hilo}" en la exclusión`);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas anillo ≥ 2 con excluir usa una clave de caché distinta de la de sin excluir (caso d del brief)', async () => {
+  let llamadas = 0;
+  const llamarFake = async ({ modelos }) => {
+    llamadas++;
+    return {
+      texto: JSON.stringify({ subtemas: llamadas === 1 ? ['Sub A', 'Sub B'] : ['Sub C', 'Sub D'] }),
+      modelo: modelos[0],
+      coste: 0,
+    };
+  };
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const r1 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'] }),
+    });
+    const d1 = await r1.json();
+    assert.deepEqual(d1.subtemas.map((s) => s.completo), ['Sub A', 'Sub B']);
+    assert.equal(llamadas, 1);
+
+    const r2 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Sub A', 'Sub B'] }),
+    });
+    const d2 = await r2.json();
+    assert.deepEqual(d2.subtemas.map((s) => s.completo), ['Sub C', 'Sub D']);
+    assert.equal(llamadas, 2, 'con excluir debe ser una clave de caché nueva -- llama de nuevo al modelo');
+
+    const anillos = JSON.parse(await readFile(path.join(dir, 'anillos.json'), 'utf8'));
+    assert.ok(anillos[JSON.stringify(['economia', ['hilo-1']])], 'clave sin excluir, igual que hoy');
+    assert.ok(anillos[JSON.stringify(['economia', ['hilo-1'], 2])], 'clave con excluir: [area, ruta, excluir.length]');
+
+    // Repetir la primera petición (sin excluir) debe seguir usando su propia caché, sin llamar de nuevo.
+    const r3 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'] }),
+    });
+    const d3 = await r3.json();
+    assert.deepEqual(d3.subtemas, d1.subtemas);
+    assert.equal(llamadas, 2, 'la petición sin excluir ya estaba cacheada, no debe llamar de nuevo');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas con excluir inválido responde 400 "Exclusión inválida" (caso e del brief)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const casos = [
+      { excluir: 'no-es-un-array' },
+      { excluir: Array.from({ length: 31 }, (_, i) => `hilo-${i}`) },
+      { excluir: ['x'.repeat(161)] },
+      { excluir: ['con\x00control'] },
+    ];
+    for (const caso of casos) {
+      const resp = await fetch(`${base}/subtemas`, {
+        method: 'POST',
+        headers: cabeceras(),
+        body: JSON.stringify({ area: 'economia', ruta: [], ...caso }),
+      });
+      assert.equal(resp.status, 400, `caso ${JSON.stringify(caso)} debería ser 400`);
+      const datos = await resp.json();
+      assert.equal(datos.error, 'Exclusión inválida');
+    }
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas: el prompt al modelo contiene "ramas hermanas" y "conceptos concretos" y la lista de exclusión (caso f del brief)', async () => {
+  let mensajesVistos = null;
+  const llamarFake = async ({ modelos, mensajes }) => {
+    mensajesVistos = mensajes;
+    return { texto: JSON.stringify({ subtemas: ['Sub nuevo'] }), modelo: modelos[0], coste: 0 };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Ya mostrado antes'] }),
+    });
+    assert.equal(resp.status, 200);
+    const promptUsuario = mensajesVistos[1].content;
+    assert.ok(promptUsuario.includes('ramas hermanas'), 'debe contener literalmente "ramas hermanas"');
+    assert.ok(promptUsuario.includes('conceptos concretos'), 'debe contener literalmente "conceptos concretos"');
+    assert.ok(promptUsuario.includes('Ya mostrado antes'), 'debe incluir la lista de exclusión');
+  } finally {
+    await cerrar();
+  }
+});
+
+// === Ronda 1 (revisión, 14-sep-2026) -- Important: filtrar la respuesta del modelo contra `excluir` =
+// El modelo puede ignorar la instrucción de no repetir subtemas ya excluidos (o repetirse a sí
+// mismo dentro de la propia respuesta) -- sin este filtro, un subtema ya visto volvía al jugador y
+// quedaba cacheado para siempre en anillos.json.
+
+test('POST /subtemas filtra la respuesta del modelo contra excluir (comparación normalizada) y deduplica dentro de la propia respuesta', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({
+      subtemas: [
+        'Historia de España', // coincide exacto con un elemento de excluir
+        'GUERRA FRÍA', // coincide con "Guerra Fria" de excluir salvo mayúsculas y acento
+        'Sub Nuevo A',
+        '  sub nuevo a  ', // duplicado de "Sub Nuevo A" (mayúsculas/espacios/orden distinto)
+        'Sub Nuevo B',
+        'Sub Nuevo C',
+      ],
+    }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({
+        area: 'economia',
+        ruta: ['hilo-1'],
+        excluir: ['Historia de España', 'Guerra Fria'],
+      }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.subtemas.length, 3, 'de 6 propuestos: 2 excluidos + 1 duplicado = 3 finales');
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      ['Sub Nuevo A', 'Sub Nuevo B', 'Sub Nuevo C'],
+    );
+    assert.deepEqual(datos.subtemas.map((s) => s.indice), [0, 1, 2], 'los índices se recalculan tras filtrar');
+
+    const anillos = JSON.parse(await readFile(path.join(dir, 'anillos.json'), 'utf8'));
+    const clave = JSON.stringify(['economia', ['hilo-1'], 2]);
+    assert.equal(anillos[clave].length, 3, 'se cachea solo la lista ya filtrada');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas: si tras filtrar excluir (y deduplicar) no queda ningún subtema, responde 503 y no cachea nada', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({ subtemas: ['Sub A', 'SUB A', ' sub a '] }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Sub A'] }),
+    });
+    assert.equal(resp.status, 503);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+
+    // No debe haberse creado anillos.json en absoluto: nada que cachear tras filtrar a 0.
+    await assert.rejects(() => readFile(path.join(dir, 'anillos.json'), 'utf8'));
   } finally {
     await cerrar();
   }
@@ -589,6 +836,54 @@ test('POST /subtemas con ruta inválida (más de 6 elementos) responde 400 (A5)'
     });
     assert.equal(resp.status, 400);
     assert.equal(typeof (await resp.json()).error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): ningún hilo de
+// tools/criterio.js#HILOS_POR_AREA puede superar RUTA_ELEMENTO_MAX_LONGITUD -- si alguno lo hace,
+// `rutaValida` (servidor/index.js) rechaza con 400 "Ruta inválida" en cuanto ese hilo se usa como
+// elemento de `ruta` (al elegirlo en el anillo 1, avanzar() lo mete tal cual, sin acortar). Falla
+// esta prueba SOLA (sin arrancar servidor) si algún hilo nuevo que se añada en el futuro vuelve a
+// pasarse del límite.
+test('HILOS_POR_AREA: ningún hilo supera RUTA_ELEMENTO_MAX_LONGITUD (si no, el anillo 1 queda inalcanzable -- C1)', () => {
+  for (const [area, hilos] of Object.entries(HILOS_POR_AREA)) {
+    for (const hilo of hilos) {
+      assert.ok(
+        hilo.length <= RUTA_ELEMENTO_MAX_LONGITUD,
+        `${area}: "${hilo}" mide ${hilo.length} caracteres, por encima de RUTA_ELEMENTO_MAX_LONGITUD (${RUTA_ELEMENTO_MAX_LONGITUD})`,
+      );
+    }
+  }
+});
+
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): reproduce el hallazgo de la
+// revisión final ejecutando la app -- tocar CUALQUIER hilo del anillo 1 (`ruta: [hilo]`) no debe
+// responder 400. Antes, 26 de los 50 hilos (incluidos 4 de los 5 que Carlos pidió para esta
+// versión) medían más de 80 caracteres y dejaban el átomo en un callejón sin salida. `llamar` es
+// falso (nunca red real): cada combinación [area, ruta] es una clave de caché distinta, así que
+// las 50 llamadas son necesarias, no un fallo del test.
+test('POST /subtemas: ningún hilo de HILOS_POR_AREA usado como ruta responde 400 "Ruta inválida" (C1)', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({ subtemas: ['Un subtema cualquiera propuesto por el modelo falso'] }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    for (const [area, hilos] of Object.entries(HILOS_POR_AREA)) {
+      for (const hilo of hilos) {
+        // eslint-disable-next-line no-await-in-loop -- recorrido secuencial deliberado: cada hilo
+        // es una petición real distinta contra el mismo servidor, no hay nada que paralelizar.
+        const resp = await fetch(`${base}/subtemas`, {
+          method: 'POST',
+          headers: cabeceras(),
+          body: JSON.stringify({ area, ruta: [hilo] }),
+        });
+        assert.notEqual(resp.status, 400, `${area}: "${hilo}" (${hilo.length} car.) respondió 400 "Ruta inválida"`);
+      }
+    }
   } finally {
     await cerrar();
   }

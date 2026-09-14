@@ -29,7 +29,11 @@ function respuestaError(status) {
   };
 }
 
-test('primer modelo responde 429 → usa el segundo y devuelve su id', async () => {
+// Adaptado en la Tarea 1 de v0.2b3: el 429 ahora se reintenta UNA vez (universal, no solo para
+// Gemini) antes de pasar al siguiente modelo -- ver el bloque "reintento ante 429/503" más abajo.
+// Antes este test esperaba una sola llamada a 'a/uno:free'; ahora espera dos (intento + reintento)
+// porque ambas devuelven 429. reintentoMs:0 evita que el test tarde los 4s reales de producción.
+test('primer modelo responde 429 → reintenta una vez y, si sigue fallando, usa el segundo', async () => {
   await limpiarLog();
   const llamadas = [];
   const fetchImpl = async (url, opts) => {
@@ -43,9 +47,10 @@ test('primer modelo responde 429 → usa el segundo y devuelve su id', async () 
     mensajes: [{ role: 'user', content: 'hola' }],
     fetchImpl,
     rutaLog: RUTA_LOG,
+    reintentoMs: 0,
   });
   assert.equal(r.modelo, 'b/dos:free');
-  assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free']);
+  assert.deepEqual(llamadas, ['a/uno:free', 'a/uno:free', 'b/dos:free']);
   await limpiarLog();
 });
 
@@ -185,3 +190,280 @@ test('C1: si registrarLog falla (carpeta inexistente), llamar devuelve la respue
   assert.equal(r.modelo, 'a/uno:free');
   assert.equal(r.texto, 'contenido de la respuesta');
 });
+
+// --- Gemini gratis en la cascada (Tarea 1, v0.2b3) --------------------------------------------
+// Clave FICTICIA solo para estos tests: nunca se lee `.env` ni se usa la clave real. Se guarda y
+// restaura process.env.GEMINI_API_KEY_GRATIS en cada test para no contaminar otros tests/procesos.
+const CLAVE_GEMINI_TEST = 'clave-test-gemini';
+
+function conClaveGeminiDeTest(valor, fn) {
+  return async () => {
+    const anterior = process.env.GEMINI_API_KEY_GRATIS;
+    if (valor === undefined) delete process.env.GEMINI_API_KEY_GRATIS;
+    else process.env.GEMINI_API_KEY_GRATIS = valor;
+    try {
+      await fn();
+    } finally {
+      if (anterior === undefined) delete process.env.GEMINI_API_KEY_GRATIS;
+      else process.env.GEMINI_API_KEY_GRATIS = anterior;
+    }
+  };
+}
+
+// (a) URL, cabecera y body correctos; coste siempre 0 aunque la respuesta traiga usage.cost.
+test(
+  'gemini: se envía al endpoint OpenAI de Google, sin prefijo en el body y con Bearer de GEMINI_API_KEY_GRATIS',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    let urlRecibida;
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      urlRecibida = url;
+      opcionesRecibidas = opts;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          // Contenido JSON válido porque json:true hace que `llamar` valide con extraerJson.
+          choices: [{ message: { content: '{"saludo":"hola desde gemini"}' } }],
+          // usage.cost distinto de 0 a propósito: Gemini es gratis (proyecto sin facturación),
+          // así que `llamar` debe forzar coste:0 sin fiarse de lo que traiga la respuesta.
+          usage: { prompt_tokens: 7, completion_tokens: 3, cost: 0.05 },
+        }),
+      };
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(urlRecibida, 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    assert.equal(opcionesRecibidas.headers.Authorization, `Bearer ${CLAVE_GEMINI_TEST}`);
+    assert.equal(opcionesRecibidas.headers['HTTP-Referer'], undefined, 'HTTP-Referer es solo de OpenRouter');
+    assert.equal(opcionesRecibidas.headers['X-Title'], undefined, 'X-Title es solo de OpenRouter');
+    const body = JSON.parse(opcionesRecibidas.body);
+    assert.equal(body.model, 'gemini-2.5-flash-lite');
+    assert.deepEqual(body.response_format, { type: 'json_object' });
+    assert.equal(r.texto, '{"saludo":"hola desde gemini"}');
+    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.coste, 0);
+    await limpiarLog();
+  }),
+);
+
+// (b) sin GEMINI_API_KEY_GRATIS: se salta con motivo y sigue con el siguiente modelo de la cascada.
+test(
+  'gemini: sin GEMINI_API_KEY_GRATIS en el entorno, se salta sin llamar a fetchImpl y sigue al siguiente',
+  conClaveGeminiDeTest(undefined, async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadas.push(body.model);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.deepEqual(llamadas, ['b/dos:free'], 'gemini nunca debe llegar a fetchImpl sin clave');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'gemini: sin GEMINI_API_KEY_GRATIS y sin más modelos, lanza con "sin clave de Gemini" en el mensaje',
+  conClaveGeminiDeTest(undefined, async () => {
+    const fetchImpl = async () => respuestaOk('no debería llamarse');
+    await assert.rejects(
+      () =>
+        llamar({
+          modelos: ['gemini:gemini-2.5-flash-lite'],
+          mensajes: [{ role: 'user', content: 'hola' }],
+          fetchImpl,
+          rutaLog: RUTA_LOG,
+        }),
+      (err) => {
+        assert.match(err.message, /gemini:gemini-2\.5-flash-lite: sin clave de Gemini/);
+        return true;
+      },
+    );
+  }),
+);
+
+// Defensivo (triaje adversarial, ronda final de arreglos, 14-sep-2026): un `.env` con espacios de
+// sobra alrededor de la clave (copia-pega, salto de línea final del editor...) no debe colarse tal
+// cual en la cabecera, ni una clave de solo espacios debe tratarse como "hay clave".
+test(
+  'gemini: GEMINI_API_KEY_GRATIS de solo espacios se trata como AUSENTE (se salta, no llama a fetchImpl)',
+  conClaveGeminiDeTest('   ', async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadas.push(body.model);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.deepEqual(llamadas, ['b/dos:free'], 'gemini nunca debe llegar a fetchImpl con la clave vacía tras el trim');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'gemini: GEMINI_API_KEY_GRATIS con espacios alrededor se recorta (trim) antes de mandarla en Authorization',
+  conClaveGeminiDeTest(`  ${CLAVE_GEMINI_TEST}  \n`, async () => {
+    await limpiarLog();
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      opcionesRecibidas = opts;
+      return respuestaOk('gemini-2.5-flash-lite');
+    };
+    await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(opcionesRecibidas.headers.Authorization, `Bearer ${CLAVE_GEMINI_TEST}`);
+    await limpiarLog();
+  }),
+);
+
+// (c) 429 → reintento único tras reintentoMs → si el reintento también falla, pasa al siguiente.
+test(
+  'gemini: 429 reintenta una vez y, si el reintento responde 200, usa esa respuesta (mismo modelo)',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    let intentos = 0;
+    const fetchImpl = async () => {
+      intentos++;
+      if (intentos === 1) return respuestaError(429);
+      return respuestaOk('gemini-2.5-flash-lite', 'ok al segundo intento');
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.equal(intentos, 2);
+    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.texto, 'ok al segundo intento');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'gemini: 429 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadas.push(body.model);
+      if (body.model === 'gemini-2.5-flash-lite') return respuestaError(429);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.deepEqual(llamadas, ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'b/dos:free']);
+    await limpiarLog();
+  }),
+);
+
+// (d) 503 se comporta igual que 429: reintento único y luego el siguiente modelo.
+test(
+  'gemini: 503 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadas.push(body.model);
+      if (body.model === 'gemini-2.5-flash-lite') return respuestaError(503);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.deepEqual(llamadas, ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'b/dos:free']);
+    await limpiarLog();
+  }),
+);
+
+// (e) esModeloGratis(gemini:...) === true: no exige permitirPago para intentarlo (comprobado
+// indirectamente vía comportamiento de `llamar`, ya que esModeloGratis no se exporta).
+test(
+  'gemini: se llama sin permitirPago (no se trata como modelo de pago)',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      return respuestaOk(body.model, 'respuesta gratis');
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      // permitirPago no se pasa (queda en su valor por defecto, false).
+    });
+    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.texto, 'respuesta gratis');
+    await limpiarLog();
+  }),
+);
+
+// (f) registrarLog recibe coste:0 y el modelo con prefijo, aunque usage.cost venga a >0.
+test(
+  'gemini: registrarLog recibe coste 0 y el id con prefijo "gemini:"',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [{ message: { content: 'ok' } }],
+        usage: { prompt_tokens: 4, completion_tokens: 2, cost: 0.02 },
+      }),
+    });
+    await llamar({
+      modelos: ['gemini:gemini-2.5-flash'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    const contenido = await readFile(RUTA_LOG, 'utf8');
+    const lineas = contenido.trim().split('\n');
+    const ultima = JSON.parse(lineas[lineas.length - 1]);
+    assert.equal(ultima.modelo, 'gemini:gemini-2.5-flash');
+    assert.equal(ultima.coste, 0);
+    assert.equal(ultima.tokens, 6);
+    assert.equal(ultima.ok, true);
+    await limpiarLog();
+  }),
+);

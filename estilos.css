@@ -1830,6 +1830,54 @@ main#app {
   background: #f5a623;
 }
 
+/* Botón del punto de estado (Tarea 4 + revisión combinada, "Conectar desde la app instalada"): los
+   DOS puntos (cabecera del Átomo y HUB junto a "Comenzar") eran `<span>` decorativos, ahora también
+   el disparador para abrir la hoja "Conectar" -- reset de <button> más un `::before` invisible que
+   amplía el área táctil a 44px (Apple HIG) sin tocar el tamaño/posición del punto visible en sí
+   (tanto `.atomo-cabecera` como `.hub-comenzar-fila` ya son `position: relative`). */
+button.punto-servidor {
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.punto-servidor::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+/* Ronda final de arreglos (revisión, 14-sep-2026) -- Important (C4): en el HUB, el punto de estado
+   está pegado a la esquina superior derecha del botón "Comenzar" (`.punto-servidor` en top:-4px;
+   right:-4px -- ver arriba), así que el `::before` de 44px CENTRADO en el punto invade 24×24px de
+   esa esquina: un toque real ahí abría "Conectar" en vez de arrancar la partida (medido en vivo:
+   .punto-servidor de 12×12 solapando el botón por 8px en cada eje, más los 16px que añade el
+   `::before` a cada lado). El punto de la cabecera del Átomo NO tiene este problema (solo pisa el
+   final del texto de la ruta, sin ningún control debajo) y sigue con el `::before` de arriba, sin
+   tocar.
+   Arreglo, solo aquí: en vez de centrar el área táctil en el punto, se ancla a la DERECHA de él --
+   `.hub-comenzar-fila`, `.boton-comenzar` y `#progreso-areas` comparten el mismo borde derecho (son
+   los tres al 100% de ancho de su contenedor), así que un área táctil que empiece exactamente en
+   ese borde (left: 10px respecto del punto de 12px de ancho -- 2px de margen de seguridad sobre el
+   borde real, ver el test de geometría en tests/e2e.spec.js) no solapa ni "Comenzar" ni la rejilla
+   de áreas, para cualquier ancho de pantalla. Se mantienen los 44px de ALTO que pide Apple HIG
+   (Carlos, 14-sep); el ANCHO se reduce a 34px porque casi todo el área cae fuera de la pantalla, a
+   la derecha del punto -- no hay ningún control ahí, así que no es un problema de solape, solo de
+   alcance (aceptado: el punto ya vive pegado al borde de la pantalla). */
+.hub-comenzar-fila .punto-servidor::before {
+  top: 50%;
+  left: 10px;
+  right: auto;
+  width: 34px;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
 /* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas
    (hub "que se note"), tarjetas pequeñas y tocables (tap target >= 64px de alto). */
 .hub-grid {
@@ -2094,59 +2142,85 @@ main#app {
   cursor: pointer;
 }
 
+/* v0.2b3 Tarea 3 ("Ampliación"): "pop" de entrada cada vez que el texto del núcleo cambia (al
+   tocar un nodo, el estado ya cambió al instante en app.js -- esto es solo el acompañamiento
+   visual). `transform-box: fill-box` ancla la escala al centro del propio círculo, no al del
+   viewBox. Neutralizado por completo con prefers-reduced-motion (regla general al final de esta
+   hoja) -- ahí el cambio de estado sigue siendo inmediato, solo desaparece la animación. */
+.atomo-nucleo--entra {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: atomo-nucleo-entra 220ms ease-out;
+}
+
+@keyframes atomo-nucleo-entra {
+  from { transform: scale(0.85); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+
 .atomo-nodo-circulo {
   fill: var(--tarjeta);
   stroke: var(--acento);
   stroke-width: 1.5;
 }
 
+/* Texto DENTRO del nodo (v0.2b3: ya no debajo, ni etiqueta exterior) -- 10.5px para que quepan
+   hasta 3 líneas (envolverTexto(corto, 11, 3), ver atomo.js) sin desbordar el círculo de 38px. */
 .atomo-nodo-texto {
   fill: var(--texto);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
 }
 
-/* Órbita lenta (decisión #5: 60s/vuelta) con contra-rotación por nodo para que el texto quede
-   recto. `transform-box: view-box` ancla la rotación del grupo entero al centro del viewBox
-   (160,160), no a su caja variable; `fill-box` en cada nodo ancla su contra-rotación al centro
-   LOCAL de ese nodo (su propio círculo, ya trasladado a su posición en la órbita). La regla
-   general de "reducir movimiento" al final de esta hoja ya neutraliza cualquier animación
-   (`animation-duration: 0.001ms !important`); estas dos de aquí lo dejan explícito además. */
-.atomo-orbita {
-  transform-box: view-box;
-  transform-origin: 160px 160px;
-  animation: atomo-girar 60s linear infinite;
+.atomo-nodo-boton {
+  cursor: pointer;
 }
 
-/* Ronda 1 de revisión (Important #3): con la etiqueta bajo el círculo (no dentro), la caja de
-   contenido de este grupo (círculo + texto) deja de ser simétrica respecto a su centro real -- un
-   `transform-origin: center` con `fill-box` (que centra sobre esa caja asimétrica) haría que el
-   nodo "cabecee" en vez de quedarse quieto mientras contra-rota. `view-box` + `0px 0px` ancla el
-   giro al origen LOCAL de este grupo, que es exactamente el centro del nodo (su padre `.atomo-nodo`
-   ya lo trasladó ahí con `translate(x,y)`), sin depender de qué haya dentro. */
-.atomo-nodo-contra {
-  cursor: pointer;
-  transform-box: view-box;
-  transform-origin: 0px 0px;
-  animation: atomo-girar-inverso 60s linear infinite;
+/* Entrada de cada nodo del anillo (subtema, "Más…" o espera): sustituye a la órbita giratoria --
+   "el átomo es un árbol que se abre, no un sistema solar" (decisión del controlador, 14-sep). */
+.atomo-nodo {
+  animation: atomo-nodo-entra 220ms ease-out;
+}
+
+@keyframes atomo-nodo-entra {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* "Más…" / "No hay más por ahora": círculo discontinuo, mismo estilo que los nodos de espera de
+   abajo pero CON texto y (salvo en `masVacio`) interactivo. */
+.atomo-nodo-circulo--mas {
+  stroke-dasharray: 4 3;
+}
+
+/* Nodos de espera (brief: "6 nodos vacíos discontinuos con un punto que late"): sin texto, no
+   pulsables (atomo.js no les pone role/tabindex ni handler; `pointer-events: none` aquí es
+   además defensivo). El punto late con una animación propia, independiente del fade de entrada. */
+.atomo-nodo-boton--esperando {
+  pointer-events: none;
+}
+
+.atomo-nodo-circulo--esperando {
+  stroke-dasharray: 4 3;
+  opacity: 0.6;
+}
+
+.atomo-nodo-punto {
+  fill: var(--acento);
+  animation: atomo-punto-late 1.1s ease-in-out infinite;
+}
+
+@keyframes atomo-punto-late {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
 }
 
 /* Ronda 1 de revisión (Minor #6): mismo anillo de foco que button:focus-visible (arriba), pero
    estos son <g role="button"> dentro de un SVG, no <button>, así que no lo heredan. */
 .atomo-nucleo:focus-visible,
-.atomo-nodo-contra:focus-visible {
+.atomo-nodo-boton:focus-visible {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
-}
-
-@keyframes atomo-girar {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes atomo-girar-inverso {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-360deg); }
 }
 
 .atomo-aviso {
@@ -2158,6 +2232,25 @@ main#app {
 
 .atomo-reintentar {
   align-self: center;
+}
+
+/* Fila "mientras" (v0.2b3 Tarea 3): bajo la ayuda, dos botones secundarios que ofrecen algo que
+   hacer mientras el anillo carga, falla, o se genera una tanda en segundo plano (ver
+   app.js#actualizarFilaMientras). Mismo patrón de `[hidden]` que .atomo-espera-acciones -- con
+   `display:flex` ya declarado, hace falta el override explícito. */
+.atomo-mientras {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.atomo-mientras[hidden] {
+  display: none;
+}
+
+.atomo-mientras .boton {
+  flex: 1;
+  font-size: 13px;
 }
 
 /* Botones fijos abajo (decisión #5): sigue a .atomo-cuerpo (flex:1), así que quedan pegados al
@@ -2210,6 +2303,85 @@ main#app {
   width: 100%;
 }
 
+/* Hoja "Conectar" (Tarea 4, v0.2b3 "Conectar desde la app instalada"): anclada abajo (brief:
+   `position: fixed; inset: auto 0 0 0`), NO a pantalla completa -- el resto de la vista de detrás
+   se queda visible, coherente con el resto de esta PWA (sin overlays a pantalla completa salvo las
+   propias vistas). `z-index` por encima de cualquier vista/cabecera (la más alta usada hasta ahora
+   en esta hoja es 2). */
+.hoja-conectar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  background: #0f1a20;
+  border-top: 1px solid rgba(76, 201, 240, 0.25);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Mismo motivo que `.vista[hidden]`/`.hub-chip-nuevas[hidden]` en esta hoja: con `display: flex`
+   ya declarado arriba, el `[hidden]` por defecto del navegador deja de bastar por sí solo. */
+.hoja-conectar[hidden] {
+  display: none;
+}
+
+.hoja-conectar-etiqueta {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+.hoja-conectar-campo {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(76, 201, 240, 0.35);
+  border-radius: 10px;
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: var(--tam-1);
+}
+
+.hoja-conectar-campo:focus {
+  outline: none;
+  border-color: var(--acento);
+}
+
+.hoja-conectar-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ko);
+}
+
+.hoja-conectar-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.hoja-conectar-acciones .boton {
+  flex: 1;
+}
+
+/* Aviso "Conectado" (Tarea 4): la hoja de arriba ya se ha cerrado en este momento (ver
+   app.js#manejarConectarOk), así que vive fuera de ella -- fijo y centrado, visible encima de
+   cualquier vista, 2s (app.js#mostrarAvisoConectado). */
+.aviso-conectado {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--tarjeta);
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
 /* --- accesibilidad de movimiento ---
    Con "reducir movimiento" activo: sin fondo animado, sin pulso/sacudida de la
    tarjeta, y ninguna transición/animación del resto de la app (barra de
@@ -2218,7 +2390,12 @@ main#app {
 @media (prefers-reduced-motion: reduce) {
   .fondo-luz { animation: none; }
   .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
-  .atomo-orbita, .atomo-nodo-contra { animation: none; } /* órbita del Átomo, v0.2b2 §4 */
+  /* v0.2b3 Tarea 3: ya no hay órbita giratoria -- el "pop" del núcleo, la entrada de los nodos y
+     el punto que late de los nodos de espera se anulan aquí explícitamente (la regla genérica de
+     abajo ya los neutraliza también, esto lo deja explícito, mismo criterio que el resto de esta
+     hoja). El cambio de ESTADO (texto/cabecera/ruta) sigue siendo inmediato -- solo desaparece la
+     animación de acompañamiento. */
+  .atomo-nucleo--entra, .atomo-nodo, .atomo-nodo-punto { animation: none; }
 
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

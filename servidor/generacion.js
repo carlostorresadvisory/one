@@ -24,7 +24,7 @@
 // eso en una entrada de `fallos` y sigue con los demás tipos. `promptUsuarioVF` (el prompt preciso
 // del reparto 50/50 de "vf") se movió a tools/prompts-preguntas.js: es lógica de generación de
 // preguntas, no del pipeline, y este fichero solo debía importar prompts, no definirlos.
-import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
+import { llamar as llamarReal, extraerJson, MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import {
   resolverPregunta,
@@ -111,14 +111,11 @@ const UMBRAL_CONFIANZA_DEFECTO = 0.7;
 export const GENERADOR_PREGUNTAS_SOLO_PAGO = ['z-ai/glm-4.7-flash'];
 export const VERIFICADOR_PREGUNTAS_SOLO_PAGO = ['deepseek/deepseek-v4-flash'];
 
-function esModeloGratis(id) {
-  return id.endsWith(':free');
-}
-
-// Filtra la cascada a solo modelos ':free' cuando permitirPago es false. A diferencia de
-// tools/openrouter.js#llamar (que se salta cada modelo de pago uno a uno según los va probando),
-// aquí se filtra ANTES de llamar: el brief exige que, con permitirPago=false, nunca se pase un
-// modelo de pago a `llamar`, ni siquiera como candidato descartado.
+// Filtra la cascada a solo modelos gratis (`esModeloGratis`, tools/openrouter.js -- ':free' o
+// prefijo "gemini:") cuando permitirPago es false. A diferencia de tools/openrouter.js#llamar (que
+// se salta cada modelo de pago uno a uno según los va probando), aquí se filtra ANTES de llamar: el
+// brief exige que, con permitirPago=false, nunca se pase un modelo de pago a `llamar`, ni siquiera
+// como candidato descartado.
 function filtrarPorPago(modelos, permitirPago) {
   return permitirPago ? modelos : modelos.filter(esModeloGratis);
 }

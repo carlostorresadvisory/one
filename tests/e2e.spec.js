@@ -2808,6 +2808,66 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
   });
 });
 
+// C4 de la revisión final v0.2b3-atomo-amplio-gemini: el `::before` de 44×44 que amplía el área
+// táctil del punto de estado (estilos.css#button.punto-servidor::before), CENTRADO en el punto,
+// invadía 24×24px de la esquina superior derecha de "Comenzar" -- un toque real ahí abría la hoja
+// "Conectar" en vez de arrancar la partida (medido en vivo con boundingBox, ver el informe de la
+// revisión). Geometría real, sin mocks de servidor: basta con abrir el HUB.
+test('HUB: el área táctil de 44px del punto de estado no pisa "Comenzar" (C4)', async ({ page }) => {
+  await page.goto('/?test=1');
+  await page.locator('[data-test="cerebro"]').click();
+  await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+  const geometria = await page.evaluate(() => {
+    // Un pseudo-elemento (`::before`) no tiene su propio nodo en el DOM, así que no hay
+    // `getBoundingClientRect` directo -- se reconstruye su caja a mano a partir del `getComputedStyle`
+    // resuelto (top/left/right/bottom/width/height ya en px, no en el "50%"/"10px" de la hoja de
+    // estilos) más la caja REAL del punto (su contenedor: `.punto-servidor` es `position:absolute`,
+    // así que es el "containing block" del propio `::before`) y la matriz de su `transform`.
+    function cajaPseudoBefore(elemento) {
+      const cajaElemento = elemento.getBoundingClientRect();
+      const cs = getComputedStyle(elemento, '::before');
+      let tx = 0;
+      let ty = 0;
+      if (cs.transform && cs.transform !== 'none') {
+        const m = cs.transform.match(/matrix\(([^)]+)\)/);
+        if (m) {
+          const partes = m[1].split(',').map(Number);
+          [, , , , tx, ty] = partes;
+        }
+      }
+      const ancho = parseFloat(cs.width);
+      const alto = parseFloat(cs.height);
+      const izquierda =
+        cs.left !== 'auto'
+          ? cajaElemento.left + parseFloat(cs.left)
+          : cajaElemento.right - parseFloat(cs.right) - ancho;
+      const arriba =
+        cs.top !== 'auto'
+          ? cajaElemento.top + parseFloat(cs.top)
+          : cajaElemento.bottom - parseFloat(cs.bottom) - alto;
+      return { left: izquierda + tx, top: arriba + ty, width: ancho, height: alto, right: izquierda + tx + ancho, bottom: arriba + ty + alto };
+    }
+    function caja(selector) {
+      const r = document.querySelector(selector).getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    }
+    return {
+      areaTactil: cajaPseudoBefore(document.querySelector('[data-test="estado-servidor"]')),
+      comenzar: caja('[data-test="comenzar"]'),
+      grid: caja('#progreso-areas'),
+    };
+  });
+
+  function seSolapan(a, b) {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  expect(geometria.areaTactil.height, 'el área táctil debe seguir midiendo >= 44px de alto (Apple HIG)').toBeGreaterThanOrEqual(44);
+  expect(seSolapan(geometria.areaTactil, geometria.comenzar), 'el área táctil del punto no debe solapar "Comenzar"').toBe(false);
+  expect(seSolapan(geometria.areaTactil, geometria.grid), 'el área táctil del punto no debe solapar la rejilla de áreas').toBe(false);
+});
+
 // Tarea 2 del plan v0.2b2-cliente-atomo (atomo.js + la vista/espera/tanda lista de app.js): el
 // mismo servidor de generación simulado con `page.route` que la Tarea 1, ahora ejercitando
 // /subtemas, /generar y /trabajo/:id (spec §4 "Átomo"). Describe aparte para no mezclar sus
@@ -2972,10 +3032,10 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
   test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
     page,
   }) => {
-    // La órbita del átomo gira sin parar (spec §4, 60s/vuelta): sin esto, Playwright nunca
-    // considera "estable" (misma posición en dos frames seguidos) al nodo que hay que tocar y el
-    // .click() no termina nunca. `prefers-reduced-motion` para el jugador real (accesibilidad, ver
-    // estilos.css) sirve aquí también para poder tocar los nodos en el test.
+    // v0.2b3 Tarea 3 quitó la órbita giratoria entera (ya no hace falta reducedMotion para que
+    // Playwright considere "estable" un nodo que antes daba vueltas) -- se conserva de todos modos
+    // para seguir ejercitando la app bajo `prefers-reduced-motion`, que sigue siendo un modo real
+    // que un jugador puede tener activado (accesibilidad, ver estilos.css).
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
 
@@ -3304,5 +3364,679 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       return encontradas;
     });
     expect(clavesConToken).toEqual([]);
+  });
+});
+
+// Tarea 3 del plan v0.2b3-atomo-amplio-gemini: nodo "Más…" con paginación (excluir), 6 anillos, y
+// el átomo dinámico de la "Ampliación" (sin órbita, transición inmediata al tocar, nodos de
+// espera, fila "Jugar el área / Repasar" mientras carga o falla). Describe aparte con sus propios
+// helpers (mismo criterio que el describe de arriba: "para no mezclar sus helpers con los de
+// [la tarea anterior], aunque el patrón... sea deliberadamente el mismo").
+test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámico)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-atomo-v3-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  const PAGINA1_ANILLO1 = [
+    { indice: 0, corto: 'Mercados', completo: 'Mercados y crisis financieras' },
+    { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+    { indice: 2, corto: 'Comercio', completo: 'Comercio internacional y aranceles' },
+    { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+  ];
+  const PAGINA2_ANILLO1_FINANZAS = [
+    { indice: 0, corto: 'Finanzas corporativas', completo: 'Finanzas corporativas y M&A' },
+    { indice: 1, corto: 'Insolvencia', completo: 'Reestructuraciones e insolvencia' },
+    { indice: 2, corto: 'Inversión', completo: 'Inversión y mercados financieros' },
+    { indice: 3, corto: 'Banca', completo: 'Banca y regulación financiera' },
+  ];
+  const PAGINA1_ANILLO2_FINANZAS = [
+    { indice: 0, corto: 'Crisis de 2008', completo: 'La crisis financiera mundial de 2008' },
+    { indice: 1, corto: 'Burbujas', completo: 'Burbujas especulativas históricas' },
+  ];
+  const PAGINA2_ANILLO2_FINANZAS = [
+    { indice: 0, corto: 'Apalancamiento', completo: 'Apalancamiento y estructuras de capital' },
+    { indice: 1, corto: 'Múltiplos', completo: 'Múltiplos de valoración' },
+  ];
+
+  /** Sirve /estado (silencioso) y /subtemas con paginación real por `excluir` -- anillo 1 (2
+   * páginas de 4 + agotado), anillo 2 de "Finanzas corporativas y M&A" (2 páginas de 2), y
+   * anillos 3-7 (genéricos, 2 por nivel, para poder llegar hasta el 6.º sin más mocks). Cada
+   * cuerpo de /subtemas recibido se guarda en `cuerpos` (aserción sobre `excluir`). */
+  function servidorAtomoV3Falso({ cuerpos = [] } = {}) {
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        const cuerpo = req.postDataJSON();
+        cuerpos.push(cuerpo);
+        const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+        const excluir = Array.isArray(cuerpo.excluir) ? cuerpo.excluir : [];
+
+        let subtemas;
+        if (ruta.length === 0) {
+          if (excluir.length === 0) subtemas = PAGINA1_ANILLO1;
+          else if (excluir.length === PAGINA1_ANILLO1.length) subtemas = PAGINA2_ANILLO1_FINANZAS;
+          else subtemas = []; // agotado: "No hay más por ahora"
+        } else if (ruta.length === 1) {
+          subtemas = excluir.length === 0 ? PAGINA1_ANILLO2_FINANZAS : PAGINA2_ANILLO2_FINANZAS;
+        } else {
+          // Anillos 3.º-7.º (genérico, ignora excluir -- solo hace falta poder avanzar).
+          subtemas = [
+            { indice: 0, corto: `Sub ${ruta.length}A`, completo: `Subtema nivel ${ruta.length} A` },
+            { indice: 1, corto: `Sub ${ruta.length}B`, completo: `Subtema nivel ${ruta.length} B` },
+          ];
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('nodo "Más…": dos páginas del anillo 1, elegir un hilo de la página 2, "Más…" en el anillo 2, avanzar hasta el 6.º anillo y tope', async ({
+    page,
+  }) => {
+    // Sin esto, la captura de más abajo puede pillar el fade-in de 220ms de los nodos a medio
+    // camino (Playwright no espera animaciones para sus aserciones de visibilidad, solo a que el
+    // elemento exista y no sea opacity:0 vía display/visibility) -- mismo criterio que la suite
+    // v0.2b2 de arriba.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const cuerpos = [];
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoV3Falso({ cuerpos }));
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4); // página 1 del anillo 1
+    await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b3-atomo-mas-375.png` });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    // "Más…" en el anillo 1: pide la página 2 (finanzas) con excluir = los 4 completos de la página 1.
+    await page.locator('[data-test="atomo-mas"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' })).toBeVisible();
+    const cuerpoMas1 = cuerpos.find((c) => c.ruta.length === 0 && c.excluir.length === 4);
+    expect(cuerpoMas1, 'debería haber una petición de "Más…" en el anillo 1 con excluir de 4 elementos').toBeTruthy();
+    expect(cuerpoMas1.excluir.slice().sort()).toEqual(PAGINA1_ANILLO1.map((s) => s.completo).sort());
+    // C3 de la revisión final v0.2b3: tras un "Más…" con éxito, "Buscando subtemas…" (mismo nodo,
+    // data-test="atomo-cargando" mientras carga) debe quedar oculto -- antes se quedaba fijo bajo
+    // el anillo nuevo, indefinidamente (hasta avanzar o retroceder de anillo).
+    await expect(page.locator('[data-test="atomo-cargando"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="atomo-aviso"]')).toBeHidden();
+
+    // Elegir "Finanzas corporativas y M&A" (página 2) -> anillo 2, "Más…" ahí también.
+    await page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' }).click();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Finanzas corporativas');
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // página 1 del anillo 2
+
+    await page.locator('[data-test="atomo-mas"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // página del "modelo" simulada
+    const cuerpoMas2 = cuerpos.find((c) => c.ruta.length === 1 && c.excluir.length === 2);
+    expect(cuerpoMas2, 'debería haber una petición de "Más…" en el anillo 2 con excluir de 2 elementos').toBeTruthy();
+    expect(cuerpoMas2.excluir.slice().sort()).toEqual(PAGINA1_ANILLO2_FINANZAS.map((s) => s.completo).sort());
+
+    // Avanza del anillo 2 (ruta.length=1) hasta ruta.length=6 (5 toques más) tocando siempre el primer nodo.
+    for (let i = 0; i < 5; i += 1) {
+      // eslint-disable-next-line no-await-in-loop -- cada toque depende del anillo que pintó el anterior.
+      await page.locator('[data-test="atomo-nodo"]').first().click();
+    }
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // 6.º anillo, todavía con nodos
+
+    // 7.º toque: ya en el máximo, no-op + aviso de tope (data-test="atomo-tope").
+    const rutaAntesDelTope = await page.locator('[data-test="atomo-ruta"]').textContent();
+    await page.locator('[data-test="atomo-nodo"]').first().click();
+    await expect(page.locator('[data-test="atomo-tope"]')).toHaveText('Máximo detalle: toca Generar');
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText(rutaAntesDelTope);
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled(); // "Generar sigue disponible"
+
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  test('"Más…" agotado: "No hay más por ahora" 2s y vuelve a "Más…"', async ({ page }) => {
+    const cuerpos = [];
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoV3Falso({ cuerpos }));
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+
+    await page.locator('[data-test="atomo-mas"]').click(); // página 2 (finanzas)
+    await expect(page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' })).toBeVisible();
+    await page.locator('[data-test="atomo-mas"]').click(); // página 3: agotado ([])
+
+    // El texto se envuelve en varias líneas SVG (envolverTexto) sin separador entre ellas -- se
+    // comprueba por contenido, no por igualdad exacta con espacios entre líneas.
+    await expect(page.locator('[data-test="atomo-mas-vacio"]')).toContainText('No hay más');
+    // Los 4 subtemas de la página 2 (los últimos con éxito) siguen ahí, sin perderlos.
+    await expect(page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' })).toBeVisible();
+    await expect(page.locator('[data-test="atomo-mas"]')).toHaveCount(0); // revierte al pasar los 2s
+
+    await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible({ timeout: 3000 });
+    await expect(page.locator('[data-test="atomo-nodo"]', { hasText: 'Finanzas' })).toBeVisible();
+  });
+
+  // Ronda de revisión combinada (Tarea 3+4, Important): un 400 real del servidor ("Exclusión
+  // inválida", servidor/index.js#normalizarExcluir) en "Más…" ya NO se trata como "agotado" --
+  // `pedirSubtemas` sigue devolviendo `null` ante cualquier error HTTP, pero `manejarMasAtomo`
+  // ahora distingue ese `null` de un `[]` genuino (ver app.js). Servidor simulado a mano (en vez de
+  // `servidorAtomoV3Falso`, que solo sabe responder 200) para poder devolver el 400.
+  test('"Más…" con error del servidor (400 "Exclusión inválida"): aviso "No se pudo cargar más" 2s, sin marcar el anillo como agotado', async ({
+    page,
+  }) => {
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: '{"preguntas":[],"enCola":0}',
+          });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          const cuerpo = req.postDataJSON();
+          const excluir = Array.isArray(cuerpo.excluir) ? cuerpo.excluir : [];
+          if (excluir.length === 0) {
+            // Página 1 (anillo recién abierto): normal, sin excluir.
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              headers: CORS,
+              body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
+            });
+            return;
+          }
+          // "Más…" (excluir no vacío): el servidor real respondería 400 aquí si `excluir` se
+          // pasara de sus límites -- se simula directamente con el mismo código, sin depender de
+          // generar 31 elementos reales para disparar el rechazo del servidor.
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ error: 'Exclusión inválida' }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+
+    await page.locator('[data-test="atomo-mas"]').click();
+
+    await expect(page.locator('[data-test="atomo-mas-error"]')).toHaveText('No se pudo cargar más');
+    // NO es "agotado": ni el aviso "No hay más por ahora" ni el estado atomoFallo (que apagaría
+    // Generar) se disparan -- solo el aviso corto de arriba.
+    await expect(page.locator('[data-test="atomo-mas-vacio"]')).toHaveCount(0);
+    // Los 4 subtemas de la página 1 (los últimos con éxito) siguen ahí, y "Más…" sigue pulsable
+    // DE INMEDIATO (no hay que esperar a que el aviso de error desaparezca).
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    // El aviso desaparece solo, a los 2s.
+    await expect(page.locator('[data-test="atomo-mas-error"]')).toBeHidden({ timeout: 3000 });
+  });
+
+  test('anillo cargando: nodos de espera, fila "atomo-mientras" y un toque durante la carga no cambia la ruta', async ({
+    page,
+  }) => {
+    // Determinismo de la captura de más abajo (mismo motivo que el test anterior): sin esto, el
+    // fade-in de 220ms de los nodos de espera podría quedar a medio camino en la captura.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    let resolverRetraso;
+    const retraso = new Promise((resolve) => {
+      resolverRetraso = resolve;
+    });
+    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        const cuerpo = req.postDataJSON();
+        const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+        // Primera carga (anillo 1, instantánea) para poder tocar un nodo; la SIGUIENTE (anillo 2,
+        // tras tocar) se retrasa 3s -- es esa la que hay que pillar "en vuelo".
+        if (ruta.length === 0) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
+          });
+          return;
+        }
+        await retraso;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas: PAGINA1_ANILLO2_FINANZAS }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-mientras"]')).toBeHidden(); // anillo 1 ya listo
+
+    await page.locator('[data-test="atomo-nodo"]').first().click(); // dispara la carga retrasada 3s
+
+    // Todo esto debe ser cierto YA (brief: "en < 500 ms"), sin esperar los 3s del mock.
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados', { timeout: 500 });
+    await expect(page.locator('[data-test="atomo-esperando"]')).toHaveCount(6, { timeout: 500 });
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(0, { timeout: 500 });
+    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible({ timeout: 500 });
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b3-atomo-esperando-375.png` });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    // Un toque sobre un nodo de espera no hace nada: la ruta sigue igual.
+    await page.locator('[data-test="atomo-esperando"]').first().click({ force: true });
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados');
+
+    // Resuelve el retraso: llegan los subtemas reales y la fila "mientras" desaparece.
+    resolverRetraso();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2);
+    await expect(page.locator('[data-test="atomo-esperando"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="atomo-mientras"]')).toBeHidden();
+  });
+
+  test('"Jugar el área" de la fila "atomo-mientras" arranca una partida del área mientras el anillo carga', async ({
+    page,
+  }) => {
+    let resolverRetraso;
+    const retraso = new Promise((resolve) => {
+      resolverRetraso = resolve;
+    });
+    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await retraso; // el anillo 1 mismo llega retrasado: basta para probar "mientras carga".
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible();
+
+    await page.locator('[data-test="atomo-mientras-jugar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
+
+    resolverRetraso(); // deja la petición pendiente resolver para no dejar un handle colgado
+  });
+
+  test('"Repasar" de la fila "atomo-mientras" abre la pantalla de repaso mientras el anillo carga', async ({
+    page,
+  }) => {
+    let resolverRetraso;
+    const retraso = new Promise((resolve) => {
+      resolverRetraso = resolve;
+    });
+    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await retraso;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible();
+
+    await page.locator('[data-test="atomo-mientras-repasar"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+
+    resolverRetraso(); // deja la petición pendiente resolver para no dejar un handle colgado
+  });
+});
+
+// Tarea 4 del plan v0.2b3-atomo-amplio-gemini ("Conectar desde la app instalada"): en iOS la app
+// añadida a la pantalla de inicio (`display: standalone`) tiene almacenamiento SEPARADO de Safari,
+// así que el enlace `?servidor=&token=` abierto en Safari no llega a la app instalada -- esta hoja
+// deja pegar el enlace (o "servidor token") a mano, sin salir de la app. Servidor simulado con
+// `page.route` (nunca una llamada real a la red), mismo patrón CORS que las tareas anteriores.
+test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-conectar-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  /** Sirve /estado (silencioso, sin preguntas nuevas) y /subtemas (un anillo 1 fijo de 1 nodo) --
+   * las dos rutas que toca esta tarea tras conectar con éxito (recarga del anillo + sincronización
+   * en segundo plano, ver app.js#manejarConectarOk). */
+  function servidorConectarFalso() {
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            subtemas: [{ indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' }],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  /** Mismo contrato que assertSinScroll (arriba en esta hoja), pero sobre la propia hoja "Conectar":
+   * no es una `.vista`, vive fuera del sistema de vistas (position: fixed, anclada abajo). */
+  async function assertSinScrollHoja(page) {
+    const medidas = await page.evaluate(() => {
+      const hoja = document.querySelector('[data-test="conectar"]');
+      return hoja ? { alto: hoja.scrollHeight, visible: hoja.clientHeight } : null;
+    });
+    expect(medidas).not.toBeNull();
+    expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
+  }
+
+  test('abrir la hoja desde el punto de estado, pegar un enlace, Conectar cierra la hoja, avisa "Conectado" y recarga el anillo', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+
+    // Sin `?test=1` a propósito: comprueba que `location.search` queda REALMENTE vacío tras
+    // conectar (el enlace se pegó en un <input>, nunca tocó la barra de direcciones del navegador).
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    // Sin servidor: punto gris, aviso y ayuda de conectar (Tarea 4).
+    await expect(page.locator('[data-test="atomo-estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+    await expect(page.locator('[data-test="atomo-aviso"]')).toHaveText(
+      'Conecta el servidor para generar preguntas nuevas'
+    );
+    await expect(page.locator('[data-test="atomo-ayuda"]')).toHaveText(
+      'Conecta el servidor (toca el punto de la cabecera)'
+    );
+
+    // Abrir la hoja desde el punto de estado de la cabecera del Átomo.
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await assertSinScrollHoja(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScrollHoja(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+
+    // Éxito: hoja cerrada, aviso "Conectado", campo vacío, y la URL real del navegador nunca se
+    // tocó (nada de "servidor="/"token=" colgando en el historial, a diferencia del enlace de
+    // Safari -- aquí no hay enlace de por medio, solo texto pegado en un campo).
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeVisible();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+    expect(await page.evaluate(() => location.search)).toBe('');
+
+    // El anillo se recarga con la configuración recién guardada: ya no "sin servidor".
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(1);
+    await expect(page.locator('[data-test="atomo-ayuda"]')).toHaveText(
+      'Mantén pulsada un área del HUB para abrir su átomo'
+    );
+
+    // El "Conectado" desaparece solo, a los 2s (mismo mecanismo que mostrarAvisoHub/mostrarAvisoCuerpo).
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeHidden({ timeout: 3000 });
+  });
+
+  // Revisión combinada (Tarea 4): Carlos aterriza en el HUB al abrir la app instalada, así que el
+  // punto de estado de ahí (junto a "Comenzar") también debe abrir la hoja -- no solo el gemelo
+  // dentro del Átomo, que exige un paso extra (abrir el átomo de un área) para llegar a él.
+  test('abrir la hoja también desde el punto de estado del HUB (junto a "Comenzar"), sin pasar por el Átomo', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeVisible();
+    // sincronizarEnSegundoPlano (fire-and-forget) deja el punto en verde en cuanto /estado responde.
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'verde');
+  });
+
+  // Ronda de revisión combinada (Tarea 4, tres Important): (a) el foco vuelve al botón que abrió
+  // la hoja al cerrarla, sea por Cancelar o por éxito -- sin esto, cerrar el diálogo deja el foco
+  // de teclado "perdido"; (c) el aria-label de los puntos de estado sigue llevando el estado real
+  // (gris/verde), no un texto de acción fijo.
+  test('foco: Cancelar (y el éxito) devuelven el foco al punto que abrió la hoja; su aria-label refleja el estado', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const punto = page.locator('[data-test="estado-servidor"]');
+    await expect(punto).toHaveAttribute('aria-label', /sin conectar/i);
+
+    // Cancelar: la hoja se cierra y el foco vuelve al punto que la abrió.
+    await punto.click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+
+    // Conectar de verdad: también tras el éxito el foco vuelve al punto, y su aria-label pasa a
+    // reflejar "conectado" (nunca queda fijo en un texto de acción genérico).
+    await punto.click();
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+    await expect(punto).toHaveAttribute('aria-label', /conectado/i);
+  });
+
+  // Punto 7 del triaje final v0.2b3: la prueba de arriba solo cubría el punto del HUB
+  // (data-test="estado-servidor") -- misma comprobación (foco + aria-label), ahora desde su gemelo
+  // dentro de la cabecera del Átomo (data-test="atomo-estado-servidor").
+  test('foco (variante Átomo): Cancelar (y el éxito) devuelven el foco al punto del Átomo que abrió la hoja; su aria-label refleja el estado', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    const punto = page.locator('[data-test="atomo-estado-servidor"]');
+    await expect(punto).toHaveAttribute('aria-label', /sin conectar/i);
+
+    // Cancelar: la hoja se cierra y el foco vuelve al punto del Átomo que la abrió.
+    await punto.click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+
+    // Conectar de verdad: también tras el éxito el foco vuelve al punto del Átomo, y su
+    // aria-label pasa a reflejar "conectado".
+    await punto.click();
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(punto).toBeFocused();
+    await expect(punto).toHaveAttribute('aria-label', /conectado/i);
+  });
+
+  test('enlace no válido: aviso de error sin cerrar la hoja; también se abre desde el aviso del átomo; Cancelar/Escape cierran y vacían el campo', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    // Segundo disparador: tocar el propio aviso "Conecta el servidor..." (no solo el punto).
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-aviso"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+
+    await page.locator('[data-test="conectar-texto"]').fill('esto no es un enlace ni "servidor token"');
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar-error"]')).toBeVisible();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible(); // el error NO cierra la hoja
+
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+    // Cancelar no guardó nada: sigue sin servidor.
+    await expect(page.locator('[data-test="atomo-estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+
+    // Escape hace lo mismo que Cancelar: cierra y vacía el campo.
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await page.locator('[data-test="conectar-texto"]').fill('texto que se debe perder');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
   });
 });

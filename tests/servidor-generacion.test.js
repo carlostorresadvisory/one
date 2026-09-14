@@ -12,7 +12,7 @@ import {
   GENERADOR_PREGUNTAS_SOLO_PAGO,
   VERIFICADOR_PREGUNTAS_SOLO_PAGO,
 } from '../servidor/generacion.js';
-import { MODELOS } from '../tools/openrouter.js';
+import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import { EJEMPLOS, promptUsuarioVF } from '../tools/prompts-preguntas.js';
@@ -61,7 +61,10 @@ test('generarBorradores: con n=5 (un solo lote) reparte V/F 50/50 (redondeado ha
   for (const b of borradores) {
     assert.equal(b.area, 'economia');
     assert.equal(b.tipo, 'vf');
-    assert.equal(b.generador, MODELOS.generador.filter((m) => m.endsWith(':free'))[0]);
+    // Cambiado (Tarea 2, v0.2b3): antes filtraba solo por ':free' -- con `esModeloGratis` (que
+    // también cuenta los "gemini:*" como gratis, ya en cabeza de MODELOS.generador) el primer
+    // modelo gratis real pasa a ser 'gemini:gemini-2.5-flash-lite'.
+    assert.equal(b.generador, MODELOS.generador.filter(esModeloGratis)[0]);
     assert.equal(b.verificado, false);
     assert.equal(b.confianza, null);
     assert.ok(Number.isInteger(b.nivel) && b.nivel >= 1 && b.nivel <= 5);
@@ -168,7 +171,23 @@ test('generarBorradores: con permitirPago=false, nunca pasa un modelo de pago a 
   await generarBorradores({ area: 'arte', ruta: [], n: 1 }, { llamar: llamarFalso, permitirPago: false });
 
   assert.ok(modelosVistos.length > 0);
-  for (const m of modelosVistos) assert.ok(m.endsWith(':free'), `${m} no es gratis`);
+  // Cambiado (Tarea 2, v0.2b3): "gratis" ya no es solo ':free' -- ver esModeloGratis.
+  for (const m of modelosVistos) assert.ok(esModeloGratis(m), `${m} no es gratis`);
+});
+
+// Tarea 2 (v0.2b3): esModeloGratis ahora se importa de tools/openrouter.js en vez de duplicarse
+// localmente -- este test demuestra que los ids "gemini:*" (ya en cabeza de MODELOS.generador, ver
+// Tarea 1) llegan de verdad a `llamar` con permitirPago=false, y en primer lugar.
+test('generarBorradores: con permitirPago=false, la cascada que llega a llamar empieza por gemini:gemini-2.5-flash-lite', async () => {
+  const modelosVistos = [];
+  const llamarFalso = async ({ modelos }) => {
+    modelosVistos.push(...modelos);
+    return respuestaVF([{ enunciado: 'X', explicacion: 'y', nivel: 1, respuesta: true, hilo: 1 }], modelos[0]);
+  };
+
+  await generarBorradores({ area: 'arte', ruta: [], n: 1 }, { llamar: llamarFalso, permitirPago: false });
+
+  assert.equal(modelosVistos[0], 'gemini:gemini-2.5-flash-lite');
 });
 
 test('generarBorradores: área desconocida lanza un error claro', async () => {
@@ -478,7 +497,8 @@ test('verificarBorradores: aprueba y devuelve el nivel del verificador cuando to
   const [veredicto] = await verificarBorradores([borradorVF({ id: 'srv-eco-1', nivel: 1 })], { llamar: llamarFalso });
   assert.equal(veredicto.ok, true);
   assert.equal(veredicto.nivel, 4);
-  assert.equal(veredicto.modelo, MODELOS.verificador.filter((m) => m.endsWith(':free'))[0]);
+  // Cambiado (Tarea 2, v0.2b3): ver el comentario análogo en generarBorradores más arriba.
+  assert.equal(veredicto.modelo, MODELOS.verificador.filter(esModeloGratis)[0]);
 });
 
 test('verificarBorradores: un id sin resultado del verificador queda ok:false con motivo', async () => {
@@ -829,8 +849,8 @@ test('producirTanda: suma el coste de generación, verificación y resolución',
 
 test('producirTanda: con permitirPago=false, nunca pasa un modelo de pago a llamar al generar/verificar preguntas', async () => {
   // Alcance de esta comprobación: generarBorradores/verificarBorradores (código nuevo de esta
-  // tarea) filtran la cascada a ':free' antes de llamar (ver filtrarPorPago en
-  // servidor/generacion.js). El paso de visual (resolverPregunta, tools/visualizar.js, ya
+  // tarea) filtran la cascada a solo modelos gratis (esModeloGratis: ':free' o "gemini:*") antes
+  // de llamar (ver filtrarPorPago en servidor/generacion.js). El paso de visual (resolverPregunta, tools/visualizar.js, ya
   // existente y fuera de esta tarea) NO filtra por su cuenta -- confía, como siempre, en que
   // tools/openrouter.js#llamar se salte cada modelo de pago uno a uno; eso ya está cubierto por
   // los tests de visualizar.test.js y no se toca aquí.
@@ -843,7 +863,8 @@ test('producirTanda: con permitirPago=false, nunca pasa un modelo de pago a llam
   );
   assert.equal(llamadasDePreguntas.length, 2, 'debe haber pasado por generarBorradores y verificarBorradores');
   for (const { modelos } of llamadasDePreguntas) {
-    for (const m of modelos) assert.ok(m.endsWith(':free'), `${m} no es gratis`);
+    // Cambiado (Tarea 2, v0.2b3): ver el comentario análogo en generarBorradores más arriba.
+    for (const m of modelos) assert.ok(esModeloGratis(m), `${m} no es gratis`);
   }
 });
 

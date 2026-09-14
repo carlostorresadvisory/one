@@ -38,6 +38,15 @@ const DIAS_RUTAS_ATOMO = 7;
 // indefinidamente. 10 s (brief de la tarea) porque aquí el jugador está esperando delante de la
 // pantalla, no un proceso de fondo — un valor mucho menor que los 120 s del generador en el VPS.
 const TIMEOUT_MS = 10000;
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C2): 10 s abortaba /subtemas antes
+// de que la cascada gratis (tools/openrouter.js, hasta 90 s reales por lote, con Gemini/':free' de
+// por medio) llegara a responder -- la PRIMERA visita a cualquier anillo ≥ 2 (o a la página en la
+// que se agotan los hilos estáticos) fallaba casi siempre con "No se pudieron cargar los
+// subtemas", y el aviso de lentitud de 20 s de app.js#empezarCargaAtomo quedaba como código
+// inalcanzable (la petición ya se había abortado antes). Solo /subtemas usa este timeout largo; el
+// resto de peticiones (/estado, /generar, /trabajo/:id, /reportar) siguen a TIMEOUT_MS (10 s):
+// ahí el jugador espera una respuesta rápida de verdad, no una generación de fondo.
+const TIMEOUT_SUBTEMAS_MS = 90000;
 
 // === Configuración (URL + token del servidor) ====================================================
 
@@ -112,14 +121,35 @@ function sanearServidor(servidorCrudo) {
 }
 
 /**
+ * Sanea `servidorCrudo`/`tokenCrudo` (`sanearToken`/`sanearServidor`, Ronda 1 de revisión —
+ * Important #1) y, si ambos son válidos, los guarda en `localStorage` (clave `one.servidor`, con
+ * `url` ya normalizada a su origin). Núcleo compartido por `guardarConfiguracionDesdeUrl` (el
+ * enlace `?servidor=&token=`) y `guardarConfiguracionDesdeTexto` (Tarea 4, hoja "Conectar" dentro
+ * de la app instalada, sin URL de por medio) — la única diferencia entre ambas es de dónde sacan
+ * `servidorCrudo`/`tokenCrudo`, el saneado y el guardado son exactamente los mismos.
+ * @returns {boolean} si se guardó.
+ */
+function guardarConfiguracionValidada(servidorCrudo, tokenCrudo) {
+  const token = sanearToken(tokenCrudo);
+  const origen = sanearServidor(servidorCrudo);
+  if (!token || !origen) return false;
+  try {
+    localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: origen, token }));
+    return true;
+  } catch {
+    // localStorage llena o no disponible (modo privado, cuota...): no se guardó nada.
+    return false;
+  }
+}
+
+/**
  * Lee `?servidor=<url>&token=<token>` de `location.search`. Sin los dos parámetros presentes, no
  * hace nada (no guarda, no toca la URL) y devuelve `false` — es el caso normal de abrir la app sin
- * ese enlace especial. Con los dos presentes: se sanean (`sanearToken`/`sanearServidor`, Ronda 1 de
- * revisión — Important #1) y, si ambos son válidos, se guardan en `localStorage` (clave
- * `one.servidor`, con `url` ya normalizada a su origin). Se hayan guardado o no, se limpian
- * `servidor`/`token` de la URL con `history.replaceState` (conserva cualquier otro parámetro y el
- * hash — p. ej. no se come `?test=1` en los e2e): un intento de configurar con datos inválidos no
- * debe dejar el token o el host del servidor colgando en el historial del navegador.
+ * ese enlace especial. Con los dos presentes: se validan y guardan con `guardarConfiguracionValidada`.
+ * Se hayan guardado o no, se limpian `servidor`/`token` de la URL con `history.replaceState`
+ * (conserva cualquier otro parámetro y el hash — p. ej. no se come `?test=1` en los e2e): un
+ * intento de configurar con datos inválidos no debe dejar el token o el host del servidor colgando
+ * en el historial del navegador.
  * @param {{search: string, pathname: string, hash?: string}} location
  * @returns {boolean} si se guardó una configuración nueva (válida).
  */
@@ -129,19 +159,7 @@ export function guardarConfiguracionDesdeUrl(location) {
   const tokenCrudo = params.get('token');
   if (!servidorCrudo || !tokenCrudo) return false;
 
-  const token = sanearToken(tokenCrudo);
-  const origen = sanearServidor(servidorCrudo);
-  let guardado = false;
-  if (token && origen) {
-    try {
-      localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: origen, token }));
-      guardado = true;
-    } catch {
-      // localStorage llena o no disponible (modo privado, cuota...): no se guardó nada, pero la
-      // URL se limpia igual (ver comentario de cabecera de esta función).
-      guardado = false;
-    }
-  }
+  const guardado = guardarConfiguracionValidada(servidorCrudo, tokenCrudo);
 
   params.delete('servidor');
   params.delete('token');
@@ -168,6 +186,58 @@ export function guardarConfiguracionDesdeUrl(location) {
     }
   }
   return guardado;
+}
+
+/**
+ * Guarda la configuración del servidor a partir de texto pegado a mano (Tarea 4, hoja "Conectar"
+ * dentro de la app instalada: en iOS la app añadida a la pantalla de inicio tiene almacenamiento
+ * SEPARADO de Safari, así que el enlace `?servidor=&token=` abierto en Safari no llega a
+ * `guardarConfiguracionDesdeUrl` de la app instalada — hace falta una vía sin URL de por medio).
+ * Acepta dos formatos, sin ambigüedad entre ellos (si `texto` trae algún espacio o salto de línea
+ * es el formato (b); si no trae ninguno, es el (a)):
+ * (a) el enlace completo (se parsea con `new URL(texto)` y se leen `servidor`/`token` de sus
+ *     parámetros) — pegar la URL entera es lo más fácil para Carlos, sin tener que trocearla.
+ * (b) `"<servidor> <token>"`, los dos valores sueltos separados por espacio o salto de línea.
+ * Mismo saneado que `guardarConfiguracionDesdeUrl` en ambos casos (`guardarConfiguracionValidada`):
+ * token 16-128 caracteres sin espacios ni control, servidor `https:` cualquier host o
+ * `http://localhost`. `texto` en sí NUNCA se registra ni se guarda en ningún sitio (ni con
+ * `console.*` ni en `localStorage`) — solo la configuración `{url, token}` ya validada, igual que
+ * el resto de este módulo.
+ * @param {string} texto
+ * @returns {boolean} si se guardó una configuración nueva (válida).
+ */
+export function guardarConfiguracionDesdeTexto(texto) {
+  if (typeof texto !== 'string') return false;
+  const limpio = texto.trim();
+  if (!limpio) return false;
+
+  let servidorCrudo = null;
+  let tokenCrudo = null;
+
+  if (/\s/.test(limpio)) {
+    // Formato (b): "<servidor> <token>" separados por espacio o salto de línea (uno o varios
+    // seguidos, p. ej. un copia-pega con doble espacio). Cualquier cosa que no sean exactamente
+    // dos trozos no es este formato -- se deja como no reconocido (false más abajo), nunca se
+    // intenta adivinar cuál de los N trozos es el servidor y cuál el token.
+    const partes = limpio.split(/\s+/).filter(Boolean);
+    if (partes.length === 2) {
+      [servidorCrudo, tokenCrudo] = partes;
+    }
+  } else {
+    // Formato (a): el enlace completo, sin ningún espacio -- se parsea como URL y se leen sus
+    // parámetros `servidor`/`token`. Si ni siquiera es una URL válida, o es una URL sin esos
+    // parámetros, no hay nada que guardar.
+    try {
+      const url = new URL(limpio);
+      servidorCrudo = url.searchParams.get('servidor');
+      tokenCrudo = url.searchParams.get('token');
+    } catch {
+      return false;
+    }
+  }
+
+  if (!servidorCrudo || !tokenCrudo) return false;
+  return guardarConfiguracionValidada(servidorCrudo, tokenCrudo);
 }
 
 // === Banco extendido (preguntas recibidas del servidor) ===========================================
@@ -280,12 +350,13 @@ function avisarFalloPeticion(url, motivo) {
   }
 }
 
-// Único punto que toca la red: siempre con timeout de 10 s y siempre `null` en vez de lanzar
-// (cuerpo no-JSON, HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede
-// limitarse a comprobar `datos === null` sin su propio try/catch repetido.
-async function peticionJson(fetchImpl, url, opciones) {
+// Único punto que toca la red: siempre con timeout (10 s por defecto, 90 s para /subtemas -- ver
+// `timeoutMs`/TIMEOUT_SUBTEMAS_MS más abajo) y siempre `null` en vez de lanzar (cuerpo no-JSON,
+// HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede limitarse a
+// comprobar `datos === null` sin su propio try/catch repetido.
+async function peticionJson(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
   try {
-    const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
     if (!respuesta.ok) {
       avisarFalloPeticion(url, String(respuesta.status));
       return null;
@@ -410,25 +481,64 @@ const cacheSubtemas = new Map();
 // inserción, así que la PRIMERA clave es siempre la más antigua (se borra ella, no una al azar).
 const TOPE_CACHE_SUBTEMAS = 50;
 
+// Ronda de revisión combinada (Tarea 3+4, Important): MISMOS límites que el servidor
+// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD -- 30 elementos, 160
+// caracteres cada uno) -- sin este recorte, un anillo visitado con "Más…" varias veces seguidas
+// (5-6 toques) acumula más de 30 `completo` en `excluir` y el servidor responde 400 "Exclusión
+// inválida", que `pedirSubtemas` (más abajo) convierte en `null` como cualquier otro fallo --
+// `manejarMasAtomo` en app.js lo trataba antes igual que "agotado", así que el anillo quedaba roto
+// en silencio a partir de ese toque.
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C1): 120 se quedaba corto frente a
+// los hilos de tools/criterio.js#HILOS_POR_AREA (hasta 112 caracteres) -- subido a 160, igual que
+// servidor/index.js#EXCLUIR_ELEMENTO_MAX_LONGITUD/RUTA_ELEMENTO_MAX_LONGITUD (misma cifra en los
+// tres sitios, a mano: cruzar los comentarios si alguno cambia).
+const EXCLUIR_MAX_ELEMENTOS = 30;
+const EXCLUIR_ELEMENTO_MAX_LONGITUD = 160;
+
+/** Recorta `excluir` a los ÚLTIMOS `EXCLUIR_MAX_ELEMENTOS` (los más recientes son los que de
+ * verdad importan para no repetir la página que se acaba de ver) y cada elemento a
+ * `EXCLUIR_ELEMENTO_MAX_LONGITUD` caracteres -- antes de construir el body y la clave de caché,
+ * así que un `excluir` de sobra nunca llega a viajar entero ni a la red ni a la caché en memoria. */
+function acotarExcluir(excluir) {
+  const lista = Array.isArray(excluir) ? excluir : [];
+  return lista
+    .slice(-EXCLUIR_MAX_ELEMENTOS)
+    .map((elemento) => (typeof elemento === 'string' ? elemento.slice(0, EXCLUIR_ELEMENTO_MAX_LONGITUD) : elemento));
+}
+
 /**
- * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta]` (spec §4: "una sola
- * llamada al modelo por combinación, para siempre" en el servidor -- aquí, para no repetir ni
- * siquiera la llamada HTTP mientras dure la sesión). La caché nunca se llena de fallos: solo se
- * guarda una respuesta buena.
- * @param {{area: string, ruta?: string[], fetchImpl?: Function}} params
+ * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta, excluir]` (spec §4:
+ * "una sola llamada al modelo por combinación, para siempre" en el servidor -- aquí, para no
+ * repetir ni siquiera la llamada HTTP mientras dure la sesión). La caché nunca se llena de fallos:
+ * solo se guarda una respuesta buena.
+ *
+ * `excluir` (v0.2b3 Tarea 3, nodo "Más…"): los `completo` de los subtemas ya mostrados en ESE
+ * anillo, para que el servidor pagine la siguiente tanda sin repetir. Siempre viaja en el body
+ * (`[]` por defecto, nunca se omite) y entra en la clave de caché -- misma `[area, ruta]` con un
+ * `excluir` distinto es una página distinta, no la misma petición. Se acota con `acotarExcluir`
+ * (Ronda de revisión combinada, ver arriba) a los límites reales del servidor antes de nada.
+ * @param {{area: string, ruta?: string[], excluir?: string[], fetchImpl?: Function}} params
  * @returns {Promise<object[] | null>}
  */
-export async function pedirSubtemas({ area, ruta = [], fetchImpl = fetch } = {}) {
+export async function pedirSubtemas({ area, ruta = [], excluir = [], fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || !area) return null;
-  const clave = JSON.stringify([area, ruta]);
+  const excluirAcotado = acotarExcluir(excluir);
+  const clave = JSON.stringify([area, ruta, excluirAcotado]);
   if (cacheSubtemas.has(clave)) return cacheSubtemas.get(clave);
 
-  const datos = await peticionJson(fetchImpl, `${configuracion.url}/subtemas`, {
-    method: 'POST',
-    headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta }),
-  });
+  // Ronda final de arreglos (C2): TIMEOUT_SUBTEMAS_MS (90 s), no el TIMEOUT_MS de 10 s del resto de
+  // peticiones -- la cascada gratis (tools/openrouter.js) tarda 30-90 s reales por lote.
+  const datos = await peticionJson(
+    fetchImpl,
+    `${configuracion.url}/subtemas`,
+    {
+      method: 'POST',
+      headers: cabeceras(configuracion.token),
+      body: JSON.stringify({ area, ruta, excluir: excluirAcotado }),
+    },
+    TIMEOUT_SUBTEMAS_MS,
+  );
   if (!datos || !Array.isArray(datos.subtemas)) return null;
   if (cacheSubtemas.size >= TOPE_CACHE_SUBTEMAS) {
     cacheSubtemas.delete(cacheSubtemas.keys().next().value);

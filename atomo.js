@@ -12,7 +12,7 @@
 
 // === Estado puro (decisión del controlador, 14-sep-2026) ==========================================
 
-const MAX_ANILLOS = 4;
+const MAX_ANILLOS = 6; // v0.2b3 Tarea 3: 4 → 6 (átomo más amplio, decisión de Carlos 14-sep 21:30).
 
 /** Estado inicial del átomo para `area`: sin ningún anillo elegido todavía (núcleo = el área). */
 export function crearEstadoAtomo(area) {
@@ -22,8 +22,9 @@ export function crearEstadoAtomo(area) {
 /**
  * Avanza un anillo: añade `subtema.completo` a `ruta` (lo que viaja a `pedirTanda`/`pedirSubtemas`)
  * y `subtema.corto` a `etiquetas` (lo que se ve en pantalla). Inmutable: nunca toca `estado`. En el
- * máximo de anillos (4) es un no-op que devuelve el MISMO objeto recibido (no una copia igual) —
- * así quien llama puede detectar "no ha pasado nada" con `===` en vez de comparar contenido.
+ * máximo de anillos (6, v0.2b3) es un no-op que devuelve el MISMO objeto recibido (no una copia
+ * igual) — así quien llama puede detectar "no ha pasado nada" con `===` en vez de comparar
+ * contenido (app.js usa esto para mostrar "Máximo detalle: toca Generar", ver mostrarAvisoTopeAtomo).
  */
 export function avanzar(estado, subtema) {
   if (estado.ruta.length >= MAX_ANILLOS) return estado;
@@ -51,26 +52,24 @@ export function retroceder(estado) {
 // === Componente visual: SVG con núcleo + nodos en órbita ===========================================
 
 const NS_SVG = 'http://www.w3.org/2000/svg';
-// viewBox 320x320 (brief): centro geométrico y radios en las mismas unidades. RADIO_NODO=26 da
-// nodos de 52px de diámetro (>= 44px de toque exigidos) cuando el SVG renderiza cerca de 1:1 con
-// su viewBox (ver estilos.css, .atomo-lienzo).
+// viewBox 320x320 (brief): centro geométrico y radios en las mismas unidades.
 //
-// Ronda 1 de revisión (Important #3), hallazgo propio no pedido explícitamente pero real (visto en
-// la propia captura): con la etiqueta DEBAJO del círculo, el nodo que cae justo arriba (siempre el
-// índice 0, ángulo exacto -90°) la empuja HACIA el núcleo, no hacia fuera -- con el núcleo pintado
-// encima (para que su propio círculo tape limpiamente lo que hay detrás), esa etiqueta quedaba
-// oculta bajo el círculo del núcleo en vez de solo "apretada". El hueco/interlineado del nodo se
-// ajusta para que el borde inferior de esa etiqueta quede POR FUERA del círculo del núcleo con
-// margen, sin perder margen contra el borde del viewBox para el nodo de abajo. Ronda final de
-// revisión (Disposición): RADIO_NUCLEO sube de 44 a 48 (pedido explícito) -- RADIO_ORBITA sube en
-// consecuencia de 100 a 102 para conservar el margen de despeje contra el núcleo.
+// v0.2b3 Tarea 3 -- "Ampliación" (dirección de Carlos, 14-sep 22:11: "la idea no es que dé vueltas
+// sino que sea dinámico"): se quita la órbita giratoria entera (ver estilos.css, ya no hay
+// @keyframes atomo-girar) y el texto pasa a vivir DENTRO del círculo del nodo, como ya hacía el
+// núcleo -- ya no hace falta contra-rotación para mantenerlo recto, ni etiqueta exterior. Radios
+// nuevos (diseño decidido por el controlador): núcleo 44, nodo 38, órbita 118. Con 7 nodos (6
+// subtemas + "Más…", el caso más apretado) la distancia entre centros contiguos es
+// 2*118*sin(π/7) ≈ 102px, más del doble del diámetro de un nodo (76px) -- no se solapan entre sí
+// ni con el núcleo (hueco núcleo-nodo: 118-44-38 = 36px). Verificado también de forma visual en
+// las capturas 375px (ver informe de la tarea).
 const TAMANO = 320;
 const CENTRO = TAMANO / 2;
-const RADIO_NUCLEO = 48;
-const RADIO_NODO = 26;
-const RADIO_ORBITA = 102;
-const GAP_ETIQUETA_NODO = 4;
-const ALTURA_LINEA_NODO = 11;
+const RADIO_NUCLEO = 44;
+const RADIO_NODO = 38;
+const RADIO_ORBITA = 118;
+const ALTURA_LINEA_NODO = 10.5;
+const N_NODOS_ESPERANDO = 6; // nodos de espera pintados mientras no se sabe aún cuántos subtemas hay.
 
 function crearElementoSvg(tipo, atributos = {}) {
   const el = document.createElementNS(NS_SVG, tipo);
@@ -85,8 +84,22 @@ function crearElementoSvg(tipo, atributos = {}) {
  * criterio que `acortarSubtema` en servidor/index.js, aplicado aquí también como defensa: el
  * servidor ya manda `corto`/nombres de área dentro de límite, pero un texto más largo no debe
  * desbordar el círculo en vez de fallar en silencio).
+ *
+ * Ronda final de arreglos (revisión, 14-sep-2026) -- Minor visible (M1): una palabra YA más larga
+ * que `maxPorLinea` ("Reestructuraciones", 18 caracteres, frente a maxPorLinea=11 -- uno de los
+ * hilos nuevos de esta rama) se colocaba entera sin partir salvo que cayera en la última línea, así
+ * que desbordaba el círculo del nodo por los dos lados (90,3 unidades de ancho medidas frente a las
+ * 76 del diámetro, ver captura v0.2b3-atomo-mas-375.png). Ahora se parte con guion en trozos de
+ * `maxPorLinea - 1` caracteres + "-" (mismo criterio que partiría un editor de texto), manteniendo
+ * SIEMPRE el mismo presupuesto de ancho por línea que el resto del texto (nunca una línea de más de
+ * `maxPorLinea` caracteres, sea cual sea su origen) en vez de reducir la fuente solo para este caso
+ * -- una talla de letra distinta según el subtema habría sido más difícil de mantener legible y
+ * consistente entre nodos.
+ *
+ * Exportada (antes interna del módulo) para que tests/atomo.test.js pueda comprobarla a secas, sin
+ * DOM -- es una función pura de cadenas, no toca `document` en ningún momento.
  */
-function envolverTexto(texto, maxPorLinea, maxLineas) {
+export function envolverTexto(texto, maxPorLinea, maxLineas) {
   const palabras = String(texto || '').trim().split(/\s+/).filter(Boolean);
   const lineas = [];
   let actual = '';
@@ -97,13 +110,26 @@ function envolverTexto(texto, maxPorLinea, maxLineas) {
     if (candidato.length <= maxPorLinea) {
       actual = candidato;
       indice += 1;
-    } else if (!actual) {
-      // Una sola palabra ya más larga que la línea: se coloca igual, se recorta más abajo si hace falta.
-      actual = palabra;
-      indice += 1;
-    } else {
+      continue;
+    }
+    if (actual) {
+      // La palabra no cabe añadida a la línea actual: se cierra esta línea tal cual y se
+      // reintenta la misma palabra en la siguiente vuelta, ya en una línea nueva.
       lineas.push(actual);
       actual = '';
+      continue;
+    }
+    // Línea vacía y la palabra SOLA ya no cabe: se parte con guion (ver comentario de la función).
+    // El resto de la palabra vuelve a `palabras` en el mismo índice, como si fuera la "palabra" de
+    // la próxima vuelta -- puede volver a ser más larga que `maxPorLinea` (se parte otra vez).
+    const trozo = palabra.slice(0, Math.max(1, maxPorLinea - 1));
+    const resto = palabra.slice(trozo.length);
+    if (resto) {
+      palabras[indice] = resto;
+      lineas.push(`${trozo}-`);
+    } else {
+      lineas.push(trozo);
+      indice += 1;
     }
   }
   if (actual) lineas.push(actual);
@@ -132,17 +158,13 @@ function pintarLineas(nodoTexto, lineas, alturaLinea, x = 0) {
   });
 }
 
-/** Pinta `lineas` empezando en `yInicio` y creciendo hacia abajo (Ronda 1 de revisión, Important
- * #3: la etiqueta del nodo vive DEBAJO de su círculo, no dentro -- el `corto` de un subtema real
- * no cabía sin desbordar un círculo de 52px). `nodoTexto` debe tener `dominant-baseline="hanging"`
- * (el borde superior de cada línea, no la línea base, es lo que se ancla a su `y`). */
-function pintarLineasDebajo(nodoTexto, lineas, alturaLinea, yInicio, x = 0) {
-  nodoTexto.textContent = '';
-  lineas.forEach((linea, i) => {
-    const tspan = crearElementoSvg('tspan', { x, y: yInicio + i * alturaLinea });
-    tspan.textContent = linea;
-    nodoTexto.appendChild(tspan);
-  });
+/** Reinicia una animación CSS por nombre de clase: la quita, fuerza reflow (leer `offsetWidth`) y
+ * la vuelve a poner -- si no, añadir la MISMA clase que el elemento ya tiene no dispara la
+ * animación una segunda vez (p. ej. núcleo/nodos que cambian de contenido sin salir del DOM). */
+function reiniciarAnimacion(elemento, clase) {
+  elemento.classList.remove(clase);
+  void elemento.getBoundingClientRect();
+  elemento.classList.add(clase);
 }
 
 function activarConTecladoYClic(elemento, manejador) {
@@ -157,17 +179,36 @@ function activarConTecladoYClic(elemento, manejador) {
   });
 }
 
+/** Calcula las posiciones equiespaciadas de `total` nodos en la órbita, empezando arriba (-90°) y
+ * repartidos en sentido horario -- mismo criterio de siempre, ahora reutilizado por pintarNodos y
+ * pintarNodosEsperando (antes solo existía en el primero). */
+function posicionNodo(indice, total) {
+  const angulo = -Math.PI / 2 + (indice * 2 * Math.PI) / total;
+  return { x: CENTRO + Math.cos(angulo) * RADIO_ORBITA, y: CENTRO + Math.sin(angulo) * RADIO_ORBITA };
+}
+
 /**
  * Monta el átomo (SVG núcleo + nodos en órbita) dentro de `contenedor`. `subtemas` es el anillo
  * visible al montar (`[]` vale: núcleo solo, sin nodos — p. ej. sin servidor configurado, ver
- * app.js). Tocar/activar por teclado un nodo llama `alElegir(subtema)` (el objeto completo
+ * app.js). Tocar/activar por teclado un nodo real llama `alElegir(subtema)` (el objeto completo
  * `{indice, corto, completo}`, tal cual lo da `pedirSubtemas`); tocar/activar el núcleo llama
- * `alVolver()` (un anillo atrás — no-op en el anillo 1, lo decide `retroceder` en app.js).
- * Órbita lenta (60s/vuelta, CSS @keyframes en estilos.css) con contra-rotación por nodo para que
- * el texto quede recto; `prefers-reduced-motion` la apaga entera (estilos.css).
- * @returns {{actualizar: (subtemas: object[], textoNucleo: string) => void, destruir: () => void}}
+ * `alVolver()` (un anillo atrás — no-op en el anillo 1, lo decide `retroceder` en app.js); tocar el
+ * nodo "Más…" llama `alMas()` (paginación del anillo actual, ver app.js#manejarMasAtomo).
+ *
+ * v0.2b3 Tarea 3 ("Ampliación", dirección de Carlos): sin órbita giratoria -- el átomo es un árbol
+ * que se abre, no un sistema solar. `actualizar` acepta un tercer parámetro `opciones`:
+ * - `esperando` (bool): pinta 6 nodos vacíos discontinuos con un punto que late
+ *   (`.atomo-nodo--esperando`, `data-test="atomo-esperando"`), no interactivos, en vez de
+ *   `nuevosSubtemas` -- se usa mientras `pedirSubtemas` está en vuelo (app.js).
+ * - `conMas` (bool): añade el nodo "Más…" (círculo discontinuo, `data-test="atomo-mas"`) en la
+ *   última posición de la órbita, contando en el reparto equiespaciado.
+ * - `masVacio` (bool): el nodo "Más…" se pinta como "No hay más por ahora" (`data-test=
+ *   "atomo-mas-vacio"`), sin interacción -- transitorio, app.js lo revierte a los 2s.
+ * `prefers-reduced-motion` desactiva toda animación/transición vía la regla general de
+ * estilos.css; aquí no hace falta ninguna comprobación aparte.
+ * @returns {{actualizar: (subtemas: object[], textoNucleo: string, opciones?: object) => void, destruir: () => void}}
  */
-export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver }) {
+export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver, alMas }) {
   contenedor.innerHTML = '';
 
   const svg = crearElementoSvg('svg', {
@@ -213,64 +254,126 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
   svg.appendChild(grupoNucleo);
   contenedor.appendChild(svg);
 
-  function pintarNodos(listaSubtemas) {
-    grupoOrbita.innerHTML = '';
-    const total = listaSubtemas.length;
-    listaSubtemas.forEach((subtema, indice) => {
-      const angulo = -Math.PI / 2 + (indice * 2 * Math.PI) / total;
-      const x = CENTRO + Math.cos(angulo) * RADIO_ORBITA;
-      const y = CENTRO + Math.sin(angulo) * RADIO_ORBITA;
-
-      const grupoNodo = crearElementoSvg('g', {
-        class: 'atomo-nodo',
-        transform: `translate(${x.toFixed(2)}, ${y.toFixed(2)})`,
-      });
-      // Contra-rotación (spec §4): un `<g>` interno que gira al revés que `.atomo-orbita`, misma
-      // duración, para que el círculo y el texto queden siempre rectos aunque el nodo dé vueltas.
-      // Ronda 1 de revisión (Minor #5): "Elegir subtema: " a secas (sin nombre) si `corto` viene
-      // vacío -- nunca un aria-label con el separador colgando.
-      const etiquetaAria = subtema.corto ? `Elegir subtema: ${subtema.corto}` : 'Elegir subtema';
-      const grupoContra = crearElementoSvg('g', {
-        class: 'atomo-nodo-contra',
-        role: 'button',
-        tabindex: '0',
-        'data-test': 'atomo-nodo',
-        'aria-label': etiquetaAria,
-      });
-      const circulo = crearElementoSvg('circle', { r: RADIO_NODO, class: 'atomo-nodo-circulo' });
-      // Ronda 1 de revisión (Important #3): la etiqueta vive DEBAJO del círculo, no dentro -- un
-      // `corto` real (hasta 40 caracteres, servidor/index.js#acortarSubtema) no cabía sin
-      // desbordar un círculo de este tamaño. `dominant-baseline="hanging"`: cada línea cuelga de
-      // su `y` por arriba, así pintarLineasDebajo solo tiene que sumar la altura de línea.
-      const texto = crearElementoSvg('text', {
-        'text-anchor': 'middle',
-        'dominant-baseline': 'hanging',
-        class: 'atomo-nodo-texto',
-      });
-      grupoContra.appendChild(circulo);
-      grupoContra.appendChild(texto);
-      grupoNodo.appendChild(grupoContra);
-
-      pintarLineasDebajo(
-        texto,
-        envolverTexto(subtema.corto, 14, 2),
-        ALTURA_LINEA_NODO,
-        RADIO_NODO + GAP_ETIQUETA_NODO
-      );
-      activarConTecladoYClic(grupoContra, () => {
-        if (typeof alElegir === 'function') alElegir(subtema);
-      });
-
-      grupoOrbita.appendChild(grupoNodo);
+  /** Nodo real de subtema: círculo con el texto DENTRO (ya no debajo, v0.2b3) y `alElegir`. */
+  function crearNodoSubtema(subtema) {
+    // Ronda 1 de revisión (Minor #5, se conserva): "Elegir subtema: " a secas (sin nombre) si
+    // `corto` viene vacío -- nunca un aria-label con el separador colgando.
+    const etiquetaAria = subtema.corto ? `Elegir subtema: ${subtema.corto}` : 'Elegir subtema';
+    const boton = crearElementoSvg('g', {
+      class: 'atomo-nodo-boton',
+      role: 'button',
+      tabindex: '0',
+      'data-test': 'atomo-nodo',
+      'aria-label': etiquetaAria,
     });
+    const circulo = crearElementoSvg('circle', { r: RADIO_NODO, class: 'atomo-nodo-circulo' });
+    const texto = crearElementoSvg('text', {
+      'text-anchor': 'middle',
+      'dominant-baseline': 'middle',
+      class: 'atomo-nodo-texto',
+    });
+    boton.appendChild(circulo);
+    boton.appendChild(texto);
+    pintarLineas(texto, envolverTexto(subtema.corto, 11, 3), ALTURA_LINEA_NODO);
+    activarConTecladoYClic(boton, () => {
+      if (typeof alElegir === 'function') alElegir(subtema);
+    });
+    return boton;
   }
 
-  function actualizar(nuevosSubtemas = [], textoNucleo2 = area) {
+  /** Nodo "Más…" (o "No hay más por ahora" si `vacio`): círculo discontinuo. Sin interacción
+   * mientras `vacio` es true -- es un mensaje transitorio, no un botón que hacer doble-tap. */
+  function crearNodoMas(vacio) {
+    const atributos = {
+      class: 'atomo-nodo-boton atomo-nodo-boton--mas',
+      'data-test': vacio ? 'atomo-mas-vacio' : 'atomo-mas',
+    };
+    if (!vacio) {
+      atributos.role = 'button';
+      atributos.tabindex = '0';
+      atributos['aria-label'] = 'Más subtemas';
+    }
+    const boton = crearElementoSvg('g', atributos);
+    const circulo = crearElementoSvg('circle', {
+      r: RADIO_NODO,
+      class: 'atomo-nodo-circulo atomo-nodo-circulo--mas',
+    });
+    const texto = crearElementoSvg('text', {
+      'text-anchor': 'middle',
+      'dominant-baseline': 'middle',
+      class: 'atomo-nodo-texto',
+    });
+    boton.appendChild(circulo);
+    boton.appendChild(texto);
+    pintarLineas(texto, envolverTexto(vacio ? 'No hay más por ahora' : 'Más…', 11, 3), ALTURA_LINEA_NODO);
+    if (!vacio) {
+      activarConTecladoYClic(boton, () => {
+        if (typeof alMas === 'function') alMas();
+      });
+    }
+    return boton;
+  }
+
+  /** Nodo de espera: círculo discontinuo con un punto que late, sin `role`/`tabindex` (no
+   * pulsable -- "los nodos de espera no son pulsables; un toque sobre ellos no hace nada", ver
+   * brief de la tarea). `data-test="atomo-esperando"`, distinto de "atomo-nodo" a propósito: así
+   * un test puede comprobar que NO hay nodos reales mientras se espera, sin ambigüedad. */
+  function crearNodoEsperando() {
+    const grupo = crearElementoSvg('g', { class: 'atomo-nodo-boton atomo-nodo-boton--esperando', 'data-test': 'atomo-esperando' });
+    const circulo = crearElementoSvg('circle', {
+      r: RADIO_NODO,
+      class: 'atomo-nodo-circulo atomo-nodo-circulo--esperando',
+    });
+    const punto = crearElementoSvg('circle', { r: 4, class: 'atomo-nodo-punto' });
+    grupo.appendChild(circulo);
+    grupo.appendChild(punto);
+    return grupo;
+  }
+
+  function colocarEnOrbita(elemento, indice, total) {
+    const { x, y } = posicionNodo(indice, total);
+    const grupoNodo = crearElementoSvg('g', {
+      class: 'atomo-nodo',
+      transform: `translate(${x.toFixed(2)}, ${y.toFixed(2)})`,
+    });
+    grupoNodo.appendChild(elemento);
+    grupoOrbita.appendChild(grupoNodo);
+  }
+
+  /** Pinta el anillo real: `listaSubtemas` y, si `conMas`, el nodo "Más…" (o su variante `masVacio`)
+   * en la última posición -- "equiespaciados contando Más…" (brief), por eso entra en `total`. */
+  function pintarNodos(listaSubtemas, { conMas = false, masVacio = false } = {}) {
+    grupoOrbita.innerHTML = '';
+    const total = listaSubtemas.length + (conMas ? 1 : 0);
+    if (total === 0) return;
+    listaSubtemas.forEach((subtema, indice) => {
+      colocarEnOrbita(crearNodoSubtema(subtema), indice, total);
+    });
+    if (conMas) colocarEnOrbita(crearNodoMas(masVacio), listaSubtemas.length, total);
+  }
+
+  /** Pinta los `N_NODOS_ESPERANDO` nodos de espera, siempre en ese número fijo -- nunca se sabe
+   * todavía cuántos subtemas reales van a llegar. Nunca lleva "Más…" (decisión del controlador:
+   * "Más… solo se pinta si el anillo actual no está esperando"). */
+  function pintarNodosEsperando() {
+    grupoOrbita.innerHTML = '';
+    for (let indice = 0; indice < N_NODOS_ESPERANDO; indice += 1) {
+      colocarEnOrbita(crearNodoEsperando(), indice, N_NODOS_ESPERANDO);
+    }
+  }
+
+  function actualizar(nuevosSubtemas = [], textoNucleo2 = area, opciones = {}) {
+    const { esperando = false, conMas = false, masVacio = false } = opciones;
     // Disposición (Ronda final): núcleo <= 12 caracteres/línea (2 líneas) para que quepa sin
     // salirse del círculo (A8 del triage adversarial: textLength/lengthAdjust deforma los glifos,
     // se prefiere acortar el texto en vez de encogerlo).
     pintarLineas(textoNucleo, envolverTexto(textoNucleo2, 12, 2), 13, CENTRO);
-    pintarNodos(nuevosSubtemas);
+    // "Al tocar un nodo pasa algo YA" (brief): un pequeño "pop" de entrada cada vez que el texto
+    // del núcleo cambia -- el estado (texto/cabecera/ruta) ya cambió al instante en app.js, esto
+    // es solo el acompañamiento visual (neutralizado entero por prefers-reduced-motion).
+    reiniciarAnimacion(grupoNucleo, 'atomo-nucleo--entra');
+    if (esperando) pintarNodosEsperando();
+    else pintarNodos(nuevosSubtemas, { conMas, masVacio });
   }
 
   actualizar(subtemas, area);

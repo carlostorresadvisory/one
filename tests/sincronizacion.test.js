@@ -8,6 +8,7 @@ import { crearEstado } from '../motor.js';
 import {
   leerConfiguracion,
   guardarConfiguracionDesdeUrl,
+  guardarConfiguracionDesdeTexto,
   leerBancoExtra,
   fusionarBancoExtra,
   sincronizarEstado,
@@ -260,6 +261,77 @@ test('guardarConfiguracionDesdeUrl: rechaza una URL de servidor que ni siquiera 
   esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('no-es-una-url')}&token=${TOKEN_VALIDO}`);
 });
 
+// === guardarConfiguracionDesdeTexto (Tarea 4: hoja "Conectar" dentro de la app instalada) =========
+
+test('guardarConfiguracionDesdeTexto: enlace completo → true y configuración guardada', () => {
+  prepararGlobales();
+  const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}`;
+  assert.equal(guardarConfiguracionDesdeTexto(enlace), true);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: enlace completo con espacios alrededor (trim) → true', () => {
+  prepararGlobales();
+  const enlace = `  https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}  `;
+  assert.equal(guardarConfiguracionDesdeTexto(enlace), true);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: "servidor token" separados por espacio → true', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es  abcdefghijklmnop1234'), true);
+  assert.deepEqual(leerConfiguracion(), { url: 'https://one.ejemplo.es', token: 'abcdefghijklmnop1234' });
+});
+
+test('guardarConfiguracionDesdeTexto: "servidor token" separados por salto de línea → true', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es\nabcdefghijklmnop1234'), true);
+  assert.deepEqual(leerConfiguracion(), { url: 'https://one.ejemplo.es', token: 'abcdefghijklmnop1234' });
+});
+
+test('guardarConfiguracionDesdeTexto: basura → false y sin tocar la configuración previa', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('esto es una basura cualquiera'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: texto vacío o solo espacios → false', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto(''), false);
+  assert.equal(guardarConfiguracionDesdeTexto('   '), false);
+  assert.equal(leerConfiguracion(), null);
+});
+
+test('guardarConfiguracionDesdeTexto: enlace sin servidor/token en la query → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('https://carlostorresadvisory.github.io/one/'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: token corto en formato "servidor token" → false y sin tocar la configuración previa', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es corto1234567'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: servidor http:// que no es localhost en formato "servidor token" → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto(`http://x.com ${TOKEN_VALIDO}`), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: tres trozos separados por espacio (ni enlace ni "servidor token") → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto(`${URL_SERVIDOR} ${TOKEN_VALIDO} sobra`), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: no es un string → false', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto(null), false);
+  assert.equal(guardarConfiguracionDesdeTexto(undefined), false);
+});
+
 // === leerBancoExtra / fusionarBancoExtra ============================================================
 
 test('leerBancoExtra: [] sin nada guardado ni con JSON corrupto', () => {
@@ -482,6 +554,39 @@ test('consultarTrabajo: 404 (trabajo no encontrado) → null', async () => {
   assert.equal(await consultarTrabajo('inexistente', { fetchImpl: fetchFalso }), null);
 });
 
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C2): `pedirSubtemas` debe usar el
+// timeout LARGO (90 s), no el de 10 s del resto de peticiones -- si no, la primera visita a
+// cualquier anillo ≥ 2 aborta antes de que la cascada gratis (30-90 s reales) llegue a responder.
+// `peticionJson` (interno, no exportado) construye el `AbortSignal` con `AbortSignal.timeout(ms)`
+// -- se espía esa llamada (el único punto observable desde fuera, ya que un AbortSignal no expone
+// su plazo) para comprobar QUÉ `ms` recibió cada función pública, sin depender de esperar un
+// timeout real.
+function espiarAbortSignalTimeout() {
+  const original = AbortSignal.timeout;
+  const llamadas = [];
+  AbortSignal.timeout = (ms) => {
+    llamadas.push(ms);
+    return original.call(AbortSignal, ms);
+  };
+  return { llamadas, restaurar: () => { AbortSignal.timeout = original; } };
+}
+
+test('pedirSubtemas usa el timeout largo (90 s), distinto del resto de peticiones (10 s) -- C2', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const espia = espiarAbortSignalTimeout();
+  try {
+    const fetchFalso = crearFetchFalso([
+      { ok: true, cuerpo: { subtemas: [] } },
+      { ok: true, cuerpo: { trabajoId: 't1', estimadoSeg: 90 } },
+    ]);
+    await pedirSubtemas({ area: 'economia', ruta: ['timeout-c2'], fetchImpl: fetchFalso });
+    await pedirTanda({ area: 'economia', fetchImpl: fetchFalso });
+    assert.deepEqual(espia.llamadas, [90000, 10000]);
+  } finally {
+    espia.restaurar();
+  }
+});
+
 test('pedirSubtemas: cachea en memoria por [area, ruta] — la segunda llamada no repite la petición', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'A', completo: 'A' }] } }]);
@@ -504,6 +609,85 @@ test('pedirSubtemas: error del servidor → null y no se cachea (la siguiente ll
   const segundo = await pedirSubtemas({ ...clave, fetchImpl: fetchFalso });
   assert.deepEqual(segundo, [{ indice: 0, corto: 'B', completo: 'B' }]);
   assert.equal(fetchFalso.llamadas.length, 2);
+});
+
+// === pedirSubtemas: `excluir` (Tarea 3 de v0.2b3, nodo "Más…" con paginación) =======================
+
+test('pedirSubtemas: manda excluir en el body (por defecto [] si no se pasa)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'C', completo: 'C' }] } }]);
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-defecto-tarea-3'], fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.deepEqual(cuerpo, { area: 'economia', ruta: ['excluir-defecto-tarea-3'], excluir: [] });
+});
+
+test('pedirSubtemas: manda el excluir recibido tal cual en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'D', completo: 'D' }] } }]);
+  const excluir = ['Mercados y crisis financieras', 'Política monetaria y bancos centrales'];
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-con-datos-tarea-3'], excluir, fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.deepEqual(cuerpo, { area: 'economia', ruta: ['excluir-con-datos-tarea-3'], excluir });
+});
+
+test('pedirSubtemas: la caché distingue por excluir — mismo [area, ruta] con excluir distinto repite la petición', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([
+    { ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'E1', completo: 'E1' }] } },
+    { ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'E2', completo: 'E2' }] } },
+  ]);
+  const base = { area: 'economia', ruta: ['cache-por-excluir-tarea-3'] };
+  const primeraPagina = await pedirSubtemas({ ...base, excluir: [], fetchImpl: fetchFalso });
+  const segundaPagina = await pedirSubtemas({ ...base, excluir: ['E1'], fetchImpl: fetchFalso });
+  assert.deepEqual(primeraPagina, [{ indice: 0, corto: 'E1', completo: 'E1' }]);
+  assert.deepEqual(segundaPagina, [{ indice: 0, corto: 'E2', completo: 'E2' }]);
+  assert.equal(fetchFalso.llamadas.length, 2); // dos claves de caché distintas, dos peticiones reales
+
+  // Repetir la primera página (mismo excluir) debe volver a servirse de caché, sin una tercera petición.
+  const primeraPaginaOtraVez = await pedirSubtemas({ ...base, excluir: [], fetchImpl: fetchFalso });
+  assert.deepEqual(primeraPaginaOtraVez, primeraPagina);
+  assert.equal(fetchFalso.llamadas.length, 2);
+});
+
+// Ronda de revisión combinada (Tarea 3+4, Important): mismos límites que el servidor
+// (servidor/index.js#EXCLUIR_MAX_ELEMENTOS/EXCLUIR_ELEMENTO_MAX_LONGITUD) -- sin este recorte, un
+// anillo visitado con "Más…" varias veces seguidas manda un `excluir` que el servidor rechaza con
+// 400 "Exclusión inválida".
+test('pedirSubtemas: excluir de 35 elementos se recorta a los ÚLTIMOS 30 en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [] } }]);
+  const excluir = Array.from({ length: 35 }, (_, i) => `subtema-${i}`); // subtema-0 .. subtema-34
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-largo'], excluir, fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.equal(cuerpo.excluir.length, 30);
+  assert.deepEqual(cuerpo.excluir, excluir.slice(-30)); // los últimos 30, no los primeros
+});
+
+test('pedirSubtemas: cada elemento de excluir se recorta a 160 caracteres en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [] } }]);
+  const elementoLargo = 'x'.repeat(200);
+  await pedirSubtemas({
+    area: 'economia',
+    ruta: ['excluir-elemento-largo'],
+    excluir: [elementoLargo],
+    fetchImpl: fetchFalso,
+  });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.equal(cuerpo.excluir.length, 1);
+  assert.equal(cuerpo.excluir[0].length, 160);
+  assert.equal(cuerpo.excluir[0], 'x'.repeat(160));
+});
+
+test('pedirSubtemas: el recorte de excluir también entra en la clave de caché (35 y 30+5 elementos que recortan igual comparten caché)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'F', completo: 'F' }] } }]);
+  const base = { area: 'economia', ruta: ['excluir-cache-recorte'] };
+  const excluir35 = Array.from({ length: 35 }, (_, i) => `s-${i}`);
+  const excluirYaRecortado = excluir35.slice(-30); // exactamente lo que acotarExcluir produce arriba
+  await pedirSubtemas({ ...base, excluir: excluir35, fetchImpl: fetchFalso });
+  await pedirSubtemas({ ...base, excluir: excluirYaRecortado, fetchImpl: fetchFalso });
+  assert.equal(fetchFalso.llamadas.length, 1); // misma clave de caché tras recortar: una sola petición real
 });
 
 test('reportarAlServidor: sin configuración, null y cero peticiones', async () => {

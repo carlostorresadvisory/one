@@ -20,6 +20,7 @@ import { construirVisual } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
+  guardarConfiguracionDesdeTexto,
   leerConfiguracion,
   leerBancoExtra,
   fusionarBancoExtra,
@@ -196,6 +197,20 @@ let atomoConsultas = 0;
 // generando (esperaAtomo muestra los dos botones de siempre, no este).
 let atomoEsperaResultado = null;
 
+// --- Átomo dinámico (v0.2b3 Tarea 3, "Ampliación"): nodo "Más…", paginación y transición
+// inmediata al tocar (sin órbita giratoria, nodos de espera mientras se pide el anillo). ---
+// `mostrados` por anillo: completos ya mostrados en ESE anillo (decisión del controlador,
+// indexado por JSON.stringify(ruta) aunque en la práctica solo se lee/escribe la clave del anillo
+// vigente -- se reinicia entero al avanzar o retroceder a otra ruta, así "Más…" siempre empieza en
+// la página 1 al volver a visitar un anillo).
+let atomoMostrados = new Map();
+let atomoSubtemasActuales = []; // últimos subtemas pintados con éxito en el anillo vigente (para
+// restaurarlos si una página de "Más…" llega vacía).
+let atomoCargando = false; // true mientras /subtemas está en vuelo para el anillo vigente.
+let atomoFallo = false; // true tras un pedirSubtemas que devolvió null (aviso + Reintentar).
+let atomoAvisoLentoId = null; // setTimeout de 20s: "los modelos gratis van lentos...".
+let atomoTopeTimeoutId = null; // setTimeout de 2s del aviso "Máximo detalle: toca Generar".
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
@@ -232,9 +247,20 @@ const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar
 const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
 const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
 const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
+const nodoAtomoAyuda = document.querySelector('[data-test="atomo-ayuda"]');
+// Fila "mientras" (v0.2b3 Tarea 3): "Jugar el área"/"Repasar" visibles mientras el anillo carga,
+// mientras se genera una tanda en segundo plano, o si el anillo falló al cargar.
+const nodoAtomoMientras = document.querySelector('[data-test="atomo-mientras"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
+// Hoja "Conectar" (v0.2b3 Tarea 4, "Conectar desde la app instalada"): en iOS la app añadida a la
+// pantalla de inicio tiene almacenamiento SEPARADO de Safari, así que el enlace de conexión
+// abierto en Safari no llega aquí -- esta hoja deja pegar el enlace (o "servidor token") a mano.
+const nodoConectar = document.querySelector('[data-test="conectar"]');
+const nodoConectarTexto = document.querySelector('[data-test="conectar-texto"]');
+const nodoConectarError = document.querySelector('[data-test="conectar-error"]');
+const nodoConectarHecho = document.querySelector('[data-test="conectar-hecho"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -494,20 +520,42 @@ function reconstruirBanco() {
   bancoPorId = new Map(banco.map((p) => [p.id, p]));
 }
 
+// Ronda de revisión combinada (Tarea 4, Important — corrección de una instrucción anterior del
+// controlador): los dos puntos de estado son botones desde esta misma ronda (abren la hoja
+// "Conectar", ver más abajo), pero su `aria-label` NO debe fijarse a un texto de acción genérico
+// ("Estado del servidor") -- debe seguir comunicando el estado real (gris/verde/ámbar), igual que
+// antes de que fueran interactivos, con un empujón hacia la acción en el estado gris (el que de
+// verdad invita a tocar).
 const ETIQUETA_ESTADO_SERVIDOR = {
-  gris: 'Sin servidor configurado',
-  verde: 'Servidor sincronizado hoy',
-  ambar: 'Servidor configurado, el último intento falló',
+  gris: 'Servidor sin conectar, toca para conectar',
+  verde: 'Servidor conectado',
+  ambar: 'Servidor sin sincronizar hoy',
 };
 
-/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También
- * el mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador):
- * mismo estado, mismo criterio de color, dos sitios donde se ve. */
+// Tarea 4 (v0.2b3, "Conectar desde la app instalada"): textos de `.atomo-ayuda`, la pista fija
+// que vive bajo la ruta completa del Átomo (ver actualizarAyudaAtomo).
+const TEXTO_AYUDA_ATOMO_DEFECTO = 'Mantén pulsada un área del HUB para abrir su átomo';
+const TEXTO_AYUDA_ATOMO_SIN_SERVIDOR = 'Conecta el servidor (toca el punto de la cabecera)';
+
+/** `.atomo-ayuda` (Tarea 4): sin servidor configurado, pasa a explicar cómo conectar uno en vez
+ * del texto por defecto -- se llama desde `actualizarPuntoServidor` (mismo disparador que decide
+ * el color del punto) para no tener que acordarse de llamarla aparte en cada sitio que cambia la
+ * configuración. */
+function actualizarAyudaAtomo() {
+  nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
+}
+
+/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También el
+ * mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador; Tarea 4 +
+ * revisión combinada: los dos son ahora también botones que abren la hoja "Conectar", ver más
+ * abajo, pero eso no cambia qué anuncia su `aria-label` -- sigue siendo el estado real
+ * (`ETIQUETA_ESTADO_SERVIDOR`), no una descripción genérica de la acción). */
 function actualizarPuntoServidor() {
   nodoEstadoServidor.dataset.estado = estadoServidor;
   nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
   nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
   nodoAtomoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+  actualizarAyudaAtomo();
 }
 
 /** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
@@ -539,6 +587,76 @@ async function sincronizarEnSegundoPlano() {
       mostrarChipNuevas(anadidas);
     }
   }
+}
+
+// --- Hoja "Conectar" (v0.2b3 Tarea 4, "Conectar desde la app instalada"): en iOS la app añadida a
+// la pantalla de inicio (`display: standalone`) tiene almacenamiento SEPARADO de Safari, así que el
+// enlace de conexión abierto en Safari (guardarConfiguracionDesdeUrl, arriba en iniciar()) no llega
+// a la app instalada -- esta hoja deja pegar el enlace (o "servidor token") a mano, sin salir de la
+// app. Se abre desde dos sitios del Átomo (ver los listeners junto al resto de eventos de
+// navegación, más abajo): el punto de estado de su cabecera y su aviso "Conecta el servidor...". ---
+
+let avisoConectadoId = null;
+/** "Conectado" 2s (`data-test="conectar-hecho"`) tras guardar la configuración con éxito -- la
+ * hoja ya se ha cerrado en ese momento (ver manejarConectarOk), así que este vive fuera de ella,
+ * fijo y visible encima de cualquier vista (mismo patrón que mostrarAvisoCuerpo/mostrarAvisoHub). */
+function mostrarAvisoConectado() {
+  nodoConectarHecho.hidden = false;
+  if (avisoConectadoId !== null) clearTimeout(avisoConectadoId);
+  avisoConectadoId = setTimeout(() => {
+    nodoConectarHecho.hidden = true;
+    avisoConectadoId = null;
+  }, 2000);
+}
+
+// Ronda de revisión combinada (Tarea 4, Important): el botón que abrió la hoja (punto de estado
+// del HUB, del Átomo, o el propio aviso del Átomo) -- se le devuelve el foco al cerrar, sin
+// importar cómo (Cancelar, Escape o éxito). Sin esto, cerrar un diálogo modal deja el foco de
+// teclado "perdido" en <body>, un problema real para quien navega sin ratón/dedo.
+let nodoConectarDisparador = null;
+
+/** Abre la hoja con el campo vacío y sin el aviso de error de una vez anterior. */
+function abrirHojaConectar() {
+  nodoConectarDisparador = document.activeElement;
+  nodoConectarError.hidden = true;
+  nodoConectarTexto.value = '';
+  nodoConectar.hidden = false;
+  nodoConectarTexto.focus();
+}
+
+/** Escape/Cancelar (brief): cierran y vacían el campo -- el texto pegado no debe sobrevivir a un
+ * intento cancelado (ver también el comentario de cabecera de sincronizacion.js#guardarConfiguracionDesdeTexto:
+ * nunca se registra ni se guarda salvo la configuración resultante). También la vía de éxito
+ * (manejarConectarOk la llama igual) -- así el foco vuelve al disparador en los tres casos, desde
+ * un solo sitio. */
+function cerrarHojaConectar() {
+  nodoConectar.hidden = true;
+  nodoConectarTexto.value = '';
+  nodoConectarError.hidden = true;
+  if (nodoConectarDisparador && typeof nodoConectarDisparador.focus === 'function') {
+    nodoConectarDisparador.focus();
+  }
+  nodoConectarDisparador = null;
+}
+
+/** Botón "Conectar": valida y guarda con `guardarConfiguracionDesdeTexto` (sincronizacion.js,
+ * mismo saneado que el enlace `?servidor=&token=`). Error: se queda abierta con el aviso, sin
+ * tocar la configuración previa (brief). Éxito: cierra, "Conectado" 2s, recarga el anillo del
+ * Átomo SI está abierto (ya lo está siempre que se llega aquí -- las dos únicas vías para abrir
+ * esta hoja viven dentro del propio Átomo, pero se comprueba igual por si el jugador saliera de
+ * la vista mientras la hoja seguía abierta) y sincroniza en segundo plano (fija el punto en verde
+ * o ámbar según responda el servidor de verdad, igual que al abrir la app o terminar una partida). */
+function manejarConectarOk() {
+  const guardado = guardarConfiguracionDesdeTexto(nodoConectarTexto.value);
+  if (!guardado) {
+    nodoConectarError.hidden = false;
+    return;
+  }
+  cerrarHojaConectar();
+  mostrarAvisoConectado();
+  actualizarAyudaAtomo(); // feedback inmediato, sin esperar al round-trip de sincronizarEnSegundoPlano
+  if (atomoEstado) cargarAnilloAtomo();
+  sincronizarEnSegundoPlano();
 }
 
 // --- Átomo (spec v0.2b2 §4): elegir un subtema sin teclado, pedir una tanda nueva y esperar
@@ -616,15 +734,109 @@ function actualizarBotonGenerarAtomo() {
   nodoAtomoGenerar.textContent = 'Generar';
 }
 
+/** `nodoAtomoAviso` se reutiliza para tres textos distintos (conectar servidor / fallo al cargar /
+ * "Buscando subtemas…" mientras carga) -- `dataset.test` se resetea a 'atomo-aviso' aquí siempre,
+ * por si `mostrarCargandoAtomo` lo había dejado en 'atomo-cargando' (ver más abajo). */
 function mostrarAvisoAtomo(texto, { reintentar = false } = {}) {
+  nodoAtomoAviso.dataset.test = 'atomo-aviso';
   nodoAtomoAviso.textContent = texto;
   nodoAtomoAviso.hidden = false;
   nodoAtomoReintentar.hidden = !reintentar;
 }
 
 function ocultarAvisoAtomo() {
+  nodoAtomoAviso.dataset.test = 'atomo-aviso';
   nodoAtomoAviso.hidden = true;
   nodoAtomoReintentar.hidden = true;
+}
+
+/** Aviso mientras el anillo está en vuelo (`data-test="atomo-cargando"`, brief de la Ampliación):
+ * mismo nodo que mostrarAvisoAtomo, pero con su propio data-test mientras dura -- así un test
+ * puede distinguir "cargando" de "fallo" sin ambigüedad aunque sea el mismo elemento del DOM. */
+function mostrarCargandoAtomo() {
+  nodoAtomoAviso.dataset.test = 'atomo-cargando';
+  nodoAtomoAviso.textContent = 'Buscando subtemas…';
+  nodoAtomoAviso.hidden = false;
+  nodoAtomoReintentar.hidden = true;
+}
+
+/** Fila `atomo-mientras` ("Jugar el área"/"Repasar"): visible mientras el anillo carga, mientras
+ * falló, o mientras una tanda se genera en segundo plano (incluso si el jugador reabrió el átomo
+ * de OTRA área entre tanto) -- oculta solo cuando no hay nada de eso en vuelo (brief). */
+function actualizarFilaMientras() {
+  nodoAtomoMientras.hidden = !(atomoCargando || atomoFallo || Boolean(atomoTrabajoId));
+}
+
+/** Clave de `atomoMostrados` para el anillo vigente. */
+function claveAnilloAtomo() {
+  return JSON.stringify(atomoEstado.ruta);
+}
+
+/** Arranca el estado "cargando" de un anillo: aviso, fila-mientras, y el aviso de lentitud a los
+ * 20s (brief: "si la carga supera 20s, la ayuda dice..."). Común a cargarAnilloAtomo y
+ * manejarMasAtomo -- cualquier petición a /subtemas pasa por aquí. */
+function empezarCargaAtomo() {
+  atomoCargando = true;
+  atomoFallo = false;
+  mostrarCargandoAtomo();
+  actualizarFilaMientras();
+  clearTimeout(atomoAvisoLentoId);
+  atomoAvisoLentoId = setTimeout(() => {
+    if (!atomoCargando) return; // ya resolvió o se canceló (Atrás) antes de los 20s
+    nodoAtomoAviso.textContent = 'Los modelos gratis van lentos; puedes jugar o repasar mientras';
+  }, 20000);
+}
+
+/** Cierra el estado "cargando" (éxito, fallo o cancelación por Atrás) -- deja de avisar de
+ * lentitud y actualiza la fila-mientras acorde al resto del estado (fallo/trabajo en curso). */
+function terminarCargaAtomo() {
+  atomoCargando = false;
+  clearTimeout(atomoAvisoLentoId);
+  atomoAvisoLentoId = null;
+  actualizarFilaMientras();
+}
+
+/** "Máximo detalle: toca Generar" (brief, tope de 6 anillos): elemento propio con
+ * `data-test="atomo-tope"`, creado una sola vez y reutilizado -- vive junto al aviso de siempre,
+ * no lo sustituye (ese sigue disponible para "conectar servidor"/"fallo al cargar"). */
+let nodoAtomoTope = null;
+function mostrarAvisoTopeAtomo() {
+  if (!nodoAtomoTope) {
+    nodoAtomoTope = document.createElement('p');
+    nodoAtomoTope.className = 'atomo-aviso';
+    nodoAtomoTope.dataset.test = 'atomo-tope';
+    nodoAtomoAviso.insertAdjacentElement('afterend', nodoAtomoTope);
+  }
+  nodoAtomoTope.textContent = 'Máximo detalle: toca Generar';
+  nodoAtomoTope.hidden = false;
+  clearTimeout(atomoTopeTimeoutId);
+  atomoTopeTimeoutId = setTimeout(() => {
+    nodoAtomoTope.hidden = true;
+  }, 2000);
+}
+
+/** "No se pudo cargar más" (Ronda de revisión combinada, Tarea 3+4, Important): "Más…" con un
+ * error real (network/HTTP -- 400 "Exclusión inválida" incluido, si el `excluir` disparara ese
+ * límite pese al recorte de `sincronizacion.js#pedirSubtemas`), DISTINTO de "agotado" (el servidor
+ * respondió `[]` de verdad, ver `manejarMasAtomo` más abajo: esa rama sí usa
+ * `atomoInstancia.actualizar(..., {masVacio:true})`, una opción de atomo.js). Mismo patrón que
+ * `mostrarAvisoTopeAtomo` -- elemento propio creado una sola vez, para no tocar atomo.js: "Más…"
+ * sigue pulsable, los subtemas ya pintados no cambian. */
+let nodoAtomoMasError = null;
+let atomoMasErrorTimeoutId = null;
+function mostrarErrorMasAtomo() {
+  if (!nodoAtomoMasError) {
+    nodoAtomoMasError = document.createElement('p');
+    nodoAtomoMasError.className = 'atomo-aviso';
+    nodoAtomoMasError.dataset.test = 'atomo-mas-error';
+    nodoAtomoAviso.insertAdjacentElement('afterend', nodoAtomoMasError);
+  }
+  nodoAtomoMasError.textContent = 'No se pudo cargar más';
+  nodoAtomoMasError.hidden = false;
+  clearTimeout(atomoMasErrorTimeoutId);
+  atomoMasErrorTimeoutId = setTimeout(() => {
+    nodoAtomoMasError.hidden = true;
+  }, 2000);
 }
 
 /** Pide el anillo correspondiente a `atomoEstado.ruta` y lo pinta. Decisión #1 del controlador:
@@ -632,7 +844,12 @@ function ocultarAvisoAtomo() {
  * apagado; con servidor pero `pedirSubtemas` devolviendo null, aviso de fallo + "Reintentar" --
  * Generar sigue disponible en ese caso (no depende del anillo actual, solo de la ruta YA
  * confirmada). `atomoPeticionId` descarta una respuesta tardía si el jugador ya avanzó/retrocedió
- * antes de que esta llegara (evita que un anillo viejo pise al nuevo). */
+ * antes de que esta llegara (evita que un anillo viejo pise al nuevo).
+ *
+ * v0.2b3 Tarea 3 ("Ampliación"): la cabecera/núcleo ya cambiaron ANTES de llamar aquí (ver
+ * manejarElegirSubtemaAtomo/manejarAtomoAtras) -- esta función solo añade el resto del cambio de
+ * pantalla "YA": nodos de espera mientras `pedirSubtemas` está en vuelo, en vez de dejar pintado
+ * el anillo anterior (pulsable, generando la ruta de basura que vio Carlos en el iPhone). */
 async function cargarAnilloAtomo() {
   if (!atomoEstado) return; // adversarial A7: la vista pudo cerrarse justo antes de esta llamada.
   actualizarCabeceraAtomo();
@@ -641,41 +858,125 @@ async function cargarAnilloAtomo() {
 
   const configuracion = leerConfiguracion();
   if (!configuracion) {
+    terminarCargaAtomo();
+    atomoFallo = false;
+    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('Conecta el servidor para generar preguntas nuevas');
     return;
   }
-  ocultarAvisoAtomo();
+
+  empezarCargaAtomo();
+  atomoInstancia.actualizar([], nucleoAtomoTexto(), { esperando: true });
 
   const idPeticion = (atomoPeticionId += 1);
   const subtemas = await pedirSubtemas({ area: atomoEstado.area, ruta: atomoEstado.ruta, fetchImpl: fetch });
   if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no es la petición vigente
 
+  terminarCargaAtomo();
   if (subtemas === null) {
+    atomoFallo = true;
+    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('No se pudieron cargar los subtemas', { reintentar: true });
     return;
   }
-  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto());
+  ocultarAvisoAtomo();
+  atomoMostrados.set(claveAnilloAtomo(), subtemas.map((s) => s.completo));
+  atomoSubtemasActuales = subtemas;
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
 }
 
+/** "Más…": pide la siguiente página del anillo VIGENTE (misma ruta, `excluir` = lo ya mostrado) --
+ * no avanza de anillo, así que pasa por el mismo estado "cargando" que cargarAnilloAtomo pero sin
+ * tocar la cabecera/ruta (no cambian).
+ *
+ * Ronda de revisión combinada (Tarea 3+4, Important): página `null` (cualquier error real --
+ * network/HTTP) y página `[]` (el servidor respondió de verdad "no hay más subtemas") ya NO se
+ * tratan igual. Antes ambas caían en la misma rama "agotado", así que un 400 "Exclusión inválida"
+ * (que `pedirSubtemas` convierte en `null`, como cualquier otro fallo) dejaba el anillo roto en
+ * silencio a partir de ese toque -- ahora `null` avisa "No se pudo cargar más" 2s
+ * (`mostrarErrorMasAtomo`) y deja "Más…" operativo, sin marcar el anillo como agotado. Página
+ * vacía de verdad: revierte a los subtemas anteriores con "No hay más por ahora" 2s
+ * (atomo.js#actualizar `masVacio`) y vuelve a "Más…", igual que siempre. */
+async function manejarMasAtomo() {
+  if (!atomoEstado || atomoCargando) return;
+  const clave = claveAnilloAtomo();
+  const mostrados = atomoMostrados.get(clave) || [];
+  const subtemasPrevios = atomoSubtemasActuales;
+
+  empezarCargaAtomo();
+  atomoInstancia.actualizar([], nucleoAtomoTexto(), { esperando: true });
+
+  const idPeticion = (atomoPeticionId += 1);
+  const subtemas = await pedirSubtemas({
+    area: atomoEstado.area,
+    ruta: atomoEstado.ruta,
+    excluir: mostrados,
+    fetchImpl: fetch,
+  });
+  if (idPeticion !== atomoPeticionId || !atomoEstado) return;
+
+  terminarCargaAtomo();
+  // Ronda final de arreglos (revisión, 14-sep-2026) -- Important (C3): terminarCargaAtomo() no
+  // toca `nodoAtomoAviso` (solo la fila-mientras) -- sin esto, "Buscando subtemas…" (puesto por
+  // empezarCargaAtomo/mostrarCargandoAtomo unas líneas arriba) se quedaba fijo bajo el anillo
+  // recién cargado, en las TRES ramas de abajo (éxito, error, página vacía): ni mostrarErrorMasAtomo
+  // ni el `masVacio` de más abajo tocan este nodo, solo crean/reutilizan uno propio aparte.
+  ocultarAvisoAtomo();
+  if (subtemas === null) {
+    // Error real (network/HTTP, 400 "Exclusión inválida" incluido): NO es "agotado" -- se
+    // restaura el anillo tal y como estaba (subtemasPrevios === atomoSubtemasActuales aquí, nada
+    // se reasignó todavía) y "Más…" sigue disponible para reintentar.
+    atomoInstancia.actualizar(subtemasPrevios, nucleoAtomoTexto(), { conMas: true });
+    mostrarErrorMasAtomo();
+    return;
+  }
+  if (subtemas.length === 0) {
+    atomoInstancia.actualizar(subtemasPrevios, nucleoAtomoTexto(), { conMas: true, masVacio: true });
+    setTimeout(() => {
+      if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no vigente
+      atomoInstancia.actualizar(atomoSubtemasActuales, nucleoAtomoTexto(), { conMas: true });
+    }, 2000);
+    return;
+  }
+  atomoMostrados.set(clave, [...mostrados, ...subtemas.map((s) => s.completo)]);
+  atomoSubtemasActuales = subtemas;
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
+}
+
+/** Tocar un nodo real: la cabecera/ruta/núcleo cambian AL INSTANTE (síncrono, antes de pedir nada
+ * al servidor) -- "al clicar tiene que pasar algo, cambiar la pantalla aunque sea mientras carga"
+ * (Carlos, 22:11). `cargarAnilloAtomo` se encarga del resto (nodos de espera + la petición). */
 function manejarElegirSubtemaAtomo(subtema) {
   const nuevoEstado = avanzar(atomoEstado, subtema);
-  if (nuevoEstado === atomoEstado) return; // ya en el máximo de 4 anillos (atomo.js#avanzar)
+  if (nuevoEstado === atomoEstado) {
+    mostrarAvisoTopeAtomo(); // ya en el máximo de 6 anillos (atomo.js#avanzar)
+    return;
+  }
   atomoEstado = nuevoEstado;
+  atomoMostrados = new Map(); // nuevo anillo: "Más…" empieza de página 1 (decisión del controlador)
   cargarAnilloAtomo();
 }
 
+/** Atrás cancela cualquier carga en vuelo (brief: "Atrás durante la carga") -- invalida la
+ * petición pendiente con `atomoPeticionId` y repinta el anillo anterior, que `pedirSubtemas` sirve
+ * de su propia caché en memoria si ya se había visitado. */
 function manejarAtomoAtras() {
   const nuevoEstado = retroceder(atomoEstado);
   if (nuevoEstado === atomoEstado) return; // ya en el anillo 1, nada que hacer
+  atomoPeticionId += 1; // invalida la petición vigente (si la había) antes de cambiar de ruta
+  terminarCargaAtomo();
   atomoEstado = nuevoEstado;
+  atomoMostrados = new Map();
   cargarAnilloAtomo();
 }
 
 /** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
 function abrirAtomo(area) {
   atomoEstado = crearEstadoAtomo(area);
+  atomoMostrados = new Map();
+  atomoFallo = false;
   if (atomoInstancia) atomoInstancia.destruir();
   atomoInstancia = crearAtomo({
     contenedor: nodoAtomoLienzo,
@@ -683,6 +984,7 @@ function abrirAtomo(area) {
     subtemas: [],
     alElegir: manejarElegirSubtemaAtomo,
     alVolver: manejarAtomoAtras,
+    alMas: manejarMasAtomo,
   });
   mostrarVista('atomo');
   cargarAnilloAtomo();
@@ -696,6 +998,8 @@ function limpiarAtomo() {
     atomoInstancia = null;
   }
   atomoEstado = null;
+  atomoFallo = false;
+  terminarCargaAtomo(); // cancela el aviso de lentitud pendiente y actualiza la fila-mientras
   ocultarAvisoAtomo(); // adversarial A7: barato, aunque la vista oculta ya lo impide visualmente.
 }
 
@@ -713,6 +1017,7 @@ function finalizarTrabajoAtomo() {
   atomoTrabajoId = null;
   atomoTrabajoInfo = null;
   actualizarBotonGenerarAtomo();
+  actualizarFilaMientras(); // ya no hay tanda generándose: puede que la fila-mientras deba ocultarse
 }
 
 /** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
@@ -898,6 +1203,7 @@ async function manejarGenerarAtomo() {
   atomoTrabajoInfo = { corto };
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
+  actualizarFilaMientras(); // tanda generándose: si se reabre el átomo mientras tanto, se ve
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
 }
@@ -3126,10 +3432,33 @@ nodoTandaLista.addEventListener('click', () => {
 nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
 nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
 nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
+// Hoja "Conectar" (v0.2b3 Tarea 4 + revisión combinada): se abre al tocar el punto de estado de
+// la cabecera del Átomo, el del HUB (junto a "Comenzar" -- Carlos aterriza ahí al abrir la app
+// instalada), o el aviso del Átomo -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin
+// configuración); con servidor configurado el mismo nodo muestra otros textos (fallo al cargar,
+// "Buscando..."), que no deben abrir esta hoja.
+nodoAtomoEstadoServidor.addEventListener('click', abrirHojaConectar);
+nodoEstadoServidor.addEventListener('click', abrirHojaConectar);
+nodoAtomoAviso.addEventListener('click', () => {
+  if (!leerConfiguracion()) abrirHojaConectar();
+});
+document.querySelector('[data-test="conectar-ok"]').addEventListener('click', manejarConectarOk);
+document.querySelector('[data-test="conectar-cancelar"]').addEventListener('click', cerrarHojaConectar);
+// Escape (brief): cierra y vacía el campo, igual que Cancelar.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !nodoConectar.hidden) cerrarHojaConectar();
+});
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
 document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
+// Fila "atomo-mientras" (v0.2b3 Tarea 3): misma idea, dentro de la propia vista del átomo mientras
+// el anillo carga/falla o una tanda se genera en segundo plano -- "Jugar el área" reutiliza la
+// misma función que el HUB al tocar una tarjeta de área (empezarPartida({area})).
+document.querySelector('[data-test="atomo-mientras-jugar"]').addEventListener('click', () => {
+  if (atomoEstado) empezarPartida({ area: atomoEstado.area });
+});
+document.querySelector('[data-test="atomo-mientras-repasar"]').addEventListener('click', () => abrirRepaso());
 // Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
 // "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).
 nodoAtomoEsperaResultado.addEventListener('click', () => {

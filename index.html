@@ -124,7 +124,22 @@
            app funciona exactamente igual, este punto es la única señal visible. -->
       <div class="hub-comenzar-fila">
         <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>
-        <span class="punto-servidor" data-test="estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
+        <!-- Tarea 4 ("Conectar desde la app instalada") + revisión combinada: antes un <span>
+             decorativo -- ahora también el disparador para abrir la hoja "Conectar" (mismo
+             manejador que su gemelo del Átomo, ver app.js), con área táctil ampliada a 44px sin
+             agrandar el punto visible (estilos.css). Carlos aterriza en el HUB al abrir la app
+             instalada, así que este es el punto que de verdad ve primero. `aria-label` estático
+             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (mismo
+             texto que el gris por defecto, tercera ronda de revisión combinada: el aria-label
+             fijo "Estado del servidor" de la ronda anterior era un error, corregido -- debe seguir
+             llevando el estado). -->
+        <button
+          type="button"
+          class="punto-servidor"
+          data-test="estado-servidor"
+          data-estado="gris"
+          aria-label="Servidor sin conectar, toca para conectar"
+        ></button>
       </div>
       <div class="hub-pie">
         <button class="hub-pie-enlace" data-test="exportar">Exportar</button>
@@ -146,7 +161,18 @@
            porque .atomo-cuerpo centra su contenido en el espacio libre. -->
       <div class="atomo-cabecera">
         <span class="atomo-ruta" data-test="atomo-ruta"></span>
-        <span class="punto-servidor" data-test="atomo-estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
+        <!-- Tarea 4 ("Conectar desde la app instalada"): antes un <span> decorativo -- ahora
+             también el disparador para abrir la hoja "Conectar" (ver app.js), con área táctil
+             ampliada a 44px sin agrandar el punto visible (estilos.css). `aria-label` estático
+             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (ver el
+             comentario del punto gemelo del HUB, arriba en esta hoja). -->
+        <button
+          type="button"
+          class="punto-servidor"
+          data-test="atomo-estado-servidor"
+          data-estado="gris"
+          aria-label="Servidor sin conectar, toca para conectar"
+        ></button>
       </div>
       <!-- .atomo-cuerpo absorbe el espacio libre; el lienzo se queda arriba, pegado a la cabecera
            (Ronda final, Disposición) y el hueco que deja debajo se aprovecha para la ruta completa
@@ -154,7 +180,18 @@
       <div class="atomo-cuerpo">
         <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
         <p class="atomo-ruta-completa" data-test="atomo-ruta-completa"></p>
-        <p class="atomo-ayuda">Mantén pulsada un área del HUB para abrir su átomo</p>
+        <!-- Texto fijo por defecto; sin servidor configurado, app.js#actualizarAyudaAtomo lo
+             cambia a la pista de conexión (Tarea 4). -->
+        <p class="atomo-ayuda" data-test="atomo-ayuda">Mantén pulsada un área del HUB para abrir su átomo</p>
+        <!-- Fila "mientras" (v0.2b3 Tarea 3, "Ampliación"): visible mientras el anillo carga,
+             mientras falla, o mientras se genera una tanda en segundo plano -- ver
+             app.js#actualizarFilaMientras. "Jugar el área" reutiliza empezarPartida({area}), la
+             misma función que usa el HUB al tocar una tarjeta de área; "Repasar" abre la pantalla
+             de repaso existente (abrirRepaso). -->
+        <div class="atomo-mientras" data-test="atomo-mientras" hidden>
+          <button type="button" class="boton" data-test="atomo-mientras-jugar">Jugar el área</button>
+          <button type="button" class="boton" data-test="atomo-mientras-repasar">Repasar</button>
+        </div>
         <!-- Adversarial A15: aria-live="polite" -- el texto cambia (conectar servidor / fallo al
              cargar subtemas) sin que el foco se mueva, así que un lector de pantalla no se
              enteraría sin esto. -->
@@ -184,6 +221,37 @@
       <button type="button" class="boton boton-principal atomo-espera-resultado" data-test="atomo-espera-resultado" hidden></button>
     </section>
   </main>
+
+  <!-- Hoja "Conectar" (Tarea 4, v0.2b3: "Conectar desde la app instalada"): en iOS la app añadida a
+       la pantalla de inicio tiene almacenamiento SEPARADO de Safari, así que el enlace de conexión
+       abierto en Safari no llega a la app instalada -- esta hoja deja pegar el enlace (o
+       "servidor token") a mano, sin salir de la app. Se abre al tocar el punto de estado de la
+       cabecera del Átomo o su aviso "Conecta el servidor..." (ver app.js). -->
+  <div class="hoja-conectar" data-test="conectar" hidden role="dialog" aria-label="Conectar servidor">
+    <label class="hoja-conectar-etiqueta" for="conectar-texto">Pega aquí el enlace de conexión</label>
+    <input
+      type="text"
+      id="conectar-texto"
+      class="hoja-conectar-campo"
+      inputmode="url"
+      autocomplete="off"
+      autocapitalize="off"
+      spellcheck="false"
+      data-test="conectar-texto"
+    >
+    <!-- Ronda de revisión combinada (Tarea 4, Important): aria-live="polite" -- el texto aparece
+         sin que el foco se mueva (se queda en el campo), así que un lector de pantalla no se
+         enteraría del error sin esto (mismo criterio que atomo-aviso en la vista del Átomo). -->
+    <p class="hoja-conectar-error" data-test="conectar-error" hidden aria-live="polite">Enlace no válido</p>
+    <div class="hoja-conectar-acciones">
+      <button type="button" class="boton" data-test="conectar-cancelar">Cancelar</button>
+      <button type="button" class="boton boton-principal" data-test="conectar-ok">Conectar</button>
+    </div>
+  </div>
+  <!-- Aviso "Conectado" (Tarea 4): la hoja de arriba ya se ha cerrado en ese momento, así que este
+       vive fuera de ella -- fijo y centrado, visible encima de cualquier vista, 2s (ver
+       app.js#mostrarAvisoConectado). -->
+  <p class="aviso-conectado" data-test="conectar-hecho" hidden aria-live="polite">Conectado</p>
 
   <!-- Plantilla clonada por cada tarjeta del mazo (spec v0.1c §2.3): confianza
        dentro de la tarjeta, tras el enunciado y antes de las opciones. -->
