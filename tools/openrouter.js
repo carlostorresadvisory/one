@@ -62,8 +62,18 @@ async function costeAcumuladoHoy(rutaLog) {
   return total;
 }
 
+// Ronda final (revisión, 14-sep-2026) -- Critical (C1): si `appendFile` falla (carpeta ausente,
+// disco lleno, permisos...) esto NO debe tumbar `llamar` -- antes, un log que no se podía escribir
+// hacía que `llamar` lanzara aunque el modelo hubiera respondido bien, y ni siquiera se probaba el
+// siguiente de la cascada. El fallo se traga aquí con un único `console.error` (sin volcar la
+// entrada entera: ya lleva modelo/coste/tokens, nada confidencial, pero tampoco hace falta
+// imprimirla dos veces) y `llamar` sigue su curso normal.
 async function registrarLog(rutaLog, entrada) {
-  await appendFile(rutaLog, `${JSON.stringify(entrada)}\n`, 'utf8');
+  try {
+    await appendFile(rutaLog, `${JSON.stringify(entrada)}\n`, 'utf8');
+  } catch (err) {
+    console.error(`tools/openrouter: no se pudo escribir en el log de llamadas (${err?.message || err})`);
+  }
 }
 
 // Busca dónde termina el primer valor JSON completo (objeto o array) que empieza en `inicio`,

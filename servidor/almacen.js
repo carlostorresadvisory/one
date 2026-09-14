@@ -87,7 +87,15 @@ export function crearAlmacen(rutaDatos) {
   const colasPorFichero = new Map();
   function conCerrojo(nombre, fn) {
     const previa = colasPorFichero.get(nombre) || Promise.resolve();
-    const resultado = previa.then(fn, fn);
+    // Ronda final (revisión, 14-sep-2026) -- Adversarial (A8): `previa.then(fn, fn)` pasaba el
+    // valor resuelto (o el motivo de rechazo) de la sección crítica ANTERIOR como argumento a esta
+    // `fn` -- nunca ha roto nada porque todo `fn` de este repo es `async () => {...}` sin parámetros
+    // (los ignora), pero es una trampa para el próximo llamante que sí espere recibir algo suyo.
+    // `() => fn()` corta esa cadena: `fn` se llama siempre sin argumentos, gane o pierda la anterior.
+    const resultado = previa.then(
+      () => fn(),
+      () => fn(),
+    );
     colasPorFichero.set(nombre, resultado.catch(() => {}));
     return resultado;
   }

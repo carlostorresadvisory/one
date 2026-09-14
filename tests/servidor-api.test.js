@@ -6,12 +6,12 @@
 // §0, §3.1, §3.3, §3.5.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { crearAlmacen } from '../servidor/almacen.js';
 import { crearCola } from '../servidor/cola.js';
-import { crearServidor, esHoraNocturna, rellenoNocturnoSiToca } from '../servidor/index.js';
+import { crearServidor, esHoraNocturna, rellenoNocturnoSiToca, comprobarEscritura } from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
 
 const TOKEN = 'token-de-prueba-0123456789abcdef0123456789abcdef';
@@ -107,9 +107,80 @@ test('GET /salud sin token responde 200 con colchon/cola/gastoHoyEur', async () 
     assert.deepEqual(datos.colchon.porArea, {});
     assert.equal(typeof datos.cola, 'number');
     assert.equal(typeof datos.gastoHoyEur, 'number');
+    assert.equal(datos.ultimoError, null, 'sin generaciones todavía, no hay error que mostrar');
+    assert.equal(datos.ultimaGeneracionOk, null);
   } finally {
     await cerrar();
   }
+});
+
+// Ronda final (revisión, 14-sep-2026), Critical C2: /salud debe reflejar la señal de salud real del
+// trabajador (cola.estadisticas().ultimoError/ultimaGeneracionOk), no solo "el proceso sigue vivo".
+test('GET /salud expone ultimoError y ultimaGeneracionOk tal cual los da cola.estadisticas()', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const colaFake = {
+    estadisticas: () => ({
+      enCola: 0,
+      activo: 0,
+      terminadosRecordados: 0,
+      ultimoError: 'la cascada de test4 se agotó',
+      ultimaGeneracionOk: '2026-01-01T00:00:00.000Z',
+    }),
+  };
+  const servidor = crearServidor({ cola: colaFake, almacen, token: TOKEN, rutaDatos: dir });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    const resp = await fetch(`${base}/salud`);
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.ultimoError, 'la cascada de test4 se agotó');
+    assert.equal(datos.ultimaGeneracionOk, '2026-01-01T00:00:00.000Z');
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
+  }
+});
+
+// Ronda final (revisión, 14-sep-2026), Critical C2: /salud mentía "ok:true" con el disco de datos
+// ya inservible (nunca hacía una escritura real, solo lecturas sobre ficheros que ya existían).
+test('GET /salud responde 503 {ok:false} si RUTA_DATOS no admite escritura', async () => {
+  const dirBase = await carpetaTmp();
+  const rutaFichero = path.join(dirBase, 'esto-es-un-fichero');
+  await writeFile(rutaFichero, 'x', 'utf8');
+  const rutaDatosMala = path.join(rutaFichero, 'subcarpeta'); // mkdir fallará: ENOTDIR
+
+  const almacen = crearAlmacen(rutaDatosMala);
+  const cola = crearCola({ almacen, producirTanda: async ({ n }) => resultadoVacio(n) });
+  const servidor = crearServidor({ cola, almacen, token: TOKEN, rutaDatos: rutaDatosMala });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    const resp = await fetch(`${base}/salud`);
+    assert.equal(resp.status, 503);
+    const datos = await resp.json();
+    assert.equal(datos.ok, false);
+    assert.equal(typeof datos.error, 'string');
+    assert.ok(!datos.error.includes(rutaDatosMala), 'el mensaje al cliente no debe filtrar la ruta interna');
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
+  }
+});
+
+// Ronda final (revisión, 14-sep-2026), Critical C1: prueba directa de la función de comprobación de
+// escritura que usan tanto el arranque (bootstrap) como /salud.
+test('comprobarEscritura: crea la carpeta si falta y no deja ningún fichero de prueba tras comprobar', async () => {
+  const base = await carpetaTmp();
+  const sub = path.join(base, 'nueva', 'mas-honda');
+  await comprobarEscritura(sub);
+  const ficheros = await readdir(sub);
+  assert.deepEqual(ficheros, []);
 });
 
 test('GET /salud cuenta el colchón disponible por área y suma el gasto de llamadas.log', async () => {

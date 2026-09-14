@@ -92,6 +92,12 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   let activo = null;
   let procesando = false;
   let contadorId = 0;
+  // Ronda final (revisión, 14-sep-2026) -- Critical (C2): señal de salud del trabajador, para que
+  // /salud pueda decir algo más que "el proceso sigue vivo". `ultimoError` es el motivo (corto, sin
+  // trazas) del último lote que falló de cualquier forma; `ultimaGeneracionOk` es el ISO del último
+  // lote que terminó sin fallo. Ambas se actualizan en `ejecutarUnLote`, se leen en `estadisticas()`.
+  let ultimoError = null;
+  let ultimaGeneracionOk = null;
 
   function todosLosPendientesOArea(area, ruta) {
     // Para rellenarHaciaObjetivo: ¿ya hay un trabajo de fondo en cola (o en curso) para esta misma
@@ -171,6 +177,10 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // Ronda final (C2): resultado de ESTE lote en concreto (no de `trabajo.huboFallo`, que puede
+    // venir ya en `true` de un lote anterior del mismo trabajo) -- es lo que alimenta
+    // `ultimoError`/`ultimaGeneracionOk` al final, en el `finally`.
+    let falloEsteLote = null;
     try {
       const evitar = await calcularEvitar(trabajo.area);
 
@@ -183,10 +193,14 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       } catch (err) {
         trabajo.huboFallo = true;
         trabajo.motivo = err?.message || 'producirTanda falló';
+        falloEsteLote = trabajo.motivo;
       }
 
       if (resultado) {
-        if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
+        if (resultado.fallos && resultado.fallos.length > 0) {
+          trabajo.huboFallo = true;
+          falloEsteLote = falloEsteLote || resultado.fallos.map((f) => `${f.tipo}: ${f.motivo}`).join('; ');
+        }
         if (resultado.aprobadas && resultado.aprobadas.length > 0) {
           const guardadas = resultado.aprobadas.map((p) => aColchon(p, trabajo));
           // Solo se añaden a `trabajo.preguntas` (lo que ve estadoTrabajo) DESPUÉS de guardarlas
@@ -201,6 +215,7 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       // escapaba de ejecutarUnLote entero y, sin capturar, tumbaba al trabajador (ver arriba).
       trabajo.huboFallo = true;
       trabajo.motivo = err?.message || 'fallo de disco en este lote';
+      falloEsteLote = trabajo.motivo;
     } finally {
       // Sin más `await` de este lote a partir de aquí: `hechas` cambia en el mismo tramo síncrono
       // en el que procesarCola decide el `estado` que sigue. Antes `hechas` se actualizaba ANTES
@@ -210,6 +225,11 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
       // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
       trabajo.hechas += tamanoLote;
+      if (falloEsteLote) {
+        ultimoError = String(falloEsteLote).slice(0, 300);
+      } else {
+        ultimaGeneracionOk = new Date().toISOString();
+      }
     }
   }
 
@@ -436,10 +456,24 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       });
 
       const elegidas = candidatas.slice(0, Math.max(0, max));
-      if (elegidas.length > 0) {
+
+      // Ronda final (revisión, 14-sep-2026) -- Critical (C3): una pregunta que el móvil ya conoce
+      // (viene en `idsConocidos`) puede no haber pasado nunca por AQUÍ -- llegó por /trabajo/:id
+      // (un `POST /generar` urgente), que guarda en el colchón pero no marca `servida`. Sin este
+      // fix esas entradas se quedaban `servida: null` para siempre: `calcularObjetivo` las seguía
+      // contando como "colchón disponible" (nunca se generaba de más para reemplazarlas, aunque el
+      // móvil nunca fuera a volver a pedirlas) y `purgarColchon` nunca las purgaba (solo purga
+      // servidas). Se marcan `servida` aquí, dentro del mismo cerrojo, aunque NO formen parte de
+      // `elegidas` -- el móvil ya las tiene, no se le vuelven a mandar, pero el colchón debe saber
+      // que ya están "gastadas".
+      const idsAMarcar = new Set(elegidas.map((p) => p.id));
+      for (const p of colchon) {
+        if (!p.servida && conocidos.has(p.id)) idsAMarcar.add(p.id);
+      }
+
+      if (idsAMarcar.size > 0) {
         const ahora = new Date().toISOString();
-        const idsElegidos = new Set(elegidas.map((p) => p.id));
-        const actualizado = colchon.map((p) => (idsElegidos.has(p.id) ? { ...p, servida: ahora } : p));
+        const actualizado = colchon.map((p) => (idsAMarcar.has(p.id) ? { ...p, servida: ahora } : p));
         await almacen.guardarColchon(purgarColchon(actualizado));
         for (const p of elegidas) p.servida = ahora;
       }
@@ -468,6 +502,9 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       enCola: colaUrgente.length + colaFondo.length,
       activo: activo ? 1 : 0,
       terminadosRecordados: terminados.size,
+      // Ronda final (C2): señal de salud del trabajador para /salud (ver ejecutarUnLote).
+      ultimoError,
+      ultimaGeneracionOk,
     };
   }
 

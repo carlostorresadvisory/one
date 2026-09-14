@@ -12,7 +12,7 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
@@ -110,6 +110,23 @@ export async function rellenoNocturnoSiToca({ cola, rutaDatos, fecha = new Date(
   const rutasAtomo = Array.isArray(resumen?.rutasAtomo) ? resumen.rutasAtomo : [];
   await cola.rellenarHaciaObjetivo(resumen, rutasAtomo);
   return true;
+}
+
+// Ronda final (revisión, 14-sep-2026) -- Critical (C1/C2): prueba REAL de que se puede escribir en
+// `rutaDatos` -- crea la carpeta si hace falta, escribe un fichero de prueba y lo borra. Se usa en
+// dos sitios: al arrancar (bootstrap directo, más abajo -- si falla, `process.exit(1)` con un
+// mensaje claro ANTES de aceptar ninguna petición) y en cada `/salud` (C2 -- si el disco se queda
+// de solo lectura o sin espacio DESPUÉS de arrancar, `/salud` debe dejar de mentir "ok:true").
+// Nunca deja basura: el nombre incluye el pid y un sufijo aleatorio para no chocar con otra
+// instancia corriendo a la vez sobre el mismo `rutaDatos`.
+export async function comprobarEscritura(rutaDatos) {
+  await mkdir(rutaDatos, { recursive: true });
+  const rutaPrueba = path.join(
+    rutaDatos,
+    `.prueba-escritura-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  );
+  await writeFile(rutaPrueba, 'ok', 'utf8');
+  await unlink(rutaPrueba);
 }
 
 // Igual formato de línea que escribe tools/openrouter.js#registrarLog: una línea JSON por llamada,
@@ -286,17 +303,36 @@ export function crearServidor({
   // === Manejadores de ruta, uno por endpoint de la spec §3.3 =====================================
 
   async function manejarSalud(req, res) {
+    // Ronda final (C2): antes /salud podía decir "ok:true" con el disco de datos ya inservible (de
+    // solo lectura, sin espacio...) porque solo LEÍA colchon.json/llamadas.log -- una lectura sobre
+    // un fichero que ya existe no detecta un disco que ya no admite ESCRITURAS nuevas. Prueba real
+    // de escritura antes de nada más; si falla, 503 con un mensaje corto (nunca la ruta ni la traza)
+    // y se registra el detalle en el log del propio proceso para quien opere el VPS.
+    if (rutaDatos) {
+      try {
+        await comprobarEscritura(rutaDatos);
+      } catch (err) {
+        console.error(`servidor: /salud detectó que RUTA_DATOS no admite escritura: ${err?.message || err}`);
+        responderJson(res, 503, { ok: false, error: 'El disco de datos del servidor no admite escritura' });
+        return;
+      }
+    }
+
     const colchon = await almacen.leerColchon();
     const disponibles = colchon.filter((p) => !p.servida);
     const porArea = {};
     for (const p of disponibles) porArea[p.area] = (porArea[p.area] || 0) + 1;
     const gasto = await gastoHoyEur(rutaLog);
+    const estadisticasCola = cola.estadisticas();
     responderJson(res, 200, {
       ok: true,
       version,
       colchon: { total: colchon.length, listas: disponibles.length, porArea },
-      cola: cola.estadisticas().enCola,
+      cola: estadisticasCola.enCola,
       gastoHoyEur: gasto,
+      // Ronda final (C2): señal de salud del trabajador, no solo "el proceso HTTP sigue vivo".
+      ultimoError: estadisticasCola.ultimoError ?? null,
+      ultimaGeneracionOk: estadisticasCola.ultimaGeneracionOk ?? null,
     });
   }
 
@@ -555,6 +591,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const rutaDatos = process.env.RUTA_DATOS || '/datos-servidor';
   const permitirPago = process.env.PERMITIR_PAGO === '1';
   const topeEur = Number(process.env.TOPE_EUR_DIA) || 0;
+
+  // Ronda final (revisión, 14-sep-2026) -- Critical (C1): comprobar ANTES de arrancar a escuchar
+  // que se puede escribir de verdad en RUTA_DATOS -- sin esto, el contenedor podía arrancar "bien"
+  // (el proceso HTTP sigue vivo) sobre un volumen sin montar, de solo lectura o sin permisos, y
+  // fallar en silencio en el primer intento real de generar (o de guardar el colchón). Mensaje
+  // claro y `process.exit(1)`: mejor que el contenedor no arranque a que arranque mintiendo.
+  try {
+    await comprobarEscritura(rutaDatos);
+  } catch (err) {
+    console.error(`servidor: RUTA_DATOS (${rutaDatos}) no admite escritura, no se puede arrancar: ${err?.message || err}`);
+    process.exit(1);
+  }
 
   const almacenReal = crearAlmacen(rutaDatos);
   const colaReal = crearCola({

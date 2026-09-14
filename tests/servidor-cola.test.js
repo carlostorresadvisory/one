@@ -493,7 +493,32 @@ test('servir: excluye idsConocidos y reportadas, marca servida y persiste', asyn
   const guardada = colchonTrasServir.find((p) => p.id === 'srv-eco-1');
   assert.ok(guardada.servida, 'la marca servida se persiste en disco');
   assert.equal(colchonTrasServir.find((p) => p.id === 'srv-eco-2').servida, null, 'la reportada no se toca');
-  assert.equal(colchonTrasServir.find((p) => p.id === 'srv-eco-3').servida, null, 'la conocida no se sirve');
+  // Ronda final (revisión, 14-sep-2026) -- Critical (C3): la conocida NO se vuelve a servir (no
+  // aparece en `servidas`), pero SÍ se marca `servida` en disco -- si no, se queda `servida: null`
+  // para siempre (nunca se purga, y calcularObjetivo la sigue contando como "colchón disponible"
+  // aunque el móvil ya la tenga y no vaya a volver a pedirla).
+  assert.ok(colchonTrasServir.find((p) => p.id === 'srv-eco-3').servida, 'la conocida se marca servida aunque no se reenvíe');
+});
+
+// Ronda final (revisión, 14-sep-2026), Critical C3: test dedicado al caso que motivó el fix --
+// una pregunta que llegó por /trabajo/:id (POST /generar urgente) nunca pasa por `servir()` hasta
+// que el móvil la reporta como conocida en un /estado posterior.
+test('servir (Ronda final, C3): una conocida que nunca había pasado por servir() también se marca servida', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(5) });
+
+  // Simula lo que deja un trabajo urgente ya terminado: entra en el colchón vía guardarNuevasEnColchon
+  // (aquí, directamente con guardarColchon) sin que nadie la haya servido todavía.
+  await almacen.guardarColchon([
+    { id: 'srv-eco-urgente-1', area: 'economia', creada: new Date().toISOString(), servida: null, enunciado: 'x' },
+  ]);
+
+  const servidas = await cola.servir({ idsConocidos: ['srv-eco-urgente-1'], resumen: {}, max: 10 });
+  assert.equal(servidas.length, 0, 'no se reenvía: el móvil ya la conoce');
+
+  const colchon = await almacen.leerColchon();
+  assert.ok(colchon[0].servida, 'se marca servida en cuanto el móvil confirma que ya la conoce');
 });
 
 test('servir: prioriza el área con menor aciertoReciente (sin datos cuenta como 0.5), luego la más antigua', async () => {
@@ -720,4 +745,38 @@ test('cola.estadisticas() refleja el tamaño de la cola de espera', async () => 
   assert.equal(stats.enCola, 1);
 
   pendientes[0](resultadoVacio(5));
+});
+
+// === Ronda final (14-sep-2026): ultimoError/ultimaGeneracionOk (C2) =============================
+
+test('cola.estadisticas(): ultimaGeneracionOk se actualiza tras un lote sin fallo; ultimoError sigue null', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async ({ area, n }) => resultadoOk(area, n, n) });
+
+  cola.encolar({ area: 'economia', ruta: [], n: 3, urgente: true });
+  await hastaQue(() => cola.estadisticas().ultimaGeneracionOk !== null);
+
+  const stats = cola.estadisticas();
+  assert.equal(stats.ultimoError, null);
+  assert.ok(stats.ultimaGeneracionOk);
+  assert.ok(!Number.isNaN(new Date(stats.ultimaGeneracionOk).getTime()));
+});
+
+test('cola.estadisticas(): ultimoError se actualiza (corto, sin traza) cuando producirTanda falla', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => {
+      throw new Error('la cascada de este tipo se agotó del todo');
+    },
+  });
+
+  cola.encolar({ area: 'economia', ruta: [], n: 3, urgente: true });
+  await hastaQue(() => cola.estadisticas().ultimoError !== null);
+
+  const stats = cola.estadisticas();
+  assert.match(stats.ultimoError, /la cascada de este tipo se agotó del todo/);
+  assert.ok(!stats.ultimoError.includes(dir), 'no debe filtrar rutas internas del disco');
 });
