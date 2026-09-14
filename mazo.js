@@ -111,11 +111,28 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
    * lleva a 'true' por ser una tarjeta ya respondida reutilizada): pintarlas
    * distinto daba una columna incoherente (mezcla de aro y relleno sin
    * relación con nada). Con `puntosNeutros` todos los puntos del resumen son
-   * neutros (aro), y solo el actual se tiñe en cian — "un punto por tarjeta". */
+   * neutros (aro), y solo el actual se tiñe en cian — "un punto por tarjeta".
+   *
+   * C1 (ronda final de revisión de rendimiento): con el repaso infinito
+   * (v0.2a.1 §7) `lista` puede tener cientos de huecos (banco real) — una
+   * columna de 295-590 puntos es una raya inútil (el punto actual cae cerca
+   * de la mitad de la caja, sin que se distinga nada) y volver a pintarla
+   * ENTERA en cada deslizamiento costaba 84 ms con CPU x4. Por encima de 12
+   * huecos se pinta solo una VENTANA de 9 puntos centrada en `indice` (con el
+   * actual siempre dentro), clampeada a los límites de `lista`; con 12 o
+   * menos (la partida, que nunca pasa de ~11) se pinta como siempre. */
   function pintarPuntos() {
     puntos.innerHTML = '';
-    lista.forEach((nodo, i) => {
-      if (nodo.dataset && nodo.dataset.puntoOculto === 'true') return;
+    const VENTANA = 9;
+    let inicio = 0;
+    let fin = lista.length;
+    if (lista.length > 12) {
+      inicio = Math.max(0, Math.min(indice - Math.floor(VENTANA / 2), lista.length - VENTANA));
+      fin = Math.min(lista.length, inicio + VENTANA);
+    }
+    for (let i = inicio; i < fin; i += 1) {
+      const nodo = lista[i];
+      if (nodo.dataset && nodo.dataset.puntoOculto === 'true') continue;
       const punto = document.createElement('span');
       punto.className = 'mazo-punto';
       if (!puntosNeutros) {
@@ -124,7 +141,7 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
       }
       punto.classList.toggle('mazo-punto--actual', i === indice);
       puntos.appendChild(punto);
-    });
+    }
   }
 
   function pintarChevronYPista() {
@@ -494,7 +511,16 @@ export function ajustarEncaje(tarjetaNodo) {
   //      (mismo método que la explicación de la tarjeta respondida — líneas =
   //      floor(alturaLibre / lineHeight), mínimo 2), con "…", sin ningún
   //      toque para desplegarlo.
-  if (tarjetaNodo.dataset.respondida !== 'true') {
+  // `=== 'false'`, no `!== 'true'` (Minor 1, ronda final de revisión): la
+  // tarjeta "sin responder" del repaso infinito (v0.2a.1 §7) tiene la MISMA
+  // forma que una respondida (zona de respuesta + feedback, construida por
+  // construirTarjetaRespondida) pero, a propósito, no lleva `dataset.respondida`
+  // en absoluto (nunca se ha respondido de verdad). Solo la pregunta ACTIVA
+  // de una partida sin responder (construirTarjetaSinResponder, distinta
+  // forma: opciones tocables, sin zona de respuesta ni feedback) marca
+  // `dataset.respondida = 'false'` explícitamente — es la única que debe
+  // caer en esta cascada.
+  if (tarjetaNodo.dataset.respondida === 'false') {
     tarjetaNodo.classList.add('tarjeta--enunciado-menor');
     if (cabe()) return;
 
