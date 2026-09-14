@@ -168,3 +168,20 @@ test('escribe una línea en el log con el coste de usage.cost', async () => {
   assert.ok(ultima.fecha);
   await limpiarLog();
 });
+
+// Ronda final (revisión, 14-sep-2026) -- Critical (C1): un fallo al escribir el log (carpeta
+// inexistente, disco lleno...) no debe tumbar `llamar` si el modelo respondió bien.
+test('C1: si registrarLog falla (carpeta inexistente), llamar devuelve la respuesta igual', async () => {
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    return respuestaOk(body.model, 'contenido de la respuesta');
+  };
+  const r = await llamar({
+    modelos: ['a/uno:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: 'carpeta-de-prueba-que-no-existe-xyz/llamadas.log',
+  });
+  assert.equal(r.modelo, 'a/uno:free');
+  assert.equal(r.texto, 'contenido de la respuesta');
+});

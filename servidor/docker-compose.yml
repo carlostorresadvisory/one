@@ -1,0 +1,51 @@
+# Despliegue del servidor de generación de ONE en el VPS de IONOS (Tarea 3 del plan
+# v0.2b1-servidor). Se ejecuta desde /opt/one: `docker compose -f servidor/docker-compose.yml up -d
+# --build`. Spec: docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md §3.5.
+services:
+  one-servidor:
+    build:
+      context: ..
+      dockerfile: servidor/Dockerfile
+    env_file: ../.env
+    # Ronda final (revisión, 14-sep-2026) -- Important (I5): PUERTO y RUTA_DATOS fijos AQUÍ, no en
+    # el `.env` -- `environment:` gana a `env_file` para la misma clave (Docker Compose), así que un
+    # valor distinto colado en el `.env` nunca puede desajustarlos del resto de este fichero. Si
+    # RUTA_DATOS no fuera exactamente /datos-servidor, el proceso escribiría fuera del volumen
+    # montado (`/opt/one-datos:/datos-servidor` más abajo) y se perdería todo al recrear el
+    # contenedor; si PUERTO no fuera 8787, no coincidiría con el puerto publicado en `ports:`.
+    environment:
+      PUERTO: "8787"
+      RUTA_DATOS: /datos-servidor
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - /opt/one-datos:/datos-servidor
+    mem_limit: 512m
+    restart: unless-stopped
+    # Ronda final (revisión, 14-sep-2026) -- Menor (M1): más que el máximo de 20 s que espera
+    # esperarInactividad en servidor/index.js -- así Docker nunca manda el SIGKILL final (tras
+    # `stop_grace_period`, si el proceso no ha salido solo) antes de que el propio código haya
+    # tenido su margen completo para terminar el lote en curso.
+    stop_grace_period: 25s
+    networks:
+      - one-net
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    networks:
+      - one-net
+
+networks:
+  one-net:
+
+volumes:
+  caddy_data:
+  caddy_config:
