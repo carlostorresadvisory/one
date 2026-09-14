@@ -269,6 +269,57 @@ test('POST /generar sin area responde 400', async () => {
   }
 });
 
+// Ronda 1 (revisión, 14-sep-2026), Important: un área que no existe se encolaba igual y fallaba en
+// silencio varios pasos después, dentro del pipeline real -- ahora se rechaza al momento.
+test('POST /generar con área desconocida responde 400', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'no-existe', n: 5 }),
+    });
+    assert.equal(resp.status, 400);
+    assert.equal(typeof (await resp.json()).error, 'string');
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda 1 (revisión, 14-sep-2026), Minor: camino sin cubrir -- cola.encolar() devuelve null cuando
+// la cola de fondo (urgente:false) ya está en su tope (32, Tarea 2). Se inyecta una cola FALSA
+// (no la real crearCola) para forzar ese caso sin tener que encolar 32 trabajos de verdad.
+test('POST /generar con la cola de fondo llena responde 503', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const colaFake = {
+    encolar: () => null,
+    estadoTrabajo: () => null,
+    estadisticas: () => ({ enCola: 0, activo: 0, terminadosRecordados: 0 }),
+    servir: async () => [],
+    reportar: async () => ({ ok: true }),
+    rellenarHaciaObjetivo: async () => [],
+    calcularObjetivo: async () => [],
+  };
+  const servidor = crearServidor({ cola: colaFake, almacen, token: TOKEN, rutaDatos: dir });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    const resp = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', n: 5, urgente: false }),
+    });
+    assert.equal(resp.status, 503);
+    assert.equal(typeof (await resp.json()).error, 'string');
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
+  }
+});
+
 // === POST /subtemas ==============================================================================
 
 test('POST /subtemas con ruta=[] devuelve HILOS_POR_AREA sin llamar al modelo', async () => {
@@ -327,6 +378,27 @@ test('POST /subtemas con área desconocida responde 400', async () => {
   try {
     const resp = await fetch(`${base}/subtemas`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'no-existe', ruta: [] }) });
     assert.equal(resp.status, 400);
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda 1 (revisión, 14-sep-2026), Minor: un fallo del proveedor externo (cascada agotada, red...)
+// es 503 -- "Modelo no disponible", no 500 -- 500 queda solo para errores internos inesperados.
+test('POST /subtemas responde 503 si la cascada del modelo falla (anillo ≥ 2)', async () => {
+  const llamarFake = async () => {
+    throw new Error('todos los modelos de la cascada fallaron');
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'] }),
+    });
+    assert.equal(resp.status, 503);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
   } finally {
     await cerrar();
   }

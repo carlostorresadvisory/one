@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
+import { AREAS } from '../tools/validar-banco.js';
 import { HILOS_POR_AREA, textoCriterio } from '../tools/criterio.js';
 import { crearAlmacen } from './almacen.js';
 import { crearCola } from './cola.js';
@@ -324,6 +325,16 @@ export function crearServidor({
       responderError(res, 400, 'Falta el área');
       return;
     }
+    // Ronda 1 (revisión, 14-sep-2026) -- Important: sin esto, un área inexistente se encolaba
+    // igual (cola.js#encolar solo comprueba que `area` no esté vacío) y fallaba en silencio más
+    // tarde dentro del pipeline real (generarBorradores lanza "área desconocida", pero eso ocurre
+    // varios pasos después, dentro del trabajador, sin que quien llamó a /generar se entere nunca:
+    // el trabajo simplemente termina "fallida"). Se valida aquí, contra la misma lista que ya usa
+    // el resto del pipeline (tools/validar-banco.js#AREAS), para devolver 400 al momento.
+    if (!AREAS.includes(cuerpo.area)) {
+      responderError(res, 400, 'Área desconocida');
+      return;
+    }
     const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
     const n = Number.isInteger(cuerpo.n) && cuerpo.n > 0 ? cuerpo.n : undefined;
     const urgente = !!cuerpo.urgente;
@@ -394,11 +405,16 @@ export function crearServidor({
       },
     ];
 
+    // Ronda 1 (revisión, 14-sep-2026) -- Minor: las tres formas de fallo de aquí abajo son un
+    // proveedor externo que no entrega (cascada agotada, JSON inválido, o una lista vacía tras
+    // filtrar), nunca un bug de este código -- 503 (mismo código y mensaje que "la cola de fondo
+    // está llena" en /generar), no 500. 500 queda solo para lo que de verdad es inesperado y llega
+    // al `catch` de `manejarPeticion`.
     let salida;
     try {
       salida = await llamarFn({ modelos, mensajes, json: true, permitirPago, topeEur, rutaLog });
     } catch {
-      responderError(res, 500, 'No se pudieron generar los subtemas');
+      responderError(res, 503, 'Modelo no disponible, prueba en un momento');
       return;
     }
 
@@ -406,7 +422,7 @@ export function crearServidor({
     try {
       datos = extraerJson(salida.texto);
     } catch {
-      responderError(res, 500, 'No se pudieron generar los subtemas');
+      responderError(res, 503, 'Modelo no disponible, prueba en un momento');
       return;
     }
 
@@ -416,7 +432,7 @@ export function crearServidor({
       .map((texto, indice) => ({ indice, corto: acortarSubtema(texto.trim()), completo: texto.trim() }));
 
     if (subtemas.length === 0) {
-      responderError(res, 500, 'No se pudieron generar los subtemas');
+      responderError(res, 503, 'Modelo no disponible, prueba en un momento');
       return;
     }
 
