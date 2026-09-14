@@ -195,6 +195,16 @@ test('guardarConfiguracionDesdeUrl: rechaza un servidor con ruta, query o hash (
   );
 });
 
+// Re-revisión de la ronda 1 (Minor): cada rama del rechazo por sí sola, para que un cambio en
+// sanearServidor que dejara pasar la query o el hash sin ruta no pase desapercibido.
+test('guardarConfiguracionDesdeUrl: rechaza un servidor con solo query (sin ruta)', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('https://x.com?y=1')}&token=${TOKEN_VALIDO}`);
+});
+
+test('guardarConfiguracionDesdeUrl: rechaza un servidor con solo hash (sin ruta ni query)', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('https://x.com/#y')}&token=${TOKEN_VALIDO}`);
+});
+
 test('guardarConfiguracionDesdeUrl: https://host/ (con barra final, sin más) guarda el origin sin barra', () => {
   prepararGlobales();
   const guardo = guardarConfiguracionDesdeUrl({
