@@ -48,12 +48,21 @@ self.addEventListener('fetch', (evento) => {
   const url = new URL(evento.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // Ronda final de revisión (Critical #4): una navegación con `?servidor=...&token=...` (el
+  // enlace especial de configuración, spec §4) no debe dejar esa query en la CLAVE de la caché.
+  // `cache.match` ya usa `ignoreSearch` para LEER (línea de abajo), pero sin esto `cache.put`
+  // guardaba el `Request` original tal cual -- con el token en la URL -- para SIEMPRE en Cache
+  // Storage, aunque la barra de direcciones se limpiara al momento
+  // (sincronizacion.js#guardarConfiguracionDesdeUrl). Cualquier URL con query se guarda bajo su
+  // clave sin ella, no solo las navegaciones (mismo criterio, más simple de mantener).
+  const claveCache = url.search ? new Request(url.origin + url.pathname) : evento.request;
+
   evento.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const enCache = await cache.match(evento.request, { ignoreSearch: true });
       const actualizacion = fetch(evento.request)
         .then((respuesta) => {
-          if (respuesta && respuesta.ok) cache.put(evento.request, respuesta.clone());
+          if (respuesta && respuesta.ok) cache.put(claveCache, respuesta.clone());
           return respuesta;
         })
         .catch(() => null);
