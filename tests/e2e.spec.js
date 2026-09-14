@@ -2216,9 +2216,35 @@ test.describe('ONE · repaso v0.2a', () => {
     await comprobarSinSolape();
   });
 
-  test('HUB → Repaso: orden fallada/frágil/acertada, marcas, filtro por área y cierre', async ({ page }) => {
-    await page.goto('/?test=1');
+  test('HUB → Repaso infinito (v0.2a.1 §7): respondidas primero, luego sin responder, filtro por área en ambos tramos, sin tarjeta de cierre', async ({
+    page,
+  }) => {
+    // `?ejemplo=1` (banco de 12 preguntas, contenido conocido) en vez del real
+    // de `/?test=1`: el tramo 2 (sin responder) ahora es TODO lo que no se ha
+    // jugado, así que con el banco real (295 preguntas) sería enorme e
+    // impredecible por área para las comprobaciones exactas de este test. El
+    // orden exacto de `listarNoRespondidas` (nivel asc., rotación, por id) ya
+    // está probado a fondo en motor.test.js; aquí solo se comprueba que la
+    // UI lo conecta bien: aparece, se distingue visualmente, respeta el
+    // filtro y el mazo sigue "sin fin".
+    await page.goto('/?ejemplo=1&test=1');
     await prepararYJugar(page);
+
+    // Una pregunta más, SIN responder, con un `visual` propio (v0.2a.1 §7
+    // pide comprobar assertTarjetaSinScroll también en una no respondida con
+    // visual, además de una con imagen -- el banco de ejemplo no trae
+    // ninguna con `visual` de fábrica). Área ciencia y nivel 3 a propósito:
+    // por encima de cie-001 (nivel 1) y cie-002 (nivel 2), así queda última
+    // del tramo 2 filtrado a ciencia sin ambigüedad de rotación (nivel
+    // ascendente es el criterio primario).
+    const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
+    const preguntaSinResponderVisual = {
+      ...visualesEjemplo.dato,
+      id: 'sintetico-repaso-sinresponder-visual',
+      area: 'ciencia',
+      nivel: 3,
+    };
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSinResponderVisual);
 
     const botonRepasoHub = page.locator('[data-test="repaso-hub"]');
     await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'false');
@@ -2238,15 +2264,13 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(filtroRepaso).toHaveAttribute('aria-label', 'Filtrar por área');
     const chipTodas = filtroRepaso.locator('[data-area="todas"]');
     await expect(chipTodas).toHaveAttribute('aria-pressed', 'true');
-    await expect(filtroRepaso.locator('[data-area="ciencia"]')).toHaveAttribute('aria-pressed', 'false');
 
-    // Orden esperado (spec v0.2 §2): fallada, frágil, acertada.
+    // Tramo 1, sin filtrar: fallada, frágil, acertada -- mismo orden que
+    // siempre (ordenarRepaso no cambia).
     let actual = tarjetaActual(page);
     await expect(actual).toHaveAttribute('data-test', 'repaso-tarjeta');
     await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
     await expect(actual.locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
-
-    await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-375.png` });
 
     await page.keyboard.press('ArrowUp');
     await esperarAsentamientoMazo(page);
@@ -2266,46 +2290,106 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(actual.locator('.repaso-marca')).toHaveText('✓ acertada · hoy');
     await expect(actual.locator('[data-test="visual"]')).toBeVisible();
 
+    // Tramo 2 (sin responder, v0.2a.1 §7): borde neutro (ni verde ni rojo),
+    // marca "· sin responder" con su propio data-test, sin "hace N días", sin
+    // confianza (soloLectura ya la quita) ni feedback de XP.
     await page.keyboard.press('ArrowUp');
     await esperarAsentamientoMazo(page);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
-    const cierre = tarjetaActual(page);
-    await expect(cierre).toHaveAttribute('data-test', 'repaso-cierre');
+    actual = tarjetaActual(page);
+    await expect(actual).toHaveClass(/tarjeta--neutra/);
+    await expect(actual).not.toHaveClass(/(^| )correcto( |$)/);
+    await expect(actual).not.toHaveClass(/(^| )incorrecto( |$)/);
+    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
+    await expect(actual.locator('.confianza-fila')).toHaveCount(0);
+    await expect(actual.locator('[data-test="feedback-texto"]')).toBeHidden();
 
-    // Un área sin ninguna tarjeta en el feed (p. ej. lógica): chip apagado.
-    const chipLogica = page.locator('[data-test="repaso-filtro"] [data-area="logica"]');
-    await expect(chipLogica).toBeDisabled();
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a1-repaso-sin-responder-375.png` });
 
-    // "Otra vuelta": remonta el mazo al índice 0 (vuelve a la fallada).
-    await cierre.locator('[data-test="repaso-otra-vuelta"]').click();
+    // Ninguna tarjeta de cierre en toda la vista: el mazo es "sin fin" de verdad.
+    await expect(page.locator('[data-test="repaso-cierre"]')).toHaveCount(0);
+
+    // Filtro por "ciencia" (área de la fallada): tramo 1 = solo ella; tramo 2
+    // = cie-001 (nivel 1), cie-002 (nivel 2) y la sintética con visual (nivel
+    // 3) -- 4 tarjetas por vuelta. "filtro por área respeta ambos tramos".
+    const chipCiencia = filtroRepaso.locator('[data-area="ciencia"]');
+    await chipCiencia.click();
     await esperarAsentamientoMazo(page);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
+    await expect(chipCiencia).toHaveClass(/repaso-chip--activa/);
+    await expect(chipCiencia).toHaveAttribute('aria-pressed', 'true');
+    await expect(chipTodas).toHaveAttribute('aria-pressed', 'false');
+
+    actual = tarjetaActual(page);
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
+    await expect(actual.locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
+
+    // El número de nodos que respaldan el mazo (`repasoNodos` en app.js) no
+    // crece sin límite: mazo.js ya limita a máximo 3 los ADJUNTOS al DOM en
+    // cada momento pase lo que pase (ver render() en mazo.js), así que contar
+    // ".tarjeta" en el documento no distinguiría un recorte de vueltas
+    // correcto de uno roto -- lo que sí puede crecer sin límite es este array
+    // (window.__one.repasoNodosLength(), expuesto solo con ?test=1), acotado
+    // a ~2 vueltas (spec: "no supera 2×N+1", N = 4 con este filtro).
+    const N = 4;
+    for (let i = 0; i < N; i += 1) {
+      const longitud = await page.evaluate(() => window.__one.repasoNodosLength());
+      expect(longitud, `paso ${i} del filtro ciencia`).toBeLessThanOrEqual(2 * N + 1);
+      await page.keyboard.press('ArrowUp');
+      await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+    }
+    // Tras exactamente N (4) ArrowUp desde la fallada -- cie-001, cie-002, la
+    // sintética con visual y de vuelta a la fallada --: "la vuelta 2 empieza
+    // por la primera respondida". En este mismo paso se retiró la vuelta 1
+    // entera (el colchón bajó a ≤ 3 justo aquí, ver mantenerVueltasRepaso):
+    // el array sigue acotado.
+    expect(await page.evaluate(() => window.__one.repasoNodosLength())).toBeLessThanOrEqual(2 * N + 1);
     await expect(tarjetaActual(page).locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
 
-    // Filtro por el área de la frágil (historia): una sola tarjeta + cierre.
-    const chipHistoria = page.locator('[data-test="repaso-filtro"] [data-area="historia"]');
+    // La vuelta 1 (con los nodos que se acaban de recorrer) ya se retiró: se
+    // recorre la vuelta 2 -- mismo contenido, nodos nuevos -- hasta la
+    // sintética con visual, para comprobar también su encaje sin scroll.
+    await page.keyboard.press('ArrowUp'); // cie-001 (vuelta 2)
+    await esperarAsentamientoMazo(page);
+    await page.keyboard.press('ArrowUp'); // cie-002 (vuelta 2)
+    await esperarAsentamientoMazo(page);
+    await page.keyboard.press('ArrowUp'); // sintética con visual (vuelta 2)
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    actual = tarjetaActual(page);
+    await expect(actual.locator('[data-test="visual"]')).toBeVisible();
+    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
+
+    // Filtro por "historia" (área de la frágil): tramo 2 incluye his-001, que
+    // trae imagen REAL del banco de ejemplo (datos/imagenes.ejemplo.json) --
+    // la comprobación de "no respondida con imagen" pedida por la spec.
+    const chipHistoria = filtroRepaso.locator('[data-area="historia"]');
     await chipHistoria.click();
     await esperarAsentamientoMazo(page);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
     await expect(chipHistoria).toHaveClass(/repaso-chip--activa/);
-    await expect(chipHistoria).toHaveAttribute('aria-pressed', 'true');
-    await expect(chipTodas).toHaveAttribute('aria-pressed', 'false');
     actual = tarjetaActual(page);
-    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Historia');
     await expect(actual.locator('.repaso-marca')).toHaveText('✓ frágil · hoy');
+
+    await page.keyboard.press('ArrowUp'); // his-001: sin responder, con imagen real de ejemplo.
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    actual = tarjetaActual(page);
+    await expect(actual).toHaveClass(/tarjeta--neutra/);
+    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
+    await expect(actual.locator('[data-test="imagen"]')).toBeVisible();
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-filtro-375.png` });
 
-    await page.keyboard.press('ArrowUp');
-    await esperarAsentamientoMazo(page);
-    const cierreFiltrado = tarjetaActual(page);
-    await expect(cierreFiltrado).toHaveAttribute('data-test', 'repaso-cierre');
-
-    // "Volver": lleva de vuelta al HUB.
-    await cierreFiltrado.locator('[data-test="repaso-volver"]').click();
+    // Salir: solo con "←" (cabecera), directo al HUB.
+    await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
   });
 
@@ -2328,10 +2412,13 @@ test.describe('ONE · repaso v0.2a', () => {
       await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
 
-      // Las 4 tarjetas del feed sin filtrar: fallada, frágil, acertada, cierre.
+      // Las 3 respondidas (fallada, frágil, acertada) y, sin tarjeta de
+      // cierre (v0.2a.1 §7, "sin fin"), varias más sin responder del banco
+      // REAL (`/?test=1`): cubre los dos tramos con contenido real de
+      // longitud variable, sin depender de qué id concreto toque.
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
-      for (let i = 0; i < 3; i += 1) {
+      for (let i = 0; i < 6; i += 1) {
         await page.keyboard.press('ArrowUp');
         await esperarAsentamientoMazo(page);
         await assertSinScroll(page);
@@ -2461,21 +2548,38 @@ test.describe('ONE · repaso v0.2a', () => {
     expect(await filtro.evaluate(leerMask)).toBe('none');
   });
 
-  test('Repaso: sin ninguna tarjeta jugada, el botón del HUB está apagado ("Juega primero")', async ({ page }) => {
-    await page.goto('/?test=1');
+  // Adaptado de v0.2a (Carlos, 14-sep 16:00: "quiero que me permita todas y
+  // construir hacia que sea infinito igual que las preguntas"): antes, sin
+  // NINGUNA tarjeta jugada, "Juega primero" apagaba el botón del HUB. Ahora
+  // el repaso incluye TODO el banco (respondidas + sin responder, v0.2a.1
+  // §7), así que con banco no vacío siempre hay feed que mostrar, aunque no
+  // se haya jugado ni una sola partida.
+  test('Repaso: sin ninguna tarjeta jugada pero con banco no vacío, el botón del HUB ya está activo y el feed es todo tarjetas sin responder', async ({
+    page,
+  }) => {
+    await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const botonRepasoHub = page.locator('[data-test="repaso-hub"]');
-    await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'true');
-    await expect(botonRepasoHub).toHaveText('Juega primero');
+    await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'false');
+    await expect(botonRepasoHub).toHaveText('Repaso');
 
-    // Apagado de verdad: tocarlo no navega a ningún sitio. force:true porque
-    // es un "apagado" semántico (aria-disabled), no un <button disabled> de
-    // verdad (mismo patrón que mision/pendientes) — Playwright, si no,
-    // rechaza el click por considerar aria-disabled="true" "not enabled".
-    await botonRepasoHub.click({ force: true });
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await botonRepasoHub.click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    // Sin nada respondido, la primera tarjeta ya es del tramo 2 (nivel más
+    // bajo del banco de ejemplo): borde neutro, marca "sin responder", sin
+    // tarjeta de cierre en ningún punto de la vista.
+    const actual = tarjetaActual(page);
+    await expect(actual).toHaveAttribute('data-test', 'repaso-tarjeta');
+    await expect(actual).toHaveClass(/tarjeta--neutra/);
+    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('nivel 1');
+    await expect(page.locator('[data-test="repaso-cierre"]')).toHaveCount(0);
   });
 });

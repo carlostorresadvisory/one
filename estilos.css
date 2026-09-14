@@ -1217,6 +1217,11 @@ main#app {
 .tarjeta.incorrecto { outline: 2px solid var(--ko); outline-offset: -2px; }
 .tarjeta.correcto > .tarjeta-contenido { animation: tarjeta-pulso 0.35s ease; }
 .tarjeta.incorrecto > .tarjeta-contenido { animation: tarjeta-sacude 0.4s ease; }
+/* Sin responder (v0.2a.1 §7, tramo 2 del repaso infinito): borde NEUTRO, ni
+   verde ni rojo — nunca se ha respondido de verdad, así que ni el acierto ni
+   el fallo pintan aquí. Mismo outline que correcto/incorrecto, sin la
+   animación de pulso/sacudida (no hay "resultado" que celebrar o lamentar). */
+.tarjeta.tarjeta--neutra { outline: 2px solid var(--texto-suave); outline-offset: -2px; }
 
 @keyframes tarjeta-pulso {
   0% { transform: scale(1); }
@@ -1560,6 +1565,9 @@ main#app {
    verde que el resto de la app usa para un resultado positivo (feedback-texto--ok,
    cambio-nivel-subida...). Sin magenta en ningún estado de la marca. */
 .repaso-marca--acertada { color: var(--ok); }
+/* "Sin responder" (v0.2a.1 §7): gris, igual que frágil — ni verde ni rojo,
+   nunca se ha respondido de verdad. */
+.repaso-marca--neutra { color: var(--texto-suave); }
 
 /* --- Repaso del HUB (spec v0.2 §2): fila de chips + mazo "sin fin" --- */
 /* Fila horizontal de chips ("Todas" + las 8 áreas): scroll horizontal SOLO

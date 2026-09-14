@@ -375,8 +375,18 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
     anterior: () => intentarIr(indice - 1),
     indiceActual: () => indice,
     total: () => lista.length,
-    actualizarTarjetas(nuevaLista) {
+    // `ajusteIndice` (spec v0.2a.1 §7, repaso "sin fin"): cuántos nodos se han
+    // retirado por DELANTE del array (no al final) en esta misma llamada —
+    // p. ej. al recortar la vuelta más antigua de un feed infinito. Sin este
+    // ajuste, sustituir `lista` sin más dejaría `indice` apuntando a un nodo
+    // distinto del que el usuario tenía delante (el array entero se corrió
+    // hacia atrás bajo sus pies): se resta ANTES de clampear contra el nuevo
+    // largo, así la tarjeta visible sigue siendo la misma, sin salto. Con el
+    // uso habitual (solo añadir al final, `actualizarEstadoMazo` de la
+    // partida) `ajusteIndice` es 0 y el comportamiento no cambia.
+    actualizarTarjetas(nuevaLista, ajusteIndice = 0) {
       lista = nuevaLista.slice();
+      indice = Math.max(0, indice - ajusteIndice);
       if (indice > lista.length - 1) indice = Math.max(0, lista.length - 1);
       render(true);
     },
