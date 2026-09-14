@@ -2124,6 +2124,21 @@ function renderFiltroRepaso(listaCompleta) {
     });
     contenedorFiltroRepaso.appendChild(chip);
   });
+  actualizarFiltroRepasoFinal();
+}
+
+/** Ronda 1 de revisión (UX): la fila de chips no avisaba de que había más a la
+ * derecha. `.repaso-filtro--final` apaga el degradado del borde derecho
+ * (ver estilos.css) cuando la fila ya está desplazada hasta el final -- o
+ * cuando ni siquiera hace falta scroll porque todo cabe (mismo cálculo:
+ * `scrollWidth <= clientWidth` dispara la comparación igual que "ya al
+ * final"). Se llama una vez al pintar los chips (renderFiltroRepaso) y en
+ * cada evento 'scroll' de la fila (listener añadido una sola vez, más abajo,
+ * junto al resto de listeners del fichero). */
+function actualizarFiltroRepasoFinal() {
+  const alFinal =
+    contenedorFiltroRepaso.scrollLeft + contenedorFiltroRepaso.clientWidth >= contenedorFiltroRepaso.scrollWidth - 1;
+  contenedorFiltroRepaso.classList.toggle('repaso-filtro--final', alFinal);
 }
 
 /** Recalcula el feed completo, pinta los chips y (re)monta el mazo filtrado
@@ -2342,6 +2357,10 @@ nodoRepasoHub.addEventListener('click', () => {
   if (nodoRepasoHub.dataset.tocable !== 'true') return;
   abrirRepaso();
 });
+// Degradado de "hay más chips a la derecha" (ronda 1 de revisión): un solo
+// listener de scroll para toda la vida de la app (los chips se recrean en
+// cada renderFiltroRepaso, pero el contenedor .repaso-filtro nunca).
+contenedorFiltroRepaso.addEventListener('scroll', actualizarFiltroRepasoFinal);
 // "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
 // "Otra partida"/"Inicio" del resumen ya no son botones estáticos: viven
 // dentro del mazo de repaso (ver construirAccionesResumen).

@@ -2231,6 +2231,113 @@ test.describe('ONE · repaso v0.2a', () => {
     await comprobarEnViewport({ width: 430, height: 932 }, false);
   });
 
+  // Ronda 1 de revisión (Important): una tarjeta ANTERIOR a v0.2 no tiene
+  // ultimaRespuesta ni ultimaCorrecta (esos dos campos no existían todavía).
+  // Se precarga en localStorage un estado con esa forma exacta -- ANTES de
+  // que app.js lea `one.estado` al arrancar, así que goto + set + reload, no
+  // goto + set a secas (cargarEstado() se ejecuta una sola vez, de forma
+  // síncrona, al evaluar el módulo) -- para una tarjeta fallada (pendiente)
+  // de una pregunta test4 del banco de ejemplo. Solo se omiten esos dos
+  // campos nuevos: el resto sigue la plantilla real de motor.js
+  // (registrarRespuesta/normalizarEstado), no un JSON inventado.
+  test('Repaso: una tarjeta anterior a v0.2 (sin ultimaRespuesta ni ultimaCorrecta) se pinta marcando solo la correcta', async ({
+    page,
+  }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const preguntaTest4 = bancoEjemplo.find((p) => p.tipo === 'test4');
+    expect(preguntaTest4).toBeTruthy();
+
+    const estadoAnteriorAV02 = {
+      version: 2,
+      xp: 0,
+      combo: 0,
+      nivelPartida: 1,
+      racha: { dias: 0, ultimaFecha: null },
+      hoy: { fecha: '2020-01-01', respondidas: 1, aciertos: 0 },
+      areas: {},
+      tarjetas: {
+        [preguntaTest4.id]: {
+          caja: 0,
+          proximo: '2020-01-02',
+          aciertos: 0,
+          fallos: 1,
+          ultimo: '2020-01-01',
+          ultimoFallo: '2020-01-01',
+          pendiente: true,
+          prioridad: 1,
+          recuperada: false,
+          fragil: false,
+          // Sin ultimaRespuesta ni ultimaCorrecta: así era una tarjeta antes
+          // de v0.2 (motor.js los añadió con registrarRespuesta en esta spec).
+        },
+      },
+      reportadas: [],
+      historial: [],
+      recuperadas: 0,
+      confianza: { altas: 0, altasOk: 0, bajas: 0, bajasOk: 0 },
+      mision: null,
+    };
+    await page.evaluate(
+      (estado) => localStorage.setItem('one.estado', JSON.stringify(estado)),
+      estadoAnteriorAV02
+    );
+    await page.reload(); // recarga app.js: cargarEstado() lee YA el estado precargado.
+
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const botonRepasoHub = page.locator('[data-test="repaso-hub"]');
+    await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'false');
+    await botonRepasoHub.click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-test', 'repaso-tarjeta');
+    await expect(t.locator('.repaso-marca')).toContainText('✗ fallada'); // pendiente -> tramo "fallada"
+
+    // Sin ultimaRespuesta no hay forma de saber qué opción se marcó: se pinta
+    // SOLO la correcta (spec v0.2 §2), sin ninguna línea tachada de "la tuya".
+    const compacta = t.locator('.respuesta-compacta');
+    await expect(compacta).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
+    await expect(compacta.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
+  });
+
+  // Ronda 1 de revisión (UX): la fila de chips no avisaba de que había más
+  // áreas a la derecha sin desplazarse. Degradado fijo sobre el borde derecho
+  // (estilos.css, .repaso-filtro::after) que se apaga al llegar al final.
+  test('Repaso: el degradado de la fila de chips avisa de que hay más a la derecha, y se apaga al llegar al final', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await prepararYJugar(page);
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const filtro = page.locator('[data-test="repaso-filtro"]');
+    // Al cargar (9 chips no caben a 375px): sin la clase que apaga el
+    // degradado, y el propio ::after realmente pintado (display != none).
+    await expect(filtro).not.toHaveClass(/repaso-filtro--final/);
+    expect(await filtro.evaluate((el) => getComputedStyle(el, '::after').display)).not.toBe('none');
+
+    // Desplazada hasta el final -> aparece repaso-filtro--final y el
+    // degradado se apaga (ya no hay "más a la derecha" que avisar).
+    await filtro.evaluate((el) => {
+      el.scrollLeft = el.scrollWidth;
+      el.dispatchEvent(new Event('scroll'));
+    });
+    await expect(filtro).toHaveClass(/repaso-filtro--final/);
+    expect(await filtro.evaluate((el) => getComputedStyle(el, '::after').display)).toBe('none');
+  });
+
   test('Repaso: sin ninguna tarjeta jugada, el botón del HUB está apagado ("Juega primero")', async ({ page }) => {
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
