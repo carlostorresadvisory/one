@@ -2673,3 +2673,134 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toBeVisible();
   });
 });
+
+// Tarea 1 del plan v0.2b2-cliente-atomo (sincronizacion.js): servidor de generación simulado con
+// `page.route` (sin tocar el servidor real, spec §4). Origen `https://servidor.prueba` a propósito
+// distinto de `http://localhost:8765` (baseURL de este e2e, ver playwright.config.js): el fetch
+// real desde la página es cross-origin de verdad, así que el navegador manda un preflight OPTIONS
+// (Content-Type: application/json + Authorization fuerzan uno) antes de cada POST -- el mock tiene
+// que responder ambos con cabeceras CORS, igual que hace servidor/index.js#manejarPeticion con
+// `http://localhost:8765` (uno de los dos orígenes permitidos de la spec §3.1).
+test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'abc';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function preguntaServidor(id, area = 'economia') {
+    return {
+      id,
+      area,
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: `Enunciado de prueba del servidor falso (${id}).`,
+      explicacion: 'Explicación corta de prueba, del servidor falso.',
+      respuesta: true,
+    };
+  }
+
+  /** Responde el preflight OPTIONS con las cabeceras CORS de siempre y delega el resto (la
+   * petición real) en `manejador`. */
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  test('configuración por ?servidor=&token=: URL limpia, aviso, punto verde, POST /estado autenticado, y las preguntas nuevas se pueden jugar', async ({
+    page,
+  }) => {
+    const peticionesEstado = [];
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        // Única ruta usada por sincronizacion.js en esta tarea (spec §4, "modo normal").
+        peticionesEstado.push(req);
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            preguntas: [preguntaServidor('srv-e2e-1'), preguntaServidor('srv-e2e-2', 'historia')],
+            enCola: 0,
+          }),
+        });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+
+    // URL limpia: sin servidor/token, conserva ?test=1 (no se pierde el hook de test).
+    await expect(page).toHaveURL(/\/\?test=1$/);
+
+    // Directo al HUB (no a los emojis) con el aviso de conexión.
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Servidor conectado');
+
+    // El punto se pone verde en cuanto /estado responde 200.
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'verde');
+
+    expect(peticionesEstado.length).toBe(1);
+    expect(peticionesEstado[0].headers()['authorization']).toBe(`Bearer ${TOKEN}`);
+    const cuerpo = JSON.parse(peticionesEstado[0].postData());
+    expect(cuerpo.resumen).toHaveProperty('areas');
+    expect(cuerpo.resumen).toHaveProperty('idsConocidos');
+    expect(cuerpo.resumen).toHaveProperty('rutasAtomo');
+
+    // El chip de banco extendido aparece con el recuento correcto de esta tanda...
+    const chip = page.locator('[data-test="nuevas-servidor"]');
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText('2 preguntas nuevas');
+    // ...y desaparece al tocarlo, sin más acción (spec §4).
+    await chip.click();
+    await expect(chip).toBeHidden();
+
+    // Las preguntas nuevas ya están en el banco en memoria: la partida puede servirlas sin recargar.
+    await page.evaluate(() =>
+      window.__one.empezarPartida({ ids: ['srv-e2e-1', 'srv-e2e-2'], etiqueta: 'servidor-e2e' })
+    );
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="vf-verdadero"]')).toBeVisible();
+  });
+
+  test('sin configuración de servidor: cero peticiones y punto gris (la app funciona igual que sin servidor)', async ({
+    page,
+  }) => {
+    let peticiones = 0;
+    page.on('request', (req) => {
+      if (req.url().startsWith(URL_SERVIDOR)) peticiones += 1;
+    });
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+    }));
+
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    expect(peticiones).toBe(0);
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+  });
+
+  test('servidor caído (conexión abortada): punto ámbar, la app sigue jugable con normalidad', async ({ page }) => {
+    await page.route(`${URL_SERVIDOR}/**`, (route) => route.abort());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'ambar');
+
+    // Silencioso de verdad: nada de esto impide seguir jugando con normalidad.
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+  });
+});

@@ -1786,6 +1786,14 @@ main#app {
   text-align: center;
 }
 
+/* Mismo motivo que .vista[hidden]/.confianza-fila[hidden] más abajo en esta hoja: con
+   `display:block` ya declarado arriba, el `[hidden]` por defecto del navegador (que solo aplica
+   como estilo de user-agent, de menor prioridad que cualquier regla de autor) deja de bastar --
+   sin este override, tocar el chip lo pondría `hidden` mientras sigue pintándose en pantalla. */
+.hub-chip-nuevas[hidden] {
+  display: none;
+}
+
 .hub-comenzar-fila {
   position: relative;
 }
