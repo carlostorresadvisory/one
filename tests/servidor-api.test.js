@@ -713,6 +713,78 @@ test('POST /subtemas: el prompt al modelo contiene "ramas hermanas" y "conceptos
   }
 });
 
+// === Ronda 1 (revisión, 14-sep-2026) -- Important: filtrar la respuesta del modelo contra `excluir` =
+// El modelo puede ignorar la instrucción de no repetir subtemas ya excluidos (o repetirse a sí
+// mismo dentro de la propia respuesta) -- sin este filtro, un subtema ya visto volvía al jugador y
+// quedaba cacheado para siempre en anillos.json.
+
+test('POST /subtemas filtra la respuesta del modelo contra excluir (comparación normalizada) y deduplica dentro de la propia respuesta', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({
+      subtemas: [
+        'Historia de España', // coincide exacto con un elemento de excluir
+        'GUERRA FRÍA', // coincide con "Guerra Fria" de excluir salvo mayúsculas y acento
+        'Sub Nuevo A',
+        '  sub nuevo a  ', // duplicado de "Sub Nuevo A" (mayúsculas/espacios/orden distinto)
+        'Sub Nuevo B',
+        'Sub Nuevo C',
+      ],
+    }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({
+        area: 'economia',
+        ruta: ['hilo-1'],
+        excluir: ['Historia de España', 'Guerra Fria'],
+      }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.subtemas.length, 3, 'de 6 propuestos: 2 excluidos + 1 duplicado = 3 finales');
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      ['Sub Nuevo A', 'Sub Nuevo B', 'Sub Nuevo C'],
+    );
+    assert.deepEqual(datos.subtemas.map((s) => s.indice), [0, 1, 2], 'los índices se recalculan tras filtrar');
+
+    const anillos = JSON.parse(await readFile(path.join(dir, 'anillos.json'), 'utf8'));
+    const clave = JSON.stringify(['economia', ['hilo-1'], 2]);
+    assert.equal(anillos[clave].length, 3, 'se cachea solo la lista ya filtrada');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas: si tras filtrar excluir (y deduplicar) no queda ningún subtema, responde 503 y no cachea nada', async () => {
+  const llamarFake = async ({ modelos }) => ({
+    texto: JSON.stringify({ subtemas: ['Sub A', 'SUB A', ' sub a '] }),
+    modelo: modelos[0],
+    coste: 0,
+  });
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Sub A'] }),
+    });
+    assert.equal(resp.status, 503);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+
+    // No debe haberse creado anillos.json en absoluto: nada que cachear tras filtrar a 0.
+    await assert.rejects(() => readFile(path.join(dir, 'anillos.json'), 'utf8'));
+  } finally {
+    await cerrar();
+  }
+});
+
 test('POST /subtemas con ruta de 1 elemento llama una vez al modelo y cachea en anillos.json', async () => {
   let llamadas = 0;
   const llamarFake = async () => {

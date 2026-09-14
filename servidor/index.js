@@ -64,6 +64,20 @@ function acortarSubtema(texto) {
   return corto;
 }
 
+// Ronda 1 (revisión, 14-sep-2026) -- Important: el modelo puede ignorar la instrucción de
+// `promptSubtemas` de no repetir nada de `excluir` (o repetirse a sí mismo dentro de la propia
+// respuesta) -- sin normalizar antes de comparar, "Guerra Fría" y "guerra fria" se tratarían como
+// subtemas distintos. trim + minúsculas + sin acentos (NFD y se quitan las marcas combinantes) +
+// espacios colapsados, para que solo importe el contenido.
+function normalizarParaComparar(texto) {
+  return texto
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 // Prompt de usuario de /subtemas (spec §9, decisión de Carlos 14-sep 21:30 sobre v0.2b3): pide
 // mezclar "ramas hermanas" amplias (otras líneas tan generales como la ruta actual) con "conceptos
 // concretos" (autores, casos, experimentos, técnicas) -- así el átomo puede llegar a cualquier tema
@@ -574,6 +588,8 @@ export function crearServidor({
     // para no invalidar un anillos.json ya escrito; con exclusión se añade `excluir.length`, así
     // que cada "profundidad" de paginación (cada toque de "Más…") tiene su propia entrada de caché
     // y una sola llamada al modelo por profundidad, para siempre.
+    // ONE es de un solo jugador y la exclusión crece por páginas sucesivas, así que igual longitud
+    // ≈ misma página; riesgo asumido por el controlador (14-sep).
     const clave = excluir.length > 0 ? JSON.stringify([area, ruta, excluir.length]) : JSON.stringify([area, ruta]);
     const anillos = await almacen.leerAnillos();
     if (Array.isArray(anillos[clave])) {
@@ -608,10 +624,24 @@ export function crearServidor({
       return;
     }
 
+    // Ronda 1 (revisión, 14-sep-2026) -- Important: el modelo puede ignorar la instrucción de no
+    // repetir `excluir` (o repetirse a sí mismo dentro de la propia respuesta) -- se filtra y
+    // deduplica aquí, comparando de forma normalizada, en vez de confiar ciegamente en el prompt.
+    // Solo se cachea (más abajo) la lista YA filtrada: nunca un subtema ya visto.
     const lista = Array.isArray(datos) ? datos : Array.isArray(datos?.subtemas) ? datos.subtemas : [];
-    const subtemas = lista
-      .filter((s) => typeof s === 'string' && s.trim())
-      .map((texto, indice) => ({ indice, corto: acortarSubtema(texto.trim()), completo: texto.trim() }));
+    const excluidosNormalizados = new Set(excluir.map(normalizarParaComparar));
+    const vistosNormalizados = new Set();
+    const completosFiltrados = [];
+    for (const s of lista) {
+      if (typeof s !== 'string' || !s.trim()) continue;
+      const completo = s.trim();
+      const normalizado = normalizarParaComparar(completo);
+      if (excluidosNormalizados.has(normalizado)) continue; // ya mostrado antes (excluir)
+      if (vistosNormalizados.has(normalizado)) continue; // el propio modelo se repite
+      vistosNormalizados.add(normalizado);
+      completosFiltrados.push(completo);
+    }
+    const subtemas = completosFiltrados.map((completo, indice) => ({ indice, corto: acortarSubtema(completo), completo }));
 
     if (subtemas.length === 0) {
       responderError(res, 503, 'Modelo no disponible, prueba en un momento');
