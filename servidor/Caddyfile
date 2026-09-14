@@ -1,4 +1,22 @@
 one.ctadvisory.es {
 	encode gzip
-	reverse_proxy one-servidor:8787
+
+	# Ronda final (revisión, 14-sep-2026) -- Adversarial (A15): cabeceras de seguridad estándar para
+	# una API HTTPS pública. HSTS le dice al navegador/PWA que nunca vuelva a intentar http:// con
+	# este dominio (evita un downgrade); nosniff evita que el navegador reinterprete una respuesta
+	# JSON como otra cosa; no-referrer no manda esta URL como Referer a nadie (esta API no sirve
+	# páginas para enlazar, no hay motivo para filtrarla).
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+
+	# Ronda final (revisión, 14-sep-2026) -- Important (I3): Caddy fija esta cabecera con SU PROPIA
+	# vista de la IP conectada (no la reenvía tal cual si el cliente ya traía una) -- así
+	# servidor/index.js#ipDePeticion puede fiarse de x-forwarded-for para el rate limit sin que un
+	# cliente pueda falsearla mandando la suya propia.
+	reverse_proxy one-servidor:8787 {
+		header_up X-Forwarded-For {remote_host}
+	}
 }

@@ -451,6 +451,32 @@ test('POST /generar con la cola de fondo llena responde 503', async () => {
   }
 });
 
+// Ronda final (revisión, 14-sep-2026), Adversarial A5: `ruta` viaja tal cual a los prompts del
+// modelo y a colchon.json -- sin sanear, un cliente podría mandar una lista enorme, con elementos
+// no-string, o con caracteres de control.
+for (const [descripcion, rutaMala] of [
+  ['más de 6 elementos', Array.from({ length: 7 }, (_, i) => `hilo-${i}`)],
+  ['un elemento de más de 80 caracteres', ['x'.repeat(81)]],
+  ['un elemento con carácter de control', ['hilo\u000amalicioso']],
+  ['un elemento que no es string', [42]],
+  ['no es un array', 'hilo-1'],
+]) {
+  test(`POST /generar con ruta inválida (${descripcion}) responde 400 (A5)`, async () => {
+    const { base, cerrar } = await crearServidorDePrueba();
+    try {
+      const resp = await fetch(`${base}/generar`, {
+        method: 'POST',
+        headers: cabeceras(),
+        body: JSON.stringify({ area: 'economia', ruta: rutaMala, n: 5 }),
+      });
+      assert.equal(resp.status, 400);
+      assert.equal(typeof (await resp.json()).error, 'string');
+    } finally {
+      await cerrar();
+    }
+  });
+}
+
 // === POST /subtemas ==============================================================================
 
 test('POST /subtemas con ruta=[] devuelve HILOS_POR_AREA sin llamar al modelo', async () => {
@@ -509,6 +535,23 @@ test('POST /subtemas con área desconocida responde 400', async () => {
   try {
     const resp = await fetch(`${base}/subtemas`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'no-existe', ruta: [] }) });
     assert.equal(resp.status, 400);
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda final (revisión, 14-sep-2026), Adversarial A5: mismo saneo de `ruta` que /generar.
+test('POST /subtemas con ruta inválida (más de 6 elementos) responde 400 (A5)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const rutaMala = Array.from({ length: 7 }, (_, i) => `hilo-${i}`);
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: rutaMala }),
+    });
+    assert.equal(resp.status, 400);
+    assert.equal(typeof (await resp.json()).error, 'string');
   } finally {
     await cerrar();
   }

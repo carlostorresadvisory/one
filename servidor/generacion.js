@@ -95,6 +95,23 @@ function partirEnLotes(lista, tamano) {
   return lotes;
 }
 
+// Ronda final (revisión, 14-sep-2026) -- Adversarial (A9): agrupa por `generador` ANTES de partir
+// en lotes de verificación. Sin esto, un lote de 4 podía mezclar borradores de generadores
+// distintos (posible si sub-lotes de generarBorradores cayeron a modelos distintos de la cascada, o
+// si dos tipos usaron modelos distintos) y `excluirModelo` (más abajo) solo mira el generador del
+// PRIMER borrador del lote -- los demás podían acabar verificados por su propio generador, la
+// regla fija de Carlos que esto viola. Agrupando primero, cada lote es homogéneo: `excluirModelo`
+// excluye correctamente al generador de TODOS los borradores de ese lote, no solo del primero.
+function agruparPorGenerador(borradores) {
+  const grupos = new Map();
+  for (const b of borradores) {
+    const clave = b.generador || '';
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave).push(b);
+  }
+  return [...grupos.values()];
+}
+
 // Igual que repartirEnSublotes() en tools/generar-preguntas.js (duplicado a propósito: ese fichero
 // es una CLI, no un módulo compartido).
 function repartirEnSublotes(cantidad, tamano) {
@@ -375,7 +392,8 @@ export async function verificarBorradores(borradores, opciones = {}) {
   } = opciones;
 
   const resultados = [];
-  const lotes = partirEnLotes(borradores, TAMANO_LOTE_VERIFICACION);
+  // A9: agrupar por generador ANTES de partir en lotes de 4 -- ver agruparPorGenerador más arriba.
+  const lotes = agruparPorGenerador(borradores).flatMap((grupo) => partirEnLotes(grupo, TAMANO_LOTE_VERIFICACION));
 
   for (const lote of lotes) {
     if (lote.length === 0) continue;
@@ -386,10 +404,24 @@ export async function verificarBorradores(borradores, opciones = {}) {
     // y sin mejor heurística sin complicar el contrato.
     const excluirModelo = lote[0]?.generador || null;
     let candidatos = excluirModelo ? modelos.filter((m) => m !== excluirModelo) : modelos.slice();
-    // El brief pide "si la cascada del verificador solo contiene ese [modelo generador], saltarlo"
-    // sin decir CÓMO saltarlo. Revertir a la cascada completa (en vez de, p. ej., lanzar o saltar
-    // la verificación de ese lote) es decisión del implementador, aceptada por el controlador.
-    if (candidatos.length === 0) candidatos = modelos.slice();
+
+    // Ronda final (revisión, 14-sep-2026) -- Adversarial (A1), regla fija de Carlos: "el
+    // verificador NUNCA es el generador". La primera versión, si excluir al generador dejaba la
+    // cascada vacía, revertía a la cascada COMPLETA -- lo que podía devolver a incluir al propio
+    // generador, justo lo que esta regla prohíbe (nunca debía haberse aceptado así). Ahora: con
+    // `permitirPago`, se usa el par dedicado de pago barato (VERIFICADOR_PREGUNTAS_SOLO_PAGO, de
+    // un proveedor distinto por diseño del generador de pago barato -- ver comentario de la
+    // constante más arriba); sin `permitirPago`, no hay ningún verificador legítimo que probar y el
+    // lote se rechaza entero, sin llamar a nadie.
+    if (candidatos.length === 0) {
+      candidatos = permitirPago ? VERIFICADOR_PREGUNTAS_SOLO_PAGO.filter((m) => m !== excluirModelo) : [];
+      if (candidatos.length === 0) {
+        for (const b of lote) {
+          resultados.push({ id: b.id, ok: false, nivel: null, motivo: 'sin verificador distinto del generador', modelo: null });
+        }
+        continue;
+      }
+    }
     const modelosFiltrados = filtrarPorPago(candidatos, permitirPago);
 
     const mensajes = [
@@ -433,11 +465,16 @@ export async function verificarBorradores(borradores, opciones = {}) {
       if (!idsDelLote.has(r.id)) continue;
       vistos.add(r.id);
       const nivel = Number.isInteger(r.nivel) ? r.nivel : null;
+      // Ronda final (revisión, 14-sep-2026) -- Adversarial (A2): `cumpleUtilidad !== false` dejaba
+      // pasar un campo AUSENTE (undefined !== false -- true) igual que un `false` explícito del
+      // verificador debía rechazar -- inconsistente con los otros tres booleanos, que sí exigen
+      // `=== true`. Un verificador que no responde ese campo no ha confirmado nada: se trata igual
+      // que si hubiera dicho que no.
       const ok =
         r.correcta === true &&
         r.unica === true &&
         r.inequivoca === true &&
-        r.cumpleUtilidad !== false &&
+        r.cumpleUtilidad === true &&
         Number(r.confianza) >= umbral;
       resultados.push({
         id: r.id,

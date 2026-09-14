@@ -15,6 +15,12 @@ COPY motor.js ./motor.js
 
 USER node
 
-HEALTHCHECK CMD node -e "fetch('http://127.0.0.1:8787/salud').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+# Ronda final (revisión, 14-sep-2026) -- Adversarial (A6): timings explícitos en vez de los
+# defaults de Docker (30s/30s/0s/3, que en la práctica coinciden pero mejor no depender de que no
+# cambien) -- 30s entre comprobaciones, 5s de margen por si el disco anda ocupado (servir()/salud ya
+# hace una escritura real, ver C2), 30s de gracia al arrancar (mkdir + comprobación de escritura +
+# construir la cola) antes de que un primer fallo cuente, 3 fallos seguidos antes de marcar unhealthy.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:8787/salud').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
 
 CMD ["node","servidor/index.js"]

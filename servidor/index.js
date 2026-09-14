@@ -36,6 +36,10 @@ const MAX_ESTADO_DEFECTO = 10;
 const SUBTEMAS_MIN = 4;
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
+const RUTA_MAX_ELEMENTOS = 6;
+const RUTA_ELEMENTO_MAX_LONGITUD = 80;
+// eslint-disable-next-line no-control-regex -- a propósito: se rechazan caracteres de control.
+const RUTA_CARACTER_CONTROL = /[\x00-\x1f\x7f]/;
 
 // === Utilidades pequeñas, sin estado =============================================================
 
@@ -50,6 +54,32 @@ function acortarSubtema(texto) {
     corto = `${corto.slice(0, LONGITUD_MAX_SUBTEMA - 1)}…`;
   }
   return corto;
+}
+
+// Ronda final (revisión, 14-sep-2026) -- Adversarial (A5): `ruta` viaja tal cual dentro de prompts
+// que se mandan al modelo (JSON.stringify(ruta) en /subtemas, y dentro de promptSistemaGenerador en
+// servidor/generacion.js para /generar) y se guarda tal cual en colchon.json -- sin límite, un
+// cliente podría mandar una `ruta` enorme (coste de tokens real en cada llamada) o con caracteres
+// de control. Mismo criterio en /generar y /subtemas: como mucho 6 elementos, cada uno una cadena
+// no vacía de hasta 80 caracteres sin caracteres de control.
+function rutaValida(ruta) {
+  if (!Array.isArray(ruta)) return false;
+  if (ruta.length > RUTA_MAX_ELEMENTOS) return false;
+  return ruta.every(
+    (elemento) =>
+      typeof elemento === 'string' &&
+      elemento.length > 0 &&
+      elemento.length <= RUTA_ELEMENTO_MAX_LONGITUD &&
+      !RUTA_CARACTER_CONTROL.test(elemento),
+  );
+}
+
+// `ruta` ausente (caso normal: anillo 1, o "toda el área") se trata como `[]`, válida sin más
+// comprobación; si viene, tiene que pasar `rutaValida`.
+function normalizarRuta(rutaCruda) {
+  if (rutaCruda === undefined) return { ok: true, ruta: [] };
+  if (!rutaValida(rutaCruda)) return { ok: false, ruta: null };
+  return { ok: true, ruta: rutaCruda };
 }
 
 // Filtra la cascada a solo modelos ':free' si no se permite pago -- mismo criterio que
@@ -393,7 +423,12 @@ export function crearServidor({
       responderError(res, 400, 'Área desconocida');
       return;
     }
-    const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+    // Ronda final (revisión, 14-sep-2026) -- Adversarial (A5): ver rutaValida/normalizarRuta.
+    const { ok: rutaOk, ruta } = normalizarRuta(cuerpo.ruta);
+    if (!rutaOk) {
+      responderError(res, 400, 'Ruta inválida');
+      return;
+    }
     const n = Number.isInteger(cuerpo.n) && cuerpo.n > 0 ? cuerpo.n : undefined;
     const urgente = !!cuerpo.urgente;
 
@@ -424,11 +459,19 @@ export function crearServidor({
   async function manejarSubtemas(req, res) {
     const cuerpo = await leerJsonCuerpo(req, LIMITE_CUERPO_BYTES);
     const area = cuerpo.area;
-    if (!area || !HILOS_POR_AREA[area]) {
+    // Ronda final (revisión, 14-sep-2026) -- Adversarial (A5): `area ∈ AREAS` (la misma lista
+    // canónica que ya usa /generar desde la Ronda 1), no la comprobación indirecta de que
+    // HILOS_POR_AREA[area] exista -- ambas listas coinciden hoy, pero AREAS es la fuente de verdad
+    // del resto del pipeline (validarPregunta, generarBorradores...).
+    if (!area || typeof area !== 'string' || !AREAS.includes(area)) {
       responderError(res, 400, 'Área desconocida');
       return;
     }
-    const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+    const { ok: rutaOk, ruta } = normalizarRuta(cuerpo.ruta);
+    if (!rutaOk) {
+      responderError(res, 400, 'Ruta inválida');
+      return;
+    }
 
     // Anillo 1: fijo, tal cual textoCriterio; nunca llama al modelo.
     if (ruta.length === 0) {

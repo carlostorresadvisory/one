@@ -266,6 +266,39 @@ test('verificarBorradores: parte en lotes de 4', async () => {
   assert.deepEqual(tamanosDeLote, [4, 1]);
 });
 
+// Ronda final (revisión, 14-sep-2026) -- Adversarial (A9): antes, `excluirModelo` solo miraba el
+// generador del PRIMER borrador de cada lote de 4 -- si el lote mezclaba generadores, los demás
+// borradores del lote podían acabar verificados por su propio generador. Agrupando por generador
+// ANTES de partir en lotes, cada lote es homogéneo y la exclusión es correcta para todos.
+test('verificarBorradores (A9): agrupa por generador antes de partir en lotes, para excluir al de cada uno', async () => {
+  const generadorA = 'modelo-a:free';
+  const generadorB = 'modelo-b:free';
+  const borradores = [
+    borradorVF({ id: 'b1', generador: generadorA }),
+    borradorVF({ id: 'b2', generador: generadorB }),
+    borradorVF({ id: 'b3', generador: generadorA }),
+  ];
+  const llamadas = [];
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    const lote = JSON.parse(mensajes[1].content.slice(mensajes[1].content.indexOf('[')));
+    llamadas.push({ modelos, ids: lote.map((p) => p.id) });
+    const resultados = lote.map((p) => ({ id: p.id, ...VEREDICTO_OK_POR_DEFECTO }));
+    return { texto: JSON.stringify({ resultados }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+
+  await verificarBorradores(borradores, { llamar: llamarFalso, modelos: [generadorA, generadorB, 'modelo-c:free'] });
+
+  assert.equal(llamadas.length, 2, 'un lote por generador (b1+b3 juntos, b2 aparte)');
+  const loteA = llamadas.find((l) => l.ids.includes('b1'));
+  const loteB = llamadas.find((l) => l.ids.includes('b2'));
+  assert.deepEqual(loteA.ids.sort(), ['b1', 'b3']);
+  assert.ok(!loteA.modelos.includes(generadorA), 'el lote de A no debe poder usar A como su propio verificador');
+  assert.ok(loteA.modelos.includes(generadorB));
+  assert.deepEqual(loteB.ids, ['b2']);
+  assert.ok(!loteB.modelos.includes(generadorB), 'el lote de B no debe poder usar B como su propio verificador');
+  assert.ok(loteB.modelos.includes(generadorA));
+});
+
 test('verificarBorradores: usa un modelo distinto del generador (excluirModelo = generador del lote)', async () => {
   const modelosVistos = [];
   const llamarFalso = async ({ modelos }) => {
@@ -287,7 +320,13 @@ test('verificarBorradores: usa un modelo distinto del generador (excluirModelo =
   assert.ok(!modelosVistos[0].includes('z-ai/glm-4.7-flash'), 'el modelo generador no debe estar en la cascada del verificador');
 });
 
-test('verificarBorradores: si excluir al generador dejaría la cascada vacía, no lo excluye (la usa igualmente)', async () => {
+// Ronda final (revisión, 14-sep-2026) -- Adversarial (A1), regla fija de Carlos: "el verificador
+// NUNCA es el generador". La primera versión de este test comprobaba justo lo contrario de esta
+// regla (que SÍ se usara el generador como verificador cuando no quedaba otra cascada) -- nunca
+// debía haberse aceptado así. Corregido: con permitirPago, se usa el par dedicado de pago barato
+// (VERIFICADOR_PREGUNTAS_SOLO_PAGO); sin permitirPago, el lote se rechaza sin llamar a nadie (test
+// aparte, justo debajo).
+test('verificarBorradores (A1): si excluir al generador deja la cascada vacía y permitirPago, usa VERIFICADOR_PREGUNTAS_SOLO_PAGO', async () => {
   const modelosVistos = [];
   const llamarFalso = async ({ modelos }) => {
     modelosVistos.push(modelos);
@@ -303,9 +342,36 @@ test('verificarBorradores: si excluir al generador dejaría la cascada vacía, n
 
   const unicoModelo = 'z-ai/glm-4.7-flash';
   const borrador = borradorVF({ id: 'srv-eco-1', generador: unicoModelo });
-  await verificarBorradores([borrador], { llamar: llamarFalso, permitirPago: true, modelos: [unicoModelo] });
+  const resultados = await verificarBorradores([borrador], {
+    llamar: llamarFalso,
+    permitirPago: true,
+    modelos: [unicoModelo],
+  });
 
-  assert.deepEqual(modelosVistos[0], [unicoModelo]);
+  assert.deepEqual(modelosVistos[0], VERIFICADOR_PREGUNTAS_SOLO_PAGO);
+  assert.ok(!modelosVistos[0].includes(unicoModelo), 'el generador nunca debe verificar su propio borrador');
+  assert.equal(resultados[0].ok, true);
+});
+
+test('verificarBorradores (A1): si excluir al generador deja la cascada vacía y NO permitirPago, rechaza el lote sin llamar a nadie', async () => {
+  let llamadas = 0;
+  const llamarFalso = async () => {
+    llamadas++;
+    throw new Error('no debería llamarse');
+  };
+
+  const unicoModelo = 'z-ai/glm-4.7-flash';
+  const borrador = borradorVF({ id: 'srv-eco-1', generador: unicoModelo });
+  const resultados = await verificarBorradores([borrador], {
+    llamar: llamarFalso,
+    permitirPago: false,
+    modelos: [unicoModelo],
+  });
+
+  assert.equal(llamadas, 0);
+  assert.equal(resultados.length, 1);
+  assert.equal(resultados[0].ok, false);
+  assert.equal(resultados[0].motivo, 'sin verificador distinto del generador');
 });
 
 test('verificarBorradores: rechaza con motivo cuando cualquier booleano es false', async () => {
@@ -323,6 +389,22 @@ test('verificarBorradores: rechaza con motivo cuando cualquier booleano es false
   const [veredicto] = await verificarBorradores([borradorVF({ id: 'srv-eco-1' })], { llamar: llamarFalso });
   assert.equal(veredicto.ok, false);
   assert.match(veredicto.motivo, /dos opciones defendibles/);
+});
+
+// Ronda final (revisión, 14-sep-2026) -- Adversarial (A2): `cumpleUtilidad` ausente debe rechazar
+// igual que si fuera `false` explícito -- antes `!== false` dejaba pasar el campo ausente.
+test('verificarBorradores (A2): cumpleUtilidad ausente rechaza igual que cumpleUtilidad:false', async () => {
+  const llamarFalso = async ({ modelos }) => ({
+    texto: JSON.stringify({
+      resultados: [{ id: 'srv-eco-1', correcta: true, unica: true, inequivoca: true, nivel: 2, confianza: 0.95, motivo: '' }],
+    }),
+    modelo: modelos[0],
+    coste: 0,
+    usage: {},
+  });
+
+  const [veredicto] = await verificarBorradores([borradorVF({ id: 'srv-eco-1' })], { llamar: llamarFalso });
+  assert.equal(veredicto.ok, false, 'sin cumpleUtilidad, el verificador no ha confirmado nada -- se rechaza');
 });
 
 test('verificarBorradores: rechaza cuando confianza < 0.7 aunque los booleanos sean true', async () => {
