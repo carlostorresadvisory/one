@@ -47,28 +47,80 @@ export function leerConfiguracion() {
   }
 }
 
+// Ronda 1 (revisión, Important #1): sin saneado, un token capturado a medias (con espacios
+// alrededor por un copia-pega torpe) o un servidor con ruta/query/hash colgando se guardaban tal
+// cual y viajaban en cada petición futura. Límites de longitud (16-128) acordes al token real de
+// 32 bytes en hex = 64 caracteres que genera el despliegue (spec §3.5, `openssl rand -hex 32`),
+// con margen a ambos lados sin ser tan laxo como para aceptar cualquier cadena corta.
+const TOKEN_LONGITUD_MIN = 16;
+const TOKEN_LONGITUD_MAX = 128;
+// Espacios (cualquiera, incluido tab/salto de línea) y caracteres de control -- mismo criterio que
+// RUTA_CARACTER_CONTROL en servidor/index.js.
+// eslint-disable-next-line no-control-regex -- a propósito: se rechazan caracteres de control.
+const TOKEN_CARACTER_INVALIDO = /[\s\x00-\x1f\x7f]/;
+
+/** `null` si `tokenCrudo` no es un token válido; si no, el propio token ya recortado (trim). */
+function sanearToken(tokenCrudo) {
+  if (typeof tokenCrudo !== 'string') return null;
+  const token = tokenCrudo.trim();
+  if (!token) return null; // vacío o solo espacios
+  if (TOKEN_CARACTER_INVALIDO.test(token)) return null; // espacio interior o carácter de control
+  if (token.length < TOKEN_LONGITUD_MIN || token.length > TOKEN_LONGITUD_MAX) return null;
+  return token;
+}
+
 /**
- * Lee `?servidor=<url>&token=<token>` de `location.search`; si ambos vienen y `servidor` empieza
- * por `https://`, los guarda en `localStorage` (clave `one.servidor`) y limpia esos dos parámetros
- * de la URL con `history.replaceState` (conserva cualquier otro parámetro y el hash — p. ej. no se
- * come `?test=1` en los e2e). Sin los dos parámetros, o con `servidor` que no sea `https://`, no
- * hace nada (no guarda, no toca la URL) y devuelve `false`.
+ * `null` si `servidorCrudo` no es una URL de servidor válida; si no, su `origin` (sin barra
+ * final, sin ruta/query/hash). Válido: `https://` con cualquier host, o `http://localhost` con
+ * cualquier puerto (para pruebas locales, spec §3.1 CORS ya trata `http://localhost:8765` como
+ * origen legítimo del e2e) — nunca otro esquema ni otro host por `http://`. La ruta debe ser
+ * exactamente `/` (o ausente): ni subrutas ni query ni hash, que viajarían sin sentido en cada
+ * petición a `${url}/estado`, etc.
+ */
+function sanearServidor(servidorCrudo) {
+  if (typeof servidorCrudo !== 'string' || !servidorCrudo) return null;
+  let url;
+  try {
+    url = new URL(servidorCrudo);
+  } catch {
+    return null;
+  }
+  const esquemaValido = url.protocol === 'https:' || (url.protocol === 'http:' && url.hostname === 'localhost');
+  if (!esquemaValido) return null;
+  if (url.pathname !== '/' || url.search || url.hash) return null;
+  return url.origin;
+}
+
+/**
+ * Lee `?servidor=<url>&token=<token>` de `location.search`. Sin los dos parámetros presentes, no
+ * hace nada (no guarda, no toca la URL) y devuelve `false` — es el caso normal de abrir la app sin
+ * ese enlace especial. Con los dos presentes: se sanean (`sanearToken`/`sanearServidor`, Ronda 1 de
+ * revisión — Important #1) y, si ambos son válidos, se guardan en `localStorage` (clave
+ * `one.servidor`, con `url` ya normalizada a su origin). Se hayan guardado o no, se limpian
+ * `servidor`/`token` de la URL con `history.replaceState` (conserva cualquier otro parámetro y el
+ * hash — p. ej. no se come `?test=1` en los e2e): un intento de configurar con datos inválidos no
+ * debe dejar el token o el host del servidor colgando en el historial del navegador.
  * @param {{search: string, pathname: string, hash?: string}} location
- * @returns {boolean} si se guardó una configuración nueva.
+ * @returns {boolean} si se guardó una configuración nueva (válida).
  */
 export function guardarConfiguracionDesdeUrl(location) {
   const params = new URLSearchParams(location.search);
-  const servidor = params.get('servidor');
-  const token = params.get('token');
-  if (!servidor || !token) return false;
-  if (!servidor.startsWith('https://')) return false;
+  const servidorCrudo = params.get('servidor');
+  const tokenCrudo = params.get('token');
+  if (!servidorCrudo || !tokenCrudo) return false;
 
-  try {
-    localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: servidor, token }));
-  } catch {
-    // localStorage llena o no disponible (modo privado, cuota...): no hay nada que limpiar de la
-    // URL si la configuración no llegó a guardarse de verdad.
-    return false;
+  const token = sanearToken(tokenCrudo);
+  const origen = sanearServidor(servidorCrudo);
+  let guardado = false;
+  if (token && origen) {
+    try {
+      localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: origen, token }));
+      guardado = true;
+    } catch {
+      // localStorage llena o no disponible (modo privado, cuota...): no se guardó nada, pero la
+      // URL se limpia igual (ver comentario de cabecera de esta función).
+      guardado = false;
+    }
   }
 
   params.delete('servidor');
@@ -78,10 +130,11 @@ export function guardarConfiguracionDesdeUrl(location) {
   try {
     history.replaceState(null, '', urlLimpia);
   } catch {
-    // Sin `history` real (entorno de test sin ese global, o navegador muy antiguo): la
-    // configuración ya quedó guardada, que es lo que de verdad importa para el resto de la app.
+    // Sin `history` real (entorno de test sin ese global, o navegador muy antiguo): si se guardó
+    // configuración válida, ya quedó guardada, que es lo que de verdad importa para el resto de
+    // la app.
   }
-  return true;
+  return guardado;
 }
 
 // === Banco extendido (preguntas recibidas del servidor) ===========================================
@@ -120,7 +173,14 @@ function descartarConsolidadasAntiguas(lista, estado, exceso) {
 
 /**
  * Fusiona `nuevas` (preguntas `srv-` recibidas del servidor) en el banco extendido guardado en
- * `localStorage`, con dedupe por id (ni contra lo ya guardado ni entre las propias `nuevas`).
+ * `localStorage`, con dedupe por id (ni contra lo ya guardado ni entre las propias `nuevas`) y
+ * excluyendo también las reportadas (`estado.reportadas` — Ronda 1 de revisión, Important #2: una
+ * pregunta que el jugador ya marcó "está mal" en una sesión anterior no debe poder volver a
+ * colarse en `bancoExtra` si el servidor la sirve otra vez antes de que `/reportar` la retire de
+ * su colchón) y las que colisionen con `idsLocales` (Set opcional de ids de `datos/banco.json` —
+ * en teoría nunca debería pasar, los ids del servidor van siempre prefijados `srv-`, pero es una
+ * comprobación barata que evita que una pregunta del servidor pise silenciosamente a una del
+ * banco local si esa garantía de prefijo llegara a romperse alguna vez).
  * Si el total supera el tope de 2.000, se descartan las consolidadas (caja 4 del Leitner) más
  * antiguas que no estén pendientes — para eso hace falta `estado` (sus `tarjetas`, ver
  * motor.js#registrarRespuesta); si no alcanzan las descartables para bajar del tope, se queda por
@@ -131,14 +191,19 @@ function descartarConsolidadasAntiguas(lista, estado, exceso) {
  * lanzar aquí).
  * @param {object[]} nuevas
  * @param {object} estado
+ * @param {Set<string>} [idsLocales]
  * @returns {{anadidas: number, total: number}}
  */
-export function fusionarBancoExtra(nuevas, estado) {
+export function fusionarBancoExtra(nuevas, estado, idsLocales) {
   const actuales = leerBancoExtra();
   const idsActuales = new Set(actuales.map((p) => p.id));
+  const reportadas = new Set((estado && estado.reportadas) || []);
   const vistos = new Set();
   const aAnadir = (Array.isArray(nuevas) ? nuevas : []).filter((p) => {
-    if (!p || typeof p.id !== 'string' || idsActuales.has(p.id) || vistos.has(p.id)) return false;
+    if (!p || typeof p.id !== 'string') return false;
+    if (idsActuales.has(p.id) || vistos.has(p.id)) return false;
+    if (reportadas.has(p.id)) return false;
+    if (idsLocales && idsLocales.has(p.id)) return false;
     vistos.add(p.id);
     return true;
   });

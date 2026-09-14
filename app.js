@@ -63,6 +63,11 @@ let estado = cargarEstado(hoy());
 // (reconstruirBanco) para que el repaso y la partida en curso (que leen la variable `banco` del
 // módulo en cada llamada, no una copia) las vean sin recargar la página.
 let bancoLocal = [];
+// Ids de bancoLocal (Ronda 1 de revisión, Important #2): se pasa a fusionarBancoExtra para que
+// una pregunta del servidor nunca pise silenciosamente a una del banco local por colisión de id
+// (en teoría no debería pasar -- los ids del servidor van siempre prefijados `srv-` -- pero es
+// una comprobación barata de más, ver sincronizacion.js#fusionarBancoExtra).
+let idsBancoLocal = new Set();
 let banco = [];
 let bancoPorId = new Map();
 // 'gris' (sin servidor / aún sin confirmar esta sesión) | 'verde' (sincronizado hoy) | 'ambar'
@@ -477,7 +482,7 @@ async function sincronizarEnSegundoPlano() {
   estadoServidor = resultado ? 'verde' : 'ambar';
   actualizarPuntoServidor();
   if (resultado && resultado.preguntas.length > 0) {
-    const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado);
+    const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
     if (anadidas > 0) {
       reconstruirBanco();
       mostrarChipNuevas(anadidas);
@@ -496,6 +501,7 @@ async function iniciar() {
 
   const respuesta = await fetch(rutaBanco);
   bancoLocal = await respuesta.json();
+  idsBancoLocal = new Set(bancoLocal.map((p) => p.id));
   reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
   actualizarCabecera();

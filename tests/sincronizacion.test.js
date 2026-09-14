@@ -19,6 +19,11 @@ import {
 
 const URL_SERVIDOR = 'https://servidor.prueba';
 const TOKEN = 'abc';
+// Token de longitud válida (16-128, Ronda 1 de revisión — Important #1) para los tests de
+// guardarConfiguracionDesdeUrl: TOKEN ('abc') sigue sirviendo tal cual para el resto de tests de
+// este fichero, que escriben `one.servidor` directamente en el localStorage falso sin pasar por
+// el saneado (leerConfiguracion no impone longitud, solo guardarConfiguracionDesdeUrl).
+const TOKEN_VALIDO = 'token-de-prueba-1234567890';
 const HOY = '2026-09-14';
 
 function crearLocalStorageFalso() {
@@ -109,34 +114,113 @@ test('guardarConfiguracionDesdeUrl: URL sin parámetros no guarda nada ni toca h
 test('guardarConfiguracionDesdeUrl: guarda url+token y limpia la URL preservando otros parámetros', () => {
   const { llamadasReplaceState } = prepararGlobales();
   const guardo = guardarConfiguracionDesdeUrl({
-    search: `?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`,
+    search: `?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}`,
     pathname: '/one/',
   });
   assert.equal(guardo, true);
-  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN });
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
   assert.equal(llamadasReplaceState.length, 1);
   const [, , urlLimpia] = llamadasReplaceState[0];
   assert.equal(urlLimpia, '/one/?test=1');
 });
 
-test('guardarConfiguracionDesdeUrl: rechaza un servidor que no sea https://', () => {
-  prepararGlobales();
-  const guardo = guardarConfiguracionDesdeUrl({
-    search: `?servidor=${encodeURIComponent('http://servidor.prueba')}&token=${TOKEN}`,
-    pathname: '/',
-  });
-  assert.equal(guardo, false);
-  assert.equal(leerConfiguracion(), null);
-});
-
-test('guardarConfiguracionDesdeUrl: falta uno de los dos parámetros → no guarda', () => {
-  prepararGlobales();
+test('guardarConfiguracionDesdeUrl: falta uno de los dos parámetros → no guarda ni toca la URL', () => {
+  const { llamadasReplaceState } = prepararGlobales();
   assert.equal(
     guardarConfiguracionDesdeUrl({ search: `?servidor=${encodeURIComponent(URL_SERVIDOR)}`, pathname: '/' }),
     false
   );
-  assert.equal(guardarConfiguracionDesdeUrl({ search: `?token=${TOKEN}`, pathname: '/' }), false);
+  assert.equal(guardarConfiguracionDesdeUrl({ search: `?token=${TOKEN_VALIDO}`, pathname: '/' }), false);
   assert.equal(leerConfiguracion(), null);
+  assert.equal(llamadasReplaceState.length, 0);
+});
+
+// Ronda 1 (revisión, Important #1): saneado de servidor/token. Con los dos parámetros presentes
+// pero inválidos, no se guarda nada, PERO la URL se limpia igual (para no dejar el token/host
+// colgando en el historial) y guardarConfiguracionDesdeUrl devuelve false (app.js no muestra
+// "Servidor conectado" en ese caso).
+function esperarRechazoConLimpieza(search) {
+  const { llamadasReplaceState } = prepararGlobales();
+  const guardo = guardarConfiguracionDesdeUrl({ search, pathname: '/' });
+  assert.equal(guardo, false);
+  assert.equal(leerConfiguracion(), null);
+  assert.equal(llamadasReplaceState.length, 1, 'la URL debe limpiarse aunque se rechace la configuración');
+}
+
+test('guardarConfiguracionDesdeUrl: token de solo espacios se rechaza y limpia la URL igual', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${encodeURIComponent('   ')}`);
+});
+
+test('guardarConfiguracionDesdeUrl: token con espacio interior se rechaza', () => {
+  esperarRechazoConLimpieza(
+    `?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${encodeURIComponent('token valido con espacio')}`
+  );
+});
+
+test('guardarConfiguracionDesdeUrl: token con carácter de control se rechaza', () => {
+  const tokenConControl = `abcdefghij${String.fromCharCode(7)}klmnopqrst`; // 21 chars, BEL en medio
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${encodeURIComponent(tokenConControl)}`);
+});
+
+test('guardarConfiguracionDesdeUrl: token demasiado corto (< 16) se rechaza', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=corto1234567`); // 13 caracteres
+});
+
+test('guardarConfiguracionDesdeUrl: token demasiado largo (> 128) se rechaza', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${'a'.repeat(129)}`);
+});
+
+test('guardarConfiguracionDesdeUrl: token en los límites exactos (16 y 128) se acepta', () => {
+  prepararGlobales();
+  assert.equal(
+    guardarConfiguracionDesdeUrl({
+      search: `?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${'a'.repeat(16)}`,
+      pathname: '/',
+    }),
+    true
+  );
+  prepararGlobales();
+  assert.equal(
+    guardarConfiguracionDesdeUrl({
+      search: `?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${'a'.repeat(128)}`,
+      pathname: '/',
+    }),
+    true
+  );
+});
+
+test('guardarConfiguracionDesdeUrl: rechaza un servidor con ruta, query o hash (solo se acepta el origen)', () => {
+  esperarRechazoConLimpieza(
+    `?servidor=${encodeURIComponent('https://x.com/algo?y=1')}&token=${TOKEN_VALIDO}`
+  );
+});
+
+test('guardarConfiguracionDesdeUrl: https://host/ (con barra final, sin más) guarda el origin sin barra', () => {
+  prepararGlobales();
+  const guardo = guardarConfiguracionDesdeUrl({
+    search: `?servidor=${encodeURIComponent('https://one.ctadvisory.es/')}&token=${TOKEN_VALIDO}`,
+    pathname: '/',
+  });
+  assert.equal(guardo, true);
+  assert.deepEqual(leerConfiguracion(), { url: 'https://one.ctadvisory.es', token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeUrl: http://localhost con cualquier puerto se acepta (pruebas locales)', () => {
+  prepararGlobales();
+  const guardo = guardarConfiguracionDesdeUrl({
+    search: `?servidor=${encodeURIComponent('http://localhost:8765')}&token=${TOKEN_VALIDO}`,
+    pathname: '/',
+  });
+  assert.equal(guardo, true);
+  assert.deepEqual(leerConfiguracion(), { url: 'http://localhost:8765', token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeUrl: rechaza http:// de un host que no sea localhost', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('http://x.com')}&token=${TOKEN_VALIDO}`);
+});
+
+test('guardarConfiguracionDesdeUrl: rechaza una URL de servidor que ni siquiera es una URL válida', () => {
+  esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('no-es-una-url')}&token=${TOKEN_VALIDO}`);
 });
 
 // === leerBancoExtra / fusionarBancoExtra ============================================================
@@ -197,6 +281,38 @@ test('fusionarBancoExtra: si no hay suficientes descartables, se queda por encim
   const resultado = fusionarBancoExtra([{ id: 'srv-nueva' }], estado);
   assert.equal(resultado.anadidas, 1);
   assert.equal(resultado.total, 2001);
+});
+
+// Ronda 1 (revisión, Important #2): fusionarBancoExtra no excluía estado.reportadas ni comprobaba
+// colisión con el banco local.
+test('fusionarBancoExtra: excluye ids ya reportados (estado.reportadas)', () => {
+  prepararGlobales();
+  const estado = crearEstado(HOY);
+  estado.reportadas = ['srv-mala'];
+  const resultado = fusionarBancoExtra([{ id: 'srv-mala' }, { id: 'srv-buena' }], estado);
+  assert.deepEqual(resultado, { anadidas: 1, total: 1 });
+  assert.deepEqual(
+    leerBancoExtra().map((p) => p.id),
+    ['srv-buena']
+  );
+});
+
+test('fusionarBancoExtra: excluye ids que colisionan con idsLocales (banco local)', () => {
+  prepararGlobales();
+  const estado = crearEstado(HOY);
+  const idsLocales = new Set(['eco-001', 'his-002']);
+  const resultado = fusionarBancoExtra([{ id: 'eco-001' }, { id: 'srv-nueva' }], estado, idsLocales);
+  assert.deepEqual(resultado, { anadidas: 1, total: 1 });
+  assert.deepEqual(
+    leerBancoExtra().map((p) => p.id),
+    ['srv-nueva']
+  );
+});
+
+test('fusionarBancoExtra: sin idsLocales (parámetro omitido), no lanza y funciona igual que antes', () => {
+  prepararGlobales();
+  const resultado = fusionarBancoExtra([{ id: 'srv-1' }], crearEstado(HOY));
+  assert.deepEqual(resultado, { anadidas: 1, total: 1 });
 });
 
 // === sincronizarEstado ==============================================================================

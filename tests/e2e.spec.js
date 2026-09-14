@@ -2683,7 +2683,10 @@ test.describe('ONE · repaso v0.2a', () => {
 // `http://localhost:8765` (uno de los dos orígenes permitidos de la spec §3.1).
 test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', () => {
   const URL_SERVIDOR = 'https://servidor.prueba';
-  const TOKEN = 'abc';
+  // Ronda 1 de revisión (Important #1, sincronizacion.js#sanearToken): token de 16-128
+  // caracteres sin espacios ni caracteres de control -- "abc" (el que pedía el brief original)
+  // ya no pasa el saneado que ahora impone guardarConfiguracionDesdeUrl.
+  const TOKEN = 'token-de-prueba-e2e-1234567890';
   const CORS = {
     'Access-Control-Allow-Origin': 'http://localhost:8765',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
