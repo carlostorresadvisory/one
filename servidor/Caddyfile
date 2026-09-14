@@ -1,0 +1,4 @@
+one.ctadvisory.es {
+	encode gzip
+	reverse_proxy one-servidor:8787
+}

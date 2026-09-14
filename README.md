@@ -64,6 +64,20 @@ node tools/visualizar.js --reverificar-visuales [--tipos barras,dato] [--aplicar
 
 Una llamada propone explicación ≤ 40 palabras y visual en JSON; otra llamada a un modelo DISTINTO verifica hechos y datos (reintento único; si falla, `visual: null` y motivo en `datos/visuales.log`; la verificación nunca se salta). `barras` y `dato` exigen `fuente` con institución y año (sin frases como "típico" o "aproximado") y el verificador debe reconstruir la cifra; para conceptos cualitativos se usan comparación, flujo, línea de tiempo o fórmula. `tools/validar-banco.js` valida el esquema y sus límites de longitud. El tope de gasto (`--tope-eur`) se compara con el gasto acumulado del día en `datos/llamadas.log`. **Nunca dos ejecuciones con `--aplicar` a la vez** (cada una reescribe `banco.json` entero). Las funciones `generarVisualYExplicacion` y `verificarVisualYExplicacion` son las que usará el servidor de v0.2 para cada pregunta nueva. Coste real del 13-sep: 0,34 $ para las 295 preguntas (incluidas dos pasadas de corrección).
 
+## Servidor (v0.2)
+
+`servidor/` es un servidor HTTP mínimo (Node 22, sin dependencias) que genera preguntas por detrás y las sirve verificadas: mantiene un "colchón" de ~30 preguntas ya verificadas en disco (`datos-servidor/colchon.json`) para que el móvil nunca espere a que se genere una pregunta al vuelo, y solo genera de verdad cuando el colchón baja del objetivo o alguien pulsa "Generar" en un átomo. Pensado para correr en un contenedor Docker en el VPS de IONOS, detrás de Caddy (HTTPS automático); ver `servidor/DESPLIEGUE.md` para los pasos completos.
+
+```
+npm run servidor      # arranca en local con TOKEN_ONE/RUTA_DATOS/etc. del entorno
+```
+
+Variables de entorno (ninguna con valor por defecto salvo la indicada): `TOKEN_ONE` (obligatoria: token de 32 bytes en hex para `Authorization: Bearer <token>`), `PUERTO` (por defecto 8787), `RUTA_DATOS` (por defecto `/datos-servidor`; en local puede ser una carpeta cualquiera), `PERMITIR_PAGO` (`0`/`1`, por defecto `0` = solo modelos `:free`), `TOPE_EUR_DIA`. `OPENROUTER_API_KEY` la lee `tools/openrouter.js` por su cuenta, nunca `servidor/index.js`.
+
+Rutas (JSON, UTF-8; todas menos `/salud` exigen el token): `GET /salud` (estado del colchón y gasto de hoy, sin token), `POST /estado` (el móvil manda su resumen y recibe hasta `max` preguntas nuevas; dispara el relleno del colchón en segundo plano), `POST /generar` + `GET /trabajo/:id` (botón "Generar" del átomo, con prioridad alta), `POST /subtemas` (anillos del átomo: el primero es fijo, `tools/criterio.js`; los siguientes los propone el modelo y se cachean), `POST /reportar` ("esta pregunta está mal"). Límite de 64 KB por cuerpo, 60 peticiones/minuto por IP, CORS solo para `https://carlostorresadvisory.github.io` y `http://localhost:8765`. Cada hora, si son entre las 2:00 y las 7:00 (hora de Madrid), rellena el colchón hacia el objetivo con la cascada gratis, sin cron del host.
+
+Tests: `tests/servidor-api.test.js` (servidor en puerto 0, `fetch`, sin red real: `producirTanda` y `llamar` inyectados como falsos). Despliegue: `servidor/Dockerfile`, `servidor/docker-compose.yml` (servicios `one-servidor` + `caddy`), `servidor/Caddyfile`, `servidor/desplegar.sh`, `servidor/.env.ejemplo`.
+
 ## Documentos
 
 - Spec v0 y hoja de ruta: `docs/superpowers/specs/2026-09-12-one-v0-design.md`

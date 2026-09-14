@@ -4,3 +4,5 @@ datos/llamadas.test.log
 datos/borradores/
 test-results/
 playwright-report/
+.env
+datos-servidor/
