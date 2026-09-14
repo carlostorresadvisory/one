@@ -2239,7 +2239,10 @@ function manejarRespuesta(hueco, respuesta) {
   // diaPartida (hallazgo B5), no hoy(): el día se fija una vez al arrancar la
   // partida, así una partida que cruce la medianoche no reparte sus
   // respuestas entre dos días de calendario distintos.
-  const resultado = registrarRespuesta(estado, pregunta, correcta, diaPartida, { confianza: hueco.confianza });
+  const resultado = registrarRespuesta(estado, pregunta, correcta, diaPartida, {
+    confianza: hueco.confianza,
+    respuesta,
+  });
   estado = resultado.estado;
   guardarEstado(estado);
   actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo.
