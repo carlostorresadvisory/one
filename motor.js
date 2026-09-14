@@ -591,6 +591,14 @@ export function cambiarConfianza(estado, pregunta, delta, confianzaNueva, hoy) {
   // Tarjeta: Leitner (acierto) o prioridad (fallo), siempre partiendo de cajaAntes/
   // prioridadAntes — la caja/prioridad de ANTES de la respuesta original.
   const tarjeta = { ...nuevo.tarjetas[pregunta.id] };
+  // M1 (revisión final de rama): el spread de arriba es superficial — si
+  // ultimaRespuesta es un array (tipo 'ordenar'), `tarjeta.ultimaRespuesta`
+  // seguía apuntando al MISMO array que `estado.tarjetas[pregunta.id]`
+  // (el de antes de este cambiarConfianza), rompiendo la inmutabilidad entre
+  // el estado viejo y el nuevo (mismo hallazgo, y mismo fix, que ya se aplicó
+  // en registrarRespuesta en la Tarea 1). cambiarConfianza no toca este campo
+  // en absoluto, así que clonarlo tal cual basta.
+  tarjeta.ultimaRespuesta = Array.isArray(tarjeta.ultimaRespuesta) ? [...tarjeta.ultimaRespuesta] : tarjeta.ultimaRespuesta;
   if (correcta) {
     if (confianzaNueva === 'baja') {
       // Baja + acierto: cuenta pero no consolida. La caja vuelve a la de antes.

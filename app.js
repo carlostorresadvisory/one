@@ -675,6 +675,14 @@ function finalizarPartida() {
     .filter((h) => !h.correcta || h.delta.fragil)
     .map((h) => ({ pregunta: h.pregunta, correcta: h.correcta, respuesta: h.respuesta, delta: h.delta }));
 
+  // C1 (revisión final de rama, Critical): mostrarVista('resumen') va ANTES
+  // de montarMazo, no después — mismo defecto que abrirRepaso (ver su
+  // comentario): con la vista todavía hidden, ajustarEncaje mide cajas de
+  // alto 0 y la cascada de encaje nunca se aplica (desborde real, no visible
+  // hasta un resize). Todo esto sigue pasando de forma síncrona antes de que
+  // el navegador pinte nada, así que no hay parpadeo de una vista a medio
+  // construir.
+  mostrarVista('resumen');
   contenedorMazoResumen.innerHTML = '';
   mazoResumenControlador = montarMazo(
     contenedorMazoResumen,
@@ -685,7 +693,6 @@ function finalizarPartida() {
     // cifras ni a la final; los puntos del resumen son neutros salvo el actual.
     { contarPista: false, puntosNeutros: true }
   );
-  mostrarVista('resumen');
 }
 
 // ============================================================================
@@ -2116,6 +2123,9 @@ function renderFiltroRepaso(listaCompleta) {
     chip.textContent = nombre;
     chip.disabled = total === 0;
     chip.classList.toggle('repaso-chip--activa', filtroRepaso === area);
+    // I2 (revisión final, accesibilidad): cada chip anuncia si es el activo,
+    // igual que ya hace confianza-opcion (aria-pressed) en la tarjeta.
+    chip.setAttribute('aria-pressed', String(filtroRepaso === area));
     chip.addEventListener('click', () => {
       if (chip.disabled || filtroRepaso === area) return;
       filtroRepaso = area;
@@ -2168,10 +2178,20 @@ function renderRepaso() {
 
 /** Abre la vista de repaso del HUB (botón `data-test="repaso-hub"`, spec v0.2
  * §2): solo se llega aquí cuando el botón está tocable (hay al menos una
- * tarjeta en estado.tarjetas, ver actualizarDestacados). */
+ * tarjeta en estado.tarjetas, ver actualizarDestacados).
+ *
+ * C1 (revisión final de rama, Critical): `mostrarVista('repaso')` va ANTES de
+ * `renderRepaso()`, no después. Con la vista todavía `hidden` (`display:
+ * none`), `ajustarEncaje` mide `clientHeight`/`scrollHeight` sobre cajas de
+ * alto 0: `cabe()` da `true` siempre y la cascada de encaje nunca se aplica,
+ * dejando tarjetas con enunciado/explicación largos desbordadas de verdad (no
+ * detectable hasta un resize, que es lo único que hasta ahora forzaba a
+ * `ajustarEncaje` a recalcular con medidas reales). `empezarPartida` ya hace
+ * `mostrarVista('pregunta')` antes de `montarMazo`; este era el mismo defecto
+ * latente, aquí y en finalizarPartida (ver más abajo). */
 function abrirRepaso() {
-  renderRepaso();
   mostrarVista('repaso');
+  renderRepaso();
 }
 
 /** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y

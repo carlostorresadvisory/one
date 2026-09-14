@@ -1564,18 +1564,22 @@ main#app {
 /* --- Repaso del HUB (spec v0.2 §2): fila de chips + mazo "sin fin" --- */
 /* Fila horizontal de chips ("Todas" + las 8 áreas): scroll horizontal SOLO
    aquí si las 9 no caben a 375px, nunca en la vista entera (spec v0.2 §2).
-   position:relative ancla el degradado de ::after (ver más abajo);
    scroll-snap-type (ronda 1, UX) hace que soltar el dedo a medio chip
    "encaje" en el más cercano, sin animación propia que respetar bajo
-   "reducir movimiento" (el navegador decide el ajuste, no hay transition). */
+   "reducir movimiento" (el navegador decide el ajuste, no hay transition).
+   mask-image (ronda final, I1: corrige el degradado de la ronda 1, que
+   viajaba con el scroll -- ver comentario más abajo) difumina los últimos
+   32px de la propia fila como efecto de pintado sobre la caja YA
+   desplazada, no como un hijo posicionado dentro de ella. */
 .repaso-filtro {
-  position: relative;
   display: flex;
   gap: 8px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding: 2px 2px 8px;
   scroll-snap-type: x proximity;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
 }
 
 .repaso-chip {
@@ -1611,29 +1615,19 @@ main#app {
   opacity: 0.4;
 }
 
-/* Ronda 1 de revisión (UX): la fila no avisaba de que había más chips a la
-   derecha. ::after es position:absolute DENTRO del propio contenedor con
-   overflow-x:auto: se ancla al borde visible del scroll (no al contenido
-   desplazado), igual que un botón flotante dentro de una lista con scroll,
-   así que queda fijo sobre la fila según se desliza. Del color de fondo
-   (borde, más opaco) a transparente (hacia el contenido): sin magenta, sin
-   animación (pointer-events:none para no robar toques a los chips de debajo). */
-.repaso-filtro::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 32px;
-  background: linear-gradient(to right, transparent, var(--fondo));
-  pointer-events: none;
-}
-
-/* Desplazada hasta el final (o si ni hace falta scroll: todo cabe) -- ver
-   actualizarFiltroRepasoFinal en app.js -- ya no hay "más a la derecha" que
-   avisar. */
-.repaso-filtro--final::after {
-  display: none;
+/* Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
+   DENTRO del propio .repaso-filtro (overflow-x:auto) para el aviso de "hay
+   más a la derecha" -- pero un hijo posicionado relativo a la MISMA caja que
+   scrollea forma parte de su contenido desplazable: al deslizar, viajaba con
+   los chips en vez de quedarse fijo sobre el borde. mask-image (declarado
+   arriba, en .repaso-filtro) es un efecto de PINTADO sobre la caja entera,
+   aplicado DESPUÉS de resolver su propio scroll interno -- por eso sí queda
+   fijo. Desplazada hasta el final (o si ni hace falta scroll: todo cabe) --
+   ver actualizarFiltroRepasoFinal en app.js -- se quita del todo: ya no hay
+   "más a la derecha" que avisar. */
+.repaso-filtro--final {
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */

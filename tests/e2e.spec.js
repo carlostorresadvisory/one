@@ -2115,6 +2115,107 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
   }
 
+  // Revisión final de rama (Critical, C1): abrirRepaso() montaba el mazo
+  // (renderRepaso) ANTES de mostrarVista('repaso') -- con la vista todavía
+  // hidden (display:none), ajustarEncaje mide clientHeight/scrollHeight sobre
+  // cajas de alto 0, `cabe()` da true SIEMPRE y la cascada de encaje nunca se
+  // aplica: con banco real a 393×852 con zonas seguras, 6 de 30 tarjetas
+  // desbordaban al abrir (his-046 30px, art-090 23px...), la explicación
+  // montada sobre "Preguntar a". Mismo defecto latente en finalizarPartida
+  // (montarMazo antes de mostrarVista('resumen')): la tarjeta de índice 1 del
+  // resumen desbordaba 282px hasta un resize. Este test falla sin invertir
+  // ese orden en ambos sitios (ver abrirRepaso/finalizarPartida en app.js).
+  test('C1 (Critical, revisión final): resumen (tarjeta 1) y repaso (primera tarjeta) no desbordan al abrir, sin resize, con enunciado+explicación largos e imagen', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.goto('/?test=1');
+    // Zonas seguras simuladas de un iPhone (mismo patrón que "ONE · C1 visual
+    // desbordado con zonas seguras del iPhone"): env(safe-area-inset-*) vale
+    // 0 en Chromium headless.
+    await page.addStyleTag({
+      content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
+    });
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const idLargo = 'sintetico-c1-desborde';
+    const preguntaLarga = {
+      id: idLargo,
+      area: 'historia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado:
+        'Durante la Revolución Francesa, la Asamblea Nacional Constituyente aprobó la Declaración de los Derechos del Hombre y del Ciudadano en agosto de 1789, sentando las bases jurídicas y filosóficas de buena parte del constitucionalismo liberal europeo posterior.',
+      explicacion:
+        'La Declaración de 1789 proclamó la libertad, la igualdad ante la ley y la soberanía nacional como principios fundamentales, inspirándose en el pensamiento ilustrado de Rousseau, Montesquieu y Locke. Su influencia llegó mucho más allá de Francia: sirvió de modelo directo para constituciones posteriores en toda Europa y América Latina durante el siglo XIX, y sigue citándose hoy como uno de los textos fundacionales del constitucionalismo moderno y de los derechos humanos contemporáneos.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+    const imagenLarga = {
+      id: idLargo,
+      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo-c1.png',
+      titulo: 'Ejemplo-c1.png',
+      autor: 'Autor de ejemplo',
+      licencia: 'CC BY-SA 4.0',
+      leyenda: 'Imagen forzada para el caso C1 (enunciado + explicación largos)',
+      termino: 'ejemplo',
+      ancho: 1,
+      alto: 1,
+    };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaLarga);
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenLarga);
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'c1-desborde' }), idLargo);
+
+    // Falla A PROPÓSITO (la respuesta correcta es Verdadero): repasoPartida
+    // tendrá exactamente este ítem, y el feed del HUB (ordenarRepaso) también
+    // lo devolverá como única tarjeta ("fallada", pendiente).
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-falso"]').click();
+    await avanzarTrasRespuesta(page); // única pregunta -> termina la partida -> resumen.
+    await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+
+    /** Sin resize ni más interacción que la mínima para hacer "actual" la
+     * tarjeta a comprobar: la explicación no debe solapar la fila
+     * "Preguntar a" (C1). */
+    async function comprobarSinSolape() {
+      await assertTarjetaSinScroll(page);
+      const actual = tarjetaActual(page);
+      const explicacion = actual.locator('[data-test="explicacion"]');
+      const preguntarA = actual.locator('[data-test="preguntar-a"]');
+      await expect(explicacion).toBeVisible();
+      await expect(preguntarA).toBeVisible();
+      const cajaExplicacion = await explicacion.boundingBox();
+      const cajaPreguntarA = await preguntarA.boundingBox();
+      const explicacionAbajo = cajaExplicacion.y + cajaExplicacion.height;
+      expect(
+        explicacionAbajo,
+        `La explicación (bottom ${explicacionAbajo.toFixed(1)}) solapa "Preguntar a" (top ${cajaPreguntarA.y.toFixed(1)})`
+      ).toBeLessThanOrEqual(cajaPreguntarA.y + 1);
+    }
+
+    // 1) Resumen, tarjeta de índice 1 (repasoPartida[0], la fallada): un solo
+    // deslizamiento desde la tarjeta 0 (cifras), sin resize.
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await comprobarSinSolape();
+
+    // 2) HUB → Repaso: la MISMA pregunta, ahora desde ordenarRepaso, como
+    // primera (única) tarjeta -- sin deslizar ni redimensionar nada más.
+    await page.locator('[data-test="volver"]').click(); // "←" desde el resumen: siempre al HUB.
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await comprobarSinSolape();
+  });
+
   test('HUB → Repaso: orden fallada/frágil/acertada, marcas, filtro por área y cierre', async ({ page }) => {
     await page.goto('/?test=1');
     await prepararYJugar(page);
@@ -2129,6 +2230,15 @@ test.describe('ONE · repaso v0.2a', () => {
     await esperarAsentamientoMazo(page);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
+
+    // I2 (revisión final, accesibilidad): la fila es un grupo con etiqueta, y
+    // el chip activo ("Todas" por defecto) lo anuncia con aria-pressed.
+    const filtroRepaso = page.locator('[data-test="repaso-filtro"]');
+    await expect(filtroRepaso).toHaveAttribute('role', 'group');
+    await expect(filtroRepaso).toHaveAttribute('aria-label', 'Filtrar por área');
+    const chipTodas = filtroRepaso.locator('[data-area="todas"]');
+    await expect(chipTodas).toHaveAttribute('aria-pressed', 'true');
+    await expect(filtroRepaso.locator('[data-area="ciencia"]')).toHaveAttribute('aria-pressed', 'false');
 
     // Orden esperado (spec v0.2 §2): fallada, frágil, acertada.
     let actual = tarjetaActual(page);
@@ -2181,6 +2291,8 @@ test.describe('ONE · repaso v0.2a', () => {
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
     await expect(chipHistoria).toHaveClass(/repaso-chip--activa/);
+    await expect(chipHistoria).toHaveAttribute('aria-pressed', 'true');
+    await expect(chipTodas).toHaveAttribute('aria-pressed', 'false');
     actual = tarjetaActual(page);
     await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Historia');
     await expect(actual.locator('.repaso-marca')).toHaveText('✓ frágil · hoy');
@@ -2309,10 +2421,12 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(compacta.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
   });
 
-  // Ronda 1 de revisión (UX): la fila de chips no avisaba de que había más
-  // áreas a la derecha sin desplazarse. Degradado fijo sobre el borde derecho
-  // (estilos.css, .repaso-filtro::after) que se apaga al llegar al final.
-  test('Repaso: el degradado de la fila de chips avisa de que hay más a la derecha, y se apaga al llegar al final', async ({
+  // Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
+  // DENTRO del propio contenedor con scroll, que viajaba con los chips en vez
+  // de quedarse fijo sobre el borde. Sustituido por mask-image sobre la
+  // propia fila (estilos.css, .repaso-filtro), que se quita con la clase
+  // repaso-filtro--final -- este test comprueba la máscara, no un ::after.
+  test('Repaso: el degradado (mask-image) de la fila de chips avisa de que hay más a la derecha, y se apaga al llegar al final', async ({
     page,
   }) => {
     await page.goto('/?test=1');
@@ -2322,20 +2436,29 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
 
-    const filtro = page.locator('[data-test="repaso-filtro"]');
-    // Al cargar (9 chips no caben a 375px): sin la clase que apaga el
-    // degradado, y el propio ::after realmente pintado (display != none).
-    await expect(filtro).not.toHaveClass(/repaso-filtro--final/);
-    expect(await filtro.evaluate((el) => getComputedStyle(el, '::after').display)).not.toBe('none');
+    /** mask-image / -webkit-mask-image, lo que el navegador exponga (Chromium
+     * soporta ambas formas; se lee cualquiera de las dos por robustez). */
+    const leerMask = (el) => {
+      const estilo = getComputedStyle(el);
+      const prefijada = estilo.getPropertyValue('-webkit-mask-image');
+      const estandar = estilo.getPropertyValue('mask-image');
+      return prefijada && prefijada !== 'none' ? prefijada : estandar;
+    };
 
-    // Desplazada hasta el final -> aparece repaso-filtro--final y el
-    // degradado se apaga (ya no hay "más a la derecha" que avisar).
+    const filtro = page.locator('[data-test="repaso-filtro"]');
+    // Al cargar (9 chips no caben a 375px): sin la clase que quita la
+    // máscara, y la propia máscara realmente aplicada (no 'none').
+    await expect(filtro).not.toHaveClass(/repaso-filtro--final/);
+    expect(await filtro.evaluate(leerMask)).not.toBe('none');
+
+    // Desplazada hasta el final -> aparece repaso-filtro--final y la máscara
+    // se quita (ya no hay "más a la derecha" que avisar).
     await filtro.evaluate((el) => {
       el.scrollLeft = el.scrollWidth;
       el.dispatchEvent(new Event('scroll'));
     });
     await expect(filtro).toHaveClass(/repaso-filtro--final/);
-    expect(await filtro.evaluate((el) => getComputedStyle(el, '::after').display)).toBe('none');
+    expect(await filtro.evaluate(leerMask)).toBe('none');
   });
 
   test('Repaso: sin ninguna tarjeta jugada, el botón del HUB está apagado ("Juega primero")', async ({ page }) => {

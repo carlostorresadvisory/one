@@ -1711,4 +1711,16 @@ describe('cambiarConfianza', () => {
     assert.equal(c.estado.tarjetas.q1.ultimaRespuesta, 0);
     assert.equal(c.estado.tarjetas.q1.ultimaCorrecta, true);
   });
+
+  test('M1 (revisión final de rama): ultimaRespuesta (array, tipo ordenar) se clona -- mutar la tarjeta nueva no filtra al estado viejo', () => {
+    const pregunta = crearPregunta('economia', 'ordenar', 2, '-cc-clon');
+    const r = registrarRespuesta(crearEstado(H), pregunta, true, H, { confianza: 'media', respuesta: [1, 0, 2, 3] });
+    const c = cambiarConfianza(r.estado, pregunta, r.delta, 'alta', H);
+    // El spread `{ ...tarjeta }` de cambiarConfianza es superficial: sin
+    // clonar el array a mano, esta mutación de la tarjeta NUEVA se filtraría
+    // a la VIEJA (misma referencia de array en ambos estados).
+    c.estado.tarjetas[pregunta.id].ultimaRespuesta[0] = 99;
+    assert.deepStrictEqual(r.estado.tarjetas[pregunta.id].ultimaRespuesta, [1, 0, 2, 3]);
+    assert.deepStrictEqual(c.estado.tarjetas[pregunta.id].ultimaRespuesta, [99, 0, 2, 3]);
+  });
 });
