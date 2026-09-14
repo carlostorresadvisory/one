@@ -262,7 +262,18 @@ test('POST /estado devuelve hasta max no conocidas y dispara el relleno del colc
     assert.ok(datos.preguntas.every((p) => p.id !== 'srv-eco-a1'));
     assert.equal(typeof datos.enCola, 'number');
 
-    const resumenGuardado = JSON.parse(await readFile(path.join(dir, 'ultimo-resumen.json'), 'utf8'));
+    // Ronda final (I1): el guardado de ultimo-resumen.json ahora es efecto de fondo (después de
+    // responder), así que hay que esperar a que termine en vez de leerlo justo tras el fetch.
+    const rutaResumen = path.join(dir, 'ultimo-resumen.json');
+    await hastaQue(async () => {
+      try {
+        await readFile(rutaResumen, 'utf8');
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    const resumenGuardado = JSON.parse(await readFile(rutaResumen, 'utf8'));
     assert.deepEqual(resumenGuardado.idsConocidos, ['srv-eco-a1']);
 
     // Efecto de fondo: como el colchón (30 objetivo) está casi vacío, rellenarHaciaObjetivo debe
@@ -284,6 +295,55 @@ test('POST /estado con resumen ausente no rompe (resumen.areas puede faltar)', a
     assert.deepEqual(datos.preguntas, []);
   } finally {
     await cerrar();
+  }
+});
+
+// Ronda final (revisión, 14-sep-2026), Important I1: si guardar ultimo-resumen.json falla, la
+// respuesta con las preguntas (ya marcadas servida, ya persistidas por cola.servir()) no debe
+// perderse -- antes, el await sobre ese guardado iba ANTES de responder, así que un fallo ahí hacía
+// que el móvil nunca recibiera preguntas que el servidor ya había dado por entregadas.
+test('POST /estado responde con las preguntas aunque falle el guardado de ultimo-resumen.json (I1)', async () => {
+  const dir = await carpetaTmp();
+  const almacenReal = crearAlmacen(dir);
+  let intentoEscribirResumen = false;
+  const almacen = {
+    ...almacenReal,
+    escribirAtomico: async (nombre, objeto) => {
+      if (nombre === 'ultimo-resumen.json') {
+        intentoEscribirResumen = true;
+        throw new Error('disco simulado sin espacio');
+      }
+      return almacenReal.escribirAtomico(nombre, objeto);
+    },
+  };
+  const cola = crearCola({ almacen, producirTanda: async ({ n }) => resultadoVacio(n) });
+  const servidor = crearServidor({ cola, almacen, token: TOKEN, rutaDatos: dir });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    const ahora = new Date().toISOString();
+    await almacenReal.guardarColchon([{ id: 'srv-eco-1', area: 'economia', creada: ahora, servida: null }]);
+
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { areas: {} }, max: 5 }),
+    });
+    assert.equal(resp.status, 200, 'la respuesta debe llegar aunque falle el guardado del resumen');
+    const datos = await resp.json();
+    assert.equal(datos.preguntas.length, 1);
+
+    await hastaQue(() => intentoEscribirResumen === true);
+
+    // La pregunta servida sigue marcada como tal en disco pese al fallo del resumen -- I1 solo
+    // cambia el ORDEN de la respuesta, no deshace lo que cola.servir() ya había persistido.
+    const colchon = await almacenReal.leerColchon();
+    assert.ok(colchon[0].servida);
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
   }
 });
 
@@ -539,6 +599,42 @@ test('61 peticiones en un minuto desde la misma IP: la 61 responde 429', async (
     }
     assert.equal(estados.slice(0, 60).every((s) => s === 200), true, 'las 60 primeras deben pasar');
     assert.equal(estados[60], 429);
+  } finally {
+    await cerrar();
+  }
+});
+
+// Ronda final (revisión, 14-sep-2026), Important I3: el rate limit debe fiarse de la ÚLTIMA IP de
+// x-forwarded-for (la que añade Caddy, el único proxy de confianza), no de la primera (la que un
+// cliente malicioso puede inventarse libremente para esquivar el límite rotándola en cada petición).
+test('rate limit usa la ÚLTIMA IP de x-forwarded-for, no la primera (I3)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    let ultimoStatus;
+    for (let i = 0; i < 61; i++) {
+      // "primera" IP (falseable por el cliente) distinta en cada petición; "última" IP (la que
+      // pondría Caddy) siempre la misma -- si se usara la primera, ninguna de las 61 se limitaría.
+      const resp = await fetch(`${base}/salud`, { headers: { 'x-forwarded-for': `1.2.3.${i}, 9.9.9.9` } });
+      ultimoStatus = resp.status;
+      await resp.text();
+    }
+    assert.equal(ultimoStatus, 429, 'todas comparten la misma última IP: la 61 debe limitarse');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('rate limit: misma PRIMERA IP con última distinta no comparte cupo (I3)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    for (let i = 0; i < 60; i++) {
+      const resp = await fetch(`${base}/salud`, { headers: { 'x-forwarded-for': '1.1.1.1, 8.8.8.8' } });
+      await resp.text();
+      assert.equal(resp.status, 200);
+    }
+    const resp = await fetch(`${base}/salud`, { headers: { 'x-forwarded-for': '1.1.1.1, 7.7.7.7' } });
+    await resp.text();
+    assert.equal(resp.status, 200, 'la IP real (última) es distinta: no debe compartir cupo con 8.8.8.8');
   } finally {
     await cerrar();
   }

@@ -26,7 +26,13 @@
 // preguntas, no del pipeline, y este fichero solo debía importar prompts, no definirlos.
 import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
 import { validarPregunta } from '../tools/validar-banco.js';
-import { resolverPregunta, GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
+import {
+  resolverPregunta,
+  GENERADOR_SOLO_PAGO,
+  VERIFICADOR_SOLO_PAGO,
+  GENERADOR_VISUAL,
+  VERIFICADOR_VISUAL,
+} from '../tools/visualizar.js';
 import {
   promptSistemaGenerador,
   promptUsuarioVF,
@@ -467,9 +473,15 @@ export async function verificarBorradores(borradores, opciones = {}) {
  * @param {boolean} [opciones.permitirPago]
  * @param {number} [opciones.topeEur]
  * @param {string} [opciones.rutaLog]
- * @param {boolean} [opciones.urgente] con permitirPago, usa las cascadas de pago barato
+ * @param {boolean} [opciones.urgente] con permitirPago, antepone las cascadas de pago barato
  *   (GENERADOR_PREGUNTAS_SOLO_PAGO/VERIFICADOR_PREGUNTAS_SOLO_PAGO y, para el visual,
- *   GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de tools/visualizar.js) en vez de las normales.
+ *   GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de tools/visualizar.js) a las normales -- Ronda final
+ *   (revisión, 14-sep-2026) -- Important (I2): antes las SUSTITUÍA, así que si el único modelo de
+ *   pago barato de ese papel fallaba (agotado, red...), la tanda urgente se quedaba sin ningún
+ *   modelo más que probar aunque `permitirPago` siguiera activo y la cascada normal (gratis + pago)
+ *   tuviera más candidatos detrás. Ahora la cascada efectiva es `[...pago barato, ...normal]`: se
+ *   sigue intentando primero lo rápido/barato pensado para "el jugador está esperando", pero nunca
+ *   se pierde el resto de la cascada normal como red de seguridad.
  * @returns {Promise<{
  *   aprobadas: object[], rechazadas: {borrador: object, motivo: string}[], coste: number,
  *   modelos: string[], fallos: {tipo: string, motivo: string}[], pedidas: number, obtenidas: number,
@@ -513,7 +525,7 @@ export async function producirTanda(params, opciones = {}) {
           topeEur,
           rutaLog,
           acumulador,
-          ...(usaPagoBarato ? { modelos: GENERADOR_PREGUNTAS_SOLO_PAGO } : {}),
+          ...(usaPagoBarato ? { modelos: [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.generador] } : {}),
         },
       );
       borradores = borradores.concat(borradoresTipo);
@@ -534,7 +546,7 @@ export async function producirTanda(params, opciones = {}) {
     topeEur,
     rutaLog,
     acumulador,
-    ...(usaPagoBarato ? { modelos: VERIFICADOR_PREGUNTAS_SOLO_PAGO } : {}),
+    ...(usaPagoBarato ? { modelos: [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.verificador] } : {}),
   });
   const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
 
@@ -572,7 +584,12 @@ export async function producirTanda(params, opciones = {}) {
         topeEur,
         rutaLog,
         necesitaVisual: true,
-        ...(usaPagoBarato ? { modelosGenerador: GENERADOR_SOLO_PAGO, modelosVerificador: VERIFICADOR_SOLO_PAGO } : {}),
+        ...(usaPagoBarato
+          ? {
+              modelosGenerador: [...GENERADOR_SOLO_PAGO, ...GENERADOR_VISUAL],
+              modelosVerificador: [...VERIFICADOR_SOLO_PAGO, ...VERIFICADOR_VISUAL],
+            }
+          : {}),
       });
       acumulador.coste += resolucion.coste || 0;
       if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);

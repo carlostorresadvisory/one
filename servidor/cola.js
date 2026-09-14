@@ -162,6 +162,25 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     });
   }
 
+  // Ronda final (I4): una línea JSON por lote en servidor.log, con lo justo para auditar qué se
+  // generó sin volcar nada confidencial (nunca prompts, nunca claves -- solo cifras e ids/nombres
+  // de modelo, que ya se ven igual en llamadas.log). Un fallo al escribir este log NUNCA debe tumbar
+  // la generación: se traga con un único console.error, igual criterio que C1 en tools/openrouter.js.
+  async function registrarLoteEnLog(trabajo, tamanoLote, resultado) {
+    await almacen.anadirLineaLog('servidor.log', {
+      fecha: new Date().toISOString(),
+      trabajoId: trabajo.id,
+      area: trabajo.area,
+      ruta: trabajo.ruta,
+      pedidas: tamanoLote,
+      aprobadas: resultado.aprobadas?.length || 0,
+      rechazadas: resultado.rechazadas?.length || 0,
+      fallos: resultado.fallos || [],
+      coste: resultado.coste || 0,
+      modelos: resultado.modelos || [],
+    });
+  }
+
   // Ejecuta UN SOLO lote del trabajo (no el trabajo completo -- Ronda 1, ver más abajo). Deja
   // `trabajo.hechas`/`trabajo.preguntas`/`trabajo.huboFallo`/`trabajo.motivo` al día; NO toca
   // `trabajo.estado` (eso lo decide procesarCola justo después, según si el trabajo cede el turno
@@ -209,6 +228,17 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
           await guardarNuevasEnColchon(guardadas);
           trabajo.preguntas = trabajo.preguntas.concat(guardadas);
         }
+
+        // Ronda final (I4): trazabilidad -- las rechazadas de este lote en rechazadas.json (propio
+        // cerrojo, igual mecanismo que colchon.json pero por su propio nombre de fichero: son
+        // ficheros distintos, el mutex de almacen.conCerrojo es por nombre) y una línea JSON en
+        // servidor.log (fecha, trabajoId, area, ruta, pedidas/aprobadas/rechazadas/fallos, coste,
+        // modelos -- nunca prompts ni claves). Solo si el lote llegó a producir un `resultado` de
+        // verdad (si `producirTanda` lanzó, no hay nada que registrar más allá de `falloEsteLote`).
+        if (resultado.rechazadas && resultado.rechazadas.length > 0) {
+          await almacen.conCerrojo('rechazadas.json', () => almacen.anadirRechazadas(resultado.rechazadas));
+        }
+        await registrarLoteEnLog(trabajo, tamanoLote, resultado);
       }
     } catch (err) {
       // Cualquier fallo de disco (leer o guardar colchon.json) fuera de producirTanda: antes esto

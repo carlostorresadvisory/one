@@ -167,11 +167,23 @@ function tokenValido(cabeceraAutorizacion, token) {
   return crypto.timingSafeEqual(recibido, esperado);
 }
 
-// x-forwarded-for primero (el servidor real vive detrás de Caddy, spec §3.5), luego la IP directa
-// del socket -- orden pedido explícitamente por el brief de esta tarea.
+// Ronda final (revisión, 14-sep-2026) -- Important (I3): se usa la ÚLTIMA IP de x-forwarded-for,
+// no la primera. El único proxy de confianza delante de este proceso es Caddy (spec §3.5) y su
+// Caddyfile fija `header_up X-Forwarded-For {remote_host}` (ver servidor/Caddyfile) -- pero un
+// cliente malicioso puede mandar su propia cabecera `X-Forwarded-For: 6.6.6.6` y, según cómo
+// encadene el proxy esa cabecera, acabar viéndose como `6.6.6.6, <ip real>`. La PRIMERA entrada la
+// pone siempre el cliente (nunca verificada, trivial de falsear para saltarse el rate limit
+// rotando IPs falsas); la ÚLTIMA es la que añade el salto más cercano a este proceso (Caddy), la
+// única en la que se puede confiar aquí. Si no hay cabecera, se usa la IP directa del socket.
 function ipDePeticion(req) {
   const cabecera = req.headers['x-forwarded-for'];
-  if (typeof cabecera === 'string' && cabecera.trim()) return cabecera.split(',')[0].trim();
+  if (typeof cabecera === 'string' && cabecera.trim()) {
+    const partes = cabecera
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (partes.length > 0) return partes[partes.length - 1];
+  }
   return req.socket.remoteAddress || 'desconocida';
 }
 
@@ -343,9 +355,19 @@ export function crearServidor({
     const idsConocidos = Array.isArray(resumen.idsConocidos) ? resumen.idsConocidos : [];
     const rutasAtomo = Array.isArray(resumen.rutasAtomo) ? resumen.rutasAtomo : [];
 
+    // Ronda final (revisión, 14-sep-2026) -- Important (I1): `cola.servir()` ya ha marcado
+    // `servida` (y persistido) las preguntas devueltas -- ese trabajo real no debe perderse por un
+    // fallo al guardar "ultimo-resumen.json" (un fichero secundario, solo para el relleno nocturno).
+    // Antes, si `escribirAtomico` lanzaba aquí, la respuesta nunca llegaba a mandarse: el móvil no
+    // recibía las preguntas que el servidor ya había dado por entregadas ("quemadas" sin que nadie
+    // las viera). Se responde primero; guardar el resumen (como el relleno de después) pasa a ser
+    // efecto de fondo con su propio manejo de errores.
     const preguntas = await cola.servir({ idsConocidos, resumen, max });
-    await almacen.escribirAtomico('ultimo-resumen.json', resumen);
     responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola });
+
+    almacen.escribirAtomico('ultimo-resumen.json', resumen).catch((err) => {
+      console.error(`servidor: fallo al guardar ultimo-resumen.json: ${err?.message || err}`);
+    });
 
     // "responde y DESPUÉS dispara rellenarHaciaObjetivo sin esperarlo" (brief de la tarea): la
     // respuesta ya se envió arriba: esto es efecto de fondo puro, con su propio manejo de errores
@@ -591,6 +613,18 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const rutaDatos = process.env.RUTA_DATOS || '/datos-servidor';
   const permitirPago = process.env.PERMITIR_PAGO === '1';
   const topeEur = Number(process.env.TOPE_EUR_DIA) || 0;
+
+  // Ronda final (revisión, 14-sep-2026) -- Important (I2): PERMITIR_PAGO=1 sin (o con) un
+  // TOPE_EUR_DIA de 0 desactivaría de hecho el único freno de gasto real -- tools/openrouter.js#llamar
+  // solo compara "gastado hoy >= topeEur" ANTES de cada llamada de pago, así que topeEur=0 nunca
+  // llega a bloquear nada (0 >= 0 sí, pero el primer euro ya se ha gastado en la llamada que lo
+  // comprueba). Mejor no arrancar que arrancar con el gasto sin freno de verdad.
+  if (permitirPago && !(topeEur > 0)) {
+    console.error(
+      'servidor: PERMITIR_PAGO=1 exige TOPE_EUR_DIA > 0 (freno de gasto real), no se puede arrancar.',
+    );
+    process.exit(1);
+  }
 
   // Ronda final (revisión, 14-sep-2026) -- Critical (C1): comprobar ANTES de arrancar a escuchar
   // que se puede escribir de verdad en RUTA_DATOS -- sin esto, el contenedor podía arrancar "bien"

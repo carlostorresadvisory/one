@@ -7,6 +7,15 @@ services:
       context: ..
       dockerfile: servidor/Dockerfile
     env_file: ../.env
+    # Ronda final (revisión, 14-sep-2026) -- Important (I5): PUERTO y RUTA_DATOS fijos AQUÍ, no en
+    # el `.env` -- `environment:` gana a `env_file` para la misma clave (Docker Compose), así que un
+    # valor distinto colado en el `.env` nunca puede desajustarlos del resto de este fichero. Si
+    # RUTA_DATOS no fuera exactamente /datos-servidor, el proceso escribiría fuera del volumen
+    # montado (`/opt/one-datos:/datos-servidor` más abajo) y se perdería todo al recrear el
+    # contenedor; si PUERTO no fuera 8787, no coincidiría con el puerto publicado en `ports:`.
+    environment:
+      PUERTO: "8787"
+      RUTA_DATOS: /datos-servidor
     ports:
       - "127.0.0.1:8787:8787"
     volumes:

@@ -747,6 +747,33 @@ test('cola.estadisticas() refleja el tamaño de la cola de espera', async () => 
   pendientes[0](resultadoVacio(5));
 });
 
+// === Ronda final (14-sep-2026): almacen.anadirLineaLog (I4) =====================================
+
+test('almacen: anadirLineaLog añade una línea JSON por llamada, sin pisar las anteriores', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+
+  await almacen.anadirLineaLog('servidor.log', { fecha: '2026-01-01T00:00:00.000Z', a: 1 });
+  await almacen.anadirLineaLog('servidor.log', { fecha: '2026-01-01T00:00:01.000Z', a: 2 });
+
+  const contenido = await readFile(path.join(dir, 'servidor.log'), 'utf8');
+  const lineas = contenido.trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lineas.length, 2);
+  assert.equal(lineas[0].a, 1);
+  assert.equal(lineas[1].a, 2);
+});
+
+test('almacen: anadirLineaLog no lanza si la escritura falla', async () => {
+  const dir = await carpetaTmp();
+  // rutaDatos apunta DENTRO de un fichero normal (no un directorio): mkdir(rutaDatos) falla con
+  // ENOTDIR, tal como pediría un disco de solo lectura o sin permisos en el VPS.
+  const rutaFichero = path.join(dir, 'esto-es-un-fichero');
+  await writeFile(rutaFichero, 'x', 'utf8');
+  const almacen = crearAlmacen(path.join(rutaFichero, 'subcarpeta'));
+
+  await assert.doesNotReject(() => almacen.anadirLineaLog('servidor.log', { a: 1 }));
+});
+
 // === Ronda final (14-sep-2026): ultimoError/ultimaGeneracionOk (C2) =============================
 
 test('cola.estadisticas(): ultimaGeneracionOk se actualiza tras un lote sin fallo; ultimoError sigue null', async () => {
@@ -779,4 +806,47 @@ test('cola.estadisticas(): ultimoError se actualiza (corto, sin traza) cuando pr
   const stats = cola.estadisticas();
   assert.match(stats.ultimoError, /la cascada de este tipo se agotó del todo/);
   assert.ok(!stats.ultimoError.includes(dir), 'no debe filtrar rutas internas del disco');
+});
+
+// === Ronda final (14-sep-2026): trazabilidad por lote (I4) ======================================
+
+test('ejecutarUnLote (I4): registra rechazadas en rechazadas.json y una línea por lote en servidor.log', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const resultadoConRechazo = {
+    aprobadas: [aprobada('economia', 1)],
+    rechazadas: [{ borrador: { enunciado: 'mala' }, motivo: 'no supera validarPregunta' }],
+    coste: 0.002,
+    modelos: ['modelo-a', 'modelo-b'],
+    fallos: [],
+    pedidas: 5,
+    obtenidas: 1,
+  };
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoConRechazo });
+
+  cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: true });
+  await hastaQue(async () => (await almacen.leerColchon()).length > 0);
+
+  const rechazadas = await almacen.leerRechazadas();
+  assert.equal(rechazadas.length, 1);
+  assert.equal(rechazadas[0].motivo, 'no supera validarPregunta');
+
+  await hastaQue(async () => {
+    try {
+      const contenido = await readFile(path.join(dir, 'servidor.log'), 'utf8');
+      return contenido.trim().length > 0;
+    } catch {
+      return false;
+    }
+  });
+  const contenido = await readFile(path.join(dir, 'servidor.log'), 'utf8');
+  const lineas = contenido.trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lineas.length, 1);
+  assert.equal(lineas[0].area, 'economia');
+  assert.equal(lineas[0].aprobadas, 1);
+  assert.equal(lineas[0].rechazadas, 1);
+  assert.equal(lineas[0].coste, 0.002);
+  assert.deepEqual(lineas[0].modelos, ['modelo-a', 'modelo-b']);
+  assert.ok(lineas[0].trabajoId);
+  assert.ok(lineas[0].fecha);
 });

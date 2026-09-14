@@ -714,16 +714,25 @@ test('producirTanda: con permitirPago=false, nunca pasa un modelo de pago a llam
   }
 });
 
-test('producirTanda: con urgente + permitirPago=true, usa las cascadas de pago barato de preguntas y de visuales', async () => {
+// Ronda final (revisión, 14-sep-2026) -- Important (I2): la primera versión de este test
+// comprobaba `c.length === 1` -- es decir, que la cascada de pago barato SUSTITUÍA a la normal.
+// Corregido tras el ruling del controlador: debe ir DELANTE de la normal, nunca sustituirla (si el
+// único modelo de pago barato falla, un urgente no debe quedarse sin nada más que probar).
+test('producirTanda: con urgente + permitirPago=true, antepone las cascadas de pago barato a las normales, sin sustituirlas (I2)', async () => {
   const { llamar, registro } = crearLlamarPipeline({});
 
   await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, permitirPago: true, topeEur: 5, urgente: true });
 
   const cascadasVistas = registro.map((r) => r.modelos);
-  assert.ok(cascadasVistas.some((c) => c.length === 1 && c[0] === GENERADOR_PREGUNTAS_SOLO_PAGO[0]));
-  assert.ok(cascadasVistas.some((c) => c.length === 1 && c[0] === VERIFICADOR_PREGUNTAS_SOLO_PAGO[0]));
-  assert.ok(cascadasVistas.some((c) => c.includes(GENERADOR_SOLO_PAGO[0])));
-  assert.ok(cascadasVistas.some((c) => c.includes(VERIFICADOR_SOLO_PAGO[0])));
+  assert.ok(
+    cascadasVistas.some((c) => c[0] === GENERADOR_PREGUNTAS_SOLO_PAGO[0] && c.length > GENERADOR_PREGUNTAS_SOLO_PAGO.length),
+    'la cascada de generación de preguntas debe seguir con la normal detrás del modelo de pago barato',
+  );
+  assert.ok(
+    cascadasVistas.some((c) => c[0] === VERIFICADOR_PREGUNTAS_SOLO_PAGO[0] && c.length > VERIFICADOR_PREGUNTAS_SOLO_PAGO.length),
+  );
+  assert.ok(cascadasVistas.some((c) => c[0] === GENERADOR_SOLO_PAGO[0] && c.length > GENERADOR_SOLO_PAGO.length));
+  assert.ok(cascadasVistas.some((c) => c[0] === VERIFICADOR_SOLO_PAGO[0] && c.length > VERIFICADOR_SOLO_PAGO.length));
 });
 
 test('producirTanda: sin urgente (aunque permitirPago sea true), usa las cascadas normales, no las de pago barato', async () => {

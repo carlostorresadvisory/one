@@ -20,7 +20,7 @@
 // que quien haga un leer->modificar->escribir lo envuelva entero en una sola sección crítica. Vive
 // aquí (no en cola.js) porque el cerrojo tiene que ser el mismo objeto para TODOS los llamantes que
 // comparten el mismo `rutaDatos` -- éste es el módulo con ese ámbito.
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 function marcaIsoParaFichero() {
@@ -132,6 +132,19 @@ export function crearAlmacen(rutaDatos) {
       if (!actuales.includes(id)) {
         actuales.push(id);
         await escribirAtomico('reportadas.json', actuales);
+      }
+    },
+    // Ronda final (I4, revisión 14-sep-2026): log de trazabilidad por lote (servidor.log), una
+    // línea JSON por llamada -- mismo formato de "append" que ya usa tools/openrouter.js para
+    // llamadas.log. Un fallo al escribir (disco lleno, carpeta borrada...) NUNCA debe tumbar la
+    // generación: se traga aquí con un único console.error (nunca el objeto entero, aunque tampoco
+    // lleva nada confidencial), mismo criterio que C1.
+    async anadirLineaLog(nombre, objeto) {
+      try {
+        await mkdir(rutaDatos, { recursive: true });
+        await appendFile(path.join(rutaDatos, nombre), `${JSON.stringify(objeto)}\n`, 'utf8');
+      } catch (err) {
+        console.error(`servidor/almacen: no se pudo escribir en ${nombre} (${err?.message || err})`);
       }
     },
     escribirAtomico,
