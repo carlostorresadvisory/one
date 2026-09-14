@@ -359,12 +359,12 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       (r) => r && typeof r.area === 'string' && Array.isArray(r.ruta),
     );
 
-    // clave = area + '' + ruta.join('/') -- así una entrada "toda el área" (ruta: []) y una
+    // clave = JSON.stringify([area, ruta]) -- sin separadores ambiguos: una entrada "toda el área" (ruta: []) y una
     // entrada de ruta concreta dentro de la misma área nunca chocan.
     const objetivos = new Map();
     function sumar(area, ruta, cantidad) {
       if (cantidad <= 0) return;
-      const clave = `${area}${ruta.join('/')}`;
+      const clave = JSON.stringify([area, ruta]);
       if (!objetivos.has(clave)) objetivos.set(clave, { area, ruta, cantidad: 0 });
       objetivos.get(clave).cantidad += cantidad;
     }
