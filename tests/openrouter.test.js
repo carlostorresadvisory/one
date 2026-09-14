@@ -233,7 +233,7 @@ test(
       };
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite'],
+      modelos: ['gemini:gemini-flash-lite-latest'],
       mensajes: [{ role: 'user', content: 'hola' }],
       json: true,
       fetchImpl,
@@ -244,10 +244,10 @@ test(
     assert.equal(opcionesRecibidas.headers['HTTP-Referer'], undefined, 'HTTP-Referer es solo de OpenRouter');
     assert.equal(opcionesRecibidas.headers['X-Title'], undefined, 'X-Title es solo de OpenRouter');
     const body = JSON.parse(opcionesRecibidas.body);
-    assert.equal(body.model, 'gemini-2.5-flash-lite');
+    assert.equal(body.model, 'gemini-flash-lite-latest');
     assert.deepEqual(body.response_format, { type: 'json_object' });
     assert.equal(r.texto, '{"saludo":"hola desde gemini"}');
-    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.modelo, 'gemini:gemini-flash-lite-latest');
     assert.equal(r.coste, 0);
     await limpiarLog();
   }),
@@ -265,7 +265,7 @@ test(
       return respuestaOk(body.model);
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      modelos: ['gemini:gemini-flash-lite-latest', 'b/dos:free'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
@@ -283,13 +283,13 @@ test(
     await assert.rejects(
       () =>
         llamar({
-          modelos: ['gemini:gemini-2.5-flash-lite'],
+          modelos: ['gemini:gemini-flash-lite-latest'],
           mensajes: [{ role: 'user', content: 'hola' }],
           fetchImpl,
           rutaLog: RUTA_LOG,
         }),
       (err) => {
-        assert.match(err.message, /gemini:gemini-2\.5-flash-lite: sin clave de Gemini/);
+        assert.match(err.message, /gemini:gemini-flash-lite-latest: sin clave de Gemini/);
         return true;
       },
     );
@@ -310,7 +310,7 @@ test(
       return respuestaOk(body.model);
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      modelos: ['gemini:gemini-flash-lite-latest', 'b/dos:free'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
@@ -328,10 +328,10 @@ test(
     let opcionesRecibidas;
     const fetchImpl = async (url, opts) => {
       opcionesRecibidas = opts;
-      return respuestaOk('gemini-2.5-flash-lite');
+      return respuestaOk('gemini-flash-lite-latest');
     };
     await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite'],
+      modelos: ['gemini:gemini-flash-lite-latest'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
@@ -350,17 +350,17 @@ test(
     const fetchImpl = async () => {
       intentos++;
       if (intentos === 1) return respuestaError(429);
-      return respuestaOk('gemini-2.5-flash-lite', 'ok al segundo intento');
+      return respuestaOk('gemini-flash-lite-latest', 'ok al segundo intento');
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite'],
+      modelos: ['gemini:gemini-flash-lite-latest'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
     });
     assert.equal(intentos, 2);
-    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.modelo, 'gemini:gemini-flash-lite-latest');
     assert.equal(r.texto, 'ok al segundo intento');
     await limpiarLog();
   }),
@@ -374,18 +374,18 @@ test(
     const fetchImpl = async (url, opts) => {
       const body = JSON.parse(opts.body);
       llamadas.push(body.model);
-      if (body.model === 'gemini-2.5-flash-lite') return respuestaError(429);
+      if (body.model === 'gemini-flash-lite-latest') return respuestaError(429);
       return respuestaOk(body.model);
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      modelos: ['gemini:gemini-flash-lite-latest', 'b/dos:free'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
@@ -399,18 +399,18 @@ test(
     const fetchImpl = async (url, opts) => {
       const body = JSON.parse(opts.body);
       llamadas.push(body.model);
-      if (body.model === 'gemini-2.5-flash-lite') return respuestaError(503);
+      if (body.model === 'gemini-flash-lite-latest') return respuestaError(503);
       return respuestaOk(body.model);
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      modelos: ['gemini:gemini-flash-lite-latest', 'b/dos:free'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-2.5-flash-lite', 'gemini-2.5-flash-lite', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
@@ -426,13 +426,13 @@ test(
       return respuestaOk(body.model, 'respuesta gratis');
     };
     const r = await llamar({
-      modelos: ['gemini:gemini-2.5-flash-lite'],
+      modelos: ['gemini:gemini-flash-lite-latest'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
       // permitirPago no se pasa (queda en su valor por defecto, false).
     });
-    assert.equal(r.modelo, 'gemini:gemini-2.5-flash-lite');
+    assert.equal(r.modelo, 'gemini:gemini-flash-lite-latest');
     assert.equal(r.texto, 'respuesta gratis');
     await limpiarLog();
   }),
@@ -452,7 +452,7 @@ test(
       }),
     });
     await llamar({
-      modelos: ['gemini:gemini-2.5-flash'],
+      modelos: ['gemini:gemini-3.6-flash'],
       mensajes: [{ role: 'user', content: 'hola' }],
       fetchImpl,
       rutaLog: RUTA_LOG,
@@ -460,7 +460,7 @@ test(
     const contenido = await readFile(RUTA_LOG, 'utf8');
     const lineas = contenido.trim().split('\n');
     const ultima = JSON.parse(lineas[lineas.length - 1]);
-    assert.equal(ultima.modelo, 'gemini:gemini-2.5-flash');
+    assert.equal(ultima.modelo, 'gemini:gemini-3.6-flash');
     assert.equal(ultima.coste, 0);
     assert.equal(ultima.tokens, 6);
     assert.equal(ultima.ok, true);

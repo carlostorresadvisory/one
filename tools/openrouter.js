@@ -26,8 +26,12 @@ export const MODELOS = {
   // Gemini gratis (GEMINI_API_KEY_GRATIS, cableado 14-sep-2026) va primero: es el primer eslabón
   // gratis de la cascada, antes de los ':free' de OpenRouter.
   generador: [
-    'gemini:gemini-2.5-flash-lite',
-    'gemini:gemini-2.5-flash',
+    // 15-sep-2026 (tanda real tras publicar v0.2b3): Google retiró gemini-2.5-* para cuentas nuevas
+    // (HTTP 404 "no longer available to new users"). Medido desde el VPS con la clave gratis:
+    // gemini-flash-lite-latest 0,6 s; gemini-3.6-flash 1,2 s; gemini-flash-latest 18 s (piensa);
+    // gemma-4-31b-it 32 s y mete <thought> en el JSON. Alias *-latest para sobrevivir retiradas.
+    'gemini:gemini-flash-lite-latest',
+    'gemini:gemini-3.6-flash',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'nvidia/nemotron-3-super-120b-a12b:free',
     'z-ai/glm-4.7-flash',
@@ -35,7 +39,7 @@ export const MODELOS = {
     'google/gemini-2.5-flash',
   ],
   verificador: [
-    'gemini:gemini-2.5-flash',
+    'gemini:gemini-3.6-flash',
     'google/gemma-4-31b-it:free',
     'nex-agi/nex-n2.5-pro:free',
     'deepseek/deepseek-v4-flash',

@@ -63,7 +63,7 @@ test('generarBorradores: con n=5 (un solo lote) reparte V/F 50/50 (redondeado ha
     assert.equal(b.tipo, 'vf');
     // Cambiado (Tarea 2, v0.2b3): antes filtraba solo por ':free' -- con `esModeloGratis` (que
     // también cuenta los "gemini:*" como gratis, ya en cabeza de MODELOS.generador) el primer
-    // modelo gratis real pasa a ser 'gemini:gemini-2.5-flash-lite'.
+    // modelo gratis real pasa a ser 'gemini:gemini-flash-lite-latest'.
     assert.equal(b.generador, MODELOS.generador.filter(esModeloGratis)[0]);
     assert.equal(b.verificado, false);
     assert.equal(b.confianza, null);
@@ -178,7 +178,7 @@ test('generarBorradores: con permitirPago=false, nunca pasa un modelo de pago a 
 // Tarea 2 (v0.2b3): esModeloGratis ahora se importa de tools/openrouter.js en vez de duplicarse
 // localmente -- este test demuestra que los ids "gemini:*" (ya en cabeza de MODELOS.generador, ver
 // Tarea 1) llegan de verdad a `llamar` con permitirPago=false, y en primer lugar.
-test('generarBorradores: con permitirPago=false, la cascada que llega a llamar empieza por gemini:gemini-2.5-flash-lite', async () => {
+test('generarBorradores: con permitirPago=false, la cascada que llega a llamar empieza por gemini:gemini-flash-lite-latest', async () => {
   const modelosVistos = [];
   const llamarFalso = async ({ modelos }) => {
     modelosVistos.push(...modelos);
@@ -187,7 +187,7 @@ test('generarBorradores: con permitirPago=false, la cascada que llega a llamar e
 
   await generarBorradores({ area: 'arte', ruta: [], n: 1 }, { llamar: llamarFalso, permitirPago: false });
 
-  assert.equal(modelosVistos[0], 'gemini:gemini-2.5-flash-lite');
+  assert.equal(modelosVistos[0], 'gemini:gemini-flash-lite-latest');
 });
 
 test('generarBorradores: área desconocida lanza un error claro', async () => {
