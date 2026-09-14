@@ -2849,12 +2849,23 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
    * interferir con el chip de banco extendido), /subtemas con un anillo 1 fijo de 4 nodos y un
    * anillo 2 de 2, /generar con un trabajoId fijo, y /trabajo/:id que responde "generando" en el
    * primer sondeo y "lista" con 10 preguntas en el segundo (brief de la tarea: "tras 2 sondeos
-   * simulados"). */
-  function servidorAtomoFalso() {
+   * simulados").
+   *
+   * Ronda 1 de revisión: dos parámetros nuevos, opcionales y con el mismo comportamiento de
+   * siempre si no se pasan. `contadores` (objeto mutable) suma una llamada por ruta real (nunca
+   * por el preflight OPTIONS) -- para comprobar cuántas veces se llamó a algo sin depender de
+   * temporizadores. `trabajoRespuesta` sustituye ENTERA la respuesta de /trabajo/:id (todas las
+   * veces, no solo la primera) -- para el caso "el trabajo ya no existe" (404 tras reiniciar el
+   * servidor, Minor #8). */
+  function servidorAtomoFalso({ contadores = {}, trabajoRespuesta = null } = {}) {
     let sondeos = 0;
+    const suma = (clave) => {
+      contadores[clave] = (contadores[clave] || 0) + 1;
+    };
     return conPreflight(async (route, req) => {
       const url = new URL(req.url());
       if (url.pathname === '/estado') {
+        suma('estado');
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -2864,6 +2875,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
         return;
       }
       if (url.pathname === '/subtemas') {
+        suma('subtemas');
         const cuerpo = req.postDataJSON();
         const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
         const subtemas =
@@ -2887,6 +2899,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
         return;
       }
       if (url.pathname === '/generar') {
+        suma('generar');
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -2896,6 +2909,11 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
         return;
       }
       if (url.pathname.startsWith('/trabajo/')) {
+        suma('trabajo');
+        if (trabajoRespuesta) {
+          await route.fulfill(trabajoRespuesta);
+          return;
+        }
         sondeos += 1;
         if (sondeos === 1) {
           await route.fulfill({
@@ -2974,6 +2992,11 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.screenshot({ path: `${CAPTURAS}/v0.2b2-atomo-375.png` });
     await assertSinScroll(page);
 
+    // Ronda 1 de revisión (Minor #7): sin-scroll también a 393x852, no solo a 375x812.
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
     await page.locator('[data-test="atomo-nodo"]').first().click();
     await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados y crisis');
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // anillo 2 (mock de arriba)
@@ -3005,5 +3028,56 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // "0/10": recién arrancada (0 respondidas), 10 preguntas totales -- exactamente los ids de
     // la tanda que acaba de llegar, sin relleno (empezarPartida({ids, etiqueta})).
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
+  test('doble click en Generar no manda dos POST /generar (Ronda 1 de revisión, Critical)', async ({ page }) => {
+    const contadores = {};
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso({ contadores }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    // Dos toques "a la vez" DE VERDAD: dos `.click()` nativos en el MISMO tick de JS. Dos
+    // `.click()` de Playwright no valdrían -- cada uno espera a que el botón esté "enabled" antes
+    // de tocarlo, así que el segundo se quedaría esperando a que se reactive y nunca reproduciría
+    // la carrera que existía antes de este arreglo (atomoGenerarEnVuelo, ver app.js).
+    await page.evaluate(() => {
+      const boton = document.querySelector('[data-test="atomo-generar"]');
+      boton.click();
+      boton.click();
+    });
+
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    expect(contadores.generar).toBe(1);
+  });
+
+  test('el trabajo desaparece (404 tras reiniciar el servidor): chip de fallo y el sondeo se detiene (Ronda 1 de revisión, Minor #8)', async ({
+    page,
+  }) => {
+    const contadores = {};
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      servidorAtomoFalso({ contadores, trabajoRespuesta: { status: 404, headers: CORS, body: '{}' } })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('No se pudo generar, prueba otra vez', { timeout: 8000 });
+
+    // El sondeo se detiene en cuanto consultarTrabajo devuelve null (404): un ciclo más (5s) no
+    // debe sumar ninguna llamada más a /trabajo/:id.
+    const llamadasTrasElFallo = contadores.trabajo;
+    await page.waitForTimeout(6000);
+    expect(contadores.trabajo).toBe(llamadasTrasElFallo);
   });
 });
