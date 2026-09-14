@@ -219,9 +219,12 @@ test('cola: un trabajo con fallos parciales pero al menos 1 aprobada termina "pa
   const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
 
   const { trabajoId } = cola.encolar({ area: 'geografia', ruta: [], n: 10, urgente: false });
-  await hastaQue(() => ['lista', 'parcial', 'fallida'].includes(cola.estadoTrabajo(trabajoId).estado));
+  // OJO: 'parcial' es también el estado INTERMEDIO entre lotes (spec: "≥1 aprobada y quedan
+  // lotes"), así que no sirve como señal de fin -- se espera a `hechas === pedidas` (todos los
+  // lotes ya intentados) y solo entonces se lee el estado final.
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).hechas === 10);
   const final = cola.estadoTrabajo(trabajoId);
-  assert.equal(final.estado, 'parcial');
+  assert.equal(final.estado, 'parcial', 'huboFallo=true con >=1 aprobada al terminar: parcial, no lista');
   assert.equal(final.preguntas.length, 3);
   assert.equal(final.hechas, 10, 'el lote fallido cuenta como consumido, no se reintenta infinitamente');
 });

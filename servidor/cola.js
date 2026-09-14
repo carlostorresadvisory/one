@@ -174,8 +174,6 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
         trabajo.huboFallo = true;
       }
 
-      trabajo.hechas += tamanoLote;
-
       if (resultado) {
         if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
         if (resultado.aprobadas && resultado.aprobadas.length > 0) {
@@ -185,6 +183,12 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
         }
       }
 
+      // A partir de aquí, sin más `await` de este lote: `hechas` y `estado` cambian juntos, en el
+      // mismo tramo síncrono. Antes `hechas` se actualizaba ANTES de guardar en disco y `estado`
+      // DESPUÉS -- un observador externo (estadoTrabajo) podía ver `hechas` ya al día pero
+      // `estado` todavía con el valor del lote anterior (condición de carrera real, encontrada
+      // ejecutando esta misma suite en bucle: ~1 de cada 10-15 ejecuciones fallaba justo ahí).
+      trabajo.hechas += tamanoLote;
       if (trabajo.hechas < trabajo.pedidas) {
         trabajo.estado = trabajo.preguntas.length > 0 ? 'parcial' : 'generando';
       }
