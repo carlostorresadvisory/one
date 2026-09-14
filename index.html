@@ -106,6 +106,12 @@
            servidor que trajo preguntas todavía no vistas; desaparece al tocarlo (no hace falta
            más acción -- ya están mezcladas en el banco en memoria, ver app.js). -->
       <button type="button" class="hub-chip-nuevas" data-test="nuevas-servidor" hidden></button>
+      <!-- Chip de una tanda pedida desde el Átomo (v0.2b2 §4): "Tanda lista: N de <subtema>"
+           cuando el trabajo llega a "lista" (o a "parcial" con >= 5), o "No se pudo generar,
+           prueba otra vez" si falla/desaparece (404 tras reinicio del servidor) -- mismo nodo en
+           los dos casos, ver app.js#mostrarChipTandaFallida. Tocarlo arranca la partida con esas
+           preguntas (o solo lo cierra, si es el aviso de fallo). -->
+      <button type="button" class="hub-chip-nuevas hub-chip-tanda" data-test="tanda-lista" hidden></button>
       <div class="hub-destacados">
         <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
         <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>
@@ -126,6 +132,41 @@
           Importar
           <input type="file" id="importar-archivo" accept="application/json" hidden>
         </label>
+      </div>
+    </section>
+
+    <!-- ÁTOMO (spec v0.2b2 §4): se abre manteniendo pulsada una tarjeta de área del HUB (o con su
+         botón "⚛", ver renderHub en app.js). Núcleo = área/subtema elegido en el centro del SVG,
+         anillo de nodos alrededor con los subtemas del servidor; tocar un nodo avanza un anillo,
+         tocar el núcleo retrocede uno. "←" de la cabecera (ya existente, manejarVolver) lleva
+         siempre al HUB desde aquí -- ver ese mismo manejador en app.js, no hace falta otro. -->
+    <section class="vista vista-atomo" data-vista="atomo" data-test="atomo" hidden>
+      <!-- .atomo-cuerpo absorbe el espacio libre y centra el lienzo dentro de él (crece/decrece
+           con la pantalla): así los botones de abajo quedan fijos al fondo real de la vista sin
+           dejar un hueco muerto entre el círculo y ellos en pantallas altas. -->
+      <div class="atomo-cuerpo">
+        <div class="atomo-cabecera">
+          <span class="atomo-ruta" data-test="atomo-ruta"></span>
+          <span class="punto-servidor" data-test="atomo-estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
+        </div>
+        <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
+        <p class="atomo-aviso" data-test="atomo-aviso" hidden></p>
+        <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>
+      </div>
+      <div class="atomo-acciones">
+        <button type="button" class="boton" data-test="atomo-atras">Atrás</button>
+        <button type="button" class="boton boton-principal" data-test="atomo-generar" disabled>Generar</button>
+      </div>
+    </section>
+
+    <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
+         sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
+         jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->
+    <section class="vista vista-atomo-espera" data-vista="atomo-espera" data-test="atomo-espera" hidden>
+      <p class="atomo-espera-texto" data-test="atomo-espera-texto"></p>
+      <div class="atomo-espera-acciones">
+        <button type="button" class="boton boton-principal" data-test="atomo-jugar-mientras">Jugar mientras</button>
+        <button type="button" class="boton" data-test="atomo-repasar-mientras">Repasar mientras</button>
       </div>
     </section>
   </main>

@@ -106,11 +106,14 @@ function envolverTexto(texto, maxPorLinea, maxLineas) {
 
 /** Pinta `lineas` como `<tspan>` centrados verticalmente sobre `nodoTexto` (que ya tiene
  * `text-anchor="middle"`/`dominant-baseline="middle"`, ver crearAtomo). */
-function pintarLineas(nodoTexto, lineas, alturaLinea) {
+function pintarLineas(nodoTexto, lineas, alturaLinea, x = 0) {
   nodoTexto.textContent = '';
   const offsetInicial = (-(lineas.length - 1) * alturaLinea) / 2;
   lineas.forEach((linea, i) => {
-    const tspan = crearElementoSvg('tspan', { x: 0, dy: i === 0 ? offsetInicial : alturaLinea });
+    // `x` se repite en CADA tspan a propósito: sin él, un tspan sin `x` propio continúa desde
+    // donde quedó el cursor de la línea anterior (que con text-anchor="middle" no está centrado
+    // para la segunda línea) en vez de recentrarse él solo.
+    const tspan = crearElementoSvg('tspan', { x, dy: i === 0 ? offsetInicial : alturaLinea });
     tspan.textContent = linea;
     nodoTexto.appendChild(tspan);
   });
@@ -155,8 +158,15 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
     'data-test': 'atomo-nucleo',
     'aria-label': 'Volver un anillo atrás',
   });
-  const circuloNucleo = crearElementoSvg('circle', { r: RADIO_NUCLEO, class: 'atomo-nucleo-circulo' });
+  const circuloNucleo = crearElementoSvg('circle', {
+    cx: CENTRO,
+    cy: CENTRO,
+    r: RADIO_NUCLEO,
+    class: 'atomo-nucleo-circulo',
+  });
   const textoNucleo = crearElementoSvg('text', {
+    x: CENTRO,
+    y: CENTRO,
     'text-anchor': 'middle',
     'dominant-baseline': 'middle',
     class: 'atomo-nucleo-texto',
@@ -212,7 +222,7 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
   }
 
   function actualizar(nuevosSubtemas = [], textoNucleo2 = area) {
-    pintarLineas(textoNucleo, envolverTexto(textoNucleo2, 16, 2), 13);
+    pintarLineas(textoNucleo, envolverTexto(textoNucleo2, 16, 2), 13, CENTRO);
     pintarNodos(nuevosSubtemas);
   }
 

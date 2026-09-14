@@ -25,7 +25,11 @@ import {
   fusionarBancoExtra,
   sincronizarEstado,
   reportarAlServidor,
+  pedirSubtemas,
+  pedirTanda,
+  consultarTrabajo,
 } from './sincronizacion.js';
+import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -163,6 +167,19 @@ let filtroRepaso = cargarFiltroRepaso();
 // mismo filtro.
 let filtroPartida = null;
 
+// --- Átomo (spec v0.2b2 §4): estado de la ruta elegida, instancia del SVG, y el trabajo de
+// generación en curso (Generar -> espera -> chip "Tanda lista"). Todo module-level porque, a
+// diferencia del mazo, el sondeo del trabajo sigue corriendo aunque el jugador navegue a otra
+// vista (jugar/repasar "mientras" se genera) -- solo se detiene al llegar a un estado final o al
+// cerrar la app (pagehide).
+let atomoEstado = null; // {area, ruta, etiquetas} (atomo.js#crearEstadoAtomo); null = vista no abierta.
+let atomoInstancia = null; // devuelto por crearAtomo(): {actualizar, destruir}.
+let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas ya obsoletas.
+let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
+let atomoTrabajoInfo = null; // {corto} de la ruta que se pidió, para el texto de espera/chip.
+let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
+let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin chip que mostrar.
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
@@ -189,6 +206,16 @@ const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
 // Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
+const nodoTandaLista = document.querySelector('[data-test="tanda-lista"]');
+// Átomo (v0.2b2 §4).
+const nodoAtomoRuta = document.querySelector('[data-test="atomo-ruta"]');
+const nodoAtomoEstadoServidor = document.querySelector('[data-test="atomo-estado-servidor"]');
+const nodoAtomoLienzo = document.querySelector('[data-test="atomo-lienzo"]');
+const nodoAtomoAviso = document.querySelector('[data-test="atomo-aviso"]');
+const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar"]');
+const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
+const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
+const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -381,6 +408,7 @@ function limpiarPartidaEnCurso() {
   }
   limpiarResumenMazo();
   limpiarRepasoMazo();
+  limpiarAtomo(); // el SVG y la ruta elegida, NO el trabajo/sondeo en curso si lo hubiera (spec §4).
   mazo = [];
   indiceMazo = 0;
   nodoCierre = null;
@@ -453,10 +481,14 @@ const ETIQUETA_ESTADO_SERVIDOR = {
   ambar: 'Servidor configurado, el último intento falló',
 };
 
-/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. */
+/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También
+ * el mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador):
+ * mismo estado, mismo criterio de color, dos sitios donde se ve. */
 function actualizarPuntoServidor() {
   nodoEstadoServidor.dataset.estado = estadoServidor;
   nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+  nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
+  nodoAtomoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
 }
 
 /** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
@@ -488,6 +520,256 @@ async function sincronizarEnSegundoPlano() {
       mostrarChipNuevas(anadidas);
     }
   }
+}
+
+// --- Átomo (spec v0.2b2 §4): elegir un subtema sin teclado, pedir una tanda nueva y esperar
+// jugando o repasando mientras se genera ---
+
+const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
+
+/** Guarda la ruta pedida al pulsar Generar en `localStorage` (clave `one.rutasAtomo`), con la
+ * fecha de hoy -- es lo que `sincronizacion.js#leerRutasAtomoRecientes` lee (últimos 7 días) para
+ * mandarlo en el próximo `POST /estado` y que el servidor reparta parte de su colchón nocturno a
+ * estas rutas (spec §3.1/§3.3). Esa función lectora no está exportada (Tarea 1 solo expuso el
+ * lector; la escritura es de esta tarea) -- incluso así, esto NO toca sincronizacion.js: escribe
+ * en la misma clave y con la misma forma que ese lector ya espera. Dedupe por [área, ruta, fecha]
+ * para no acumular la misma entrada cada vez que se pulsa Generar dos veces seguidas en la misma
+ * ruta el mismo día. */
+function guardarRutaAtomo(area, ruta) {
+  let guardadas = [];
+  try {
+    const crudo = localStorage.getItem(CLAVE_RUTAS_ATOMO);
+    const datos = crudo ? JSON.parse(crudo) : [];
+    if (Array.isArray(datos)) guardadas = datos;
+  } catch {
+    guardadas = [];
+  }
+  const fecha = hoy();
+  const yaEsta = guardadas.some(
+    (r) => r && r.area === area && r.fecha === fecha && JSON.stringify(r.ruta) === JSON.stringify(ruta)
+  );
+  if (!yaEsta) guardadas.push({ area, ruta, fecha });
+  try {
+    localStorage.setItem(CLAVE_RUTAS_ATOMO, JSON.stringify(guardadas));
+  } catch {
+    // localStorage llena o no disponible: mismo criterio que guardarEstado, se sigue en memoria
+    // esta sesión sin más.
+  }
+}
+
+/** Texto del núcleo: el último subtema elegido (corto), o el nombre del área en el anillo 1. */
+function nucleoAtomoTexto() {
+  const etiquetas = atomoEstado.etiquetas;
+  return etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(atomoEstado.area);
+}
+
+/** Migaja de pan de la cabecera: "Economía › Mercados y crisis › ...". */
+function actualizarCabeceraAtomo() {
+  const partes = [nombreArea(atomoEstado.area), ...atomoEstado.etiquetas];
+  nodoAtomoRuta.textContent = partes.join(' › ');
+}
+
+/** Generar apagado sin servidor, o mientras ya hay un trabajo en curso (spec: "un solo trabajo
+ * activo a la vez") -- el texto del botón dice por qué en ese segundo caso. */
+function actualizarBotonGenerarAtomo() {
+  if (!leerConfiguracion()) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Generar';
+    return;
+  }
+  if (atomoTrabajoId) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Ya hay una tanda en marcha';
+    return;
+  }
+  nodoAtomoGenerar.disabled = false;
+  nodoAtomoGenerar.textContent = 'Generar';
+}
+
+function mostrarAvisoAtomo(texto, { reintentar = false } = {}) {
+  nodoAtomoAviso.textContent = texto;
+  nodoAtomoAviso.hidden = false;
+  nodoAtomoReintentar.hidden = !reintentar;
+}
+
+function ocultarAvisoAtomo() {
+  nodoAtomoAviso.hidden = true;
+  nodoAtomoReintentar.hidden = true;
+}
+
+/** Pide el anillo correspondiente a `atomoEstado.ruta` y lo pinta. Decisión #1 del controlador:
+ * sin servidor configurado, núcleo solo (sin nodos) con el aviso de conectar servidor y Generar
+ * apagado; con servidor pero `pedirSubtemas` devolviendo null, aviso de fallo + "Reintentar" --
+ * Generar sigue disponible en ese caso (no depende del anillo actual, solo de la ruta YA
+ * confirmada). `atomoPeticionId` descarta una respuesta tardía si el jugador ya avanzó/retrocedió
+ * antes de que esta llegara (evita que un anillo viejo pise al nuevo). */
+async function cargarAnilloAtomo() {
+  actualizarCabeceraAtomo();
+  actualizarBotonGenerarAtomo();
+  nodoAtomoAtras.disabled = atomoEstado.ruta.length === 0;
+
+  const configuracion = leerConfiguracion();
+  if (!configuracion) {
+    atomoInstancia.actualizar([], nucleoAtomoTexto());
+    mostrarAvisoAtomo('Conecta el servidor para generar preguntas nuevas');
+    return;
+  }
+  ocultarAvisoAtomo();
+
+  const idPeticion = (atomoPeticionId += 1);
+  const subtemas = await pedirSubtemas({ area: atomoEstado.area, ruta: atomoEstado.ruta, fetchImpl: fetch });
+  if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no es la petición vigente
+
+  if (subtemas === null) {
+    atomoInstancia.actualizar([], nucleoAtomoTexto());
+    mostrarAvisoAtomo('No se pudieron cargar los subtemas', { reintentar: true });
+    return;
+  }
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto());
+}
+
+function manejarElegirSubtemaAtomo(subtema) {
+  const nuevoEstado = avanzar(atomoEstado, subtema);
+  if (nuevoEstado === atomoEstado) return; // ya en el máximo de 4 anillos (atomo.js#avanzar)
+  atomoEstado = nuevoEstado;
+  cargarAnilloAtomo();
+}
+
+function manejarAtomoAtras() {
+  const nuevoEstado = retroceder(atomoEstado);
+  if (nuevoEstado === atomoEstado) return; // ya en el anillo 1, nada que hacer
+  atomoEstado = nuevoEstado;
+  cargarAnilloAtomo();
+}
+
+/** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
+function abrirAtomo(area) {
+  atomoEstado = crearEstadoAtomo(area);
+  if (atomoInstancia) atomoInstancia.destruir();
+  atomoInstancia = crearAtomo({
+    contenedor: nodoAtomoLienzo,
+    area: nombreArea(area),
+    subtemas: [],
+    alElegir: manejarElegirSubtemaAtomo,
+    alVolver: manejarAtomoAtras,
+  });
+  mostrarVista('atomo');
+  cargarAnilloAtomo();
+}
+
+/** Desmonta el Átomo (SVG + estado de ruta), sin tocar el trabajo/sondeo en curso si lo hubiera
+ * -- ver limpiarPartidaEnCurso, que es quien la llama al salir hacia el HUB o los emojis. */
+function limpiarAtomo() {
+  if (atomoInstancia) {
+    atomoInstancia.destruir();
+    atomoInstancia = null;
+  }
+  atomoEstado = null;
+}
+
+function detenerSondeoAtomo() {
+  if (atomoSondeoId !== null) {
+    clearInterval(atomoSondeoId);
+    atomoSondeoId = null;
+  }
+}
+
+function finalizarTrabajoAtomo() {
+  atomoTrabajoId = null;
+  atomoTrabajoInfo = null;
+  actualizarBotonGenerarAtomo();
+}
+
+/** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
+ * y para el fallo ("No se pudo generar..."); tocarlo lanza la partida en el primer caso y solo se
+ * cierra a sí mismo en el segundo (ver el listener del chip, más abajo junto al resto de eventos
+ * de navegación). */
+function mostrarChipTandaLista(ids, corto) {
+  atomoTandaLista = { ids, corto };
+  nodoTandaLista.textContent = `Tanda lista: ${ids.length} de ${corto}`;
+  nodoTandaLista.hidden = false;
+}
+
+function mostrarChipTandaFallida() {
+  atomoTandaLista = null;
+  nodoTandaLista.textContent = 'No se pudo generar, prueba otra vez';
+  nodoTandaLista.hidden = false;
+}
+
+/** `parcial` (>= 5) o `lista`: fusiona las preguntas de esta tanda en el banco extendido y
+ * refresca el chip con el recuento actual -- con `parcial` el sondeo sigue (puede que llegue
+ * `lista` con más preguntas todavía), con `lista` ya es definitivo. */
+function fusionarTandaAtomo(trabajo) {
+  fusionarBancoExtra(trabajo.preguntas, estado, idsBancoLocal);
+  reconstruirBanco();
+  const ids = trabajo.preguntas.map((p) => p.id);
+  mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
+}
+
+async function sondearTrabajoAtomo() {
+  if (!atomoTrabajoId) {
+    detenerSondeoAtomo();
+    return;
+  }
+  const trabajo = await consultarTrabajo(atomoTrabajoId, { fetchImpl: fetch });
+  if (!trabajo) {
+    // 404 (trabajo perdido tras reiniciar el servidor) o cualquier otro fallo de red/servidor.
+    detenerSondeoAtomo();
+    finalizarTrabajoAtomo();
+    mostrarChipTandaFallida();
+    return;
+  }
+  if (trabajo.estado === 'lista') {
+    detenerSondeoAtomo();
+    if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length > 0) fusionarTandaAtomo(trabajo);
+    else mostrarChipTandaFallida();
+    finalizarTrabajoAtomo();
+    return;
+  }
+  if (trabajo.estado === 'fallida') {
+    detenerSondeoAtomo();
+    finalizarTrabajoAtomo();
+    mostrarChipTandaFallida();
+    return;
+  }
+  if (trabajo.estado === 'parcial' && Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= 5) {
+    fusionarTandaAtomo(trabajo); // sigue sondeando: puede llegar a "lista" con más preguntas.
+    return;
+  }
+  // 'en-cola' | 'generando' | 'parcial' con menos de 5 preguntas: seguir esperando sin más.
+}
+
+function iniciarSondeoAtomo() {
+  detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
+  atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
+}
+
+function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
+  nodoAtomoEsperaTexto.textContent = `Generando 10 preguntas de ${rutaTexto} · ~${estimadoSeg} s`;
+  mostrarVista('atomo-espera');
+}
+
+/** Botón Generar (spec §4): pide la tanda con la ruta YA confirmada (no depende del anillo que se
+ * esté mirando ahora mismo) y pasa a la tarjeta de espera. Un solo trabajo activo a la vez: si ya
+ * hay uno, no hace nada (el botón ya debería estar apagado, ver actualizarBotonGenerarAtomo --
+ * esta comprobación es solo defensiva). */
+async function manejarGenerarAtomo() {
+  if (atomoTrabajoId || !leerConfiguracion() || !atomoEstado) return;
+  const { area, ruta, etiquetas } = atomoEstado;
+  const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
+  const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
+  guardarRutaAtomo(area, ruta);
+
+  const resultado = await pedirTanda({ area, ruta, n: 10, fetchImpl: fetch });
+  if (!resultado) {
+    mostrarAvisoAtomo('No se pudo generar, prueba otra vez');
+    return;
+  }
+  atomoTrabajoId = resultado.trabajoId;
+  atomoTrabajoInfo = { corto };
+  actualizarBotonGenerarAtomo();
+  mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
+  iniciarSondeoAtomo();
 }
 
 // --- carga del banco y arranque ---
@@ -2529,13 +2811,74 @@ function renderHub() {
     solido.textContent = `S ${fila.solidas} · R ${fila.recientes}`;
 
     // Tocar la tarjeta entera arranca una partida SOLO de esa área (como un nivel
-    // de videojuego): nada de un botón "Practicar" aparte.
-    tarjeta.addEventListener('click', () => empezarPartida({ area: fila.area }));
+    // de videojuego); mantenerla pulsada, o el botón "⚛", abre el Átomo (v0.2b2 §4)
+    // para elegir un subtema y pedir una tanda nueva.
+    let idPulsacionLarga = null;
+    let origenPulsacion = null;
+    let pulsacionYaAbrioAtomo = false; // el click que sigue a una pulsación larga no lanza la partida.
+    const PULSACION_LARGA_MS = 500;
+    const MOVIMIENTO_MAX_PX = 10;
+
+    function cancelarPulsacionLarga() {
+      if (idPulsacionLarga !== null) {
+        clearTimeout(idPulsacionLarga);
+        idPulsacionLarga = null;
+      }
+      origenPulsacion = null;
+    }
+
+    tarjeta.addEventListener('pointerdown', (ev) => {
+      if (tarjeta.disabled) return;
+      origenPulsacion = { x: ev.clientX, y: ev.clientY };
+      idPulsacionLarga = setTimeout(() => {
+        idPulsacionLarga = null;
+        pulsacionYaAbrioAtomo = true;
+        abrirAtomo(fila.area);
+      }, PULSACION_LARGA_MS);
+    });
+    tarjeta.addEventListener('pointermove', (ev) => {
+      if (!origenPulsacion) return;
+      const dx = ev.clientX - origenPulsacion.x;
+      const dy = ev.clientY - origenPulsacion.y;
+      if (Math.hypot(dx, dy) > MOVIMIENTO_MAX_PX) cancelarPulsacionLarga();
+    });
+    tarjeta.addEventListener('pointerup', cancelarPulsacionLarga);
+    tarjeta.addEventListener('pointerleave', cancelarPulsacionLarga);
+    tarjeta.addEventListener('pointercancel', cancelarPulsacionLarga);
+
+    tarjeta.addEventListener('click', () => {
+      if (pulsacionYaAbrioAtomo) {
+        pulsacionYaAbrioAtomo = false; // se descarta UNA sola vez, ver brief de la tarea.
+        return;
+      }
+      empezarPartida({ area: fila.area });
+    });
+
+    const botonAtomo = document.createElement('span');
+    botonAtomo.className = 'tarjeta-area-atomo';
+    botonAtomo.dataset.test = 'atomo-abrir';
+    botonAtomo.setAttribute('role', 'button');
+    botonAtomo.setAttribute('tabindex', '0');
+    botonAtomo.setAttribute('aria-label', `Elegir subtema de ${nombreArea(fila.area)}`);
+    botonAtomo.textContent = '⚛';
+    botonAtomo.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      abrirAtomo(fila.area);
+    });
+    botonAtomo.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        abrirAtomo(fila.area);
+      }
+    });
+    botonAtomo.addEventListener('pointerdown', (ev) => ev.stopPropagation());
 
     tarjeta.appendChild(cabeceraTarjeta);
     tarjeta.appendChild(nombre);
     tarjeta.appendChild(track);
     tarjeta.appendChild(solido);
+    tarjeta.appendChild(botonAtomo);
     progresoAreas.appendChild(tarjeta);
   });
 }
@@ -2633,6 +2976,28 @@ document.querySelector('[data-test="comenzar"]').addEventListener('click', () =>
 nodoNuevasServidor.addEventListener('click', () => {
   nodoNuevasServidor.hidden = true;
 });
+// Chip "Tanda lista"/"No se pudo generar" del Átomo (v0.2b2 §4): con tanda lista arranca la
+// partida con esas preguntas; con el aviso de fallo (atomoTandaLista null) solo se cierra.
+nodoTandaLista.addEventListener('click', () => {
+  nodoTandaLista.hidden = true;
+  if (!atomoTandaLista) return;
+  const { ids, corto } = atomoTandaLista;
+  atomoTandaLista = null;
+  empezarPartida({ ids, etiqueta: corto });
+});
+// Botones fijos del Átomo: Atrás (un anillo), Generar, y Reintentar del aviso de fallo al cargar
+// subtemas (ver cargarAnilloAtomo).
+nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
+nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
+nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
+// Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
+// depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
+document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
+document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
+// El sondeo del trabajo en curso se detiene solo al llegar a un estado final, o al cerrar la app
+// (spec §4): sin esto, un trabajo que nunca termina dejaría un setInterval corriendo para siempre
+// tras cerrar la pestaña/PWA.
+window.addEventListener('pagehide', detenerSondeoAtomo);
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
