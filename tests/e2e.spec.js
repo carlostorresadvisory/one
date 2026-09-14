@@ -2808,6 +2808,66 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
   });
 });
 
+// C4 de la revisión final v0.2b3-atomo-amplio-gemini: el `::before` de 44×44 que amplía el área
+// táctil del punto de estado (estilos.css#button.punto-servidor::before), CENTRADO en el punto,
+// invadía 24×24px de la esquina superior derecha de "Comenzar" -- un toque real ahí abría la hoja
+// "Conectar" en vez de arrancar la partida (medido en vivo con boundingBox, ver el informe de la
+// revisión). Geometría real, sin mocks de servidor: basta con abrir el HUB.
+test('HUB: el área táctil de 44px del punto de estado no pisa "Comenzar" (C4)', async ({ page }) => {
+  await page.goto('/?test=1');
+  await page.locator('[data-test="cerebro"]').click();
+  await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+  const geometria = await page.evaluate(() => {
+    // Un pseudo-elemento (`::before`) no tiene su propio nodo en el DOM, así que no hay
+    // `getBoundingClientRect` directo -- se reconstruye su caja a mano a partir del `getComputedStyle`
+    // resuelto (top/left/right/bottom/width/height ya en px, no en el "50%"/"10px" de la hoja de
+    // estilos) más la caja REAL del punto (su contenedor: `.punto-servidor` es `position:absolute`,
+    // así que es el "containing block" del propio `::before`) y la matriz de su `transform`.
+    function cajaPseudoBefore(elemento) {
+      const cajaElemento = elemento.getBoundingClientRect();
+      const cs = getComputedStyle(elemento, '::before');
+      let tx = 0;
+      let ty = 0;
+      if (cs.transform && cs.transform !== 'none') {
+        const m = cs.transform.match(/matrix\(([^)]+)\)/);
+        if (m) {
+          const partes = m[1].split(',').map(Number);
+          [, , , , tx, ty] = partes;
+        }
+      }
+      const ancho = parseFloat(cs.width);
+      const alto = parseFloat(cs.height);
+      const izquierda =
+        cs.left !== 'auto'
+          ? cajaElemento.left + parseFloat(cs.left)
+          : cajaElemento.right - parseFloat(cs.right) - ancho;
+      const arriba =
+        cs.top !== 'auto'
+          ? cajaElemento.top + parseFloat(cs.top)
+          : cajaElemento.bottom - parseFloat(cs.bottom) - alto;
+      return { left: izquierda + tx, top: arriba + ty, width: ancho, height: alto, right: izquierda + tx + ancho, bottom: arriba + ty + alto };
+    }
+    function caja(selector) {
+      const r = document.querySelector(selector).getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    }
+    return {
+      areaTactil: cajaPseudoBefore(document.querySelector('[data-test="estado-servidor"]')),
+      comenzar: caja('[data-test="comenzar"]'),
+      grid: caja('#progreso-areas'),
+    };
+  });
+
+  function seSolapan(a, b) {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  expect(geometria.areaTactil.height, 'el área táctil debe seguir midiendo >= 44px de alto (Apple HIG)').toBeGreaterThanOrEqual(44);
+  expect(seSolapan(geometria.areaTactil, geometria.comenzar), 'el área táctil del punto no debe solapar "Comenzar"').toBe(false);
+  expect(seSolapan(geometria.areaTactil, geometria.grid), 'el área táctil del punto no debe solapar la rejilla de áreas').toBe(false);
+});
+
 // Tarea 2 del plan v0.2b2-cliente-atomo (atomo.js + la vista/espera/tanda lista de app.js): el
 // mismo servidor de generación simulado con `page.route` que la Tarea 1, ahora ejercitando
 // /subtemas, /generar y /trabajo/:id (spec §4 "Átomo"). Describe aparte para no mezclar sus

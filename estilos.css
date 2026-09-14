@@ -1852,6 +1852,32 @@ button.punto-servidor::before {
   transform: translate(-50%, -50%);
 }
 
+/* Ronda final de arreglos (revisión, 14-sep-2026) -- Important (C4): en el HUB, el punto de estado
+   está pegado a la esquina superior derecha del botón "Comenzar" (`.punto-servidor` en top:-4px;
+   right:-4px -- ver arriba), así que el `::before` de 44px CENTRADO en el punto invade 24×24px de
+   esa esquina: un toque real ahí abría "Conectar" en vez de arrancar la partida (medido en vivo:
+   .punto-servidor de 12×12 solapando el botón por 8px en cada eje, más los 16px que añade el
+   `::before` a cada lado). El punto de la cabecera del Átomo NO tiene este problema (solo pisa el
+   final del texto de la ruta, sin ningún control debajo) y sigue con el `::before` de arriba, sin
+   tocar.
+   Arreglo, solo aquí: en vez de centrar el área táctil en el punto, se ancla a la DERECHA de él --
+   `.hub-comenzar-fila`, `.boton-comenzar` y `#progreso-areas` comparten el mismo borde derecho (son
+   los tres al 100% de ancho de su contenedor), así que un área táctil que empiece exactamente en
+   ese borde (left: 10px respecto del punto de 12px de ancho -- 2px de margen de seguridad sobre el
+   borde real, ver el test de geometría en tests/e2e.spec.js) no solapa ni "Comenzar" ni la rejilla
+   de áreas, para cualquier ancho de pantalla. Se mantienen los 44px de ALTO que pide Apple HIG
+   (Carlos, 14-sep); el ANCHO se reduce a 34px porque casi todo el área cae fuera de la pantalla, a
+   la derecha del punto -- no hay ningún control ahí, así que no es un problema de solape, solo de
+   alcance (aceptado: el punto ya vive pegado al borde de la pantalla). */
+.hub-comenzar-fila .punto-servidor::before {
+  top: 50%;
+  left: 10px;
+  right: auto;
+  width: 34px;
+  height: 44px;
+  transform: translateY(-50%);
+}
+
 /* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas
    (hub "que se note"), tarjetas pequeñas y tocables (tap target >= 64px de alto). */
 .hub-grid {
