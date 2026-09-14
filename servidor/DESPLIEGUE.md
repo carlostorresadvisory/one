@@ -9,8 +9,8 @@ Un par de términos que salen varias veces:
 - **Contenedor** (Docker): una caja cerrada con el programa y todo lo que necesita para correr,
   siempre igual, sin depender de lo que haya instalado en la máquina que lo ejecuta.
 - **Proxy inverso**: un programa que recibe todo el tráfico de un dominio (`one.ctadvisory.es`) y lo
-  reenvía al contenedor correcto por dentro; aquí lo hace **Caddy**, y de paso consigue solo un
-  candado HTTPS válido automáticamente (sin tener que comprarlo ni renovarlo a mano).
+  reenvía al contenedor correcto por dentro; aquí lo hace **Caddy**, y de paso consigue por su
+  cuenta el candado HTTPS válido automáticamente (sin tener que comprarlo ni renovarlo a mano).
 - **Registro DNS tipo A**: la entrada que dice "cuando alguien escriba `one.ctadvisory.es`, ve a esta
   IP". Sin ella, ni el navegador ni el móvil saben a qué servidor llamar.
 

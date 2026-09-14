@@ -23,6 +23,39 @@ const TOPE_COLCHON = 2000;
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
 const CERROJO_COLCHON = 'colchon.json';
 
+// Ronda final (revisión, 14-sep-2026) -- Menor (M4, segunda mitad): lo que `servir()` devuelve a
+// quien llamó (la API, y a través de ella el móvil) nunca lleva los campos de gestión interna del
+// colchón -- `origen`/`creada`/`ruta`/`servida` son cosa de este módulo, no del cliente. Duplicado
+// a propósito de servidor/generacion.js#CAMPOS_CONTENIDO_PREGUNTA (más `id`/`area`/`tipo`/
+// `confianza`, que ahí se ponen aparte): cola.js no debe depender del módulo de generación, es
+// logística de cola/almacén, no del pipeline de contenido.
+const CAMPOS_PUBLICOS_PREGUNTA = [
+  'id',
+  'area',
+  'tipo',
+  'nivel',
+  'enunciado',
+  'explicacion',
+  'opciones',
+  'correcta',
+  'respuesta',
+  'items',
+  'criterio',
+  'hilo',
+  'visual',
+  'tarjeta',
+  'sospechoso',
+  'confianza',
+];
+
+function paraCliente(pregunta) {
+  const limpio = {};
+  for (const campo of CAMPOS_PUBLICOS_PREGUNTA) {
+    if (pregunta[campo] !== undefined) limpio[campo] = pregunta[campo];
+  }
+  return limpio;
+}
+
 function mismaRuta(a = [], b = []) {
   if (a.length !== b.length) return false;
   return a.every((valor, i) => valor === b[i]);
@@ -505,9 +538,10 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
         const ahora = new Date().toISOString();
         const actualizado = colchon.map((p) => (idsAMarcar.has(p.id) ? { ...p, servida: ahora } : p));
         await almacen.guardarColchon(purgarColchon(actualizado));
-        for (const p of elegidas) p.servida = ahora;
       }
-      return elegidas;
+      // M4: se devuelve la versión saneada (ver CAMPOS_PUBLICOS_PREGUNTA) -- `elegidas` en sí ya no
+      // hace falta mutarla con `servida`, el colchón en disco es la única fuente de verdad de eso.
+      return elegidas.map(paraCliente);
     });
   }
 
@@ -515,8 +549,8 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   // ("reportada que revive" era exactamente este caso -- un servir() concurrente podía
   // reescribir el colchón entero justo después de que reportar() leyera pero antes de que
   // escribiera, resucitando la pregunta que se acababa de quitar).
-  async function reportar(id) {
-    await almacen.anadirReportada(id);
+  async function reportar(id, motivo) {
+    await almacen.anadirReportada(id, motivo);
     await almacen.conCerrojo(CERROJO_COLCHON, async () => {
       const colchon = await almacen.leerColchon();
       const actualizado = colchon.filter((p) => p.id !== id);

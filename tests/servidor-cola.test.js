@@ -138,6 +138,23 @@ test('almacen: anadirReportada no duplica el mismo id', async () => {
   assert.deepEqual(await almacen.leerReportadas(), ['srv-eco-a1', 'srv-his-b2']);
 });
 
+// Ronda final (revisión, 14-sep-2026) -- Menor (M6): el motivo se guarda aparte (reportadas.json
+// sigue siendo el array plano de ids que ya usa cola.js#servir, sin tocar ese contrato).
+test('almacen: anadirReportada(id, motivo) guarda el motivo recortado a 200 caracteres, sin tocar reportadas.json', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const motivoLargo = 'x'.repeat(250);
+
+  await almacen.anadirReportada('srv-eco-a1', motivoLargo);
+  await almacen.anadirReportada('srv-eco-a2'); // sin motivo: no debe romper nada
+
+  assert.deepEqual(await almacen.leerReportadas(), ['srv-eco-a1', 'srv-eco-a2']);
+  const motivos = await almacen.leerMotivosReportados();
+  assert.equal(motivos['srv-eco-a1'].length, 200);
+  assert.equal(motivos['srv-eco-a1'], 'x'.repeat(200));
+  assert.equal(motivos['srv-eco-a2'], undefined);
+});
+
 test('almacen: escribirAtomico es de propósito general (nombre de fichero cualquiera) y también es atómico', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
@@ -487,7 +504,13 @@ test('servir: excluye idsConocidos y reportadas, marca servida y persiste', asyn
 
   assert.equal(servidas.length, 1);
   assert.equal(servidas[0].id, 'srv-eco-1');
-  assert.ok(servidas[0].servida, 'la pregunta devuelta ya lleva la marca servida');
+  // Ronda final (revisión, 14-sep-2026) -- Menor (M4): lo que se devuelve nunca lleva los campos de
+  // gestión interna del colchón -- `servida` (y origen/creada/ruta) son cosa de este módulo, no del
+  // cliente. La marca sí se persiste en disco (comprobado justo debajo, sobre almacen.leerColchon()).
+  assert.equal(servidas[0].servida, undefined, 'la respuesta al cliente no lleva "servida"');
+  assert.equal(servidas[0].creada, undefined, 'ni "creada"');
+  assert.equal(servidas[0].origen, undefined, 'ni "origen"');
+  assert.equal(servidas[0].ruta, undefined, 'ni "ruta"');
 
   const colchonTrasServir = await almacen.leerColchon();
   const guardada = colchonTrasServir.find((p) => p.id === 'srv-eco-1');
@@ -825,12 +848,11 @@ test('ejecutarUnLote (I4): registra rechazadas en rechazadas.json y una línea p
   const cola = crearCola({ almacen, producirTanda: async () => resultadoConRechazo });
 
   cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: true });
-  await hastaQue(async () => (await almacen.leerColchon()).length > 0);
 
-  const rechazadas = await almacen.leerRechazadas();
-  assert.equal(rechazadas.length, 1);
-  assert.equal(rechazadas[0].motivo, 'no supera validarPregunta');
-
+  // Se espera a servidor.log, no a colchon.json: dentro de ejecutarUnLote, colchon.json (aprobadas)
+  // se escribe ANTES que rechazadas.json, y registrarLoteEnLog es lo ÚLTIMO que hace el lote --
+  // esperar solo a colchon.json dejaba una ventana real donde rechazadas.json todavía no existía
+  // (visto de forma intermitente al repetir la suite varias veces seguidas).
   await hastaQue(async () => {
     try {
       const contenido = await readFile(path.join(dir, 'servidor.log'), 'utf8');
@@ -839,6 +861,11 @@ test('ejecutarUnLote (I4): registra rechazadas en rechazadas.json y una línea p
       return false;
     }
   });
+
+  const rechazadas = await almacen.leerRechazadas();
+  assert.equal(rechazadas.length, 1);
+  assert.equal(rechazadas[0].motivo, 'no supera validarPregunta');
+
   const contenido = await readFile(path.join(dir, 'servidor.log'), 'utf8');
   const lineas = contenido.trim().split('\n').map((l) => JSON.parse(l));
   assert.equal(lineas.length, 1);

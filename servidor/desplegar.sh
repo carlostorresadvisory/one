@@ -9,4 +9,9 @@ cd /opt/one
 git pull --ff-only
 docker compose -f servidor/docker-compose.yml up -d --build
 sleep 5
-curl -fsS http://127.0.0.1:8787/salud || docker compose -f servidor/docker-compose.yml logs --tail 50 one-servidor
+# Ronda final (revisión, 14-sep-2026) -- Menor (M7): sin el `exit 1` de aquí, si /salud fallaba el
+# script enseñaba los logs pero terminaba con éxito igualmente (el `docker compose ... logs` de la
+# rama del `||` sale con 0 si el propio comando de logs funciona, aunque lo que cuenta -- el
+# despliegue -- haya fallado). Así, quien mire el código de salida de este script (o lo dispare
+# desde otro sitio) se entera de verdad si el despliegue salió bien o mal.
+curl -fsS http://127.0.0.1:8787/salud || { docker compose -f servidor/docker-compose.yml logs --tail 50 one-servidor; exit 1; }

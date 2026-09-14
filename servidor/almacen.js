@@ -127,12 +127,26 @@ export function crearAlmacen(rutaDatos) {
     async leerReportadas() {
       return leerJson(rutaDatos, 'reportadas.json', []);
     },
-    async anadirReportada(id) {
+    async anadirReportada(id, motivo) {
       const actuales = await leerJson(rutaDatos, 'reportadas.json', []);
       if (!actuales.includes(id)) {
         actuales.push(id);
         await escribirAtomico('reportadas.json', actuales);
       }
+      // Ronda final (revisión, 14-sep-2026) -- Menor (M6): el motivo se guarda APARTE de
+      // reportadas.json (que sigue siendo el array plano de ids que ya usa cola.js#servir para
+      // excluirlas, sin tocar ese contrato) -- así "¿por qué se reportó X?" queda consultable sin
+      // arriesgar nada de lo que ya depende de la forma actual de reportadas.json. Recortado a 200
+      // caracteres: un motivo de un jugador no necesita ser un ensayo, y esto viaja a disco tal
+      // cual, sin pasar por ningún modelo.
+      if (typeof motivo === 'string' && motivo.trim()) {
+        const motivos = await leerJson(rutaDatos, 'reportadas-motivos.json', {});
+        motivos[id] = motivo.trim().slice(0, 200);
+        await escribirAtomico('reportadas-motivos.json', motivos);
+      }
+    },
+    async leerMotivosReportados() {
+      return leerJson(rutaDatos, 'reportadas-motivos.json', {});
     },
     // Ronda final (I4, revisión 14-sep-2026): log de trazabilidad por lote (servidor.log), una
     // línea JSON por llamada -- mismo formato de "append" que ya usa tools/openrouter.js para

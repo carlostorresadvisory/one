@@ -31,7 +31,11 @@ const ORIGENES_DEFECTO = ['https://carlostorresadvisory.github.io', 'http://loca
 const HORA_NOCTURNA_INICIO = 2;
 const HORA_NOCTURNA_FIN = 7; // exclusivo: 7:00 en punto ya no cuenta como nocturno.
 const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
-const SEGUNDOS_ESTIMADOS_POR_PUESTO = 40; // heurística del controlador, ver README/informe de la tarea.
+// Ronda final (revisión, 14-sep-2026) -- Menor (M2): subido de 40 a 90 s/puesto -- medido en
+// vivo, la cascada gratis tarda MINUTOS por lote (no segundos); prometerle al móvil 40 s por
+// delante era optimista y llevaba a una espera peor que la anunciada. Sigue siendo una heurística
+// (no hay telemetría real de duración por lote todavía), documentada en el informe de la tarea.
+const SEGUNDOS_ESTIMADOS_POR_PUESTO = 90;
 const MAX_ESTADO_DEFECTO = 10;
 const SUBTEMAS_MIN = 4;
 const SUBTEMAS_MAX = 6;
@@ -140,6 +144,25 @@ export async function rellenoNocturnoSiToca({ cola, rutaDatos, fecha = new Date(
   const rutasAtomo = Array.isArray(resumen?.rutasAtomo) ? resumen.rutasAtomo : [];
   await cola.rellenarHaciaObjetivo(resumen, rutasAtomo);
   return true;
+}
+
+// Ronda final (revisión, 14-sep-2026) -- Menor (M1): apagado ordenado. cola.js no expone una
+// promesa "termina cuando el trabajo activo acabe" (concurrencia 1, un solo lote a la vez -- ver
+// servidor/cola.js), así que se sondea `cola.estadisticas().activo` a intervalos cortos hasta que
+// llegue a 0 o se agote `maxMs`. Exportada aparte para poder probarla sin un proceso real ni
+// señales de verdad.
+export function esperarInactividad(cola, maxMs, { intervaloMs = 200 } = {}) {
+  return new Promise((resolve) => {
+    const inicio = Date.now();
+    const revisar = () => {
+      if (cola.estadisticas().activo === 0 || Date.now() - inicio >= maxMs) {
+        resolve();
+        return;
+      }
+      setTimeout(revisar, intervaloMs);
+    };
+    revisar();
+  });
 }
 
 // Ronda final (revisión, 14-sep-2026) -- Critical (C1/C2): prueba REAL de que se puede escribir en
@@ -437,12 +460,16 @@ export function crearServidor({
       responderError(res, 503, 'La cola de fondo está llena, inténtalo más tarde');
       return;
     }
+    // Ronda final (revisión, 14-sep-2026) -- Menor (M3): `enCola` de /generar también cuenta el
+    // trabajo activo (el que está corriendo ahora mismo) -- antes solo contaba los que esperan
+    // turno, así que un móvil que consultara justo después de encolar podía ver "0 en cola" con un
+    // trabajo ya corriendo delante del suyo.
+    const estadisticasCola = cola.estadisticas();
     responderJson(res, 200, {
       trabajoId: resultado.trabajoId,
-      enCola: cola.estadisticas().enCola,
-      // Heurística simple (no fijada por la spec): ~40 s por puesto de espera delante del trabajo
-      // nuevo, con la cascada gratis. Documentado en el informe de la tarea para que el controlador
-      // la ajuste si hace falta.
+      enCola: estadisticasCola.enCola + estadisticasCola.activo,
+      // Heurística (medida en vivo, ver M2 en el informe de la tarea): ~90 s por puesto de espera
+      // delante del trabajo nuevo, con la cascada gratis.
       estimadoSeg: (resultado.posicion + 1) * SEGUNDOS_ESTIMADOS_POR_PUESTO,
     });
   }
@@ -547,7 +574,10 @@ export function crearServidor({
       responderError(res, 400, 'Falta el id');
       return;
     }
-    const resultado = await cola.reportar(cuerpo.id);
+    // Ronda final (revisión, 14-sep-2026) -- Menor (M6): el motivo se guarda junto al id (recortado
+    // a 200 caracteres dentro de almacen.js) -- antes se aceptaba en el body y se descartaba.
+    const motivo = typeof cuerpo.motivo === 'string' ? cuerpo.motivo : undefined;
+    const resultado = await cola.reportar(cuerpo.id, motivo);
     responderJson(res, 200, resultado);
   }
 
@@ -709,4 +739,24 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   servidor.listen(puerto, () => {
     console.log(`ONE servidor de generación escuchando en el puerto ${puerto}.`);
   });
+
+  // Ronda final (revisión, 14-sep-2026) -- Menor (M1): apagado ordenado ante `docker compose down`
+  // / `docker stop` (SIGTERM) o Ctrl+C en local (SIGINT). Deja de aceptar peticiones nuevas, espera
+  // como mucho 20 s a que el lote de generación en curso termine (así se guarda en disco lo que ya
+  // estaba a medias, en vez de perderlo a mitad de un guardado) y sale. Riesgo aceptado, documentado
+  // en servidor/DESPLIEGUE.md: los `trabajoId` en curso viven solo en memoria -- tras el reinicio,
+  // `GET /trabajo/:id` de un trabajo que estaba en marcha da 404 (la Entrega B2 del cliente deberá
+  // tratar ese caso).
+  let apagando = false;
+  async function apagarOrdenado(señal) {
+    if (apagando) return;
+    apagando = true;
+    console.error(`servidor: recibido ${señal}, cerrando de forma ordenada...`);
+    servidor.closeAllConnections?.();
+    await new Promise((resolve) => servidor.close(() => resolve()));
+    await esperarInactividad(colaReal, 20000);
+    process.exit(0);
+  }
+  process.on('SIGTERM', () => apagarOrdenado('SIGTERM'));
+  process.on('SIGINT', () => apagarOrdenado('SIGINT'));
 }

@@ -1,0 +1,13 @@
+# Ronda final del plan v0.2b1-servidor (revisión, 14-sep-2026) -- Menor (M9). Reduce el contexto
+# que docker build sube al construir la imagen (servidor/Dockerfile copia explícitamente solo
+# package.json, servidor/, tools/ y motor.js -- esto es defensa en profundidad, no lo único que
+# evita que estas carpetas entren en la imagen).
+.git
+node_modules
+datos
+docs
+tests
+test-results
+playwright-report
+.superpowers
+.env*

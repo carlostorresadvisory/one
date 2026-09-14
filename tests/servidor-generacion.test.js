@@ -71,6 +71,46 @@ test('generarBorradores: con n=5 (un solo lote) reparte V/F 50/50 (redondeado ha
   for (const id of ids) assert.match(id, /^srv-eco-[0-9a-z]+$/);
 });
 
+// Ronda final (revisión, 14-sep-2026) -- Menor (M4): lista blanca de campos -- antes `{...bruto}`
+// copiaba cualquier campo que el modelo devolviera, esperado o no, directamente al pipeline.
+test('generarBorradores (M4): descarta campos no esperados que el modelo devuelva, conserva los de contenido', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    const preguntas = [
+      {
+        enunciado: 'A',
+        explicacion: 'porque a',
+        nivel: 1,
+        respuesta: true,
+        hilo: 1,
+        // Campos que un modelo no debería mandar nunca -- deben desaparecer del borrador final.
+        id: 'srv-inventado-por-el-modelo',
+        generador: 'modelo-que-el-modelo-se-inventa',
+        confianza: 0.99,
+        verificado: true,
+        notaInterna: 'esto no debería sobrevivir',
+      },
+    ];
+    return respuestaVF(preguntas, modelos[0]);
+  };
+
+  const [borrador] = await generarBorradores({ area: 'economia', ruta: [], n: 1 }, { llamar: llamarFalso });
+
+  // Los campos de contenido sobreviven.
+  assert.equal(borrador.enunciado, 'A');
+  assert.equal(borrador.explicacion, 'porque a');
+  assert.equal(borrador.nivel, 1);
+  assert.equal(borrador.respuesta, true);
+  assert.equal(borrador.hilo, 1);
+  // id/generador/confianza/verificado los pone SIEMPRE este código, nunca lo que mandó el modelo.
+  assert.notEqual(borrador.id, 'srv-inventado-por-el-modelo');
+  assert.match(borrador.id, /^srv-eco-[0-9a-z]+$/);
+  assert.notEqual(borrador.generador, 'modelo-que-el-modelo-se-inventa');
+  assert.equal(borrador.confianza, null);
+  assert.equal(borrador.verificado, false);
+  // Cualquier otro campo inesperado desaparece.
+  assert.equal(borrador.notaInterna, undefined);
+});
+
 test('generarBorradores: con n mayor que el tamaño de lote hace varias llamadas y mantiene ids únicos entre lotes', async () => {
   let llamadas = 0;
   const llamarFalso = async ({ modelos }) => {
@@ -743,6 +783,17 @@ test('producirTanda: incluye la explicación corta y el visual de resolverPregun
   assert.equal(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
   assert.equal(p.visual.tipo, 'dato');
   assert.ok(validarPregunta(p).length === 0, `la aprobada debe ser válida: ${validarPregunta(p).join('; ')}`);
+});
+
+// Ronda final (revisión, 14-sep-2026) -- Menor (M5): la confianza del verificador se copia a la
+// pregunta final -- antes se calculaba (para decidir `ok`) y se tiraba.
+test('producirTanda (M5): copia la confianza del verificador a la pregunta aprobada', async () => {
+  const { llamar } = crearLlamarPipeline({ veredictoPorEnunciado: () => ({ ...VEREDICTO_OK_POR_DEFECTO, confianza: 0.87 }) });
+
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+
+  assert.equal(resultado.aprobadas.length, 1);
+  assert.equal(resultado.aprobadas[0].confianza, 0.87);
 });
 
 test('producirTanda: tolera visual null cuando el verificador de visual lo rechaza', async () => {

@@ -11,7 +11,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { crearAlmacen } from '../servidor/almacen.js';
 import { crearCola } from '../servidor/cola.js';
-import { crearServidor, esHoraNocturna, rellenoNocturnoSiToca, comprobarEscritura } from '../servidor/index.js';
+import {
+  crearServidor,
+  esHoraNocturna,
+  rellenoNocturnoSiToca,
+  comprobarEscritura,
+  esperarInactividad,
+} from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
 
 const TOKEN = 'token-de-prueba-0123456789abcdef0123456789abcdef';
@@ -417,6 +423,37 @@ test('POST /generar con área desconocida responde 400', async () => {
   }
 });
 
+// Ronda final (revisión, 14-sep-2026), Menor M3: `enCola` de /generar debe contar también el
+// trabajo activo (el que está corriendo AHORA), no solo los que esperan turno.
+test('POST /generar: enCola cuenta también el trabajo activo (M3)', async () => {
+  const pendientes = [];
+  const producirTandaFake = () => new Promise((resolver) => pendientes.push(resolver));
+  const { base, cola, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });
+  try {
+    await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', n: 3, urgente: true }),
+    });
+    await hastaQue(() => pendientes.length === 1);
+    assert.equal(cola.estadisticas().activo, 1, 'el primero ya está activo');
+
+    const resp2 = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'historia', n: 3, urgente: true }),
+    });
+    const datos2 = await resp2.json();
+    assert.equal(datos2.enCola, 2, '1 en espera (el propio) + 1 activo (el primero)');
+
+    pendientes[0](resultadoVacio(3));
+    await hastaQue(() => pendientes.length === 2);
+    pendientes[1](resultadoVacio(3));
+  } finally {
+    await cerrar();
+  }
+});
+
 // Ronda 1 (revisión, 14-sep-2026), Minor: camino sin cubrir -- cola.encolar() devuelve null cuando
 // la cola de fondo (urgente:false) ya está en su tope (32, Tarea 2). Se inyecta una cola FALSA
 // (no la real crearCola) para forzar ese caso sin tener que encolar 32 trabajos de verdad.
@@ -597,6 +634,9 @@ test('POST /reportar saca la pregunta del colchón y la añade a reportadas', as
     assert.ok(!colchon.some((p) => p.id === 'srv-eco-z1'));
     const reportadas = await almacen.leerReportadas();
     assert.ok(reportadas.includes('srv-eco-z1'));
+    // Ronda final (revisión, 14-sep-2026), Menor M6: el motivo viaja hasta almacen.js.
+    const motivos = await almacen.leerMotivosReportados();
+    assert.equal(motivos['srv-eco-z1'], 'mal redactada');
   } finally {
     await cerrar();
   }
@@ -777,4 +817,31 @@ test('rellenoNocturnoSiToca: sin ultimo-resumen.json todavía, usa resumen vací
   assert.equal(hizo, true);
   assert.deepEqual(llamadas[0].resumen, {});
   assert.deepEqual(llamadas[0].rutasAtomo, []);
+});
+
+// === Ronda final (14-sep-2026): esperarInactividad (M1, apagado ordenado) =======================
+
+test('esperarInactividad: resuelve en cuanto activo pasa a 0, sin esperar el resto del máximo', async () => {
+  let activo = 1;
+  const colaFake = { estadisticas: () => ({ activo }) };
+  setTimeout(() => {
+    activo = 0;
+  }, 30);
+
+  const antes = Date.now();
+  await esperarInactividad(colaFake, 5000, { intervaloMs: 10 });
+  const transcurrido = Date.now() - antes;
+
+  assert.ok(transcurrido < 500, `debía resolver poco después de los 30ms, tardó ${transcurrido}ms`);
+});
+
+test('esperarInactividad: si nunca queda inactivo, resuelve igualmente al llegar a maxMs (no se cuelga)', async () => {
+  const colaFake = { estadisticas: () => ({ activo: 1 }) };
+
+  const antes = Date.now();
+  await esperarInactividad(colaFake, 100, { intervaloMs: 10 });
+  const transcurrido = Date.now() - antes;
+
+  assert.ok(transcurrido >= 100, 'debe respetar el máximo antes de resolver');
+  assert.ok(transcurrido < 1000, 'no debe quedarse esperando mucho más del máximo');
 });

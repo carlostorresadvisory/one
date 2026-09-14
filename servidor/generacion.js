@@ -58,6 +58,40 @@ const PREFIJOS = {
 
 const TIPOS = ['vf', 'test4', 'ordenar', 'error'];
 
+// Ronda final (revisión, 14-sep-2026) -- Menor (M4): lista blanca de campos de CONTENIDO al
+// construir un borrador desde lo que devolvió el modelo. Antes `{...bruto}` copiaba cualquier
+// campo que el modelo alucinara (o intentara colar) directamente al pipeline, a colchon.json y a la
+// respuesta de la API -- id/area/tipo/generador/confianza/verificado los pone siempre este código,
+// nunca el modelo, así que ni siquiera hace falta que estén en la lista.
+// Nota: la lista original del brief de esta ronda ("id, area, tipo, nivel, enunciado, explicacion,
+// opciones, correcta, respuesta, items, criterio, hilo, visual") se olvidaba de "tarjeta" y
+// "sospechoso" -- los dos campos propios del tipo "error" (ver esquemaTipo más abajo). Sin ellos,
+// producirTanda: cada tipo llega al verificador con su forma... (test ya existente) detectó la
+// pérdida al momento: el borrador de tipo "error" llegaba sin tarjeta/sospechoso al verificador.
+// Añadidos aquí para que los 4 tipos conserven todos sus campos de contenido.
+const CAMPOS_CONTENIDO_PREGUNTA = [
+  'nivel',
+  'enunciado',
+  'explicacion',
+  'opciones',
+  'correcta',
+  'respuesta',
+  'items',
+  'criterio',
+  'hilo',
+  'visual',
+  'tarjeta',
+  'sospechoso',
+];
+
+function soloCamposContenido(bruto) {
+  const limpio = {};
+  for (const campo of CAMPOS_CONTENIDO_PREGUNTA) {
+    if (bruto && bruto[campo] !== undefined) limpio[campo] = bruto[campo];
+  }
+  return limpio;
+}
+
 // Tamaños de lote de la spec §3.4: 5 preguntas por llamada de generación ("los gratis truncan con
 // 10", mismo síntoma que TAMANO_SUBLOTE en generar-preguntas.js), 4 por llamada de verificación
 // (idéntico a TAMANO_LOTE en verificar-preguntas.js). Los lotes de verificación pueden mezclar
@@ -322,7 +356,7 @@ export async function generarBorradores(params, opciones = {}) {
 
     for (const bruto of lista) {
       borradores.push({
-        ...bruto,
+        ...soloCamposContenido(bruto),
         id: generarIdServidor(prefijo),
         area,
         tipo,
@@ -417,7 +451,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
       candidatos = permitirPago ? VERIFICADOR_PREGUNTAS_SOLO_PAGO.filter((m) => m !== excluirModelo) : [];
       if (candidatos.length === 0) {
         for (const b of lote) {
-          resultados.push({ id: b.id, ok: false, nivel: null, motivo: 'sin verificador distinto del generador', modelo: null });
+          resultados.push({ id: b.id, ok: false, nivel: null, confianza: null, motivo: 'sin verificador distinto del generador', modelo: null });
         }
         continue;
       }
@@ -441,7 +475,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
       });
     } catch (err) {
       for (const b of lote) {
-        resultados.push({ id: b.id, ok: false, nivel: null, motivo: `lote fallido: ${err.message}`, modelo: null });
+        resultados.push({ id: b.id, ok: false, nivel: null, confianza: null, motivo: `lote fallido: ${err.message}`, modelo: null });
       }
       continue;
     }
@@ -452,7 +486,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
       datos = extraerJson(salida.texto);
     } catch (err) {
       for (const b of lote) {
-        resultados.push({ id: b.id, ok: false, nivel: null, motivo: `JSON inválido: ${err.message}`, modelo: salida.modelo });
+        resultados.push({ id: b.id, ok: false, nivel: null, confianza: null, motivo: `JSON inválido: ${err.message}`, modelo: salida.modelo });
       }
       continue;
     }
@@ -476,17 +510,22 @@ export async function verificarBorradores(borradores, opciones = {}) {
         r.inequivoca === true &&
         r.cumpleUtilidad === true &&
         Number(r.confianza) >= umbral;
+      // Ronda final (revisión, 14-sep-2026) -- Menor (M5): se expone `confianza` en el veredicto
+      // para que producirTanda pueda copiarla a la pregunta final (antes se calculaba para decidir
+      // `ok` y se descartaba, perdiendo un dato real del verificador).
+      const confianza = Number.isFinite(Number(r.confianza)) ? Number(r.confianza) : null;
       resultados.push({
         id: r.id,
         ok,
         nivel,
+        confianza,
         motivo: ok ? '' : r.motivo || 'no aprobada por el verificador',
         modelo: salida.modelo,
       });
     }
     for (const b of lote) {
       if (!vistos.has(b.id)) {
-        resultados.push({ id: b.id, ok: false, nivel: null, motivo: 'sin resultado del verificador', modelo: salida.modelo });
+        resultados.push({ id: b.id, ok: false, nivel: null, confianza: null, motivo: 'sin resultado del verificador', modelo: salida.modelo });
       }
     }
   }
@@ -600,9 +639,12 @@ export async function producirTanda(params, opciones = {}) {
     }
 
     // El nivel del verificador manda siempre sobre el que propuso el generador (spec §3.1).
+    // Ronda final (M5): `confianza` del verificador se copia a la pregunta -- antes se calculaba
+    // para decidir `ok` en verificarBorradores y se tiraba, perdiendo un dato real y ya calculado.
     const candidata = {
       ...borrador,
       nivel: Number.isInteger(veredicto.nivel) ? veredicto.nivel : borrador.nivel,
+      confianza: typeof veredicto.confianza === 'number' ? veredicto.confianza : borrador.confianza,
       verificado: true,
       verificador: veredicto.modelo,
     };
