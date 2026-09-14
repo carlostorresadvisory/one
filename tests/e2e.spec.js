@@ -3080,4 +3080,229 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.waitForTimeout(6000);
     expect(contadores.trabajo).toBe(llamadasTrasElFallo);
   });
+
+  test('trabajo "parcial" terminal (hechas>=pedidas, contrato real del servidor) con 3 preguntas: chip "Tanda lista: 3", sondeo detenido y Generar disponible otra vez (Ronda final, Critical #1)', async ({
+    page,
+  }) => {
+    const contadores = {};
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      servidorAtomoFalso({
+        contadores,
+        trabajoRespuesta: {
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            estado: 'parcial',
+            hechas: 3,
+            pedidas: 3,
+            preguntas: Array.from({ length: 3 }, (_, i) => preguntaServidor(`srv-parcial-${i + 1}`)),
+            motivo: 'el verificador rechazó el resto del lote',
+          }),
+        },
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Generar a anillo 1 (sin elegir subtema): corto = nombre del área ("Economía").
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('Tanda lista: 3 de Economía', { timeout: 5000 });
+
+    // Sondeo detenido de verdad: un ciclo más (>5s) no debe sumar ninguna llamada más.
+    const llamadasTrasChip = contadores.trabajo;
+    await page.waitForTimeout(6000);
+    expect(contadores.trabajo).toBe(llamadasTrasChip);
+
+    // Generar vuelve a estar disponible (finalizarTrabajoAtomo se llamó al llegar a terminal).
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+  });
+
+  test('quedarse en la tarjeta de espera hasta "lista": reacciona sola y "Jugar la tanda" abre la partida (Ronda final, Critical #2)', async ({
+    page,
+  }) => {
+    let sondeos = 0;
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          const subtemas = [
+            { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+            { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+            { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+            { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+          ];
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ subtemas }) });
+          return;
+        }
+        if (url.pathname === '/generar') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ trabajoId: 'espera-b', estimadoSeg: 15 }),
+          });
+          return;
+        }
+        if (url.pathname.startsWith('/trabajo/')) {
+          sondeos += 1;
+          if (sondeos === 1) {
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              headers: CORS,
+              body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+            });
+            return;
+          }
+          const preguntas = Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-espera-b-${i + 1}`));
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'lista', hechas: 10, pedidas: 10, preguntas, motivo: null }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toContainText('Generando 10 preguntas');
+
+    // Sin tocar nada: el segundo sondeo (a los 5s) resuelve "lista" y la tarjeta reacciona sola.
+    const resultado = page.locator('[data-test="atomo-espera-resultado"]');
+    await expect(resultado).toBeVisible({ timeout: 8000 });
+    await expect(resultado).toHaveText('Jugar la tanda');
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toHaveText('Tanda lista: 10 preguntas de Economía');
+    await expect(page.locator('[data-test="atomo-espera-acciones"]')).toBeHidden();
+
+    await resultado.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+  });
+
+  test('visibilitychange oculto/visible: el sondeo se pausa y se reanuda con una consulta inmediata (Ronda final, Critical #3)', async ({
+    page,
+  }) => {
+    let llamadasTrabajo = 0;
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({
+              subtemas: [
+                { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+                { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+                { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+                { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+              ],
+            }),
+          });
+          return;
+        }
+        if (url.pathname === '/generar') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ trabajoId: 'visib-c', estimadoSeg: 30 }),
+          });
+          return;
+        }
+        if (url.pathname.startsWith('/trabajo/')) {
+          llamadasTrabajo += 1;
+          // Nunca terminal en este test: lo único que importa es CUÁNDO se llama, no el resultado.
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    // Minor #11: sondeo inmediato al arrancar, sin esperar los 5s.
+    await expect.poll(() => llamadasTrabajo, { timeout: 3000 }).toBeGreaterThanOrEqual(1);
+
+    // Oculta la pestaña: el sondeo debe pausarse.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const llamadasAlOcultar = llamadasTrabajo;
+    await page.waitForTimeout(6000); // más de un ciclo de 5s: si no se hubiera pausado, subiría.
+    expect(llamadasTrabajo).toBe(llamadasAlOcultar);
+
+    // Vuelve a ser visible: consulta inmediata (no esperar otros 5s) y reanuda el intervalo de 5s.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect.poll(() => llamadasTrabajo, { timeout: 2000 }).toBeGreaterThan(llamadasAlOcultar);
+  });
+
+  test('el service worker no guarda en Cache Storage ninguna clave con "token=" en la URL (Ronda final, Critical #4)', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    // Con el SW ya activo y controlando (self.clients.claim() en sw.js#activate), la SIGUIENTE
+    // navegación al enlace especial de configuración sí pasa por su fetch handler -- la primera
+    // petición de navegación de esta misma prueba (arriba) no pudo pasar por él: el SW todavía no
+    // existía en el momento en que el navegador la pidió (se registra desde dentro de app.js).
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const clavesConToken = await page.evaluate(async () => {
+      const nombres = await caches.keys();
+      const encontradas = [];
+      for (const nombre of nombres) {
+        // eslint-disable-next-line no-await-in-loop -- unas pocas cachés como mucho, orden no importa.
+        const cache = await caches.open(nombre);
+        // eslint-disable-next-line no-await-in-loop
+        const peticiones = await cache.keys();
+        encontradas.push(...peticiones.map((r) => r.url).filter((url) => url.includes('token=')));
+      }
+      return encontradas;
+    });
+    expect(clavesConToken).toEqual([]);
+  });
 });
