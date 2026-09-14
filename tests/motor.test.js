@@ -17,6 +17,7 @@ import {
   resumenProgreso,
   pendientes,
   ordenarRepaso,
+  listarNoRespondidas,
   misionDelDia,
   exportar,
   importar,
@@ -1067,6 +1068,120 @@ describe('ordenarRepaso', () => {
     const copia = structuredClone(estado);
     ordenarRepaso(estado, banco, HOY);
     assert.deepStrictEqual(estado, copia);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('listarNoRespondidas', () => {
+  // 8 áreas × 5 niveles × 4 tipos, un grupo perfectamente equilibrado por
+  // área/nivel a propósito: así la rotación nunca se ve forzada a repetir
+  // área dentro de un mismo nivel (todas las áreas llegan agotadas a la vez).
+  const banco = crearBancoPrueba();
+
+  test('excluye preguntas ya respondidas (con tarjeta en estado.tarjetas)', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = { caja: 0, proximo: HOY, aciertos: 1, fallos: 0 };
+    const resultado = listarNoRespondidas(estado, banco);
+    assert.ok(!resultado.some((p) => p.id === 'economia-test4-1'));
+    assert.equal(resultado.length, banco.length - 1);
+  });
+
+  test('excluye reportadas', () => {
+    const estado = crearEstado(HOY);
+    estado.reportadas = ['economia-test4-1', 'historia-vf-2'];
+    const resultado = listarNoRespondidas(estado, banco);
+    assert.ok(!resultado.some((p) => p.id === 'economia-test4-1' || p.id === 'historia-vf-2'));
+    assert.equal(resultado.length, banco.length - 2);
+  });
+
+  test('orden por nivel ascendente', () => {
+    const estado = crearEstado(HOY);
+    const resultado = listarNoRespondidas(estado, banco);
+    const niveles = resultado.map((p) => p.nivel);
+    assert.deepStrictEqual(niveles, [...niveles].sort((a, b) => a - b));
+  });
+
+  test('dentro de un mismo nivel no repite área en posiciones consecutivas cuando hay alternativa', () => {
+    const estado = crearEstado(HOY);
+    const resultado = listarNoRespondidas(estado, banco);
+    for (let i = 1; i < resultado.length; i++) {
+      if (resultado[i].nivel === resultado[i - 1].nivel) {
+        assert.notEqual(
+          resultado[i].area,
+          resultado[i - 1].area,
+          `posiciones ${i - 1}/${i}, mismo nivel ${resultado[i].nivel}, área repetida ${resultado[i].area}`
+        );
+      }
+    }
+  });
+
+  test('dentro del mismo nivel y área, ordena por id ascendente (4 tipos por área/nivel en el banco de prueba)', () => {
+    const estado = crearEstado(HOY);
+    const resultado = listarNoRespondidas(estado, banco);
+    const deEconomiaNivel1 = resultado.filter((p) => p.area === 'economia' && p.nivel === 1).map((p) => p.id);
+    assert.deepStrictEqual(deEconomiaNivel1, [...deEconomiaNivel1].sort());
+  });
+
+  test('cuando no hay alternativa de área, sí repite (banco desequilibrado a propósito)', () => {
+    // Nivel 1 con 3 preguntas de economía y solo 1 de historia: agotada
+    // historia, las dos últimas economía consecutivas son inevitables.
+    const desequilibrado = [
+      crearPregunta('economia', 'vf', 1, 'a'),
+      crearPregunta('economia', 'test4', 1, 'b'),
+      crearPregunta('economia', 'ordenar', 1, 'c'),
+      crearPregunta('historia', 'vf', 1, 'a'),
+    ];
+    const resultado = listarNoRespondidas(crearEstado(HOY), desequilibrado);
+    assert.equal(resultado.length, 4);
+    // historia (única) sale intercalada tan pronto como es posible, nunca al
+    // final "porque sí": con rng determinista (por defecto) el desempate
+    // entre economía e historia en el primer paso se resuelve por el orden en
+    // que aparecen las candidatas ya ordenadas por id ("economia-ordenar-1a"
+    // < "historia-vf-1a" alfabéticamente), así que historia entra en el
+    // segundo hueco, no en el primero ni en el último.
+    assert.equal(resultado[1].area, 'historia');
+    assert.equal(resultado[0].area, 'economia');
+    assert.equal(resultado[2].area, 'economia');
+    assert.equal(resultado[3].area, 'economia');
+  });
+
+  test('determinista sin rng: dos llamadas con el mismo estado devuelven el mismo orden', () => {
+    const estado = crearEstado(HOY);
+    const r1 = listarNoRespondidas(estado, banco).map((p) => p.id);
+    const r2 = listarNoRespondidas(estado, banco).map((p) => p.id);
+    assert.deepStrictEqual(r1, r2);
+  });
+
+  test('con rng determinista pasado explícitamente, sigue siendo reproducible', () => {
+    const estado = crearEstado(HOY);
+    const r1 = listarNoRespondidas(estado, banco, rngDeterminista()).map((p) => p.id);
+    const r2 = listarNoRespondidas(estado, banco, rngDeterminista()).map((p) => p.id);
+    assert.deepStrictEqual(r1, r2);
+  });
+
+  test('sin candidatas (todo respondido o reportado) devuelve []', () => {
+    const estado = crearEstado(HOY);
+    estado.reportadas = banco.map((p) => p.id);
+    assert.deepStrictEqual(listarNoRespondidas(estado, banco), []);
+  });
+
+  test('banco vacío devuelve [], no lanza', () => {
+    assert.deepStrictEqual(listarNoRespondidas(crearEstado(HOY), []), []);
+  });
+
+  test('devuelve la pregunta completa del banco, no solo el id', () => {
+    const estado = crearEstado(HOY);
+    const [p] = listarNoRespondidas(estado, banco);
+    assert.ok(p.id && p.area && p.tipo && Number.isInteger(p.nivel));
+  });
+
+  test('no muta el estado ni el banco de entrada', () => {
+    const estado = crearEstado(HOY);
+    const copiaEstado = structuredClone(estado);
+    const copiaBanco = structuredClone(banco);
+    listarNoRespondidas(estado, banco);
+    assert.deepStrictEqual(estado, copiaEstado);
+    assert.deepStrictEqual(banco, copiaBanco);
   });
 });
 

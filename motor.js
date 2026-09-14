@@ -726,6 +726,54 @@ export function ordenarRepaso(estado, banco, hoy) {
   }));
 }
 
+/**
+ * Preguntas SIN responder (ninguna entrada en `estado.tarjetas`), para el
+ * segundo tramo del repaso infinito (spec v0.2a.1 §7 — enmienda del 14-sep
+ * 16:00, sustituye "Contenido"/"Sin fin" del §2 original): se muestran como
+ * tarjetas ya reveladas (enunciado, respuesta correcta marcada, imagen o
+ * visual, explicación), nunca respondibles desde el repaso.
+ *
+ * Orden: nivel ascendente y, DENTRO DE CADA NIVEL, la misma rotación de áreas
+ * que `seleccionarPartida` (`ordenarSinRepetirArea`: reparte por área para no
+ * repetir en posiciones consecutivas cuando hay alternativa, priorizando el
+ * área con más pendientes en ese nivel) y, dentro de eso, por id. La rotación
+ * se reinicia en cada nivel nuevo (no mira qué área cerró el nivel anterior):
+ * una lectura simple de "nivel asc., rotando áreas" y suficiente para que no
+ * se repita el mismo tema muchas veces seguidas dentro de un nivel, que es lo
+ * que de verdad se nota deslizando.
+ *
+ * Determinista SIN `rng` (el desempate entre áreas con el mismo número de
+ * pendientes en un nivel se resuelve siempre a favor de la que apareció
+ * primero al recorrer las candidatas ya ordenadas por id — nunca al azar):
+ * imprescindible porque el feed se recalcula en cada vuelta nueva del repaso
+ * infinito y dos vueltas con el mismo estado deben salir IDÉNTICAS. `rng` es
+ * opcional y solo existe para que los tests puedan comprobar el desempate
+ * aleatorio de `ordenarSinRepetirArea` sin duplicar esa lógica aquí.
+ *
+ * Excluye reportadas (`estado.reportadas`), igual que `ordenarRepaso`. NO
+ * filtra por área — ese filtro lo aplica quien concatena los dos tramos
+ * (`construirFeedRepaso` en app.js), sobre el resultado ya combinado. Pura,
+ * nunca lanza; sin candidatas devuelve `[]`.
+ */
+export function listarNoRespondidas(estado, banco, rng = () => 0) {
+  const reportadas = new Set(estado.reportadas);
+  const bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  const candidatas = banco.filter((p) => !estado.tarjetas[p.id] && !reportadas.has(p.id));
+
+  const niveles = [...new Set(candidatas.map((p) => p.nivel))].sort((a, b) => a - b);
+  const resultado = [];
+  for (const nivel of niveles) {
+    const itemsDelNivel = candidatas
+      .filter((p) => p.nivel === nivel)
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)) // "dentro de eso por id"
+      .map((p) => ({ id: p.id, area: p.area }));
+    for (const id of ordenarSinRepetirArea(itemsDelNivel, rng)) {
+      resultado.push(bancoPorId.get(id));
+    }
+  }
+  return resultado;
+}
+
 /** Actualiza la racha de días al completar la primera partida del día. Resetea el combo. */
 export function actualizarRacha(estado, hoy) {
   const nuevo = structuredClone(estado);
