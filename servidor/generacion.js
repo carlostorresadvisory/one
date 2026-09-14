@@ -10,18 +10,19 @@
 // para que los tests no hagan red, siguiendo el mismo patrón que tools/visualizar.js#resolverPregunta.
 // OPENROUTER_API_KEY solo se lee dentro de tools/openrouter.js; aquí nunca se lee ni se registra.
 //
-// Decisión de alcance (v0.2b1, Tarea 1): el servidor genera únicamente tipo "vf" (verdadero/falso),
-// con reparto 50/50 -- a diferencia de la CLI (tools/generar-preguntas.js), que reparte entre los 4
-// tipos. Ni `generarBorradores` ni `producirTanda` reciben un parámetro `tipo` (ver el brief de la
-// Tarea 1), así que no hay forma de que el llamante pida otro tipo; "empezar sencillo" (preferencia
-// de producto de Carlos) y el foco explícito del brief en "V/F 50/50" apuntan a esto mismo. Añadir
-// test4/ordenar/error al servidor queda para una tarea futura si hace falta variedad de tipos en el
-// colchón.
+// Ronda 1 (corrección del controlador, 14-sep-2026): la primera versión de esta tarea solo
+// generaba tipo "vf" -- defecto del plan/brief, no una decisión de producto. Ahora `producirTanda`
+// reparte `n` entre los 4 tipos con la misma proporción que MEZCLA de motor.js (import de solo
+// lectura; motor.js no se toca) y `generarBorradores` acepta `tipo` para pedir cualquiera de los 4
+// con su prompt y esquema correspondientes -- igual que hace hoy tools/generar-preguntas.js, sin
+// duplicar su lógica de generación por área más allá de lo imprescindible (esquemaTipo/promptUsuario
+// se reconstruyen aquí porque esa CLI no los exporta).
 import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import { resolverPregunta, GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
 import { promptSistemaGenerador, PROMPT_SISTEMA_VERIFICADOR, EJEMPLOS } from '../tools/prompts-preguntas.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
+import { MEZCLA } from '../motor.js';
 
 // Duplicado a propósito de PREFIJOS en tools/generar-preguntas.js: ese fichero es una CLI, no un
 // módulo compartido (mismo motivo por el que tools/visualizar.js duplica AREAS de
@@ -37,9 +38,12 @@ const PREFIJOS = {
   logica: 'log',
 };
 
+const TIPOS = ['vf', 'test4', 'ordenar', 'error'];
+
 // Tamaños de lote de la spec §3.4: 5 preguntas por llamada de generación ("los gratis truncan con
 // 10", mismo síntoma que TAMANO_SUBLOTE en generar-preguntas.js), 4 por llamada de verificación
-// (idéntico a TAMANO_LOTE en verificar-preguntas.js).
+// (idéntico a TAMANO_LOTE en verificar-preguntas.js). Los lotes de verificación pueden mezclar
+// tipos (igual que la CLI mezcla áreas): se verifica la lista combinada de los 4 tipos.
 const TAMANO_LOTE_GENERACION = 5;
 const TAMANO_LOTE_VERIFICACION = 4;
 const UMBRAL_CONFIANZA_DEFECTO = 0.7;
@@ -49,7 +53,9 @@ const UMBRAL_CONFIANZA_DEFECTO = 0.7;
 // una, de proveedores distintos entre sí (para que generador y verificador nunca coincidan sin
 // necesidad de excluirModelo) y ya vetados en este repo: 'z-ai/glm-4.7-flash' es el escalón de pago
 // más barato de MODELOS.generador; 'deepseek/deepseek-v4-flash' es el más barato de
-// MODELOS.verificador (ver comentario de precios en tools/visualizar.js, 13-sep-2026).
+// MODELOS.verificador (ver comentario de precios en tools/visualizar.js, 13-sep-2026). Aceptados
+// por el controlador como valor por defecto en la ronda 1 de esta tarea (14-sep-2026) --
+// PENDIENTE DE CONFIRMAR CON CARLOS antes de activar PERMITIR_PAGO=1 en producción.
 export const GENERADOR_PREGUNTAS_SOLO_PAGO = ['z-ai/glm-4.7-flash'];
 export const VERIFICADOR_PREGUNTAS_SOLO_PAGO = ['deepseek/deepseek-v4-flash'];
 
@@ -84,6 +90,55 @@ function repartirEnSublotes(cantidad, tamano) {
   return partes;
 }
 
+/**
+ * Reparte `n` preguntas entre los 4 tipos con la misma proporción que MEZCLA de motor.js (vf 3,
+ * test4 4, ordenar 2, error 1 por cada 10). motor.js no se toca: tiene una función interna
+ * `objetivoTipos()` que hace este mismo reparto proporcional con ajuste de resto, pero no está
+ * exportada, así que se reconstruye aquí (mismo algoritmo: redondeo proporcional + reparte la
+ * diferencia por orden de peso descendente). Garantía añadida por el controlador (ronda 1): al
+ * menos 1 "test4" cuando n >= 2, para que ni siquiera una tanda pequeña del átomo se quede sin
+ * variedad de tipos.
+ * @param {number} n
+ * @returns {{vf: number, test4: number, ordenar: number, error: number}}
+ */
+export function repartoPorTipo(n) {
+  const tipos = Object.keys(MEZCLA);
+  const total = Object.values(MEZCLA).reduce((a, b) => a + b, 0);
+  const objetivo = {};
+  let asignado = 0;
+  for (const tipo of tipos) {
+    objetivo[tipo] = Math.round((MEZCLA[tipo] / total) * n);
+    asignado += objetivo[tipo];
+  }
+
+  let diferencia = n - asignado;
+  const ordenPeso = [...tipos].sort((a, b) => MEZCLA[b] - MEZCLA[a]);
+  let i = 0;
+  while (diferencia !== 0 && ordenPeso.length > 0) {
+    const tipo = ordenPeso[i % ordenPeso.length];
+    if (diferencia > 0) {
+      objetivo[tipo] += 1;
+      diferencia -= 1;
+    } else if (objetivo[tipo] > 0) {
+      objetivo[tipo] -= 1;
+      diferencia += 1;
+    }
+    i++;
+  }
+
+  // Al menos 1 test4 si n >= 2 (variedad mínima en tandas pequeñas del átomo, ronda 1 del
+  // controlador): se resta 1 al tipo con más preguntas asignadas para no alterar la suma total.
+  if (n >= 2 && objetivo.test4 === 0) {
+    const donante = tipos.filter((t) => t !== 'test4' && objetivo[t] > 0).sort((a, b) => objetivo[b] - objetivo[a])[0];
+    if (donante) {
+      objetivo[donante] -= 1;
+      objetivo.test4 += 1;
+    }
+  }
+
+  return objetivo;
+}
+
 let contadorIdInterno = 0;
 const LETRAS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -99,6 +154,30 @@ function generarIdServidor(prefijo) {
   return `srv-${prefijo}-${marca}${l1}${l2}`;
 }
 
+// Mismo esquema por tipo que esquemaTipo() en tools/generar-preguntas.js (duplicado a propósito:
+// esa CLI no lo exporta). El caso "vf" no se usa en la práctica (promptUsuarioPorTipo, más abajo,
+// da a "vf" un prompt más preciso con el reparto 50/50 ya calculado); se deja aquí solo por
+// fidelidad con la CLI.
+function esquemaTipo(tipo, numHilos) {
+  const hilo = `, "hilo": 1..${numHilos} (número del hilo de la lista de arriba en el que encaja)`;
+  switch (tipo) {
+    case 'vf':
+      return (
+        `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "respuesta": true|false${hilo} }. ` +
+        'OBLIGATORIO: exactamente la mitad de las afirmaciones con "respuesta": false. Las falsas deben ser ' +
+        'plausibles (un dato, fecha, autor o relación cambiados por otro verosímil), nunca absurdas ni obvias.'
+      );
+    case 'test4':
+      return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "opciones": ["s","s","s","s"], "correcta": 0..3${hilo} }`;
+    case 'ordenar':
+      return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "criterio": "de menor a mayor …", "items": ["s","s","s","s"]${hilo} }`;
+    case 'error':
+      return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "tarjeta": { "titulo": "s", "filas": [{"etiqueta":"s","valor":"s"}, …3..5] }, "sospechoso": índice${hilo} }`;
+    default:
+      return '';
+  }
+}
+
 function promptUsuarioVF(n, mitad, resto, numHilos) {
   return (
     `Genera ${n} afirmaciones de verdadero/falso NUEVAS, EXACTAMENTE ${mitad} con "respuesta": true ` +
@@ -112,15 +191,37 @@ function promptUsuarioVF(n, mitad, resto, numHilos) {
   );
 }
 
+// Igual que promptUsuario(area, tipo, cantidad) en tools/generar-preguntas.js, para los 3 tipos
+// que no son "vf" (ese sí tiene su propio prompt más preciso, ver promptUsuarioVF).
+function promptUsuarioGenerico(area, tipo, cantidad, numHilos) {
+  return (
+    `Área: ${area}. Tipo de pregunta: ${tipo}. Genera ${cantidad} preguntas nuevas, ` +
+    `repartidas entre los niveles 1 a 5 (una o dos por nivel). Responde con un objeto ` +
+    `JSON {"preguntas": [ ... ]} donde cada elemento del array "preguntas" tiene ` +
+    `exactamente este esquema:\n${esquemaTipo(tipo, numHilos)}\n` +
+    `Ejemplo válido de un elemento (no lo repitas, es solo formato):\n${JSON.stringify(EJEMPLOS[tipo])}`
+  );
+}
+
+function promptUsuarioPorTipo(area, tipo, cantidad, numHilos) {
+  if (tipo === 'vf') {
+    const mitad = Math.floor(cantidad / 2);
+    const resto = cantidad - mitad;
+    return promptUsuarioVF(cantidad, mitad, resto, numHilos);
+  }
+  return promptUsuarioGenerico(area, tipo, cantidad, numHilos);
+}
+
 /**
- * Genera `n` borradores de tipo "vf" (verdadero/falso, reparto 50/50) para un área, opcionalmente
- * centrados en una ruta del átomo y evitando enunciados recientes. Una función pura: no valida, no
- * verifica y no toca disco -- solo llama al generador y da forma al borrador (id, area, tipo,
- * generador, confianza:null, verificado:false).
+ * Genera `n` borradores de un tipo dado (por defecto "vf", verdadero/falso con reparto 50/50) para
+ * un área, opcionalmente centrados en una ruta del átomo y evitando enunciados recientes. Una
+ * función pura: no valida, no verifica y no toca disco -- solo llama al generador y da forma al
+ * borrador (id, area, tipo, generador, confianza:null, verificado:false).
  * @param {object} params
  * @param {string} params.area una de validar-banco.js#AREAS
  * @param {string[]} [params.ruta] ruta del átomo (ver promptSistemaGenerador)
  * @param {number} [params.n] cuántos borradores pedir (por defecto 10)
+ * @param {'vf'|'test4'|'ordenar'|'error'} [params.tipo] por defecto 'vf'
  * @param {number} [params.nivelObjetivo] 1-5, opcional
  * @param {string[]} [params.evitar] enunciados recientes a no repetir
  * @param {object} [opciones]
@@ -135,7 +236,7 @@ function promptUsuarioVF(n, mitad, resto, numHilos) {
  * @returns {Promise<object[]>}
  */
 export async function generarBorradores(params, opciones = {}) {
-  const { area, ruta = [], n = 10, nivelObjetivo, evitar = [] } = params || {};
+  const { area, ruta = [], n = 10, tipo = 'vf', nivelObjetivo, evitar = [] } = params || {};
   const {
     llamar: llamarFn = llamarReal,
     permitirPago = false,
@@ -149,6 +250,10 @@ export async function generarBorradores(params, opciones = {}) {
   if (!prefijo) {
     throw new Error(`generarBorradores: área desconocida: ${area}`);
   }
+  if (!TIPOS.includes(tipo)) {
+    throw new Error(`generarBorradores: tipo desconocido: ${tipo}`);
+  }
+  if (n <= 0) return [];
 
   const numHilos = (HILOS_POR_AREA[area] || []).length || 1;
   const sistema = promptSistemaGenerador(area, { ruta, nivelObjetivo, evitar });
@@ -156,11 +261,9 @@ export async function generarBorradores(params, opciones = {}) {
 
   const borradores = [];
   for (const tamanoLote of repartirEnSublotes(n, TAMANO_LOTE_GENERACION)) {
-    const mitad = Math.floor(tamanoLote / 2);
-    const resto = tamanoLote - mitad;
     const mensajes = [
       { role: 'system', content: sistema },
-      { role: 'user', content: promptUsuarioVF(tamanoLote, mitad, resto, numHilos) },
+      { role: 'user', content: promptUsuarioPorTipo(area, tipo, tamanoLote, numHilos) },
     ];
 
     const salida = await llamarFn({
@@ -181,7 +284,7 @@ export async function generarBorradores(params, opciones = {}) {
         ...bruto,
         id: generarIdServidor(prefijo),
         area,
-        tipo: 'vf',
+        tipo,
         generador: salida.modelo,
         confianza: null,
         verificado: false,
@@ -192,14 +295,33 @@ export async function generarBorradores(params, opciones = {}) {
   return borradores;
 }
 
+// Igual que promptUsuario(lote) en tools/verificar-preguntas.js: cada tipo lleva al verificador
+// solo los campos que le hacen falta para juzgarlo (duplicado a propósito, esa CLI no lo exporta).
 function promptUsuarioVerificador(lote) {
-  const resumen = lote.map((p) => ({ id: p.id, tipo: p.tipo, enunciado: p.enunciado, explicacion: p.explicacion, respuesta: p.respuesta }));
+  const resumen = lote.map((p) => {
+    const base = { id: p.id, tipo: p.tipo, enunciado: p.enunciado, explicacion: p.explicacion };
+    if (p.tipo === 'vf') base.respuesta = p.respuesta;
+    if (p.tipo === 'test4') {
+      base.opciones = p.opciones;
+      base.correcta = p.correcta;
+    }
+    if (p.tipo === 'ordenar') {
+      base.criterio = p.criterio;
+      base.items = p.items;
+    }
+    if (p.tipo === 'error') {
+      base.tarjeta = p.tarjeta;
+      base.sospechoso = p.sospechoso;
+    }
+    return base;
+  });
   return `Verifica estas ${lote.length} preguntas:\n${JSON.stringify(resumen)}`;
 }
 
 /**
- * Verifica una lista de borradores con un modelo DISTINTO del que generó cada lote (lotes de 4,
- * `excluirModelo` = borrador.generador). Una sola llamada por lote que devuelve
+ * Verifica una lista de borradores (de cualquiera de los 4 tipos, pueden venir mezclados en el
+ * mismo lote, igual que la CLI mezcla áreas) con un modelo DISTINTO del que generó cada lote (lotes
+ * de 4, `excluirModelo` = borrador.generador). Una sola llamada por lote que devuelve
  * correcta/unica/inequivoca/cumpleUtilidad/nivel/confianza/motivo (spec §3.1: sustituye a las tres
  * pasadas de la CLI).
  * @param {object[]} borradores
@@ -231,8 +353,9 @@ export async function verificarBorradores(borradores, opciones = {}) {
     if (lote.length === 0) continue;
 
     // excluirModelo = el generador del lote (spec §3.4.2). Si el lote mezclara generadores
-    // distintos (posible si un sub-lote de generarBorradores cayó a otro modelo de la cascada), se
-    // usa el del primer borrador -- caso raro y sin mejor heurística sin complicar el contrato.
+    // distintos (posible si un sub-lote de generarBorradores cayó a otro modelo de la cascada, o
+    // si dos tipos distintos usaron modelos distintos), se usa el del primer borrador -- caso raro
+    // y sin mejor heurística sin complicar el contrato.
     const excluirModelo = lote[0]?.generador || null;
     let candidatos = excluirModelo ? modelos.filter((m) => m !== excluirModelo) : modelos.slice();
     // "si la cascada del verificador solo contiene ese [modelo generador], saltarlo" (nota del
@@ -306,9 +429,16 @@ export async function verificarBorradores(borradores, opciones = {}) {
 }
 
 /**
- * Pipeline completo de una tanda: generar → verificar → validarPregunta → resolverPregunta (spec
- * §3.4). La verificación nunca se salta: nada llega a `aprobadas` sin pasar por las tres.
- * @param {object} params mismos que generarBorradores
+ * Pipeline completo de una tanda: reparte `n` entre los 4 tipos (repartoPorTipo, misma proporción
+ * que MEZCLA de motor.js) → genera cada tipo con generarBorradores → junta todo → verifica →
+ * validarPregunta → resolverPregunta (spec §3.4). La verificación nunca se salta: nada llega a
+ * `aprobadas` sin pasar por las tres.
+ * @param {object} params
+ * @param {string} params.area
+ * @param {string[]} [params.ruta]
+ * @param {number} [params.n] por defecto 10
+ * @param {number} [params.nivelObjetivo]
+ * @param {string[]} [params.evitar]
  * @param {object} [opciones]
  * @param {Function} [opciones.llamar]
  * @param {boolean} [opciones.permitirPago]
@@ -335,21 +465,30 @@ export async function producirTanda(params, opciones = {}) {
   const rechazadas = [];
   const aprobadas = [];
 
-  const borradores = await generarBorradores(
-    { area, ruta, n, nivelObjetivo, evitar },
-    {
-      llamar: llamarFn,
-      permitirPago,
-      topeEur,
-      rutaLog,
-      acumulador,
-      ...(usaPagoBarato ? { modelos: GENERADOR_PREGUNTAS_SOLO_PAGO } : {}),
-    },
-  );
+  const reparto = repartoPorTipo(n);
+  let borradores = [];
+  for (const tipo of Object.keys(reparto)) {
+    const cantidad = reparto[tipo];
+    if (cantidad <= 0) continue;
+    const borradoresTipo = await generarBorradores(
+      { area, ruta, n: cantidad, tipo, nivelObjetivo, evitar },
+      {
+        llamar: llamarFn,
+        permitirPago,
+        topeEur,
+        rutaLog,
+        acumulador,
+        ...(usaPagoBarato ? { modelos: GENERADOR_PREGUNTAS_SOLO_PAGO } : {}),
+      },
+    );
+    borradores = borradores.concat(borradoresTipo);
+  }
   for (const b of borradores) {
     if (b.generador) modelosUsados.add(b.generador);
   }
 
+  // Se verifica la lista COMBINADA de los 4 tipos: los lotes de 4 pueden mezclar tipos, igual que
+  // la CLI mezcla áreas dentro de un mismo lote de verificación.
   const veredictos = await verificarBorradores(borradores, {
     llamar: llamarFn,
     permitirPago,
