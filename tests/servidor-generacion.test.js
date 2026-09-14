@@ -15,7 +15,7 @@ import {
 import { MODELOS } from '../tools/openrouter.js';
 import { GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
-import { EJEMPLOS } from '../tools/prompts-preguntas.js';
+import { EJEMPLOS, promptUsuarioVF } from '../tools/prompts-preguntas.js';
 import { MEZCLA } from '../motor.js';
 
 // --- helpers de test -----------------------------------------------------------------------
@@ -180,6 +180,36 @@ for (const tipo of ['test4', 'ordenar', 'error']) {
     assert.equal(validarPregunta(borrador).length, 0, `debe pasar validarPregunta: ${validarPregunta(borrador).join('; ')}`);
   });
 }
+
+// --- promptUsuarioVF (Ronda 2, punto 2: el reparto 50/50 real, no solo el recuento final) --------
+// Antes solo se comprobaba el RESULTADO ya parseado (2 true/3 false) con un `llamar` falso que
+// devolvía lo que el test quería, sin mirar si el PROMPT enviado pedía de verdad ese reparto. Estos
+// tests capturan el prompt de usuario tal cual lo recibe `llamar` y comprueban el texto exacto.
+
+test('promptUsuarioVF: para n=5 pide EXACTAMENTE 2 "true" y 3 "false" (mitad=floor(5/2))', () => {
+  const texto = promptUsuarioVF(5, 2, 3, 4);
+  assert.match(texto, /Genera 5 afirmaciones de verdadero\/falso NUEVAS, EXACTAMENTE 2 con "respuesta": true y 3 con "respuesta": false/);
+});
+
+test('promptUsuarioVF: para n=4 pide EXACTAMENTE 2 "true" y 2 "false"', () => {
+  const texto = promptUsuarioVF(4, 2, 2, 4);
+  assert.match(texto, /Genera 4 afirmaciones de verdadero\/falso NUEVAS, EXACTAMENTE 2 con "respuesta": true y 2 con "respuesta": false/);
+});
+
+test('generarBorradores: el prompt real que recibe `llamar` para tipo "vf" pide el reparto correcto (n=5 -> 2/3, n=4 -> 2/2)', async () => {
+  const usuariosPorN = {};
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    const n = Number(mensajes[1].content.match(/Genera (\d+)/)[1]);
+    usuariosPorN[n] = mensajes[1].content;
+    return respuestaVF([], modelos[0]);
+  };
+
+  await generarBorradores({ area: 'economia', ruta: [], n: 5, tipo: 'vf' }, { llamar: llamarFalso });
+  await generarBorradores({ area: 'economia', ruta: [], n: 4, tipo: 'vf' }, { llamar: llamarFalso });
+
+  assert.match(usuariosPorN[5], /EXACTAMENTE 2 con "respuesta": true y 3 con "respuesta": false/);
+  assert.match(usuariosPorN[4], /EXACTAMENTE 2 con "respuesta": true y 2 con "respuesta": false/);
+});
 
 // --- repartoPorTipo -------------------------------------------------------------------------
 
@@ -508,6 +538,64 @@ test('producirTanda: cada tipo llega al verificador con su forma (opciones/corre
   assert.ok(porTipo.test4 && Array.isArray(porTipo.test4.opciones) && typeof porTipo.test4.correcta === 'number', 'test4 debe llevar "opciones"/"correcta"');
   assert.ok(porTipo.ordenar && porTipo.ordenar.criterio && Array.isArray(porTipo.ordenar.items), 'ordenar debe llevar "criterio"/"items"');
   assert.ok(porTipo.error && porTipo.error.tarjeta && typeof porTipo.error.sospechoso === 'number', 'error debe llevar "tarjeta"/"sospechoso"');
+});
+
+// Ronda 2, punto 1 (controlador, 14-sep-2026): si la cascada de generación se agota del todo para
+// UN tipo, la tanda no debe abortar entera -- debe seguir con los demás tipos y registrarlo en
+// `fallos`, sin lanzar.
+test('producirTanda: si un tipo agota su cascada de generación, sigue con los demás, lo registra en "fallos" y no lanza', async () => {
+  const { llamar: base, registro } = crearLlamarPipeline({});
+  const llamarFalso = async (args) => {
+    const esGeneracion = args.mensajes[0].content.includes('autor de preguntas');
+    const tipo = esGeneracion ? detectarTipoYCantidad(args.mensajes[1].content).tipo : null;
+    if (esGeneracion && tipo === 'ordenar') {
+      throw new Error('cascada de preguntas agotada');
+    }
+    return base(args);
+  };
+
+  // n=10 -> repartoPorTipo da MEZCLA: {vf:3, test4:4, ordenar:2, error:1}.
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar: llamarFalso });
+
+  assert.equal(resultado.fallos.length, 1);
+  assert.equal(resultado.fallos[0].tipo, 'ordenar');
+  assert.match(resultado.fallos[0].motivo, /cascada de preguntas agotada/);
+
+  assert.equal(resultado.pedidas, 10);
+  assert.equal(resultado.obtenidas, 8, 'MEZCLA sin los 2 "ordenar" deja vf:3 + test4:4 + error:1 = 8');
+
+  assert.ok(!resultado.aprobadas.some((p) => p.tipo === 'ordenar'), 'no debe haber aprobadas de "ordenar"');
+  assert.equal(resultado.aprobadas.length, 8, 'los otros 3 tipos siguen generándose, verificándose y aprobándose con normalidad');
+  assert.ok(resultado.coste > 0, 'el coste de los tipos que sí funcionaron no se pierde');
+});
+
+test('generarBorradores: si un lote falla pero otro de la misma llamada funciona, no se pierden los borradores ya conseguidos', async () => {
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    if (llamadas === 1) throw new Error('primer lote sin respuesta');
+    // n=8 -> lotes [5,3]: el primero falla, el segundo (3 preguntas) debe seguir llegando.
+    const preguntas = Array.from({ length: 3 }, (_, i) => ({
+      enunciado: `Superviviente ${i}`,
+      explicacion: 'una explicación con mecanismo',
+      nivel: 3,
+      respuesta: i % 2 === 0,
+      hilo: 1,
+    }));
+    return respuestaVF(preguntas, modelos[0]);
+  };
+
+  const borradores = await generarBorradores({ area: 'economia', ruta: [], n: 8, tipo: 'vf' }, { llamar: llamarFalso });
+
+  assert.equal(llamadas, 2, 'debe intentar los 2 lotes aunque el primero falle');
+  assert.equal(borradores.length, 3, 'conserva los borradores del lote que sí funcionó');
+});
+
+test('generarBorradores: si TODOS los lotes fallan, propaga el último error (no devuelve una lista vacía en silencio)', async () => {
+  await assert.rejects(
+    () => generarBorradores({ area: 'economia', ruta: [], n: 2, tipo: 'vf' }, { llamar: async () => { throw new Error('cascada agotada del todo'); } }),
+    /cascada agotada del todo/,
+  );
 });
 
 test('producirTanda: un "ordenar" inválido (items duplicados) no entra si el verificador lo rechaza', async () => {

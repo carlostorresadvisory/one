@@ -64,6 +64,30 @@ export function promptSistemaGenerador(area, { ruta = [], nivelObjetivo, evitar 
   return texto;
 }
 
+/**
+ * Prompt de usuario para pedir un lote de preguntas "vf" (verdadero/falso) con un reparto 50/50
+ * exacto: `mitad` con "respuesta": true y `resto` con "respuesta": false. Movido aquí desde
+ * servidor/generacion.js en la Ronda 2 de revisión de la Tarea 1 (14-sep-2026): es lógica de
+ * generación de preguntas y este es el fichero de prompts compartidos, no el pipeline.
+ * @param {number} n cuántas preguntas se piden en total (== mitad + resto)
+ * @param {number} mitad cuántas deben llevar "respuesta": true
+ * @param {number} resto cuántas deben llevar "respuesta": false
+ * @param {number} numHilos hilos del área (para el campo "hilo": 1..numHilos)
+ * @returns {string}
+ */
+export function promptUsuarioVF(n, mitad, resto, numHilos) {
+  return (
+    `Genera ${n} afirmaciones de verdadero/falso NUEVAS, EXACTAMENTE ${mitad} con "respuesta": true ` +
+    `y ${resto} con "respuesta": false (nunca desequilibres esta proporción; las falsas deben ser ` +
+    'plausibles -- un dato, fecha, autor o relación cambiados por otro verosímil -- nunca absurdas ' +
+    'ni obvias). Repártelas entre los niveles 1 a 5. Responde con un objeto JSON ' +
+    '{"preguntas": [ ... ]} donde cada elemento tiene exactamente este esquema: { "enunciado": ' +
+    '"string", "explicacion": "string", "nivel": 1..5, "respuesta": true|false, "hilo": ' +
+    `1..${numHilos} (número del hilo de la lista de arriba en el que encaja) }.\n` +
+    `Ejemplos válidos (no los repitas, son solo formato): ${JSON.stringify(EJEMPLOS.vf)}`
+  );
+}
+
 // Mismos 4 ejemplos que EJEMPLOS en tools/generar-preguntas.js (sin cambios).
 export const EJEMPLOS = {
   // Dos ejemplos para V/F: sin uno falso el generador sesga a "verdadero" (69 % en el primer lote).

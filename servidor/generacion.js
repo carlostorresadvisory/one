@@ -17,10 +17,22 @@
 // con su prompt y esquema correspondientes -- igual que hace hoy tools/generar-preguntas.js, sin
 // duplicar su lógica de generación por área más allá de lo imprescindible (esquemaTipo/promptUsuario
 // se reconstruyen aquí porque esa CLI no los exporta).
+//
+// Ronda 2 (revisión del controlador, 14-sep-2026): un tipo que agota su cascada de generación ya no
+// aborta la tanda entera -- generarBorradores tolera el fallo de un lote suelto (no pierde lo que
+// ya consiguió) y solo propaga el error si NINGÚN lote de ese tipo dio nada; producirTanda convierte
+// eso en una entrada de `fallos` y sigue con los demás tipos. `promptUsuarioVF` (el prompt preciso
+// del reparto 50/50 de "vf") se movió a tools/prompts-preguntas.js: es lógica de generación de
+// preguntas, no del pipeline, y este fichero solo debía importar prompts, no definirlos.
 import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import { resolverPregunta, GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
-import { promptSistemaGenerador, PROMPT_SISTEMA_VERIFICADOR, EJEMPLOS } from '../tools/prompts-preguntas.js';
+import {
+  promptSistemaGenerador,
+  promptUsuarioVF,
+  PROMPT_SISTEMA_VERIFICADOR,
+  EJEMPLOS,
+} from '../tools/prompts-preguntas.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
 import { MEZCLA } from '../motor.js';
 
@@ -178,19 +190,6 @@ function esquemaTipo(tipo, numHilos) {
   }
 }
 
-function promptUsuarioVF(n, mitad, resto, numHilos) {
-  return (
-    `Genera ${n} afirmaciones de verdadero/falso NUEVAS, EXACTAMENTE ${mitad} con "respuesta": true ` +
-    `y ${resto} con "respuesta": false (nunca desequilibres esta proporción; las falsas deben ser ` +
-    'plausibles -- un dato, fecha, autor o relación cambiados por otro verosímil -- nunca absurdas ' +
-    'ni obvias). Repártelas entre los niveles 1 a 5. Responde con un objeto JSON ' +
-    '{"preguntas": [ ... ]} donde cada elemento tiene exactamente este esquema: { "enunciado": ' +
-    '"string", "explicacion": "string", "nivel": 1..5, "respuesta": true|false, "hilo": ' +
-    `1..${numHilos} (número del hilo de la lista de arriba en el que encaja) }.\n` +
-    `Ejemplos válidos (no los repitas, son solo formato): ${JSON.stringify(EJEMPLOS.vf)}`
-  );
-}
-
 // Igual que promptUsuario(area, tipo, cantidad) en tools/generar-preguntas.js, para los 3 tipos
 // que no son "vf" (ese sí tiene su propio prompt más preciso, ver promptUsuarioVF).
 function promptUsuarioGenerico(area, tipo, cantidad, numHilos) {
@@ -259,24 +258,43 @@ export async function generarBorradores(params, opciones = {}) {
   const sistema = promptSistemaGenerador(area, { ruta, nivelObjetivo, evitar });
   const modelosFiltrados = filtrarPorPago(modelos, permitirPago);
 
+  // Ronda 2 (controlador, 14-sep-2026): cada lote se intenta con su propio try/catch, igual que ya
+  // hace verificarBorradores con los suyos -- si un lote falla (cascada agotada, red...) no se
+  // pierden los borradores que YA se consiguieron en lotes anteriores de esta misma llamada. Solo
+  // si TODOS los lotes de esta llamada fallan (borradores.length sigue en 0 al terminar) se
+  // propaga el último error: eso es "la cascada se agota en este tipo", y producirTanda lo
+  // convierte en una entrada de `fallos` en vez de abortar la tanda entera.
   const borradores = [];
+  let ultimoError = null;
   for (const tamanoLote of repartirEnSublotes(n, TAMANO_LOTE_GENERACION)) {
     const mensajes = [
       { role: 'system', content: sistema },
       { role: 'user', content: promptUsuarioPorTipo(area, tipo, tamanoLote, numHilos) },
     ];
 
-    const salida = await llamarFn({
-      modelos: modelosFiltrados,
-      mensajes,
-      json: true,
-      permitirPago,
-      topeEur,
-      ...(rutaLog ? { rutaLog } : {}),
-    });
+    let salida;
+    try {
+      salida = await llamarFn({
+        modelos: modelosFiltrados,
+        mensajes,
+        json: true,
+        permitirPago,
+        topeEur,
+        ...(rutaLog ? { rutaLog } : {}),
+      });
+    } catch (err) {
+      ultimoError = err;
+      continue;
+    }
     if (acumulador) acumulador.coste += salida.coste || 0;
 
-    const datos = extraerJson(salida.texto);
+    let datos;
+    try {
+      datos = extraerJson(salida.texto);
+    } catch (err) {
+      ultimoError = err;
+      continue;
+    }
     const lista = Array.isArray(datos) ? datos : datos.preguntas || [];
 
     for (const bruto of lista) {
@@ -290,6 +308,10 @@ export async function generarBorradores(params, opciones = {}) {
         verificado: false,
       });
     }
+  }
+
+  if (borradores.length === 0 && ultimoError) {
+    throw ultimoError;
   }
 
   return borradores;
@@ -358,8 +380,9 @@ export async function verificarBorradores(borradores, opciones = {}) {
     // y sin mejor heurística sin complicar el contrato.
     const excluirModelo = lote[0]?.generador || null;
     let candidatos = excluirModelo ? modelos.filter((m) => m !== excluirModelo) : modelos.slice();
-    // "si la cascada del verificador solo contiene ese [modelo generador], saltarlo" (nota del
-    // controlador en el brief): no lanzar, usar la cascada completa igualmente.
+    // El brief pide "si la cascada del verificador solo contiene ese [modelo generador], saltarlo"
+    // sin decir CÓMO saltarlo. Revertir a la cascada completa (en vez de, p. ej., lanzar o saltar
+    // la verificación de ese lote) es decisión del implementador, aceptada por el controlador.
     if (candidatos.length === 0) candidatos = modelos.slice();
     const modelosFiltrados = filtrarPorPago(candidatos, permitirPago);
 
@@ -447,7 +470,13 @@ export async function verificarBorradores(borradores, opciones = {}) {
  * @param {boolean} [opciones.urgente] con permitirPago, usa las cascadas de pago barato
  *   (GENERADOR_PREGUNTAS_SOLO_PAGO/VERIFICADOR_PREGUNTAS_SOLO_PAGO y, para el visual,
  *   GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de tools/visualizar.js) en vez de las normales.
- * @returns {Promise<{aprobadas: object[], rechazadas: {borrador: object, motivo: string}[], coste: number, modelos: string[]}>}
+ * @returns {Promise<{
+ *   aprobadas: object[], rechazadas: {borrador: object, motivo: string}[], coste: number,
+ *   modelos: string[], fallos: {tipo: string, motivo: string}[], pedidas: number, obtenidas: number,
+ * }>} `fallos` lleva un elemento por tipo cuya generación agotó del todo su cascada (ver
+ *   generarBorradores); `pedidas` es el `n` pedido y `obtenidas` los borradores que sí se
+ *   generaron (antes de verificar/validar) -- así la cola (Task 2) puede marcar el trabajo
+ *   "parcial" u homogéneo sin tener que adivinarlo a partir de `aprobadas`.
  *
  * Nota sobre permitirPago=false: generarBorradores/verificarBorradores (código de esta tarea)
  * filtran su cascada a solo ':free' antes de llamar. El paso de visual (resolverPregunta, ya
@@ -464,25 +493,35 @@ export async function producirTanda(params, opciones = {}) {
   const modelosUsados = new Set();
   const rechazadas = [];
   const aprobadas = [];
+  const fallos = [];
 
   const reparto = repartoPorTipo(n);
   let borradores = [];
   for (const tipo of Object.keys(reparto)) {
     const cantidad = reparto[tipo];
     if (cantidad <= 0) continue;
-    const borradoresTipo = await generarBorradores(
-      { area, ruta, n: cantidad, tipo, nivelObjetivo, evitar },
-      {
-        llamar: llamarFn,
-        permitirPago,
-        topeEur,
-        rutaLog,
-        acumulador,
-        ...(usaPagoBarato ? { modelos: GENERADOR_PREGUNTAS_SOLO_PAGO } : {}),
-      },
-    );
-    borradores = borradores.concat(borradoresTipo);
+    // Ronda 2 (controlador, 14-sep-2026): si la cascada se agota del todo para ESTE tipo
+    // (generarBorradores lanza, ver ahí el porqué), se registra en `fallos` y se sigue con los
+    // demás tipos -- una tanda parcial es mejor que ninguna, y el coste ya acumulado en otros tipos
+    // no se pierde (el `acumulador` es el mismo objeto para todas las llamadas).
+    try {
+      const borradoresTipo = await generarBorradores(
+        { area, ruta, n: cantidad, tipo, nivelObjetivo, evitar },
+        {
+          llamar: llamarFn,
+          permitirPago,
+          topeEur,
+          rutaLog,
+          acumulador,
+          ...(usaPagoBarato ? { modelos: GENERADOR_PREGUNTAS_SOLO_PAGO } : {}),
+        },
+      );
+      borradores = borradores.concat(borradoresTipo);
+    } catch (err) {
+      fallos.push({ tipo, motivo: err.message });
+    }
   }
+  const obtenidas = borradores.length;
   for (const b of borradores) {
     if (b.generador) modelosUsados.add(b.generador);
   }
@@ -555,5 +594,8 @@ export async function producirTanda(params, opciones = {}) {
     rechazadas,
     coste: acumulador.coste,
     modelos: [...modelosUsados],
+    fallos,
+    pedidas: n,
+    obtenidas,
   };
 }
