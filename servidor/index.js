@@ -583,7 +583,14 @@ export function crearServidor({
     // "pedir al modelo" de más abajo -- idéntico al de un anillo ≥ 2.
     if (ruta.length === 0) {
       const excluidos = new Set(excluir);
-      const restantes = HILOS_POR_AREA[area].filter((completo) => !excluidos.has(completo));
+      // Defensivo (triaje adversarial, ronda final de arreglos, 14-sep-2026): `area` ya pasó
+      // `AREAS.includes(area)` unas líneas arriba, así que HOY siempre existe en HILOS_POR_AREA
+      // (las dos listas coinciden) -- pero si algún día dejaran de coincidir (un área nueva en
+      // AREAS sin sus hilos, o un renombrado a medias), `HILOS_POR_AREA[area]` sería `undefined` y
+      // `.filter` lanzaría un 500 en vez de caer, con normalidad, al bloque de "pedir al modelo" de
+      // más abajo (que no depende de ningún hilo estático).
+      const hilos = HILOS_POR_AREA[area] || [];
+      const restantes = hilos.filter((completo) => !excluidos.has(completo));
       if (restantes.length > 0) {
         const subtemas = restantes.slice(0, SUBTEMAS_MAX).map((completo, indice) => ({
           indice,

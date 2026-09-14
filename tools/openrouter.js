@@ -57,6 +57,15 @@ export function esModeloGratis(id) {
   return id.endsWith(':free') || id.startsWith('gemini:');
 }
 
+// Defensivo (triaje adversarial, ronda final de arreglos, 14-sep-2026): un `.env` con espacios de
+// sobra alrededor de la clave (copia-pega, salto de línea final del editor...) no debe colarse tal
+// cual en la cabecera `Authorization` ni contar como "hay clave" si tras el trim queda vacía --
+// `''` trim no es una clave, es ausencia de clave, aunque `process.env.GEMINI_API_KEY_GRATIS` sea
+// una cadena (truthy) de solo espacios.
+function claveGeminiGratis() {
+  return (process.env.GEMINI_API_KEY_GRATIS || '').trim();
+}
+
 // Resuelve a qué API va cada modelo de la cascada: OpenRouter (por defecto) o el endpoint
 // compatible con OpenAI de Google AI Studio para los ids "gemini:<modelo>". El body de Gemini
 // lleva el nombre del modelo SIN el prefijo; las cabeceras HTTP-Referer/X-Title son propias de
@@ -66,7 +75,7 @@ function destinoDe(modelo) {
     return {
       url: URL_GEMINI_OPENAI,
       cabeceras: {
-        Authorization: `Bearer ${process.env.GEMINI_API_KEY_GRATIS}`,
+        Authorization: `Bearer ${claveGeminiGratis()}`,
         'Content-Type': 'application/json',
       },
       modelBody: modelo.slice('gemini:'.length),
@@ -222,7 +231,7 @@ export async function llamar({
     }
 
     const esGemini = modelo.startsWith('gemini:');
-    if (esGemini && !process.env.GEMINI_API_KEY_GRATIS) {
+    if (esGemini && !claveGeminiGratis()) {
       errores.push(`${modelo}: sin clave de Gemini`);
       continue;
     }

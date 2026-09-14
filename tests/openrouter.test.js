@@ -296,6 +296,51 @@ test(
   }),
 );
 
+// Defensivo (triaje adversarial, ronda final de arreglos, 14-sep-2026): un `.env` con espacios de
+// sobra alrededor de la clave (copia-pega, salto de línea final del editor...) no debe colarse tal
+// cual en la cabecera, ni una clave de solo espacios debe tratarse como "hay clave".
+test(
+  'gemini: GEMINI_API_KEY_GRATIS de solo espacios se trata como AUSENTE (se salta, no llama a fetchImpl)',
+  conClaveGeminiDeTest('   ', async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadas.push(body.model);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.deepEqual(llamadas, ['b/dos:free'], 'gemini nunca debe llegar a fetchImpl con la clave vacía tras el trim');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'gemini: GEMINI_API_KEY_GRATIS con espacios alrededor se recorta (trim) antes de mandarla en Authorization',
+  conClaveGeminiDeTest(`  ${CLAVE_GEMINI_TEST}  \n`, async () => {
+    await limpiarLog();
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      opcionesRecibidas = opts;
+      return respuestaOk('gemini-2.5-flash-lite');
+    };
+    await llamar({
+      modelos: ['gemini:gemini-2.5-flash-lite'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+    });
+    assert.equal(opcionesRecibidas.headers.Authorization, `Bearer ${CLAVE_GEMINI_TEST}`);
+    await limpiarLog();
+  }),
+);
+
 // (c) 429 → reintento único tras reintentoMs → si el reintento también falla, pasa al siguiente.
 test(
   'gemini: 429 reintenta una vez y, si el reintento responde 200, usa esa respuesta (mismo modelo)',
