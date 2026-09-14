@@ -1,10 +1,11 @@
-// Tests del estado puro del átomo (Tarea 2 del plan v0.2b2-cliente-atomo): sin DOM, sin red.
+// Tests del estado puro del átomo (Tarea 2 del plan v0.2b2-cliente-atomo, ampliado en la Tarea 3
+// de v0.2b3): sin DOM, sin red.
 // Decisión del controlador (14-sep-2026, resuelve la ambigüedad del brief de la tarea):
 // `crearEstadoAtomo(area) -> {area, ruta: [], etiquetas: []}`; `avanzar(estado, subtema)` añade
-// `subtema.completo` a `ruta` y `subtema.corto` a `etiquetas` (máximo 4 anillos: en `ruta.length
-// === 4` devuelve el MISMO objeto, sin copiar); `retroceder(estado)` quita el último elemento de
-// ambos arrays (en `ruta` vacía devuelve el MISMO objeto). Inmutable: ni avanzar ni retroceder
-// tocan el objeto que reciben.
+// `subtema.completo` a `ruta` y `subtema.corto` a `etiquetas` (máximo 6 anillos, v0.2b3: en
+// `ruta.length === 6` devuelve el MISMO objeto, sin copiar); `retroceder(estado)` quita el último
+// elemento de ambos arrays (en `ruta` vacía devuelve el MISMO objeto). Inmutable: ni avanzar ni
+// retroceder tocan el objeto que reciben.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { crearEstadoAtomo, avanzar, retroceder } from '../atomo.js';
@@ -48,16 +49,16 @@ test('avanzar: encadenado, cada anillo se apila en orden', () => {
   assert.deepEqual(estado.etiquetas, ['Ríos', 'Amazonas']);
 });
 
-test('avanzar: máximo 4 anillos, el quinto no cambia nada y devuelve el MISMO objeto', () => {
+test('avanzar: máximo 6 anillos (v0.2b3), el séptimo no cambia nada y devuelve el MISMO objeto', () => {
   let estado = crearEstadoAtomo('arte');
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 6; i += 1) {
     estado = avanzar(estado, subtema(i, `Corto ${i}`, `Completo ${i}`));
   }
-  assert.equal(estado.ruta.length, 4);
-  const conCuatro = estado;
-  const intentoQuinto = avanzar(conCuatro, subtema(4, 'Corto 4', 'Completo 4'));
-  assert.equal(intentoQuinto, conCuatro); // misma referencia, no una copia igual
-  assert.equal(intentoQuinto.ruta.length, 4);
+  assert.equal(estado.ruta.length, 6);
+  const conSeis = estado;
+  const intentoSeptimo = avanzar(conSeis, subtema(6, 'Corto 6', 'Completo 6'));
+  assert.equal(intentoSeptimo, conSeis); // misma referencia, no una copia igual
+  assert.equal(intentoSeptimo.ruta.length, 6);
 });
 
 // === retroceder ======================================================================================

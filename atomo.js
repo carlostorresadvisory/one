@@ -12,7 +12,7 @@
 
 // === Estado puro (decisión del controlador, 14-sep-2026) ==========================================
 
-const MAX_ANILLOS = 4;
+const MAX_ANILLOS = 6; // v0.2b3 Tarea 3: 4 → 6 (átomo más amplio, decisión de Carlos 14-sep 21:30).
 
 /** Estado inicial del átomo para `area`: sin ningún anillo elegido todavía (núcleo = el área). */
 export function crearEstadoAtomo(area) {
@@ -22,8 +22,9 @@ export function crearEstadoAtomo(area) {
 /**
  * Avanza un anillo: añade `subtema.completo` a `ruta` (lo que viaja a `pedirTanda`/`pedirSubtemas`)
  * y `subtema.corto` a `etiquetas` (lo que se ve en pantalla). Inmutable: nunca toca `estado`. En el
- * máximo de anillos (4) es un no-op que devuelve el MISMO objeto recibido (no una copia igual) —
- * así quien llama puede detectar "no ha pasado nada" con `===` en vez de comparar contenido.
+ * máximo de anillos (6, v0.2b3) es un no-op que devuelve el MISMO objeto recibido (no una copia
+ * igual) — así quien llama puede detectar "no ha pasado nada" con `===` en vez de comparar
+ * contenido (app.js usa esto para mostrar "Máximo detalle: toca Generar", ver mostrarAvisoTopeAtomo).
  */
 export function avanzar(estado, subtema) {
   if (estado.ruta.length >= MAX_ANILLOS) return estado;

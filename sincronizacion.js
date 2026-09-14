@@ -411,23 +411,28 @@ const cacheSubtemas = new Map();
 const TOPE_CACHE_SUBTEMAS = 50;
 
 /**
- * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta]` (spec §4: "una sola
- * llamada al modelo por combinación, para siempre" en el servidor -- aquí, para no repetir ni
- * siquiera la llamada HTTP mientras dure la sesión). La caché nunca se llena de fallos: solo se
- * guarda una respuesta buena.
- * @param {{area: string, ruta?: string[], fetchImpl?: Function}} params
+ * `POST /subtemas`: anillos del átomo. Cacheada en memoria por `[area, ruta, excluir]` (spec §4:
+ * "una sola llamada al modelo por combinación, para siempre" en el servidor -- aquí, para no
+ * repetir ni siquiera la llamada HTTP mientras dure la sesión). La caché nunca se llena de fallos:
+ * solo se guarda una respuesta buena.
+ *
+ * `excluir` (v0.2b3 Tarea 3, nodo "Más…"): los `completo` de los subtemas ya mostrados en ESE
+ * anillo, para que el servidor pagine la siguiente tanda sin repetir. Siempre viaja en el body
+ * (`[]` por defecto, nunca se omite) y entra en la clave de caché -- misma `[area, ruta]` con un
+ * `excluir` distinto es una página distinta, no la misma petición.
+ * @param {{area: string, ruta?: string[], excluir?: string[], fetchImpl?: Function}} params
  * @returns {Promise<object[] | null>}
  */
-export async function pedirSubtemas({ area, ruta = [], fetchImpl = fetch } = {}) {
+export async function pedirSubtemas({ area, ruta = [], excluir = [], fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || !area) return null;
-  const clave = JSON.stringify([area, ruta]);
+  const clave = JSON.stringify([area, ruta, excluir]);
   if (cacheSubtemas.has(clave)) return cacheSubtemas.get(clave);
 
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/subtemas`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta }),
+    body: JSON.stringify({ area, ruta, excluir }),
   });
   if (!datos || !Array.isArray(datos.subtemas)) return null;
   if (cacheSubtemas.size >= TOPE_CACHE_SUBTEMAS) {

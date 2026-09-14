@@ -506,6 +506,44 @@ test('pedirSubtemas: error del servidor → null y no se cachea (la siguiente ll
   assert.equal(fetchFalso.llamadas.length, 2);
 });
 
+// === pedirSubtemas: `excluir` (Tarea 3 de v0.2b3, nodo "Más…" con paginación) =======================
+
+test('pedirSubtemas: manda excluir en el body (por defecto [] si no se pasa)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'C', completo: 'C' }] } }]);
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-defecto-tarea-3'], fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.deepEqual(cuerpo, { area: 'economia', ruta: ['excluir-defecto-tarea-3'], excluir: [] });
+});
+
+test('pedirSubtemas: manda el excluir recibido tal cual en el body', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'D', completo: 'D' }] } }]);
+  const excluir = ['Mercados y crisis financieras', 'Política monetaria y bancos centrales'];
+  await pedirSubtemas({ area: 'economia', ruta: ['excluir-con-datos-tarea-3'], excluir, fetchImpl: fetchFalso });
+  const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+  assert.deepEqual(cuerpo, { area: 'economia', ruta: ['excluir-con-datos-tarea-3'], excluir });
+});
+
+test('pedirSubtemas: la caché distingue por excluir — mismo [area, ruta] con excluir distinto repite la petición', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([
+    { ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'E1', completo: 'E1' }] } },
+    { ok: true, cuerpo: { subtemas: [{ indice: 0, corto: 'E2', completo: 'E2' }] } },
+  ]);
+  const base = { area: 'economia', ruta: ['cache-por-excluir-tarea-3'] };
+  const primeraPagina = await pedirSubtemas({ ...base, excluir: [], fetchImpl: fetchFalso });
+  const segundaPagina = await pedirSubtemas({ ...base, excluir: ['E1'], fetchImpl: fetchFalso });
+  assert.deepEqual(primeraPagina, [{ indice: 0, corto: 'E1', completo: 'E1' }]);
+  assert.deepEqual(segundaPagina, [{ indice: 0, corto: 'E2', completo: 'E2' }]);
+  assert.equal(fetchFalso.llamadas.length, 2); // dos claves de caché distintas, dos peticiones reales
+
+  // Repetir la primera página (mismo excluir) debe volver a servirse de caché, sin una tercera petición.
+  const primeraPaginaOtraVez = await pedirSubtemas({ ...base, excluir: [], fetchImpl: fetchFalso });
+  assert.deepEqual(primeraPaginaOtraVez, primeraPagina);
+  assert.equal(fetchFalso.llamadas.length, 2);
+});
+
 test('reportarAlServidor: sin configuración, null y cero peticiones', async () => {
   prepararGlobales();
   const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { ok: true } }]);
