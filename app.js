@@ -12,6 +12,8 @@ import {
   exportar,
   importar,
   evaluar,
+  ordenarRepaso,
+  AREAS,
 } from './motor.js';
 import { construirVisual } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
@@ -92,6 +94,34 @@ let mazoResumenControlador = null;
 // para poder reconstruir la MISMA tarjeta respondida en soloLectura.
 let repasoPartida = [];
 
+// Mazo del REPASO del HUB (feed "sin fin", spec v0.2 §2): se monta en
+// abrirRepaso()/renderRepaso() sobre #mazo-repaso y se destruye al abandonar
+// la vista (irAlHub/irAInicioEmojis, vía limpiarPartidaEnCurso) o antes de
+// remontarlo con otro filtro. Nada que ver con mazoResumenControlador (el
+// repaso de UNA partida ya jugada): este es el feed de TODA la historia.
+let mazoRepasoControlador = null;
+// Filtro de área activo del repaso del HUB: 'todas' o una de AREAS. Se
+// recuerda en sessionStorage (spec v0.2 §2: "se recuerda en sessionStorage",
+// no localStorage — vuelve dentro de la sesión, no entre sesiones).
+const CLAVE_FILTRO_REPASO = 'one.repasoFiltro';
+function cargarFiltroRepaso() {
+  try {
+    const guardado = sessionStorage.getItem(CLAVE_FILTRO_REPASO);
+    if (guardado === 'todas' || AREAS.includes(guardado)) return guardado;
+  } catch (err) {
+    // sessionStorage no disponible (modo privado, cuota...): por defecto "todas".
+  }
+  return 'todas';
+}
+function guardarFiltroRepaso(valor) {
+  try {
+    sessionStorage.setItem(CLAVE_FILTRO_REPASO, valor);
+  } catch (err) {
+    // No persiste entre pantallas de la sesión, pero la app sigue funcionando.
+  }
+}
+let filtroRepaso = cargarFiltroRepaso();
+
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
 // desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
 // ("←" o "Inicio"); "Otra partida" en el resumen lo respeta para repetir el
@@ -120,10 +150,13 @@ const nodoRecuperadas = document.querySelector('[data-test="recuperadas"]');
 const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
 const nodoMision = document.querySelector('[data-test="mision"]');
 const nodoPendientes = document.querySelector('[data-test="pendientes"]');
+const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
 const contenedorMazoResumen = document.getElementById('mazo-resumen');
+const contenedorMazoRepaso = document.getElementById('mazo-repaso');
+const contenedorFiltroRepaso = document.querySelector('[data-test="repaso-filtro"]');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 const plantillaConfianza = document.getElementById('plantilla-confianza');
@@ -287,6 +320,16 @@ function limpiarResumenMazo() {
   }
 }
 
+/** Desmonta el mazo de repaso del HUB (feed sin fin, spec v0.2 §2), igual que
+ * limpiarResumenMazo pero para #mazo-repaso. Se llama al abandonar la vista
+ * (vía limpiarPartidaEnCurso) y antes de remontarlo con otro filtro. */
+function limpiarRepasoMazo() {
+  if (mazoRepasoControlador) {
+    mazoRepasoControlador.destruir();
+    mazoRepasoControlador = null;
+  }
+}
+
 /** Abandona la partida en curso si la hubiera (las respuestas ya dadas quedan
  * guardadas: Leitner/nivel se aplican una a una; la racha solo se actualiza al
  * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
@@ -297,6 +340,7 @@ function limpiarPartidaEnCurso() {
     mazoControlador = null;
   }
   limpiarResumenMazo();
+  limpiarRepasoMazo();
   mazo = [];
   indiceMazo = 0;
   nodoCierre = null;
@@ -1080,17 +1124,27 @@ function construirRespuestaCompacta(pregunta, hueco) {
   contenedor.className = 'respuesta-compacta';
   switch (pregunta.tipo) {
     case 'vf': {
+      // Tolerancia a hueco.respuesta === undefined (tarjeta anterior a v0.2,
+      // spec §2: "se pinta con la correcta marcada y sin la respuesta del
+      // usuario"): para vf, correcta === true implica por definición que la
+      // respuesta dada fue pregunta.respuesta (evaluar() compara igualdad),
+      // así que no hace falta "adivinar" nada — se reconstruye exacta.
+      const respuestaVf = hueco.respuesta === undefined ? pregunta.respuesta : hueco.respuesta;
       const linea = document.createElement('p');
       linea.className = 'respuesta-compacta-linea';
       linea.textContent = hueco.correcta
-        ? `Tu respuesta: ${hueco.respuesta ? 'Verdadero' : 'Falso'} ✓`
+        ? `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✓`
         : `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
       linea.classList.add(hueco.correcta ? 'respuesta-compacta-linea--ok' : 'respuesta-compacta-linea--tachada');
       contenedor.appendChild(linea);
       break;
     }
     case 'test4': {
-      if (!hueco.correcta) {
+      // Sin hueco.respuesta (tarjeta anterior a v0.2 fallada, sin volver a
+      // responder) no hay forma de saber CUÁL opción se marcó: se omite la
+      // línea tachada y se deja solo la correcta (tolerancia mínima pedida
+      // por la spec §2, "marca solo la correcta").
+      if (!hueco.correcta && hueco.respuesta !== undefined) {
         const tuya = document.createElement('p');
         tuya.className = 'respuesta-compacta-linea respuesta-compacta-linea--tachada';
         tuya.textContent = `${pregunta.opciones[hueco.respuesta]} ✗`;
@@ -1103,7 +1157,8 @@ function construirRespuestaCompacta(pregunta, hueco) {
       break;
     }
     case 'error': {
-      if (!hueco.correcta) {
+      // Misma tolerancia que test4 (ver comentario arriba).
+      if (!hueco.correcta && hueco.respuesta !== undefined) {
         const tuya = document.createElement('p');
         tuya.className = 'respuesta-compacta-linea respuesta-compacta-linea--tachada';
         tuya.textContent = `${pregunta.tarjeta.filas[hueco.respuesta].etiqueta} ✗`;
@@ -1850,32 +1905,97 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
   return tarjeta;
 }
 
-/** Una tarjeta de repaso (spec v0.1c §6): la MISMA tarjeta respondida de la
- * partida (construirTarjetaRespondida, soloLectura: sin confianza ni
- * Siguiente, con "Preguntar a" ya relleno), con una marca añadida justo tras
- * la cabecera de área/nivel para saber POR QUÉ está aquí. */
+/** Sufijo de clase de `.repaso-marca` para cada estado (spec v0.1c §6 + v0.2
+ * §2: 'fallo'/'fragil' ya existían, 'acertada' es nuevo). */
+function claseRepasoMarca(estadoRepaso) {
+  if (estadoRepaso === 'fallada') return 'fallo';
+  if (estadoRepaso === 'fragil') return 'fragil';
+  return 'acertada';
+}
+
+/** Texto de la marca para cada estado (spec v0.1c §6 + v0.2 §2). */
+function textoRepasoMarca(estadoRepaso) {
+  if (estadoRepaso === 'fallada') return '✗ fallada';
+  if (estadoRepaso === 'fragil') return '✓ frágil';
+  return '✓ acertada';
+}
+
+/** "hoy" (0 días) / "ayer" (1) / "hace N días" (spec v0.2 §2, feed de repaso
+ * del HUB: `diasDesde` de ordenarRepaso). */
+function textoDiasDesde(dias) {
+  if (dias === 0) return 'hoy';
+  if (dias === 1) return 'ayer';
+  return `hace ${dias} días`;
+}
+
+/** Una tarjeta de repaso: la MISMA tarjeta respondida (construirTarjetaRespondida,
+ * soloLectura: sin confianza ni Siguiente, con "Preguntar a" ya relleno), con
+ * una marca añadida justo tras la cabecera de área/nivel. Sirve a DOS orígenes
+ * (spec v0.1c §6 y v0.2 §2), distinguidos por si `item.estadoRepaso` es una
+ * cadena ('fallada'/'fragil'/'acertada', feed del HUB) o no (repaso de UNA
+ * partida ya jugada, resumen):
+ *  - Resumen (`repasoPartida`, item = { pregunta, correcta, respuesta, delta }):
+ *    `delta` es el REAL de esa respuesta (XP, combo, nivel...) — el bloque de
+ *    feedback lo pinta tal cual, como hasta ahora. Marca: fallada/frágil, sin
+ *    "hace N días" (misma partida, siempre "hoy").
+ *  - Feed del HUB (`ordenarRepaso`, item = { pregunta, tarjeta, estadoRepaso,
+ *    diasDesde }): no hay un `delta` real (la respuesta pudo darse en
+ *    cualquier partida pasada, incluso antes de v0.2): se construye uno
+ *    neutro y se oculta la línea de resultado ("✓ +N XP") en vez de fingir un
+ *    XP que no se ganó ahora — la marca de abajo ya dice si acertó o no. El
+ *    resto del bloque (combo, cambio de nivel, chips) queda oculto solo, al
+ *    ser todo 0/false/null. `hueco.respuesta` (`tarjeta.ultimaRespuesta`)
+ *    puede ser `undefined` en una tarjeta anterior a v0.2: tolerado por
+ *    construirRespuestaCompacta (marca solo la correcta).
+ */
 function construirTarjetaRepaso(item, indice, total) {
+  const esFeedHub = typeof item.estadoRepaso === 'string';
+  const estadoRepaso = esFeedHub ? item.estadoRepaso : item.correcta ? 'fragil' : 'fallada';
+  const correcta = esFeedHub ? estadoRepaso !== 'fallada' : item.correcta;
+  const respuesta = esFeedHub ? item.tarjeta.ultimaRespuesta : item.respuesta;
+  const delta = esFeedHub
+    ? {
+        xp: 0,
+        combo: 0,
+        cambioNivelPartida: 0,
+        cambioNivelArea: 0,
+        confianza: null,
+        recuperada: null,
+        misionCompletada: false,
+        fragil: false,
+      }
+    : item.delta;
+
   const hueco = {
     pregunta: item.pregunta,
-    correcta: item.correcta,
-    respuesta: item.respuesta,
-    delta: item.delta,
+    correcta,
+    respuesta,
+    delta,
     reportada: false,
     nodo: null,
   };
   // Contador "n/N" (spec v0.1d §1): la posición de ESTA tarjeta dentro del
   // repaso, fija desde que se construye (a diferencia del contador de la
   // partida, aquí no hace falta refrescarlo: nada cambia el total ni el orden
-  // una vez montado el mazo de resumen).
+  // una vez montado el mazo).
   const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, {
     soloLectura: true,
     contadorTexto: `${indice + 1}/${total}`,
   });
   tarjeta.dataset.test = 'repaso-tarjeta';
 
+  if (esFeedHub) {
+    // Sin un delta real, "✓ +0 XP" mentiría (spec v0.2 §2): la marca de abajo
+    // ya dice si acertó, así que la línea de resultado se oculta entera.
+    const feedbackTexto = tarjeta.querySelector('[data-test="feedback-texto"]');
+    if (feedbackTexto) feedbackTexto.hidden = true;
+  }
+
   const marca = document.createElement('p');
-  marca.className = `repaso-marca ${item.correcta ? 'repaso-marca--fragil' : 'repaso-marca--fallo'}`;
-  marca.textContent = item.correcta ? '✓ frágil' : '✗ fallada';
+  marca.className = `repaso-marca repaso-marca--${claseRepasoMarca(estadoRepaso)}`;
+  marca.textContent = esFeedHub
+    ? `${textoRepasoMarca(estadoRepaso)} · ${textoDiasDesde(item.diasDesde)}`
+    : textoRepasoMarca(estadoRepaso);
   tarjeta.querySelector('.pregunta-cabecera').insertAdjacentElement('afterend', marca);
 
   return tarjeta;
@@ -1905,6 +2025,138 @@ function construirMazoResumen(cifras) {
   repasoPartida.forEach((item, i) => tarjetas.push(construirTarjetaRepaso(item, i, total)));
   if (total > 0) tarjetas.push(construirTarjetaFinalResumen());
   return tarjetas;
+}
+
+// ============================================================================
+// --- Repaso del HUB: feed "sin fin" (spec v0.2 §2, entrega A) ---
+// A diferencia del resumen (repaso de UNA partida ya jugada), este mazo cubre
+// TODA la historia (`ordenarRepaso`), es filtrable por área y no tiene ni
+// principio ni fin de verdad: la tarjeta de cierre solo ofrece "Otra vuelta"
+// (remonta al índice 0) o "Volver" (HUB), nunca "0 tarjetas todavía" — el
+// botón del HUB ya queda apagado ("Juega primero") cuando no hay nada que
+// repasar (ver actualizarDestacados), así que al llegar aquí siempre hay al
+// menos una pregunta con tarjeta en estado.tarjetas.
+// ============================================================================
+
+/** Última tarjeta del feed de repaso del HUB (spec v0.2 §2): a diferencia de
+ * construirTarjetaFinalResumen (resumen de partida), esta SIEMPRE se añade —
+ * no hay una "tarjeta 0" que pueda hacer de última cuando el filtro deja la
+ * lista vacía (caso raro: todas las tarjetas de esa área se reportaron desde
+ * la última vez que se abrió el repaso; ver renderRepaso). */
+function construirTarjetaCierreRepaso() {
+  const tarjeta = document.createElement('div');
+  tarjeta.className = 'tarjeta tarjeta-cierre';
+  tarjeta.dataset.test = 'repaso-cierre';
+
+  const titulo = document.createElement('p');
+  titulo.className = 'mazo-cierre-titulo';
+  titulo.textContent = 'Repaso terminado';
+  tarjeta.appendChild(titulo);
+
+  const acciones = document.createElement('div');
+  acciones.className = 'resumen-acciones';
+
+  const otraVuelta = document.createElement('button');
+  otraVuelta.className = 'boton boton-principal';
+  otraVuelta.dataset.test = 'repaso-otra-vuelta';
+  otraVuelta.textContent = 'Otra vuelta';
+  otraVuelta.addEventListener('click', () => {
+    if (mazoRepasoControlador) mazoRepasoControlador.irA(0);
+  });
+
+  const volver = document.createElement('button');
+  volver.className = 'boton';
+  volver.dataset.test = 'repaso-volver';
+  volver.textContent = 'Volver';
+  volver.addEventListener('click', irAlHub);
+
+  acciones.append(otraVuelta, volver);
+  tarjeta.appendChild(acciones);
+  return tarjeta;
+}
+
+/** Tarjetas del mazo de repaso del HUB para la lista ya filtrada: una por
+ * elemento y, siempre, el cierre al final (spec v0.2 §2, "sin fin": al
+ * agotar la lista, tarjeta de cierre). */
+function construirMazoRepaso(lista) {
+  const total = lista.length;
+  const tarjetas = lista.map((item, i) => construirTarjetaRepaso(item, i, total));
+  tarjetas.push(construirTarjetaCierreRepaso());
+  return tarjetas;
+}
+
+/** Cuenta cuántas tarjetas de `lista` (ya la del feed completo, sin filtrar)
+ * tiene cada área, para apagar en el filtro los chips sin nada que mostrar
+ * (spec v0.2 §2: "un área sin tarjetas se muestra apagada"). */
+function contarRepasoPorArea(lista) {
+  const conteos = {};
+  for (const area of AREAS) conteos[area] = 0;
+  lista.forEach((item) => {
+    conteos[item.pregunta.area] = (conteos[item.pregunta.area] || 0) + 1;
+  });
+  return conteos;
+}
+
+/** Pinta la fila de chips "Todas" + las 8 áreas (spec v0.2 §2): un chip activo
+ * a la vez (el de `filtroRepaso`, en cian), apagados los que no tengan
+ * ninguna tarjeta en `listaCompleta`. Cambiar de chip guarda el filtro
+ * (sessionStorage) y remonta el mazo desde la primera tarjeta (renderRepaso,
+ * sin volver a disparar la animación de entrada de la vista). */
+function renderFiltroRepaso(listaCompleta) {
+  const conteos = contarRepasoPorArea(listaCompleta);
+  contenedorFiltroRepaso.innerHTML = '';
+  const opciones = [{ area: 'todas', nombre: 'Todas', total: listaCompleta.length }].concat(
+    AREAS.map((area) => ({ area, nombre: nombreArea(area), total: conteos[area] }))
+  );
+  opciones.forEach(({ area, nombre, total }) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'repaso-chip';
+    chip.dataset.area = area;
+    chip.textContent = nombre;
+    chip.disabled = total === 0;
+    chip.classList.toggle('repaso-chip--activa', filtroRepaso === area);
+    chip.addEventListener('click', () => {
+      if (chip.disabled || filtroRepaso === area) return;
+      filtroRepaso = area;
+      guardarFiltroRepaso(filtroRepaso);
+      renderRepaso();
+    });
+    contenedorFiltroRepaso.appendChild(chip);
+  });
+}
+
+/** Recalcula el feed completo, pinta los chips y (re)monta el mazo filtrado
+ * (spec v0.2 §2): se usa tanto para abrir la vista por primera vez como para
+ * remontar tras cambiar de chip — nunca cambia de vista por sí misma (ver
+ * abrirRepaso), así que un cambio de filtro no retriggerea la animación de
+ * entrada de la vista. */
+function renderRepaso() {
+  limpiarRepasoMazo();
+  const listaCompleta = ordenarRepaso(estado, banco, hoy());
+  // El filtro guardado puede apuntar a un área que ya no tiene tarjetas (p.
+  // ej. se reportaron todas desde la última vez que se abrió el repaso): se
+  // cae a "todas" en vez de dejar la vista vacía en silencio.
+  if (filtroRepaso !== 'todas' && !listaCompleta.some((item) => item.pregunta.area === filtroRepaso)) {
+    filtroRepaso = 'todas';
+    guardarFiltroRepaso(filtroRepaso);
+  }
+  renderFiltroRepaso(listaCompleta);
+  const lista =
+    filtroRepaso === 'todas' ? listaCompleta : listaCompleta.filter((item) => item.pregunta.area === filtroRepaso);
+  contenedorMazoRepaso.innerHTML = '';
+  mazoRepasoControlador = montarMazo(contenedorMazoRepaso, construirMazoRepaso(lista), {
+    contarPista: false,
+    puntosNeutros: true,
+  });
+}
+
+/** Abre la vista de repaso del HUB (botón `data-test="repaso-hub"`, spec v0.2
+ * §2): solo se llega aquí cuando el botón está tocable (hay al menos una
+ * tarjeta en estado.tarjetas, ver actualizarDestacados). */
+function abrirRepaso() {
+  renderRepaso();
+  mostrarVista('repaso');
 }
 
 /** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y
@@ -1985,8 +2237,12 @@ function renderHub() {
   });
 }
 
-/** Pinta las dos tarjetas destacadas del hub (Misión de hoy y Pendientes):
- * texto, y si son tocables (aria-disabled + dataset.tocable cuando no). */
+/** Pinta las tres tarjetas destacadas del hub (Misión de hoy, Pendientes y
+ * Repaso): texto, y si son tocables (aria-disabled + dataset.tocable cuando
+ * no). Repaso (spec v0.2 §2) se apaga con "Juega primero" cuando no hay
+ * NINGUNA tarjeta todavía (estado.tarjetas vacío) — a diferencia de Pendientes,
+ * no depende de cuántas haya AHORA MISMO pendientes: el feed de repaso
+ * siempre tiene algo que mostrar en cuanto se ha jugado una sola vez. */
 function actualizarDestacados(resumen) {
   const mision = estado.mision;
   if (!mision || mision.ids.length === 0) {
@@ -2010,6 +2266,14 @@ function actualizarDestacados(resumen) {
   nodoPendientes.textContent = `Pendientes · ${nPendientes}`;
   if (nPendientes === 0) marcarNoTocable(nodoPendientes);
   else marcarTocable(nodoPendientes);
+
+  if (Object.keys(estado.tarjetas).length === 0) {
+    nodoRepasoHub.textContent = 'Juega primero';
+    marcarNoTocable(nodoRepasoHub);
+  } else {
+    nodoRepasoHub.textContent = 'Repaso';
+    marcarTocable(nodoRepasoHub);
+  }
 }
 
 function marcarTocable(nodo) {
@@ -2072,6 +2336,11 @@ nodoPendientes.addEventListener('click', () => {
   const ids = pendientes(estado, banco).slice(0, 5).map((p) => p.id);
   if (ids.length === 0) return;
   empezarPartida({ ids, etiqueta: 'Pendientes' });
+});
+// Repaso (spec v0.2 §2): feed "sin fin" de todo lo jugado, filtrable por área.
+nodoRepasoHub.addEventListener('click', () => {
+  if (nodoRepasoHub.dataset.tocable !== 'true') return;
+  abrirRepaso();
 });
 // "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
 // "Otra partida"/"Inicio" del resumen ya no son botones estáticos: viven

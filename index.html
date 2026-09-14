@@ -70,6 +70,16 @@
       <div id="mazo-resumen" class="mazo" data-test="repaso"></div>
     </section>
 
+    <!-- REPASO del HUB (spec v0.2 §2, distinto del repaso de UNA partida de
+         arriba): feed "sin fin" de TODO lo jugado, ordenado por prioridad de
+         repaso (motor.js/ordenarRepaso) y filtrable por área. Fila de chips
+         + mazo de solo lectura, montado con montarMazo() igual que el resto
+         (app.js/renderRepaso). Se entra desde el botón "Repaso" del HUB. -->
+    <section class="vista" data-vista="repaso" data-test="repaso-vista" hidden>
+      <div class="repaso-filtro" data-test="repaso-filtro"></div>
+      <div id="mazo-repaso" class="mazo"></div>
+    </section>
+
     <!-- HUB: sustituye a "Progreso". Se conservan data-vista="progreso" y
          data-test="progreso" en la sección para no romper referencias, aunque el
          título ya no es "Progreso": es la pantalla desde la que SIEMPRE se
@@ -95,6 +105,7 @@
       <div class="hub-destacados">
         <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
         <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>
+        <button type="button" class="hub-destacado" data-test="repaso-hub" aria-disabled="true"></button>
       </div>
       <div id="progreso-areas" class="hub-grid"></div>
       <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>

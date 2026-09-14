@@ -1556,6 +1556,53 @@ main#app {
 
 .repaso-marca--fallo { color: var(--ko); }
 .repaso-marca--fragil { color: var(--texto-suave); }
+/* "Acertada" (v0.2 §2, feed de repaso del HUB): consolidada de verdad, mismo
+   verde que el resto de la app usa para un resultado positivo (feedback-texto--ok,
+   cambio-nivel-subida...). Sin magenta en ningún estado de la marca. */
+.repaso-marca--acertada { color: var(--ok); }
+
+/* --- Repaso del HUB (spec v0.2 §2): fila de chips + mazo "sin fin" --- */
+/* Fila horizontal de chips ("Todas" + las 8 áreas): scroll horizontal SOLO
+   aquí si las 9 no caben a 375px, nunca en la vista entera (spec v0.2 §2). */
+.repaso-filtro {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 2px 8px;
+}
+
+.repaso-chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  background: var(--tarjeta);
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.1s ease, background-color 0.1s ease, color 0.1s ease;
+}
+
+.repaso-chip:active { transform: scale(0.97); }
+
+/* El chip activo, en cian (spec v0.2 §2: "el activo en cian"), mismo patrón
+   de contraste que .confianza-opcion--activa. */
+.repaso-chip--activa {
+  background: var(--acento);
+  color: #04121a;
+}
+
+/* Área sin ninguna tarjeta que mostrar: apagado, sin poder tocarlo (spec v0.2
+   §2: "un área sin tarjetas se muestra apagada"). */
+.repaso-chip:disabled {
+  color: var(--texto-suave);
+  opacity: 0.4;
+}
 
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
 .vista-hub {
