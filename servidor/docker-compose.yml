@@ -22,6 +22,11 @@ services:
       - /opt/one-datos:/datos-servidor
     mem_limit: 512m
     restart: unless-stopped
+    # Ronda final (revisión, 14-sep-2026) -- Menor (M1): más que el máximo de 20 s que espera
+    # esperarInactividad en servidor/index.js -- así Docker nunca manda el SIGKILL final (tras
+    # `stop_grace_period`, si el proceso no ha salido solo) antes de que el propio código haya
+    # tenido su margen completo para terminar el lote en curso.
+    stop_grace_period: 25s
     networks:
       - one-net
 
