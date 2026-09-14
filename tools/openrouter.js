@@ -50,7 +50,10 @@ function esperar(ms) {
 
 // Un id "gemini:<modelo>" es siempre gratis: es la clave de AI Studio sin facturación (el
 // proyecto no puede cobrar; un exceso de cuota da 429, nunca un cargo).
-function esModeloGratis(id) {
+// Exportada (Tarea 2, v0.2b3): servidor/generacion.js y servidor/index.js tenían cada uno su
+// propio filtro "solo gratis" mirando solo ':free', así que los ids "gemini:*" nunca llegaban a
+// `llamar` con permitirPago=false -- ver el informe de esa tarea.
+export function esModeloGratis(id) {
   return id.endsWith(':free') || id.startsWith('gemini:');
 }
 
