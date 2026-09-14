@@ -3849,6 +3849,33 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await expect(page.locator('[data-test="conectar-hecho"]')).toBeHidden({ timeout: 3000 });
   });
 
+  // Revisión combinada (Tarea 4): Carlos aterriza en el HUB al abrir la app instalada, así que el
+  // punto de estado de ahí (junto a "Comenzar") también debe abrir la hoja -- no solo el gemelo
+  // dentro del Átomo, que exige un paso extra (abrir el átomo de un área) para llegar a él.
+  test('abrir la hoja también desde el punto de estado del HUB (junto a "Comenzar"), sin pasar por el Átomo', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeVisible();
+    // sincronizarEnSegundoPlano (fire-and-forget) deja el punto en verde en cuanto /estado responde.
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'verde');
+  });
+
   test('enlace no válido: aviso de error sin cerrar la hoja; también se abre desde el aviso del átomo; Cancelar/Escape cierran y vacían el campo', async ({
     page,
   }) => {

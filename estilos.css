@@ -1830,11 +1830,11 @@ main#app {
   background: #f5a623;
 }
 
-/* Botón del punto de estado en la cabecera del Átomo (Tarea 4, "Conectar desde la app instalada"):
-   antes un <span> decorativo, ahora también el disparador para abrir la hoja "Conectar" -- reset
-   de <button> más un `::before` invisible que amplía el área táctil a 44px (Apple HIG) sin tocar
-   el tamaño/posición del punto visible en sí (`.atomo-cabecera` ya es `position: relative`, ver
-   más abajo en esta hoja). El punto del HUB (junto a "Comenzar") sigue siendo un <span>, sin tocar. */
+/* Botón del punto de estado (Tarea 4 + revisión combinada, "Conectar desde la app instalada"): los
+   DOS puntos (cabecera del Átomo y HUB junto a "Comenzar") eran `<span>` decorativos, ahora también
+   el disparador para abrir la hoja "Conectar" -- reset de <button> más un `::before` invisible que
+   amplía el área táctil a 44px (Apple HIG) sin tocar el tamaño/posición del punto visible en sí
+   (tanto `.atomo-cabecera` como `.hub-comenzar-fila` ya son `position: relative`). */
 button.punto-servidor {
   appearance: none;
   padding: 0;

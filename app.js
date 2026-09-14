@@ -539,17 +539,16 @@ function actualizarAyudaAtomo() {
   nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
 }
 
-/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También
- * el mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador):
- * mismo estado, mismo criterio de color, dos sitios donde se ve.
+/** Pinta el punto junto a "Comenzar" (data-estado) según `estadoServidor`. También el mismo punto
+ * duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador): mismo estado,
+ * mismo criterio de color, dos sitios donde se ve.
  *
- * Tarea 4: `nodoAtomoEstadoServidor` es ahora también el botón que abre la hoja "Conectar" (ver
- * más abajo) -- su `aria-label` describe esa ACCIÓN ("Estado del servidor", fijo en el HTML) y ya
- * no se sobrescribe aquí con el estado puntual, a diferencia de su gemelo del HUB (`nodoEstadoServidor`,
- * un `<span>` decorativo sin acción asociada, cuyo aria-label sigue siendo informativo). */
+ * Tarea 4 + revisión combinada: los DOS son ahora también botones que abren la hoja "Conectar"
+ * (ver más abajo) -- su `aria-label` describe esa ACCIÓN ("Estado del servidor", fijo en el HTML)
+ * y ya no se sobrescribe aquí con el estado puntual, a diferencia de antes (`ETIQUETA_ESTADO_SERVIDOR`
+ * de arriba se queda momentáneamente sin uso). */
 function actualizarPuntoServidor() {
   nodoEstadoServidor.dataset.estado = estadoServidor;
-  nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
   nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
   actualizarAyudaAtomo();
 }
@@ -3409,11 +3408,13 @@ nodoTandaLista.addEventListener('click', () => {
 nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
 nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
 nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
-// Hoja "Conectar" (v0.2b3 Tarea 4): se abre al tocar el punto de estado de la cabecera del Átomo,
-// o su aviso -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin configuración); con
-// servidor configurado el mismo nodo muestra otros textos (fallo al cargar, "Buscando..."), que no
-// deben abrir esta hoja.
+// Hoja "Conectar" (v0.2b3 Tarea 4 + revisión combinada): se abre al tocar el punto de estado de
+// la cabecera del Átomo, el del HUB (junto a "Comenzar" -- Carlos aterriza ahí al abrir la app
+// instalada), o el aviso del Átomo -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin
+// configuración); con servidor configurado el mismo nodo muestra otros textos (fallo al cargar,
+// "Buscando..."), que no deben abrir esta hoja.
 nodoAtomoEstadoServidor.addEventListener('click', abrirHojaConectar);
+nodoEstadoServidor.addEventListener('click', abrirHojaConectar);
 nodoAtomoAviso.addEventListener('click', () => {
   if (!leerConfiguracion()) abrirHojaConectar();
 });

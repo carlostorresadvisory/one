@@ -124,7 +124,18 @@
            app funciona exactamente igual, este punto es la única señal visible. -->
       <div class="hub-comenzar-fila">
         <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>
-        <span class="punto-servidor" data-test="estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
+        <!-- Tarea 4 ("Conectar desde la app instalada") + revisión combinada: antes un <span>
+             decorativo -- ahora también el disparador para abrir la hoja "Conectar" (mismo
+             manejador que su gemelo del Átomo, ver app.js), con área táctil ampliada a 44px sin
+             agrandar el punto visible (estilos.css). Carlos aterriza en el HUB al abrir la app
+             instalada, así que este es el punto que de verdad ve primero. -->
+        <button
+          type="button"
+          class="punto-servidor"
+          data-test="estado-servidor"
+          data-estado="gris"
+          aria-label="Estado del servidor"
+        ></button>
       </div>
       <div class="hub-pie">
         <button class="hub-pie-enlace" data-test="exportar">Exportar</button>
