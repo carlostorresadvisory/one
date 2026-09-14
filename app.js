@@ -179,6 +179,11 @@ let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay n
 let atomoTrabajoInfo = null; // {corto} de la ruta que se pidió, para el texto de espera/chip.
 let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
 let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin chip que mostrar.
+// Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
+// -- `atomoTrabajoId` no sirve de guarda ahí porque solo se fija DESPUÉS del await, así que dos
+// toques rápidos alcanzaban a mandar dos POST /generar antes de que el primero volviera. Ver
+// actualizarBotonGenerarAtomo/manejarGenerarAtomo.
+let atomoGenerarEnVuelo = false;
 
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
@@ -569,10 +574,18 @@ function actualizarCabeceraAtomo() {
   nodoAtomoRuta.textContent = partes.join(' › ');
 }
 
-/** Generar apagado sin servidor, o mientras ya hay un trabajo en curso (spec: "un solo trabajo
- * activo a la vez") -- el texto del botón dice por qué en ese segundo caso. */
+/** Generar apagado sin servidor, mientras la petición de `pedirTanda` está en vuelo (Ronda 1 de
+ * revisión, Critical: guarda contra doble click), o mientras ya hay un trabajo en curso (spec:
+ * "un solo trabajo activo a la vez") -- el texto del botón dice por qué en ese último caso.
+ * Centralizado aquí (nunca se toca `nodoAtomoGenerar.disabled` a mano en otro sitio) para que
+ * cualquier llamada, venga de donde venga, deje el botón en el estado correcto para ESE instante. */
 function actualizarBotonGenerarAtomo() {
   if (!leerConfiguracion()) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Generar';
+    return;
+  }
+  if (atomoGenerarEnVuelo) {
     nodoAtomoGenerar.disabled = true;
     nodoAtomoGenerar.textContent = 'Generar';
     return;
@@ -698,11 +711,21 @@ function mostrarChipTandaFallida() {
 
 /** `parcial` (>= 5) o `lista`: fusiona las preguntas de esta tanda en el banco extendido y
  * refresca el chip con el recuento actual -- con `parcial` el sondeo sigue (puede que llegue
- * `lista` con más preguntas todavía), con `lista` ya es definitivo. */
+ * `lista` con más preguntas todavía), con `lista` ya es definitivo.
+ *
+ * Ronda 1 de revisión (Important #2): los ids del chip son los que de verdad EXISTEN en el banco
+ * tras fusionar (`bancoPorId`), no todos los que traía `trabajo.preguntas` sin más -- fusionarBancoExtra
+ * puede descartar alguna (reportada, o ya en el banco) y `empezarPartida({ids})` con un id que no
+ * está en `bancoPorId` se queda esa tarjeta sin hueco. Si no queda ninguna, es el mismo desenlace
+ * que un fallo: el chip de "Tanda lista" no tendría nada que ofrecer. */
 function fusionarTandaAtomo(trabajo) {
   fusionarBancoExtra(trabajo.preguntas, estado, idsBancoLocal);
   reconstruirBanco();
-  const ids = trabajo.preguntas.map((p) => p.id);
+  const ids = trabajo.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
+  if (ids.length === 0) {
+    mostrarChipTandaFallida();
+    return;
+  }
   mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
 }
 
@@ -752,17 +775,27 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
 /** Botón Generar (spec §4): pide la tanda con la ruta YA confirmada (no depende del anillo que se
  * esté mirando ahora mismo) y pasa a la tarjeta de espera. Un solo trabajo activo a la vez: si ya
  * hay uno, no hace nada (el botón ya debería estar apagado, ver actualizarBotonGenerarAtomo --
- * esta comprobación es solo defensiva). */
+ * esta comprobación es solo defensiva).
+ *
+ * Ronda 1 de revisión (Critical): `atomoGenerarEnVuelo` se pone a `true` y el botón se deshabilita
+ * de forma SÍNCRONA, ANTES del `await pedirTanda(...)` -- antes, `atomoTrabajoId` (la única guarda)
+ * no se fijaba hasta que la promesa resolvía, así que dos toques rápidos en Generar corrían la
+ * función dos veces con la guarda todavía en `null` las dos, y salían dos `POST /generar`. */
 async function manejarGenerarAtomo() {
-  if (atomoTrabajoId || !leerConfiguracion() || !atomoEstado) return;
+  if (atomoGenerarEnVuelo || atomoTrabajoId || !leerConfiguracion() || !atomoEstado) return;
   const { area, ruta, etiquetas } = atomoEstado;
   const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
   const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
   guardarRutaAtomo(area, ruta);
 
+  atomoGenerarEnVuelo = true;
+  actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
   const resultado = await pedirTanda({ area, ruta, n: 10, fetchImpl: fetch });
+  atomoGenerarEnVuelo = false;
+
   if (!resultado) {
     mostrarAvisoAtomo('No se pudo generar, prueba otra vez');
+    actualizarBotonGenerarAtomo(); // reactiva Generar: sin trabajo en curso, puede volver a intentarlo.
     return;
   }
   atomoTrabajoId = resultado.trabajoId;

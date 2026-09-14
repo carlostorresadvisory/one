@@ -141,14 +141,17 @@
          tocar el núcleo retrocede uno. "←" de la cabecera (ya existente, manejarVolver) lleva
          siempre al HUB desde aquí -- ver ese mismo manejador en app.js, no hace falta otro. -->
     <section class="vista vista-atomo" data-vista="atomo" data-test="atomo" hidden>
+      <!-- Ronda 1 de revisión (Important #4): la cabecera vive FUERA de .atomo-cuerpo, pegada
+           arriba (flex-shrink:0 de .vista > *) -- antes estaba dentro y flotaba a media altura,
+           porque .atomo-cuerpo centra su contenido en el espacio libre. -->
+      <div class="atomo-cabecera">
+        <span class="atomo-ruta" data-test="atomo-ruta"></span>
+        <span class="punto-servidor" data-test="atomo-estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
+      </div>
       <!-- .atomo-cuerpo absorbe el espacio libre y centra el lienzo dentro de él (crece/decrece
            con la pantalla): así los botones de abajo quedan fijos al fondo real de la vista sin
            dejar un hueco muerto entre el círculo y ellos en pantallas altas. -->
       <div class="atomo-cuerpo">
-        <div class="atomo-cabecera">
-          <span class="atomo-ruta" data-test="atomo-ruta"></span>
-          <span class="punto-servidor" data-test="atomo-estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
-        </div>
         <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
         <p class="atomo-aviso" data-test="atomo-aviso" hidden></p>
         <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>

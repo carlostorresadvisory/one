@@ -51,14 +51,25 @@ export function retroceder(estado) {
 // === Componente visual: SVG con núcleo + nodos en órbita ===========================================
 
 const NS_SVG = 'http://www.w3.org/2000/svg';
-// viewBox 320x320 (brief): centro geométrico y radios en las mismas unidades. RADIO_NODO=24 da
-// nodos de 48px de diámetro (>= 44px de toque exigidos) cuando el SVG renderiza cerca de 1:1 con
-// su viewBox (ver estilos.css, max-height: min(55vh, 320px)).
+// viewBox 320x320 (brief): centro geométrico y radios en las mismas unidades. RADIO_NODO=26 da
+// nodos de 52px de diámetro (>= 44px de toque exigidos) cuando el SVG renderiza cerca de 1:1 con
+// su viewBox (ver estilos.css, .atomo-lienzo).
+//
+// Ronda 1 de revisión (Important #3), hallazgo propio no pedido explícitamente pero real (visto en
+// la propia captura): con la etiqueta DEBAJO del círculo, el nodo que cae justo arriba (siempre el
+// índice 0, ángulo exacto -90°) la empuja HACIA el núcleo, no hacia fuera -- con el núcleo pintado
+// encima (para que su propio círculo tape limpiamente lo que hay detrás), esa etiqueta quedaba
+// oculta bajo el círculo del núcleo en vez de solo "apretada". RADIO_NUCLEO baja de 54 a 44 y el
+// hueco/interlineado del nodo se ajustan para que el borde inferior de esa etiqueta quede POR
+// FUERA del círculo del núcleo con margen, sin perder el margen ya pedido contra el borde del
+// viewBox para el nodo de abajo (RADIO_ORBITA <= 105).
 const TAMANO = 320;
 const CENTRO = TAMANO / 2;
-const RADIO_NUCLEO = 54;
-const RADIO_NODO = 24;
-const RADIO_ORBITA = 118;
+const RADIO_NUCLEO = 44;
+const RADIO_NODO = 26;
+const RADIO_ORBITA = 100;
+const GAP_ETIQUETA_NODO = 4;
+const ALTURA_LINEA_NODO = 11;
 
 function crearElementoSvg(tipo, atributos = {}) {
   const el = document.createElementNS(NS_SVG, tipo);
@@ -105,7 +116,8 @@ function envolverTexto(texto, maxPorLinea, maxLineas) {
 }
 
 /** Pinta `lineas` como `<tspan>` centrados verticalmente sobre `nodoTexto` (que ya tiene
- * `text-anchor="middle"`/`dominant-baseline="middle"`, ver crearAtomo). */
+ * `text-anchor="middle"`/`dominant-baseline="middle"`, ver crearAtomo). Para el núcleo: el texto
+ * vive DENTRO del círculo. */
 function pintarLineas(nodoTexto, lineas, alturaLinea, x = 0) {
   nodoTexto.textContent = '';
   const offsetInicial = (-(lineas.length - 1) * alturaLinea) / 2;
@@ -114,6 +126,19 @@ function pintarLineas(nodoTexto, lineas, alturaLinea, x = 0) {
     // donde quedó el cursor de la línea anterior (que con text-anchor="middle" no está centrado
     // para la segunda línea) en vez de recentrarse él solo.
     const tspan = crearElementoSvg('tspan', { x, dy: i === 0 ? offsetInicial : alturaLinea });
+    tspan.textContent = linea;
+    nodoTexto.appendChild(tspan);
+  });
+}
+
+/** Pinta `lineas` empezando en `yInicio` y creciendo hacia abajo (Ronda 1 de revisión, Important
+ * #3: la etiqueta del nodo vive DEBAJO de su círculo, no dentro -- el `corto` de un subtema real
+ * no cabía sin desbordar un círculo de 52px). `nodoTexto` debe tener `dominant-baseline="hanging"`
+ * (el borde superior de cada línea, no la línea base, es lo que se ancla a su `y`). */
+function pintarLineasDebajo(nodoTexto, lineas, alturaLinea, yInicio, x = 0) {
+  nodoTexto.textContent = '';
+  lineas.forEach((linea, i) => {
+    const tspan = crearElementoSvg('tspan', { x, y: yInicio + i * alturaLinea });
     tspan.textContent = linea;
     nodoTexto.appendChild(tspan);
   });
@@ -195,24 +220,36 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
       });
       // Contra-rotación (spec §4): un `<g>` interno que gira al revés que `.atomo-orbita`, misma
       // duración, para que el círculo y el texto queden siempre rectos aunque el nodo dé vueltas.
+      // Ronda 1 de revisión (Minor #5): "Elegir subtema: " a secas (sin nombre) si `corto` viene
+      // vacío -- nunca un aria-label con el separador colgando.
+      const etiquetaAria = subtema.corto ? `Elegir subtema: ${subtema.corto}` : 'Elegir subtema';
       const grupoContra = crearElementoSvg('g', {
         class: 'atomo-nodo-contra',
         role: 'button',
         tabindex: '0',
         'data-test': 'atomo-nodo',
-        'aria-label': `Elegir subtema: ${subtema.corto || ''}`,
+        'aria-label': etiquetaAria,
       });
       const circulo = crearElementoSvg('circle', { r: RADIO_NODO, class: 'atomo-nodo-circulo' });
+      // Ronda 1 de revisión (Important #3): la etiqueta vive DEBAJO del círculo, no dentro -- un
+      // `corto` real (hasta 40 caracteres, servidor/index.js#acortarSubtema) no cabía sin
+      // desbordar un círculo de este tamaño. `dominant-baseline="hanging"`: cada línea cuelga de
+      // su `y` por arriba, así pintarLineasDebajo solo tiene que sumar la altura de línea.
       const texto = crearElementoSvg('text', {
         'text-anchor': 'middle',
-        'dominant-baseline': 'middle',
+        'dominant-baseline': 'hanging',
         class: 'atomo-nodo-texto',
       });
       grupoContra.appendChild(circulo);
       grupoContra.appendChild(texto);
       grupoNodo.appendChild(grupoContra);
 
-      pintarLineas(texto, envolverTexto(subtema.corto, 20, 2), 9);
+      pintarLineasDebajo(
+        texto,
+        envolverTexto(subtema.corto, 14, 2),
+        ALTURA_LINEA_NODO,
+        RADIO_NODO + GAP_ETIQUETA_NODO
+      );
       activarConTecladoYClic(grupoContra, () => {
         if (typeof alElegir === 'function') alElegir(subtema);
       });
