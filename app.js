@@ -18,6 +18,14 @@ import {
 } from './motor.js';
 import { construirVisual } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
+import {
+  guardarConfiguracionDesdeUrl,
+  leerConfiguracion,
+  leerBancoExtra,
+  fusionarBancoExtra,
+  sincronizarEstado,
+  reportarAlServidor,
+} from './sincronizacion.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -50,8 +58,16 @@ function guardarEstado(estado) {
 // La fecha se lee cada vez que hace falta: una partida puede cruzar la medianoche.
 function hoy() { return hoyLocal(); }
 let estado = cargarEstado(hoy());
+// `bancoLocal` (datos/banco.json, nunca cambia tras iniciar()) + `leerBancoExtra()` (servidor,
+// v0.2b2 §4). `banco` se reconstruye entera cada vez que el servidor trae preguntas nuevas
+// (reconstruirBanco) para que el repaso y la partida en curso (que leen la variable `banco` del
+// módulo en cada llamada, no una copia) las vean sin recargar la página.
+let bancoLocal = [];
 let banco = [];
 let bancoPorId = new Map();
+// 'gris' (sin servidor / aún sin confirmar esta sesión) | 'verde' (sincronizado hoy) | 'ambar'
+// (hay servidor configurado pero el último intento falló) -- ver actualizarPuntoServidor.
+let estadoServidor = 'gris';
 // Imágenes de Wikimedia Commons por id de pregunta (Tarea 3b): se cargan junto
 // al banco en iniciar(); si falta el fichero o el fetch falla, queda vacío y
 // la app sigue igual (la imagen es una mejora, no un requisito de la tarjeta).
@@ -165,6 +181,9 @@ const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
 const nodoMision = document.querySelector('[data-test="mision"]');
 const nodoPendientes = document.querySelector('[data-test="pendientes"]');
 const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
+// Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
+const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
+const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -412,17 +431,88 @@ function mostrarAvisoHub(mensaje) {
   }, 1600);
 }
 
+// --- servidor de generación (v0.2b2 §4): banco extendido, punto de estado, chip de nuevas ---
+
+/** Reconstruye `banco`/`bancoPorId` a partir de `bancoLocal` (fijo) + `leerBancoExtra()`
+ * (localStorage, cambia cuando el servidor trae preguntas nuevas). Se llama al arrancar y cada
+ * vez que `fusionarBancoExtra` añade algo: como `ordenarRepaso`/`listarNoRespondidas`/
+ * `siguientePregunta` reciben `banco` en cada llamada (no una copia guardada), lo ven sin recargar. */
+function reconstruirBanco() {
+  banco = [...bancoLocal, ...leerBancoExtra()];
+  bancoPorId = new Map(banco.map((p) => [p.id, p]));
+}
+
+const ETIQUETA_ESTADO_SERVIDOR = {
+  gris: 'Sin servidor configurado',
+  verde: 'Servidor sincronizado hoy',
+  ambar: 'Servidor configurado, el último intento falló',
+};
+
+/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. */
+function actualizarPuntoServidor() {
+  nodoEstadoServidor.dataset.estado = estadoServidor;
+  nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+}
+
+/** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
+ * `fusionarBancoExtra` y se oculta solo al tocarlo (ver el listener más abajo, junto al resto de
+ * eventos de navegación) -- no hace falta ninguna otra acción, las preguntas ya están mezcladas
+ * en `banco`. */
+function mostrarChipNuevas(anadidas) {
+  nodoNuevasServidor.textContent = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+  nodoNuevasServidor.hidden = false;
+}
+
+/** "Modo normal" (spec v0.2 §4): al abrir y al terminar cada partida, en segundo plano (nunca
+ * bloquea la UI ni lanza). Sin configuración guardada, `sincronizarEstado` no hace ninguna
+ * petición y el punto se queda gris. Con configuración: verde si respondió algo válido, ámbar si
+ * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos. */
+async function sincronizarEnSegundoPlano() {
+  if (!leerConfiguracion()) {
+    estadoServidor = 'gris';
+    actualizarPuntoServidor();
+    return;
+  }
+  const resultado = await sincronizarEstado({ estado, banco, hoy: hoy(), fetchImpl: fetch });
+  estadoServidor = resultado ? 'verde' : 'ambar';
+  actualizarPuntoServidor();
+  if (resultado && resultado.preguntas.length > 0) {
+    const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado);
+    if (anadidas > 0) {
+      reconstruirBanco();
+      mostrarChipNuevas(anadidas);
+    }
+  }
+}
+
 // --- carga del banco y arranque ---
 async function iniciar() {
   const params = new URLSearchParams(location.search);
   const esEjemplo = params.get('ejemplo') === '1';
   const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
+  // Antes de nada: si el enlace trae `?servidor=&token=` (Carlos lo abre una vez desde el chat,
+  // spec v0.2b2 §4), guardarlo y limpiar la URL — silencioso, sin params no hace nada.
+  const seGuardoConfiguracion = guardarConfiguracionDesdeUrl(location);
+
   const respuesta = await fetch(rutaBanco);
-  banco = await respuesta.json();
-  bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  bancoLocal = await respuesta.json();
+  reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
   actualizarCabecera();
-  mostrarVista('inicio');
+  actualizarPuntoServidor();
+
+  if (seGuardoConfiguracion) {
+    // Directo al HUB (no a los emojis): es donde vive el punto de estado y el aviso, y así se ve
+    // "Servidor conectado" al momento en vez de quedarse esperando en la pantalla de inicio.
+    renderHub();
+    mostrarVista('progreso');
+    mostrarAvisoHub('Servidor conectado');
+  } else {
+    mostrarVista('inicio');
+  }
+
+  // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
+  sincronizarEnSegundoPlano();
 }
 
 /** Carga `datos/imagenes.json` (o `.ejemplo.json` con `?ejemplo=1`, ruta
@@ -708,6 +798,8 @@ function finalizarPartida() {
     guardarEstado(estado);
   }
   actualizarCabecera();
+  // "Modo normal" (spec v0.2b2 §4): también al terminar cada partida, en segundo plano.
+  sincronizarEnSegundoPlano();
 
   const totalPreguntas = respondidas.length;
   const aciertos = respondidas.filter((h) => h.correcta).length;
@@ -1769,6 +1861,12 @@ function manejarClicEstaMal(hueco) {
     guardarEstado(estado);
   }
   hueco.reportada = true;
+  // v0.2b2 §4: una pregunta del servidor se reporta también allí (fuego y olvido — ya queda
+  // anotada localmente arriba pase lo que pase; reportarAlServidor nunca lanza, ver
+  // sincronizacion.js). Sin configuración de servidor no hace ninguna petición.
+  if (hueco.pregunta.id.startsWith('srv-')) {
+    reportarAlServidor({ id: hueco.pregunta.id, fetchImpl: fetch });
+  }
   if (!hueco.nodo) return;
   const botonEstaMal = hueco.nodo.querySelector('[data-test="esta-mal"]');
   const reportadaTexto = hueco.nodo.querySelector('.reportada');
@@ -2524,6 +2622,11 @@ function importarEstadoDesdeArchivo(archivo) {
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
 document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
+// Chip "N preguntas nuevas" (v0.2b2 §4): desaparece al tocarlo, sin más acción — las preguntas ya
+// están mezcladas en `banco` desde que llegaron (ver sincronizarEnSegundoPlano).
+nodoNuevasServidor.addEventListener('click', () => {
+  nodoNuevasServidor.hidden = true;
+});
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);

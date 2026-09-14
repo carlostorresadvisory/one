@@ -1768,11 +1768,58 @@ main#app {
   opacity: 0.5;
 }
 
+/* Chip "N preguntas nuevas" (v0.2b2 §4, banco extendido): mismo lenguaje visual que
+   .hub-destacado (tocable, 44px de alto) pero con acento cian para distinguirlo de Misión/
+   Pendientes/Repaso -- es una notificación, no un modo de partida. */
+.hub-chip-nuevas {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  margin: 0 0 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--acento);
+  border-radius: 10px;
+  background: rgba(76, 201, 240, 0.12);
+  color: var(--acento);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.hub-comenzar-fila {
+  position: relative;
+}
+
 .boton-comenzar {
   width: 100%;
   min-height: 56px;
   padding: 14px;
   font-size: var(--tam-2);
+}
+
+/* Punto de estado del servidor de generación, en la esquina del botón Comenzar (v0.2b2 §4).
+   Gris por defecto (sin servidor o sincronización aún no confirmada esta sesión); el color final
+   lo decide `data-estado` (ver actualizarPuntoServidor en app.js), nunca una clase aparte, para
+   que una sola línea de JS baste. Ámbar (no hay token de --ko de sobra: rojo es "fallo", no el
+   matiz de "reintentará solo" que pide la spec) es un valor local, no una variable global -- solo
+   se usa aquí. */
+.punto-servidor {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--texto-suave);
+  border: 2px solid var(--fondo);
+}
+
+.punto-servidor[data-estado='verde'] {
+  background: var(--ok);
+}
+
+.punto-servidor[data-estado='ambar'] {
+  background: #f5a623;
 }
 
 /* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas

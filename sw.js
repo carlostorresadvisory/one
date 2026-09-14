@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v11';
+const CACHE = 'one-v12';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -16,7 +16,7 @@ const CACHE = 'one-v11';
 // que un despliegue con el núcleo completo consiga instalarse). Lo
 // SECUNDARIO (iconos, manifest, el catálogo de imágenes) sigue siendo
 // tolerante: que falte un icono no debe tumbar la app.
-const NUCLEO = ['./', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'estilos.css', 'datos/banco.json'];
+const NUCLEO = ['./', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'estilos.css', 'datos/banco.json'];
 
 const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
 
