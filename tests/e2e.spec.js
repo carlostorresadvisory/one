@@ -2807,3 +2807,203 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
   });
 });
+
+// Tarea 2 del plan v0.2b2-cliente-atomo (atomo.js + la vista/espera/tanda lista de app.js): el
+// mismo servidor de generación simulado con `page.route` que la Tarea 1, ahora ejercitando
+// /subtemas, /generar y /trabajo/:id (spec §4 "Átomo"). Describe aparte para no mezclar sus
+// helpers con los de sincronizacion.js de arriba, aunque el patrón de configuración (?test=1&
+// servidor=...&token=...) y el preflight CORS son deliberadamente los mismos.
+test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-atomo-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function preguntaServidor(id, area = 'economia') {
+    return {
+      id,
+      area,
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: `Enunciado de prueba del átomo (${id}).`,
+      explicacion: 'Explicación corta de prueba, del servidor falso.',
+      respuesta: true,
+    };
+  }
+
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  /** Sirve las cuatro rutas que toca esta tarea: /estado silencioso (sin preguntas nuevas, para no
+   * interferir con el chip de banco extendido), /subtemas con un anillo 1 fijo de 4 nodos y un
+   * anillo 2 de 2, /generar con un trabajoId fijo, y /trabajo/:id que responde "generando" en el
+   * primer sondeo y "lista" con 10 preguntas en el segundo (brief de la tarea: "tras 2 sondeos
+   * simulados"). */
+  function servidorAtomoFalso() {
+    let sondeos = 0;
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        const cuerpo = req.postDataJSON();
+        const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+        const subtemas =
+          ruta.length === 0
+            ? [
+                { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+                { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+                { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+                { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+              ]
+            : [
+                { indice: 0, corto: 'Crisis de 2008', completo: 'La crisis financiera mundial de 2008' },
+                { indice: 1, corto: 'Burbujas', completo: 'Burbujas especulativas históricas' },
+              ];
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ trabajoId: 'atomo-e2e-1', estimadoSeg: 42 }),
+        });
+        return;
+      }
+      if (url.pathname.startsWith('/trabajo/')) {
+        sondeos += 1;
+        if (sondeos === 1) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+          });
+          return;
+        }
+        const preguntas = Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-atomo-${i + 1}`));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ estado: 'lista', hechas: 10, pedidas: 10, preguntas, motivo: null }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('sin servidor: Generar apagado y aviso de conectar; mantener pulsada el área abre el átomo sin lanzar la partida', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Pulsación larga real (mousedown/wait/mouseup, no un click): cancelada por movimiento o
+    // liberada antes de 500ms no debe abrir nada (ver app.js#renderHub) -- aquí se deja pasar el
+    // umbral a propósito.
+    const tarjeta = page.locator('[data-test="practicar-economia"]');
+    const caja = await tarjeta.boundingBox();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(650); // > 500ms del umbral de pulsación larga
+    await page.mouse.up();
+
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    // El click que el navegador dispara tras soltar NO debe haber lanzado la partida del área.
+    await expect(page.locator('[data-vista="pregunta"]')).toBeHidden();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía');
+    await expect(page.locator('[data-test="atomo-aviso"]')).toHaveText(
+      'Conecta el servidor para generar preguntas nuevas'
+    );
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeDisabled();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(0);
+
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
+    page,
+  }) => {
+    // La órbita del átomo gira sin parar (spec §4, 60s/vuelta): sin esto, Playwright nunca
+    // considera "estable" (misma posición en dos frames seguidos) al nodo que hay que tocar y el
+    // .click() no termina nunca. `prefers-reduced-motion` para el jugador real (accesibilidad, ver
+    // estilos.css) sirve aquí también para poder tocar los nodos en el test.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Botón "⚛" (descubrible, sin depender del temporizador de la pulsación larga): stopPropagation
+    // evita que también se lance la partida del área (ver app.js#renderHub).
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b2-atomo-375.png` });
+    await assertSinScroll(page);
+
+    await page.locator('[data-test="atomo-nodo"]').first().click();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados y crisis');
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // anillo 2 (mock de arriba)
+    await expect(page.locator('[data-test="atomo-atras"]')).toBeEnabled();
+
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toHaveText(
+      'Generando 10 preguntas de Economía › Mercados y crisis · ~42 s'
+    );
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b2-espera-375.png` });
+    await assertSinScroll(page);
+
+    await page.locator('[data-test="atomo-jugar-mientras"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+
+    // El sondeo sigue en segundo plano (cada 5s) mientras se juega (spec §4): "←" vuelve al HUB
+    // sin detenerlo. Tras 2 sondeos simulados (el primero "generando", el segundo "lista" con 10),
+    // el chip aparece -- timeout ampliado porque son ~10s reales de sondeo (2 x 5000ms).
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('Tanda lista: 10 de Mercados y crisis', { timeout: 13000 });
+
+    await chip.click();
+    await expect(chip).toBeHidden();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    // "0/10": recién arrancada (0 respondidas), 10 preguntas totales -- exactamente los ids de
+    // la tanda que acaba de llegar, sin relleno (empezarPartida({ids, etiqueta})).
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+});
