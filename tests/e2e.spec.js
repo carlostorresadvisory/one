@@ -2019,3 +2019,233 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     expect(Number(estado.lineClamp)).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ============================================================================
+// Repaso del HUB (spec v0.2 §2, Tarea 3 de v0.2a-repaso): feed "sin fin" de
+// TODO lo jugado (ordenarRepaso en motor.js), distinto del repaso de UNA
+// partida (resumen, ya cubierto arriba). Tres preguntas sintéticas de áreas
+// distintas (ciencia sin nada, historia con imagen forzada, economía con
+// visual — reutilizando datos/visuales.ejemplo.json como en "ONE · visuales
+// v0.1e"), respondidas mal / bien con Baja / bien con Alta para forzar los
+// tres estados del feed (fallada, frágil, acertada) en ese orden.
+// ============================================================================
+test.describe('ONE · repaso v0.2a', () => {
+  const ID_FALLADA = 'sintetico-repaso-fallada';
+  const ID_FRAGIL = 'sintetico-repaso-fragil';
+  const ID_ACERTADA = 'sintetico-repaso-acertada';
+
+  /** Inyecta las 3 preguntas sintéticas, juega la partida cerrada a esos ids
+   * (falla la 1ª, acierta la 2ª con Baja, acierta la 3ª con Alta) y vuelve al
+   * HUB con "←" desde el resumen (manejarVolver ya lleva siempre al HUB fuera
+   * de la vista progreso, sin tener que recorrer el mazo de resumen). */
+  async function prepararYJugar(page) {
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
+      page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json())),
+    ]);
+
+    const preguntaFallada = {
+      id: ID_FALLADA,
+      area: 'ciencia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: 'El agua hierve a 100 grados Celsius al nivel del mar.',
+      explicacion: 'A presión atmosférica estándar (nivel del mar), el punto de ebullición del agua es 100°C.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+    const preguntaFragil = {
+      id: ID_FRAGIL,
+      area: 'historia',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: 'La Segunda Guerra Mundial terminó en 1945.',
+      explicacion: 'La rendición de Japón en septiembre de 1945 puso fin a la Segunda Guerra Mundial.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+    // "formula" (visuales.ejemplo.json) es área economía, vf, respuesta true:
+    // mismo patrón que "ONE · visuales v0.1e" (id sintético, no depende de qué
+    // traiga el banco real en cada momento).
+    const preguntaAcertada = { ...visualesEjemplo.formula, id: ID_ACERTADA };
+    const imagenFragil = { ...imagenesEjemplo['his-001'], id: ID_FRAGIL };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaFallada);
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaFragil);
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaAcertada);
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenFragil);
+
+    // { ids } sirve el primer id elegible EN ESE ORDEN (motor.js/siguientePregunta):
+    // así se controla exactamente qué tarjeta responde cada confianza.
+    await page.evaluate(
+      (ids) => window.__one.empezarPartida({ ids, etiqueta: 'repaso-v0.2a' }),
+      [ID_FALLADA, ID_FRAGIL, ID_ACERTADA]
+    );
+
+    // 1) Falla a propósito (confianza Media, por defecto): la respuesta
+    // correcta es Verdadero, así que tocar "Falso" falla.
+    let t = tarjetaActual(page);
+    await t.locator('[data-test="vf-falso"]').click();
+    await avanzarTrasRespuesta(page);
+
+    // 2) Acierta con confianza Baja -> frágil (cuenta, pero no consolida).
+    t = tarjetaActual(page);
+    await t.locator('[data-test="confianza-baja"]').click();
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await avanzarTrasRespuesta(page);
+
+    // 3) Acierta con confianza Alta -> consolida, sin quedar frágil ni pendiente.
+    t = tarjetaActual(page);
+    await t.locator('[data-test="confianza-alta"]').click();
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await avanzarTrasRespuesta(page); // última pregunta: termina la partida -> resumen.
+
+    await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+    await page.locator('[data-test="volver"]').click(); // "←": fuera de progreso, siempre al HUB.
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  }
+
+  test('HUB → Repaso: orden fallada/frágil/acertada, marcas, filtro por área y cierre', async ({ page }) => {
+    await page.goto('/?test=1');
+    await prepararYJugar(page);
+
+    const botonRepasoHub = page.locator('[data-test="repaso-hub"]');
+    await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'false');
+    await expect(botonRepasoHub).toHaveText('Repaso');
+
+    await botonRepasoHub.click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await expect(page.locator('[data-test="repaso-vista"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    // Orden esperado (spec v0.2 §2): fallada, frágil, acertada.
+    let actual = tarjetaActual(page);
+    await expect(actual).toHaveAttribute('data-test', 'repaso-tarjeta');
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
+    await expect(actual.locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-375.png` });
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    actual = tarjetaActual(page);
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Historia');
+    await expect(actual.locator('.repaso-marca')).toHaveText('✓ frágil · hoy');
+    await expect(actual.locator('[data-test="imagen"]')).toBeVisible(); // imagen forzada, spec §2
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    actual = tarjetaActual(page);
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+    await expect(actual.locator('.repaso-marca')).toHaveText('✓ acertada · hoy');
+    await expect(actual.locator('[data-test="visual"]')).toBeVisible();
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    const cierre = tarjetaActual(page);
+    await expect(cierre).toHaveAttribute('data-test', 'repaso-cierre');
+
+    // Un área sin ninguna tarjeta en el feed (p. ej. lógica): chip apagado.
+    const chipLogica = page.locator('[data-test="repaso-filtro"] [data-area="logica"]');
+    await expect(chipLogica).toBeDisabled();
+
+    // "Otra vuelta": remonta el mazo al índice 0 (vuelve a la fallada).
+    await cierre.locator('[data-test="repaso-otra-vuelta"]').click();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(tarjetaActual(page).locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
+
+    // Filtro por el área de la frágil (historia): una sola tarjeta + cierre.
+    const chipHistoria = page.locator('[data-test="repaso-filtro"] [data-area="historia"]');
+    await chipHistoria.click();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(chipHistoria).toHaveClass(/repaso-chip--activa/);
+    actual = tarjetaActual(page);
+    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Historia');
+    await expect(actual.locator('.repaso-marca')).toHaveText('✓ frágil · hoy');
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-filtro-375.png` });
+
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    const cierreFiltrado = tarjetaActual(page);
+    await expect(cierreFiltrado).toHaveAttribute('data-test', 'repaso-cierre');
+
+    // "Volver": lleva de vuelta al HUB.
+    await cierreFiltrado.locator('[data-test="repaso-volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  });
+
+  test('Repaso a 393×852 (con zonas seguras del iPhone) y a 430×932: ninguna tarjeta hace scroll', async ({
+    page,
+  }) => {
+    async function comprobarEnViewport(viewport, conZonasSeguras) {
+      await page.setViewportSize(viewport);
+      await page.goto('/?test=1');
+      if (conZonasSeguras) {
+        // Mismas zonas seguras simuladas que "ONE · C1 visual desbordado..."
+        // (env(safe-area-inset-*) vale 0 en Chromium headless).
+        await page.addStyleTag({
+          content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
+        });
+      }
+      await prepararYJugar(page);
+
+      await page.locator('[data-test="repaso-hub"]').click();
+      await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+
+      // Las 4 tarjetas del feed sin filtrar: fallada, frágil, acertada, cierre.
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      for (let i = 0; i < 3; i += 1) {
+        await page.keyboard.press('ArrowUp');
+        await esperarAsentamientoMazo(page);
+        await assertSinScroll(page);
+        await assertTarjetaSinScroll(page);
+      }
+    }
+
+    await comprobarEnViewport({ width: 393, height: 852 }, true);
+    await comprobarEnViewport({ width: 430, height: 932 }, false);
+  });
+
+  test('Repaso: sin ninguna tarjeta jugada, el botón del HUB está apagado ("Juega primero")', async ({ page }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const botonRepasoHub = page.locator('[data-test="repaso-hub"]');
+    await expect(botonRepasoHub).toHaveAttribute('aria-disabled', 'true');
+    await expect(botonRepasoHub).toHaveText('Juega primero');
+
+    // Apagado de verdad: tocarlo no navega a ningún sitio. force:true porque
+    // es un "apagado" semántico (aria-disabled), no un <button disabled> de
+    // verdad (mismo patrón que mision/pendientes) — Playwright, si no,
+    // rechaza el click por considerar aria-disabled="true" "not enabled".
+    await botonRepasoHub.click({ force: true });
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  });
+});
