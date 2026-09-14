@@ -255,6 +255,51 @@ test('cola: un trabajo urgente encolado después de uno de fondo se procesa ante
   assert.deepEqual(ordenProcesado, ['economia', 'historia'], 'lo urgente se procesa antes aunque haya llegado después');
 });
 
+test('cola (Ronda 1): un urgente se cuela ENTRE LOTES de un fondo ya en marcha; el fondo retoma después y termina "lista"', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const llamadas = []; // 'fondo-loteN' / 'urgente-loteN', en el orden real de llamada a producirTanda
+  const pendientesUrgente = [];
+  let loteFondo = 0;
+  let loteUrgente = 0;
+  const producirTandaFalso = async (params) => {
+    if (params.area === 'historia') {
+      loteFondo++;
+      llamadas.push(`fondo-lote${loteFondo}`);
+      return resultadoOk('historia', params.n, 5); // no se pausa: cada lote de fondo resuelve solo
+    }
+    loteUrgente++;
+    llamadas.push(`urgente-lote${loteUrgente}`);
+    return new Promise((resolver) => pendientesUrgente.push(resolver));
+  };
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+
+  const { trabajoId: idFondo } = cola.encolar({ area: 'historia', ruta: [], n: 10, urgente: false });
+  // Encolado en la MISMA vuelta síncrona que el de fondo: el fondo todavía no ha llegado ni a
+  // llamar a producirTanda para su primer lote (sigue en el `await` real de calcularEvitar), así
+  // que este urgente queda en cola ANTES de que el fondo procese su primer lote -- justo el
+  // escenario "llega mientras corre el primer lote de fondo" que pide el controlador.
+  cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+
+  await hastaQue(() => llamadas.includes('urgente-lote1'));
+  assert.deepEqual(llamadas, ['fondo-lote1', 'urgente-lote1'], 'el urgente se cuela justo tras el primer lote del fondo');
+
+  const mientrasEspera = cola.estadoTrabajo(idFondo);
+  assert.equal(mientrasEspera.hechas, 5, 'el fondo conserva su progreso al ceder');
+  assert.equal(mientrasEspera.preguntas.length, 5, 'las 5 aprobadas del primer lote ya están guardadas');
+  assert.equal(mientrasEspera.estado, 'parcial');
+
+  pendientesUrgente[0](resultadoOk('economia', 5, 5));
+  await hastaQue(() => llamadas.includes('urgente-lote2'));
+  pendientesUrgente[1](resultadoOk('economia', 5, 5));
+
+  await hastaQue(() => cola.estadoTrabajo(idFondo)?.estado === 'lista');
+  assert.deepEqual(llamadas, ['fondo-lote1', 'urgente-lote1', 'urgente-lote2', 'fondo-lote2']);
+  const final = cola.estadoTrabajo(idFondo);
+  assert.equal(final.hechas, 10);
+  assert.equal(final.preguntas.length, 10);
+});
+
 test('cola: dos encolar seguidos nunca dejan a producirTanda con más de 1 llamada en curso a la vez', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);

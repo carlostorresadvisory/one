@@ -148,63 +148,90 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     await almacen.guardarColchon(purgarColchon(colchon.concat(nuevas)));
   }
 
-  // Ejecuta un trabajo completo: tantos lotes de TAMANO_LOTE como haga falta hasta `pedidas`.
-  // Decisiones del controlador para los estados (ver brief de la Tarea 2):
-  // - 'generando' mientras el trabajo aún no tiene NINGUNA aprobada (ni siquiera la primera).
-  // - En cuanto hay >=1 aprobada, el trabajo pasa a 'parcial' y se queda ahí (visible para quien
-  //   consulte estadoTrabajo) mientras se piden los lotes que faltan -- no vuelve a 'generando'.
+  // Ejecuta UN SOLO lote del trabajo (no el trabajo completo -- Ronda 1, ver más abajo). Deja
+  // `trabajo.hechas`/`trabajo.preguntas`/`trabajo.huboFallo` al día; NO toca `trabajo.estado`
+  // (eso lo decide procesarCola justo después, según si el trabajo cede el turno o no).
   // - Un lote que falla (excepción de producirTanda) no aborta el trabajo: se cuenta como
   //   "consumido" hacia `pedidas` (evita bucles infinitos) y marca `huboFallo`.
-  // - Al terminar todos los lotes: 'fallida' si no se consiguió ninguna aprobada; si no, 'lista'
-  //   (todo fue bien) o 'parcial' (se completó pero con algún fallo por el camino).
-  async function ejecutarTrabajo(trabajo) {
-    trabajo.estado = 'generando';
+  async function ejecutarUnLote(trabajo) {
+    const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    const evitar = await calcularEvitar(trabajo.area);
 
-    while (trabajo.hechas < trabajo.pedidas) {
-      const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
-      const evitar = await calcularEvitar(trabajo.area);
+    let resultado = null;
+    try {
+      resultado = await producirTanda(
+        { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
+        { ...opciones, urgente: trabajo.urgente },
+      );
+    } catch {
+      trabajo.huboFallo = true;
+    }
 
-      let resultado = null;
-      try {
-        resultado = await producirTanda(
-          { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
-          { ...opciones, urgente: trabajo.urgente },
-        );
-      } catch {
-        trabajo.huboFallo = true;
-      }
-
-      if (resultado) {
-        if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
-        if (resultado.aprobadas && resultado.aprobadas.length > 0) {
-          const guardadas = resultado.aprobadas.map((p) => aColchon(p, trabajo));
-          trabajo.preguntas = trabajo.preguntas.concat(guardadas);
-          await guardarNuevasEnColchon(guardadas);
-        }
-      }
-
-      // A partir de aquí, sin más `await` de este lote: `hechas` y `estado` cambian juntos, en el
-      // mismo tramo síncrono. Antes `hechas` se actualizaba ANTES de guardar en disco y `estado`
-      // DESPUÉS -- un observador externo (estadoTrabajo) podía ver `hechas` ya al día pero
-      // `estado` todavía con el valor del lote anterior (condición de carrera real, encontrada
-      // ejecutando esta misma suite en bucle: ~1 de cada 10-15 ejecuciones fallaba justo ahí).
-      trabajo.hechas += tamanoLote;
-      if (trabajo.hechas < trabajo.pedidas) {
-        trabajo.estado = trabajo.preguntas.length > 0 ? 'parcial' : 'generando';
+    if (resultado) {
+      if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
+      if (resultado.aprobadas && resultado.aprobadas.length > 0) {
+        const guardadas = resultado.aprobadas.map((p) => aColchon(p, trabajo));
+        trabajo.preguntas = trabajo.preguntas.concat(guardadas);
+        await guardarNuevasEnColchon(guardadas);
       }
     }
 
+    // Sin más `await` de este lote a partir de aquí: `hechas` cambia en el mismo tramo síncrono
+    // en el que procesarCola decide el `estado` que sigue (ver más abajo). Antes `hechas` se
+    // actualizaba ANTES de guardar en disco y `estado` DESPUÉS del guardado -- un observador
+    // externo (estadoTrabajo) podía ver `hechas` ya al día pero `estado` todavía con el valor del
+    // lote anterior (condición de carrera real, encontrada ejecutando esta misma suite en bucle:
+    // ~1 de cada 10-15 ejecuciones fallaba justo ahí).
+    trabajo.hechas += tamanoLote;
+  }
+
+  function finalizarTrabajo(trabajo) {
     trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo ? 'parcial' : 'lista') : 'fallida';
   }
 
+  // Ronda 1 (ruling del controlador, 14-sep-2026): "un usuario esperando 40 s no puede quedarse
+  // detrás" de un trabajo de fondo que tarda varios minutos. El trabajador ya no ejecuta un
+  // trabajo hasta el final antes de mirar la cola otra vez -- mira DESPUÉS DE CADA LOTE. Si el
+  // trabajo que acaba de correr es de fondo, le quedan lotes y hay algún urgente esperando, cede
+  // el turno: vuelve a la cola conservando su progreso (`hechas`, aprobadas ya guardadas; estado
+  // `parcial` si ya tiene aprobadas, `en-cola` si todavía no tiene ninguna) y se pone al frente de
+  // `colaFondo` (para retomar antes que un trabajo de fondo que nunca ha empezado). Un urgente
+  // NUNCA cede (la condición de ceder exige `!trabajo.urgente`): una vez elegido, corre todos sus
+  // lotes seguidos sin que otro urgente que llegue después lo adelante -- se pone al frente de
+  // `colaUrgente` al continuar, así el siguiente `tomarSiguiente()` lo vuelve a coger a él antes
+  // que a cualquier urgente más reciente (FIFO real entre urgentes). Sigue habiendo un solo
+  // trabajo activo a la vez (concurrencia 1): `tomarSiguiente()`/`activo` no cambian de sitio.
   async function procesarCola() {
     let siguiente;
     // eslint-disable-next-line no-cond-assign
     while ((siguiente = tomarSiguiente())) {
       activo = siguiente;
-      await ejecutarTrabajo(siguiente);
-      guardarTerminado(siguiente);
+      // 'generando' solo la primera vez que el trabajo corre (todavía sin ninguna aprobada). Si
+      // retoma tras ceder con >=1 aprobada, su estado ya es 'parcial' y se queda así -- no vuelve
+      // a 'generando' (mismo principio que ya regía antes de esta ronda: en cuanto hay resultados
+      // parciales, se muestran hasta el final).
+      if (siguiente.preguntas.length === 0) {
+        siguiente.estado = 'generando';
+      }
+
+      await ejecutarUnLote(siguiente);
       activo = null;
+
+      if (siguiente.hechas >= siguiente.pedidas) {
+        finalizarTrabajo(siguiente);
+        guardarTerminado(siguiente);
+        continue;
+      }
+
+      const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
+      if (debeCeder) {
+        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
+        colaFondo.unshift(siguiente);
+      } else {
+        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
+        if (siguiente.urgente) colaUrgente.unshift(siguiente);
+        else colaFondo.unshift(siguiente);
+      }
     }
   }
 
