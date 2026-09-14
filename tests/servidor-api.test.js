@@ -531,9 +531,183 @@ test('POST /subtemas con ruta=[] devuelve HILOS_POR_AREA sin llamar al modelo', 
     });
     assert.equal(resp.status, 200);
     const datos = await resp.json();
-    assert.equal(datos.subtemas.length, HILOS_POR_AREA.economia.length);
+    // Cambiado (Tarea 2, v0.2b3): antes el anillo 1 devolvía TODOS los hilos del área de una vez
+    // (economía tenía exactamente 6, así que coincidía por casualidad con HILOS_POR_AREA.economia.length).
+    // Ahora economía tiene 10 hilos (se añaden 4 de finanzas en esta misma tarea) y el anillo 1
+    // pagina de 6 en 6 -- sin `excluir`, la primera página son los 6 primeros, nunca la lista entera.
+    assert.equal(datos.subtemas.length, 6);
+    assert.ok(HILOS_POR_AREA.economia.length > 6, 'economía debe tener más de 6 hilos tras esta tarea');
     assert.ok(datos.subtemas.every((s) => typeof s.indice === 'number' && s.corto.length <= 40 && typeof s.completo === 'string'));
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      HILOS_POR_AREA.economia.slice(0, 6),
+    );
     assert.equal(llamadas, 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+// === POST /subtemas con `excluir` (Tarea 2, v0.2b3) ==============================================
+// Spec: docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md §9.
+
+test('POST /subtemas anillo 1 con excluir=primeros 6 devuelve los hilos 7.. sin llamar al modelo (caso a/b del brief)', async () => {
+  let llamadas = 0;
+  const llamarFake = async () => {
+    llamadas++;
+    throw new Error('no debería llamarse: aún quedan hilos sin excluir');
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    // Economía: 10 hilos tras esta tarea -- excluir los 6 primeros deja 4 sin excluir.
+    const primeraPagina = HILOS_POR_AREA.economia.slice(0, 6);
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: [], excluir: primeraPagina }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(datos.subtemas.length, 4, 'economía: 10 hilos - 6 excluidos = 4');
+    assert.deepEqual(
+      datos.subtemas.map((s) => s.completo),
+      HILOS_POR_AREA.economia.slice(6),
+    );
+    // Los índices son 0..n-1 DENTRO de la página, no la posición global en HILOS_POR_AREA.
+    assert.deepEqual(datos.subtemas.map((s) => s.indice), [0, 1, 2, 3]);
+    assert.equal(llamadas, 0);
+
+    // Ciencia: 7 hilos tras esta tarea -- excluir los 6 primeros deja 1 sin excluir.
+    const primeraPaginaCiencia = HILOS_POR_AREA.ciencia.slice(0, 6);
+    const respCiencia = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'ciencia', ruta: [], excluir: primeraPaginaCiencia }),
+    });
+    const datosCiencia = await respCiencia.json();
+    assert.equal(datosCiencia.subtemas.length, 1, 'ciencia: 7 hilos - 6 excluidos = 1');
+    assert.equal(llamadas, 0);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas anillo 1 con TODOS los hilos excluidos llama al modelo con excluir en el prompt (caso c del brief)', async () => {
+  let mensajesVistos = null;
+  const llamarFake = async ({ modelos, mensajes }) => {
+    mensajesVistos = mensajes;
+    return { texto: JSON.stringify({ subtemas: ['Nuevo A', 'Nuevo B'] }), modelo: modelos[0], coste: 0 };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    // Historia: 5 hilos, ninguno nuevo en esta tarea -- excluirlos todos agota la lista estática.
+    const todosLosHilos = HILOS_POR_AREA.historia;
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'historia', ruta: [], excluir: todosLosHilos }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.subtemas.map((s) => s.completo), ['Nuevo A', 'Nuevo B']);
+    assert.ok(mensajesVistos, 'debería haber llamado al modelo');
+    const promptUsuario = mensajesVistos[1].content;
+    for (const hilo of todosLosHilos) assert.ok(promptUsuario.includes(hilo), `el prompt debe incluir "${hilo}" en la exclusión`);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas anillo ≥ 2 con excluir usa una clave de caché distinta de la de sin excluir (caso d del brief)', async () => {
+  let llamadas = 0;
+  const llamarFake = async ({ modelos }) => {
+    llamadas++;
+    return {
+      texto: JSON.stringify({ subtemas: llamadas === 1 ? ['Sub A', 'Sub B'] : ['Sub C', 'Sub D'] }),
+      modelo: modelos[0],
+      coste: 0,
+    };
+  };
+  const { base, dir, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const r1 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'] }),
+    });
+    const d1 = await r1.json();
+    assert.deepEqual(d1.subtemas.map((s) => s.completo), ['Sub A', 'Sub B']);
+    assert.equal(llamadas, 1);
+
+    const r2 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Sub A', 'Sub B'] }),
+    });
+    const d2 = await r2.json();
+    assert.deepEqual(d2.subtemas.map((s) => s.completo), ['Sub C', 'Sub D']);
+    assert.equal(llamadas, 2, 'con excluir debe ser una clave de caché nueva -- llama de nuevo al modelo');
+
+    const anillos = JSON.parse(await readFile(path.join(dir, 'anillos.json'), 'utf8'));
+    assert.ok(anillos[JSON.stringify(['economia', ['hilo-1']])], 'clave sin excluir, igual que hoy');
+    assert.ok(anillos[JSON.stringify(['economia', ['hilo-1'], 2])], 'clave con excluir: [area, ruta, excluir.length]');
+
+    // Repetir la primera petición (sin excluir) debe seguir usando su propia caché, sin llamar de nuevo.
+    const r3 = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'] }),
+    });
+    const d3 = await r3.json();
+    assert.deepEqual(d3.subtemas, d1.subtemas);
+    assert.equal(llamadas, 2, 'la petición sin excluir ya estaba cacheada, no debe llamar de nuevo');
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas con excluir inválido responde 400 "Exclusión inválida" (caso e del brief)', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const casos = [
+      { excluir: 'no-es-un-array' },
+      { excluir: Array.from({ length: 31 }, (_, i) => `hilo-${i}`) },
+      { excluir: ['x'.repeat(121)] },
+      { excluir: ['con\x00control'] },
+    ];
+    for (const caso of casos) {
+      const resp = await fetch(`${base}/subtemas`, {
+        method: 'POST',
+        headers: cabeceras(),
+        body: JSON.stringify({ area: 'economia', ruta: [], ...caso }),
+      });
+      assert.equal(resp.status, 400, `caso ${JSON.stringify(caso)} debería ser 400`);
+      const datos = await resp.json();
+      assert.equal(datos.error, 'Exclusión inválida');
+    }
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /subtemas: el prompt al modelo contiene "ramas hermanas" y "conceptos concretos" y la lista de exclusión (caso f del brief)', async () => {
+  let mensajesVistos = null;
+  const llamarFake = async ({ modelos, mensajes }) => {
+    mensajesVistos = mensajes;
+    return { texto: JSON.stringify({ subtemas: ['Sub nuevo'] }), modelo: modelos[0], coste: 0 };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFake });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: ['hilo-1'], excluir: ['Ya mostrado antes'] }),
+    });
+    assert.equal(resp.status, 200);
+    const promptUsuario = mensajesVistos[1].content;
+    assert.ok(promptUsuario.includes('ramas hermanas'), 'debe contener literalmente "ramas hermanas"');
+    assert.ok(promptUsuario.includes('conceptos concretos'), 'debe contener literalmente "conceptos concretos"');
+    assert.ok(promptUsuario.includes('Ya mostrado antes'), 'debe incluir la lista de exclusión');
   } finally {
     await cerrar();
   }

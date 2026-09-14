@@ -15,7 +15,7 @@ import path from 'node:path';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { llamar as llamarReal, extraerJson, MODELOS } from '../tools/openrouter.js';
+import { llamar as llamarReal, extraerJson, MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { AREAS } from '../tools/validar-banco.js';
 import { HILOS_POR_AREA, textoCriterio } from '../tools/criterio.js';
 import { crearAlmacen } from './almacen.js';
@@ -37,13 +37,17 @@ const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
 // (no hay telemetría real de duración por lote todavía), documentada en el informe de la tarea.
 const SEGUNDOS_ESTIMADOS_POR_PUESTO = 90;
 const MAX_ESTADO_DEFECTO = 10;
-const SUBTEMAS_MIN = 4;
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
 const RUTA_MAX_ELEMENTOS = 6;
 const RUTA_ELEMENTO_MAX_LONGITUD = 80;
 // eslint-disable-next-line no-control-regex -- a propósito: se rechazan caracteres de control.
 const RUTA_CARACTER_CONTROL = /[\x00-\x1f\x7f]/;
+// Tarea 2 (v0.2b3, spec §9): mismo criterio que `ruta` pero con límites propios -- `excluir` lleva
+// los "completos" ya mostrados en el anillo (pueden ser muchos más que los 6 de una ruta: cada
+// toque de "Más…" añade otra página entera a la lista).
+const EXCLUIR_MAX_ELEMENTOS = 30;
+const EXCLUIR_ELEMENTO_MAX_LONGITUD = 120;
 
 // === Utilidades pequeñas, sin estado =============================================================
 
@@ -58,6 +62,30 @@ function acortarSubtema(texto) {
     corto = `${corto.slice(0, LONGITUD_MAX_SUBTEMA - 1)}…`;
   }
   return corto;
+}
+
+// Prompt de usuario de /subtemas (spec §9, decisión de Carlos 14-sep 21:30 sobre v0.2b3): pide
+// mezclar "ramas hermanas" amplias (otras líneas tan generales como la ruta actual) con "conceptos
+// concretos" (autores, casos, experimentos, técnicas) -- así el átomo puede llegar a cualquier tema
+// sin quedarse solo en subdivisiones cada vez más finas de la misma rama. Nunca repite nada de
+// `excluir`; se llama tanto desde un anillo ≥ 2 como desde el anillo 1 cuando ya se agotó la lista
+// estática de HILOS_POR_AREA (ver manejarSubtemas).
+function promptSubtemas(area, ruta, excluir) {
+  const contextoRuta =
+    ruta.length > 0
+      ? `Ruta ya elegida dentro del área "${area}": ${JSON.stringify(ruta)}.`
+      : `Dentro del área "${area}", sin una ruta más concreta todavía.`;
+  const contextoExcluir =
+    excluir.length > 0
+      ? ` No repitas ninguno de estos subtemas que el jugador ya ha visto: ${JSON.stringify(excluir)}.`
+      : '';
+  return (
+    `${contextoRuta}${contextoExcluir} Propón exactamente ${SUBTEMAS_MAX} subtemas nuevos que mezclen ` +
+    'ramas hermanas amplias (otras líneas tan generales como la ruta actual, para poder saltar a un tema ' +
+    'distinto) y conceptos concretos (autores, casos, experimentos, técnicas) dentro de esa línea, para ' +
+    `que el jugador siga afinando. Cada subtema de ${LONGITUD_MAX_SUBTEMA} caracteres o menos, en ` +
+    'español. Responde solo con un objeto JSON {"subtemas": ["...", ...]}, sin explicaciones adicionales.'
+  );
 }
 
 // Ronda final (revisión, 14-sep-2026) -- Adversarial (A5): `ruta` viaja tal cual dentro de prompts
@@ -86,11 +114,27 @@ function normalizarRuta(rutaCruda) {
   return { ok: true, ruta: rutaCruda };
 }
 
-// Filtra la cascada a solo modelos ':free' si no se permite pago -- mismo criterio que
-// servidor/generacion.js#filtrarPorPago (no exportado desde allí, duplicado a propósito: ese
-// fichero está en la lista de "no tocar" de esta tarea).
-function filtrarModelosPago(modelos, permitirPago) {
-  return permitirPago ? modelos : modelos.filter((id) => id.endsWith(':free'));
+// Tarea 2 (v0.2b3): mismo criterio que `rutaValida`, límites propios (ver EXCLUIR_MAX_ELEMENTOS /
+// EXCLUIR_ELEMENTO_MAX_LONGITUD más arriba) -- lista de "completos" ya mostrados en el anillo que
+// el jugador no quiere volver a ver.
+function excluirValido(excluir) {
+  if (!Array.isArray(excluir)) return false;
+  if (excluir.length > EXCLUIR_MAX_ELEMENTOS) return false;
+  return excluir.every(
+    (elemento) =>
+      typeof elemento === 'string' &&
+      elemento.length > 0 &&
+      elemento.length <= EXCLUIR_ELEMENTO_MAX_LONGITUD &&
+      !RUTA_CARACTER_CONTROL.test(elemento),
+  );
+}
+
+// `excluir` ausente (caso normal: primera página de cualquier anillo) se trata como `[]`, válida
+// sin más comprobación; si viene, tiene que pasar `excluirValido`.
+function normalizarExcluir(excluirCrudo) {
+  if (excluirCrudo === undefined) return { ok: true, excluir: [] };
+  if (!excluirValido(excluirCrudo)) return { ok: false, excluir: null };
+  return { ok: true, excluir: excluirCrudo };
 }
 
 // Node a veces formatea la medianoche como "24" en vez de "0" con hour12:false según la build de
@@ -308,8 +352,9 @@ async function leerJsonCuerpo(req, limite) {
  * @param {string[]} [params.origenesPermitidos] por defecto los dos fijados en la spec §3.1.
  * @param {string} [params.version] va en la respuesta de `/salud`.
  * @param {Function} [params.llamar] inyectable para tests; por defecto tools/openrouter.js#llamar.
- *   Solo lo usa `/subtemas` (anillo ≥ 2) -- el resto de rutas nunca llaman a un modelo directamente,
- *   pasan por `cola`/`almacen`.
+ *   Solo lo usa `/subtemas` -- en un anillo ≥ 2, o en el anillo 1 cuando ya se agotó la lista
+ *   estática de HILOS_POR_AREA (Tarea 2, v0.2b3) -- el resto de rutas nunca llaman a un modelo
+ *   directamente, pasan por `cola`/`almacen`.
  * @param {boolean} [params.permitirPago] igual semántica que en servidor/generacion.js.
  * @param {number} [params.topeEur] tope de gasto diario, pasado tal cual a `llamar`.
  * @returns {import('node:http').Server}
@@ -499,38 +544,47 @@ export function crearServidor({
       responderError(res, 400, 'Ruta inválida');
       return;
     }
-
-    // Anillo 1: fijo, tal cual textoCriterio; nunca llama al modelo.
-    if (ruta.length === 0) {
-      const subtemas = HILOS_POR_AREA[area].map((completo, indice) => ({
-        indice,
-        corto: acortarSubtema(completo),
-        completo,
-      }));
-      responderJson(res, 200, { subtemas });
+    const { ok: excluirOk, excluir } = normalizarExcluir(cuerpo.excluir);
+    if (!excluirOk) {
+      responderError(res, 400, 'Exclusión inválida');
       return;
     }
 
-    // Anillos siguientes: cacheados en anillos.json por [area, ruta] -- una sola llamada al modelo
-    // por combinación, para siempre (hasta que alguien borre el fichero).
-    const clave = JSON.stringify([area, ruta]);
+    // Anillo 1: pagina primero HILOS_POR_AREA de SUBTEMAS_MAX en SUBTEMAS_MAX, sin llamar al
+    // modelo (spec §9). Sin `excluir` esto ya da la primera página (los 6 primeros hilos, igual
+    // que antes de esta tarea); con `excluir`, la página siguiente son los hilos que aún no se
+    // han mostrado. Solo cuando ya no queda ningún hilo estático sin excluir se cae al bloque de
+    // "pedir al modelo" de más abajo -- idéntico al de un anillo ≥ 2.
+    if (ruta.length === 0) {
+      const excluidos = new Set(excluir);
+      const restantes = HILOS_POR_AREA[area].filter((completo) => !excluidos.has(completo));
+      if (restantes.length > 0) {
+        const subtemas = restantes.slice(0, SUBTEMAS_MAX).map((completo, indice) => ({
+          indice,
+          corto: acortarSubtema(completo),
+          completo,
+        }));
+        responderJson(res, 200, { subtemas });
+        return;
+      }
+    }
+
+    // Anillos siguientes (o anillo 1 con todos sus hilos estáticos ya excluidos): cacheados en
+    // anillos.json. Sin exclusión la clave sigue siendo exactamente [area, ruta] -- la de siempre,
+    // para no invalidar un anillos.json ya escrito; con exclusión se añade `excluir.length`, así
+    // que cada "profundidad" de paginación (cada toque de "Más…") tiene su propia entrada de caché
+    // y una sola llamada al modelo por profundidad, para siempre.
+    const clave = excluir.length > 0 ? JSON.stringify([area, ruta, excluir.length]) : JSON.stringify([area, ruta]);
     const anillos = await almacen.leerAnillos();
     if (Array.isArray(anillos[clave])) {
       responderJson(res, 200, { subtemas: anillos[clave] });
       return;
     }
 
-    const modelos = filtrarModelosPago(MODELOS.generador, permitirPago);
+    const modelos = permitirPago ? MODELOS.generador : MODELOS.generador.filter(esModeloGratis);
     const mensajes = [
       { role: 'system', content: textoCriterio(area) },
-      {
-        role: 'user',
-        content:
-          `Ruta ya elegida dentro del área "${area}": ${JSON.stringify(ruta)}. Propón entre ${SUBTEMAS_MIN} y ` +
-          `${SUBTEMAS_MAX} subtemas concretos dentro de esa ruta (para que el jugador siga afinando), cada uno ` +
-          `de ${LONGITUD_MAX_SUBTEMA} caracteres o menos. Responde solo con un objeto JSON ` +
-          '{"subtemas": ["...", ...]}, sin explicaciones adicionales.',
-      },
+      { role: 'user', content: promptSubtemas(area, ruta, excluir) },
     ];
 
     // Ronda 1 (revisión, 14-sep-2026) -- Minor: las tres formas de fallo de aquí abajo son un
