@@ -3660,3 +3660,156 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     resolverRetraso(); // deja la petición pendiente resolver para no dejar un handle colgado
   });
 });
+
+// Tarea 4 del plan v0.2b3-atomo-amplio-gemini ("Conectar desde la app instalada"): en iOS la app
+// añadida a la pantalla de inicio (`display: standalone`) tiene almacenamiento SEPARADO de Safari,
+// así que el enlace `?servidor=&token=` abierto en Safari no llega a la app instalada -- esta hoja
+// deja pegar el enlace (o "servidor token") a mano, sin salir de la app. Servidor simulado con
+// `page.route` (nunca una llamada real a la red), mismo patrón CORS que las tareas anteriores.
+test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-conectar-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  /** Sirve /estado (silencioso, sin preguntas nuevas) y /subtemas (un anillo 1 fijo de 1 nodo) --
+   * las dos rutas que toca esta tarea tras conectar con éxito (recarga del anillo + sincronización
+   * en segundo plano, ver app.js#manejarConectarOk). */
+  function servidorConectarFalso() {
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            subtemas: [{ indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' }],
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  /** Mismo contrato que assertSinScroll (arriba en esta hoja), pero sobre la propia hoja "Conectar":
+   * no es una `.vista`, vive fuera del sistema de vistas (position: fixed, anclada abajo). */
+  async function assertSinScrollHoja(page) {
+    const medidas = await page.evaluate(() => {
+      const hoja = document.querySelector('[data-test="conectar"]');
+      return hoja ? { alto: hoja.scrollHeight, visible: hoja.clientHeight } : null;
+    });
+    expect(medidas).not.toBeNull();
+    expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
+  }
+
+  test('abrir la hoja desde el punto de estado, pegar un enlace, Conectar cierra la hoja, avisa "Conectado" y recarga el anillo', async ({
+    page,
+  }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
+
+    // Sin `?test=1` a propósito: comprueba que `location.search` queda REALMENTE vacío tras
+    // conectar (el enlace se pegó en un <input>, nunca tocó la barra de direcciones del navegador).
+    await page.goto('/');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    // Sin servidor: punto gris, aviso y ayuda de conectar (Tarea 4).
+    await expect(page.locator('[data-test="atomo-estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+    await expect(page.locator('[data-test="atomo-aviso"]')).toHaveText(
+      'Conecta el servidor para generar preguntas nuevas'
+    );
+    await expect(page.locator('[data-test="atomo-ayuda"]')).toHaveText(
+      'Conecta el servidor (toca el punto de la cabecera)'
+    );
+
+    // Abrir la hoja desde el punto de estado de la cabecera del Átomo.
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+    await assertSinScrollHoja(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScrollHoja(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+    await page.locator('[data-test="conectar-texto"]').fill(enlace);
+    await page.locator('[data-test="conectar-ok"]').click();
+
+    // Éxito: hoja cerrada, aviso "Conectado", campo vacío, y la URL real del navegador nunca se
+    // tocó (nada de "servidor="/"token=" colgando en el historial, a diferencia del enlace de
+    // Safari -- aquí no hay enlace de por medio, solo texto pegado en un campo).
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeVisible();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+    expect(await page.evaluate(() => location.search)).toBe('');
+
+    // El anillo se recarga con la configuración recién guardada: ya no "sin servidor".
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(1);
+    await expect(page.locator('[data-test="atomo-ayuda"]')).toHaveText(
+      'Mantén pulsada un área del HUB para abrir su átomo'
+    );
+
+    // El "Conectado" desaparece solo, a los 2s (mismo mecanismo que mostrarAvisoHub/mostrarAvisoCuerpo).
+    await expect(page.locator('[data-test="conectar-hecho"]')).toBeHidden({ timeout: 3000 });
+  });
+
+  test('enlace no válido: aviso de error sin cerrar la hoja; también se abre desde el aviso del átomo; Cancelar/Escape cierran y vacían el campo', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+
+    // Segundo disparador: tocar el propio aviso "Conecta el servidor..." (no solo el punto).
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-aviso"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible();
+
+    await page.locator('[data-test="conectar-texto"]').fill('esto no es un enlace ni "servidor token"');
+    await page.locator('[data-test="conectar-ok"]').click();
+    await expect(page.locator('[data-test="conectar-error"]')).toBeVisible();
+    await expect(page.locator('[data-test="conectar"]')).toBeVisible(); // el error NO cierra la hoja
+
+    await page.locator('[data-test="conectar-cancelar"]').click();
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+    // Cancelar no guardó nada: sigue sin servidor.
+    await expect(page.locator('[data-test="atomo-estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+
+    // Escape hace lo mismo que Cancelar: cierra y vacía el campo.
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await page.locator('[data-test="conectar-texto"]').fill('texto que se debe perder');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-test="conectar"]')).toBeHidden();
+    await page.locator('[data-test="atomo-estado-servidor"]').click();
+    await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+  });
+});

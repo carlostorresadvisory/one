@@ -20,6 +20,7 @@ import { construirVisual } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
+  guardarConfiguracionDesdeTexto,
   leerConfiguracion,
   leerBancoExtra,
   fusionarBancoExtra,
@@ -246,12 +247,20 @@ const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar
 const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
 const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
 const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
+const nodoAtomoAyuda = document.querySelector('[data-test="atomo-ayuda"]');
 // Fila "mientras" (v0.2b3 Tarea 3): "Jugar el área"/"Repasar" visibles mientras el anillo carga,
 // mientras se genera una tanda en segundo plano, o si el anillo falló al cargar.
 const nodoAtomoMientras = document.querySelector('[data-test="atomo-mientras"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
+// Hoja "Conectar" (v0.2b3 Tarea 4, "Conectar desde la app instalada"): en iOS la app añadida a la
+// pantalla de inicio tiene almacenamiento SEPARADO de Safari, así que el enlace de conexión
+// abierto en Safari no llega aquí -- esta hoja deja pegar el enlace (o "servidor token") a mano.
+const nodoConectar = document.querySelector('[data-test="conectar"]');
+const nodoConectarTexto = document.querySelector('[data-test="conectar-texto"]');
+const nodoConectarError = document.querySelector('[data-test="conectar-error"]');
+const nodoConectarHecho = document.querySelector('[data-test="conectar-hecho"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -517,14 +526,32 @@ const ETIQUETA_ESTADO_SERVIDOR = {
   ambar: 'Servidor configurado, el último intento falló',
 };
 
+// Tarea 4 (v0.2b3, "Conectar desde la app instalada"): textos de `.atomo-ayuda`, la pista fija
+// que vive bajo la ruta completa del Átomo (ver actualizarAyudaAtomo).
+const TEXTO_AYUDA_ATOMO_DEFECTO = 'Mantén pulsada un área del HUB para abrir su átomo';
+const TEXTO_AYUDA_ATOMO_SIN_SERVIDOR = 'Conecta el servidor (toca el punto de la cabecera)';
+
+/** `.atomo-ayuda` (Tarea 4): sin servidor configurado, pasa a explicar cómo conectar uno en vez
+ * del texto por defecto -- se llama desde `actualizarPuntoServidor` (mismo disparador que decide
+ * el color del punto) para no tener que acordarse de llamarla aparte en cada sitio que cambia la
+ * configuración. */
+function actualizarAyudaAtomo() {
+  nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
+}
+
 /** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También
  * el mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador):
- * mismo estado, mismo criterio de color, dos sitios donde se ve. */
+ * mismo estado, mismo criterio de color, dos sitios donde se ve.
+ *
+ * Tarea 4: `nodoAtomoEstadoServidor` es ahora también el botón que abre la hoja "Conectar" (ver
+ * más abajo) -- su `aria-label` describe esa ACCIÓN ("Estado del servidor", fijo en el HTML) y ya
+ * no se sobrescribe aquí con el estado puntual, a diferencia de su gemelo del HUB (`nodoEstadoServidor`,
+ * un `<span>` decorativo sin acción asociada, cuyo aria-label sigue siendo informativo). */
 function actualizarPuntoServidor() {
   nodoEstadoServidor.dataset.estado = estadoServidor;
   nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
   nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
-  nodoAtomoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+  actualizarAyudaAtomo();
 }
 
 /** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
@@ -556,6 +583,63 @@ async function sincronizarEnSegundoPlano() {
       mostrarChipNuevas(anadidas);
     }
   }
+}
+
+// --- Hoja "Conectar" (v0.2b3 Tarea 4, "Conectar desde la app instalada"): en iOS la app añadida a
+// la pantalla de inicio (`display: standalone`) tiene almacenamiento SEPARADO de Safari, así que el
+// enlace de conexión abierto en Safari (guardarConfiguracionDesdeUrl, arriba en iniciar()) no llega
+// a la app instalada -- esta hoja deja pegar el enlace (o "servidor token") a mano, sin salir de la
+// app. Se abre desde dos sitios del Átomo (ver los listeners junto al resto de eventos de
+// navegación, más abajo): el punto de estado de su cabecera y su aviso "Conecta el servidor...". ---
+
+let avisoConectadoId = null;
+/** "Conectado" 2s (`data-test="conectar-hecho"`) tras guardar la configuración con éxito -- la
+ * hoja ya se ha cerrado en ese momento (ver manejarConectarOk), así que este vive fuera de ella,
+ * fijo y visible encima de cualquier vista (mismo patrón que mostrarAvisoCuerpo/mostrarAvisoHub). */
+function mostrarAvisoConectado() {
+  nodoConectarHecho.hidden = false;
+  if (avisoConectadoId !== null) clearTimeout(avisoConectadoId);
+  avisoConectadoId = setTimeout(() => {
+    nodoConectarHecho.hidden = true;
+    avisoConectadoId = null;
+  }, 2000);
+}
+
+/** Abre la hoja con el campo vacío y sin el aviso de error de una vez anterior. */
+function abrirHojaConectar() {
+  nodoConectarError.hidden = true;
+  nodoConectarTexto.value = '';
+  nodoConectar.hidden = false;
+  nodoConectarTexto.focus();
+}
+
+/** Escape/Cancelar (brief): cierran y vacían el campo -- el texto pegado no debe sobrevivir a un
+ * intento cancelado (ver también el comentario de cabecera de sincronizacion.js#guardarConfiguracionDesdeTexto:
+ * nunca se registra ni se guarda salvo la configuración resultante). */
+function cerrarHojaConectar() {
+  nodoConectar.hidden = true;
+  nodoConectarTexto.value = '';
+  nodoConectarError.hidden = true;
+}
+
+/** Botón "Conectar": valida y guarda con `guardarConfiguracionDesdeTexto` (sincronizacion.js,
+ * mismo saneado que el enlace `?servidor=&token=`). Error: se queda abierta con el aviso, sin
+ * tocar la configuración previa (brief). Éxito: cierra, "Conectado" 2s, recarga el anillo del
+ * Átomo SI está abierto (ya lo está siempre que se llega aquí -- las dos únicas vías para abrir
+ * esta hoja viven dentro del propio Átomo, pero se comprueba igual por si el jugador saliera de
+ * la vista mientras la hoja seguía abierta) y sincroniza en segundo plano (fija el punto en verde
+ * o ámbar según responda el servidor de verdad, igual que al abrir la app o terminar una partida). */
+function manejarConectarOk() {
+  const guardado = guardarConfiguracionDesdeTexto(nodoConectarTexto.value);
+  if (!guardado) {
+    nodoConectarError.hidden = false;
+    return;
+  }
+  cerrarHojaConectar();
+  mostrarAvisoConectado();
+  actualizarAyudaAtomo(); // feedback inmediato, sin esperar al round-trip de sincronizarEnSegundoPlano
+  if (atomoEstado) cargarAnilloAtomo();
+  sincronizarEnSegundoPlano();
 }
 
 // --- Átomo (spec v0.2b2 §4): elegir un subtema sin teclado, pedir una tanda nueva y esperar
@@ -3285,6 +3369,20 @@ nodoTandaLista.addEventListener('click', () => {
 nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
 nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
 nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
+// Hoja "Conectar" (v0.2b3 Tarea 4): se abre al tocar el punto de estado de la cabecera del Átomo,
+// o su aviso -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin configuración); con
+// servidor configurado el mismo nodo muestra otros textos (fallo al cargar, "Buscando..."), que no
+// deben abrir esta hoja.
+nodoAtomoEstadoServidor.addEventListener('click', abrirHojaConectar);
+nodoAtomoAviso.addEventListener('click', () => {
+  if (!leerConfiguracion()) abrirHojaConectar();
+});
+document.querySelector('[data-test="conectar-ok"]').addEventListener('click', manejarConectarOk);
+document.querySelector('[data-test="conectar-cancelar"]').addEventListener('click', cerrarHojaConectar);
+// Escape (brief): cierra y vacía el campo, igual que Cancelar.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !nodoConectar.hidden) cerrarHojaConectar();
+});
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
