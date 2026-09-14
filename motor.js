@@ -95,6 +95,15 @@ export function evaluar(pregunta, respuesta) {
   }
 }
 
+/** Días entre dos fechas 'YYYY-MM-DD' (hasta - desde). Usa UTC, igual que `sumarDias`. */
+function diferenciaDias(desde, hasta) {
+  const [a1, m1, d1] = desde.split('-').map(Number);
+  const [a2, m2, d2] = hasta.split('-').map(Number);
+  const t1 = Date.UTC(a1, m1 - 1, d1);
+  const t2 = Date.UTC(a2, m2 - 1, d2);
+  return Math.round((t2 - t1) / 86400000);
+}
+
 /** Baraja Fisher-Yates con rng inyectable, sin mutar el array de entrada. */
 function barajar(array, rng) {
   const copia = array.slice();
@@ -457,6 +466,12 @@ export function registrarRespuesta(estado, pregunta, correcta, hoy, opciones = {
     tarjeta.recuperada = false;
   }
   tarjeta.ultimo = hoy;
+  // Repaso v0.2 §2: la respuesta recibida tal cual (boolean vf, índice
+  // test4/error, array de índices ordenar) y si acertó. `opciones.respuesta`
+  // es opcional — si no se pasa, `ultimaRespuesta` queda `undefined` (no rompe
+  // llamadas existentes que no la envíen).
+  tarjeta.ultimaRespuesta = opciones.respuesta;
+  tarjeta.ultimaCorrecta = correcta;
 
   // Recuperada: acierto sobre una tarjeta que YA estaba pendiente antes de esta
   // respuesta (con cualquier confianza, incluida Baja aunque quede frágil).
@@ -642,6 +657,65 @@ export function pendientes(estado, banco) {
       return fa < fb ? -1 : fa > fb ? 1 : 0; // ultimoFallo más antiguo primero
     })
     .map(([id]) => bancoPorId.get(id));
+}
+
+/**
+ * Feed de repaso "sin fin" (spec v0.2 §2, entrega A): todas las preguntas con
+ * tarjeta en `estado.tarjetas` que sigan en `banco`, sin las reportadas
+ * (`estado.reportadas` — el repaso no debe poder volver a mostrar una pregunta
+ * marcada como mala), ordenadas por tramos:
+ *   1. Pendientes (falladas): igual que `pendientes()` — prioridad descendente
+ *      y, dentro de la misma prioridad, `ultimoFallo` más antiguo primero.
+ *   2. Frágiles (acierto con confianza Baja, no consolidado): `ultimo` más
+ *      antiguo primero.
+ *   3. El resto con `proximo <= hoy` ("les toca" aunque no estén pendientes ni
+ *      frágiles): `proximo` más antiguo primero.
+ *   4. El resto: `proximo` ascendente.
+ * Empate en cualquier tramo: id. Pura, nunca lanza; sin tarjetas devuelve `[]`.
+ */
+export function ordenarRepaso(estado, banco, hoy) {
+  const bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  const reportadas = new Set(estado.reportadas);
+
+  const tramoDe = (tarjeta) => {
+    if (tarjeta.pendiente) return 0;
+    if (tarjeta.fragil) return 1;
+    return tarjeta.proximo <= hoy ? 2 : 3;
+  };
+  const estadoRepasoDe = (tarjeta) => (tarjeta.pendiente ? 'fallada' : tarjeta.fragil ? 'fragil' : 'acertada');
+
+  const entradas = Object.entries(estado.tarjetas)
+    .filter(([id]) => bancoPorId.has(id) && !reportadas.has(id))
+    .map(([id, tarjeta]) => ({
+      id,
+      pregunta: bancoPorId.get(id),
+      tarjeta,
+      estadoRepaso: estadoRepasoDe(tarjeta),
+      diasDesde: diferenciaDias(tarjeta.ultimo, hoy),
+      tramo: tramoDe(tarjeta),
+    }));
+
+  entradas.sort((a, b) => {
+    if (a.tramo !== b.tramo) return a.tramo - b.tramo;
+    if (a.tramo === 0) {
+      if (b.tarjeta.prioridad !== a.tarjeta.prioridad) return b.tarjeta.prioridad - a.tarjeta.prioridad; // desc
+      const fa = a.tarjeta.ultimoFallo ?? '';
+      const fb = b.tarjeta.ultimoFallo ?? '';
+      if (fa !== fb) return fa < fb ? -1 : 1; // más antiguo primero
+    } else if (a.tramo === 1) {
+      if (a.tarjeta.ultimo !== b.tarjeta.ultimo) return a.tarjeta.ultimo < b.tarjeta.ultimo ? -1 : 1; // más antiguo primero
+    } else {
+      if (a.tarjeta.proximo !== b.tarjeta.proximo) return a.tarjeta.proximo < b.tarjeta.proximo ? -1 : 1; // asc
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; // empate: id
+  });
+
+  return entradas.map(({ pregunta, tarjeta, estadoRepaso, diasDesde }) => ({
+    pregunta,
+    tarjeta,
+    estadoRepaso,
+    diasDesde,
+  }));
 }
 
 /** Actualiza la racha de días al completar la primera partida del día. Resetea el combo. */
@@ -886,6 +960,17 @@ const RE_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const esObjeto = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
+ * Sanea `tarjeta.ultimaRespuesta`: boolean (vf), índice entero (test4/error) o
+ * array de índices enteros (ordenar) se conservan tal cual; cualquier otra
+ * forma (incluida ausente) se deja `undefined`.
+ */
+function normalizarUltimaRespuesta(v) {
+  if (typeof v === 'boolean' || Number.isInteger(v)) return v;
+  if (Array.isArray(v) && v.every((x) => Number.isInteger(x))) return v;
+  return undefined;
+}
+
+/**
  * Repara la estructura interna de un estado importado: áreas que faltan vuelven a sus
  * valores iniciales, tarjetas malformadas se descartan, racha/hoy/arrays se saneam.
  * Así un JSON manipulado a mano no rompe registrarRespuesta ni resumenProgreso.
@@ -945,6 +1030,10 @@ function normalizarEstado(obj) {
           prioridad: [0, 1, 2].includes(t.prioridad) ? t.prioridad : 0,
           recuperada: t.recuperada === true,
           fragil: t.fragil === true,
+          // Campos v0.2 (repaso): ausentes en una tarjeta de antes de esta spec, o con
+          // forma inválida -> undefined, sin romper el import (nunca invalidan la tarjeta).
+          ultimaRespuesta: normalizarUltimaRespuesta(t.ultimaRespuesta),
+          ultimaCorrecta: typeof t.ultimaCorrecta === 'boolean' ? t.ultimaCorrecta : undefined,
         };
       }
     }

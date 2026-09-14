@@ -16,6 +16,7 @@ import {
   actualizarRacha,
   resumenProgreso,
   pendientes,
+  ordenarRepaso,
   misionDelDia,
   exportar,
   importar,
@@ -821,6 +822,58 @@ describe('registrarRespuesta', () => {
     assert.equal(resultado.estado.mision, null);
     assert.equal(resultado.delta.misionCompletada, false);
   });
+
+  // --- ultimaRespuesta / ultimaCorrecta (repaso v0.2 §2, feed de repaso) ---
+  test('opciones.respuesta boolean (vf) se guarda tal cual en ultimaRespuesta', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'vf', 1, '-ur-vf');
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, true, HOY, { respuesta: false });
+    assert.equal(nuevo.tarjetas[pregunta.id].ultimaRespuesta, false);
+  });
+
+  test('opciones.respuesta índice (test4/error) se guarda tal cual en ultimaRespuesta', () => {
+    const estado = crearEstado(HOY);
+    const pTest4 = crearPregunta('economia', 'test4', 1, '-ur-t4');
+    const rTest4 = registrarRespuesta(estado, pTest4, false, HOY, { respuesta: 2 });
+    assert.equal(rTest4.estado.tarjetas[pTest4.id].ultimaRespuesta, 2);
+
+    const pError = crearPregunta('economia', 'error', 1, '-ur-err');
+    const rError = registrarRespuesta(estado, pError, true, HOY, { respuesta: 1 });
+    assert.equal(rError.estado.tarjetas[pError.id].ultimaRespuesta, 1);
+  });
+
+  test('opciones.respuesta array (ordenar) se guarda tal cual en ultimaRespuesta', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'ordenar', 1, '-ur-ord');
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, false, HOY, { respuesta: [1, 0, 2, 3] });
+    assert.deepStrictEqual(nuevo.tarjetas[pregunta.id].ultimaRespuesta, [1, 0, 2, 3]);
+  });
+
+  test('sin opciones.respuesta, ultimaRespuesta queda undefined (no rompe llamadas existentes)', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'test4', 1, '-ur-sin');
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, true, HOY);
+    assert.equal(nuevo.tarjetas[pregunta.id].ultimaRespuesta, undefined);
+  });
+
+  test('ultimaCorrecta guarda el resultado (acierto y fallo)', () => {
+    const estado = crearEstado(HOY);
+    const pOk = crearPregunta('economia', 'test4', 1, '-uc-ok');
+    const rOk = registrarRespuesta(estado, pOk, true, HOY, { respuesta: 0 });
+    assert.equal(rOk.estado.tarjetas[pOk.id].ultimaCorrecta, true);
+
+    const pKo = crearPregunta('economia', 'test4', 1, '-uc-ko');
+    const rKo = registrarRespuesta(estado, pKo, false, HOY, { respuesta: 1 });
+    assert.equal(rKo.estado.tarjetas[pKo.id].ultimaCorrecta, false);
+  });
+
+  test('noLoSe fuerza ultimaCorrecta a false igual que correcta', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'test4', 1, '-uc-nls');
+    const { estado: nuevo } = registrarRespuesta(estado, pregunta, true, HOY, { noLoSe: true, respuesta: 0 });
+    assert.equal(nuevo.tarjetas[pregunta.id].ultimaCorrecta, false);
+    assert.equal(nuevo.tarjetas[pregunta.id].ultimaRespuesta, 0);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -860,6 +913,144 @@ describe('pendientes', () => {
   test('sin tarjetas pendientes devuelve un array vacío', () => {
     const estado = crearEstado(HOY);
     assert.deepStrictEqual(pendientes(estado, banco), []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe('ordenarRepaso', () => {
+  const banco = crearBancoPrueba();
+
+  function tarjetaBase(over = {}) {
+    return {
+      caja: 0, proximo: HOY, aciertos: 0, fallos: 0, ultimo: HOY, ultimoFallo: null,
+      pendiente: false, prioridad: 0, recuperada: false, fragil: false,
+      ...over,
+    };
+  }
+
+  test('pendientes primero, por prioridad desc y ultimoFallo más antiguo primero (igual que pendientes())', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({
+      pendiente: true, prioridad: 1, ultimoFallo: sumarDias(HOY, -3),
+    });
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({
+      pendiente: true, prioridad: 2, ultimoFallo: sumarDias(HOY, -1),
+    });
+    estado.tarjetas['ciencia-test4-1'] = tarjetaBase({
+      pendiente: true, prioridad: 1, ultimoFallo: HOY,
+    });
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(
+      resultado.map((r) => r.pregunta.id),
+      ['historia-test4-1', 'economia-test4-1', 'ciencia-test4-1']
+    );
+  });
+
+  test('frágiles van después de pendientes, ordenadas por ultimo más antiguo primero', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ pendiente: true, prioridad: 1, ultimoFallo: HOY });
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ fragil: true, ultimo: sumarDias(HOY, -5) });
+    estado.tarjetas['ciencia-test4-1'] = tarjetaBase({ fragil: true, ultimo: sumarDias(HOY, -1) });
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(
+      resultado.map((r) => r.pregunta.id),
+      ['economia-test4-1', 'historia-test4-1', 'ciencia-test4-1']
+    );
+  });
+
+  test('no pendientes con proximo <= hoy ("les toca") van antes que el resto, por proximo más antiguo', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, 5) }); // resto (tramo 4)
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, -3) }); // le toca (tramo 3)
+    estado.tarjetas['ciencia-test4-1'] = tarjetaBase({ proximo: HOY }); // le toca, proximo == hoy (tramo 3)
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(
+      resultado.map((r) => r.pregunta.id),
+      ['historia-test4-1', 'ciencia-test4-1', 'economia-test4-1']
+    );
+  });
+
+  test('el resto (proximo > hoy, no pendiente, no fragil) va último, por proximo ascendente', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, 10) });
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, 2) });
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(
+      resultado.map((r) => r.pregunta.id),
+      ['historia-test4-1', 'economia-test4-1']
+    );
+  });
+
+  test('empate dentro de un tramo se resuelve por id', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, 5) });
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ proximo: sumarDias(HOY, 5) });
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(
+      resultado.map((r) => r.pregunta.id),
+      ['economia-test4-1', 'historia-test4-1']
+    );
+  });
+
+  test('estadoRepaso: fallada si pendiente, fragil si fragil, acertada en el resto', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ pendiente: true, prioridad: 1, ultimoFallo: HOY });
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ fragil: true });
+    estado.tarjetas['ciencia-test4-1'] = tarjetaBase({});
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    const porId = Object.fromEntries(resultado.map((r) => [r.pregunta.id, r.estadoRepaso]));
+    assert.equal(porId['economia-test4-1'], 'fallada');
+    assert.equal(porId['historia-test4-1'], 'fragil');
+    assert.equal(porId['ciencia-test4-1'], 'acertada');
+  });
+
+  test('diasDesde: 0 para hoy, 1 para ayer, N para hace N días (calculado desde tarjeta.ultimo)', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ ultimo: HOY });
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({ ultimo: sumarDias(HOY, -1) });
+    estado.tarjetas['ciencia-test4-1'] = tarjetaBase({ ultimo: sumarDias(HOY, -7) });
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    const porId = Object.fromEntries(resultado.map((r) => [r.pregunta.id, r.diasDesde]));
+    assert.equal(porId['economia-test4-1'], 0);
+    assert.equal(porId['historia-test4-1'], 1);
+    assert.equal(porId['ciencia-test4-1'], 7);
+  });
+
+  test('ignora tarjetas de ids fuera del banco', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['no-existe-en-banco'] = tarjetaBase({});
+    assert.deepStrictEqual(ordenarRepaso(estado, banco, HOY), []);
+  });
+
+  test('excluye las preguntas reportadas (estado.reportadas)', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({});
+    estado.tarjetas['historia-test4-1'] = tarjetaBase({});
+    estado.reportadas = ['economia-test4-1'];
+    const resultado = ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(resultado.map((r) => r.pregunta.id), ['historia-test4-1']);
+  });
+
+  test('sin tarjetas devuelve un array vacío', () => {
+    assert.deepStrictEqual(ordenarRepaso(crearEstado(HOY), banco, HOY), []);
+  });
+
+  test('cada entrada trae pregunta y tarjeta completas junto a estadoRepaso y diasDesde', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({});
+    const [r] = ordenarRepaso(estado, banco, HOY);
+    assert.equal(r.pregunta.id, 'economia-test4-1');
+    assert.deepStrictEqual(r.tarjeta, estado.tarjetas['economia-test4-1']);
+    assert.equal(r.estadoRepaso, 'acertada');
+    assert.equal(r.diasDesde, 0);
+  });
+
+  test('no muta el estado de entrada', () => {
+    const estado = crearEstado(HOY);
+    estado.tarjetas['economia-test4-1'] = tarjetaBase({ pendiente: true, prioridad: 1, ultimoFallo: HOY });
+    const copia = structuredClone(estado);
+    ordenarRepaso(estado, banco, HOY);
+    assert.deepStrictEqual(estado, copia);
   });
 });
 
@@ -1300,6 +1491,38 @@ describe('exportar / importar', () => {
     assert.doesNotThrow(() => resumenProgreso(estado, crearBancoPrueba(), HOY));
     assert.doesNotThrow(() => pendientes(estado, crearBancoPrueba()));
   });
+
+  test('importar con tarjetas sin ultimaRespuesta/ultimaCorrecta no lanza y los deja undefined', () => {
+    const sinCampos = {
+      version: 2, xp: 0, combo: 0, racha: { dias: 0, ultimaFecha: null },
+      hoy: { fecha: HOY, respondidas: 0, aciertos: 0 },
+      areas: {}, reportadas: [], historial: [],
+      tarjetas: {
+        'economia-test4-1': {
+          caja: 1, proximo: HOY, aciertos: 1, fallos: 0, ultimo: HOY, ultimoFallo: null,
+          pendiente: false, prioridad: 0, recuperada: false, fragil: false,
+          // sin ultimaRespuesta ni ultimaCorrecta: tarjeta de antes de v0.2.
+        },
+      },
+    };
+    let estado;
+    assert.doesNotThrow(() => {
+      estado = importar(JSON.stringify(sinCampos));
+    });
+    const tarjeta = estado.tarjetas['economia-test4-1'];
+    assert.equal(tarjeta.ultimaRespuesta, undefined);
+    assert.equal(tarjeta.ultimaCorrecta, undefined);
+  });
+
+  test('importar conserva ultimaRespuesta/ultimaCorrecta cuando sí están presentes (ida y vuelta)', () => {
+    const estado = crearEstado(HOY);
+    const pregunta = crearPregunta('economia', 'ordenar', 1, '-ur-roundtrip');
+    const { estado: conRespuesta } = registrarRespuesta(estado, pregunta, false, HOY, { respuesta: [1, 0, 2, 3] });
+    const estado2 = importar(exportar(conRespuesta));
+    const tarjeta = estado2.tarjetas[pregunta.id];
+    assert.deepStrictEqual(tarjeta.ultimaRespuesta, [1, 0, 2, 3]);
+    assert.equal(tarjeta.ultimaCorrecta, false);
+  });
 });
 
 describe('puntuacionArea / notaArea', () => {
@@ -1436,5 +1659,14 @@ describe('cambiarConfianza', () => {
     const copia = structuredClone(r.estado);
     cambiarConfianza(r.estado, P, r.delta, 'alta', H);
     assert.deepEqual(r.estado, copia);
+  });
+
+  test('conserva ultimaRespuesta/ultimaCorrecta de la tarjeta al clonarla', () => {
+    const base = registrarRespuesta(crearEstado(H), P, true, H, { confianza: 'media', respuesta: 0 });
+    assert.equal(base.estado.tarjetas.q1.ultimaRespuesta, 0);
+    assert.equal(base.estado.tarjetas.q1.ultimaCorrecta, true);
+    const c = cambiarConfianza(base.estado, P, base.delta, 'alta', H);
+    assert.equal(c.estado.tarjetas.q1.ultimaRespuesta, 0);
+    assert.equal(c.estado.tarjetas.q1.ultimaCorrecta, true);
   });
 });
