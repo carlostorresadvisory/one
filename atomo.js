@@ -84,8 +84,22 @@ function crearElementoSvg(tipo, atributos = {}) {
  * criterio que `acortarSubtema` en servidor/index.js, aplicado aquí también como defensa: el
  * servidor ya manda `corto`/nombres de área dentro de límite, pero un texto más largo no debe
  * desbordar el círculo en vez de fallar en silencio).
+ *
+ * Ronda final de arreglos (revisión, 14-sep-2026) -- Minor visible (M1): una palabra YA más larga
+ * que `maxPorLinea` ("Reestructuraciones", 18 caracteres, frente a maxPorLinea=11 -- uno de los
+ * hilos nuevos de esta rama) se colocaba entera sin partir salvo que cayera en la última línea, así
+ * que desbordaba el círculo del nodo por los dos lados (90,3 unidades de ancho medidas frente a las
+ * 76 del diámetro, ver captura v0.2b3-atomo-mas-375.png). Ahora se parte con guion en trozos de
+ * `maxPorLinea - 1` caracteres + "-" (mismo criterio que partiría un editor de texto), manteniendo
+ * SIEMPRE el mismo presupuesto de ancho por línea que el resto del texto (nunca una línea de más de
+ * `maxPorLinea` caracteres, sea cual sea su origen) en vez de reducir la fuente solo para este caso
+ * -- una talla de letra distinta según el subtema habría sido más difícil de mantener legible y
+ * consistente entre nodos.
+ *
+ * Exportada (antes interna del módulo) para que tests/atomo.test.js pueda comprobarla a secas, sin
+ * DOM -- es una función pura de cadenas, no toca `document` en ningún momento.
  */
-function envolverTexto(texto, maxPorLinea, maxLineas) {
+export function envolverTexto(texto, maxPorLinea, maxLineas) {
   const palabras = String(texto || '').trim().split(/\s+/).filter(Boolean);
   const lineas = [];
   let actual = '';
@@ -96,13 +110,26 @@ function envolverTexto(texto, maxPorLinea, maxLineas) {
     if (candidato.length <= maxPorLinea) {
       actual = candidato;
       indice += 1;
-    } else if (!actual) {
-      // Una sola palabra ya más larga que la línea: se coloca igual, se recorta más abajo si hace falta.
-      actual = palabra;
-      indice += 1;
-    } else {
+      continue;
+    }
+    if (actual) {
+      // La palabra no cabe añadida a la línea actual: se cierra esta línea tal cual y se
+      // reintenta la misma palabra en la siguiente vuelta, ya en una línea nueva.
       lineas.push(actual);
       actual = '';
+      continue;
+    }
+    // Línea vacía y la palabra SOLA ya no cabe: se parte con guion (ver comentario de la función).
+    // El resto de la palabra vuelve a `palabras` en el mismo índice, como si fuera la "palabra" de
+    // la próxima vuelta -- puede volver a ser más larga que `maxPorLinea` (se parte otra vez).
+    const trozo = palabra.slice(0, Math.max(1, maxPorLinea - 1));
+    const resto = palabra.slice(trozo.length);
+    if (resto) {
+      palabras[indice] = resto;
+      lineas.push(`${trozo}-`);
+    } else {
+      lineas.push(trozo);
+      indice += 1;
     }
   }
   if (actual) lineas.push(actual);

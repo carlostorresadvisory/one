@@ -8,7 +8,7 @@
 // retroceder tocan el objeto que reciben.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearEstadoAtomo, avanzar, retroceder } from '../atomo.js';
+import { crearEstadoAtomo, avanzar, retroceder, envolverTexto } from '../atomo.js';
 
 function subtema(indice, corto, completo) {
   return { indice, corto, completo: completo || `Completo de ${corto}` };
@@ -90,4 +90,47 @@ test('avanzar y retroceder: ida y vuelta deja el mismo contenido (aunque no la m
   const avanzado = avanzar(inicial, subtema(0, 'Mercados', 'Mercados y crisis financieras'));
   const vuelta = retroceder(avanzado);
   assert.deepEqual(vuelta, inicial);
+});
+
+// === envolverTexto ===================================================================================
+// Ronda final de arreglos (revisión, 14-sep-2026) -- Minor visible (M1): una palabra ya más larga
+// que `maxPorLinea` se colocaba entera sin partir (salvo que cayera en la última línea), así que
+// desbordaba el círculo del nodo -- "Reestructuraciones" (18 caracteres) frente a maxPorLinea=11,
+// visible en la captura v0.2b3-atomo-mas-375.png. Cada línea debe medir como mucho `maxPorLinea`
+// caracteres, sea cual sea su origen (palabra normal, guion, o recorte final con "…").
+
+test('envolverTexto: una palabra de 18 caracteres se parte con guion, sin desbordar maxPorLinea', () => {
+  const lineas = envolverTexto('Reestructuraciones', 11, 3);
+  assert.deepEqual(lineas, ['Reestructu-', 'raciones']);
+  for (const linea of lineas) {
+    assert.ok(linea.length <= 11, `"${linea}" mide ${linea.length} caracteres, por encima de maxPorLinea (11)`);
+  }
+});
+
+test('envolverTexto: reproduce el caso real de la revisión ("Reestructuraciones e insolvencia: cómo …") sin ninguna línea por encima de maxPorLinea', () => {
+  const lineas = envolverTexto('Reestructuraciones e insolvencia: cómo …', 11, 3);
+  assert.equal(lineas.length, 3);
+  for (const linea of lineas) {
+    assert.ok(linea.length <= 11, `"${linea}" mide ${linea.length} caracteres, por encima de maxPorLinea (11)`);
+  }
+  // La última línea sigue recortándose con "…" si queda contenido sin colocar (comportamiento ya
+  // existente, sin cambios) -- aquí queda texto de sobra, así que debe terminar en "…".
+  assert.ok(lineas[lineas.length - 1].endsWith('…'));
+});
+
+test('envolverTexto: una palabra larga que no cabe en un solo trozo de guion sigue partiéndose (varios trozos, nunca entera)', () => {
+  // 19 caracteres: no cabe en un trozo de maxPorLinea-1=10 -- debe partirse en tantos trozos con
+  // guion como haga falta (aquí, dos), nunca colocarse entera sin más.
+  const lineas = envolverTexto('Extraordinariamente', 11, 3);
+  for (const linea of lineas) {
+    assert.ok(linea.length <= 11, `"${linea}" mide ${linea.length} caracteres, por encima de maxPorLinea (11)`);
+  }
+});
+
+test('envolverTexto: palabras normales (ninguna supera maxPorLinea) siguen envolviendo igual que antes', () => {
+  assert.deepEqual(envolverTexto('Mercados y crisis', 11, 3), ['Mercados y', 'crisis']);
+});
+
+test('envolverTexto: texto vacío devuelve una sola línea vacía', () => {
+  assert.deepEqual(envolverTexto('', 11, 3), ['']);
 });
