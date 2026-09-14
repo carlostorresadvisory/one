@@ -733,29 +733,30 @@ export function ordenarRepaso(estado, banco, hoy) {
  * tarjetas ya reveladas (enunciado, respuesta correcta marcada, imagen o
  * visual, explicación), nunca respondibles desde el repaso.
  *
- * Orden: nivel ascendente y, DENTRO DE CADA NIVEL, la misma rotación de áreas
- * que `seleccionarPartida` (`ordenarSinRepetirArea`: reparte por área para no
- * repetir en posiciones consecutivas cuando hay alternativa, priorizando el
- * área con más pendientes en ese nivel) y, dentro de eso, por id. La rotación
- * se reinicia en cada nivel nuevo (no mira qué área cerró el nivel anterior):
- * una lectura simple de "nivel asc., rotando áreas" y suficiente para que no
- * se repita el mismo tema muchas veces seguidas dentro de un nivel, que es lo
- * que de verdad se nota deslizando.
- *
- * Determinista SIN `rng` (el desempate entre áreas con el mismo número de
- * pendientes en un nivel se resuelve siempre a favor de la que apareció
- * primero al recorrer las candidatas ya ordenadas por id — nunca al azar):
- * imprescindible porque el feed se recalcula en cada vuelta nueva del repaso
- * infinito y dos vueltas con el mismo estado deben salir IDÉNTICAS. `rng` es
- * opcional y solo existe para que los tests puedan comprobar el desempate
- * aleatorio de `ordenarSinRepetirArea` sin duplicar esa lógica aquí.
+ * Orden: nivel ascendente y, DENTRO DE CADA NIVEL, round-robin PURO por área
+ * en el orden fijo de `AREAS` (saltando las que no tengan ninguna candidata
+ * en ese nivel) y, dentro de cada área, por id. Ronda final de revisión
+ * (Minor 2): la primera versión reutilizaba `ordenarSinRepetirArea`
+ * (`seleccionarPartida`), que en cada paso prioriza el área con MÁS
+ * candidatas restantes — con un área muy por encima de las demás (p. ej.
+ * ciencia con el doble de preguntas que el resto) eso la hace salir "una de
+ * cada dos" en vez de repartirse a lo largo de todo el nivel. El
+ * round-robin puro por orden fijo reparte una de cada área no vacía en cada
+ * vuelta completa a `AREAS`, así que solo repite área en posiciones
+ * consecutivas cuando de verdad no queda ninguna otra alternativa en ese
+ * nivel (la cola de todas las demás áreas ya se vació) — y en ese caso el
+ * repetido es siempre el sobrante final de la más numerosa, nunca uno
+ * intercalado. Determinista sin necesidad de ningún desempate al azar: el
+ * orden de `AREAS` decide siempre, así que dos vueltas con el mismo estado
+ * salen IDÉNTICAS (imprescindible: el feed se recalcula en cada vuelta nueva
+ * del repaso infinito).
  *
  * Excluye reportadas (`estado.reportadas`), igual que `ordenarRepaso`. NO
  * filtra por área — ese filtro lo aplica quien concatena los dos tramos
  * (`construirFeedRepaso` en app.js), sobre el resultado ya combinado. Pura,
  * nunca lanza; sin candidatas devuelve `[]`.
  */
-export function listarNoRespondidas(estado, banco, rng = () => 0) {
+export function listarNoRespondidas(estado, banco) {
   const reportadas = new Set(estado.reportadas);
   const bancoPorId = new Map(banco.map((p) => [p.id, p]));
   const candidatas = banco.filter((p) => !estado.tarjetas[p.id] && !reportadas.has(p.id));
@@ -765,10 +766,23 @@ export function listarNoRespondidas(estado, banco, rng = () => 0) {
   for (const nivel of niveles) {
     const itemsDelNivel = candidatas
       .filter((p) => p.nivel === nivel)
-      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)) // "dentro de eso por id"
-      .map((p) => ({ id: p.id, area: p.area }));
-    for (const id of ordenarSinRepetirArea(itemsDelNivel, rng)) {
-      resultado.push(bancoPorId.get(id));
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)); // "dentro de eso por id"
+
+    // Una cola por área, ya ordenada por id (round-robin puro, Minor 2).
+    const colasPorArea = new Map();
+    for (const p of itemsDelNivel) {
+      if (!colasPorArea.has(p.area)) colasPorArea.set(p.area, []);
+      colasPorArea.get(p.area).push(p.id);
+    }
+    let restantes = itemsDelNivel.length;
+    while (restantes > 0) {
+      for (const area of AREAS) {
+        const cola = colasPorArea.get(area);
+        if (cola && cola.length > 0) {
+          resultado.push(bancoPorId.get(cola.shift()));
+          restantes -= 1;
+        }
+      }
     }
   }
   return resultado;

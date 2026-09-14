@@ -1133,29 +1133,48 @@ describe('listarNoRespondidas', () => {
     ];
     const resultado = listarNoRespondidas(crearEstado(HOY), desequilibrado);
     assert.equal(resultado.length, 4);
-    // historia (única) sale intercalada tan pronto como es posible, nunca al
-    // final "porque sí": con rng determinista (por defecto) el desempate
-    // entre economía e historia en el primer paso se resuelve por el orden en
-    // que aparecen las candidatas ya ordenadas por id ("economia-ordenar-1a"
-    // < "historia-vf-1a" alfabéticamente), así que historia entra en el
-    // segundo hueco, no en el primero ni en el último.
-    assert.equal(resultado[1].area, 'historia');
+    // Round-robin puro por AREAS (Minor 2, ronda final de revisión): en la
+    // primera vuelta a AREAS (economia, historia, ciencia...) le toca una a
+    // economía y una a historia; agotada historia, las dos restantes de
+    // economía sí van consecutivas al final -- inevitable, pero nunca antes
+    // de agotar la alternativa.
     assert.equal(resultado[0].area, 'economia');
+    assert.equal(resultado[1].area, 'historia');
     assert.equal(resultado[2].area, 'economia');
     assert.equal(resultado[3].area, 'economia');
   });
 
-  test('determinista sin rng: dos llamadas con el mismo estado devuelven el mismo orden', () => {
+  test('Minor 2 (ronda final de revisión): un área muy por encima de las demás se reparte a lo largo del nivel en vez de salir "una de cada dos"', () => {
+    // 10 de ciencia + 1 de cada una de otras 3 áreas: el algoritmo anterior
+    // (ordenarSinRepetirArea, "gana el área con más candidatas restantes")
+    // sacaba ciencia en casi todos los huecos desde el principio ("una de
+    // cada dos"), dejando el resto apiñado. El round-robin puro por AREAS
+    // reparte una de cada área no vacía en la PRIMERA vuelta a AREAS, así que
+    // las 3 áreas pequeñas salen ANTES de que ciencia repita ni una sola vez.
+    const dominante = [];
+    for (let i = 0; i < 10; i++) dominante.push(crearPregunta('ciencia', 'vf', 1, String(i).padStart(2, '0')));
+    dominante.push(crearPregunta('historia', 'vf', 1, 'x'));
+    dominante.push(crearPregunta('economia', 'vf', 1, 'x'));
+    dominante.push(crearPregunta('arte', 'vf', 1, 'x'));
+
+    const resultado = listarNoRespondidas(crearEstado(HOY), dominante);
+    assert.equal(resultado.length, 13);
+    const areas = resultado.map((p) => p.area);
+    // AREAS = [economia, historia, ciencia, tecnologia, geografia, filosofia,
+    // arte, logica]: primera vuelta -> economia, historia, ciencia, arte
+    // (las 4 únicas con candidatas); las 9 ciencia restantes van detrás, ya
+    // sin ninguna alternativa.
+    assert.deepStrictEqual(areas.slice(0, 4), ['economia', 'historia', 'ciencia', 'arte']);
+    assert.deepStrictEqual(
+      areas.slice(4),
+      Array(9).fill('ciencia')
+    );
+  });
+
+  test('determinista: dos llamadas con el mismo estado devuelven el mismo orden', () => {
     const estado = crearEstado(HOY);
     const r1 = listarNoRespondidas(estado, banco).map((p) => p.id);
     const r2 = listarNoRespondidas(estado, banco).map((p) => p.id);
-    assert.deepStrictEqual(r1, r2);
-  });
-
-  test('con rng determinista pasado explícitamente, sigue siendo reproducible', () => {
-    const estado = crearEstado(HOY);
-    const r1 = listarNoRespondidas(estado, banco, rngDeterminista()).map((p) => p.id);
-    const r2 = listarNoRespondidas(estado, banco, rngDeterminista()).map((p) => p.id);
     assert.deepStrictEqual(r1, r2);
   });
 
