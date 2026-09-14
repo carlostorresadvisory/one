@@ -112,14 +112,35 @@ function sanearServidor(servidorCrudo) {
 }
 
 /**
+ * Sanea `servidorCrudo`/`tokenCrudo` (`sanearToken`/`sanearServidor`, Ronda 1 de revisión —
+ * Important #1) y, si ambos son válidos, los guarda en `localStorage` (clave `one.servidor`, con
+ * `url` ya normalizada a su origin). Núcleo compartido por `guardarConfiguracionDesdeUrl` (el
+ * enlace `?servidor=&token=`) y `guardarConfiguracionDesdeTexto` (Tarea 4, hoja "Conectar" dentro
+ * de la app instalada, sin URL de por medio) — la única diferencia entre ambas es de dónde sacan
+ * `servidorCrudo`/`tokenCrudo`, el saneado y el guardado son exactamente los mismos.
+ * @returns {boolean} si se guardó.
+ */
+function guardarConfiguracionValidada(servidorCrudo, tokenCrudo) {
+  const token = sanearToken(tokenCrudo);
+  const origen = sanearServidor(servidorCrudo);
+  if (!token || !origen) return false;
+  try {
+    localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: origen, token }));
+    return true;
+  } catch {
+    // localStorage llena o no disponible (modo privado, cuota...): no se guardó nada.
+    return false;
+  }
+}
+
+/**
  * Lee `?servidor=<url>&token=<token>` de `location.search`. Sin los dos parámetros presentes, no
  * hace nada (no guarda, no toca la URL) y devuelve `false` — es el caso normal de abrir la app sin
- * ese enlace especial. Con los dos presentes: se sanean (`sanearToken`/`sanearServidor`, Ronda 1 de
- * revisión — Important #1) y, si ambos son válidos, se guardan en `localStorage` (clave
- * `one.servidor`, con `url` ya normalizada a su origin). Se hayan guardado o no, se limpian
- * `servidor`/`token` de la URL con `history.replaceState` (conserva cualquier otro parámetro y el
- * hash — p. ej. no se come `?test=1` en los e2e): un intento de configurar con datos inválidos no
- * debe dejar el token o el host del servidor colgando en el historial del navegador.
+ * ese enlace especial. Con los dos presentes: se validan y guardan con `guardarConfiguracionValidada`.
+ * Se hayan guardado o no, se limpian `servidor`/`token` de la URL con `history.replaceState`
+ * (conserva cualquier otro parámetro y el hash — p. ej. no se come `?test=1` en los e2e): un
+ * intento de configurar con datos inválidos no debe dejar el token o el host del servidor colgando
+ * en el historial del navegador.
  * @param {{search: string, pathname: string, hash?: string}} location
  * @returns {boolean} si se guardó una configuración nueva (válida).
  */
@@ -129,19 +150,7 @@ export function guardarConfiguracionDesdeUrl(location) {
   const tokenCrudo = params.get('token');
   if (!servidorCrudo || !tokenCrudo) return false;
 
-  const token = sanearToken(tokenCrudo);
-  const origen = sanearServidor(servidorCrudo);
-  let guardado = false;
-  if (token && origen) {
-    try {
-      localStorage.setItem(CLAVE_SERVIDOR, JSON.stringify({ url: origen, token }));
-      guardado = true;
-    } catch {
-      // localStorage llena o no disponible (modo privado, cuota...): no se guardó nada, pero la
-      // URL se limpia igual (ver comentario de cabecera de esta función).
-      guardado = false;
-    }
-  }
+  const guardado = guardarConfiguracionValidada(servidorCrudo, tokenCrudo);
 
   params.delete('servidor');
   params.delete('token');
@@ -168,6 +177,58 @@ export function guardarConfiguracionDesdeUrl(location) {
     }
   }
   return guardado;
+}
+
+/**
+ * Guarda la configuración del servidor a partir de texto pegado a mano (Tarea 4, hoja "Conectar"
+ * dentro de la app instalada: en iOS la app añadida a la pantalla de inicio tiene almacenamiento
+ * SEPARADO de Safari, así que el enlace `?servidor=&token=` abierto en Safari no llega a
+ * `guardarConfiguracionDesdeUrl` de la app instalada — hace falta una vía sin URL de por medio).
+ * Acepta dos formatos, sin ambigüedad entre ellos (si `texto` trae algún espacio o salto de línea
+ * es el formato (b); si no trae ninguno, es el (a)):
+ * (a) el enlace completo (se parsea con `new URL(texto)` y se leen `servidor`/`token` de sus
+ *     parámetros) — pegar la URL entera es lo más fácil para Carlos, sin tener que trocearla.
+ * (b) `"<servidor> <token>"`, los dos valores sueltos separados por espacio o salto de línea.
+ * Mismo saneado que `guardarConfiguracionDesdeUrl` en ambos casos (`guardarConfiguracionValidada`):
+ * token 16-128 caracteres sin espacios ni control, servidor `https:` cualquier host o
+ * `http://localhost`. `texto` en sí NUNCA se registra ni se guarda en ningún sitio (ni con
+ * `console.*` ni en `localStorage`) — solo la configuración `{url, token}` ya validada, igual que
+ * el resto de este módulo.
+ * @param {string} texto
+ * @returns {boolean} si se guardó una configuración nueva (válida).
+ */
+export function guardarConfiguracionDesdeTexto(texto) {
+  if (typeof texto !== 'string') return false;
+  const limpio = texto.trim();
+  if (!limpio) return false;
+
+  let servidorCrudo = null;
+  let tokenCrudo = null;
+
+  if (/\s/.test(limpio)) {
+    // Formato (b): "<servidor> <token>" separados por espacio o salto de línea (uno o varios
+    // seguidos, p. ej. un copia-pega con doble espacio). Cualquier cosa que no sean exactamente
+    // dos trozos no es este formato -- se deja como no reconocido (false más abajo), nunca se
+    // intenta adivinar cuál de los N trozos es el servidor y cuál el token.
+    const partes = limpio.split(/\s+/).filter(Boolean);
+    if (partes.length === 2) {
+      [servidorCrudo, tokenCrudo] = partes;
+    }
+  } else {
+    // Formato (a): el enlace completo, sin ningún espacio -- se parsea como URL y se leen sus
+    // parámetros `servidor`/`token`. Si ni siquiera es una URL válida, o es una URL sin esos
+    // parámetros, no hay nada que guardar.
+    try {
+      const url = new URL(limpio);
+      servidorCrudo = url.searchParams.get('servidor');
+      tokenCrudo = url.searchParams.get('token');
+    } catch {
+      return false;
+    }
+  }
+
+  if (!servidorCrudo || !tokenCrudo) return false;
+  return guardarConfiguracionValidada(servidorCrudo, tokenCrudo);
 }
 
 // === Banco extendido (preguntas recibidas del servidor) ===========================================

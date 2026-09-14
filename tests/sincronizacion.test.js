@@ -8,6 +8,7 @@ import { crearEstado } from '../motor.js';
 import {
   leerConfiguracion,
   guardarConfiguracionDesdeUrl,
+  guardarConfiguracionDesdeTexto,
   leerBancoExtra,
   fusionarBancoExtra,
   sincronizarEstado,
@@ -258,6 +259,77 @@ test('guardarConfiguracionDesdeUrl: rechaza http:// de un host que no sea localh
 
 test('guardarConfiguracionDesdeUrl: rechaza una URL de servidor que ni siquiera es una URL válida', () => {
   esperarRechazoConLimpieza(`?servidor=${encodeURIComponent('no-es-una-url')}&token=${TOKEN_VALIDO}`);
+});
+
+// === guardarConfiguracionDesdeTexto (Tarea 4: hoja "Conectar" dentro de la app instalada) =========
+
+test('guardarConfiguracionDesdeTexto: enlace completo → true y configuración guardada', () => {
+  prepararGlobales();
+  const enlace = `https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}`;
+  assert.equal(guardarConfiguracionDesdeTexto(enlace), true);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: enlace completo con espacios alrededor (trim) → true', () => {
+  prepararGlobales();
+  const enlace = `  https://carlostorresadvisory.github.io/one/?servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN_VALIDO}  `;
+  assert.equal(guardarConfiguracionDesdeTexto(enlace), true);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: "servidor token" separados por espacio → true', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es  abcdefghijklmnop1234'), true);
+  assert.deepEqual(leerConfiguracion(), { url: 'https://one.ejemplo.es', token: 'abcdefghijklmnop1234' });
+});
+
+test('guardarConfiguracionDesdeTexto: "servidor token" separados por salto de línea → true', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es\nabcdefghijklmnop1234'), true);
+  assert.deepEqual(leerConfiguracion(), { url: 'https://one.ejemplo.es', token: 'abcdefghijklmnop1234' });
+});
+
+test('guardarConfiguracionDesdeTexto: basura → false y sin tocar la configuración previa', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('esto es una basura cualquiera'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: texto vacío o solo espacios → false', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto(''), false);
+  assert.equal(guardarConfiguracionDesdeTexto('   '), false);
+  assert.equal(leerConfiguracion(), null);
+});
+
+test('guardarConfiguracionDesdeTexto: enlace sin servidor/token en la query → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('https://carlostorresadvisory.github.io/one/'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: token corto en formato "servidor token" → false y sin tocar la configuración previa', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto('https://one.ejemplo.es corto1234567'), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: servidor http:// que no es localhost en formato "servidor token" → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto(`http://x.com ${TOKEN_VALIDO}`), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: tres trozos separados por espacio (ni enlace ni "servidor token") → false', () => {
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(guardarConfiguracionDesdeTexto(`${URL_SERVIDOR} ${TOKEN_VALIDO} sobra`), false);
+  assert.deepEqual(leerConfiguracion(), { url: URL_SERVIDOR, token: TOKEN_VALIDO });
+});
+
+test('guardarConfiguracionDesdeTexto: no es un string → false', () => {
+  prepararGlobales();
+  assert.equal(guardarConfiguracionDesdeTexto(null), false);
+  assert.equal(guardarConfiguracionDesdeTexto(undefined), false);
 });
 
 // === leerBancoExtra / fusionarBancoExtra ============================================================
