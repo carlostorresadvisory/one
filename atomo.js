@@ -59,15 +59,16 @@ const NS_SVG = 'http://www.w3.org/2000/svg';
 // la propia captura): con la etiqueta DEBAJO del círculo, el nodo que cae justo arriba (siempre el
 // índice 0, ángulo exacto -90°) la empuja HACIA el núcleo, no hacia fuera -- con el núcleo pintado
 // encima (para que su propio círculo tape limpiamente lo que hay detrás), esa etiqueta quedaba
-// oculta bajo el círculo del núcleo en vez de solo "apretada". RADIO_NUCLEO baja de 54 a 44 y el
-// hueco/interlineado del nodo se ajustan para que el borde inferior de esa etiqueta quede POR
-// FUERA del círculo del núcleo con margen, sin perder el margen ya pedido contra el borde del
-// viewBox para el nodo de abajo (RADIO_ORBITA <= 105).
+// oculta bajo el círculo del núcleo en vez de solo "apretada". El hueco/interlineado del nodo se
+// ajusta para que el borde inferior de esa etiqueta quede POR FUERA del círculo del núcleo con
+// margen, sin perder margen contra el borde del viewBox para el nodo de abajo. Ronda final de
+// revisión (Disposición): RADIO_NUCLEO sube de 44 a 48 (pedido explícito) -- RADIO_ORBITA sube en
+// consecuencia de 100 a 102 para conservar el margen de despeje contra el núcleo.
 const TAMANO = 320;
 const CENTRO = TAMANO / 2;
-const RADIO_NUCLEO = 44;
+const RADIO_NUCLEO = 48;
 const RADIO_NODO = 26;
-const RADIO_ORBITA = 100;
+const RADIO_ORBITA = 102;
 const GAP_ETIQUETA_NODO = 4;
 const ALTURA_LINEA_NODO = 11;
 
@@ -147,7 +148,9 @@ function pintarLineasDebajo(nodoTexto, lineas, alturaLinea, yInicio, x = 0) {
 function activarConTecladoYClic(elemento, manejador) {
   elemento.addEventListener('click', manejador);
   elemento.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+    // Adversarial A10: 'Spacebar' es el nombre viejo (IE9-10) de la tecla espacio -- ' ' ya es el
+    // valor real que da cualquier navegador soportado hoy, esa rama nunca se disparaba.
+    if (ev.key === 'Enter' || ev.key === ' ') {
       ev.preventDefault();
       manejador();
     }
@@ -170,7 +173,11 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
   const svg = crearElementoSvg('svg', {
     class: 'atomo-svg',
     viewBox: `0 0 ${TAMANO} ${TAMANO}`,
-    role: 'img',
+    // Ronda final de revisión (Important #7): `role="img"` en el `<svg>` contenedor anuncia todo
+    // su interior como una imagen plana ante VoiceOver -- los `role="button"` de los nodos y el
+    // núcleo, que SÍ son interactivos, quedaban invisibles para el lector de pantalla. "group" no
+    // cambia nada visualmente y deja que sus hijos se anuncien cada uno con su propio rol.
+    role: 'group',
     'aria-label': 'Mapa de subtemas',
   });
 
@@ -259,7 +266,10 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
   }
 
   function actualizar(nuevosSubtemas = [], textoNucleo2 = area) {
-    pintarLineas(textoNucleo, envolverTexto(textoNucleo2, 16, 2), 13, CENTRO);
+    // Disposición (Ronda final): núcleo <= 12 caracteres/línea (2 líneas) para que quepa sin
+    // salirse del círculo (A8 del triage adversarial: textLength/lengthAdjust deforma los glifos,
+    // se prefiere acortar el texto en vez de encogerlo).
+    pintarLineas(textoNucleo, envolverTexto(textoNucleo2, 12, 2), 13, CENTRO);
     pintarNodos(nuevosSubtemas);
   }
 

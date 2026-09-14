@@ -184,6 +184,17 @@ let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; n
 // toques rápidos alcanzaban a mandar dos POST /generar antes de que el primero volviera. Ver
 // actualizarBotonGenerarAtomo/manejarGenerarAtomo.
 let atomoGenerarEnVuelo = false;
+// Ronda final de revisión (Important #5): evita solapar dos consultarTrabajo a la vez (el
+// intervalo de 5s y un `visibilitychange` casi al mismo tiempo, por ejemplo).
+let atomoSondeoEnVuelo = false;
+// Ronda final de revisión (Critical #8): tope de sondeos por trabajo -- se resetea a 0 solo al
+// arrancar un trabajo NUEVO (manejarGenerarAtomo), nunca al pausar/reanudar (visibilitychange), o
+// un jugador que minimizara y volviera a abrir la app cada minuto alargaría el sondeo para siempre.
+let atomoConsultas = 0;
+// Ronda final de revisión (Critical #2): qué hace el botón único de la tarjeta de espera una vez
+// resuelto el trabajo -- {tipo:'jugar', ids, corto} o {tipo:'volver'}; null mientras se sigue
+// generando (esperaAtomo muestra los dos botones de siempre, no este).
+let atomoEsperaResultado = null;
 
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
@@ -220,7 +231,10 @@ const nodoAtomoAviso = document.querySelector('[data-test="atomo-aviso"]');
 const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar"]');
 const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
 const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
+const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
+const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
+const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -568,10 +582,13 @@ function nucleoAtomoTexto() {
   return etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(atomoEstado.area);
 }
 
-/** Migaja de pan de la cabecera: "Economía › Mercados y crisis › ...". */
+/** Migaja de pan de la cabecera ("Economía › Mercados y crisis › ...", una línea con ellipsis) y
+ * su gemela legible de la Ronda final (Disposición: "en el hueco inferior, la ruta completa
+ * legible, 2 líneas máx.") -- mismo texto en los dos sitios, la diferencia es solo de estilos.css. */
 function actualizarCabeceraAtomo() {
-  const partes = [nombreArea(atomoEstado.area), ...atomoEstado.etiquetas];
-  nodoAtomoRuta.textContent = partes.join(' › ');
+  const texto = [nombreArea(atomoEstado.area), ...atomoEstado.etiquetas].join(' › ');
+  nodoAtomoRuta.textContent = texto;
+  nodoAtomoRutaCompleta.textContent = texto;
 }
 
 /** Generar apagado sin servidor, mientras la petición de `pedirTanda` está en vuelo (Ronda 1 de
@@ -617,6 +634,7 @@ function ocultarAvisoAtomo() {
  * confirmada). `atomoPeticionId` descarta una respuesta tardía si el jugador ya avanzó/retrocedió
  * antes de que esta llegara (evita que un anillo viejo pise al nuevo). */
 async function cargarAnilloAtomo() {
+  if (!atomoEstado) return; // adversarial A7: la vista pudo cerrarse justo antes de esta llamada.
   actualizarCabeceraAtomo();
   actualizarBotonGenerarAtomo();
   nodoAtomoAtras.disabled = atomoEstado.ruta.length === 0;
@@ -678,7 +696,11 @@ function limpiarAtomo() {
     atomoInstancia = null;
   }
   atomoEstado = null;
+  ocultarAvisoAtomo(); // adversarial A7: barato, aunque la vista oculta ya lo impide visualmente.
 }
+
+const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sondeo.
+const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
 
 function detenerSondeoAtomo() {
   if (atomoSondeoId !== null) {
@@ -694,81 +716,155 @@ function finalizarTrabajoAtomo() {
 }
 
 /** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
- * y para el fallo ("No se pudo generar..."); tocarlo lanza la partida en el primer caso y solo se
- * cierra a sí mismo en el segundo (ver el listener del chip, más abajo junto al resto de eventos
- * de navegación). */
+ * y para el fallo (`mensaje` por defecto "No se pudo generar, prueba otra vez", o uno propio --
+ * Ronda final Important #8, "el servidor tarda demasiado"); tocarlo lanza la partida en el primer
+ * caso y solo se cierra a sí mismo en el segundo (ver el listener del chip, más abajo junto al
+ * resto de eventos de navegación). */
 function mostrarChipTandaLista(ids, corto) {
   atomoTandaLista = { ids, corto };
   nodoTandaLista.textContent = `Tanda lista: ${ids.length} de ${corto}`;
   nodoTandaLista.hidden = false;
 }
 
-function mostrarChipTandaFallida() {
+function mostrarChipTandaFallida(mensaje = 'No se pudo generar, prueba otra vez') {
   atomoTandaLista = null;
-  nodoTandaLista.textContent = 'No se pudo generar, prueba otra vez';
+  nodoTandaLista.textContent = mensaje;
   nodoTandaLista.hidden = false;
 }
 
-/** `parcial` (>= 5) o `lista`: fusiona las preguntas de esta tanda en el banco extendido y
- * refresca el chip con el recuento actual -- con `parcial` el sondeo sigue (puede que llegue
- * `lista` con más preguntas todavía), con `lista` ya es definitivo.
- *
- * Ronda 1 de revisión (Important #2): los ids del chip son los que de verdad EXISTEN en el banco
- * tras fusionar (`bancoPorId`), no todos los que traía `trabajo.preguntas` sin más -- fusionarBancoExtra
- * puede descartar alguna (reportada, o ya en el banco) y `empezarPartida({ids})` con un id que no
- * está en `bancoPorId` se queda esa tarjeta sin hueco. Si no queda ninguna, es el mismo desenlace
- * que un fallo: el chip de "Tanda lista" no tendría nada que ofrecer. */
-function fusionarTandaAtomo(trabajo) {
-  fusionarBancoExtra(trabajo.preguntas, estado, idsBancoLocal);
-  reconstruirBanco();
-  const ids = trabajo.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
-  if (ids.length === 0) {
-    mostrarChipTandaFallida();
-    return;
-  }
-  mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
+/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo, línea ~300): 'lista' y 'fallida'
+ * son SIEMPRE terminales; 'parcial' lo es cuando `hechas >= pedidas` (al menos una aprobada, algún
+ * fallo por el camino) -- 'parcial' con `hechas < pedidas` solo puede darse en un trabajo de FONDO
+ * que cede el turno a uno urgente (servidor/cola.js, `debeCeder`), y el Átomo solo pide trabajos
+ * `urgente:true` (que nunca ceden, ver sincronizacion.js#pedirTanda), así que en la práctica CUALQUIER
+ * 'parcial' que este cliente observe ya es terminal -- `hechas >= pedidas` es el respaldo, no la
+ * única vía. 'en-cola'/'generando' son los dos únicos estados realmente en curso. */
+function trabajoAtomoTerminal(trabajo) {
+  return !['en-cola', 'generando'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
 }
 
-async function sondearTrabajoAtomo() {
-  if (!atomoTrabajoId) {
-    detenerSondeoAtomo();
-    return;
+/** Fusiona `trabajo.preguntas` en el banco extendido y devuelve los ids que de verdad EXISTEN en
+ * el banco tras fusionar (`bancoPorId`) -- Ronda 1 de revisión (Important #2): fusionarBancoExtra
+ * puede descartar alguna (reportada, o ya en el banco) y `empezarPartida({ids})` con un id que no
+ * está en `bancoPorId` se queda esa tarjeta sin hueco. `[]` si `trabajo.preguntas` viene vacío. */
+function idsUtilizablesDeTanda(trabajo) {
+  if (!Array.isArray(trabajo.preguntas) || trabajo.preguntas.length === 0) return [];
+  fusionarBancoExtra(trabajo.preguntas, estado, idsBancoLocal);
+  reconstruirBanco();
+  return trabajo.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
+}
+
+/** Repinta la tarjeta de espera con el resultado FINAL (Ronda final, Critical #2) -- antes se
+ * quedaba en "Generando... ~42 s" para siempre aunque el trabajo ya hubiera terminado hace rato.
+ * Si el jugador ya se fue a "Jugar mientras"/"Repasar mientras" (o cualquier otra vista), no tiene
+ * sentido resucitar una pantalla que abandonó: el chip del HUB ya es la única señal que hace
+ * falta. `atomoEsperaResultado` se guarda de todas formas (por si vuelve a "atomo-espera" con el
+ * botón "←" antes de que la vista cambie de sitio) y es lo que lee el listener del botón único. */
+function actualizarEsperaAtomoConResultado({ ok, ids, corto, mensaje }) {
+  atomoEsperaResultado = ok ? { tipo: 'jugar', ids, corto } : { tipo: 'volver' };
+  if (vistaActual() !== 'atomo-espera') return;
+  nodoAtomoEsperaAcciones.hidden = true;
+  nodoAtomoEsperaResultado.hidden = false;
+  if (ok) {
+    nodoAtomoEsperaTexto.textContent = `Tanda lista: ${ids.length} preguntas de ${corto}`;
+    nodoAtomoEsperaResultado.textContent = 'Jugar la tanda';
+  } else {
+    nodoAtomoEsperaTexto.textContent = mensaje || 'No se pudo generar, prueba otra vez';
+    nodoAtomoEsperaResultado.textContent = 'Volver';
   }
-  const trabajo = await consultarTrabajo(atomoTrabajoId, { fetchImpl: fetch });
+}
+
+/**
+ * Sondeo del trabajo en curso (spec §4, cada 5s -- Minor #11: también una consulta inmediata al
+ * arrancar/reanudar, ver iniciarSondeoAtomo/reanudarSondeoAtomoSiHaceFalta).
+ *
+ * Ronda final de revisión -- Critical #1: antes solo 'lista'/'fallida' se trataban como terminales;
+ * un trabajo que terminaba en 'parcial' (contrato real del servidor, ver trabajoAtomoTerminal) dejaba
+ * el sondeo corriendo CADA 5 S PARA SIEMPRE, con Generar bloqueado ("Ya hay una tanda en marcha")
+ * sin que nada lo fuera a desbloquear.
+ *
+ * Ronda final -- Important #5: `idEnCurso` se captura ANTES del `await` y se comprueba DESPUÉS --
+ * si `atomoTrabajoId` cambió mientras la petición estaba en vuelo, esta respuesta ya no pinta nada.
+ * `atomoSondeoEnVuelo` evita que dos llamadas se solapen.
+ */
+async function sondearTrabajoAtomo() {
+  const idEnCurso = atomoTrabajoId;
+  if (!idEnCurso || atomoSondeoEnVuelo) return;
+
+  atomoSondeoEnVuelo = true;
+  let trabajo;
+  try {
+    trabajo = await consultarTrabajo(idEnCurso, { fetchImpl: fetch });
+  } finally {
+    atomoSondeoEnVuelo = false;
+  }
+  if (idEnCurso !== atomoTrabajoId) return; // carrera post-await: ya no es el trabajo vigente.
+
   if (!trabajo) {
     // 404 (trabajo perdido tras reiniciar el servidor) o cualquier otro fallo de red/servidor.
     detenerSondeoAtomo();
     finalizarTrabajoAtomo();
     mostrarChipTandaFallida();
+    actualizarEsperaAtomoConResultado({ ok: false });
     return;
   }
-  if (trabajo.estado === 'lista') {
-    detenerSondeoAtomo();
-    if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length > 0) fusionarTandaAtomo(trabajo);
-    else mostrarChipTandaFallida();
-    finalizarTrabajoAtomo();
+
+  if (!trabajoAtomoTerminal(trabajo)) {
+    // Chip ADELANTADO (sigue sondeando): solo con un colchón razonable de preguntas ya aprobadas,
+    // nunca con 1-2 (mejor esperar a que haya de verdad algo que ofrecer). No toca la tarjeta de
+    // espera -- esa solo reacciona al resultado FINAL (Critical #2).
+    if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= UMBRAL_ANTICIPADO_ATOMO) {
+      const ids = idsUtilizablesDeTanda(trabajo);
+      if (ids.length > 0) mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
+    }
+    atomoConsultas += 1;
+    if (atomoConsultas >= TOPE_SONDEOS_ATOMO) {
+      // Ronda final -- Important #8: un trabajo que nunca termina no debe dejar a Carlos
+      // esperando indefinidamente ni el sondeo corriendo para siempre.
+      const mensaje = 'El servidor tarda demasiado, prueba más tarde';
+      detenerSondeoAtomo();
+      finalizarTrabajoAtomo();
+      mostrarChipTandaFallida(mensaje);
+      actualizarEsperaAtomoConResultado({ ok: false, mensaje });
+    }
     return;
   }
-  if (trabajo.estado === 'fallida') {
-    detenerSondeoAtomo();
-    finalizarTrabajoAtomo();
+
+  // Terminal: 'lista' | 'fallida' | 'parcial' con hechas >= pedidas.
+  detenerSondeoAtomo();
+  const corto = atomoTrabajoInfo ? atomoTrabajoInfo.corto : '';
+  const ids = idsUtilizablesDeTanda(trabajo);
+  finalizarTrabajoAtomo();
+  if (ids.length > 0) {
+    mostrarChipTandaLista(ids, corto);
+    actualizarEsperaAtomoConResultado({ ok: true, ids, corto });
+  } else {
     mostrarChipTandaFallida();
-    return;
+    actualizarEsperaAtomoConResultado({ ok: false });
   }
-  if (trabajo.estado === 'parcial' && Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= 5) {
-    fusionarTandaAtomo(trabajo); // sigue sondeando: puede llegar a "lista" con más preguntas.
-    return;
-  }
-  // 'en-cola' | 'generando' | 'parcial' con menos de 5 preguntas: seguir esperando sin más.
 }
 
 function iniciarSondeoAtomo() {
   detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
+  sondearTrabajoAtomo(); // Minor #11: primer sondeo inmediato, no a ciegas 5s.
   atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
 }
 
+/** Reanuda el sondeo tras pausarlo (pestaña oculta) o al restaurar la página (bfcache) -- Ronda
+ * final, Critical #3. No-op si no hay trabajo en curso, o si ya hay un intervalo corriendo (evita
+ * un doble `setInterval` si `visibilitychange` y `pageshow` se disparan casi a la vez). */
+function reanudarSondeoAtomoSiHaceFalta() {
+  if (atomoTrabajoId && atomoSondeoId === null) iniciarSondeoAtomo();
+}
+
 function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
-  nodoAtomoEsperaTexto.textContent = `Generando 10 preguntas de ${rutaTexto} · ~${estimadoSeg} s`;
+  atomoEsperaResultado = null;
+  nodoAtomoEsperaAcciones.hidden = false;
+  nodoAtomoEsperaResultado.hidden = true;
+  // Minor #9: `estimadoSeg` validado (entero > 0) -- si no, se omite el "~N s" en vez de mostrar
+  // "~undefined s"/"~NaN s".
+  const sufijoSeg = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? ` · ~${estimadoSeg} s` : '';
+  nodoAtomoEsperaTexto.textContent = `Generando 10 preguntas de ${rutaTexto}${sufijoSeg}`;
   mostrarVista('atomo-espera');
 }
 
@@ -800,6 +896,7 @@ async function manejarGenerarAtomo() {
   }
   atomoTrabajoId = resultado.trabajoId;
   atomoTrabajoInfo = { corto };
+  atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
@@ -2878,6 +2975,12 @@ function renderHub() {
     tarjeta.addEventListener('pointerup', cancelarPulsacionLarga);
     tarjeta.addEventListener('pointerleave', cancelarPulsacionLarga);
     tarjeta.addEventListener('pointercancel', cancelarPulsacionLarga);
+    // Adversarial A3: en iOS, mantener pulsado un elemento dispara el callout nativo (copiar/
+    // compartir) y selecciona texto salvo que se lo digamos explícitamente -- eso mataría el
+    // gesto de pulsación larga a medio camino. `-webkit-touch-callout`/`user-select` ya lo cubren
+    // en estilos.css; `contextmenu` es el evento que dispara ESE callout, así que se descarta aquí
+    // también por si acaso (defensa en profundidad, no todos los navegadores respetan el CSS igual).
+    tarjeta.addEventListener('contextmenu', (ev) => ev.preventDefault());
 
     tarjeta.addEventListener('click', () => {
       if (pulsacionYaAbrioAtomo) {
@@ -3027,10 +3130,31 @@ nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
 document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
-// El sondeo del trabajo en curso se detiene solo al llegar a un estado final, o al cerrar la app
-// (spec §4): sin esto, un trabajo que nunca termina dejaría un setInterval corriendo para siempre
-// tras cerrar la pestaña/PWA.
-window.addEventListener('pagehide', detenerSondeoAtomo);
+// Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
+// "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).
+nodoAtomoEsperaResultado.addEventListener('click', () => {
+  if (!atomoEsperaResultado) return;
+  if (atomoEsperaResultado.tipo === 'jugar') {
+    empezarPartida({ ids: atomoEsperaResultado.ids, etiqueta: atomoEsperaResultado.corto });
+  } else {
+    irAlHub();
+  }
+});
+// Ronda final de revisión (Critical #3): el sondeo se detiene de verdad solo al cerrar la app de
+// verdad (`pagehide` sin bfcache -- `ev.persisted` true significa que el navegador puede
+// restaurarla más tarde con `pageshow`, y él mismo congela los timers mientras tanto, no hace
+// falta tocar nada). Al ocultar la pestaña (`visibilitychange`), se PAUSA (mismo mecanismo,
+// `atomoTrabajoId` no se toca) para no gastar red en segundo plano sin que Carlos esté mirando; al
+// volver a verla, o al restaurar desde bfcache, se reanuda con una consulta inmediata (Minor #11)
+// en vez de esperar a ciegas hasta el siguiente tick de 5s.
+window.addEventListener('pagehide', (ev) => {
+  if (!ev.persisted) detenerSondeoAtomo();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) detenerSondeoAtomo();
+  else reanudarSondeoAtomoSiHaceFalta();
+});
+window.addEventListener('pageshow', reanudarSondeoAtomoSiHaceFalta);
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);

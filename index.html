@@ -148,12 +148,17 @@
         <span class="atomo-ruta" data-test="atomo-ruta"></span>
         <span class="punto-servidor" data-test="atomo-estado-servidor" data-estado="gris" aria-label="Sin servidor configurado"></span>
       </div>
-      <!-- .atomo-cuerpo absorbe el espacio libre y centra el lienzo dentro de él (crece/decrece
-           con la pantalla): así los botones de abajo quedan fijos al fondo real de la vista sin
-           dejar un hueco muerto entre el círculo y ellos en pantallas altas. -->
+      <!-- .atomo-cuerpo absorbe el espacio libre; el lienzo se queda arriba, pegado a la cabecera
+           (Ronda final, Disposición) y el hueco que deja debajo se aprovecha para la ruta completa
+           (legible, sin recortar) y una ayuda fija -- ya no queda un hueco muerto y vacío. -->
       <div class="atomo-cuerpo">
         <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
-        <p class="atomo-aviso" data-test="atomo-aviso" hidden></p>
+        <p class="atomo-ruta-completa" data-test="atomo-ruta-completa"></p>
+        <p class="atomo-ayuda">Mantén pulsada un área del HUB para abrir su átomo</p>
+        <!-- Adversarial A15: aria-live="polite" -- el texto cambia (conectar servidor / fallo al
+             cargar subtemas) sin que el foco se mueva, así que un lector de pantalla no se
+             enteraría sin esto. -->
+        <p class="atomo-aviso" data-test="atomo-aviso" hidden aria-live="polite"></p>
         <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>
       </div>
       <div class="atomo-acciones">
@@ -166,11 +171,17 @@
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->
     <section class="vista vista-atomo-espera" data-vista="atomo-espera" data-test="atomo-espera" hidden>
-      <p class="atomo-espera-texto" data-test="atomo-espera-texto"></p>
-      <div class="atomo-espera-acciones">
+      <p class="atomo-espera-texto" data-test="atomo-espera-texto" aria-live="polite"></p>
+      <div class="atomo-espera-acciones" data-test="atomo-espera-acciones">
         <button type="button" class="boton boton-principal" data-test="atomo-jugar-mientras">Jugar mientras</button>
         <button type="button" class="boton" data-test="atomo-repasar-mientras">Repasar mientras</button>
       </div>
+      <!-- Ronda final de revisión (Critical #2): al llegar el resultado final (lista/fallida/tope
+           de sondeos), esta tarjeta reacciona en vez de quedarse en "Generando... ~42 s" para
+           siempre -- se ocultan los dos botones de arriba y aparece este único botón, con el texto
+           y la acción que decida app.js#actualizarEsperaAtomoConResultado ("Jugar la tanda" ->
+           empezarPartida, o "Volver" -> irAlHub). -->
+      <button type="button" class="boton boton-principal atomo-espera-resultado" data-test="atomo-espera-resultado" hidden></button>
     </section>
   </main>
 

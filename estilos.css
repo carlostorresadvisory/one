@@ -1852,6 +1852,15 @@ main#app {
   color: var(--texto);
   text-align: left;
   transition: transform 0.12s ease;
+  /* Adversarial A3: en iOS, mantener pulsada la tarjeta el medio segundo del gesto de pulsación
+     larga (app.js#renderHub) puede disparar el callout nativo (copiar/compartir) o seleccionar
+     texto antes de que le dé tiempo a abrir el Átomo -- explícito aquí encima de lo que ya cubren
+     las reglas genéricas de `body`/`button` (redundante a propósito, para que esta tarjeta nunca
+     dependa de que esas reglas de arriba no cambien). */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .tarjeta-area:active {
@@ -1985,9 +1994,11 @@ main#app {
   gap: 10px;
 }
 
-/* Absorbe el espacio libre entre la cabecera fija y los botones de abajo, y centra su contenido
-   dentro de él -- sin esto, un lienzo cuadrado de 320px como mucho dejaba un hueco muerto grande
-   en pantallas altas antes de llegar a "Atrás"/"Generar" (screenshot de la ronda 1, corregido). */
+/* Absorbe el espacio libre entre la cabecera fija y los botones de abajo. Ronda final de revisión
+   (Disposición): `justify-content: flex-start` en vez de `center` -- el lienzo sube y se queda
+   pegado a la cabecera; el hueco libre que deja debajo ya no está vacío (lo llenan
+   .atomo-ruta-completa y .atomo-ayuda, ver más abajo), así que no hace falta seguir centrando el
+   conjunto para "rellenar" visualmente. */
 .atomo-cuerpo {
   flex: 1;
   min-height: 0;
@@ -1995,11 +2006,15 @@ main#app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
 }
 
+/* Ronda final de revisión (Important #6): `.punto-servidor` es `position: absolute` -- sin un
+   ancestro `position: relative` de por medio, se pintaba respecto a `body` (fuera de pantalla en
+   vez de dentro de esta cabecera). */
 .atomo-cabecera {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -2017,6 +2032,32 @@ main#app {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Ronda final de revisión (Disposición): la ruta completa y legible en el hueco que deja el
+   lienzo al subir -- hasta 2 líneas (line-clamp, mismo patrón que .enunciado/.explicacion en el
+   mazo), sin ellipsis de una sola línea como la de la cabecera. */
+.atomo-ruta-completa {
+  width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--texto);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.atomo-ayuda {
+  width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--texto-suave);
 }
 
 /* Ronda 1 de revisión (Important #4, "aprovechar la pantalla"): ancho completo del cuerpo con
@@ -2153,6 +2194,20 @@ main#app {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Mismo motivo que .vista[hidden]/.hub-chip-nuevas[hidden] en esta misma hoja: con `display:flex`
+   ya declarado arriba, el `[hidden]` por defecto del navegador (menor prioridad que cualquier
+   regla de autor) deja de bastar por sí solo -- sin este override, ocultar esta fila al llegar el
+   resultado final (Ronda final, Critical #2) la dejaría pintada igual pese al atributo `hidden`. */
+.atomo-espera-acciones[hidden] {
+  display: none;
+}
+
+/* Botón único del resultado final (Ronda final, Critical #2): mismo ancho que los dos de arriba,
+   por si el jugador vuelve a esta vista después de que el trabajo ya haya terminado. */
+.atomo-espera-resultado {
+  width: 100%;
 }
 
 /* --- accesibilidad de movimiento ---
