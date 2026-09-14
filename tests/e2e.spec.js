@@ -2673,3 +2673,636 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toBeVisible();
   });
 });
+
+// Tarea 1 del plan v0.2b2-cliente-atomo (sincronizacion.js): servidor de generación simulado con
+// `page.route` (sin tocar el servidor real, spec §4). Origen `https://servidor.prueba` a propósito
+// distinto de `http://localhost:8765` (baseURL de este e2e, ver playwright.config.js): el fetch
+// real desde la página es cross-origin de verdad, así que el navegador manda un preflight OPTIONS
+// (Content-Type: application/json + Authorization fuerzan uno) antes de cada POST -- el mock tiene
+// que responder ambos con cabeceras CORS, igual que hace servidor/index.js#manejarPeticion con
+// `http://localhost:8765` (uno de los dos orígenes permitidos de la spec §3.1).
+test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  // Ronda 1 de revisión (Important #1, sincronizacion.js#sanearToken): token de 16-128
+  // caracteres sin espacios ni caracteres de control -- "abc" (el que pedía el brief original)
+  // ya no pasa el saneado que ahora impone guardarConfiguracionDesdeUrl.
+  const TOKEN = 'token-de-prueba-e2e-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function preguntaServidor(id, area = 'economia') {
+    return {
+      id,
+      area,
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: `Enunciado de prueba del servidor falso (${id}).`,
+      explicacion: 'Explicación corta de prueba, del servidor falso.',
+      respuesta: true,
+    };
+  }
+
+  /** Responde el preflight OPTIONS con las cabeceras CORS de siempre y delega el resto (la
+   * petición real) en `manejador`. */
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  test('configuración por ?servidor=&token=: URL limpia, aviso, punto verde, POST /estado autenticado, y las preguntas nuevas se pueden jugar', async ({
+    page,
+  }) => {
+    const peticionesEstado = [];
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        // Única ruta usada por sincronizacion.js en esta tarea (spec §4, "modo normal").
+        peticionesEstado.push(req);
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            preguntas: [preguntaServidor('srv-e2e-1'), preguntaServidor('srv-e2e-2', 'historia')],
+            enCola: 0,
+          }),
+        });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+
+    // URL limpia: sin servidor/token, conserva ?test=1 (no se pierde el hook de test).
+    await expect(page).toHaveURL(/\/\?test=1$/);
+
+    // Directo al HUB (no a los emojis) con el aviso de conexión.
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Servidor conectado');
+
+    // El punto se pone verde en cuanto /estado responde 200.
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'verde');
+
+    expect(peticionesEstado.length).toBe(1);
+    expect(peticionesEstado[0].headers()['authorization']).toBe(`Bearer ${TOKEN}`);
+    const cuerpo = JSON.parse(peticionesEstado[0].postData());
+    expect(cuerpo.resumen).toHaveProperty('areas');
+    expect(cuerpo.resumen).toHaveProperty('idsConocidos');
+    expect(cuerpo.resumen).toHaveProperty('rutasAtomo');
+
+    // El chip de banco extendido aparece con el recuento correcto de esta tanda...
+    const chip = page.locator('[data-test="nuevas-servidor"]');
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText('2 preguntas nuevas');
+    // ...y desaparece al tocarlo, sin más acción (spec §4).
+    await chip.click();
+    await expect(chip).toBeHidden();
+
+    // Las preguntas nuevas ya están en el banco en memoria: la partida puede servirlas sin recargar.
+    await page.evaluate(() =>
+      window.__one.empezarPartida({ ids: ['srv-e2e-1', 'srv-e2e-2'], etiqueta: 'servidor-e2e' })
+    );
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="vf-verdadero"]')).toBeVisible();
+  });
+
+  test('sin configuración de servidor: cero peticiones y punto gris (la app funciona igual que sin servidor)', async ({
+    page,
+  }) => {
+    let peticiones = 0;
+    page.on('request', (req) => {
+      if (req.url().startsWith(URL_SERVIDOR)) peticiones += 1;
+    });
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+    }));
+
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    expect(peticiones).toBe(0);
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
+  });
+
+  test('servidor caído (conexión abortada): punto ámbar, la app sigue jugable con normalidad', async ({ page }) => {
+    await page.route(`${URL_SERVIDOR}/**`, (route) => route.abort());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'ambar');
+
+    // Silencioso de verdad: nada de esto impide seguir jugando con normalidad.
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+  });
+});
+
+// Tarea 2 del plan v0.2b2-cliente-atomo (atomo.js + la vista/espera/tanda lista de app.js): el
+// mismo servidor de generación simulado con `page.route` que la Tarea 1, ahora ejercitando
+// /subtemas, /generar y /trabajo/:id (spec §4 "Átomo"). Describe aparte para no mezclar sus
+// helpers con los de sincronizacion.js de arriba, aunque el patrón de configuración (?test=1&
+// servidor=...&token=...) y el preflight CORS son deliberadamente los mismos.
+test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-atomo-1234567890';
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
+  function preguntaServidor(id, area = 'economia') {
+    return {
+      id,
+      area,
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: `Enunciado de prueba del átomo (${id}).`,
+      explicacion: 'Explicación corta de prueba, del servidor falso.',
+      respuesta: true,
+    };
+  }
+
+  function conPreflight(manejador) {
+    return async (route) => {
+      const req = route.request();
+      if (req.method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      await manejador(route, req);
+    };
+  }
+
+  /** Sirve las cuatro rutas que toca esta tarea: /estado silencioso (sin preguntas nuevas, para no
+   * interferir con el chip de banco extendido), /subtemas con un anillo 1 fijo de 4 nodos y un
+   * anillo 2 de 2, /generar con un trabajoId fijo, y /trabajo/:id que responde "generando" en el
+   * primer sondeo y "lista" con 10 preguntas en el segundo (brief de la tarea: "tras 2 sondeos
+   * simulados").
+   *
+   * Ronda 1 de revisión: dos parámetros nuevos, opcionales y con el mismo comportamiento de
+   * siempre si no se pasan. `contadores` (objeto mutable) suma una llamada por ruta real (nunca
+   * por el preflight OPTIONS) -- para comprobar cuántas veces se llamó a algo sin depender de
+   * temporizadores. `trabajoRespuesta` sustituye ENTERA la respuesta de /trabajo/:id (todas las
+   * veces, no solo la primera) -- para el caso "el trabajo ya no existe" (404 tras reiniciar el
+   * servidor, Minor #8). */
+  function servidorAtomoFalso({ contadores = {}, trabajoRespuesta = null } = {}) {
+    let sondeos = 0;
+    const suma = (clave) => {
+      contadores[clave] = (contadores[clave] || 0) + 1;
+    };
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        suma('estado');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: '{"preguntas":[],"enCola":0}',
+        });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        suma('subtemas');
+        const cuerpo = req.postDataJSON();
+        const ruta = Array.isArray(cuerpo.ruta) ? cuerpo.ruta : [];
+        const subtemas =
+          ruta.length === 0
+            ? [
+                { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+                { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+                { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+                { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+              ]
+            : [
+                { indice: 0, corto: 'Crisis de 2008', completo: 'La crisis financiera mundial de 2008' },
+                { indice: 1, corto: 'Burbujas', completo: 'Burbujas especulativas históricas' },
+              ];
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ subtemas }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        suma('generar');
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ trabajoId: 'atomo-e2e-1', estimadoSeg: 42 }),
+        });
+        return;
+      }
+      if (url.pathname.startsWith('/trabajo/')) {
+        suma('trabajo');
+        if (trabajoRespuesta) {
+          await route.fulfill(trabajoRespuesta);
+          return;
+        }
+        sondeos += 1;
+        if (sondeos === 1) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+          });
+          return;
+        }
+        const preguntas = Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-atomo-${i + 1}`));
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ estado: 'lista', hechas: 10, pedidas: 10, preguntas, motivo: null }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('sin servidor: Generar apagado y aviso de conectar; mantener pulsada el área abre el átomo sin lanzar la partida', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Pulsación larga real (mousedown/wait/mouseup, no un click): cancelada por movimiento o
+    // liberada antes de 500ms no debe abrir nada (ver app.js#renderHub) -- aquí se deja pasar el
+    // umbral a propósito.
+    const tarjeta = page.locator('[data-test="practicar-economia"]');
+    const caja = await tarjeta.boundingBox();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(650); // > 500ms del umbral de pulsación larga
+    await page.mouse.up();
+
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    // El click que el navegador dispara tras soltar NO debe haber lanzado la partida del área.
+    await expect(page.locator('[data-vista="pregunta"]')).toBeHidden();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía');
+    await expect(page.locator('[data-test="atomo-aviso"]')).toHaveText(
+      'Conecta el servidor para generar preguntas nuevas'
+    );
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeDisabled();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(0);
+
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
+    page,
+  }) => {
+    // La órbita del átomo gira sin parar (spec §4, 60s/vuelta): sin esto, Playwright nunca
+    // considera "estable" (misma posición en dos frames seguidos) al nodo que hay que tocar y el
+    // .click() no termina nunca. `prefers-reduced-motion` para el jugador real (accesibilidad, ver
+    // estilos.css) sirve aquí también para poder tocar los nodos en el test.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Botón "⚛" (descubrible, sin depender del temporizador de la pulsación larga): stopPropagation
+    // evita que también se lance la partida del área (ver app.js#renderHub).
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b2-atomo-375.png` });
+    await assertSinScroll(page);
+
+    // Ronda 1 de revisión (Minor #7): sin-scroll también a 393x852, no solo a 375x812.
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    await page.locator('[data-test="atomo-nodo"]').first().click();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados y crisis');
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2); // anillo 2 (mock de arriba)
+    await expect(page.locator('[data-test="atomo-atras"]')).toBeEnabled();
+
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toHaveText(
+      'Generando 10 preguntas de Economía › Mercados y crisis · ~42 s'
+    );
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b2-espera-375.png` });
+    await assertSinScroll(page);
+
+    await page.locator('[data-test="atomo-jugar-mientras"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+
+    // El sondeo sigue en segundo plano (cada 5s) mientras se juega (spec §4): "←" vuelve al HUB
+    // sin detenerlo. Tras 2 sondeos simulados (el primero "generando", el segundo "lista" con 10),
+    // el chip aparece -- timeout ampliado porque son ~10s reales de sondeo (2 x 5000ms).
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('Tanda lista: 10 de Mercados y crisis', { timeout: 13000 });
+
+    await chip.click();
+    await expect(chip).toBeHidden();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    // "0/10": recién arrancada (0 respondidas), 10 preguntas totales -- exactamente los ids de
+    // la tanda que acaba de llegar, sin relleno (empezarPartida({ids, etiqueta})).
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
+  test('doble click en Generar no manda dos POST /generar (Ronda 1 de revisión, Critical)', async ({ page }) => {
+    const contadores = {};
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso({ contadores }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+
+    // Dos toques "a la vez" DE VERDAD: dos `.click()` nativos en el MISMO tick de JS. Dos
+    // `.click()` de Playwright no valdrían -- cada uno espera a que el botón esté "enabled" antes
+    // de tocarlo, así que el segundo se quedaría esperando a que se reactive y nunca reproduciría
+    // la carrera que existía antes de este arreglo (atomoGenerarEnVuelo, ver app.js).
+    await page.evaluate(() => {
+      const boton = document.querySelector('[data-test="atomo-generar"]');
+      boton.click();
+      boton.click();
+    });
+
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    expect(contadores.generar).toBe(1);
+  });
+
+  test('el trabajo desaparece (404 tras reiniciar el servidor): chip de fallo y el sondeo se detiene (Ronda 1 de revisión, Minor #8)', async ({
+    page,
+  }) => {
+    const contadores = {};
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      servidorAtomoFalso({ contadores, trabajoRespuesta: { status: 404, headers: CORS, body: '{}' } })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('No se pudo generar, prueba otra vez', { timeout: 8000 });
+
+    // El sondeo se detiene en cuanto consultarTrabajo devuelve null (404): un ciclo más (5s) no
+    // debe sumar ninguna llamada más a /trabajo/:id.
+    const llamadasTrasElFallo = contadores.trabajo;
+    await page.waitForTimeout(6000);
+    expect(contadores.trabajo).toBe(llamadasTrasElFallo);
+  });
+
+  test('trabajo "parcial" terminal (hechas>=pedidas, contrato real del servidor) con 3 preguntas: chip "Tanda lista: 3", sondeo detenido y Generar disponible otra vez (Ronda final, Critical #1)', async ({
+    page,
+  }) => {
+    const contadores = {};
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      servidorAtomoFalso({
+        contadores,
+        trabajoRespuesta: {
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            estado: 'parcial',
+            hechas: 3,
+            pedidas: 3,
+            preguntas: Array.from({ length: 3 }, (_, i) => preguntaServidor(`srv-parcial-${i + 1}`)),
+            motivo: 'el verificador rechazó el resto del lote',
+          }),
+        },
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Generar a anillo 1 (sin elegir subtema): corto = nombre del área ("Economía").
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const chip = page.locator('[data-test="tanda-lista"]');
+    await expect(chip).toHaveText('Tanda lista: 3 de Economía', { timeout: 5000 });
+
+    // Sondeo detenido de verdad: un ciclo más (>5s) no debe sumar ninguna llamada más.
+    const llamadasTrasChip = contadores.trabajo;
+    await page.waitForTimeout(6000);
+    expect(contadores.trabajo).toBe(llamadasTrasChip);
+
+    // Generar vuelve a estar disponible (finalizarTrabajoAtomo se llamó al llegar a terminal).
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
+  });
+
+  test('quedarse en la tarjeta de espera hasta "lista": reacciona sola y "Jugar la tanda" abre la partida (Ronda final, Critical #2)', async ({
+    page,
+  }) => {
+    let sondeos = 0;
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          const subtemas = [
+            { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+            { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+            { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+            { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+          ];
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify({ subtemas }) });
+          return;
+        }
+        if (url.pathname === '/generar') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ trabajoId: 'espera-b', estimadoSeg: 15 }),
+          });
+          return;
+        }
+        if (url.pathname.startsWith('/trabajo/')) {
+          sondeos += 1;
+          if (sondeos === 1) {
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              headers: CORS,
+              body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+            });
+            return;
+          }
+          const preguntas = Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-espera-b-${i + 1}`));
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'lista', hechas: 10, pedidas: 10, preguntas, motivo: null }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toContainText('Generando 10 preguntas');
+
+    // Sin tocar nada: el segundo sondeo (a los 5s) resuelve "lista" y la tarjeta reacciona sola.
+    const resultado = page.locator('[data-test="atomo-espera-resultado"]');
+    await expect(resultado).toBeVisible({ timeout: 8000 });
+    await expect(resultado).toHaveText('Jugar la tanda');
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toHaveText('Tanda lista: 10 preguntas de Economía');
+    await expect(page.locator('[data-test="atomo-espera-acciones"]')).toBeHidden();
+
+    await resultado.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+  });
+
+  test('visibilitychange oculto/visible: el sondeo se pausa y se reanuda con una consulta inmediata (Ronda final, Critical #3)', async ({
+    page,
+  }) => {
+    let llamadasTrabajo = 0;
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route, req) => {
+        const url = new URL(req.url());
+        if (url.pathname === '/estado') {
+          await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+          return;
+        }
+        if (url.pathname === '/subtemas') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({
+              subtemas: [
+                { indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' },
+                { indice: 1, corto: 'Política monetaria', completo: 'Política monetaria y bancos centrales' },
+                { indice: 2, corto: 'Comercio internacional', completo: 'Comercio internacional y aranceles' },
+                { indice: 3, corto: 'Desigualdad', completo: 'Desigualdad económica' },
+              ],
+            }),
+          });
+          return;
+        }
+        if (url.pathname === '/generar') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ trabajoId: 'visib-c', estimadoSeg: 30 }),
+          });
+          return;
+        }
+        if (url.pathname.startsWith('/trabajo/')) {
+          llamadasTrabajo += 1;
+          // Nunca terminal en este test: lo único que importa es CUÁNDO se llama, no el resultado.
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            headers: CORS,
+            body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null }),
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    // Minor #11: sondeo inmediato al arrancar, sin esperar los 5s.
+    await expect.poll(() => llamadasTrabajo, { timeout: 3000 }).toBeGreaterThanOrEqual(1);
+
+    // Oculta la pestaña: el sondeo debe pausarse.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    const llamadasAlOcultar = llamadasTrabajo;
+    await page.waitForTimeout(6000); // más de un ciclo de 5s: si no se hubiera pausado, subiría.
+    expect(llamadasTrabajo).toBe(llamadasAlOcultar);
+
+    // Vuelve a ser visible: consulta inmediata (no esperar otros 5s) y reanuda el intervalo de 5s.
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect.poll(() => llamadasTrabajo, { timeout: 2000 }).toBeGreaterThan(llamadasAlOcultar);
+  });
+
+  test('el service worker no guarda en Cache Storage ninguna clave con "token=" en la URL (Ronda final, Critical #4)', async ({
+    page,
+  }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    // Con el SW ya activo y controlando (self.clients.claim() en sw.js#activate), la SIGUIENTE
+    // navegación al enlace especial de configuración sí pasa por su fetch handler -- la primera
+    // petición de navegación de esta misma prueba (arriba) no pudo pasar por él: el SW todavía no
+    // existía en el momento en que el navegador la pidió (se registra desde dentro de app.js).
+    await page.evaluate(() => navigator.serviceWorker.ready);
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const clavesConToken = await page.evaluate(async () => {
+      const nombres = await caches.keys();
+      const encontradas = [];
+      for (const nombre of nombres) {
+        // eslint-disable-next-line no-await-in-loop -- unas pocas cachés como mucho, orden no importa.
+        const cache = await caches.open(nombre);
+        // eslint-disable-next-line no-await-in-loop
+        const peticiones = await cache.keys();
+        encontradas.push(...peticiones.map((r) => r.url).filter((url) => url.includes('token=')));
+      }
+      return encontradas;
+    });
+    expect(clavesConToken).toEqual([]);
+  });
+});

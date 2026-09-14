@@ -1768,11 +1768,66 @@ main#app {
   opacity: 0.5;
 }
 
+/* Chip "N preguntas nuevas" (v0.2b2 §4, banco extendido): mismo lenguaje visual que
+   .hub-destacado (tocable, 44px de alto) pero con acento cian para distinguirlo de Misión/
+   Pendientes/Repaso -- es una notificación, no un modo de partida. */
+.hub-chip-nuevas {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  margin: 0 0 4px;
+  padding: 6px 12px;
+  border: 1px solid var(--acento);
+  border-radius: 10px;
+  background: rgba(76, 201, 240, 0.12);
+  color: var(--acento);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Mismo motivo que .vista[hidden]/.confianza-fila[hidden] más abajo en esta hoja: con
+   `display:block` ya declarado arriba, el `[hidden]` por defecto del navegador (que solo aplica
+   como estilo de user-agent, de menor prioridad que cualquier regla de autor) deja de bastar --
+   sin este override, tocar el chip lo pondría `hidden` mientras sigue pintándose en pantalla. */
+.hub-chip-nuevas[hidden] {
+  display: none;
+}
+
+.hub-comenzar-fila {
+  position: relative;
+}
+
 .boton-comenzar {
   width: 100%;
   min-height: 56px;
   padding: 14px;
   font-size: var(--tam-2);
+}
+
+/* Punto de estado del servidor de generación, en la esquina del botón Comenzar (v0.2b2 §4).
+   Gris por defecto (sin servidor o sincronización aún no confirmada esta sesión); el color final
+   lo decide `data-estado` (ver actualizarPuntoServidor en app.js), nunca una clase aparte, para
+   que una sola línea de JS baste. Ámbar (no hay token de --ko de sobra: rojo es "fallo", no el
+   matiz de "reintentará solo" que pide la spec) es un valor local, no una variable global -- solo
+   se usa aquí. */
+.punto-servidor {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--texto-suave);
+  border: 2px solid var(--fondo);
+}
+
+.punto-servidor[data-estado='verde'] {
+  background: var(--ok);
+}
+
+.punto-servidor[data-estado='ambar'] {
+  background: #f5a623;
 }
 
 /* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas
@@ -1784,6 +1839,7 @@ main#app {
 }
 
 .tarjeta-area {
+  position: relative; /* ancla el botón "⚛" (v0.2b2 §4), ver .tarjeta-area-atomo */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1796,6 +1852,15 @@ main#app {
   color: var(--texto);
   text-align: left;
   transition: transform 0.12s ease;
+  /* Adversarial A3: en iOS, mantener pulsada la tarjeta el medio segundo del gesto de pulsación
+     larga (app.js#renderHub) puede disparar el callout nativo (copiar/compartir) o seleccionar
+     texto antes de que le dé tiempo a abrir el Átomo -- explícito aquí encima de lo que ya cubren
+     las reglas genéricas de `body`/`button` (redundante a propósito, para que esta tarjeta nunca
+     dependa de que esas reglas de arriba no cambien). */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .tarjeta-area:active {
@@ -1854,6 +1919,44 @@ main#app {
   background: var(--acento);
 }
 
+/* Botón "⚛" (v0.2b2 §4): abre el Átomo del área, alternativa descubrible a mantener pulsada la
+   tarjeta. El glyph visible es pequeño a propósito (24px) para no tapar el resto de una tarjeta ya
+   muy compacta (4 columnas a 375px) -- pero el ::before amplía el área de TOQUE real a >= 44px
+   (un pseudo-elemento cuenta como parte de la caja de su elemento a efectos de clic/puntero, así
+   que el listener sigue en el span real). Asomado por fuera de la esquina superior derecha de la
+   tarjeta (como una insignia de notificación), lejos del texto "S · R" de abajo. */
+.tarjeta-area-atomo {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 50%;
+  background: var(--tarjeta);
+  border: 1.5px solid var(--acento);
+  color: var(--acento);
+}
+
+.tarjeta-area-atomo::before {
+  content: '';
+  position: absolute;
+  inset: -10px; /* 24px + 10px*2 = 44px de toque real */
+}
+
+/* Ronda 1 de revisión (Minor #6): mismo anillo de foco que button:focus-visible (arriba), pero
+   `.tarjeta-area-atomo` es un <span role="button"> (no un <button>, ver comentario de renderHub en
+   app.js sobre por qué), así que no lo hereda de la regla genérica. */
+.tarjeta-area-atomo:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
 /* "S N · R M": sólidas (caja >= 3) y recientes (respondidas hoy o ayer). */
 .tarjeta-area-solido {
   color: var(--texto-suave);
@@ -1869,6 +1972,244 @@ main#app {
   font-size: 13px;
 }
 
+/* Chip "Tanda lista"/"No se pudo generar" del Átomo (v0.2b2 §4): mismo lenguaje visual que
+   .hub-chip-nuevas (se declara con las dos clases en index.html), justo debajo si los dos chips
+   coincidieran visibles a la vez. */
+.hub-chip-tanda {
+  margin-top: -2px;
+}
+
+/* Botones con `disabled` (Generar/Atrás del Átomo, v0.2b2 §4): no había ninguna regla genérica
+   para `.boton:disabled` todavía -- mismo criterio (opacity 0.4) que ya usan
+   .tarjeta-area:disabled/.repaso-chip:disabled en esta misma hoja. */
+.boton:disabled {
+  opacity: 0.4;
+}
+
+/* ============================================================================================
+   --- Átomo (spec v0.2b2 §4): elegir un subtema sin teclado, SVG con núcleo + nodos en órbita ---
+   ============================================================================================ */
+
+.vista-atomo {
+  gap: 10px;
+}
+
+/* Absorbe el espacio libre entre la cabecera fija y los botones de abajo. Ronda final de revisión
+   (Disposición): `justify-content: flex-start` en vez de `center` -- el lienzo sube y se queda
+   pegado a la cabecera; el hueco libre que deja debajo ya no está vacío (lo llenan
+   .atomo-ruta-completa y .atomo-ayuda, ver más abajo), así que no hace falta seguir centrando el
+   conjunto para "rellenar" visualmente. */
+.atomo-cuerpo {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* Ronda final de revisión (Important #6): `.punto-servidor` es `position: absolute` -- sin un
+   ancestro `position: relative` de por medio, se pintaba respecto a `body` (fuera de pantalla en
+   vez de dentro de esta cabecera). */
+.atomo-cabecera {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Cabecera de una sola línea (decisión #8 del controlador): la ruta larga se recorta con
+   ellipsis en vez de envolver y empujar el lienzo hacia abajo. */
+.atomo-ruta {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ronda final de revisión (Disposición): la ruta completa y legible en el hueco que deja el
+   lienzo al subir -- hasta 2 líneas (line-clamp, mismo patrón que .enunciado/.explicacion en el
+   mazo), sin ellipsis de una sola línea como la de la cabecera. */
+.atomo-ruta-completa {
+  width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--texto);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.atomo-ayuda {
+  width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 12.5px;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* Ronda 1 de revisión (Important #4, "aprovechar la pantalla"): ancho completo del cuerpo con
+   aspect-ratio 1:1, tope en min(100%, 62vh, 460px) -- en los dos viewports que se prueban
+   (375x812, 393x852) el ancho disponible (~340-360px) manda de sobra por debajo del tope, así que
+   el cuadrado sale de ese ancho sin deformarse; el tope solo protege pantallas mucho más anchas
+   que altas. Nunca hace scroll a 375x812 ni a 393x852 (ver tests/e2e.spec.js). */
+.atomo-lienzo {
+  width: 100%;
+  max-height: min(100%, 62vh, 460px);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+.atomo-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.atomo-nucleo-circulo {
+  fill: var(--tarjeta);
+  stroke: var(--acento);
+  stroke-width: 2;
+}
+
+.atomo-nucleo-texto {
+  fill: var(--texto);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.atomo-nucleo {
+  cursor: pointer;
+}
+
+.atomo-nodo-circulo {
+  fill: var(--tarjeta);
+  stroke: var(--acento);
+  stroke-width: 1.5;
+}
+
+.atomo-nodo-texto {
+  fill: var(--texto);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Órbita lenta (decisión #5: 60s/vuelta) con contra-rotación por nodo para que el texto quede
+   recto. `transform-box: view-box` ancla la rotación del grupo entero al centro del viewBox
+   (160,160), no a su caja variable; `fill-box` en cada nodo ancla su contra-rotación al centro
+   LOCAL de ese nodo (su propio círculo, ya trasladado a su posición en la órbita). La regla
+   general de "reducir movimiento" al final de esta hoja ya neutraliza cualquier animación
+   (`animation-duration: 0.001ms !important`); estas dos de aquí lo dejan explícito además. */
+.atomo-orbita {
+  transform-box: view-box;
+  transform-origin: 160px 160px;
+  animation: atomo-girar 60s linear infinite;
+}
+
+/* Ronda 1 de revisión (Important #3): con la etiqueta bajo el círculo (no dentro), la caja de
+   contenido de este grupo (círculo + texto) deja de ser simétrica respecto a su centro real -- un
+   `transform-origin: center` con `fill-box` (que centra sobre esa caja asimétrica) haría que el
+   nodo "cabecee" en vez de quedarse quieto mientras contra-rota. `view-box` + `0px 0px` ancla el
+   giro al origen LOCAL de este grupo, que es exactamente el centro del nodo (su padre `.atomo-nodo`
+   ya lo trasladó ahí con `translate(x,y)`), sin depender de qué haya dentro. */
+.atomo-nodo-contra {
+  cursor: pointer;
+  transform-box: view-box;
+  transform-origin: 0px 0px;
+  animation: atomo-girar-inverso 60s linear infinite;
+}
+
+/* Ronda 1 de revisión (Minor #6): mismo anillo de foco que button:focus-visible (arriba), pero
+   estos son <g role="button"> dentro de un SVG, no <button>, así que no lo heredan. */
+.atomo-nucleo:focus-visible,
+.atomo-nodo-contra:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+@keyframes atomo-girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes atomo-girar-inverso {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+.atomo-aviso {
+  margin: 0;
+  font-size: 13px;
+  color: var(--texto-suave);
+  text-align: center;
+}
+
+.atomo-reintentar {
+  align-self: center;
+}
+
+/* Botones fijos abajo (decisión #5): sigue a .atomo-cuerpo (flex:1), así que quedan pegados al
+   fondo real de la vista sin importar cuánto (o poco) espacio ocupe el lienzo. */
+.atomo-acciones {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+}
+
+.atomo-acciones .boton {
+  flex: 1;
+}
+
+/* Espera tras pulsar Generar (v0.2b2 §4): tarjeta a pantalla completa y centrada -- el sondeo de
+   /trabajo/:id sigue en segundo plano aunque el jugador se vaya a "Jugar mientras"/"Repasar
+   mientras" (ver app.js#iniciarSondeoAtomo, que no depende de qué vista esté abierta). */
+.vista-atomo-espera {
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.atomo-espera-texto {
+  margin: 0;
+  font-size: var(--tam-2);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.atomo-espera-acciones {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Mismo motivo que .vista[hidden]/.hub-chip-nuevas[hidden] en esta misma hoja: con `display:flex`
+   ya declarado arriba, el `[hidden]` por defecto del navegador (menor prioridad que cualquier
+   regla de autor) deja de bastar por sí solo -- sin este override, ocultar esta fila al llegar el
+   resultado final (Ronda final, Critical #2) la dejaría pintada igual pese al atributo `hidden`. */
+.atomo-espera-acciones[hidden] {
+  display: none;
+}
+
+/* Botón único del resultado final (Ronda final, Critical #2): mismo ancho que los dos de arriba,
+   por si el jugador vuelve a esta vista después de que el trabajo ya haya terminado. */
+.atomo-espera-resultado {
+  width: 100%;
+}
+
 /* --- accesibilidad de movimiento ---
    Con "reducir movimiento" activo: sin fondo animado, sin pulso/sacudida de la
    tarjeta, y ninguna transición/animación del resto de la app (barra de
@@ -1877,6 +2218,7 @@ main#app {
 @media (prefers-reduced-motion: reduce) {
   .fondo-luz { animation: none; }
   .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
+  .atomo-orbita, .atomo-nodo-contra { animation: none; } /* órbita del Átomo, v0.2b2 §4 */
 
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

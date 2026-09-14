@@ -18,6 +18,18 @@ import {
 } from './motor.js';
 import { construirVisual } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
+import {
+  guardarConfiguracionDesdeUrl,
+  leerConfiguracion,
+  leerBancoExtra,
+  fusionarBancoExtra,
+  sincronizarEstado,
+  reportarAlServidor,
+  pedirSubtemas,
+  pedirTanda,
+  consultarTrabajo,
+} from './sincronizacion.js';
+import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -50,8 +62,21 @@ function guardarEstado(estado) {
 // La fecha se lee cada vez que hace falta: una partida puede cruzar la medianoche.
 function hoy() { return hoyLocal(); }
 let estado = cargarEstado(hoy());
+// `bancoLocal` (datos/banco.json, nunca cambia tras iniciar()) + `leerBancoExtra()` (servidor,
+// v0.2b2 §4). `banco` se reconstruye entera cada vez que el servidor trae preguntas nuevas
+// (reconstruirBanco) para que el repaso y la partida en curso (que leen la variable `banco` del
+// módulo en cada llamada, no una copia) las vean sin recargar la página.
+let bancoLocal = [];
+// Ids de bancoLocal (Ronda 1 de revisión, Important #2): se pasa a fusionarBancoExtra para que
+// una pregunta del servidor nunca pise silenciosamente a una del banco local por colisión de id
+// (en teoría no debería pasar -- los ids del servidor van siempre prefijados `srv-` -- pero es
+// una comprobación barata de más, ver sincronizacion.js#fusionarBancoExtra).
+let idsBancoLocal = new Set();
 let banco = [];
 let bancoPorId = new Map();
+// 'gris' (sin servidor / aún sin confirmar esta sesión) | 'verde' (sincronizado hoy) | 'ambar'
+// (hay servidor configurado pero el último intento falló) -- ver actualizarPuntoServidor.
+let estadoServidor = 'gris';
 // Imágenes de Wikimedia Commons por id de pregunta (Tarea 3b): se cargan junto
 // al banco en iniciar(); si falta el fichero o el fetch falla, queda vacío y
 // la app sigue igual (la imagen es una mejora, no un requisito de la tarjeta).
@@ -142,6 +167,35 @@ let filtroRepaso = cargarFiltroRepaso();
 // mismo filtro.
 let filtroPartida = null;
 
+// --- Átomo (spec v0.2b2 §4): estado de la ruta elegida, instancia del SVG, y el trabajo de
+// generación en curso (Generar -> espera -> chip "Tanda lista"). Todo module-level porque, a
+// diferencia del mazo, el sondeo del trabajo sigue corriendo aunque el jugador navegue a otra
+// vista (jugar/repasar "mientras" se genera) -- solo se detiene al llegar a un estado final o al
+// cerrar la app (pagehide).
+let atomoEstado = null; // {area, ruta, etiquetas} (atomo.js#crearEstadoAtomo); null = vista no abierta.
+let atomoInstancia = null; // devuelto por crearAtomo(): {actualizar, destruir}.
+let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas ya obsoletas.
+let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
+let atomoTrabajoInfo = null; // {corto} de la ruta que se pidió, para el texto de espera/chip.
+let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
+let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin chip que mostrar.
+// Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
+// -- `atomoTrabajoId` no sirve de guarda ahí porque solo se fija DESPUÉS del await, así que dos
+// toques rápidos alcanzaban a mandar dos POST /generar antes de que el primero volviera. Ver
+// actualizarBotonGenerarAtomo/manejarGenerarAtomo.
+let atomoGenerarEnVuelo = false;
+// Ronda final de revisión (Important #5): evita solapar dos consultarTrabajo a la vez (el
+// intervalo de 5s y un `visibilitychange` casi al mismo tiempo, por ejemplo).
+let atomoSondeoEnVuelo = false;
+// Ronda final de revisión (Critical #8): tope de sondeos por trabajo -- se resetea a 0 solo al
+// arrancar un trabajo NUEVO (manejarGenerarAtomo), nunca al pausar/reanudar (visibilitychange), o
+// un jugador que minimizara y volviera a abrir la app cada minuto alargaría el sondeo para siempre.
+let atomoConsultas = 0;
+// Ronda final de revisión (Critical #2): qué hace el botón único de la tarjeta de espera una vez
+// resuelto el trabajo -- {tipo:'jugar', ids, corto} o {tipo:'volver'}; null mientras se sigue
+// generando (esperaAtomo muestra los dos botones de siempre, no este).
+let atomoEsperaResultado = null;
+
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
@@ -165,6 +219,22 @@ const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
 const nodoMision = document.querySelector('[data-test="mision"]');
 const nodoPendientes = document.querySelector('[data-test="pendientes"]');
 const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
+// Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
+const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
+const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
+const nodoTandaLista = document.querySelector('[data-test="tanda-lista"]');
+// Átomo (v0.2b2 §4).
+const nodoAtomoRuta = document.querySelector('[data-test="atomo-ruta"]');
+const nodoAtomoEstadoServidor = document.querySelector('[data-test="atomo-estado-servidor"]');
+const nodoAtomoLienzo = document.querySelector('[data-test="atomo-lienzo"]');
+const nodoAtomoAviso = document.querySelector('[data-test="atomo-aviso"]');
+const nodoAtomoReintentar = document.querySelector('[data-test="atomo-reintentar"]');
+const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
+const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
+const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
+const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
+const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
+const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -357,6 +427,7 @@ function limpiarPartidaEnCurso() {
   }
   limpiarResumenMazo();
   limpiarRepasoMazo();
+  limpiarAtomo(); // el SVG y la ruta elegida, NO el trabajo/sondeo en curso si lo hubiera (spec §4).
   mazo = [];
   indiceMazo = 0;
   nodoCierre = null;
@@ -412,17 +483,454 @@ function mostrarAvisoHub(mensaje) {
   }, 1600);
 }
 
+// --- servidor de generación (v0.2b2 §4): banco extendido, punto de estado, chip de nuevas ---
+
+/** Reconstruye `banco`/`bancoPorId` a partir de `bancoLocal` (fijo) + `leerBancoExtra()`
+ * (localStorage, cambia cuando el servidor trae preguntas nuevas). Se llama al arrancar y cada
+ * vez que `fusionarBancoExtra` añade algo: como `ordenarRepaso`/`listarNoRespondidas`/
+ * `siguientePregunta` reciben `banco` en cada llamada (no una copia guardada), lo ven sin recargar. */
+function reconstruirBanco() {
+  banco = [...bancoLocal, ...leerBancoExtra()];
+  bancoPorId = new Map(banco.map((p) => [p.id, p]));
+}
+
+const ETIQUETA_ESTADO_SERVIDOR = {
+  gris: 'Sin servidor configurado',
+  verde: 'Servidor sincronizado hoy',
+  ambar: 'Servidor configurado, el último intento falló',
+};
+
+/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También
+ * el mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador):
+ * mismo estado, mismo criterio de color, dos sitios donde se ve. */
+function actualizarPuntoServidor() {
+  nodoEstadoServidor.dataset.estado = estadoServidor;
+  nodoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+  nodoAtomoEstadoServidor.dataset.estado = estadoServidor;
+  nodoAtomoEstadoServidor.setAttribute('aria-label', ETIQUETA_ESTADO_SERVIDOR[estadoServidor]);
+}
+
+/** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
+ * `fusionarBancoExtra` y se oculta solo al tocarlo (ver el listener más abajo, junto al resto de
+ * eventos de navegación) -- no hace falta ninguna otra acción, las preguntas ya están mezcladas
+ * en `banco`. */
+function mostrarChipNuevas(anadidas) {
+  nodoNuevasServidor.textContent = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+  nodoNuevasServidor.hidden = false;
+}
+
+/** "Modo normal" (spec v0.2 §4): al abrir y al terminar cada partida, en segundo plano (nunca
+ * bloquea la UI ni lanza). Sin configuración guardada, `sincronizarEstado` no hace ninguna
+ * petición y el punto se queda gris. Con configuración: verde si respondió algo válido, ámbar si
+ * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos. */
+async function sincronizarEnSegundoPlano() {
+  if (!leerConfiguracion()) {
+    estadoServidor = 'gris';
+    actualizarPuntoServidor();
+    return;
+  }
+  const resultado = await sincronizarEstado({ estado, banco, hoy: hoy(), fetchImpl: fetch });
+  estadoServidor = resultado ? 'verde' : 'ambar';
+  actualizarPuntoServidor();
+  if (resultado && resultado.preguntas.length > 0) {
+    const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
+    if (anadidas > 0) {
+      reconstruirBanco();
+      mostrarChipNuevas(anadidas);
+    }
+  }
+}
+
+// --- Átomo (spec v0.2b2 §4): elegir un subtema sin teclado, pedir una tanda nueva y esperar
+// jugando o repasando mientras se genera ---
+
+const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
+
+/** Guarda la ruta pedida al pulsar Generar en `localStorage` (clave `one.rutasAtomo`), con la
+ * fecha de hoy -- es lo que `sincronizacion.js#leerRutasAtomoRecientes` lee (últimos 7 días) para
+ * mandarlo en el próximo `POST /estado` y que el servidor reparta parte de su colchón nocturno a
+ * estas rutas (spec §3.1/§3.3). Esa función lectora no está exportada (Tarea 1 solo expuso el
+ * lector; la escritura es de esta tarea) -- incluso así, esto NO toca sincronizacion.js: escribe
+ * en la misma clave y con la misma forma que ese lector ya espera. Dedupe por [área, ruta, fecha]
+ * para no acumular la misma entrada cada vez que se pulsa Generar dos veces seguidas en la misma
+ * ruta el mismo día. */
+function guardarRutaAtomo(area, ruta) {
+  let guardadas = [];
+  try {
+    const crudo = localStorage.getItem(CLAVE_RUTAS_ATOMO);
+    const datos = crudo ? JSON.parse(crudo) : [];
+    if (Array.isArray(datos)) guardadas = datos;
+  } catch {
+    guardadas = [];
+  }
+  const fecha = hoy();
+  const yaEsta = guardadas.some(
+    (r) => r && r.area === area && r.fecha === fecha && JSON.stringify(r.ruta) === JSON.stringify(ruta)
+  );
+  if (!yaEsta) guardadas.push({ area, ruta, fecha });
+  try {
+    localStorage.setItem(CLAVE_RUTAS_ATOMO, JSON.stringify(guardadas));
+  } catch {
+    // localStorage llena o no disponible: mismo criterio que guardarEstado, se sigue en memoria
+    // esta sesión sin más.
+  }
+}
+
+/** Texto del núcleo: el último subtema elegido (corto), o el nombre del área en el anillo 1. */
+function nucleoAtomoTexto() {
+  const etiquetas = atomoEstado.etiquetas;
+  return etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(atomoEstado.area);
+}
+
+/** Migaja de pan de la cabecera ("Economía › Mercados y crisis › ...", una línea con ellipsis) y
+ * su gemela legible de la Ronda final (Disposición: "en el hueco inferior, la ruta completa
+ * legible, 2 líneas máx.") -- mismo texto en los dos sitios, la diferencia es solo de estilos.css. */
+function actualizarCabeceraAtomo() {
+  const texto = [nombreArea(atomoEstado.area), ...atomoEstado.etiquetas].join(' › ');
+  nodoAtomoRuta.textContent = texto;
+  nodoAtomoRutaCompleta.textContent = texto;
+}
+
+/** Generar apagado sin servidor, mientras la petición de `pedirTanda` está en vuelo (Ronda 1 de
+ * revisión, Critical: guarda contra doble click), o mientras ya hay un trabajo en curso (spec:
+ * "un solo trabajo activo a la vez") -- el texto del botón dice por qué en ese último caso.
+ * Centralizado aquí (nunca se toca `nodoAtomoGenerar.disabled` a mano en otro sitio) para que
+ * cualquier llamada, venga de donde venga, deje el botón en el estado correcto para ESE instante. */
+function actualizarBotonGenerarAtomo() {
+  if (!leerConfiguracion()) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Generar';
+    return;
+  }
+  if (atomoGenerarEnVuelo) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Generar';
+    return;
+  }
+  if (atomoTrabajoId) {
+    nodoAtomoGenerar.disabled = true;
+    nodoAtomoGenerar.textContent = 'Ya hay una tanda en marcha';
+    return;
+  }
+  nodoAtomoGenerar.disabled = false;
+  nodoAtomoGenerar.textContent = 'Generar';
+}
+
+function mostrarAvisoAtomo(texto, { reintentar = false } = {}) {
+  nodoAtomoAviso.textContent = texto;
+  nodoAtomoAviso.hidden = false;
+  nodoAtomoReintentar.hidden = !reintentar;
+}
+
+function ocultarAvisoAtomo() {
+  nodoAtomoAviso.hidden = true;
+  nodoAtomoReintentar.hidden = true;
+}
+
+/** Pide el anillo correspondiente a `atomoEstado.ruta` y lo pinta. Decisión #1 del controlador:
+ * sin servidor configurado, núcleo solo (sin nodos) con el aviso de conectar servidor y Generar
+ * apagado; con servidor pero `pedirSubtemas` devolviendo null, aviso de fallo + "Reintentar" --
+ * Generar sigue disponible en ese caso (no depende del anillo actual, solo de la ruta YA
+ * confirmada). `atomoPeticionId` descarta una respuesta tardía si el jugador ya avanzó/retrocedió
+ * antes de que esta llegara (evita que un anillo viejo pise al nuevo). */
+async function cargarAnilloAtomo() {
+  if (!atomoEstado) return; // adversarial A7: la vista pudo cerrarse justo antes de esta llamada.
+  actualizarCabeceraAtomo();
+  actualizarBotonGenerarAtomo();
+  nodoAtomoAtras.disabled = atomoEstado.ruta.length === 0;
+
+  const configuracion = leerConfiguracion();
+  if (!configuracion) {
+    atomoInstancia.actualizar([], nucleoAtomoTexto());
+    mostrarAvisoAtomo('Conecta el servidor para generar preguntas nuevas');
+    return;
+  }
+  ocultarAvisoAtomo();
+
+  const idPeticion = (atomoPeticionId += 1);
+  const subtemas = await pedirSubtemas({ area: atomoEstado.area, ruta: atomoEstado.ruta, fetchImpl: fetch });
+  if (idPeticion !== atomoPeticionId || !atomoEstado) return; // ya no es la petición vigente
+
+  if (subtemas === null) {
+    atomoInstancia.actualizar([], nucleoAtomoTexto());
+    mostrarAvisoAtomo('No se pudieron cargar los subtemas', { reintentar: true });
+    return;
+  }
+  atomoInstancia.actualizar(subtemas, nucleoAtomoTexto());
+}
+
+function manejarElegirSubtemaAtomo(subtema) {
+  const nuevoEstado = avanzar(atomoEstado, subtema);
+  if (nuevoEstado === atomoEstado) return; // ya en el máximo de 4 anillos (atomo.js#avanzar)
+  atomoEstado = nuevoEstado;
+  cargarAnilloAtomo();
+}
+
+function manejarAtomoAtras() {
+  const nuevoEstado = retroceder(atomoEstado);
+  if (nuevoEstado === atomoEstado) return; // ya en el anillo 1, nada que hacer
+  atomoEstado = nuevoEstado;
+  cargarAnilloAtomo();
+}
+
+/** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
+function abrirAtomo(area) {
+  atomoEstado = crearEstadoAtomo(area);
+  if (atomoInstancia) atomoInstancia.destruir();
+  atomoInstancia = crearAtomo({
+    contenedor: nodoAtomoLienzo,
+    area: nombreArea(area),
+    subtemas: [],
+    alElegir: manejarElegirSubtemaAtomo,
+    alVolver: manejarAtomoAtras,
+  });
+  mostrarVista('atomo');
+  cargarAnilloAtomo();
+}
+
+/** Desmonta el Átomo (SVG + estado de ruta), sin tocar el trabajo/sondeo en curso si lo hubiera
+ * -- ver limpiarPartidaEnCurso, que es quien la llama al salir hacia el HUB o los emojis. */
+function limpiarAtomo() {
+  if (atomoInstancia) {
+    atomoInstancia.destruir();
+    atomoInstancia = null;
+  }
+  atomoEstado = null;
+  ocultarAvisoAtomo(); // adversarial A7: barato, aunque la vista oculta ya lo impide visualmente.
+}
+
+const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sondeo.
+const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
+
+function detenerSondeoAtomo() {
+  if (atomoSondeoId !== null) {
+    clearInterval(atomoSondeoId);
+    atomoSondeoId = null;
+  }
+}
+
+function finalizarTrabajoAtomo() {
+  atomoTrabajoId = null;
+  atomoTrabajoInfo = null;
+  actualizarBotonGenerarAtomo();
+}
+
+/** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
+ * y para el fallo (`mensaje` por defecto "No se pudo generar, prueba otra vez", o uno propio --
+ * Ronda final Important #8, "el servidor tarda demasiado"); tocarlo lanza la partida en el primer
+ * caso y solo se cierra a sí mismo en el segundo (ver el listener del chip, más abajo junto al
+ * resto de eventos de navegación). */
+function mostrarChipTandaLista(ids, corto) {
+  atomoTandaLista = { ids, corto };
+  nodoTandaLista.textContent = `Tanda lista: ${ids.length} de ${corto}`;
+  nodoTandaLista.hidden = false;
+}
+
+function mostrarChipTandaFallida(mensaje = 'No se pudo generar, prueba otra vez') {
+  atomoTandaLista = null;
+  nodoTandaLista.textContent = mensaje;
+  nodoTandaLista.hidden = false;
+}
+
+/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo, línea ~300): 'lista' y 'fallida'
+ * son SIEMPRE terminales; 'parcial' lo es cuando `hechas >= pedidas` (al menos una aprobada, algún
+ * fallo por el camino) -- 'parcial' con `hechas < pedidas` solo puede darse en un trabajo de FONDO
+ * que cede el turno a uno urgente (servidor/cola.js, `debeCeder`), y el Átomo solo pide trabajos
+ * `urgente:true` (que nunca ceden, ver sincronizacion.js#pedirTanda), así que en la práctica CUALQUIER
+ * 'parcial' que este cliente observe ya es terminal -- `hechas >= pedidas` es el respaldo, no la
+ * única vía. 'en-cola'/'generando' son los dos únicos estados realmente en curso. */
+function trabajoAtomoTerminal(trabajo) {
+  return !['en-cola', 'generando'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
+}
+
+/** Fusiona `trabajo.preguntas` en el banco extendido y devuelve los ids que de verdad EXISTEN en
+ * el banco tras fusionar (`bancoPorId`) -- Ronda 1 de revisión (Important #2): fusionarBancoExtra
+ * puede descartar alguna (reportada, o ya en el banco) y `empezarPartida({ids})` con un id que no
+ * está en `bancoPorId` se queda esa tarjeta sin hueco. `[]` si `trabajo.preguntas` viene vacío. */
+function idsUtilizablesDeTanda(trabajo) {
+  if (!Array.isArray(trabajo.preguntas) || trabajo.preguntas.length === 0) return [];
+  fusionarBancoExtra(trabajo.preguntas, estado, idsBancoLocal);
+  reconstruirBanco();
+  return trabajo.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
+}
+
+/** Repinta la tarjeta de espera con el resultado FINAL (Ronda final, Critical #2) -- antes se
+ * quedaba en "Generando... ~42 s" para siempre aunque el trabajo ya hubiera terminado hace rato.
+ * Si el jugador ya se fue a "Jugar mientras"/"Repasar mientras" (o cualquier otra vista), no tiene
+ * sentido resucitar una pantalla que abandonó: el chip del HUB ya es la única señal que hace
+ * falta. `atomoEsperaResultado` se guarda de todas formas (por si vuelve a "atomo-espera" con el
+ * botón "←" antes de que la vista cambie de sitio) y es lo que lee el listener del botón único. */
+function actualizarEsperaAtomoConResultado({ ok, ids, corto, mensaje }) {
+  atomoEsperaResultado = ok ? { tipo: 'jugar', ids, corto } : { tipo: 'volver' };
+  if (vistaActual() !== 'atomo-espera') return;
+  nodoAtomoEsperaAcciones.hidden = true;
+  nodoAtomoEsperaResultado.hidden = false;
+  if (ok) {
+    nodoAtomoEsperaTexto.textContent = `Tanda lista: ${ids.length} preguntas de ${corto}`;
+    nodoAtomoEsperaResultado.textContent = 'Jugar la tanda';
+  } else {
+    nodoAtomoEsperaTexto.textContent = mensaje || 'No se pudo generar, prueba otra vez';
+    nodoAtomoEsperaResultado.textContent = 'Volver';
+  }
+}
+
+/**
+ * Sondeo del trabajo en curso (spec §4, cada 5s -- Minor #11: también una consulta inmediata al
+ * arrancar/reanudar, ver iniciarSondeoAtomo/reanudarSondeoAtomoSiHaceFalta).
+ *
+ * Ronda final de revisión -- Critical #1: antes solo 'lista'/'fallida' se trataban como terminales;
+ * un trabajo que terminaba en 'parcial' (contrato real del servidor, ver trabajoAtomoTerminal) dejaba
+ * el sondeo corriendo CADA 5 S PARA SIEMPRE, con Generar bloqueado ("Ya hay una tanda en marcha")
+ * sin que nada lo fuera a desbloquear.
+ *
+ * Ronda final -- Important #5: `idEnCurso` se captura ANTES del `await` y se comprueba DESPUÉS --
+ * si `atomoTrabajoId` cambió mientras la petición estaba en vuelo, esta respuesta ya no pinta nada.
+ * `atomoSondeoEnVuelo` evita que dos llamadas se solapen.
+ */
+async function sondearTrabajoAtomo() {
+  const idEnCurso = atomoTrabajoId;
+  if (!idEnCurso || atomoSondeoEnVuelo) return;
+
+  atomoSondeoEnVuelo = true;
+  let trabajo;
+  try {
+    trabajo = await consultarTrabajo(idEnCurso, { fetchImpl: fetch });
+  } finally {
+    atomoSondeoEnVuelo = false;
+  }
+  if (idEnCurso !== atomoTrabajoId) return; // carrera post-await: ya no es el trabajo vigente.
+
+  if (!trabajo) {
+    // 404 (trabajo perdido tras reiniciar el servidor) o cualquier otro fallo de red/servidor.
+    detenerSondeoAtomo();
+    finalizarTrabajoAtomo();
+    mostrarChipTandaFallida();
+    actualizarEsperaAtomoConResultado({ ok: false });
+    return;
+  }
+
+  if (!trabajoAtomoTerminal(trabajo)) {
+    // Chip ADELANTADO (sigue sondeando): solo con un colchón razonable de preguntas ya aprobadas,
+    // nunca con 1-2 (mejor esperar a que haya de verdad algo que ofrecer). No toca la tarjeta de
+    // espera -- esa solo reacciona al resultado FINAL (Critical #2).
+    if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= UMBRAL_ANTICIPADO_ATOMO) {
+      const ids = idsUtilizablesDeTanda(trabajo);
+      if (ids.length > 0) mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
+    }
+    atomoConsultas += 1;
+    if (atomoConsultas >= TOPE_SONDEOS_ATOMO) {
+      // Ronda final -- Important #8: un trabajo que nunca termina no debe dejar a Carlos
+      // esperando indefinidamente ni el sondeo corriendo para siempre.
+      const mensaje = 'El servidor tarda demasiado, prueba más tarde';
+      detenerSondeoAtomo();
+      finalizarTrabajoAtomo();
+      mostrarChipTandaFallida(mensaje);
+      actualizarEsperaAtomoConResultado({ ok: false, mensaje });
+    }
+    return;
+  }
+
+  // Terminal: 'lista' | 'fallida' | 'parcial' con hechas >= pedidas.
+  detenerSondeoAtomo();
+  const corto = atomoTrabajoInfo ? atomoTrabajoInfo.corto : '';
+  const ids = idsUtilizablesDeTanda(trabajo);
+  finalizarTrabajoAtomo();
+  if (ids.length > 0) {
+    mostrarChipTandaLista(ids, corto);
+    actualizarEsperaAtomoConResultado({ ok: true, ids, corto });
+  } else {
+    mostrarChipTandaFallida();
+    actualizarEsperaAtomoConResultado({ ok: false });
+  }
+}
+
+function iniciarSondeoAtomo() {
+  detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
+  sondearTrabajoAtomo(); // Minor #11: primer sondeo inmediato, no a ciegas 5s.
+  atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
+}
+
+/** Reanuda el sondeo tras pausarlo (pestaña oculta) o al restaurar la página (bfcache) -- Ronda
+ * final, Critical #3. No-op si no hay trabajo en curso, o si ya hay un intervalo corriendo (evita
+ * un doble `setInterval` si `visibilitychange` y `pageshow` se disparan casi a la vez). */
+function reanudarSondeoAtomoSiHaceFalta() {
+  if (atomoTrabajoId && atomoSondeoId === null) iniciarSondeoAtomo();
+}
+
+function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
+  atomoEsperaResultado = null;
+  nodoAtomoEsperaAcciones.hidden = false;
+  nodoAtomoEsperaResultado.hidden = true;
+  // Minor #9: `estimadoSeg` validado (entero > 0) -- si no, se omite el "~N s" en vez de mostrar
+  // "~undefined s"/"~NaN s".
+  const sufijoSeg = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? ` · ~${estimadoSeg} s` : '';
+  nodoAtomoEsperaTexto.textContent = `Generando 10 preguntas de ${rutaTexto}${sufijoSeg}`;
+  mostrarVista('atomo-espera');
+}
+
+/** Botón Generar (spec §4): pide la tanda con la ruta YA confirmada (no depende del anillo que se
+ * esté mirando ahora mismo) y pasa a la tarjeta de espera. Un solo trabajo activo a la vez: si ya
+ * hay uno, no hace nada (el botón ya debería estar apagado, ver actualizarBotonGenerarAtomo --
+ * esta comprobación es solo defensiva).
+ *
+ * Ronda 1 de revisión (Critical): `atomoGenerarEnVuelo` se pone a `true` y el botón se deshabilita
+ * de forma SÍNCRONA, ANTES del `await pedirTanda(...)` -- antes, `atomoTrabajoId` (la única guarda)
+ * no se fijaba hasta que la promesa resolvía, así que dos toques rápidos en Generar corrían la
+ * función dos veces con la guarda todavía en `null` las dos, y salían dos `POST /generar`. */
+async function manejarGenerarAtomo() {
+  if (atomoGenerarEnVuelo || atomoTrabajoId || !leerConfiguracion() || !atomoEstado) return;
+  const { area, ruta, etiquetas } = atomoEstado;
+  const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
+  const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
+  guardarRutaAtomo(area, ruta);
+
+  atomoGenerarEnVuelo = true;
+  actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
+  const resultado = await pedirTanda({ area, ruta, n: 10, fetchImpl: fetch });
+  atomoGenerarEnVuelo = false;
+
+  if (!resultado) {
+    mostrarAvisoAtomo('No se pudo generar, prueba otra vez');
+    actualizarBotonGenerarAtomo(); // reactiva Generar: sin trabajo en curso, puede volver a intentarlo.
+    return;
+  }
+  atomoTrabajoId = resultado.trabajoId;
+  atomoTrabajoInfo = { corto };
+  atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
+  actualizarBotonGenerarAtomo();
+  mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
+  iniciarSondeoAtomo();
+}
+
 // --- carga del banco y arranque ---
 async function iniciar() {
   const params = new URLSearchParams(location.search);
   const esEjemplo = params.get('ejemplo') === '1';
   const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
+  // Antes de nada: si el enlace trae `?servidor=&token=` (Carlos lo abre una vez desde el chat,
+  // spec v0.2b2 §4), guardarlo y limpiar la URL — silencioso, sin params no hace nada.
+  const seGuardoConfiguracion = guardarConfiguracionDesdeUrl(location);
+
   const respuesta = await fetch(rutaBanco);
-  banco = await respuesta.json();
-  bancoPorId = new Map(banco.map((p) => [p.id, p]));
+  bancoLocal = await respuesta.json();
+  idsBancoLocal = new Set(bancoLocal.map((p) => p.id));
+  reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
   actualizarCabecera();
-  mostrarVista('inicio');
+  actualizarPuntoServidor();
+
+  if (seGuardoConfiguracion) {
+    // Directo al HUB (no a los emojis): es donde vive el punto de estado y el aviso, y así se ve
+    // "Servidor conectado" al momento en vez de quedarse esperando en la pantalla de inicio.
+    renderHub();
+    mostrarVista('progreso');
+    mostrarAvisoHub('Servidor conectado');
+  } else {
+    mostrarVista('inicio');
+  }
+
+  // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
+  sincronizarEnSegundoPlano();
 }
 
 /** Carga `datos/imagenes.json` (o `.ejemplo.json` con `?ejemplo=1`, ruta
@@ -708,6 +1216,8 @@ function finalizarPartida() {
     guardarEstado(estado);
   }
   actualizarCabecera();
+  // "Modo normal" (spec v0.2b2 §4): también al terminar cada partida, en segundo plano.
+  sincronizarEnSegundoPlano();
 
   const totalPreguntas = respondidas.length;
   const aciertos = respondidas.filter((h) => h.correcta).length;
@@ -1769,6 +2279,12 @@ function manejarClicEstaMal(hueco) {
     guardarEstado(estado);
   }
   hueco.reportada = true;
+  // v0.2b2 §4: una pregunta del servidor se reporta también allí (fuego y olvido — ya queda
+  // anotada localmente arriba pase lo que pase; reportarAlServidor nunca lanza, ver
+  // sincronizacion.js). Sin configuración de servidor no hace ninguna petición.
+  if (hueco.pregunta.id.startsWith('srv-')) {
+    reportarAlServidor({ id: hueco.pregunta.id, fetchImpl: fetch });
+  }
   if (!hueco.nodo) return;
   const botonEstaMal = hueco.nodo.querySelector('[data-test="esta-mal"]');
   const reportadaTexto = hueco.nodo.querySelector('.reportada');
@@ -2425,13 +2941,80 @@ function renderHub() {
     solido.textContent = `S ${fila.solidas} · R ${fila.recientes}`;
 
     // Tocar la tarjeta entera arranca una partida SOLO de esa área (como un nivel
-    // de videojuego): nada de un botón "Practicar" aparte.
-    tarjeta.addEventListener('click', () => empezarPartida({ area: fila.area }));
+    // de videojuego); mantenerla pulsada, o el botón "⚛", abre el Átomo (v0.2b2 §4)
+    // para elegir un subtema y pedir una tanda nueva.
+    let idPulsacionLarga = null;
+    let origenPulsacion = null;
+    let pulsacionYaAbrioAtomo = false; // el click que sigue a una pulsación larga no lanza la partida.
+    const PULSACION_LARGA_MS = 500;
+    const MOVIMIENTO_MAX_PX = 10;
+
+    function cancelarPulsacionLarga() {
+      if (idPulsacionLarga !== null) {
+        clearTimeout(idPulsacionLarga);
+        idPulsacionLarga = null;
+      }
+      origenPulsacion = null;
+    }
+
+    tarjeta.addEventListener('pointerdown', (ev) => {
+      if (tarjeta.disabled) return;
+      origenPulsacion = { x: ev.clientX, y: ev.clientY };
+      idPulsacionLarga = setTimeout(() => {
+        idPulsacionLarga = null;
+        pulsacionYaAbrioAtomo = true;
+        abrirAtomo(fila.area);
+      }, PULSACION_LARGA_MS);
+    });
+    tarjeta.addEventListener('pointermove', (ev) => {
+      if (!origenPulsacion) return;
+      const dx = ev.clientX - origenPulsacion.x;
+      const dy = ev.clientY - origenPulsacion.y;
+      if (Math.hypot(dx, dy) > MOVIMIENTO_MAX_PX) cancelarPulsacionLarga();
+    });
+    tarjeta.addEventListener('pointerup', cancelarPulsacionLarga);
+    tarjeta.addEventListener('pointerleave', cancelarPulsacionLarga);
+    tarjeta.addEventListener('pointercancel', cancelarPulsacionLarga);
+    // Adversarial A3: en iOS, mantener pulsado un elemento dispara el callout nativo (copiar/
+    // compartir) y selecciona texto salvo que se lo digamos explícitamente -- eso mataría el
+    // gesto de pulsación larga a medio camino. `-webkit-touch-callout`/`user-select` ya lo cubren
+    // en estilos.css; `contextmenu` es el evento que dispara ESE callout, así que se descarta aquí
+    // también por si acaso (defensa en profundidad, no todos los navegadores respetan el CSS igual).
+    tarjeta.addEventListener('contextmenu', (ev) => ev.preventDefault());
+
+    tarjeta.addEventListener('click', () => {
+      if (pulsacionYaAbrioAtomo) {
+        pulsacionYaAbrioAtomo = false; // se descarta UNA sola vez, ver brief de la tarea.
+        return;
+      }
+      empezarPartida({ area: fila.area });
+    });
+
+    const botonAtomo = document.createElement('span');
+    botonAtomo.className = 'tarjeta-area-atomo';
+    botonAtomo.dataset.test = 'atomo-abrir';
+    botonAtomo.setAttribute('role', 'button');
+    botonAtomo.setAttribute('tabindex', '0');
+    botonAtomo.setAttribute('aria-label', `Elegir subtema de ${nombreArea(fila.area)}`);
+    botonAtomo.textContent = '⚛';
+    botonAtomo.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      abrirAtomo(fila.area);
+    });
+    botonAtomo.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        ev.stopPropagation();
+        abrirAtomo(fila.area);
+      }
+    });
+    botonAtomo.addEventListener('pointerdown', (ev) => ev.stopPropagation());
 
     tarjeta.appendChild(cabeceraTarjeta);
     tarjeta.appendChild(nombre);
     tarjeta.appendChild(track);
     tarjeta.appendChild(solido);
+    tarjeta.appendChild(botonAtomo);
     progresoAreas.appendChild(tarjeta);
   });
 }
@@ -2524,6 +3107,54 @@ function importarEstadoDesdeArchivo(archivo) {
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
 document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
+// Chip "N preguntas nuevas" (v0.2b2 §4): desaparece al tocarlo, sin más acción — las preguntas ya
+// están mezcladas en `banco` desde que llegaron (ver sincronizarEnSegundoPlano).
+nodoNuevasServidor.addEventListener('click', () => {
+  nodoNuevasServidor.hidden = true;
+});
+// Chip "Tanda lista"/"No se pudo generar" del Átomo (v0.2b2 §4): con tanda lista arranca la
+// partida con esas preguntas; con el aviso de fallo (atomoTandaLista null) solo se cierra.
+nodoTandaLista.addEventListener('click', () => {
+  nodoTandaLista.hidden = true;
+  if (!atomoTandaLista) return;
+  const { ids, corto } = atomoTandaLista;
+  atomoTandaLista = null;
+  empezarPartida({ ids, etiqueta: corto });
+});
+// Botones fijos del Átomo: Atrás (un anillo), Generar, y Reintentar del aviso de fallo al cargar
+// subtemas (ver cargarAnilloAtomo).
+nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
+nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
+nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
+// Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
+// depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
+document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
+document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
+// Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
+// "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).
+nodoAtomoEsperaResultado.addEventListener('click', () => {
+  if (!atomoEsperaResultado) return;
+  if (atomoEsperaResultado.tipo === 'jugar') {
+    empezarPartida({ ids: atomoEsperaResultado.ids, etiqueta: atomoEsperaResultado.corto });
+  } else {
+    irAlHub();
+  }
+});
+// Ronda final de revisión (Critical #3): el sondeo se detiene de verdad solo al cerrar la app de
+// verdad (`pagehide` sin bfcache -- `ev.persisted` true significa que el navegador puede
+// restaurarla más tarde con `pageshow`, y él mismo congela los timers mientras tanto, no hace
+// falta tocar nada). Al ocultar la pestaña (`visibilitychange`), se PAUSA (mismo mecanismo,
+// `atomoTrabajoId` no se toca) para no gastar red en segundo plano sin que Carlos esté mirando; al
+// volver a verla, o al restaurar desde bfcache, se reanuda con una consulta inmediata (Minor #11)
+// en vez de esperar a ciegas hasta el siguiente tick de 5s.
+window.addEventListener('pagehide', (ev) => {
+  if (!ev.persisted) detenerSondeoAtomo();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) detenerSondeoAtomo();
+  else reanudarSondeoAtomoSiHaceFalta();
+});
+window.addEventListener('pageshow', reanudarSondeoAtomoSiHaceFalta);
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
