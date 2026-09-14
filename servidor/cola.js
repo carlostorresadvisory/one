@@ -20,6 +20,8 @@ const PARTE_RUTAS = OBJETIVO_TOTAL_COLCHON - PARTE_AREAS; // 12 (40 %)
 const TERMINADOS_MAX = 100;
 const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
+const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
+const CERROJO_COLCHON = 'colchon.json';
 
 function mismaRuta(a = [], b = []) {
   if (a.length !== b.length) return false;
@@ -142,47 +144,73 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     };
   }
 
+  // Ronda 2 (revisión), punto 1 -- Critical: leer->modificar->escribir de colchon.json envuelto
+  // ENTERO en `almacen.conCerrojo('colchon.json', ...)`, igual que servir()/reportar() más abajo.
+  // Antes esto podía intercalarse con esos dos (o con otra llamada a guardarNuevasEnColchon si
+  // algún día hubiera más de un trabajador) y perder aprobadas por un "lost update" clásico.
   async function guardarNuevasEnColchon(nuevas) {
     if (nuevas.length === 0) return;
-    const colchon = await almacen.leerColchon();
-    await almacen.guardarColchon(purgarColchon(colchon.concat(nuevas)));
+    await almacen.conCerrojo(CERROJO_COLCHON, async () => {
+      const colchon = await almacen.leerColchon();
+      await almacen.guardarColchon(purgarColchon(colchon.concat(nuevas)));
+    });
   }
 
   // Ejecuta UN SOLO lote del trabajo (no el trabajo completo -- Ronda 1, ver más abajo). Deja
-  // `trabajo.hechas`/`trabajo.preguntas`/`trabajo.huboFallo` al día; NO toca `trabajo.estado`
-  // (eso lo decide procesarCola justo después, según si el trabajo cede el turno o no).
-  // - Un lote que falla (excepción de producirTanda) no aborta el trabajo: se cuenta como
-  //   "consumido" hacia `pedidas` (evita bucles infinitos) y marca `huboFallo`.
+  // `trabajo.hechas`/`trabajo.preguntas`/`trabajo.huboFallo`/`trabajo.motivo` al día; NO toca
+  // `trabajo.estado` (eso lo decide procesarCola justo después, según si el trabajo cede el turno
+  // o no).
+  //
+  // Ronda 2 (revisión), punto 2 -- Critical: el try/catch original solo cubría la llamada a
+  // `producirTanda`. Un fallo de disco (p.ej. EACCES) en `calcularEvitar` (lee colchon.json) o en
+  // `guardarNuevasEnColchon` (lee+escribe colchon.json) escapaba de esta función, de
+  // `procesarCola` y acababa en un `unhandledRejection` sin nadie que lo capturase -- podía tumbar
+  // el proceso entero. Ahora TODO el cuerpo del lote va dentro de un único try/catch: cualquier
+  // excepción (de `producirTanda` o de disco) se trata igual, marca `huboFallo` + `motivo` y el
+  // lote se cuenta como "consumido" hacia `pedidas` en el `finally` (evita bucles infinitos, y
+  // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
-    const evitar = await calcularEvitar(trabajo.area);
-
-    let resultado = null;
     try {
-      resultado = await producirTanda(
-        { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
-        { ...opciones, urgente: trabajo.urgente },
-      );
-    } catch {
-      trabajo.huboFallo = true;
-    }
+      const evitar = await calcularEvitar(trabajo.area);
 
-    if (resultado) {
-      if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
-      if (resultado.aprobadas && resultado.aprobadas.length > 0) {
-        const guardadas = resultado.aprobadas.map((p) => aColchon(p, trabajo));
-        trabajo.preguntas = trabajo.preguntas.concat(guardadas);
-        await guardarNuevasEnColchon(guardadas);
+      let resultado = null;
+      try {
+        resultado = await producirTanda(
+          { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
+          { ...opciones, urgente: trabajo.urgente },
+        );
+      } catch (err) {
+        trabajo.huboFallo = true;
+        trabajo.motivo = err?.message || 'producirTanda falló';
       }
-    }
 
-    // Sin más `await` de este lote a partir de aquí: `hechas` cambia en el mismo tramo síncrono
-    // en el que procesarCola decide el `estado` que sigue (ver más abajo). Antes `hechas` se
-    // actualizaba ANTES de guardar en disco y `estado` DESPUÉS del guardado -- un observador
-    // externo (estadoTrabajo) podía ver `hechas` ya al día pero `estado` todavía con el valor del
-    // lote anterior (condición de carrera real, encontrada ejecutando esta misma suite en bucle:
-    // ~1 de cada 10-15 ejecuciones fallaba justo ahí).
-    trabajo.hechas += tamanoLote;
+      if (resultado) {
+        if (resultado.fallos && resultado.fallos.length > 0) trabajo.huboFallo = true;
+        if (resultado.aprobadas && resultado.aprobadas.length > 0) {
+          const guardadas = resultado.aprobadas.map((p) => aColchon(p, trabajo));
+          // Solo se añaden a `trabajo.preguntas` (lo que ve estadoTrabajo) DESPUÉS de guardarlas
+          // de verdad: si `guardarNuevasEnColchon` lanza, no se cuentan como aprobadas -- el
+          // estado en memoria no debe adelantarse a lo que hay realmente en disco.
+          await guardarNuevasEnColchon(guardadas);
+          trabajo.preguntas = trabajo.preguntas.concat(guardadas);
+        }
+      }
+    } catch (err) {
+      // Cualquier fallo de disco (leer o guardar colchon.json) fuera de producirTanda: antes esto
+      // escapaba de ejecutarUnLote entero y, sin capturar, tumbaba al trabajador (ver arriba).
+      trabajo.huboFallo = true;
+      trabajo.motivo = err?.message || 'fallo de disco en este lote';
+    } finally {
+      // Sin más `await` de este lote a partir de aquí: `hechas` cambia en el mismo tramo síncrono
+      // en el que procesarCola decide el `estado` que sigue. Antes `hechas` se actualizaba ANTES
+      // de guardar en disco y `estado` DESPUÉS del guardado -- un observador externo
+      // (estadoTrabajo) podía ver `hechas` ya al día pero `estado` todavía con el valor del lote
+      // anterior (condición de carrera real de la ronda de estabilidad anterior). El `finally`
+      // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
+      // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
+      trabajo.hechas += tamanoLote;
+    }
   }
 
   function finalizarTrabajo(trabajo) {
@@ -214,8 +242,14 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
         siguiente.estado = 'generando';
       }
 
-      await ejecutarUnLote(siguiente);
-      activo = null;
+      // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
+      // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en
+      // profundidad, tal como pidió la revisión, por si un fallo futuro se cuela de todos modos.
+      try {
+        await ejecutarUnLote(siguiente);
+      } finally {
+        activo = null;
+      }
 
       if (siguiente.hechas >= siguiente.pedidas) {
         finalizarTrabajo(siguiente);
@@ -235,16 +269,33 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     }
   }
 
+  // Ronda 2 (revisión), punto 2: si, pese a todo, `procesarCola` llegara a rechazar (defensa en
+  // profundidad: hoy ejecutarUnLote ya no deja escapar nada), este `.catch` evita el
+  // `unhandledRejection` que antes podía tumbar el proceso -- se anota con `console.error` (nunca
+  // trazas de prompts/respuestas, solo el mensaje) y `procesando` se libera igual en el `finally`
+  // de debajo, así el trabajador queda listo para que el siguiente `encolar()` lo relance.
   function dispararProcesamiento() {
     if (procesando) return;
     procesando = true;
-    procesarCola().finally(() => {
-      procesando = false;
-    });
+    procesarCola()
+      .catch((err) => {
+        console.error(`servidor/cola: el trabajador se detuvo por un error inesperado: ${err?.message || err}`);
+      })
+      .finally(() => {
+        procesando = false;
+      });
   }
 
   function encolar({ area, ruta = [], n = PEDIDAS_DEFECTO, urgente = false } = {}) {
     if (!area) throw new Error('encolar: falta area');
+
+    // Ronda 2 (revisión), punto 3 (Minor): tope de 32 en `colaFondo` -- las nuevas peticiones de
+    // fondo se descartan (no se crean) si ya está llena. No afecta a los urgentes (un usuario
+    // esperando su tanda no debería toparse con este límite).
+    if (!urgente && colaFondo.length >= TOPE_COLA_FONDO) {
+      return null;
+    }
+
     const id = generarIdTrabajo(contadorId++);
     const trabajo = {
       id,
@@ -256,6 +307,7 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       estado: 'en-cola',
       preguntas: [],
       huboFallo: false,
+      motivo: null,
     };
     registro.set(id, trabajo);
     if (trabajo.urgente) colaUrgente.push(trabajo);
@@ -274,6 +326,7 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       hechas: trabajo.hechas,
       pedidas: trabajo.pedidas,
       preguntas: trabajo.preguntas,
+      motivo: trabajo.motivo,
     };
   }
 
@@ -351,46 +404,62 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   // candidatas = colchón no servido, no reportado, no conocido; orden: área con menor
   // aciertoReciente primero (sin datos en el resumen cuenta como 0.5), luego `creada` más antigua.
   // Marca `servida` con ISO y persiste (con purga, ver purgarColchon).
+  //
+  // Ronda 2 (revisión), punto 1 -- Critical: TODO el leer->elegir->marcar->escribir va dentro de
+  // `almacen.conCerrojo('colchon.json', ...)`, igual que guardarNuevasEnColchon. Antes, dos
+  // llamadas concurrentes a servir() (o una servir() y un guardado de lote) leían el mismo colchón
+  // "de antes", cada una elegía sus candidatas sin ver lo que la otra ya había marcado, y la
+  // escritura que ganaba la carrera se comía la de la otra -- podía servir la misma pregunta dos
+  // veces o perder aprobadas recién guardadas. Con el cerrojo, cada llamada ve siempre el colchón
+  // ya actualizado por la anterior.
   async function servir({ idsConocidos = [], resumen = {}, max = 10 } = {}) {
-    const colchon = await almacen.leerColchon();
-    const reportadas = await almacen.leerReportadas();
-    const conocidos = new Set(idsConocidos);
-    const reportadasSet = new Set(reportadas);
+    return almacen.conCerrojo(CERROJO_COLCHON, async () => {
+      const colchon = await almacen.leerColchon();
+      const reportadas = await almacen.leerReportadas();
+      const conocidos = new Set(idsConocidos);
+      const reportadasSet = new Set(reportadas);
 
-    const candidatas = colchon.filter(
-      (p) => !p.servida && !reportadasSet.has(p.id) && !conocidos.has(p.id),
-    );
+      const candidatas = colchon.filter(
+        (p) => !p.servida && !reportadasSet.has(p.id) && !conocidos.has(p.id),
+      );
 
-    const aciertoDeArea = (area) => {
-      const info = resumen?.areas?.[area];
-      if (!info || typeof info.aciertoReciente !== 'number') return 0.5;
-      return info.aciertoReciente;
-    };
+      const aciertoDeArea = (area) => {
+        const info = resumen?.areas?.[area];
+        if (!info || typeof info.aciertoReciente !== 'number') return 0.5;
+        return info.aciertoReciente;
+      };
 
-    candidatas.sort((a, b) => {
-      const diff = aciertoDeArea(a.area) - aciertoDeArea(b.area);
-      if (diff !== 0) return diff;
-      return new Date(a.creada).getTime() - new Date(b.creada).getTime();
+      candidatas.sort((a, b) => {
+        const diff = aciertoDeArea(a.area) - aciertoDeArea(b.area);
+        if (diff !== 0) return diff;
+        return new Date(a.creada).getTime() - new Date(b.creada).getTime();
+      });
+
+      const elegidas = candidatas.slice(0, Math.max(0, max));
+      if (elegidas.length > 0) {
+        const ahora = new Date().toISOString();
+        const idsElegidos = new Set(elegidas.map((p) => p.id));
+        const actualizado = colchon.map((p) => (idsElegidos.has(p.id) ? { ...p, servida: ahora } : p));
+        await almacen.guardarColchon(purgarColchon(actualizado));
+        for (const p of elegidas) p.servida = ahora;
+      }
+      return elegidas;
     });
-
-    const elegidas = candidatas.slice(0, Math.max(0, max));
-    if (elegidas.length > 0) {
-      const ahora = new Date().toISOString();
-      const idsElegidos = new Set(elegidas.map((p) => p.id));
-      const actualizado = colchon.map((p) => (idsElegidos.has(p.id) ? { ...p, servida: ahora } : p));
-      await almacen.guardarColchon(purgarColchon(actualizado));
-      for (const p of elegidas) p.servida = ahora;
-    }
-    return elegidas;
   }
 
+  // Ronda 2 (revisión), punto 1: el borrado de colchon.json también va dentro del mismo cerrojo
+  // ("reportada que revive" era exactamente este caso -- un servir() concurrente podía
+  // reescribir el colchón entero justo después de que reportar() leyera pero antes de que
+  // escribiera, resucitando la pregunta que se acababa de quitar).
   async function reportar(id) {
     await almacen.anadirReportada(id);
-    const colchon = await almacen.leerColchon();
-    const actualizado = colchon.filter((p) => p.id !== id);
-    if (actualizado.length !== colchon.length) {
-      await almacen.guardarColchon(actualizado);
-    }
+    await almacen.conCerrojo(CERROJO_COLCHON, async () => {
+      const colchon = await almacen.leerColchon();
+      const actualizado = colchon.filter((p) => p.id !== id);
+      if (actualizado.length !== colchon.length) {
+        await almacen.guardarColchon(actualizado);
+      }
+    });
     return { ok: true };
   }
 

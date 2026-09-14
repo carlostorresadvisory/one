@@ -19,7 +19,10 @@ async function carpetaTmp() {
 // `await Promise.resolve()` no basta para dejar que una lectura/escritura real de fichero termine.
 async function hastaQue(condicion, { intentos = 400, esperaMs = 5 } = {}) {
   for (let i = 0; i < intentos; i++) {
-    if (condicion()) return;
+    // `await` sobre un valor síncrono lo deja pasar tal cual, así que esto sirve tanto para una
+    // `condicion` normal como para una `async` (necesaria en algún test de la Ronda 2, que
+    // comprueba el colchón en disco dentro de la propia condición).
+    if (await condicion()) return;
     await new Promise((resolver) => setTimeout(resolver, esperaMs));
   }
   throw new Error('hastaQue: la condición no se cumplió a tiempo');
@@ -143,6 +146,64 @@ test('almacen: escribirAtomico es de propósito general (nombre de fichero cualq
   assert.ok(!ficheros.some((f) => f.endsWith('.tmp')));
   const texto = await readFile(path.join(dir, 'otra-cosa.json'), 'utf8');
   assert.deepEqual(JSON.parse(texto), { hola: 'mundo' });
+});
+
+test('almacen: conCerrojo serializa llamadas para el mismo nombre (nunca dos fn del mismo fichero a la vez) y respeta el orden de llegada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  let enCurso = 0;
+  let maxEnCurso = 0;
+  const orden = [];
+
+  const trabajo = (etiqueta, ms) => async () => {
+    enCurso++;
+    maxEnCurso = Math.max(maxEnCurso, enCurso);
+    await new Promise((r) => setTimeout(r, ms));
+    orden.push(etiqueta);
+    enCurso--;
+    return etiqueta;
+  };
+
+  const [r1, r2, r3] = await Promise.all([
+    almacen.conCerrojo('colchon.json', trabajo('a', 20)),
+    almacen.conCerrojo('colchon.json', trabajo('b', 5)),
+    almacen.conCerrojo('colchon.json', trabajo('c', 1)),
+  ]);
+
+  assert.equal(maxEnCurso, 1, 'nunca dos funciones del mismo nombre en curso a la vez');
+  assert.deepEqual(orden, ['a', 'b', 'c'], 'se respeta el orden de llegada, no el de duración');
+  assert.deepEqual([r1, r2, r3], ['a', 'b', 'c'], 'cada llamada recibe SU PROPIO resultado');
+});
+
+test('almacen: conCerrojo -- una fn que lanza no bloquea las siguientes llamadas para el mismo nombre', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+
+  await assert.rejects(
+    () => almacen.conCerrojo('colchon.json', async () => { throw new Error('boom'); }),
+    /boom/,
+  );
+
+  // Si el fallo hubiera dejado la cola "atascada", esta segunda llamada nunca resolvería.
+  const resultado = await almacen.conCerrojo('colchon.json', async () => 'sigue-funcionando');
+  assert.equal(resultado, 'sigue-funcionando');
+});
+
+test('almacen: conCerrojo -- nombres distintos no se bloquean entre sí', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const orden = [];
+
+  const lento = almacen.conCerrojo('colchon.json', async () => {
+    await new Promise((r) => setTimeout(r, 30));
+    orden.push('colchon');
+  });
+  const rapido = almacen.conCerrojo('reportadas.json', async () => {
+    orden.push('reportadas');
+  });
+
+  await Promise.all([lento, rapido]);
+  assert.deepEqual(orden, ['reportadas', 'colchon'], 'reportadas.json no espera a que termine colchon.json');
 });
 
 // === servidor/cola.js: encolar / estadoTrabajo / prioridad / concurrencia ====================
@@ -473,6 +534,172 @@ test('reportar: quita la pregunta del colchón y no se vuelve a servir', async (
 
   const servidas = await cola.servir({ idsConocidos: [], resumen: {}, max: 10 });
   assert.ok(!servidas.some((p) => p.id === 'srv-eco-1'), 'una reportada nunca se sirve, aunque ya no esté en el colchón');
+});
+
+// === servidor/cola.js: Ronda 2 (revisión) -- Critical #1, mutex del colchón ===================
+
+test('cola (Ronda 2): 20 servir({max:1}) concurrentes sobre un colchón de 20 reparten 20 ids distintos, todos marcados servida', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(5) });
+
+  const semilla = Array.from({ length: 20 }, (_, i) => ({
+    id: `srv-eco-${i}`,
+    area: 'economia',
+    creada: new Date(2026, 0, 1 + i).toISOString(),
+    servida: null,
+  }));
+  await almacen.guardarColchon(semilla);
+
+  const resultados = await Promise.all(
+    Array.from({ length: 20 }, () => cola.servir({ idsConocidos: [], resumen: {}, max: 1 })),
+  );
+
+  const idsServidos = resultados.map((r) => r[0]?.id);
+  assert.equal(idsServidos.filter(Boolean).length, 20, 'las 20 llamadas consiguieron una pregunta cada una');
+  assert.equal(new Set(idsServidos).size, 20, 'sin lost update: 20 ids distintos, ninguno repetido');
+
+  const colchonFinal = await almacen.leerColchon();
+  assert.equal(colchonFinal.length, 20, 'no se ha perdido ninguna entrada por una escritura solapada');
+  assert.ok(colchonFinal.every((p) => p.servida), 'las 20 quedan marcadas servida en disco');
+});
+
+test('cola (Ronda 2): servir() concurrente con el guardado de un lote no pierde ninguna aprobada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+
+  // Un colchón inicial pequeño para que haya algo que servir mientras se guarda un lote nuevo.
+  await almacen.guardarColchon([
+    { id: 'srv-eco-viejo', area: 'economia', creada: '2026-01-01T00:00:00.000Z', servida: null },
+  ]);
+
+  const pendienteLote = {};
+  const cola = crearCola({
+    almacen,
+    producirTanda: async (params) =>
+      new Promise((resolver) => {
+        pendienteLote.resolver = resolver;
+        pendienteLote.params = params;
+      }),
+  });
+
+  cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => !!pendienteLote.resolver);
+
+  // Se lanzan a la vez: servir() (lee+marca+escribe) y la resolución del lote (que dispara
+  // guardarNuevasEnColchon, también lee+concatena+escribe). Sin el cerrojo, uno de los dos
+  // guardados podía pisar al otro.
+  const promesaServir = cola.servir({ idsConocidos: [], resumen: {}, max: 10 });
+  pendienteLote.resolver(resultadoOk('historia', 5, 5));
+
+  await promesaServir;
+  await hastaQue(async () => {
+    const c = await almacen.leerColchon();
+    return c.length === 6; // 1 servida (sigue en el colchón, solo marcada) + 5 nuevas del lote
+  });
+
+  const final = await almacen.leerColchon();
+  assert.equal(final.length, 6, 'ni la vieja servida ni las 5 nuevas del lote se han perdido');
+  assert.equal(final.filter((p) => p.area === 'historia').length, 5, 'las 5 aprobadas del lote están todas');
+});
+
+// === servidor/cola.js: Ronda 2 (revisión) -- Critical #2, resiliencia a fallos de disco =======
+
+test('cola (Ronda 2): una excepción de disco en guardarColchon (fuera de producirTanda) no mata al trabajador', async () => {
+  const dir = await carpetaTmp();
+  const almacenReal = crearAlmacen(dir);
+  let vecesLanzado = 0;
+  const almacenFalso = {
+    ...almacenReal,
+    async guardarColchon(lista) {
+      if (vecesLanzado === 0) {
+        vecesLanzado++;
+        throw new Error('EACCES simulado (guardarColchon)');
+      }
+      return almacenReal.guardarColchon(lista);
+    },
+  };
+  const cola = crearCola({
+    almacen: almacenFalso,
+    producirTanda: async (params) => resultadoOk(params.area, params.n, 5),
+  });
+
+  const { trabajoId } = cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.hechas === 5);
+
+  const final = cola.estadoTrabajo(trabajoId);
+  assert.ok(['parcial', 'fallida'].includes(final.estado), 'el trabajo termina, no se queda colgado');
+  assert.match(final.motivo, /EACCES simulado/, 'el motivo del fallo de disco queda registrado');
+  assert.equal(cola.estadisticas().activo, 0, 'el trabajador queda libre, no "atascado" con el fallido');
+
+  // El siguiente encolar debe procesarse con total normalidad -- el trabajador no quedó bloqueado
+  // ni el proceso murió por un unhandledRejection.
+  const { trabajoId: id2 } = cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(id2)?.estado === 'lista');
+  assert.equal(cola.estadoTrabajo(id2).preguntas.length, 5);
+});
+
+test('cola (Ronda 2): una excepción de disco en leerColchon (calcularEvitar, antes de producirTanda) tampoco mata al trabajador', async () => {
+  const dir = await carpetaTmp();
+  const almacenReal = crearAlmacen(dir);
+  let vecesLanzado = 0;
+  const almacenFalso = {
+    ...almacenReal,
+    async leerColchon() {
+      if (vecesLanzado === 0) {
+        vecesLanzado++;
+        throw new Error('EACCES simulado (leerColchon)');
+      }
+      return almacenReal.leerColchon();
+    },
+  };
+  let seLlamoProducirTanda = false;
+  const cola = crearCola({
+    almacen: almacenFalso,
+    producirTanda: async (params) => {
+      seLlamoProducirTanda = true;
+      return resultadoOk(params.area, params.n, 5);
+    },
+  });
+
+  const { trabajoId } = cola.encolar({ area: 'ciencia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.hechas === 5);
+
+  assert.equal(seLlamoProducirTanda, false, 'el fallo ocurre calculando "evitar", antes de llegar a producirTanda');
+  const final = cola.estadoTrabajo(trabajoId);
+  assert.equal(final.estado, 'fallida', '0 aprobadas: el lote nunca llegó a pedir preguntas');
+  assert.match(final.motivo, /EACCES simulado/);
+  assert.equal(cola.estadisticas().activo, 0);
+});
+
+// === servidor/cola.js: Ronda 2 (revisión) -- Minor #3, tope de colaFondo ======================
+
+test('cola (Ronda 2): colaFondo tiene un tope de 32 -- las nuevas peticiones de fondo se descartan si está llena', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const pendientes = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => new Promise((resolver) => pendientes.push(resolver)),
+  });
+
+  // El primero ocupa el único trabajador; los siguientes 32 se quedan en colaFondo (llenándola).
+  cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => pendientes.length === 1);
+
+  for (let i = 0; i < 32; i++) {
+    const r = cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: false });
+    assert.ok(r, `job ${i} debería encolarse (colaFondo todavía no está llena)`);
+  }
+
+  const descartado = cola.encolar({ area: 'geografia', ruta: [], n: 5, urgente: false });
+  assert.equal(descartado, null, 'con colaFondo llena (32), la siguiente petición de fondo se descarta');
+
+  // Un urgente NO se ve afectado por este tope.
+  const urgente = cola.encolar({ area: 'arte', ruta: [], n: 5, urgente: true });
+  assert.ok(urgente, 'los urgentes nunca se descartan por el tope de colaFondo');
+
+  pendientes[0](resultadoVacio(5));
 });
 
 test('cola.estadisticas() refleja el tamaño de la cola de espera', async () => {
