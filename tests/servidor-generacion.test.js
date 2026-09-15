@@ -11,6 +11,9 @@ import {
   repartoPorTipo,
   GENERADOR_PREGUNTAS_SOLO_PAGO,
   VERIFICADOR_PREGUNTAS_SOLO_PAGO,
+  enParalelo,
+  MAX_LOTES_EN_VUELO,
+  MAX_VISUALES_EN_VUELO,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import {
@@ -962,4 +965,72 @@ test('producirTanda: devuelve en "modelos" los modelos realmente usados a lo lar
 
   assert.ok(resultado.modelos.length >= 2, 'al menos el modelo generador y el verificador de preguntas');
   assert.ok(resultado.modelos.every((m) => typeof m === 'string' && m.length > 0));
+});
+
+// --- paralelismo (v0.2b4.1 §4) ----------------------------------------------------------------
+
+// Doble de `llamar` que mide cuántas llamadas hay EN VUELO a la vez. El setTimeout es lo que
+// permite que se solapen de verdad: sin él, cada llamada terminaría antes de que empiece la
+// siguiente y el máximo sería siempre 1, aunque el código fuera perfectamente paralelo.
+function llamarQueMidePaparelismo(respuesta, { msPorLlamada = 20 } = {}) {
+  let enVuelo = 0;
+  const medida = { max: 0, total: 0 };
+  const llamar = async (opciones) => {
+    enVuelo += 1;
+    medida.total += 1;
+    medida.max = Math.max(medida.max, enVuelo);
+    try {
+      await new Promise((r) => setTimeout(r, msPorLlamada));
+      return respuesta(opciones);
+    } finally {
+      enVuelo -= 1;
+    }
+  };
+  return { llamar, medida };
+}
+
+test('v0.2b4.1 §4: los lotes de generación por tipo van en PARALELO, con tope de 4 en vuelo', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  const { llamar, medida } = llamarQueMidePaparelismo((op) => base(op));
+
+  // n=10 -> reparto en los 4 tipos (vf 3, test4 4, ordenar 2, error 1): 4 lotes de generación.
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar, urgente: true });
+
+  assert.ok(resultado.aprobadas.length > 0, 'la tanda sigue produciendo preguntas');
+  assert.ok(medida.max > 1, 'secuencial: los cuatro tipos deben solaparse');
+  assert.ok(medida.max <= MAX_VISUALES_EN_VUELO, 'nunca por encima del tope mayor del pipeline');
+});
+
+test('v0.2b4.1 §4: enParalelo respeta el tope y conserva el ORDEN de los resultados', async () => {
+  let enVuelo = 0;
+  let max = 0;
+  const items = [50, 10, 40, 5, 30, 1, 20];
+  const salida = await enParalelo(items, 3, async (ms, indice) => {
+    enVuelo += 1;
+    max = Math.max(max, enVuelo);
+    await new Promise((r) => setTimeout(r, ms));
+    enVuelo -= 1;
+    return `${indice}:${ms}`;
+  });
+  assert.equal(max, 3, 'nunca más de 3 a la vez');
+  // NOTA (discrepancia del brief, corregida aquí): el brief original comparaba `salida` contra un
+  // array de valores en crudo (['0:50', ...]), pero eso contradice tanto el propio Step 28
+  // (`resultados[indice] = { ok: true, valor: ... }`) como el test siguiente de esta misma sección
+  // ("un fallo no tumba al resto"), que exige `{ok, valor}`/`{ok, error}` -- y también contradice a
+  // los dos consumidores reales de `enParalelo` (producirTanda en Step 28 y Step 33), que leen
+  // `resultado.ok`/`resultado.valor`. Un único contrato no puede satisfacer las dos formas a la
+  // vez; se elige la envuelta por ser la que exige el resto del brief y el código de producción.
+  assert.deepEqual(
+    salida,
+    ['0:50', '1:10', '2:40', '3:5', '4:30', '5:1', '6:20'].map((valor) => ({ ok: true, valor })),
+    'el orden es el de entrada',
+  );
+});
+
+test('v0.2b4.1 §4: enParalelo con un fallo no tumba al resto (cada tarea se resuelve o se anota)', async () => {
+  const salida = await enParalelo([1, 2, 3], 2, async (n) => {
+    if (n === 2) throw new Error('boom');
+    return n * 10;
+  });
+  assert.deepEqual(salida, [{ ok: true, valor: 10 }, { ok: false, error: 'boom' }, { ok: true, valor: 30 }]);
 });

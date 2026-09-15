@@ -102,6 +102,46 @@ const TAMANO_LOTE_GENERACION = 5;
 const TAMANO_LOTE_VERIFICACION = 4;
 const UMBRAL_CONFIANZA_DEFECTO = 0.7;
 
+// v0.2b4.1 §4: topes de concurrencia de una tanda urgente. No son "cuanto más, mejor": cada
+// llamada en vuelo consume de la MISMA cuota por minuto (8.000 tokens/min por modelo en Groq), así
+// que pasarse de aquí no acelera, solo convierte el trabajo en 429 en cadena. 4 lotes = los 4 tipos
+// de pregunta a la vez; 5 visuales = la mitad de una tanda de 10, repartidos entre dos proveedores.
+export const MAX_LOTES_EN_VUELO = 4;
+export const MAX_VISUALES_EN_VUELO = 5;
+/** Timeout del visual dentro de una tanda urgente (spec §5): pasado esto, la pregunta se sirve sin
+ * él y un trabajo de fondo lo completa después (Tarea 4). Nunca se aplica al colchón. */
+export const TIMEOUT_VISUAL_MS = 20000;
+
+/**
+ * Ejecuta `fn` sobre `items` con como mucho `tope` en vuelo a la vez, devolviendo los resultados
+ * EN EL ORDEN DE ENTRADA (no en el de terminación) y sin que un fallo cancele a los demás: cada
+ * posición trae `{ok: true, valor}` o `{ok: false, error}`. Es el `Promise.all` con tope de la
+ * spec §4, escrito aquí porque no hay dependencias en este repo y porque `Promise.all` a secas
+ * lanzaría las 10 llamadas de golpe contra una cuota de 8.000 tokens/minuto.
+ * @param {any[]} items
+ * @param {number} tope
+ * @param {(item: any, indice: number) => Promise<any>} fn
+ * @returns {Promise<{ok: boolean, valor?: any, error?: string}[]>}
+ */
+export async function enParalelo(items, tope, fn) {
+  const lista = Array.isArray(items) ? items : [];
+  const resultados = new Array(lista.length);
+  let siguiente = 0;
+  const trabajador = async () => {
+    for (;;) {
+      const indice = siguiente++;
+      if (indice >= lista.length) return;
+      try {
+        resultados[indice] = { ok: true, valor: await fn(lista[indice], indice) };
+      } catch (err) {
+        resultados[indice] = { ok: false, error: err?.message || String(err) };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, tope), lista.length) }, trabajador));
+  return resultados;
+}
+
 // Cascadas de pago barato para preguntas, análogas a GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de
 // tools/visualizar.js (spec §3.1: "un par análogo para preguntas"). Un solo modelo de pago cada
 // una, de proveedores distintos entre sí (para que generador y verificador nunca coincidan sin
@@ -599,31 +639,31 @@ export async function producirTanda(params, opciones = {}) {
   const fallos = [];
 
   const reparto = repartoPorTipo(n);
+  const tipos = Object.keys(reparto).filter((tipo) => reparto[tipo] > 0);
+  // v0.2b4.1 §4: los cuatro tipos ya no se generan uno detrás de otro. Son llamadas independientes
+  // (cada una con su prompt y su sub-lote) y a proveedores que aguantan concurrencia: en serie
+  // costaban 4 x 1,8 s solo de generación. El tope de 4 evita disparar de golpe contra la cuota.
+  const porTipo = await enParalelo(tipos, MAX_LOTES_EN_VUELO, (tipo) =>
+    generarBorradores(
+      { area, ruta, n: reparto[tipo], tipo, nivelObjetivo, evitar },
+      {
+        llamar: llamarFn,
+        permitirPago,
+        topeEur,
+        rutaLog,
+        acumulador,
+        modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
+      },
+    ),
+  );
+
   let borradores = [];
-  for (const tipo of Object.keys(reparto)) {
-    const cantidad = reparto[tipo];
-    if (cantidad <= 0) continue;
-    // Ronda 2 (controlador, 14-sep-2026): si la cascada se agota del todo para ESTE tipo
-    // (generarBorradores lanza, ver ahí el porqué), se registra en `fallos` y se sigue con los
-    // demás tipos -- una tanda parcial es mejor que ninguna, y el coste ya acumulado en otros tipos
-    // no se pierde (el `acumulador` es el mismo objeto para todas las llamadas).
-    try {
-      const borradoresTipo = await generarBorradores(
-        { area, ruta, n: cantidad, tipo, nivelObjetivo, evitar },
-        {
-          llamar: llamarFn,
-          permitirPago,
-          topeEur,
-          rutaLog,
-          acumulador,
-          modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
-        },
-      );
-      borradores = borradores.concat(borradoresTipo);
-    } catch (err) {
-      fallos.push({ tipo, motivo: err.message });
-    }
-  }
+  porTipo.forEach((resultado, i) => {
+    // Misma semántica que el try/catch de antes: un tipo que agota su cascada se anota en `fallos`
+    // y NO se lleva por delante a los otros tres (una tanda parcial es mejor que ninguna).
+    if (resultado.ok) borradores = borradores.concat(resultado.valor);
+    else fallos.push({ tipo: tipos[i], motivo: resultado.error });
+  });
   const obtenidas = borradores.length;
   for (const b of borradores) {
     if (b.generador) modelosUsados.add(b.generador);
