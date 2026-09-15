@@ -25,6 +25,11 @@ const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
 const CERROJO_COLCHON = 'colchon.json';
+// v0.2b4.1 §5: cuántas preguntas se intentan completar en UNA pasada del trabajo de fondo. Un tope
+// bajo a propósito -- procesarCola lo llama cada vez que se queda sin trabajos (potencialmente muy
+// seguido), y cada visual es una llamada de red de segundos; no tiene sentido intentar de golpe
+// todo lo que haya pendiente en el colchón.
+const MAX_VISUALES_PENDIENTES_POR_PASADA = 10;
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M4, segunda mitad): lo que `servir()` devuelve a
 // quien llamó (la API, y a través de ella el móvil) nunca lleva los campos de gestión interna del
@@ -118,10 +123,14 @@ function purgarColchon(lista) {
  * @param {object} params
  * @param {ReturnType<import('./almacen.js').crearAlmacen>} params.almacen
  * @param {Function} params.producirTanda
+ * @param {Function} [params.completarVisual] v0.2b4.1 §5: misma firma que
+ *   servidor/generacion.js#completarVisual. Opcional -- sin ella, `completarVisualesPendientes` es
+ *   un no-op (ver más abajo); así los tests que no necesitan el trabajo de fondo no tienen que
+ *   inyectarla.
  * @param {object} [params.opciones] opciones base pasadas a producirTanda en cada lote (llamar,
  *   permitirPago, topeEur, rutaLog); `urgente` se añade/sobrescribe por trabajo.
  */
-export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () => Date.now() } = {}) {
+export function crearCola({ almacen, producirTanda, completarVisual = null, opciones = {}, reloj = () => Date.now() } = {}) {
   if (!almacen) throw new Error('crearCola: falta almacen');
   if (typeof producirTanda !== 'function') throw new Error('crearCola: falta producirTanda');
 
@@ -135,6 +144,10 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   let activo = null;
   let procesando = false;
   let contadorId = 0;
+  // v0.2b4.1 §5: cerrojo propio (booleano, igual patrón que `procesando`) para que dos disparos de
+  // completarVisualesPendientes -- uno desde procesarCola al vaciarse, otro desde POST /estado -- no
+  // se solapen pidiendo el mismo visual pendiente dos veces a la vez.
+  let completandoVisuales = false;
   // Ronda final (revisión, 14-sep-2026) -- Critical (C2): señal de salud del trabajador, para que
   // /salud pueda decir algo más que "el proceso sigue vivo". `ultimoError` es el motivo (corto, sin
   // trazas) del último lote que falló de cualquier forma; `ultimaGeneracionOk` es el ISO del último
@@ -384,6 +397,58 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     }
   }
 
+  /**
+   * v0.2b4.1 §5: el trabajo de fondo que completa los visuales que la tanda urgente no esperó.
+   * Es lo último que hace el trabajador (ver procesarCola, debajo): nunca compite con una tanda
+   * que el jugador está esperando. Cada pregunta completada queda marcada con `actualizadaEn` para
+   * que `POST /estado` pueda contársela al móvil que ya tiene esa pregunta (ver `actualizadas`).
+   * Sin `completarVisual` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
+   * necesitan el trabajo de fondo no tienen que simularla.
+   * @param {{max?: number}} [params]
+   * @returns {Promise<{completadas: number, pendientes: number}>}
+   */
+  async function completarVisualesPendientes({ max = MAX_VISUALES_PENDIENTES_POR_PASADA } = {}) {
+    if (typeof completarVisual !== 'function' || completandoVisuales) return { completadas: 0, pendientes: 0 };
+    completandoVisuales = true;
+    try {
+      const colchon = await almacen.leerColchon();
+      const pendientes = colchon.filter((p) => p.visualPendiente === true);
+      if (pendientes.length === 0) return { completadas: 0, pendientes: 0 };
+
+      // Se resuelven FUERA del cerrojo (son llamadas a modelos, de segundos a minutos: tener el
+      // colchón bloqueado ese rato pararía servir() y el guardado de cualquier lote en curso) y
+      // después se aplica el cambio dentro del cerrojo, releyendo -- el colchón puede haber
+      // cambiado mientras tanto (una tanda nueva, un reportar...).
+      const elegidas = pendientes.slice(0, Math.max(0, max));
+      const resueltas = new Map();
+      for (const pregunta of elegidas) {
+        try {
+          const salida = await completarVisual(pregunta, opciones);
+          if (salida && salida.visual) resueltas.set(pregunta.id, salida.visual);
+        } catch (err) {
+          // Igual criterio que ejecutarUnLote: un fallo aquí nunca puede tumbar al trabajador.
+          ultimoError = String(err?.message || err).slice(0, 300);
+        }
+      }
+      if (resueltas.size === 0) return { completadas: 0, pendientes: pendientes.length };
+
+      await almacen.conCerrojo(CERROJO_COLCHON, async () => {
+        const actual = await almacen.leerColchon();
+        const ahora = new Date().toISOString();
+        const actualizado = actual.map((p) =>
+          resueltas.has(p.id) && p.visualPendiente === true
+            ? { ...p, visual: resueltas.get(p.id), visualPendiente: false, actualizadaEn: ahora }
+            : p,
+        );
+        await almacen.guardarColchon(purgarColchon(actualizado));
+      });
+
+      return { completadas: resueltas.size, pendientes: pendientes.length - resueltas.size };
+    } finally {
+      completandoVisuales = false;
+    }
+  }
+
   // Ronda 1 (ruling del controlador, 14-sep-2026): "un usuario esperando 40 s no puede quedarse
   // detrás" de un trabajo de fondo que tarda varios minutos. El trabajador ya no ejecuta un
   // trabajo hasta el final antes de mirar la cola otra vez -- mira DESPUÉS DE CADA LOTE. Si el
@@ -434,6 +499,12 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
         else colaFondo.unshift(siguiente);
       }
     }
+
+    // El trabajador se ha quedado sin trabajos: es el momento exacto de completar visuales
+    // pendientes -- lo más bajo de la escala de prioridad, detrás de todo urgente y de todo fondo.
+    await completarVisualesPendientes().catch((err) => {
+      console.error(`servidor/cola: fallo al completar visuales pendientes: ${err?.message || err}`);
+    });
   }
 
   // Ronda 2 (revisión), punto 2: si, pese a todo, `procesarCola` llegara a rechazar (defensa en
@@ -632,6 +703,30 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     });
   }
 
+  /**
+   * v0.2b4.1 §5: qué ha cambiado, de lo que el móvil YA tiene, desde la última vez que preguntó.
+   * Solo `visual` y `explicacion`: son los dos únicos campos que este servidor reescribe después de
+   * haber servido una pregunta (el trabajo de fondo de `completarVisualesPendientes`). Mandar la
+   * pregunta entera sería invitar a que el cliente pise un enunciado que el jugador está leyendo.
+   * No toca el disco más que para leer: no marca nada, no purga, no sirve nada nuevo.
+   * @param {{idsConocidos?: string[], desde?: string}} params `desde` en ISO; sin él, todo lo marcado
+   * @returns {Promise<{id: string, visual: object|null, explicacion: string}[]>}
+   */
+  async function actualizadas({ idsConocidos = [], desde = null } = {}) {
+    const conocidos = new Set(idsConocidos);
+    if (conocidos.size === 0) return [];
+    const colchon = await almacen.leerColchon();
+    const limite = typeof desde === 'string' ? new Date(desde).getTime() : NaN;
+    return colchon
+      .filter((p) => {
+        if (!conocidos.has(p.id) || typeof p.actualizadaEn !== 'string') return false;
+        if (!Number.isFinite(limite)) return true; // sin `desde` válido: todo lo que tenga marca
+        const marca = new Date(p.actualizadaEn).getTime();
+        return Number.isFinite(marca) && marca > limite;
+      })
+      .map((p) => ({ id: p.id, visual: p.visual ?? null, explicacion: p.explicacion }));
+  }
+
   // Ronda 2 (revisión), punto 1: el borrado de colchon.json también va dentro del mismo cerrojo
   // ("reportada que revive" era exactamente este caso -- un servir() concurrente podía
   // reescribir el colchón entero justo después de que reportar() leyera pero antes de que
@@ -670,5 +765,7 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     reportar,
     estadisticas,
     segundosPorPregunta,
+    completarVisualesPendientes,
+    actualizadas,
   };
 }

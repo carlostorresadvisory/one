@@ -1083,3 +1083,97 @@ test('v0.2b4.1 §6: si producirTanda avisa de más preguntas de las del lote, `h
   await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'lista');
   assert.equal(cola.estadoTrabajo(trabajoId).hechas, 10);
 });
+
+// --- v0.2b4.1 §5: trabajo de fondo que completa visuales pendientes + actualizadas -------------
+
+test('v0.2b4.1 §5: la cola completa los visuales pendientes del colchón y marca actualizadaEn', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('historia', 2, { visual: { tipo: 'dato' }, visualPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+
+  const pedidas = [];
+  const completarVisualFalso = async (pregunta) => {
+    pedidas.push(pregunta.id);
+    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'Prueba' }, explicacion: pregunta.explicacion, coste: 0 };
+  };
+
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0), completarVisual: completarVisualFalso });
+  const resultado = await cola.completarVisualesPendientes();
+
+  assert.equal(resultado.completadas, 1);
+  assert.equal(pedidas.length, 1, 'solo la que tenía el visual pendiente');
+
+  const colchon = await almacen.leerColchon();
+  const completada = colchon.find((p) => p.id === pedidas[0]);
+  assert.equal(completada.visualPendiente, false);
+  assert.equal(completada.visual.tipo, 'formula');
+  assert.ok(typeof completada.actualizadaEn === 'string' && completada.actualizadaEn.includes('T'), 'marca ISO');
+  // La otra no se toca: ni visual, ni marca.
+  const intacta = colchon.find((p) => p.id !== pedidas[0]);
+  assert.equal(intacta.actualizadaEn, undefined);
+});
+
+test('v0.2b4.1 §5: si completarVisual no consigue visual, la pregunta sigue pendiente para otra pasada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarVisual: async (p) => ({ visual: null, explicacion: p.explicacion, coste: 0 }),
+  });
+
+  const resultado = await cola.completarVisualesPendientes();
+
+  assert.equal(resultado.completadas, 0);
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.visualPendiente, true, 'sigue en la lista de pendientes');
+  assert.equal(p.actualizadaEn, undefined, 'nada cambió, así que no hay nada que anunciar al cliente');
+});
+
+test('v0.2b4.1 §5: sin completarVisual inyectado, completarVisualesPendientes no hace nada (y no rompe)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  assert.deepEqual(await cola.completarVisualesPendientes(), { completadas: 0, pendientes: 0 });
+});
+
+test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha cambiado desde `desde`', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const base = { servida: '2026-09-15T09:00:00.000Z', creada: '2026-09-15T08:00:00.000Z' };
+  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', visual: { tipo: 'dato' } };
+  const vieja = { ...aprobada('economia', 2), ...base, id: 'srv-eco-vieja', actualizadaEn: '2026-09-15T08:30:00.000Z' };
+  const desconocida = { ...aprobada('economia', 3), ...base, id: 'srv-eco-ajena', actualizadaEn: '2026-09-15T10:00:00.000Z' };
+  const sinMarca = { ...aprobada('economia', 4), ...base, id: 'srv-eco-sinmarca' };
+  await almacen.guardarColchon([conocida, vieja, desconocida, sinMarca]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const salida = await cola.actualizadas({
+    idsConocidos: ['srv-eco-conocida', 'srv-eco-vieja', 'srv-eco-sinmarca'],
+    desde: '2026-09-15T09:30:00.000Z',
+  });
+
+  assert.deepEqual(salida.map((p) => p.id), ['srv-eco-conocida']);
+  assert.deepEqual(salida[0].visual, { tipo: 'dato' });
+  assert.equal(typeof salida[0].explicacion, 'string');
+  assert.equal(salida[0].enunciado, undefined, 'solo lo que puede haber cambiado, no la pregunta entera');
+});
+
+test('v0.2b4.1 §5: sin `desde`, `actualizadas` devuelve TODO lo conocido que tenga marca (primera vez)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1), id: 'srv-eco-1', servida: null, creada: '2026-09-15T08:00:00.000Z', actualizadaEn: '2026-09-15T08:30:00.000Z' },
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  const salida = await cola.actualizadas({ idsConocidos: ['srv-eco-1'] });
+  assert.deepEqual(salida.map((p) => p.id), ['srv-eco-1']);
+  // Y sin ids conocidos no hay nada que actualizar: no se manda contenido que el móvil no tiene.
+  assert.deepEqual(await cola.actualizadas({ idsConocidos: [] }), []);
+});
