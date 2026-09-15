@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
 import { llamar, extraerJson, esModeloGratis, proveedorDe } from '../tools/openrouter.js';
+import { crearRegistroCuota } from '../tools/cuota.js';
 
 const RUTA_LOG = 'datos/llamadas.test.log';
 
@@ -73,6 +74,11 @@ test('v0.2b4.1 §1: si TODOS los eslabones se saturan, se espera una vez y se re
     rutaLog: RUTA_LOG,
     reintentoMs: 0,
     alEsperar: () => { esperas += 1; },
+    // Cuota propia (Tarea 2, v0.2b4.1 §2): ids genéricos como 'a/uno:free' se repiten en otros
+    // tests de este fichero, y cuotaGlobal es compartida por proceso -- sin un registro propio,
+    // una saturación anotada por otro test dejaría este id "bloqueado" y rompería el orden fijo
+    // que este test verifica.
+    cuota: crearRegistroCuota(),
   });
   assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free', 'c/tres:free', 'a/uno:free']);
   assert.equal(r.modelo, 'a/uno:free', 'el reintento vuelve al PRIMERO que se saturó, no al último');
@@ -460,6 +466,8 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
     assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
@@ -485,6 +493,8 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
     assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
@@ -616,6 +626,8 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       extra: { reasoning: { enabled: false, exclude: true } },
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
     assert.equal('reasoning' in cuerpos[0], false);
@@ -842,3 +854,90 @@ test('v0.2b4.1 §1: las tres claves nuevas están documentadas en servidor/.env.
     assert.equal(linea.split('=')[1].trim(), '', `servidor/.env.ejemplo lleva un valor en "${linea.split('=')[0]}"`);
   }
 });
+
+// --- Cuota por cabeceras x-ratelimit (Tarea 2, v0.2b4.1 §2) ------------------------------------
+
+test(
+  'v0.2b4.1 §2: `llamar` consulta la cuota ANTES de cada intento y se salta el eslabón sin hueco',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota({ reloj: () => 5000 });
+    // El 120b acaba de decir que le quedan 300 tokens: una llamada grande no cabe ahí.
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', {
+      status: 200,
+      headers: new Headers({ 'x-ratelimit-remaining-tokens': '300' }),
+    });
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('ok', '{"ok":true}');
+    };
+    const r = await llamar({
+      modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'x'.repeat(3500) }], // 1.000 tokens + maxTokens
+      json: true,
+      maxTokens: 1500,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.deepEqual(llamadas, ['openai/gpt-oss-20b'], 'el 120b ni se intenta: no cabe');
+    assert.equal(r.modelo, 'groq:openai/gpt-oss-20b');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §2: `llamar` alimenta la cuota con las cabeceras de la respuesta que recibe',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota({ reloj: () => 5000 });
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'x-ratelimit-remaining-tokens': '120', 'x-ratelimit-remaining-requests': '17' }),
+      json: async () => ({ choices: [{ message: { content: '{"ok":true}' } }], usage: {} }),
+    });
+    await llamar({
+      modelos: ['groq:openai/gpt-oss-120b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.equal(cuota.hayHueco('groq:openai/gpt-oss-120b', 100), true);
+    assert.equal(cuota.hayHueco('groq:openai/gpt-oss-120b', 5000), false, 'ya sabe que solo le quedan 120');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §2: si ningún eslabón tiene hueco, se intenta igual el que antes vuelve (nunca se falla sin llamar)',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    let ahora = 5000;
+    const cuota = crearRegistroCuota({ reloj: () => ahora });
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 429, headers: new Headers({ 'retry-after': '40' }) });
+    cuota.registrarRespuesta('groq:openai/gpt-oss-20b', { status: 429, headers: new Headers({ 'retry-after': '5' }) });
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('ok', '{"ok":true}');
+    };
+    const r = await llamar({
+      modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.equal(llamadas[0], 'openai/gpt-oss-20b', 'la cuota reordena: 5 s de espera es mejor que 40');
+    assert.equal(r.modelo, 'groq:openai/gpt-oss-20b');
+    await limpiarLog();
+  }),
+);

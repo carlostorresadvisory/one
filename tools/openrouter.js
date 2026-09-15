@@ -1,6 +1,7 @@
 // Cliente mínimo de OpenRouter: cascada de modelos gratis → de pago barato,
 // guarda anti-pago y log de coste. Sin dependencias.
 import { appendFile, readFile } from 'node:fs/promises';
+import { cuotaGlobal, estimarTokens } from './cuota.js';
 
 const URL_CHAT = 'https://openrouter.ai/api/v1/chat/completions';
 const RUTA_LOG_DEFECTO = 'datos/llamadas.log';
@@ -315,6 +316,10 @@ export async function llamar({
   // Solo para los tests: contar que la espera del último recurso ocurre UNA vez (con reintentoMs:0
   // no se puede medir por reloj). En producción no lo pasa nadie.
   alEsperar = () => {},
+  // Registro de cuota por eslabón (spec §2): por defecto el compartido del proceso, para que una
+  // tanda entera reparta con lo que ya aprendió de llamadas anteriores. Inyectable para que cada
+  // test tenga el suyo y no se contaminen entre sí (nunca `cuotaGlobal.olvidar()` desde un test).
+  cuota = cuotaGlobal,
 }) {
   const errores = [];
   const saturados = [];
@@ -366,6 +371,11 @@ export async function llamar({
       return { ok: false, saturado: false };
     }
 
+    // La cuota se alimenta de TODA respuesta, buena o mala: un 200 dice cuánto queda, un 429 dice
+    // cuánto hay que esperar. Va antes del `if (!respuesta.ok)` para que también se registren las
+    // saturaciones, que son justo las que más información dan.
+    cuota.registrarRespuesta(modelo, respuesta);
+
     if (!respuesta.ok) {
       errores.push(`${modelo}: HTTP ${respuesta.status}`);
       await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `HTTP ${respuesta.status}` });
@@ -405,9 +415,15 @@ export async function llamar({
   // Un intento por eslabón, sin ninguna pausa entre ellos: saltar es SIEMPRE más rápido que
   // esperar mientras queden candidatos (spec §1). La pausa de cortesía de 1,5 s de v0.2b1 se
   // elimina: costaba hasta 9 s por cascada agotada y no evitaba ningún 429 medible.
+  //
+  // Spec §2: "llamar lo consulta antes de cada intento". No es reordenar la cascada una vez al
+  // principio -- entre el eslabón 1 y el 3 pueden haber pasado dos respuestas que cambian quién
+  // tiene hueco, y `elegirModelo` ve siempre el estado del momento.
+  const tokensEstimados = estimarTokens(mensajes, maxTokens);
   const pendientes = [...modelos];
   while (pendientes.length > 0) {
-    const modelo = pendientes.shift();
+    const modelo = cuota.elegirModelo(pendientes, tokensEstimados);
+    pendientes.splice(pendientes.indexOf(modelo), 1);
     const resultado = await intentarModelo(modelo);
     if (resultado.ok) return resultado.salida;
     if (resultado.saturado) saturados.push(modelo);
