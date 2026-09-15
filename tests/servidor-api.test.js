@@ -431,6 +431,51 @@ test('v0.2b4.1 §5: si `actualizadas` falla, /estado responde igual con las preg
   });
 });
 
+// I1 (ronda de corrección 1): la marca de agua que el móvil debe guardar YA NO es su propio reloj
+// (podía ir adelantado respecto al VPS y perder una actualización real para siempre, filtrada por
+// `actualizadaEn > desde` en `cola.js#actualizadas`) -- es el reloj del SERVIDOR, devuelto en
+// `ahora`. Debe capturarse ANTES de llamar a `cola.actualizadas()`, nunca después.
+test('v0.2b4.1 §5 (I1): POST /estado devuelve `ahora` (ISO del servidor)', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const antes = new Date().toISOString();
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    const despues = new Date().toISOString();
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(typeof datos.ahora, 'string');
+    assert.ok(!Number.isNaN(new Date(datos.ahora).getTime()), 'ahora debe ser una fecha ISO válida');
+    assert.ok(datos.ahora >= antes && datos.ahora <= despues, 'ahora debe ser el reloj del servidor, tomado durante esta petición');
+  });
+});
+
+test('v0.2b4.1 §5 (I1): `ahora` se captura ANTES de llamar a cola.actualizadas() -- nunca posterior a una `actualizadaEn` que esa misma respuesta incluya', async () => {
+  let momentoDentroDeActualizadas = null;
+  const colaFake = colaEstadoFalsa({
+    // Simula la escritura real que `completarVisualesPendientes` podría hacer justo antes de que
+    // `cola.actualizadas()` lea el colchón: si el servidor capturase `ahora` DESPUÉS de esta
+    // llamada (en vez de antes), `ahora` podría quedar por delante de esta marca y la PRÓXIMA
+    // sincronización (que pediría `desde: ahora`) la perdería para siempre -- el bug real de I1.
+    actualizadas: async () => {
+      momentoDentroDeActualizadas = new Date().toISOString();
+      return [{ id: 'srv-1', visual: { tipo: 'dato' }, explicacion: '' }];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { idsConocidos: ['srv-1'] } }),
+    });
+    const datos = await resp.json();
+    assert.equal(datos.actualizadas.length, 1);
+    assert.ok(
+      datos.ahora <= momentoDentroDeActualizadas,
+      `ahora (${datos.ahora}) debe capturarse ANTES de cola.actualizadas() (${momentoDentroDeActualizadas})`
+    );
+  });
+});
+
 // Minor 4 (ronda de corrección 1): un `desde` malformado antes se colaba hasta `cola.actualizadas`
 // (`new Date(desde).getTime()` -> NaN -> se trataba igual que "sin `desde`", devolviendo TODO) --
 // un fail-open silencioso. Ahora solo AUSENTE es "primera sincronización"; presente pero inválido
@@ -1213,6 +1258,10 @@ test('CORS solo permite los dos orígenes fijados; preflight OPTIONS responde 20
 
     const conOrigenPermitido = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_PWA } });
     assert.equal(conOrigenPermitido.headers.get('access-control-allow-origin'), ORIGEN_PWA);
+    // Ronda de corrección 1 (I1): sin esta cabecera, un navegador real oculta `Date` al JS del
+    // cliente en una petición cross-origin -- `sincronizacion.js#leerFechaServidor` nunca podría
+    // leerla pese a viajar por la red. Va en la respuesta real, no solo en el preflight.
+    assert.equal(conOrigenPermitido.headers.get('access-control-expose-headers'), 'Date');
 
     const conOrigenAjeno = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_AJENO } });
     assert.equal(conOrigenAjeno.headers.get('access-control-allow-origin'), null);

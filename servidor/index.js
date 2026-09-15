@@ -501,6 +501,17 @@ export function crearServidor({
       return;
     }
 
+    // Ronda de corrección 1 (I1): el reloj del servidor, capturado LO ANTES POSIBLE -- antes de
+    // `cola.servir()` y, sobre todo, antes de `cola.actualizadas()` (la única línea que importa de
+    // verdad para esta garantía). El móvil lo guardará como su próxima marca de agua en vez de su
+    // propio reloj: así una actualización que `completarVisualesPendientes` marque DESPUÉS de este
+    // punto -- incluso a mitad de esta misma petición -- queda con `actualizadaEn` posterior a
+    // `ahora`, y la próxima sincronización (que pedirá `desde: ahora`) la sigue viendo. Capturarlo
+    // más tarde (p. ej. justo antes de responder) dejaría un hueco: una escritura que ocurriera
+    // entre la lectura de `cola.actualizadas()` y ese punto tendría un `actualizadaEn` anterior a la
+    // marca guardada, y se perdería para siempre la próxima vez (el bug real que motivó esta ronda).
+    const ahora = new Date().toISOString();
+
     // Ronda final (revisión, 14-sep-2026) -- Important (I1): `cola.servir()` ya ha marcado
     // `servida` (y persistido) las preguntas devueltas -- ese trabajo real no debe perderse por un
     // fallo al guardar "ultimo-resumen.json" (un fichero secundario, solo para el relleno nocturno).
@@ -520,7 +531,7 @@ export function crearServidor({
     } catch (err) {
       console.error(`servidor: fallo al calcular las actualizadas de /estado: ${err?.message || err}`);
     }
-    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola, actualizadas });
+    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola, actualizadas, ahora });
 
     almacen.escribirAtomico('ultimo-resumen.json', resumen).catch((err) => {
       console.error(`servidor: fallo al guardar ultimo-resumen.json: ${err?.message || err}`);
@@ -740,6 +751,14 @@ export function crearServidor({
     if (origenPermitido) {
       res.setHeader('Access-Control-Allow-Origin', origen);
       res.setHeader('Vary', 'Origin');
+      // Ronda de corrección 1 (I1): expone la cabecera `Date` (estándar, la manda Node en toda
+      // respuesta) al JS del cliente -- sin esto, `sincronizacion.js#leerFechaServidor` nunca podría
+      // leerla en una petición cross-origin real, aunque viaje por la red (CORS la oculta por
+      // defecto). Va en la respuesta real, no solo en el preflight OPTIONS: `Expose-Headers` se
+      // negocia ahí, `Allow-Methods`/`Allow-Headers` no la sustituyen. Ya no es la vía principal (el
+      // cliente usa `ahora` en el cuerpo JSON, ver `manejarEstado`) pero cuesta una línea y cierra el
+      // hueco por completo, incluido un servidor de terceros que reenvíe esta respuesta sin el campo.
+      res.setHeader('Access-Control-Expose-Headers', 'Date');
     }
 
     if (req.method === 'OPTIONS') {
