@@ -50,7 +50,11 @@ export const GENERADOR_VISUAL = [
   'gemini:gemini-flash-lite-latest',
   'groq:qwen/qwen3.8-27b',
   'cerebras:qwen-3.8-27b',
-  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  // Ola final v0.2b4.1 (I2): el último eslabón era 'nvidia/nemotron-3-ultra-550b-a55b:free' --
+  // minuto y medio largo por llamada (medido: un parón de 118,9 s dentro de una tanda urgente), y
+  // el visual es el paso que MÁS llamadas hace. Se queda solo en las cascadas de fondo. Como red
+  // gratis de último recurso urgente entra 'nex-agi/nex-n2.5-pro:free', más ligero.
+  'nex-agi/nex-n2.5-pro:free',
 ];
 
 // Id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro modelo), así
@@ -511,6 +515,9 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     motivoRechazo = null,
     modelos = GENERADOR_VISUAL,
     rutaLog,
+    // Ola final v0.2b4.1 (I1/I2): plazo por llamada. `undefined` = el de siempre (120 s, ver
+    // tools/openrouter.js); servidor/generacion.js pasa 30 s en las tandas urgentes.
+    timeoutMs,
     // v0.2b4 §6b: cuando la explicación ya cumple el límite (ver resolverPregunta#saltarAcortado),
     // esta llamada solo pide el VISUAL -- una sola vuelta, sin reintentos de "explicacion" que no
     // se ha pedido.
@@ -546,6 +553,7 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
       maxTokens: 1500,
       permitirPago,
       topeEur,
+      timeoutMs,
       extra: SIN_RAZONAMIENTO,
       ...(rutaLog ? { rutaLog } : {}),
     });
@@ -615,6 +623,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     criterio = textoCriterio(pregunta.area),
     modelos = VERIFICADOR_VISUAL,
     rutaLog,
+    timeoutMs, // I1/I2, igual que en generarVisualYExplicacion
     // v0.2b4 §6b: cuando la explicación no se ha tocado (soloVisual, ver generarVisualYExplicacion),
     // no se juzga -- ni al modelo (el prompt omite el párrafo) ni en código.
     soloVisual = false,
@@ -638,6 +647,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     maxTokens: 800,
     permitirPago,
     topeEur,
+    timeoutMs,
     extra: SIN_RAZONAMIENTO,
     ...(rutaLog ? { rutaLog } : {}),
   });

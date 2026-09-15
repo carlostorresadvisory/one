@@ -303,7 +303,9 @@ test('v0.2b4 §6a: las cascadas de visual empiezan por el modelo más rápido, c
   // `excluirModelo` no deja al verificador sin cascada.
   assert.notEqual(GENERADOR_VISUAL[0], VERIFICADOR_VISUAL[0]);
   // Los ':free' de OpenRouter siguen detrás como red (spec §0: la cascada gratis se satura a ratos).
-  assert.ok(GENERADOR_VISUAL.includes('nvidia/nemotron-3-ultra-550b-a55b:free'));
+  // Ola final v0.2b4.1 (I2): la red ya no es 'nvidia/nemotron-3-ultra-550b-a55b:free' (minuto y
+  // medio por llamada, medido; se queda en las cascadas de FONDO) sino 'nex-agi/nex-n2.5-pro:free'.
+  assert.ok(GENERADOR_VISUAL.includes('nex-agi/nex-n2.5-pro:free'));
   assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
 });
 
@@ -895,6 +897,14 @@ test('v0.2b4.1 §3: las cascadas de visual empiezan por los modelos rápidos, co
     for (const m of cascada) assert.equal(esModeloGratis(m), true, `${m} no es gratis`);
   }
   // Los ':free' siguen detrás como red (el test de v0.2b4 ya lo exigía; no se pierde la garantía).
-  assert.ok(GENERADOR_VISUAL.includes('nvidia/nemotron-3-ultra-550b-a55b:free'));
+  assert.ok(GENERADOR_VISUAL.includes('nex-agi/nex-n2.5-pro:free'));
   assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
+
+  // Ola final v0.2b4.1 (I2): los dos nemotron lentos de OpenRouter SOLO en las cascadas de fondo.
+  const lentos = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'nvidia/nemotron-3-super-120b-a12b:free'];
+  for (const lento of lentos) {
+    assert.equal(GENERADOR_VISUAL.includes(lento), false, `${lento} no puede estar en la cascada urgente`);
+    assert.equal(VERIFICADOR_VISUAL.includes(lento), false, `${lento} no puede estar en la cascada urgente`);
+  }
+  assert.ok(GENERADOR_VISUAL_FONDO.includes(lentos[0]), 'los lentos siguen disponibles donde nadie espera');
 });

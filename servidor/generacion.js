@@ -111,6 +111,15 @@ export const MAX_VISUALES_EN_VUELO = 5;
 /** Timeout del visual dentro de una tanda urgente (spec §5): pasado esto, la pregunta se sirve sin
  * él y un trabajo de fondo lo completa después (Tarea 4). Nunca se aplica al colchón. */
 export const TIMEOUT_VISUAL_MS = 20000;
+/**
+ * Ola final v0.2b4.1 (I1/I2): plazo máximo de CADA llamada dentro de una tanda urgente -- los
+ * cuatro pasos (generación, verificación, visual y verificación del visual). El plazo general de
+ * `tools/openrouter.js` son 120 s, pensados para el fondo; con un jugador mirando el indicador,
+ * esperar dos minutos a un eslabón que va a fallar igual es lo peor que se puede hacer (medido en
+ * vivo el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free DENTRO de una tanda urgente).
+ * Pasados estos 30 s la cascada salta al siguiente eslabón, que normalmente responde en 1-2 s.
+ */
+export const TIMEOUT_LLAMADA_URGENTE_MS = 30000;
 
 /**
  * Ejecuta `fn` sobre `items` con como mucho `tope` en vuelo a la vez, devolviendo los resultados
@@ -367,6 +376,8 @@ export async function generarBorradores(params, opciones = {}) {
     rutaLog,
     modelos = MODELOS.generador,
     acumulador,
+    // I1/I2: plazo por llamada. `undefined` = el que trae por defecto tools/openrouter.js#llamar.
+    timeoutMs,
   } = opciones;
 
   const prefijo = PREFIJOS[area];
@@ -404,6 +415,7 @@ export async function generarBorradores(params, opciones = {}) {
         json: true,
         permitirPago,
         topeEur,
+        timeoutMs,
         ...(rutaLog ? { rutaLog } : {}),
       });
     } catch (err) {
@@ -496,6 +508,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
     umbral = UMBRAL_CONFIANZA_DEFECTO,
     modelos = MODELOS.verificador,
     acumulador,
+    timeoutMs, // I1/I2, igual que en generarBorradores
   } = opciones;
 
   const resultados = [];
@@ -544,6 +557,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
         json: true,
         permitirPago,
         topeEur,
+        timeoutMs,
         ...(rutaLog ? { rutaLog } : {}),
       });
     } catch (err) {
@@ -690,6 +704,10 @@ export async function producirTanda(params, opciones = {}) {
   // golpe contra NVIDIA y los ':free', justo los eslabones con menos margen y sin nadie esperando.
   const topeLotes = urgente ? MAX_LOTES_EN_VUELO : 1;
   const topeVisuales = urgente ? MAX_VISUALES_EN_VUELO : 1;
+  // I1/I2: en una tanda urgente, ninguna llamada de ningún paso puede llevarse más de 30 s (ver
+  // TIMEOUT_LLAMADA_URGENTE_MS). `undefined` deja el plazo por defecto de `llamar` (120 s), que es
+  // el que quiere el fondo: ahí nadie espera y un eslabón lento sigue siendo mejor que ninguno.
+  const timeoutLlamadaMs = urgente ? TIMEOUT_LLAMADA_URGENTE_MS : undefined;
   const acumulador = { coste: 0 };
   const modelosUsados = new Set();
   const rechazadas = [];
@@ -710,6 +728,7 @@ export async function producirTanda(params, opciones = {}) {
         topeEur,
         rutaLog,
         acumulador,
+        timeoutMs: timeoutLlamadaMs,
         modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
       },
     ),
@@ -735,6 +754,7 @@ export async function producirTanda(params, opciones = {}) {
     topeEur,
     rutaLog,
     acumulador,
+    timeoutMs: timeoutLlamadaMs,
     modelos: usaPagoBarato ? [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.verificador] : cascadas.verificador,
   });
   const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
@@ -820,6 +840,7 @@ export async function producirTanda(params, opciones = {}) {
           permitirPago,
           topeEur,
           rutaLog,
+          timeoutMs: timeoutLlamadaMs,
           necesitaVisual: true,
           saltarAcortado: true,
           modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,

@@ -31,7 +31,9 @@ export const MODELOS = {
     'groq:openai/gpt-oss-20b',
     'cerebras:gpt-oss-120b',
     'gemini:gemini-3.6-flash',
-    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    // Ola final v0.2b4.1 (I2): 'nvidia/nemotron-3-ultra-550b-a55b:free' se quitó de aquí -- medido
+    // el 15-sep, un parón de 118,9 s en ese eslabón DENTRO de una tanda urgente. Sigue en
+    // `generadorFondo`, que es donde un eslabón de minuto y medio no le cuesta nada a nadie.
     'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
   ],
   // Nunca el mismo primer eslabón que `generador`: producirTanda excluye al modelo que generó el
@@ -336,6 +338,12 @@ export async function llamar({
   rutaLog = RUTA_LOG_DEFECTO,
   extra = {},
   reintentoMs = REINTENTO_MS,
+  // Ola final v0.2b4.1 (I1/I2): plazo máximo de ESTA llamada. Por defecto los 120 s de siempre (el
+  // fondo no tiene prisa); las cascadas urgentes pasan 30 s, porque ahí hay un jugador mirando el
+  // indicador y esperar dos minutos a un eslabón que va a fallar igual es peor que saltar al
+  // siguiente (medido el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free dentro de una
+  // tanda urgente). Un valor no finito o <= 0 cae al defecto: "sin plazo" nunca es una opción.
+  timeoutMs = TIMEOUT_MS,
   // Solo para los tests: contar que la espera del último recurso ocurre UNA vez (con reintentoMs:0
   // no se puede medir por reloj). En producción no lo pasa nadie.
   alEsperar = () => {},
@@ -346,6 +354,7 @@ export async function llamar({
 }) {
   const errores = [];
   const saturados = [];
+  const msLimite = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : TIMEOUT_MS;
 
   // Devuelve {ok:true, salida} | {ok:false, saturado}. Nunca lanza: todo fallo se anota en
   // `errores` y se decide fuera si queda algo que probar.
@@ -385,10 +394,10 @@ export async function llamar({
         method: 'POST',
         headers: destino.cabeceras,
         body: JSON.stringify(bodyFinal),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(msLimite),
       });
     } catch (err) {
-      const motivo = err.name === 'TimeoutError' ? `sin respuesta en ${TIMEOUT_MS / 1000}s` : err.message;
+      const motivo = err.name === 'TimeoutError' ? `sin respuesta en ${msLimite / 1000}s` : err.message;
       errores.push(`${modelo}: error de red (${motivo})`);
       await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `red: ${motivo}` });
       return { ok: false, saturado: false };

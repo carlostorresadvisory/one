@@ -15,6 +15,7 @@ import {
   MAX_LOTES_EN_VUELO,
   MAX_VISUALES_EN_VUELO,
   completarVisual,
+  TIMEOUT_LLAMADA_URGENTE_MS,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import {
@@ -1314,6 +1315,27 @@ test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de visu
     assert.equal(p.visualPendiente, p.visual === null, 'lo que se corta sale marcado como pendiente');
   }
   assert.ok(transcurrido < 200, `el lote no espera los 5 visuales (~300 ms), solo el primero (medido: ${transcurrido} ms)`);
+});
+
+// --- Ola final v0.2b4.1 (I1/I2): plazo corto por llamada en una tanda urgente --------------------
+test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 30 s a los cuatro pasos; la de fondo no lo toca', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  const plazos = [];
+  const llamar = async (opciones) => {
+    plazos.push(opciones.timeoutMs);
+    return base(opciones);
+  };
+
+  await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
+  assert.ok(plazos.length >= 4, 'generación, verificación, visual y verificación de visual');
+  assert.equal(new Set(plazos).size, 1, 'el mismo plazo en los cuatro pasos');
+  assert.equal(plazos[0], TIMEOUT_LLAMADA_URGENTE_MS);
+  assert.equal(TIMEOUT_LLAMADA_URGENTE_MS, 30000);
+
+  plazos.length = 0;
+  await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: false });
+  assert.ok(plazos.length >= 4);
+  for (const p of plazos) assert.equal(p, undefined, 'el fondo conserva el plazo por defecto de llamar (120 s)');
 });
 
 test('v0.2b4.1 (C2): sin urgente en cola, un lote de fondo resuelve TODOS sus visuales como siempre', async () => {

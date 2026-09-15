@@ -134,6 +134,72 @@ test('v0.2b4.1 §1: Cerebras con 402 (nivel gratuito sin activar) no rompe la ca
   return r;
 });
 
+// === I1/I2 (ola final v0.2b4.1): plazo máximo por llamada, configurable ==========================
+// El plazo de 120 s era el mismo para todo. Medido en vivo el 15-sep: un parón de 118,9 s en
+// `nvidia/nemotron-3-ultra:free` DENTRO de una tanda urgente -- dos minutos de un jugador mirando
+// el indicador por un eslabón que iba a fallar igual. Con `timeoutMs` corto, la cascada salta al
+// siguiente en cuanto el lento se pasa del plazo; el fondo conserva los 120 s de siempre.
+test('v0.2b4.1 (I1): `timeoutMs` corto corta el eslabón lento y salta al siguiente a tiempo', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  const fetchImpl = (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    if (body.model !== 'a/lento:free') return Promise.resolve(respuestaOk(body.model));
+    // Un eslabón que tarda 200 ms y SÍ respeta el signal, como hace `fetch` de verdad.
+    return new Promise((resolver, rechazar) => {
+      const id = setTimeout(() => resolver(respuestaOk(body.model)), 200);
+      opts.signal?.addEventListener('abort', () => {
+        clearTimeout(id);
+        const err = new Error('The operation was aborted due to timeout');
+        err.name = 'TimeoutError';
+        rechazar(err);
+      });
+    });
+  };
+
+  const inicio = Date.now();
+  const r = await llamar({
+    modelos: ['a/lento:free', 'b/rapido:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 0,
+    timeoutMs: 50,
+    cuota: crearRegistroCuota(),
+  });
+  const transcurrido = Date.now() - inicio;
+
+  assert.deepEqual(llamadas, ['a/lento:free', 'b/rapido:free']);
+  assert.equal(r.modelo, 'b/rapido:free');
+  assert.ok(transcurrido < 180, `debe saltar a los ~50 ms, no esperar los 200 del lento (medido: ${transcurrido} ms)`);
+
+  const log = await readFile(RUTA_LOG, 'utf8');
+  assert.match(log, /sin respuesta en 0\.05s/, 'el plazo que se registra es el real de esta llamada, no los 120 s fijos');
+  await limpiarLog();
+});
+
+test('v0.2b4.1 (I1): un `timeoutMs` inválido (0, negativo, NaN) cae al plazo por defecto, nunca a "sin plazo"', async () => {
+  await limpiarLog();
+  for (const malo of [0, -1, Number.NaN, 'pronto']) {
+    const fetchImpl = async (url, opts) => {
+      assert.ok(opts.signal, `con timeoutMs=${String(malo)} sigue habiendo signal de plazo`);
+      return respuestaOk(JSON.parse(opts.body).model);
+    };
+    const r = await llamar({
+      modelos: ['a/uno:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      timeoutMs: malo,
+      cuota: crearRegistroCuota(),
+    });
+    assert.equal(r.modelo, 'a/uno:free');
+  }
+  await limpiarLog();
+});
+
 test('todos los modelos fallan → lanza con ambos ids en el mensaje', async () => {
   await limpiarLog();
   const fetchImpl = async () => respuestaError(500);
@@ -976,6 +1042,16 @@ test('v0.2b4.1 §3: las cascadas de preguntas son todas gratis, rápidas primero
     const primerLento = cascada.findIndex((m) => m.startsWith('nvidia') || m.endsWith(':free'));
     assert.ok(primerLento === -1 || primerLento >= 3, 'lo lento va al final de una cascada urgente');
   }
+
+  // Ola final v0.2b4.1 (I2): los dos nemotron ':free' de OpenRouter, fuera de las cascadas
+  // URGENTES -- medido el 15-sep, 118,9 s parado en uno de ellos con el jugador esperando. Siguen
+  // en las de fondo, que es donde un eslabón de minuto y medio no le cuesta nada a nadie.
+  const lentos = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'nvidia/nemotron-3-super-120b-a12b:free'];
+  for (const lento of lentos) {
+    assert.equal(generador.includes(lento), false, `${lento} sigue en la cascada urgente de generación`);
+    assert.equal(verificador.includes(lento), false, `${lento} sigue en la cascada urgente de verificación`);
+  }
+  assert.ok(generadorFondo.includes(lentos[0]) && generadorFondo.includes(lentos[1]));
 });
 
 // === M2 (ronda de corrección 1): `llamar` reserva/libera cuota en vuelo ==========================
