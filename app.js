@@ -1224,15 +1224,18 @@ function mostrarIndicadorTandaFallida(mensaje = 'No se pudo generar') {
   indicadorTandaTimeoutId = setTimeout(ocultarIndicadorTanda, MS_AVISO_FALLO_TANDA);
 }
 
-/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo, línea ~300): 'lista' y 'fallida'
- * son SIEMPRE terminales; 'parcial' lo es cuando `hechas >= pedidas` (al menos una aprobada, algún
- * fallo por el camino) -- 'parcial' con `hechas < pedidas` solo puede darse en un trabajo de FONDO
- * que cede el turno a uno urgente (servidor/cola.js, `debeCeder`), y el Átomo solo pide trabajos
- * `urgente:true` (que nunca ceden, ver sincronizacion.js#pedirTanda), así que en la práctica CUALQUIER
- * 'parcial' que este cliente observe ya es terminal -- `hechas >= pedidas` es el respaldo, no la
- * única vía. 'en-cola'/'generando' son los dos únicos estados realmente en curso. */
+/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo): 'lista' y 'fallida' son SIEMPRE
+ * terminales; cualquier otro estado ('en-cola', 'generando', 'parcial') solo es terminal cuando
+ * `hechas >= pedidas`.
+ *
+ * Ola final v0.2b4.1 (C1) -- esta función afirmaba justo lo contrario ("cualquier 'parcial' que
+ * este cliente observe ya es terminal") y era falso: servidor/cola.js#procesarCola pone en
+ * 'parcial' a CUALQUIER trabajo que continúa y ya tiene alguna aprobada, urgente incluido -- es el
+ * estado normal de un urgente de 10 ENTRE sus dos lotes de 5. Con la lista invertida, la app
+ * cerraba la tanda a mitad: medido en vivo el 15-sep-2026, "Tanda lista · 4" mientras el servidor
+ * seguía generando y acabó con 8. */
 function trabajoAtomoTerminal(trabajo) {
-  return !['en-cola', 'generando'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
+  return ['lista', 'fallida'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
 }
 
 /** Fusiona `trabajo.preguntas` en el banco extendido y devuelve los ids que de verdad EXISTEN en

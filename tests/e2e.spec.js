@@ -3814,6 +3814,66 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await assertSinScroll(page);
   });
 
+  /** Ola final v0.2b4.1 (C1): el servidor pone un trabajo URGENTE en 'parcial' entre sus dos lotes
+   * de 5 (servidor/cola.js#procesarCola: `siguiente.estado = siguiente.preguntas.length > 0 ?
+   * 'parcial' : 'generando'` cuando el trabajo continúa). Con la lista de estados "en curso" del
+   * cliente ('en-cola'/'generando') ese 'parcial' se leía como TERMINAL y la app cerraba la tanda
+   * con las 5 que hubiera -- medido en vivo el 15-sep: "Tanda lista · 4" mientras el servidor
+   * seguía y acabó con 8. Solo 'lista'/'fallida' (o `hechas >= pedidas`) son terminales. */
+  function servidorTandaParcialFalso() {
+    let sondeos = 0;
+    const pregunta = (i) => preguntaServidor(`srv-parcial-${i + 1}`);
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0,"actualizadas":[]}' });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados', completo: 'Mercados y crisis' }] }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ trabajoId: 'tanda-parcial-1', enCola: 0, estimadoSeg: 40, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      if (url.pathname === '/trabajo/tanda-parcial-1') {
+        // Primer sondeo: 'parcial' a mitad (5 de 10) -- el lote 1 acabó con algún fallo y el
+        // trabajo SIGUE. Del segundo en adelante: 'parcial' ya completo (10 de 10), terminal.
+        const primero = sondeos === 0;
+        sondeos += 1;
+        const cuerpo = primero
+          ? { estado: 'parcial', hechas: 5, pedidas: 10, motivo: null, segundosPorPregunta: 4, preguntas: Array.from({ length: 5 }, (_, i) => pregunta(i)) }
+          : { estado: 'parcial', hechas: 10, pedidas: 10, motivo: null, segundosPorPregunta: 4, preguntas: Array.from({ length: 10 }, (_, i) => pregunta(i)) };
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(cuerpo) });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('v0.2b4.1 (C1): un "parcial" a mitad (5 de 10) NO cierra la tanda; se cierra al llegar a 10', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.route(`${URL_SERVIDOR}/**`, servidorTandaParcialFalso());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    // Con el bug: aquí ya ponía "Tanda lista · 5" y el sondeo se paraba para siempre.
+    await expect(texto).toHaveText(/^5 de 10 · ~/, { timeout: 12000 });
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await assertSinScroll(page);
+  });
+
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {
     await page.goto('/?test=1');
     await page.locator('[data-test="cerebro"]').click();
