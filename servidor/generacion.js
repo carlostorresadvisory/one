@@ -32,6 +32,8 @@ import {
   VERIFICADOR_SOLO_PAGO,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
+  GENERADOR_VISUAL_FONDO,
+  VERIFICADOR_VISUAL_FONDO,
 } from '../tools/visualizar.js';
 import {
   promptSistemaGenerador,
@@ -574,6 +576,22 @@ export async function producirTanda(params, opciones = {}) {
   const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog, urgente = false } = opciones;
 
   const usaPagoBarato = urgente && permitirPago;
+  // v0.2b4.1 §3: quién espera decide qué cascada se usa. Urgente = el jugador mirando el indicador,
+  // así que lo rápido y gratis (Gemini flash-lite + Groq). Fondo = colchón nocturno, nadie espera:
+  // NVIDIA y los ':free', para llegar a la mañana siguiente con la cuota rápida entera.
+  const cascadas = urgente
+    ? {
+        generador: MODELOS.generador,
+        verificador: MODELOS.verificador,
+        visualGenerador: GENERADOR_VISUAL,
+        visualVerificador: VERIFICADOR_VISUAL,
+      }
+    : {
+        generador: MODELOS.generadorFondo,
+        verificador: MODELOS.verificadorFondo,
+        visualGenerador: GENERADOR_VISUAL_FONDO,
+        visualVerificador: VERIFICADOR_VISUAL_FONDO,
+      };
   const acumulador = { coste: 0 };
   const modelosUsados = new Set();
   const rechazadas = [];
@@ -598,7 +616,7 @@ export async function producirTanda(params, opciones = {}) {
           topeEur,
           rutaLog,
           acumulador,
-          ...(usaPagoBarato ? { modelos: [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.generador] } : {}),
+          modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
         },
       );
       borradores = borradores.concat(borradoresTipo);
@@ -619,7 +637,7 @@ export async function producirTanda(params, opciones = {}) {
     topeEur,
     rutaLog,
     acumulador,
-    ...(usaPagoBarato ? { modelos: [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.verificador] } : {}),
+    modelos: usaPagoBarato ? [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.verificador] : cascadas.verificador,
   });
   const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
 
@@ -663,12 +681,10 @@ export async function producirTanda(params, opciones = {}) {
         // v0.2b4 §6b: la explicación acaba de salir del generador de preguntas YA con el límite de
         // 25-40 palabras y ya la verificó verificarBorradores -- reescribirla solo añadía latencia.
         saltarAcortado: true,
-        ...(usaPagoBarato
-          ? {
-              modelosGenerador: [...GENERADOR_SOLO_PAGO, ...GENERADOR_VISUAL],
-              modelosVerificador: [...VERIFICADOR_SOLO_PAGO, ...VERIFICADOR_VISUAL],
-            }
-          : {}),
+        modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
+        modelosVerificador: usaPagoBarato
+          ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
+          : cascadas.visualVerificador,
       });
       acumulador.coste += resolucion.coste || 0;
       if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);

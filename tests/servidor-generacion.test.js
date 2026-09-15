@@ -13,7 +13,12 @@ import {
   VERIFICADOR_PREGUNTAS_SOLO_PAGO,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
-import { GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
+import {
+  GENERADOR_SOLO_PAGO,
+  VERIFICADOR_SOLO_PAGO,
+  GENERADOR_VISUAL_FONDO,
+  VERIFICADOR_VISUAL_FONDO,
+} from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import { EJEMPLOS, promptUsuarioVF, promptSistemaGenerador } from '../tools/prompts-preguntas.js';
 import { MEZCLA } from '../motor.js';
@@ -910,6 +915,25 @@ test('producirTanda: con urgente + permitirPago=true, antepone las cascadas de p
   );
   assert.ok(cascadasVistas.some((c) => c[0] === GENERADOR_SOLO_PAGO[0] && c.length > GENERADOR_SOLO_PAGO.length));
   assert.ok(cascadasVistas.some((c) => c[0] === VERIFICADOR_SOLO_PAGO[0] && c.length > VERIFICADOR_SOLO_PAGO.length));
+});
+
+test('v0.2b4.1 §3: una tanda urgente usa las cascadas rápidas y una de fondo las suyas', async () => {
+  const urgente = crearLlamarPipeline({});
+  await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar: urgente.llamar, urgente: true });
+  const genUrgente = urgente.registro.find((r) => r.sistema.includes('autor de preguntas'));
+  assert.deepEqual(genUrgente.modelos, MODELOS.generador);
+
+  const fondo = crearLlamarPipeline({});
+  await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar: fondo.llamar, urgente: false });
+  const genFondo = fondo.registro.find((r) => r.sistema.includes('autor de preguntas'));
+  assert.deepEqual(genFondo.modelos, MODELOS.generadorFondo, 'el colchón no gasta la cuota rápida');
+  const verFondo = fondo.registro.find((r) => r.sistema.includes('verificador escéptico de preguntas'));
+  // El verificador excluye al modelo que generó, así que se compara contra la cascada ya filtrada.
+  assert.deepEqual(verFondo.modelos, MODELOS.verificadorFondo.filter((m) => m !== genFondo.modelos[0]));
+
+  // Y el paso de visual también cambia de cascada según urgencia.
+  const visualFondo = fondo.registro.find((r) => r.sistema.includes('visual'));
+  assert.equal(visualFondo.modelos[0], GENERADOR_VISUAL_FONDO[0]);
 });
 
 test('producirTanda: sin urgente (aunque permitirPago sea true), usa las cascadas normales, no las de pago barato', async () => {
