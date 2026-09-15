@@ -31,6 +31,9 @@ if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout !== 'functi
 const CLAVE_SERVIDOR = 'one.servidor';
 const CLAVE_BANCO_EXTRA = 'one.bancoExtra';
 const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
+/** v0.2b4.1 §5: hasta cuándo sabe este móvil que está al día con las actualizaciones del servidor
+ * (ISO). Se manda como `desde` en `POST /estado` y se guarda tras cada respuesta válida. */
+export const CLAVE_ACTUALIZADO_HASTA = 'one.actualizadoHasta';
 const TOPE_BANCO_EXTRA = 2000;
 // "Últimos 7 días" (spec §4): ventana de 7 días naturales INCLUYENDO hoy, así que se resta 6.
 const DIAS_RUTAS_ATOMO = 7;
@@ -329,6 +332,75 @@ export function fusionarBancoExtra(nuevas, estado, idsLocales) {
   }
 
   return { anadidas: aAnadir.length, total: combinado.length };
+}
+
+/**
+ * v0.2b4.1 §5: la marca de agua guardada, o `null` si no hay ninguna o si lo guardado NO es una
+ * fecha ISO válida (localStorage corrupto, manipulado a mano, o de una versión anterior a esta que
+ * nunca escribió esta clave con este formato). Nunca manda basura: un valor inválido se trata
+ * exactamente igual que "no hay marca" -- la próxima sincronización pide todo lo que el servidor
+ * tenga marcado, en vez de arriesgarse a un 400 de `POST /estado` (que ahora valida `desde` a
+ * conciencia, ver servidor/index.js#normalizarDesde).
+ * @returns {string | null}
+ */
+export function leerActualizadoHasta() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_ACTUALIZADO_HASTA);
+    if (typeof guardado !== 'string' || !guardado) return null;
+    return Number.isFinite(new Date(guardado).getTime()) ? guardado : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * v0.2b4.1 §5: aplica al banco extendido las correcciones que el servidor ha hecho DESPUÉS de
+ * habernos servido una pregunta -- hoy, solo el visual que no llegó a tiempo en la tanda urgente
+ * (`visualPendiente`). Sustituye únicamente `visual` y `explicacion`, por id: el enunciado, las
+ * opciones y la respuesta correcta NUNCA se tocan desde aquí, porque el jugador puede tener esa
+ * tarjeta delante ahora mismo y cambiarle la pregunta bajo el dedo sería peor que no actualizar.
+ * Quien llama decide CUÁNDO (app.js lo hace al abrir y al terminar partida, igual que la
+ * sincronización, nunca a mitad de una).
+ * @param {{id: string, visual?: object|null, explicacion?: string}[]} actualizadas
+ * @param {object} estado para respetar `estado.reportadas` (lo que el jugador marcó como malo)
+ * @returns {{aplicadas: number}}
+ */
+export function aplicarActualizaciones(actualizadas, estado) {
+  const lista = Array.isArray(actualizadas) ? actualizadas : [];
+  if (lista.length === 0) return { aplicadas: 0 };
+  const reportadas = new Set((estado && estado.reportadas) || []);
+  const porId = new Map();
+  for (const a of lista) {
+    if (!a || typeof a.id !== 'string' || reportadas.has(a.id)) continue;
+    porId.set(a.id, a);
+  }
+  if (porId.size === 0) return { aplicadas: 0 };
+
+  let aplicadas = 0;
+  const actual = leerBancoExtra();
+  const combinado = actual.map((p) => {
+    const cambio = p && typeof p.id === 'string' ? porId.get(p.id) : null;
+    if (!cambio) return p;
+    aplicadas += 1;
+    const explicacion =
+      typeof cambio.explicacion === 'string' && cambio.explicacion.trim() ? cambio.explicacion : p.explicacion;
+    return {
+      ...p,
+      explicacion,
+      visual: cambio.visual ?? p.visual ?? null,
+      // Si el servidor manda un visual, deja de faltar. Si manda `null` (no consiguió ninguno), la
+      // marca se conserva tal cual: el servidor lo volverá a intentar en otra pasada.
+      visualPendiente: cambio.visual ? false : p.visualPendiente === true,
+    };
+  });
+  if (aplicadas === 0) return { aplicadas: 0 };
+
+  try {
+    localStorage.setItem(CLAVE_BANCO_EXTRA, JSON.stringify(combinado));
+  } catch {
+    // Mismo criterio que fusionarBancoExtra: un localStorage lleno no tumba la sincronización.
+  }
+  return { aplicadas };
 }
 
 // === Peticiones al servidor =========================================================================

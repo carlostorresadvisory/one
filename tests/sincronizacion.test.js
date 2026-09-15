@@ -4,6 +4,7 @@
 // docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md §4 y §3.3.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { crearEstado } from '../motor.js';
 import {
   leerConfiguracion,
@@ -12,6 +13,9 @@ import {
   leerBancoExtra,
   fusionarBancoExtra,
   sincronizarEstado,
+  aplicarActualizaciones,
+  leerActualizadoHasta,
+  CLAVE_ACTUALIZADO_HASTA,
   pedirTanda,
   consultarTrabajo,
   pedirSubtemas,
@@ -438,6 +442,66 @@ test('fusionarBancoExtra: sin idsLocales (parámetro omitido), no lanza y funcio
   prepararGlobales();
   const resultado = fusionarBancoExtra([{ id: 'srv-1' }], crearEstado(HOY));
   assert.deepEqual(resultado, { anadidas: 1, total: 1 });
+});
+
+// === aplicarActualizaciones (v0.2b4.1 §5) =========================================================
+
+function bancoExtraDePrueba() {
+  return [
+    { id: 'srv-eco-1', area: 'economia', enunciado: 'Uno', explicacion: 'Explicación uno.', visual: null, visualPendiente: true },
+    { id: 'srv-eco-2', area: 'economia', enunciado: 'Dos', explicacion: 'Explicación dos.', visual: { tipo: 'dato' } },
+  ];
+}
+
+test('aplicarActualizaciones: sustituye visual y explicación POR ID, sin tocar nada más', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+
+  const { aplicadas } = aplicarActualizaciones(
+    [{ id: 'srv-eco-1', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'L' }, explicacion: 'Explicación uno.' }],
+    crearEstado(),
+  );
+
+  assert.equal(aplicadas, 1);
+  const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
+  assert.deepEqual(guardado[0].visual, { tipo: 'formula', texto: 'a = b', leyenda: 'L' });
+  assert.equal(guardado[0].visualPendiente, false, 'ya no falta: el visual llegó');
+  assert.equal(guardado[0].enunciado, 'Uno', 'el enunciado NUNCA se toca desde aquí');
+  assert.deepEqual(guardado[1], bancoExtraDePrueba()[1], 'la que no venía en la lista queda igual');
+});
+
+test('aplicarActualizaciones: un id que no está en el banco extendido se ignora en silencio', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-ajena', visual: { tipo: 'dato' } }], crearEstado());
+  assert.equal(aplicadas, 0);
+  assert.deepEqual(JSON.parse(localStorage.getItem('one.bancoExtra')), bancoExtraDePrueba());
+});
+
+test('aplicarActualizaciones: entradas inservibles no rompen ni escriben (lista vacía, sin id, no-array)', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  for (const entrada of [[], null, undefined, 'texto', [{ visual: { tipo: 'dato' } }], [null]]) {
+    assert.equal(aplicarActualizaciones(entrada, crearEstado()).aplicadas, 0);
+  }
+  assert.deepEqual(JSON.parse(localStorage.getItem('one.bancoExtra')), bancoExtraDePrueba());
+});
+
+test('aplicarActualizaciones: una explicación ausente o vacía NO borra la que ya había', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  aplicarActualizaciones([{ id: 'srv-eco-1', visual: { tipo: 'dato' } }, { id: 'srv-eco-2', explicacion: '  ' }], crearEstado());
+  const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
+  assert.equal(guardado[0].explicacion, 'Explicación uno.');
+  assert.equal(guardado[1].explicacion, 'Explicación dos.');
+});
+
+test('aplicarActualizaciones: una pregunta reportada por el jugador no revive por una actualización', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  const estado = { ...crearEstado(), reportadas: ['srv-eco-1'] };
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', visual: { tipo: 'dato' } }], estado);
+  assert.equal(aplicadas, 0, 'lo que el jugador marcó como malo no se actualiza, se ignora');
 });
 
 // === sincronizarEstado ==============================================================================
