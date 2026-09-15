@@ -622,35 +622,55 @@ test('v0.2b4.1 §5 (extra): una marca guardada que NO es una fecha ISO válida n
   assert.notEqual(leerActualizadoHasta(), 'esto-no-es-una-fecha');
 });
 
-// Requisito extra del controlador: si la respuesta trae la fecha del propio servidor (cabecera HTTP
-// `Date`, estándar en cualquier respuesta real), la marca nueva usa ESA hora -- evita el desfase
-// entre el reloj de este móvil y el del servidor, que es quien de verdad estampa `actualizadaEn`
-// (servidor/cola.js#completarVisual). Sin esa cabecera (como en el resto de mocks de este fichero,
-// que no la traen), cae a la hora local al recibir la respuesta -- ver el siguiente test.
-test('v0.2b4.1 §5 (extra): si la respuesta trae la cabecera `Date`, la marca nueva usa la hora del SERVIDOR, no la local', async () => {
+// Ronda de corrección 1 (I1): si la respuesta trae `ahora` (el reloj del propio SERVIDOR, en el
+// cuerpo JSON -- no una cabecera HTTP, que CORS oculta en una petición cross-origin real, ver
+// servidor/index.js), la marca nueva usa ESA hora tal cual, sin tocarla. Evita el desfase entre el
+// reloj de este móvil y el del servidor, que es quien de verdad estampa `actualizadaEn`
+// (servidor/cola.js#completarVisual) y quien compara `actualizadaEn > desde` en la próxima consulta.
+test('v0.2b4.1 §5 (I1): si la respuesta trae `ahora`, la marca nueva usa la hora del SERVIDOR tal cual, no la local', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchImpl = async () => ({
     ok: true,
     status: 200,
-    headers: { get: (nombre) => (nombre.toLowerCase() === 'date' ? 'Wed, 15 Sep 2026 12:00:00 GMT' : null) },
-    json: async () => ({ preguntas: [], enCola: 0, actualizadas: [] }),
+    json: async () => ({ preguntas: [], enCola: 0, actualizadas: [], ahora: '2026-09-15T12:00:00.000Z' }),
   });
 
   await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
 
-  assert.equal(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA), new Date('Wed, 15 Sep 2026 12:00:00 GMT').toISOString());
+  assert.equal(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA), '2026-09-15T12:00:00.000Z');
 });
 
-test('v0.2b4.1 §5 (extra): sin cabecera `Date` (mocks normales, sin `headers`), la marca usa la hora local al recibir la respuesta', async () => {
+// Sin `ahora` (servidor viejo, v0.2b4.1 antes de esta ronda): cae al reloj LOCAL tomado ANTES de
+// mandar la petición (nunca al recibir la respuesta -- ver el comentario de sincronizarEstado) menos
+// MARGEN_RELOJ_LOCAL_SEG (60 s) de colchón contra el desfase de reloj que motivó esta ronda.
+test('v0.2b4.1 §5 (I1): sin `ahora` (servidor viejo), la marca usa el reloj LOCAL de antes de la petición menos 60 s de margen', async () => {
   prepararGlobales({ conConfiguracion: true });
-  const antes = Date.now();
+  const antesDeLlamar = Date.now();
   const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ preguntas: [], enCola: 0 }) });
 
   await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
 
   const marca = new Date(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA)).getTime();
-  assert.ok(marca >= antes, 'la marca debe ser de justo ahora (recibida), no de una fecha arbitraria');
-  assert.ok(marca <= Date.now() + 1000);
+  // La marca debe caer en la ventana [antesDeLlamar - 60s, ahora - 60s + margen de ejecución]: nunca
+  // por delante del reloj local menos el margen, y nunca mucho más atrás (el test no debería tardar
+  // ni un segundo).
+  assert.ok(marca <= antesDeLlamar - 60_000, `la marca (${marca}) debe llevar el margen de 60 s restado`);
+  assert.ok(marca >= antesDeLlamar - 60_000 - 2000, `la marca (${marca}) no debe ser mucho más antigua de lo esperado`);
+});
+
+test('v0.2b4.1 §5 (I1): un `ahora` que no es una fecha ISO válida se ignora, cae al reloj local con margen (nunca basura)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const antesDeLlamar = Date.now();
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ preguntas: [], enCola: 0, actualizadas: [], ahora: 'esto-no-es-una-fecha' }),
+  });
+
+  await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  const marca = new Date(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA)).getTime();
+  assert.ok(marca <= antesDeLlamar - 60_000);
 });
 
 for (const caso of [

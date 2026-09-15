@@ -34,6 +34,13 @@ const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
 /** v0.2b4.1 §5: hasta cuándo sabe este móvil que está al día con las actualizaciones del servidor
  * (ISO). Se manda como `desde` en `POST /estado` y se guarda tras cada respuesta válida. */
 export const CLAVE_ACTUALIZADO_HASTA = 'one.actualizadoHasta';
+// Ronda de corrección 1 (I1): margen de seguridad para el ÚNICO caso en que este móvil tiene que
+// fiarse de su propio reloj -- un servidor viejo que todavía no manda `ahora` en la respuesta de
+// `POST /estado` (ver `sincronizarEstado`). Restar 60 s antes de guardar la marca cubre un desfase
+// de reloj razonable entre este móvil y el servidor sin arriesgar perder una actualización real
+// para siempre: aplicar una que ya se había aplicado no hace daño (`aplicarActualizaciones` es
+// idempotente por id), mientras que no volver a pedirla sí lo hace.
+const MARGEN_RELOJ_LOCAL_SEG = 60;
 const TOPE_BANCO_EXTRA = 2000;
 // "Últimos 7 días" (spec §4): ventana de 7 días naturales INCLUYENDO hoy, así que se resta 6.
 const DIAS_RUTAS_ATOMO = 7;
@@ -422,58 +429,30 @@ function avisarFalloPeticion(url, motivo) {
   }
 }
 
-// v0.2b4.1 §5 (requisito extra del controlador): la cabecera HTTP `Date` de la respuesta, si el
-// `fetchImpl` la expone -- es el reloj del SERVIDOR, el mismo que estampa `actualizadaEn` en su
-// colchón (servidor/cola.js#completarVisual), así que preferirla sobre la hora local de este móvil
-// evita que un desfase de reloj entre los dos haga que una actualización real se dé por "ya vista".
-// AVISO HONESTO (comprobado, no solo supuesto): en producción esto casi nunca "viene". La app vive
-// en un origen (GitHub Pages) y el servidor en otro (one.ctadvisory.es) -- una petición cross-origin
-// de verdad -- y `servidor/index.js` no manda `Access-Control-Expose-Headers: Date` en sus cabeceras
-// CORS (solo Allow-Origin/Methods/Headers), así que el navegador oculta `Date` a este JS aunque viaje
-// por la red. Queda igualmente como la vía preferida (barata, correcta, y activa el día que el
-// servidor la exponga) y cae sola a la hora local si no hay nada que leer -- nunca lanza, nunca
-// bloquea. La mayoría de `fetchImpl` falsos de los tests tampoco traen `headers`: por eso esto es
-// opcional de punta a punta.
-function leerFechaServidor(respuesta) {
-  try {
-    const cabecera =
-      respuesta && respuesta.headers && typeof respuesta.headers.get === 'function'
-        ? respuesta.headers.get('date')
-        : null;
-    if (!cabecera) return null;
-    const momento = new Date(cabecera);
-    return Number.isFinite(momento.getTime()) ? momento.toISOString() : null;
-  } catch {
-    return null;
-  }
-}
-
 // Igual que `peticionJson`, pero además dice QUÉ pasó: `codigo` es el estado HTTP recibido, o 0
 // cuando ni siquiera hubo respuesta (red caída, DNS, timeout). Solo lo necesita `consultarTrabajo`
 // (ola final v0.2b4, Critical C2): un 404 es "ese trabajo ya no existe" y justifica olvidar la
 // tanda, mientras que un 5xx o un corte de red solo significa "no he podido preguntar" y NO debe
-// borrar nada. `fechaServidor` (v0.2b4.1 §5) la usa `sincronizarEstado`; el resto de funciones la
-// ignora sin más (sigue destructurando solo `{datos}` o `{datos, codigo}`).
+// borrar nada. El resto de funciones sigue usando `peticionJson`, que no distingue.
 async function peticionJsonDetallada(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
   let respuesta;
   try {
     respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     avisarFalloPeticion(url, 'red');
-    return { datos: null, codigo: 0, fechaServidor: null };
+    return { datos: null, codigo: 0 };
   }
   const codigo = Number.isFinite(respuesta.status) ? respuesta.status : 0;
-  const fechaServidor = leerFechaServidor(respuesta);
   if (!respuesta.ok) {
     avisarFalloPeticion(url, String(respuesta.status));
-    return { datos: null, codigo, fechaServidor };
+    return { datos: null, codigo };
   }
   try {
-    return { datos: await respuesta.json(), codigo, fechaServidor };
+    return { datos: await respuesta.json(), codigo };
   } catch {
     // Cuerpo que no es JSON: la petición llegó, pero no sirve. Se trata como fallo, no como 404.
     avisarFalloPeticion(url, 'red');
-    return { datos: null, codigo, fechaServidor };
+    return { datos: null, codigo };
   }
 }
 
@@ -525,10 +504,19 @@ function leerRutasAtomoRecientes(hoy) {
  * v0.2b4.1 §5: manda `desde` (la marca de agua guardada, `leerActualizadoHasta` -- omitido si no
  * hay ninguna o si lo guardado no es una fecha ISO válida, nunca se manda basura) y devuelve
  * también `actualizadas` (siempre un array, `[]` si el servidor no manda nada o es de una versión
- * anterior que no conoce el campo). Tras una respuesta válida, la marca avanza sola: usa la hora
- * del SERVIDOR si la respuesta la trae (cabecera `Date`, ver `leerFechaServidor`) o, si no, la hora
- * local al recibirla. Si la petición falla, la marca NO avanza -- lo que no se vio no se da por
- * visto, y la próxima vez se vuelve a pedir desde el mismo punto.
+ * anterior que no conoce el campo). Tras una respuesta válida, la marca avanza sola:
+ * - Ronda de corrección 1 (I1): usa el reloj del SERVIDOR (`datos.ahora`, un ISO que el servidor
+ *   captura ANTES de calcular qué ha cambiado, ver servidor/index.js#manejarEstado) siempre que la
+ *   respuesta lo traiga -- evita que un desfase entre el reloj de este móvil y el del servidor haga
+ *   que una actualización real se filtre para siempre (el servidor compara `actualizadaEn > desde`
+ *   con SU propio reloj, así que fiarse del reloj local para fijar `desde` es lo que podía perderla).
+ * - Si el servidor es una versión vieja que no manda `ahora`, cae al reloj LOCAL tomado ANTES de
+ *   enviar la petición (nunca al recibir la respuesta: cualquier cambio que el servidor haga
+ *   mientras responde debe seguir contando como "posterior" la próxima vez) menos
+ *   `MARGEN_RELOJ_LOCAL_SEG` (60 s) de colchón: aplicar una actualización que ya se había aplicado
+ *   no hace daño (`aplicarActualizaciones` es idempotente por id), perderla para siempre sí.
+ * Si la petición falla, la marca NO avanza -- lo que no se vio no se da por visto, y la próxima vez
+ * se vuelve a pedir desde el mismo punto.
  * @param {{estado: object, banco: object[], hoy: string, fetchImpl?: Function}} params
  * @returns {Promise<{preguntas: object[], enCola: number, actualizadas: object[]} | null>}
  */
@@ -548,14 +536,23 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
     ...(desde ? { desde } : {}),
   };
 
-  const { datos, fechaServidor } = await peticionJsonDetallada(fetchImpl, `${configuracion.url}/estado`, {
+  // El instante local se toma ANTES de la petición (I1): es el respaldo si el servidor no manda
+  // `ahora`, y en ese caso cualquier cambio que el servidor haga MIENTRAS responde debe seguir
+  // contando como "posterior" la próxima vez -- adelantarlo al momento de la respuesta podría
+  // saltarse una actualización escrita entre medias.
+  const momentoLocal = new Date().toISOString();
+
+  const datos = await peticionJson(fetchImpl, `${configuracion.url}/estado`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
     body: JSON.stringify(cuerpo),
   });
   if (!datos || !Array.isArray(datos.preguntas)) return null;
 
-  const marca = fechaServidor || new Date().toISOString();
+  const marca =
+    typeof datos.ahora === 'string' && Number.isFinite(new Date(datos.ahora).getTime())
+      ? datos.ahora
+      : new Date(new Date(momentoLocal).getTime() - MARGEN_RELOJ_LOCAL_SEG * 1000).toISOString();
   try {
     localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, marca);
   } catch {
