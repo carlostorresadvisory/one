@@ -15,32 +15,55 @@ const REINTENTO_MS = 4000;
 // (hasta ~90s) sin dejar que una llamada colgada pare todo el proceso.
 const TIMEOUT_MS = 120000;
 
-// Cascada de cada papel (pedida por Carlos, 12-sep): de gratis a de pago barato.
-// Ids confirmados contra el catálogo público (GET /api/v1/models) el 12-sep-2026.
+// Cascadas por papel. Todas 100 % gratis (spec §2: los de pago siguen prohibidos, PERMITIR_PAGO=0).
+// Tiempos medidos el 15-sep-2026 con los prompts reales de ONE (spec §0), no estimados:
+//   gemini-flash-lite-latest 1,3 s (y aguanta todo el día) · gemini-3.6-flash 1,2 s, pero agota su
+//   cuota diaria por la tarde · groq gpt-oss-120b 1,8/1,5 s · gpt-oss-20b 1,0/0,95 s ·
+//   groq qwen3.8-27b 5,8 s y 429 a la segunda · NVIDIA 35-72 s · Cerebras 402 mientras no active su
+//   nivel gratuito · los ':free' de OpenRouter, minuto y medio o fallo.
+// El orden no es una preferencia: una tanda de 10 con visuales son ~35.000 tokens y Groq da 8.000
+// por minuto POR MODELO, así que la cascada reparte a propósito entre modelos y proveedores
+// distintos, y tools/cuota.js remata el reparto con lo que va midiendo en vivo.
 export const MODELOS = {
-  // Cascada gratis → de pago barato → de pago (aprobada por Carlos 12-sep-2026, tope diario vía --tope-eur).
-  // Gemini gratis (GEMINI_API_KEY_GRATIS, cableado 14-sep-2026) va primero: es el primer eslabón
-  // gratis de la cascada, antes de los ':free' de OpenRouter.
   generador: [
-    // 15-sep-2026 (tanda real tras publicar v0.2b3): Google retiró gemini-2.5-* para cuentas nuevas
-    // (HTTP 404 "no longer available to new users"). Medido desde el VPS con la clave gratis:
-    // gemini-flash-lite-latest 0,6 s; gemini-3.6-flash 1,2 s; gemini-flash-latest 18 s (piensa);
-    // gemma-4-31b-it 32 s y mete <thought> en el JSON. Alias *-latest para sobrevivir retiradas.
     'gemini:gemini-flash-lite-latest',
+    'groq:openai/gpt-oss-120b',
+    'groq:openai/gpt-oss-20b',
+    'cerebras:gpt-oss-120b',
     'gemini:gemini-3.6-flash',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
-    'nvidia/nemotron-3-super-120b-a12b:free',
-    'z-ai/glm-4.7-flash',
-    'openai/gpt-5-mini',
-    'google/gemini-2.5-flash',
+    'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
   ],
+  // Nunca el mismo primer eslabón que `generador`: producirTanda excluye al modelo que generó el
+  // lote, y si coincidieran, el verificador se quedaría empezando por su segundo eslabón siempre.
   verificador: [
+    'groq:openai/gpt-oss-120b',
     'gemini:gemini-3.6-flash',
+    'groq:qwen/qwen3.8-27b',
+    'cerebras:gpt-oss-120b',
+    'gemini:gemini-flash-lite-latest',
+    'google/gemma-4-31b-it:free',
+    'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+  ],
+  // Los subtemas del átomo son una lista corta de texto: no hace falta más cascada que dos
+  // eslabones rápidos (v0.2b3 los pedía a MODELOS.generador entera, con su cola de pago detrás).
+  subtemas: ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-20b'],
+  // Colchón nocturno (2:00-7:00) y cualquier trabajo de fondo: nadie está esperando, así que se usa
+  // lo LENTO a propósito -- NVIDIA y los ':free' -- y la cuota rápida de Groq/Gemini se reserva
+  // intacta para las tandas del día, que son las que el jugador sí espera (spec §3).
+  generadorFondo: [
+    'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'gemini:gemini-flash-lite-latest',
+    'groq:openai/gpt-oss-20b',
+  ],
+  verificadorFondo: [
+    'nvidia:openai/gpt-oss-20b',
     'google/gemma-4-31b-it:free',
     'nex-agi/nex-n2.5-pro:free',
-    'deepseek/deepseek-v4-flash',
-    'z-ai/glm-4.7-flash',
-    'openai/gpt-5-mini',
+    'gemini:gemini-3.6-flash',
+    'groq:openai/gpt-oss-120b',
   ],
 };
 

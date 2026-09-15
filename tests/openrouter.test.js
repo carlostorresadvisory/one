@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
-import { llamar, extraerJson, esModeloGratis, proveedorDe } from '../tools/openrouter.js';
+import { llamar, extraerJson, esModeloGratis, proveedorDe, MODELOS } from '../tools/openrouter.js';
 import { crearRegistroCuota } from '../tools/cuota.js';
 
 const RUTA_LOG = 'datos/llamadas.test.log';
@@ -941,3 +941,39 @@ test(
     await limpiarLog();
   }),
 );
+
+test('v0.2b4.1 §3: las cascadas de preguntas son todas gratis, rápidas primero y con papeles distintos', () => {
+  const { generador, verificador, subtemas, generadorFondo, verificadorFondo } = MODELOS;
+
+  // Tanda urgente: el jugador está esperando. Los tiempos son los medidos el 15-sep (spec §0).
+  assert.equal(generador[0], 'gemini:gemini-flash-lite-latest'); // 1,3 s y no se agota en todo el día
+  assert.deepEqual(generador.slice(1, 4), ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b', 'cerebras:gpt-oss-120b']);
+  assert.equal(verificador[0], 'groq:openai/gpt-oss-120b'); // 1,5 s
+  assert.equal(subtemas[0], 'gemini:gemini-flash-lite-latest');
+  assert.deepEqual(subtemas, ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-20b']);
+
+  // Regla fija de Carlos: el verificador NUNCA es el generador. Con primeros eslabones distintos,
+  // `excluirModelo` (servidor/generacion.js) nunca deja al verificador sin cascada.
+  assert.notEqual(generador[0], verificador[0]);
+  assert.notEqual(generadorFondo[0], verificadorFondo[0]);
+
+  // Colchón nocturno: empieza por NVIDIA y los ':free' para NO gastar la cuota rápida de día.
+  assert.equal(generadorFondo[0], 'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b');
+  assert.ok(generadorFondo.some((m) => m.endsWith(':free')));
+  assert.ok(verificadorFondo.some((m) => m.endsWith(':free')));
+  // ...y Groq/Gemini solo detrás, como red de seguridad (spec §3).
+  const primerRapidoFondo = generadorFondo.findIndex((m) => m.startsWith('groq:') || m.startsWith('gemini:'));
+  assert.ok(primerRapidoFondo >= 3, 'en el colchón, Groq/Gemini van al final, no en cabeza');
+
+  // Nada de pago en ninguna de las cinco (spec §2: PERMITIR_PAGO=0 sigue siendo el modo real).
+  for (const [nombre, cascada] of Object.entries(MODELOS)) {
+    assert.ok(cascada.length > 0, `${nombre} vacía`);
+    for (const m of cascada) assert.equal(esModeloGratis(m), true, `${nombre}: ${m} no es gratis`);
+  }
+
+  // NVIDIA y los ':free' de OpenRouter, solo al FINAL de las cascadas urgentes (spec §3: 35-90 s).
+  for (const cascada of [generador, verificador]) {
+    const primerLento = cascada.findIndex((m) => m.startsWith('nvidia') || m.endsWith(':free'));
+    assert.ok(primerLento === -1 || primerLento >= 3, 'lo lento va al final de una cascada urgente');
+  }
+});
