@@ -20,6 +20,7 @@ import {
   RUTA_ELEMENTO_MAX_LONGITUD,
 } from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
+import { MODELOS } from '../tools/openrouter.js';
 
 const TOKEN = 'token-de-prueba-0123456789abcdef0123456789abcdef';
 const ORIGEN_PWA = 'https://carlostorresadvisory.github.io';
@@ -806,6 +807,27 @@ test('POST /subtemas: si tras filtrar excluir (y deduplicar) no queda ningún su
   } finally {
     await cerrar();
   }
+});
+
+test('v0.2b4.1 §3: POST /subtemas pide a la cascada corta de subtemas, no a la del generador', async () => {
+  let cascadaVista = null;
+  const llamarFalso = async ({ modelos }) => {
+    cascadaVista = modelos;
+    return { texto: JSON.stringify({ subtemas: ['Uno', 'Dos'] }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFalso });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      // Anillo 2: obliga a preguntar al modelo (el anillo 1 sale de la lista estática).
+      body: JSON.stringify({ area: 'economia', ruta: ['Finanzas corporativas y M&A'] }),
+    });
+    assert.equal(resp.status, 200);
+  } finally {
+    await cerrar();
+  }
+  assert.deepEqual(cascadaVista, MODELOS.subtemas);
 });
 
 test('POST /subtemas con ruta de 1 elemento llama una vez al modelo y cachea en anillos.json', async () => {

@@ -614,7 +614,11 @@ export function crearServidor({
       return;
     }
 
-    const modelos = permitirPago ? MODELOS.generador : MODELOS.generador.filter(esModeloGratis);
+    // v0.2b4.1 §3: cascada propia y corta para los subtemas (dos eslabones rápidos). Antes usaba
+    // MODELOS.generador entera, arrastrando su cola de eslabones lentos a una petición que el
+    // jugador está mirando en el átomo con el dedo encima. `filtrarPorPago` ya no hace falta aquí:
+    // MODELOS.subtemas es 100 % gratis por construcción (tests en tests/openrouter.test.js).
+    const modelos = MODELOS.subtemas.filter(esModeloGratis);
     const mensajes = [
       { role: 'system', content: textoCriterio(area) },
       { role: 'user', content: promptSubtemas(area, ruta, excluir) },
