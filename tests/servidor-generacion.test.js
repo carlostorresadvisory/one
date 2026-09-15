@@ -14,6 +14,7 @@ import {
   enParalelo,
   MAX_LOTES_EN_VUELO,
   MAX_VISUALES_EN_VUELO,
+  completarVisual,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import {
@@ -1188,4 +1189,87 @@ test('v0.2b4.1 §6 (I2): onProgreso llega en tiempo real, según cada candidata 
   const primero = Math.min(...avisos.map((a) => a.enMs));
   const ultimo = Math.max(...avisos.map((a) => a.enMs));
   assert.ok(ultimo - primero > 40, `los avisos deben repartirse en el tiempo, no llegar todos juntos (rango medido: ${ultimo - primero} ms)`);
+});
+
+// --- v0.2b4.1 §5: el visual deja de bloquear (timeout, visualPendiente, completarVisual) --------
+
+test('v0.2b4.1 §5: un visual que tarda más de la cuenta NO retiene la pregunta: sale con visualPendiente', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  const llamar = async (opciones) => {
+    // Solo el paso de visual se queda colgado; generar y verificar preguntas responden normal.
+    if (opciones.mensajes[0].content.includes('visual')) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return base(opciones);
+  };
+
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 2 },
+    { llamar, urgente: true, timeoutVisualMs: 30 },
+  );
+
+  assert.equal(resultado.aprobadas.length, 2, 'las preguntas salen igual: el visual es opcional');
+  for (const p of resultado.aprobadas) {
+    assert.equal(p.visual, null);
+    assert.equal(p.visualPendiente, true, 'marcada para que el trabajo de fondo la complete');
+  }
+});
+
+test('v0.2b4.1 §5: si el visual llega a tiempo, la pregunta sale completa y SIN visualPendiente', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
+  for (const p of resultado.aprobadas) {
+    assert.equal(p.visualPendiente, false);
+  }
+});
+
+test('v0.2b4.1 §5: un trabajo de FONDO no tiene timeout corto (nadie espera, el visual se hace entero)', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  const llamar = async (opciones) => {
+    if (opciones.mensajes[0].content.includes('visual')) await new Promise((r) => setTimeout(r, 60));
+    return base(opciones);
+  };
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 1 },
+    { llamar, urgente: false, timeoutVisualMs: 30 },
+  );
+  assert.equal(resultado.aprobadas[0].visualPendiente, false, 'el timeout es solo del camino urgente');
+  assert.notEqual(resultado.aprobadas[0].visual, null);
+});
+
+test('v0.2b4.1 §5: completarVisual usa las cascadas de FONDO y no toca la explicación', async () => {
+  const cascadasVistas = [];
+  const llamar = async ({ modelos, mensajes }) => {
+    cascadasVistas.push(modelos);
+    // Autocorrección del brief (24-sep-2026): el prompt de verificación real dice "Verificas..."
+    // (con mayúscula inicial) -- `.includes('verificas')` en minúsculas nunca casaba con nada y
+    // dejaba `esVerificador` siempre en `false`, lo que hacía que el propio verificador recibiera
+    // la respuesta con forma de GENERADOR y rechazara el visual (visualOk quedaba undefined). Se
+    // compara en minúsculas por los dos lados para no depender de mayúsculas exactas del prompt.
+    const esVerificador = mensajes[0].content.toLowerCase().includes('verificas');
+    return {
+      texto: JSON.stringify(
+        esVerificador
+          ? { explicacionOk: true, visualOk: true, motivo: '' }
+          : { explicacion: 'da igual lo que diga aquí', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'Prueba' } },
+      ),
+      modelo: modelos[0],
+      coste: 0,
+      usage: {},
+    };
+  };
+
+  const pregunta = { ...borradorVF(), explicacion: 'Explicación original del banco, intacta.', visual: null };
+  const salida = await completarVisual(pregunta, { llamar });
+
+  assert.equal(salida.visual.tipo, 'formula');
+  assert.equal(salida.explicacion, 'Explicación original del banco, intacta.', 'el fondo no reescribe texto');
+  assert.equal(cascadasVistas[0][0], GENERADOR_VISUAL_FONDO[0], 'sin prisa: NVIDIA y :free primero');
+});
+
+test('v0.2b4.1 §5: completarVisual devuelve visual null si la cascada entera falla, sin lanzar', async () => {
+  const llamar = async () => { throw new Error('cascada agotada'); };
+  const salida = await completarVisual({ ...borradorVF(), visual: null }, { llamar });
+  assert.equal(salida.visual, null);
+  assert.equal(salida.coste, 0);
 });
