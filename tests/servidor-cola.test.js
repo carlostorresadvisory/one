@@ -687,6 +687,28 @@ test('servir (Ronda final, C3): una conocida que nunca había pasado por servir(
   assert.ok(colchon[0].servida, 'se marca servida en cuanto el móvil confirma que ya la conoce');
 });
 
+test('v0.2b4.1 §5: `visualPendiente` llega al cliente; los campos internos del colchón siguen sin salir', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    {
+      ...aprobada('economia', 1, { visual: null, visualPendiente: true }),
+      origen: 'servidor',
+      creada: '2026-09-15T10:00:00.000Z',
+      servida: null,
+      actualizadaEn: '2026-09-15T10:05:00.000Z',
+    },
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const [servida] = await cola.servir({ idsConocidos: [], resumen: {}, max: 5 });
+
+  assert.equal(servida.visualPendiente, true, 'el cliente tiene que poder saber que falta el visual');
+  assert.equal(servida.origen, undefined, 'campo interno del colchón');
+  assert.equal(servida.creada, undefined);
+  assert.equal(servida.actualizadaEn, undefined, 'la marca de actualización es logística, no contenido');
+});
+
 test('servir: prioriza el área con menor aciertoReciente (sin datos cuenta como 0.5), luego la más antigua', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);

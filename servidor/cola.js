@@ -46,6 +46,10 @@ const CAMPOS_PUBLICOS_PREGUNTA = [
   'criterio',
   'hilo',
   'visual',
+  // v0.2b4.1 §5: "esta pregunta todavía no tiene su visual, pero lo tendrá". El cliente lo usa
+  // para no dar por definitiva una tarjeta sin visual (y para saber que merece la pena volver a
+  // preguntar). `actualizadaEn` NO entra aquí: es logística del colchón, como `creada`/`servida`.
+  'visualPendiente',
   'tarjeta',
   'sospechoso',
   'confianza',
