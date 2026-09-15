@@ -414,6 +414,21 @@ test('generarVisualYExplicacion: si la explicación se pasa de 40 palabras dos v
   assert.match(notasVistas[2], /máximo 32 palabras/i, 'el tercer intento debe pedir explícitamente 32 palabras');
 });
 
+test('v0.2b4 §6b: el prompt del generador de visuales también pide de 25 a 40 palabras', async () => {
+  let sistema = '';
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    sistema = mensajes[0].content;
+    return {
+      texto: JSON.stringify({ explicacion: 'Una explicación corta y correcta.', visual: null }),
+      modelo: modelos[0],
+      coste: 0,
+      usage: {},
+    };
+  };
+  await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
+  assert.match(sistema, /DE 25 A 40 PALABRAS/);
+});
+
 // --- verificarVisualYExplicacion ---------------------------------------------------------------
 
 test('verificarVisualYExplicacion excluye el modelo generador de la cascada (excluirModelo)', async () => {

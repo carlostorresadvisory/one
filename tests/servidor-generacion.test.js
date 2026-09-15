@@ -15,7 +15,7 @@ import {
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
-import { EJEMPLOS, promptUsuarioVF } from '../tools/prompts-preguntas.js';
+import { EJEMPLOS, promptUsuarioVF, promptSistemaGenerador } from '../tools/prompts-preguntas.js';
 import { MEZCLA } from '../motor.js';
 
 // --- helpers de test -----------------------------------------------------------------------
@@ -239,6 +239,14 @@ for (const tipo of ['test4', 'ordenar', 'error']) {
     assert.equal(validarPregunta(borrador).length, 0, `debe pasar validarPregunta: ${validarPregunta(borrador).join('; ')}`);
   });
 }
+
+// --- promptSistemaGenerador (v0.2b4 §6b) ---------------------------------------------------------
+
+test('v0.2b4 §6b: el prompt de preguntas pide la explicación de 25 a 40 palabras desde la primera llamada', () => {
+  const texto = promptSistemaGenerador('economia');
+  assert.match(texto, /de 25 a 40 palabras/i);
+  assert.match(texto, /nunca más de 40/i);
+});
 
 // --- promptUsuarioVF (Ronda 2, punto 2: el reparto 50/50 real, no solo el recuento final) --------
 // Antes solo se comprobaba el RESULTADO ya parseado (2 true/3 false) con un `llamar` falso que

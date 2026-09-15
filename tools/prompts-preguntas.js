@@ -34,10 +34,12 @@ export function promptSistemaGenerador(area, { ruta = [], nivelObjetivo, evitar 
     'Cada pregunta debe indicar en qué hilo de los de arriba encaja, con el campo "hilo": ' +
     'número (1 = el primero de la lista de hilos del área, 2 = el segundo, etc.). Reparte las ' +
     'preguntas entre los hilos en vez de concentrarlas todas en uno. La "explicacion" tiene que ' +
-    'decir siempre el POR QUÉ (el mecanismo o la razón, no solo repetir el dato) en 1-3 frases y, ' +
-    'cuando encaje de forma natural, conectar con un hecho, debate o noticia reciente (2022-2026) ' +
-    'sin que la pregunta dependa de esa fecha para seguir siendo válida dentro de dos años. No ' +
-    'generes nada de lo que las reglas de utilidad de arriba prohíben.';
+    'decir siempre el POR QUÉ (el mecanismo o la razón, no solo repetir el dato) DE 25 A 40 ' +
+    'PALABRAS (nunca más de 40: una explicación más larga hay que recortarla después con otra ' +
+    'llamada, y eso hace lenta la tanda) en 1-2 frases y, cuando encaje de forma natural, ' +
+    'conectar con un hecho, debate o noticia reciente (2022-2026) sin que la pregunta dependa de ' +
+    'esa fecha para seguir siendo válida dentro de dos años. No generes nada de lo que las reglas ' +
+    'de utilidad de arriba prohíben.';
 
   // Ruta del átomo (spec v0.2 §3.4.1): cuando el jugador ha afinado hasta un hilo/subtema concreto
   // desde la pantalla Átomo, la tanda se centra ahí en vez de repartirse por toda el área.

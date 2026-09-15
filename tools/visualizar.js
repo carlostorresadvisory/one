@@ -312,9 +312,10 @@ function promptSistemaGenerador(criterioTexto) {
     `${criterioTexto}\n\n` +
     'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
     'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n' +
-    'EXPLICACIÓN: LÍMITE DURO de 40 palabras -- una propuesta de más de 40 se RECHAZA automáticamente ' +
-    'aunque el contenido sea perfecto, así que apunta a 30-32 palabras como objetivo real (cuenta las ' +
-    'palabras que llevas antes de terminar la frase; si te pasas, recorta, no añadas "..."). Español ' +
+    'EXPLICACIÓN: DE 25 A 40 PALABRAS -- por debajo de 25 se queda coja y por encima de 40 se ' +
+    'RECHAZA automáticamente aunque el contenido sea perfecto, así que apunta a 32-36 palabras como ' +
+    'objetivo real (cuenta las palabras que llevas antes de terminar la frase; si te pasas, recorta, ' +
+    'no añadas "..."). Español ' +
     'impecable, en 2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
     '(2) un gancho memorable: una anécdota, un dato sorprendente o su conexión con la actualidad ' +
     '(2022-2026) si existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la ' +
