@@ -502,14 +502,31 @@ function irAlHub() {
   mostrarVista('progreso');
 }
 
+/** Vistas en las que hay una partida a medias que no se puede pisar: la tarjeta del mazo "ES la
+ * vista" (spec v0.1c §1), así que salir de `pregunta`/`repaso` por cualquier vía que pase por
+ * `irAlHub` desmonta el mazo y pierde el sitio donde iba el jugador (ola final v0.2b4, I1). */
+function hayPartidaAMedias() {
+  return ['pregunta', 'repaso'].includes(vistaActual());
+}
+
 /** "←" de la cabecera: desde el HUB vuelve a los emojis; desde cualquier otro
- * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis. */
+ * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis.
+ *
+ * Ola final v0.2b4 (I1c): excepción para `atomo-espera` -- si se llegó ahí desde una partida que
+ * sigue montada, "←" devuelve a la partida en vez de mandarla a la basura. Defensivo: hoy el
+ * toque en el indicador ya no abre la espera desde `pregunta`/`repaso` (I1a), así que este caso
+ * no debería darse; si algún camino futuro vuelve a abrirla con el mazo vivo, el "←" no destruye
+ * la partida por sorpresa. */
 function manejarVolver() {
   if (vistaActual() === 'progreso') {
     irAInicioEmojis();
-  } else {
-    irAlHub();
+    return;
   }
+  if (vistaActual() === 'atomo-espera' && mazoControlador) {
+    mostrarVista('pregunta');
+    return;
+  }
+  irAlHub();
 }
 
 let avisoCuerpoId = null;
@@ -3659,8 +3676,17 @@ nodoNuevasServidor.addEventListener('click', () => {
 // - 'en-curso': abre la vista de espera del átomo (tras una recarga esta vista todavía no tiene
 //   texto: `mostrarEsperaAtomo` lo pinta desde `atomoTrabajoInfo` antes de mostrarla).
 // - 'fallo' o cualquier otro: solo se cierra.
+//
+// Ola final v0.2b4 (I1, hallazgo del revisor ejecutando la app): el indicador vive FUERA de
+// <main>, así que está encima de la partida mientras se juega -- y tocarlo la abandonaba, tanto
+// en 'en-curso' (abría la espera; el "←" de ahí llamaba a irAlHub y desmontaba el mazo) como en
+// 'lista' (arrancaba OTRA partida encima de la que se estaba jugando). Ruling del controlador:
+// desde `pregunta`/`repaso` el toque NO hace nada, ni navega ni pisa nada; el indicador se queda
+// donde está ("Tanda lista · N" no se apaga) hasta que el jugador termine o salga al HUB, y allí
+// el toque vuelve a funcionar como siempre. Sin diálogos nativos (confirm() está prohibido).
 nodoIndicadorTanda.addEventListener('click', () => {
   if (atomoTandaEstado === 'lista' && atomoTandaLista) {
+    if (hayPartidaAMedias()) return; // no se pisa la partida en curso (I1b)
     const { ids, corto } = atomoTandaLista;
     atomoTandaLista = null;
     ocultarIndicadorTanda();
@@ -3668,6 +3694,7 @@ nodoIndicadorTanda.addEventListener('click', () => {
     return;
   }
   if (atomoTandaEstado === 'en-curso') {
+    if (hayPartidaAMedias()) return; // no se abandona la partida en curso (I1a)
     const info = atomoTrabajoInfo || {};
     mostrarEsperaAtomo(info.rutaTexto || info.corto || 'tu tanda', null);
     return;

@@ -3419,7 +3419,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     expect(clavesConToken).toEqual([]);
   });
 
-  test('v0.2b4 §2: el indicador se ve en todas las vistas mientras se genera y tocarlo abre la espera', async ({ page }) => {
+  test('v0.2b4 §2: el indicador se ve en todas las vistas mientras se genera y tocarlo abre la espera desde el HUB', async ({ page }) => {
     await page.route(
       `${URL_SERVIDOR}/**`,
       servidorAtomoFalso({
@@ -3448,7 +3448,15 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(indicador).toBeVisible();
 
-    // Spec §2: en curso, tocarlo abre la vista de espera del átomo.
+    // Ola final v0.2b4 (I1): DENTRO de una partida el toque ya no navega -- abrir la espera desde
+    // `pregunta` abandonaba la partida en curso (irAlHub por el "←"). Se queda donde está.
+    await indicador.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeHidden();
+
+    // Spec §2: fuera de la partida (HUB), en curso, tocarlo sí abre la vista de espera del átomo.
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await indicador.click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
     await page.locator('[data-test="volver"]').click();
@@ -3503,6 +3511,60 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await comprobarSolapeEnTresVistas();
     await page.setViewportSize({ width: 393, height: 852 });
     await comprobarSolapeEnTresVistas();
+  });
+
+  /** Ola final v0.2b4 -- I1: el indicador vive fuera de <main>, encima de la partida. Tocarlo
+   * mientras se juega la abandonaba: en 'en-curso' abría la espera (y el "←" de ahí desmontaba el
+   * mazo) y en 'lista' arrancaba OTRA partida encima. Ruling del controlador: desde
+   * `pregunta`/`repaso` el toque no hace nada; desde el HUB sigue funcionando igual que siempre. */
+  test('v0.2b4 §2 (I1): tocar el indicador durante una partida no la abandona, ni en curso ni listo', async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const indicador = page.locator('[data-test="indicador-tanda"]');
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+
+    // (a) 'en-curso' desde `repaso`: el toque no navega (el primer sondeo del mock dice "generando").
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await page.locator('[data-test="atomo-repasar-mientras"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await expect(texto).toHaveText(/^0 de 10/);
+    await indicador.click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeHidden();
+
+    // (b) 'lista' con una partida a medias: el toque no pisa la partida y el indicador se queda.
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    const contadorAntes = await tarjetaActual(page).locator('[data-test="mazo-contador"]').textContent();
+
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await indicador.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    // Sigue siendo LA MISMA partida (el contador no se ha reiniciado a "0/10" de otra tanda) y el
+    // indicador sigue ofreciendo la tanda: no es un aviso que se apaga, es una oferta que espera.
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText(contadorAntes);
+    await expect(texto).toHaveText('Tanda lista · 10');
+    await expect(indicador).toBeVisible();
+
+    // Fuera de la partida (HUB) el toque vuelve a arrancar la tanda, como siempre.
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(texto).toHaveText('Tanda lista · 10');
+    await indicador.click();
+    await expect(indicador).toBeHidden();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
   });
 
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {
