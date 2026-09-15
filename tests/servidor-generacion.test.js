@@ -1034,3 +1034,34 @@ test('v0.2b4.1 §4: enParalelo con un fallo no tumba al resto (cada tarea se res
   });
   assert.deepEqual(salida, [{ ok: true, valor: 10 }, { ok: false, error: 'boom' }, { ok: true, valor: 30 }]);
 });
+
+test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuelo y sin pausa entre preguntas', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  let visualesEnVuelo = 0;
+  let maxVisuales = 0;
+  const llamar = async (opciones) => {
+    const esVisual = opciones.mensajes[0].content.includes('visual');
+    if (esVisual) {
+      visualesEnVuelo += 1;
+      maxVisuales = Math.max(maxVisuales, visualesEnVuelo);
+    }
+    try {
+      await new Promise((r) => setTimeout(r, 15));
+      return base(opciones);
+    } finally {
+      if (esVisual) visualesEnVuelo -= 1;
+    }
+  };
+
+  const inicio = Date.now();
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar, urgente: true });
+  const duracion = Date.now() - inicio;
+
+  assert.equal(resultado.aprobadas.length, 10);
+  assert.ok(maxVisuales > 1, 'los visuales deben solaparse');
+  assert.ok(maxVisuales <= MAX_VISUALES_EN_VUELO, `tope de ${MAX_VISUALES_EN_VUELO} en vuelo`);
+  // Sin paralelismo ni pausa serían >= 20 llamadas x 15 ms = 300 ms; con la pausa de 1 s por
+  // pregunta que la spec manda quitar, más de 10 s. El margen es amplio a propósito: mide que NO
+  // hay serialización oculta, no una latencia concreta.
+  assert.ok(duracion < 2000, `una tanda de 10 con dobles de 15 ms no puede tardar ${duracion} ms`);
+});

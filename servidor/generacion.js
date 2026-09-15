@@ -681,6 +681,8 @@ export async function producirTanda(params, opciones = {}) {
   });
   const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
 
+  // Fase 1 (síncrona, sin red): aplicar veredictos y validar. Lo que sobrevive pasa a la fase 2.
+  const candidatas = [];
   for (const borrador of borradores) {
     const veredicto = veredictoPorId.get(borrador.id);
     if (!veredicto) {
@@ -692,10 +694,6 @@ export async function producirTanda(params, opciones = {}) {
       rechazadas.push({ borrador, motivo: veredicto.motivo || 'no aprobada por el verificador' });
       continue;
     }
-
-    // El nivel del verificador manda siempre sobre el que propuso el generador (spec §3.1).
-    // Ronda final (M5): `confianza` del verificador se copia a la pregunta -- antes se calculaba
-    // para decidir `ok` en verificarBorradores y se tiraba, perdiendo un dato real y ya calculado.
     const candidata = {
       ...borrador,
       nivel: Number.isInteger(veredicto.nivel) ? veredicto.nivel : borrador.nivel,
@@ -703,43 +701,49 @@ export async function producirTanda(params, opciones = {}) {
       verificado: true,
       verificador: veredicto.modelo,
     };
-
     const erroresValidacion = validarPregunta(candidata);
     if (erroresValidacion.length > 0) {
       rechazadas.push({ borrador: candidata, motivo: `validarPregunta: ${erroresValidacion.join('; ')}` });
       continue;
     }
+    candidatas.push(candidata);
+  }
 
-    let resuelta = { ...candidata, visual: null };
-    try {
-      const resolucion = await resolverPregunta(candidata, {
-        llamar: llamarFn,
-        permitirPago,
-        topeEur,
-        rutaLog,
-        necesitaVisual: true,
-        // v0.2b4 §6b: la explicación acaba de salir del generador de preguntas YA con el límite de
-        // 25-40 palabras y ya la verificó verificarBorradores -- reescribirla solo añadía latencia.
-        saltarAcortado: true,
-        modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
-        modelosVerificador: usaPagoBarato
-          ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
-          : cascadas.visualVerificador,
-      });
+  // Fase 2: el visual de cada candidata, EN PARALELO (spec §4). Era el bucle secuencial más caro de
+  // la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detrás de otra. La pausa
+  // de 1 s entre preguntas desaparece de aquí -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la CLI
+  // offline de tools/visualizar.js, que es donde tiene sentido ser cortés con la cascada.
+  const resueltas = await enParalelo(candidatas, MAX_VISUALES_EN_VUELO, async (candidata) => {
+    const resolucion = await resolverPregunta(candidata, {
+      llamar: llamarFn,
+      permitirPago,
+      topeEur,
+      rutaLog,
+      necesitaVisual: true,
+      saltarAcortado: true,
+      modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
+      modelosVerificador: usaPagoBarato
+        ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
+        : cascadas.visualVerificador,
+    });
+    return resolucion;
+  });
+
+  resueltas.forEach((resultado, i) => {
+    const candidata = candidatas[i];
+    if (resultado.ok) {
+      const resolucion = resultado.valor;
       acumulador.coste += resolucion.coste || 0;
       if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);
       if (resolucion.modeloVerificador) modelosUsados.add(resolucion.modeloVerificador);
-      resuelta = { ...candidata, explicacion: resolucion.explicacion, visual: resolucion.visual };
-    } catch {
-      // Si toda la cascada de visuales falla (red, todos los modelos agotados...), la pregunta
-      // entra igual, sin visual -- igual que cuando resolverPregunta rechaza el visual con calma
-      // (spec §3.4: "una que falle (a) o (b) se descarta con motivo" no aplica al visual, que es
-      // opcional; el 11 % del banco tampoco lo tiene).
-      resuelta = { ...candidata, visual: null };
+      aprobadas.push({ ...candidata, explicacion: resolucion.explicacion, visual: resolucion.visual });
+    } else {
+      // Toda la cascada de visuales falló: la pregunta entra igual, sin visual. El visual es
+      // opcional (el 11 % del banco tampoco lo tiene) y nunca justifica tirar una pregunta que YA
+      // pasó la verificación.
+      aprobadas.push({ ...candidata, visual: null });
     }
-
-    aprobadas.push(resuelta);
-  }
+  });
 
   return {
     aprobadas,
