@@ -136,3 +136,51 @@ test('elegirModelo: con dos empatados en "cuándo vuelve", gana el que va antes 
   for (const m of CASCADA) registro.registrarRespuesta(m, respuestaConCabeceras({ 'retry-after': '10' }, 429));
   assert.equal(registro.elegirModelo(CASCADA, 5000), CASCADA[0]);
 });
+
+// === M2 (ronda de corrección 1): reserva en vuelo ================================================
+// `elegirModelo`/`hayHueco` solo aprendían de respuestas YA recibidas: en una ráfaga de llamadas
+// concurrentes que comparten el mismo registro (producirTanda con `enParalelo`), todas elegían el
+// mismo primer eslabón antes de que llegara ninguna respuesta real. `reservar`/`liberar` llevan la
+// cuenta de lo comprometido "en vuelo" para que `hayHueco` lo descuente mientras no hay respuesta.
+
+test('v0.2b4.1 §2 (M2): reservar/liberar -- 3 elecciones seguidas sin respuestas de por medio reparten entre eslabones', () => {
+  const { registro } = registroDePrueba();
+  const CASCADA2 = ['groq:a', 'groq:b'];
+  registro.registrarRespuesta('groq:a', respuestaConCabeceras({ 'x-ratelimit-remaining-tokens': '8000' }));
+
+  const elegirYReservar = (tokens) => {
+    const modelo = registro.elegirModelo(CASCADA2, tokens);
+    registro.reservar(modelo, tokens);
+    return modelo;
+  };
+
+  assert.equal(elegirYReservar(3000), 'groq:a', '8000 disponibles: caben 3000');
+  assert.equal(elegirYReservar(3000), 'groq:a', '8000-3000=5000 reales, pero -3000 reservados = 5000 >= 3000');
+  assert.equal(elegirYReservar(3000), 'groq:b', 'con 6000 ya reservados en "a" solo quedan 2000: no caben otros 3000 -> salta a "b"');
+
+  // Llegan las respuestas reales de las 3 llamadas: se liberan las reservas y el dato real manda.
+  registro.liberar('groq:a', 3000);
+  registro.liberar('groq:a', 3000);
+  registro.registrarRespuesta('groq:a', respuestaConCabeceras({ 'x-ratelimit-remaining-tokens': '8000' }));
+  registro.liberar('groq:b', 3000);
+  registro.registrarRespuesta('groq:b', respuestaConCabeceras({ 'x-ratelimit-remaining-tokens': '8000' }));
+
+  assert.equal(registro.elegirModelo(CASCADA2, 3000), 'groq:a', 'tras liberar y registrar las respuestas, "a" vuelve a estar disponible');
+});
+
+test('v0.2b4.1 §2 (M2): liberar nunca deja la reserva en negativo (doble liberación, o liberar de más)', () => {
+  const { registro } = registroDePrueba();
+  registro.registrarRespuesta('groq:a', respuestaConCabeceras({ 'x-ratelimit-remaining-tokens': '1000' }));
+  registro.reservar('groq:a', 500);
+  registro.liberar('groq:a', 500);
+  registro.liberar('groq:a', 500); // de más: no debe dejar la cuenta en -500 (que "inventaría" hueco)
+  assert.equal(registro.hayHueco('groq:a', 1000), true, 'tras liberar del todo, los 1000 reales vuelven a caber enteros');
+});
+
+test('v0.2b4.1 §2 (M2): sin datos reales de un modelo, reservar no lo bloquea (sin registro = disponible)', () => {
+  const { registro } = registroDePrueba();
+  // Gemini/NVIDIA no mandan cabeceras: reservar sobre un modelo sin `registrarRespuesta` previo no
+  // debe inventarse un límite que nunca existió.
+  registro.reservar('gemini:gemini-flash-lite-latest', 999999);
+  assert.equal(registro.hayHueco('gemini:gemini-flash-lite-latest', 999999), true);
+});

@@ -977,3 +977,52 @@ test('v0.2b4.1 §3: las cascadas de preguntas son todas gratis, rápidas primero
     assert.ok(primerLento === -1 || primerLento >= 3, 'lo lento va al final de una cascada urgente');
   }
 });
+
+// === M2 (ronda de corrección 1): `llamar` reserva/libera cuota en vuelo ==========================
+// Integración con tools/cuota.js: una ráfaga de `llamar` concurrentes que comparten el mismo
+// registro (como hace producirTanda con `enParalelo`) no deben elegir todas el mismo primer eslabón
+// antes de que llegue ninguna respuesta real -- ver correccion M2 y tests/cuota.test.js.
+test(
+  'v0.2b4.1 §2 (M2): tres `llamar` concurrentes con el mismo registro reparten entre eslabones (reserva en vuelo)',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota();
+    // Límite conocido de antemano (como si ya hubiera respondido una vez): 8.000 tokens/min.
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 200, headers: new Headers({ 'x-ratelimit-remaining-tokens': '8000' }) });
+
+    const llamadasVistas = [];
+    // Cada fetch tarda un poco y NO resuelve hasta que las 3 llamadas ya han tenido que elegir
+    // eslabón -- así se prueba que la reserva actúa ANTES de que llegue ninguna respuesta real.
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadasVistas.push(body.model);
+      await new Promise((r) => setTimeout(r, 20));
+      return respuestaOk(body.model, '{"ok":true}');
+    };
+
+    const unaLlamada = () =>
+      llamar({
+        modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+        // ~3.000 tokens estimados cada una (maxTokens grande para forzarlo sin depender del texto).
+        mensajes: [{ role: 'user', content: 'hola' }],
+        maxTokens: 3000,
+        json: false,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+        cuota,
+      });
+
+    // Las 3 arrancan a la vez, compartiendo `cuota`, sin esperar respuesta entre medias.
+    await Promise.all([unaLlamada(), unaLlamada(), unaLlamada()]);
+
+    // Con reserva en vuelo: 8.000 tokens, ~3.000 por llamada -> caben 2 en "120b" y la 3.ª debe
+    // saltar a "20b" (sin reserva, las 3 habrían elegido "120b" porque ninguna respuesta real había
+    // llegado todavía para descontar nada).
+    const en120b = llamadasVistas.filter((m) => m === 'openai/gpt-oss-120b').length;
+    const en20b = llamadasVistas.filter((m) => m === 'openai/gpt-oss-20b').length;
+    assert.equal(en120b + en20b, 3);
+    assert.ok(en20b >= 1, `sin reserva en vuelo, las 3 habrían ido a "120b" (vistas: ${JSON.stringify(llamadasVistas)})`);
+    await limpiarLog();
+  }),
+);

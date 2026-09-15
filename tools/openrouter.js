@@ -447,7 +447,19 @@ export async function llamar({
   while (pendientes.length > 0) {
     const modelo = cuota.elegirModelo(pendientes, tokensEstimados);
     pendientes.splice(pendientes.indexOf(modelo), 1);
-    const resultado = await intentarModelo(modelo);
+    // v0.2b4.1 §2 (M2, ronda de corrección 1): reserva ANTES del intento, se libera SIEMPRE al
+    // terminar (en el `finally`, pase lo que pase -- éxito, HTTP de error, o una excepción de red).
+    // Sin esto, una ráfaga de `llamar` concurrentes que comparten `cuota` (producirTanda con
+    // `enParalelo`) elegían todas el mismo primer eslabón, porque `elegirModelo`/`hayHueco` solo
+    // sabían de respuestas YA recibidas -- ninguna de las llamadas en vuelo había respondido
+    // todavía cuando las demás decidían.
+    cuota.reservar(modelo, tokensEstimados);
+    let resultado;
+    try {
+      resultado = await intentarModelo(modelo);
+    } finally {
+      cuota.liberar(modelo, tokensEstimados);
+    }
     if (resultado.ok) return resultado.salida;
     if (resultado.saturado) saturados.push(modelo);
   }

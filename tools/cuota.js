@@ -84,6 +84,11 @@ function numeroDeCabecera(valor) {
  */
 export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
   const porModelo = new Map();
+  // M2 (ronda de corrección 1): tokens "en vuelo" -- reservados al elegir un eslabón, antes de que
+  // llegue ninguna respuesta. Sin esto, una ráfaga de llamadas concurrentes que comparten este
+  // mismo registro (producirTanda con `enParalelo`) eligen todas el mismo primer eslabón, porque
+  // `hayHueco` solo sabía de respuestas YA recibidas.
+  const reservasPorModelo = new Map();
 
   /** Anota lo que esta respuesta cuenta sobre la cuota de `modelo`. Nunca lanza. */
   function registrarRespuesta(modelo, respuesta) {
@@ -113,14 +118,39 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
   /** ¿Puede esta llamada, de `tokensEstimados`, entrar ahora mismo por este eslabón? */
   function hayHueco(modelo, tokensEstimados = 0) {
     const info = porModelo.get(modelo);
-    if (!info) return true; // sin datos = disponible (spec §2)
+    // Sin datos reales = disponible (spec §2), aunque haya reservas en vuelo: sin un límite real
+    // conocido no hay nada que descontar -- las reservas solo restringen eslabones de los que ya se
+    // sabe algo (Groq con cabeceras reales); Gemini/NVIDIA sin cabeceras siguen "disponibles".
+    if (!info) return true;
     const ahora = reloj();
     if (info.hasta > ahora) return false;
     if (info.peticionesRestantesDia !== null && info.peticionesRestantesDia <= 0) return false;
     if (info.tokensRestantesMinuto === null) return true;
     // La cuota de tokens es por minuto: pasada la ventana desde la medición, se da por repuesta.
     if (ahora - info.medidoEn >= VENTANA_TOKENS_MS) return true;
-    return info.tokensRestantesMinuto >= tokensEstimados;
+    const reservado = reservasPorModelo.get(modelo) || 0;
+    return info.tokensRestantesMinuto - reservado >= tokensEstimados;
+  }
+
+  /**
+   * M2: reserva `tokensEstimados` de `modelo` -- se llama al elegir el eslabón, ANTES de que la
+   * llamada real responda, para que la siguiente elección concurrente vea el hueco ya comprometido.
+   * `liberar` es su contraparte obligatoria (`llamar` la invoca en un `finally`, pase lo que pase).
+   */
+  function reservar(modelo, tokensEstimados = 0) {
+    if (!modelo) return;
+    const actual = reservasPorModelo.get(modelo) || 0;
+    reservasPorModelo.set(modelo, actual + (Number(tokensEstimados) || 0));
+  }
+
+  /** Libera una reserva hecha con `reservar`. Nunca deja la cuenta en negativo (protege contra una
+   * doble liberación o un `tokensEstimados` mayor que lo reservado). */
+  function liberar(modelo, tokensEstimados = 0) {
+    if (!modelo) return;
+    const actual = reservasPorModelo.get(modelo) || 0;
+    const restante = Math.max(0, actual - (Number(tokensEstimados) || 0));
+    if (restante === 0) reservasPorModelo.delete(modelo);
+    else reservasPorModelo.set(modelo, restante);
   }
 
   /** Cuánto falta (ms) para que este eslabón vuelva a estar disponible. 0 si ya lo está. */
@@ -139,6 +169,7 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
 
   function olvidar() {
     porModelo.clear();
+    reservasPorModelo.clear();
   }
 
   /**
@@ -159,7 +190,7 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
     return [...lista].sort((a, b) => disponibleEnMs(a) - disponibleEnMs(b))[0];
   }
 
-  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo, olvidar };
+  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo, reservar, liberar, olvidar };
 }
 
 /**
