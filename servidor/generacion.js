@@ -662,6 +662,9 @@ export async function producirTanda(params, opciones = {}) {
     onProgreso,
     // v0.2b4.1 §5: timeout del visual SOLO para una tanda urgente (ver `limiteVisual` en fase 2).
     timeoutVisualMs = TIMEOUT_VISUAL_MS,
+    // Ola final v0.2b4.1 (C2): "¿hay alguien esperando ahora mismo?". La inyecta servidor/cola.js
+    // (`() => colaUrgente.length > 0`) y SOLO se consulta en modo fondo -- ver `cortarPorUrgente`.
+    hayUrgente = null,
   } = opciones;
 
   const usaPagoBarato = urgente && permitirPago;
@@ -789,12 +792,28 @@ export async function producirTanda(params, opciones = {}) {
   // hay límite: nadie espera y el visual sale entero a la primera.
   const limiteVisual = urgente ? timeoutVisualMs : 0;
 
+  // Ola final v0.2b4.1 (C2): ¿ha llegado un urgente mientras este lote de FONDO trabajaba? Medido
+  // en vivo el 15-sep: un urgente esperó 5 m 23 s detrás de UN solo lote de fondo -- el trabajador
+  // ya cede entre lotes (servidor/cola.js), pero un lote con concurrencia 1 y cascadas lentas dura
+  // minutos él solo. Se consulta en el ÚNICO punto donde cortar no pierde nada: la fase de
+  // visuales. Cada candidata ya está generada, verificada y validada, así que la que se corta sale
+  // con `visualPendiente: true` y el trabajo de fondo de la cola le pone el visual después. La
+  // guarda está dentro de `fn`, así que se evalúa ANTES DEL PRIMER visual (el corte "entre fases":
+  // si el urgente ya estaba ahí, no se empieza ninguno) y ANTES DE CADA UNO DE LOS SIGUIENTES (el
+  // corte "entre visuales"). Cortar ANTES -- entre generación y verificación -- sí perdería
+  // trabajo ya pagado: el lote se cierra igual en `hechas` (ejecutarUnLote, `finally`), así que
+  // esos borradores no volverían a intentarse nunca. Un urgente NUNCA cede (sería cederse a sí
+  // mismo): la guarda exige `!urgente`.
+  const cortarPorUrgente = () => !urgente && typeof hayUrgente === 'function' && hayUrgente() === true;
+
   // Fase 2: el visual de cada candidata, EN PARALELO (spec §4). Era el bucle secuencial más caro de
   // la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detrás de otra. La pausa
   // de 1 s entre preguntas desaparece de aquí -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la CLI
   // offline de tools/visualizar.js, que es donde tiene sentido ser cortés con la cascada.
   const resueltas = await enParalelo(candidatas, topeVisuales, async (candidata) => {
     try {
+      // C2: hay un jugador esperando -- esta pregunta sale ya, sin visual y marcada pendiente.
+      if (cortarPorUrgente()) return null;
       const resolucion = await conLimite(
         resolverPregunta(candidata, {
           llamar: llamarFn,

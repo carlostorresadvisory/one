@@ -320,6 +320,12 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
           {
             ...opciones,
             urgente: trabajo.urgente,
+            // Ola final v0.2b4.1 (C2): "¿hay alguien esperando ahora mismo?", consultable EN VIVO
+            // desde dentro del lote. Ceder entre lotes no basta: un lote de fondo con concurrencia
+            // 1 y cascadas lentas dura minutos él solo (medido: un urgente esperó 5 m 23 s detrás
+            // de UNO). `producirTanda` solo la consulta en modo fondo, y solo para cortar su fase
+            // de visuales (ver generacion.js#cortarPorUrgente).
+            hayUrgente: () => colaUrgente.length > 0,
             onProgreso: ({ verificadas }) => {
               const dentroDelLote = Math.min(Math.max(0, verificadas), tamanoLote);
               trabajo.hechas = Math.min(hechasAlEmpezar + dentroDelLote, trabajo.pedidas);
@@ -706,6 +712,11 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   }
 
   async function rellenarHaciaObjetivo(resumen, rutasAtomo) {
+    // Ola final v0.2b4.1 (C2): con un jugador esperando su tanda, rellenar el colchón es lo último
+    // que importa -- y cada trabajo de fondo encolado es un turno más que el urgente puede acabar
+    // esperando. Esto se dispara en CADA `POST /estado` (servidor/index.js), así que saltárselo no
+    // pierde nada: el siguiente /estado, segundos después, vuelve a intentarlo.
+    if (colaUrgente.length > 0 || (activo && activo.urgente)) return [];
     const objetivo = await calcularObjetivo(resumen, rutasAtomo);
     const encolados = [];
     for (const { area, ruta, faltan } of objetivo) {

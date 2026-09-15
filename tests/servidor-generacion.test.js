@@ -1281,6 +1281,64 @@ test('v0.2b4.1 §5: un trabajo de FONDO no tiene timeout corto (nadie espera, el
   assert.notEqual(resultado.aprobadas[0].visual, null);
 });
 
+// --- Ola final v0.2b4.1 (C2): un lote de FONDO cede el paso de visuales a un urgente -------------
+//
+// Medido en vivo el 15-sep: un urgente esperó 5 m 23 s detrás de UN solo lote de fondo. El
+// trabajador ya cede ENTRE lotes (servidor/cola.js), pero un lote de fondo con concurrencia 1 y
+// cascadas lentas puede durar minutos él solo, y el jugador está mirando el indicador. El paso de
+// visuales es el único que se puede cortar sin perder nada: la pregunta ya está generada,
+// verificada y validada, y sale con `visualPendiente: true` para que el trabajo de fondo de
+// servidor/cola.js#completarVisualesPendientes le ponga el visual después.
+test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de visuales y entrega el resto pendiente', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  let visualesResueltos = 0;
+  const llamar = async (opciones) => {
+    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
+    if (esGeneradorVisual) await new Promise((r) => setTimeout(r, 60));
+    const salida = await base(opciones);
+    if (opciones.mensajes[0].content.includes('Verificas, de forma ESCÉPTICA')) visualesResueltos += 1;
+    return salida;
+  };
+
+  const inicio = Date.now();
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 5 },
+    { llamar, urgente: false, hayUrgente: () => visualesResueltos >= 1 },
+  );
+  const transcurrido = Date.now() - inicio;
+
+  assert.equal(resultado.aprobadas.length, 5, 'no se pierde ninguna aprobada: el lote entrega todo lo que tiene');
+  const conVisual = resultado.aprobadas.filter((p) => p.visual !== null);
+  assert.equal(conVisual.length, 1, 'solo el visual que ya estaba en curso llega a terminarse');
+  for (const p of resultado.aprobadas) {
+    assert.equal(p.visualPendiente, p.visual === null, 'lo que se corta sale marcado como pendiente');
+  }
+  assert.ok(transcurrido < 200, `el lote no espera los 5 visuales (~300 ms), solo el primero (medido: ${transcurrido} ms)`);
+});
+
+test('v0.2b4.1 (C2): sin urgente en cola, un lote de fondo resuelve TODOS sus visuales como siempre', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 3 },
+    { llamar, urgente: false, hayUrgente: () => false },
+  );
+  assert.equal(resultado.aprobadas.length, 3);
+  for (const p of resultado.aprobadas) {
+    assert.equal(p.visualPendiente, false);
+    assert.notEqual(p.visual, null);
+  }
+});
+
+test('v0.2b4.1 (C2): una tanda URGENTE nunca cede, aunque `hayUrgente` diga que sí (es ella misma)', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 2 },
+    { llamar, urgente: true, hayUrgente: () => true },
+  );
+  assert.equal(resultado.aprobadas.length, 2);
+  for (const p of resultado.aprobadas) assert.equal(p.visualPendiente, false);
+});
+
 test('v0.2b4.1 §5: completarVisual usa las cascadas de FONDO y no toca la explicación', async () => {
   const cascadasVistas = [];
   const llamar = async ({ modelos, mensajes }) => {

@@ -629,6 +629,65 @@ test('rellenarHaciaObjetivo: encola un trabajo de fondo por entrada faltante, si
   pendientes[0].resolver(resultadoVacio(30));
 });
 
+// Ola final v0.2b4.1 (C2): `rellenarHaciaObjetivo` se dispara en CADA `POST /estado`, y el relleno
+// del colchón es lo último que importa cuando hay un jugador esperando su tanda: cada trabajo de
+// fondo que entra en la cola es un turno más que el urgente puede acabar esperando (medido en
+// vivo el 15-sep: 5 m 23 s detrás de UN lote de fondo). Si hay un urgente en cola o en curso, el
+// colchón espera al siguiente /estado -- no se pierde nada, se llama cada pocos segundos.
+test('rellenarHaciaObjetivo (C2): no encola nada de fondo mientras hay un urgente en cola o en curso', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const pendientes = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async (params) => new Promise((resolver) => pendientes.push({ resolver, area: params.area })),
+  });
+
+  const resumen = { areas: { economia: { nivel: 1, aciertoReciente: 0.1 } } };
+  cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: true }); // un solo lote: termina de una
+  await hastaQue(() => pendientes.length === 1, { intentos: 100 });
+  assert.equal(pendientes[0].area, 'historia', 'el urgente es lo que está en curso');
+
+  const encolados = await cola.rellenarHaciaObjetivo(resumen, []);
+  assert.deepEqual(encolados, [], 'con un urgente en curso, el relleno del colchón se salta entero');
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(pendientes.length, 1, 'no ha arrancado ningún trabajo de fondo');
+
+  // En cuanto el urgente termina, el siguiente /estado sí rellena.
+  pendientes[0].resolver(resultadoVacio(5));
+  await hastaQue(() => cola.estadisticas().enCola === 0 && cola.estadisticas().activo === 0);
+  const despues = await cola.rellenarHaciaObjetivo(resumen, []);
+  assert.ok(despues.length > 0, 'sin urgentes, el relleno vuelve a funcionar como siempre');
+  await hastaQue(() => pendientes.length > 1, { intentos: 100 });
+  for (const p of pendientes.slice(1)) p.resolver(resultadoVacio(5));
+});
+
+test('cola (C2): un lote de FONDO recibe `hayUrgente`, y dice la verdad sobre la cola de urgentes', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const vistas = [];
+  let resolverFondo;
+  const cola = crearCola({
+    almacen,
+    producirTanda: (params, opciones) => {
+      vistas.push({ area: params.area, urgente: opciones.urgente, hayUrgente: opciones.hayUrgente });
+      return new Promise((r) => { resolverFondo = () => r(resultadoVacio(params.n)); });
+    },
+  });
+
+  cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => vistas.length === 1);
+  assert.equal(typeof vistas[0].hayUrgente, 'function', 'la cola inyecta la consulta en cada lote');
+  assert.equal(vistas[0].hayUrgente(), false, 'nadie esperando todavía');
+
+  cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: true });
+  assert.equal(vistas[0].hayUrgente(), true, 'el urgente recién encolado se ve desde el lote en curso');
+
+  resolverFondo();
+  await hastaQue(() => vistas.length >= 2);
+  resolverFondo();
+});
+
 // === servidor/cola.js: servir / reportar ======================================================
 
 test('servir: excluye idsConocidos y reportadas, marca servida y persiste', async () => {
