@@ -703,3 +703,51 @@ test(
     await limpiarLog();
   }),
 );
+
+test(
+  'v0.2b4.1 §1: Groq gpt-oss recibe reasoning_effort low y NVIDIA el interruptor de "no pensar"',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuerpos = {};
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      cuerpos[body.model] = body;
+      return respuestaOk(body.model, '{"ok":true}');
+    };
+    const pedir = (id) =>
+      llamar({
+        modelos: [id],
+        mensajes: [
+          { role: 'system', content: 'Eres un autor de preguntas.' },
+          { role: 'user', content: 'hola' },
+        ],
+        json: true,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+      });
+
+    await pedir('groq:openai/gpt-oss-120b');
+    assert.equal(cuerpos['openai/gpt-oss-120b'].reasoning_effort, 'low', 'spec §0: gpt-oss lo exige');
+
+    // groq/compound NO admite reasoning_effort (spec §0): el extra es por modelo, no por proveedor.
+    await pedir('groq:groq/compound-mini');
+    assert.equal(cuerpos['groq/compound-mini'].reasoning_effort, undefined);
+
+    await pedir('nvidia:nvidia/nemotron-3.5-lightning-30b-a3b');
+    const nvidia = cuerpos['nvidia/nemotron-3.5-lightning-30b-a3b'];
+    assert.deepEqual(nvidia.chat_template_kwargs, { thinking: false, enable_thinking: false });
+    assert.ok(
+      nvidia.messages[0].content.startsWith('/no_think\ndetailed thinking off\n'),
+      'el prefijo va DENTRO del sistema, delante del criterio, sin borrarlo',
+    );
+    assert.ok(nvidia.messages[0].content.includes('Eres un autor de preguntas.'));
+    assert.equal(nvidia.messages[1].content, 'hola', 'el mensaje de usuario no se toca');
+
+    // Gemini y OpenRouter no reciben nada de esto.
+    await pedir('gemini:gemini-flash-lite-latest');
+    assert.equal(cuerpos['gemini-flash-lite-latest'].reasoning_effort, undefined);
+    assert.equal(cuerpos['gemini-flash-lite-latest'].chat_template_kwargs, undefined);
+    await limpiarLog();
+  }),
+);

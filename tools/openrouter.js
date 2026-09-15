@@ -114,6 +114,41 @@ const CAMPOS_PROPIOS_OPENROUTER = [
   'plugins',
 ];
 
+// Extras que cada proveedor necesita para NO razonar en voz alta (spec §0 y §1). No son preferencias
+// de estilo: sin ellos, el modelo antepone su razonamiento al JSON y `extraerJson` falla o la
+// respuesta se trunca -- exactamente el síntoma que ya obligó a SIN_RAZONAMIENTO en visualizar.js.
+const EXTRA_GROQ_GPT_OSS = { reasoning_effort: 'low' };
+const EXTRA_NVIDIA = { chat_template_kwargs: { thinking: false, enable_thinking: false } };
+// NVIDIA necesita además el interruptor dentro del propio texto del sistema: con el
+// chat_template_kwargs solo, nemotron seguía devolviendo <think> en la prueba del 15-sep.
+const PREFIJO_SISTEMA_NVIDIA = '/no_think\ndetailed thinking off\n';
+
+/**
+ * Aplica al body los extras que exige el proveedor de `modelo`. Recibe y devuelve el body ENTERO
+ * (incluidos `messages`) porque NVIDIA no solo añade campos: también reescribe el mensaje de
+ * sistema. Un modelo sin proveedor propio (OpenRouter) sale tal cual entró.
+ * @param {string} modelo id con prefijo, tal cual va en la cascada
+ * @param {object} body body ya construido (model sin prefijo, messages, temperature...)
+ * @returns {object} body nuevo (nunca muta el recibido)
+ */
+export function ajustarPeticion(modelo, body) {
+  const proveedor = proveedorDe(modelo);
+  if (!proveedor) return body;
+  if (proveedor.prefijo === 'groq:' && String(body.model).includes('gpt-oss')) {
+    return { ...body, ...EXTRA_GROQ_GPT_OSS };
+  }
+  if (proveedor.prefijo === 'nvidia:') {
+    const mensajes = Array.isArray(body.messages) ? body.messages : [];
+    const primero = mensajes[0];
+    const conNoThink =
+      primero && primero.role === 'system'
+        ? [{ ...primero, content: PREFIJO_SISTEMA_NVIDIA + primero.content }, ...mensajes.slice(1)]
+        : [{ role: 'system', content: PREFIJO_SISTEMA_NVIDIA.trim() }, ...mensajes];
+    return { ...body, ...EXTRA_NVIDIA, messages: conNoThink };
+  }
+  return body;
+}
+
 // Resuelve a qué API va cada eslabón de la cascada: OpenRouter (por defecto) o el endpoint
 // compatible con OpenAI del proveedor propio del prefijo. El body lleva el nombre del modelo SIN el
 // prefijo; las cabeceras HTTP-Referer/X-Title y los campos de `camposPropiosOpenRouter` son propios
@@ -320,6 +355,10 @@ export async function llamar({
     for (const campo of camposPropiosOpenRouter) {
       delete body[campo];
     }
+    // Los extras del proveedor se aplican DESPUÉS del borrado: `reasoning_effort` y
+    // `chat_template_kwargs` son campos estándar del proveedor de destino, no extensiones de
+    // OpenRouter, y no deben caer en el mismo filtro.
+    const bodyFinal = ajustarPeticion(modelo, body);
 
     // Reintento único ante 429/503 (cuota agotada o servicio saturado): se ve a menudo tanto en
     // los ':free' de OpenRouter como en Gemini gratis, y un segundo intento suele bastar.
@@ -331,7 +370,7 @@ export async function llamar({
         respuesta = await fetchImpl(url, {
           method: 'POST',
           headers: cabeceras,
-          body: JSON.stringify(body),
+          body: JSON.stringify(bodyFinal),
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
       } catch (err) {
