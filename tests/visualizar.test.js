@@ -768,7 +768,30 @@ test('v0.2b4 §6b: con saltarAcortado pero explicación de más de 40 palabras, 
 test('v0.2b4 §6b: explicacionYaCumple cuenta palabras, no caracteres', () => {
   assert.equal(explicacionYaCumple('Una explicación de siete palabras exactas aquí.'), true);
   assert.equal(explicacionYaCumple(''), false);
+  // Caso borde: EXACTAMENTE 40 palabras cabe (límite inclusivo); 41 ya no.
+  assert.equal(explicacionYaCumple(Array.from({ length: 40 }, () => 'x').join(' ')), true);
   assert.equal(explicacionYaCumple(Array.from({ length: 41 }, () => 'x').join(' ')), false);
+});
+
+test('v0.2b4 §6b: con saltarAcortado pero explicación VACÍA, se reescribe como siempre (no hay nada que "ya cumpla")', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ explicacion: 'Explicación generada desde cero.', visual: null }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: 'ok' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const r = await resolverPregunta(preguntaBase({ explicacion: '' }), {
+    llamar: llamarFalso,
+    necesitaVisual: false,
+    saltarAcortado: true,
+  });
+  assert.equal(r.explicacionCambiada, true, 'explicación vacía no "ya cumple": no se salta el acortado');
+  assert.equal(r.explicacion, 'Explicación generada desde cero.');
 });
 
 // --- reverificarVisualesGuardados (modo --reverificar-visuales, hallazgo 4) --------------------

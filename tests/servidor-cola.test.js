@@ -469,6 +469,21 @@ test('cola v0.2b4 §6c: encolar dice cuántas preguntas hay POR DELANTE, no cuá
   resolverLote();
 });
 
+test('cola v0.2b4 §6c: una tanda fallida (0 hechas antes de terminar) no ensucia la media móvil', async () => {
+  // Caso borde pedido en la autorrevisión: un trabajo puede terminar 'fallida' con preguntas.length
+  // === 0 -- finalizarTrabajo no debe intentar dividir por trabajo.hechas === 0 ni registrar una
+  // muestra falsa. La media móvil debe seguir en el valor inicial (20) tras un fallo total.
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({ almacen, producirTanda: async (params) => resultadoVacio(params.n), reloj: reloj.leer });
+
+  const { trabajoId } = cola.encolar({ area: 'historia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'fallida');
+
+  assert.equal(cola.estadisticas().segundosPorPregunta, 20, 'una tanda sin ninguna aprobada no debe alterar la media');
+});
+
 test('cola v0.2b4 §1: un trabajo terminado se conserva al menos 1 h (antes se tiraba al llegar a 100)', async () => {
   const carpeta = await carpetaTmp();
   const almacen = crearAlmacen(carpeta);
