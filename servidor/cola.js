@@ -265,6 +265,13 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // Ronda de corrección 1 (revisión Opus, Important #2): tiempo de PARED de ESTE lote en
+    // concreto, no de punta a punta del trabajo -- un trabajo de fondo que cede el turno (ver
+    // procesarCola) puede pasar minutos aparcado en colaFondo mientras otro trabajo ocupa al
+    // trabajador; ese tiempo aparcado NUNCA debe contar como "tiempo de generar" en la media móvil
+    // de §6c. Se acumula en `trabajo.msActivos` (finally, debajo) y es lo único que usa
+    // finalizarTrabajo para calcular la muestra.
+    const inicioLote = reloj();
     // Ronda final (C2): resultado de ESTE lote en concreto (no de `trabajo.huboFallo`, que puede
     // venir ya en `true` de un lote anterior del mismo trabajo) -- es lo que alimenta
     // `ultimoError`/`ultimaGeneracionOk` al final, en el `finally`.
@@ -324,6 +331,9 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
       // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
       trabajo.hechas += tamanoLote;
+      // Solo el tiempo de ESTE lote (desde que el trabajador lo cogió hasta que lo suelta), nunca
+      // el tiempo aparcado entre cesiones -- ver comentario de `inicioLote` arriba.
+      trabajo.msActivos = (trabajo.msActivos || 0) + (reloj() - inicioLote);
       if (falloEsteLote) {
         ultimoError = String(falloEsteLote).slice(0, 300);
       } else {
@@ -336,9 +346,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo ? 'parcial' : 'lista') : 'fallida';
     // v0.2b4 §6c: media móvil de segundos por pregunta. Solo cuentan las tandas que de verdad
     // produjeron algo: una 'fallida' mide el tiempo de un fallo (429 en cadena, red caída), no el de
-    // generar, y contaminaría la estimación.
-    if (trabajo.preguntas.length > 0 && Number.isFinite(trabajo.inicio) && trabajo.hechas > 0) {
-      const seg = (reloj() - trabajo.inicio) / 1000 / trabajo.hechas;
+    // generar, y contaminaría la estimación. Ronda de corrección 1: usa `msActivos` (tiempo activo
+    // acumulado lote a lote, ver ejecutarUnLote), NUNCA el tiempo de pared desde que el trabajo
+    // arrancó -- un trabajo que cedió el turno pasó parte de ese tiempo aparcado, no generando.
+    if (trabajo.preguntas.length > 0 && Number.isFinite(trabajo.msActivos) && trabajo.hechas > 0) {
+      const seg = trabajo.msActivos / 1000 / trabajo.hechas;
       if (seg > 0) {
         muestrasSegPorPregunta.push(seg);
         if (muestrasSegPorPregunta.length > MUESTRAS_SEG_POR_PREGUNTA) muestrasSegPorPregunta.shift();
@@ -370,9 +382,6 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       if (siguiente.preguntas.length === 0) {
         siguiente.estado = 'generando';
       }
-
-      // Marca de arranque REAL del trabajo (primer lote), para la media móvil de §6c.
-      if (!Number.isFinite(siguiente.inicio)) siguiente.inicio = reloj();
 
       // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
       // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en

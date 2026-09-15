@@ -14,7 +14,13 @@ export const PARA_QUIEN =
 export const REGLAS_UTILIDAD =
   'Una pregunta es ÚTIL si al responderla (acierte o falle) el jugador entiende algo nuevo del mundo, ' +
   'gana una referencia que podrá usar en una conversación, o se lleva un dato memorable con contexto. ' +
-  'La explicación es la mitad del valor: siempre dice el POR QUÉ, no solo el qué, en 1-3 frases claras, y ' +
+  // Ronda de corrección 1 (Tarea 3, v0.2b4): antes decía "1-3 frases claras" sin límite de
+  // palabras, y ese texto va SIEMPRE delante (textoCriterio) del prompt de 25-40 palabras/1-2
+  // frases de tools/prompts-preguntas.js y tools/visualizar.js -- un mensaje de sistema que se
+  // contradice a sí mismo hacía que el generador se pasara de 40 palabras con más frecuencia de
+  // la necesaria, y cada vez que se pasaba, explicacionYaCumple() daba false: el acortado (que
+  // §6b existe justamente para saltar) volvía a dispararse. Ahora dice lo mismo que el prompt.
+  'La explicación es la mitad del valor: siempre dice el POR QUÉ, no solo el qué, DE 25 A 40 PALABRAS en 1-2 frases claras, y ' +
   'cuando sea posible enlaza con un hecho, debate o noticia reciente (2022-2026) sin que la pregunta ' +
   'dependa de él (la pregunta debe seguir siendo válida dentro de dos años). ' +
   'NO son útiles y quedan PROHIBIDAS: siglas y su significado, números de puerto, versiones de estándares ' +

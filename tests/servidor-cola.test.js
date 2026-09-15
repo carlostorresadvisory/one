@@ -429,6 +429,43 @@ test('cola v0.2b4 §6c: segundosPorPregunta arranca en 20 y pasa a ser la media 
   assert.equal(cola.estadoTrabajo(trabajoId).segundosPorPregunta, 6);
 });
 
+// Ronda de corrección 1 (revisión Opus, Important #2): un trabajo de fondo que cede el turno a un
+// urgente conservaba `inicio` desde su primer lote -- la muestra medía tiempo de PARED de punta a
+// punta, así que se comía íntegro el tiempo que el urgente tardó mientras el de fondo esperaba su
+// turno. `rellenarHaciaObjetivo` se dispara en cada /estado (servidor/index.js), así que fondo y
+// urgentes conviven a diario: con ventana de 5 muestras, una sola cesión inflaba el estimadoSeg de
+// TODOS los usuarios siguientes. La media debe medir solo el tiempo ACTIVO de este trabajo (sus
+// propios lotes), nunca el tiempo que pasó aparcado mientras otro trabajo ocupaba al trabajador.
+test('cola v0.2b4 §6c (corrección 1): un fondo que cede el turno a un urgente NO incorpora el tiempo del urgente a su propia muestra', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const producirTanda = async ({ area, n }) => {
+    if (area === 'historia') {
+      reloj.avanzar(10000); // 10 s de trabajo ACTIVO real por lote (2 lotes de 5 -> 20 s en total)
+      return resultadoOk(area, n, n);
+    }
+    // El urgente ('economia') tarda muchísimo MIENTRAS el de fondo está cedido/aparcado, y no debe
+    // dejar ninguna muestra propia (0 aprobadas -> 'fallida', fuera de la ventana de medición) para
+    // que la única muestra que acabe en la media sea la del propio 'historia'.
+    reloj.avanzar(100000); // 100 s "perdidos" por el de fondo si el bug sigue vivo
+    return resultadoVacio(n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+
+  // Mismo patrón que el test de Ronda 1 en la sección de arriba: el urgente se encola en la MISMA
+  // vuelta síncrona que el de fondo, así que ya está en `colaUrgente` cuando el primer lote de
+  // 'historia' termina y decide si cede.
+  const { trabajoId: idFondo } = cola.encolar({ area: 'historia', n: 10, urgente: false });
+  cola.encolar({ area: 'economia', n: 5, urgente: true });
+
+  await hastaQue(() => cola.estadoTrabajo(idFondo)?.estado === 'lista');
+
+  // Con el fix: 20 s de trabajo activo / 10 preguntas = 2 s/pregunta. Con el bug (tiempo de pared
+  // de punta a punta): (10 + 100 + 10) s / 10 preguntas = 12 s/pregunta.
+  assert.equal(cola.estadisticas().segundosPorPregunta, 2);
+});
+
 test('cola v0.2b4 §6c: la media usa solo las últimas 5 tandas y las fallidas no cuentan', async () => {
   const carpeta = await carpetaTmp();
   const almacen = crearAlmacen(carpeta);
