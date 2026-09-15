@@ -428,6 +428,10 @@ test('v0.2b4 §6b: el prompt del generador de visuales también pide de 25 a 40 
   };
   await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
   assert.match(sistema, /DE 25 A 40 PALABRAS/);
+  // Ola final v0.2b4 (M2): "en 2 frases" era una talla única; una explicación que cabe en una
+  // frase no debe alargarse solo para cumplir el formato.
+  assert.match(sistema, /en 1-2 frases/);
+  assert.doesNotMatch(sistema, /en 2 frases/);
 });
 
 // --- verificarVisualYExplicacion ---------------------------------------------------------------
@@ -741,6 +745,11 @@ test('v0.2b4 §6b: resolverPregunta con saltarAcortado y explicación que ya cum
   // Una llamada al generador + una al verificador: ni un intento de acortado.
   assert.equal(sistemas.filter((s) => s.papel === 'generador').length, 1);
   assert.match(sistemas[0].texto, /NO la reescribas/);
+  // Ola final v0.2b4 (M1): con soloVisual, NADA del prompt puede pedir la explicación -- ni la
+  // frase de entrada ("es reescribir la EXPLICACIÓN...") ni la forma del JSON de salida.
+  assert.doesNotMatch(sistemas[0].texto, /es reescribir la EXPLICACIÓN/);
+  assert.match(sistemas[0].texto, /Devuelve SOLO JSON con la forma exacta: \{"visual"/);
+  assert.doesNotMatch(sistemas[0].texto, /\{"explicacion":/);
 });
 
 test('v0.2b4 §6b: con saltarAcortado pero explicación de más de 40 palabras, se reescribe como siempre', async () => {

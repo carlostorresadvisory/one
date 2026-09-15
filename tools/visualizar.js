@@ -290,6 +290,10 @@ export function contarPalabras(texto) {
   return partes.length;
 }
 
+// Ola final v0.2b4 (M3): ÚNICA fuente del límite de palabras de la explicación. Antes el 40 estaba
+// además escrito a mano en los prompts, en el corte del reintento y en la comprobación en código
+// del verificador -- cambiar el límite en un sitio y olvidarlo en otro daba un generador pidiendo
+// una cosa y un verificador rechazando otra.
 const LIMITE_PALABRAS_EXPLICACION = 40;
 
 /** v0.2b4 §6b: ¿la explicación que YA trae la pregunta cabe en el límite? Si la respuesta es sí, no
@@ -326,18 +330,28 @@ function promptSistemaGenerador(criterioTexto, { soloVisual = false } = {}) {
   const bloqueExplicacion = soloVisual
     ? 'La EXPLICACIÓN de esta pregunta ya es correcta y ya cabe en el límite de palabras: NO la ' +
       'reescribas y NO la devuelvas. Tu única tarea en esta llamada es el VISUAL.\n\n'
-    : 'EXPLICACIÓN: DE 25 A 40 PALABRAS -- por debajo de 25 se queda coja y por encima de 40 se ' +
+    : `EXPLICACIÓN: DE 25 A ${LIMITE_PALABRAS_EXPLICACION} PALABRAS -- por debajo de 25 se queda coja ` +
+      `y por encima de ${LIMITE_PALABRAS_EXPLICACION} se ` +
       'RECHAZA automáticamente aunque el contenido sea perfecto, así que apunta a 32-36 palabras como ' +
       'objetivo real (cuenta las palabras que llevas antes de terminar la frase; si te pasas, recorta, ' +
       'no añadas "..."). Español ' +
-      'impecable, en 2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
+      // M2: "en 2 frases" era una talla única que empujaba a alargar explicaciones que cabían en una.
+      'impecable, en 1-2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
       '(2) un gancho memorable: una anécdota, un dato sorprendente o su conexión con la actualidad ' +
       '(2022-2026) si existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la ' +
       'explicación original.\n\n';
+  // Ola final v0.2b4 (M1): con `soloVisual`, la frase de entrada tampoco puede hablar de
+  // "reescribir la EXPLICACIÓN" -- contradecía al párrafo siguiente ("NO la reescribas") y era una
+  // invitación a devolverla igualmente. La forma exacta del JSON pedido ya excluye "explicacion"
+  // en ese modo (ver el final de esta función).
+  const introduccion = soloVisual
+    ? 'Tu tarea ahora NO es generar preguntas nuevas: es proponer un VISUAL de apoyo para la ' +
+      'tarjeta de respuesta de una pregunta ya existente.\n\n'
+    : 'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
+      'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n';
   return (
     `${criterioTexto}\n\n` +
-    'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
-    'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n' +
+    introduccion +
     bloqueExplicacion +
     'VISUAL (solo si "necesita_visual" es true): un objeto de DATOS -- nunca un dibujo, la app lo ' +
     'pinta con plantillas propias -- que ilustre la "respuesta_correcta" indicada (nunca una opción ' +
@@ -414,8 +428,8 @@ function promptSistemaVerificador(criterioTexto, { soloVisual = false } = {}) {
     : 'Verificas, de forma ESCÉPTICA e independiente de quien la propuso, una explicación corta y (si ' +
       'se te da) un visual de apoyo para una pregunta de quiz ya existente.\n' +
       '"explicacionOk" es true SOLO si la propuesta conserva el hecho clave de la "explicacion_actual", ' +
-      'no introduce ningún error factual ni de redacción/concordancia, y no se pasa claramente de 40 ' +
-      'palabras.\n';
+      'no introduce ningún error factual ni de redacción/concordancia, y no se pasa claramente de ' +
+      `${LIMITE_PALABRAS_EXPLICACION} palabras.\n`;
   return (
     `${criterioTexto}\n\n` +
     bloqueExplicacion +
@@ -539,14 +553,14 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
       explicacion = explicacionCandidata;
       visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
     }
-    if (explicacionCandidata && palabras <= 40) {
+    if (explicacionCandidata && palabras <= LIMITE_PALABRAS_EXPLICACION) {
       break; // válida: no gasta el/los intento(s) que quedaran
     }
 
     // Prepara la nota del siguiente intento, si queda alguno.
     if (intento === 0) {
       notaReintento = explicacionCandidata
-        ? `\n\nIMPORTANTE: en el intento anterior tu "explicacion" tenía ${palabras} palabras (> 40, se habría rechazado). Recórtala sin perder el hecho clave.`
+        ? `\n\nIMPORTANTE: en el intento anterior tu "explicacion" tenía ${palabras} palabras (> ${LIMITE_PALABRAS_EXPLICACION}, se habría rechazado). Recórtala sin perder el hecho clave.`
         : '\n\nIMPORTANTE: en el intento anterior no devolviste "explicacion" (vacía o ausente). Esta vez inclúyela SIEMPRE, no vacía.';
     } else if (intento === 1) {
       notaReintento =
@@ -625,7 +639,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     // pregunta de la ejecución completa, art-001) que el verificador puede dar explicacionOk:true a
     // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
     // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
-    const dentroDelLimite = contarPalabras(propuesta.explicacion) <= 40;
+    const dentroDelLimite = contarPalabras(propuesta.explicacion) <= LIMITE_PALABRAS_EXPLICACION;
     // Igual de objetivo: una explicación vacía nunca es válida, tras el reintento de
     // generarVisualYExplicacion o no (fijado tras la pasada adversarial del 13-sep-2026).
     const explicacionVacia = !esTextoNoVacio(propuesta.explicacion);
@@ -634,7 +648,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
       motivoExplicacion = explicacionVacia
         ? 'el generador no produjo una explicación válida (vacía tras reintentar)'
         : !dentroDelLimite
-          ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`
+          ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> ${LIMITE_PALABRAS_EXPLICACION})`
           : motivoModelo || 'explicación rechazada sin motivo';
     }
   }
@@ -1105,7 +1119,7 @@ async function main() {
     const antes = candidatas.length;
     candidatas = candidatas.filter((p) => {
       const sinVisualNiImagen = !tieneVisualValido(p) && !(p.id in imagenes);
-      const explicacionLarga = contarPalabras(p.explicacion) > 40;
+      const explicacionLarga = contarPalabras(p.explicacion) > LIMITE_PALABRAS_EXPLICACION;
       return sinVisualNiImagen || explicacionLarga;
     });
     await registrar(`--solo-pendientes: ${antes - candidatas.length} ya resueltas, ${candidatas.length} pendientes.`);
