@@ -470,6 +470,35 @@ test('aplicarActualizaciones: sustituye visual y explicación POR ID, sin tocar 
   assert.deepEqual(guardado[1], bancoExtraDePrueba()[1], 'la que no venía en la lista queda igual');
 });
 
+// Ronda de corrección 1 (I2): un `visual` truthy pero que NO pasa el esquema completo (aquí, un
+// "dato" sin cifra/texto/fuente/leyenda -- inválido de sobra) antes pisaba el visual bueno que ya
+// había y apagaba `visualPendiente` para siempre. Ahora se ignora el cambio ENTERO para esa
+// pregunta -- ni visual, ni explicación, ni visualPendiente se tocan -- y no cuenta como aplicado.
+test('aplicarActualizaciones: un visual truthy pero INVÁLIDO se ignora entero (I2) -- ni visual ni explicación se tocan, no cuenta como aplicado', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  const { aplicadas } = aplicarActualizaciones(
+    [{ id: 'srv-eco-1', visual: { tipo: 'dato' }, explicacion: 'Explicación nueva, que NO debería aplicarse.' }],
+    crearEstado(),
+  );
+  assert.equal(aplicadas, 0, 'un visual inválido no cuenta como aplicado');
+  const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
+  assert.deepEqual(guardado[0], bancoExtraDePrueba()[0], 'ni visual ni explicación se tocan: se ignora el cambio entero');
+});
+
+// `null`/ausente sigue siendo un valor válido para `visual` (spec §5): significa "el servidor
+// todavía no tiene ninguno", no un visual mal formado -- no debe pasar por esVisualValido.
+test('aplicarActualizaciones: `visual: null` (el servidor sigue sin tenerlo) se aplica con normalidad -- no es "inválido"', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', visual: null, explicacion: 'Sigue igual.' }], crearEstado());
+  assert.equal(aplicadas, 1);
+  const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
+  assert.equal(guardado[0].visual, null);
+  assert.equal(guardado[0].visualPendiente, true, 'sigue pendiente: el servidor no mandó nada todavía');
+  assert.equal(guardado[0].explicacion, 'Sigue igual.');
+});
+
 test('aplicarActualizaciones: un id que no está en el banco extendido se ignora en silencio', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
@@ -643,19 +672,24 @@ test('v0.2b4.1 §5 (I1): si la respuesta trae `ahora`, la marca nueva usa la hor
 // Sin `ahora` (servidor viejo, v0.2b4.1 antes de esta ronda): cae al reloj LOCAL tomado ANTES de
 // mandar la petición (nunca al recibir la respuesta -- ver el comentario de sincronizarEstado) menos
 // MARGEN_RELOJ_LOCAL_SEG (60 s) de colchón contra el desfase de reloj que motivó esta ronda.
+// `momentoLocal` se captura DENTRO de sincronizarEstado, forzosamente en algún punto entre
+// `antesDeLlamar` (justo antes de invocarla) y `despuesDeLlamar` (justo después de que resuelva) --
+// nunca antes ni después de esa ventana. La marca (`momentoLocal - 60s`) tiene que caer, por tanto,
+// en [antesDeLlamar - 60s, despuesDeLlamar - 60s]: acotarla así (en vez de una única desigualdad
+// contra un solo instante) es lo único que no depende de cuántos milisegundos tarde en ejecutarse
+// el test en cada máquina/carga -- una sola cota, como tenía la primera versión de estos dos tests,
+// era intermitente por diseño (fallaba si `momentoLocal` caía un solo milisegundo tarde).
 test('v0.2b4.1 §5 (I1): sin `ahora` (servidor viejo), la marca usa el reloj LOCAL de antes de la petición menos 60 s de margen', async () => {
   prepararGlobales({ conConfiguracion: true });
   const antesDeLlamar = Date.now();
   const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ preguntas: [], enCola: 0 }) });
 
   await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+  const despuesDeLlamar = Date.now();
 
   const marca = new Date(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA)).getTime();
-  // La marca debe caer en la ventana [antesDeLlamar - 60s, ahora - 60s + margen de ejecución]: nunca
-  // por delante del reloj local menos el margen, y nunca mucho más atrás (el test no debería tardar
-  // ni un segundo).
-  assert.ok(marca <= antesDeLlamar - 60_000, `la marca (${marca}) debe llevar el margen de 60 s restado`);
-  assert.ok(marca >= antesDeLlamar - 60_000 - 2000, `la marca (${marca}) no debe ser mucho más antigua de lo esperado`);
+  assert.ok(marca >= antesDeLlamar - 60_000, `la marca (${marca}) no puede ir por delante de antesDeLlamar - 60s`);
+  assert.ok(marca <= despuesDeLlamar - 60_000, `la marca (${marca}) debe llevar el margen de 60 s restado`);
 });
 
 test('v0.2b4.1 §5 (I1): un `ahora` que no es una fecha ISO válida se ignora, cae al reloj local con margen (nunca basura)', async () => {
@@ -668,9 +702,11 @@ test('v0.2b4.1 §5 (I1): un `ahora` que no es una fecha ISO válida se ignora, c
   });
 
   await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+  const despuesDeLlamar = Date.now();
 
   const marca = new Date(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA)).getTime();
-  assert.ok(marca <= antesDeLlamar - 60_000);
+  assert.ok(marca >= antesDeLlamar - 60_000);
+  assert.ok(marca <= despuesDeLlamar - 60_000);
 });
 
 for (const caso of [

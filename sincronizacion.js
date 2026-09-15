@@ -15,6 +15,10 @@
 // - Token y URL del servidor viven SOLO en localStorage (`one.servidor`): nunca se registran con
 //   console.*, nunca viajan a ningún sitio salvo al propio servidor configurado.
 import { resumenProgreso, sumarDias } from './motor.js';
+// Ronda de corrección 1 (I2): esVisualValido no toca el DOM (a diferencia de construirVisual, que
+// sí), así que importar este módulo aquí es seguro tanto en el navegador como bajo `node --test`
+// (ver comentario de cabecera de visuales.js -- ningún `document.*` vive fuera de una función).
+import { esVisualValido } from './visuales.js';
 
 // Ronda final de revisión (adversarial A1): `AbortSignal.timeout` no existe en iOS < 16.4 --
 // sin este polyfill, `peticionJson` lanzaría "AbortSignal.timeout is not a function" en vez de
@@ -388,6 +392,13 @@ export function aplicarActualizaciones(actualizadas, estado) {
   const combinado = actual.map((p) => {
     const cambio = p && typeof p.id === 'string' ? porId.get(p.id) : null;
     if (!cambio) return p;
+    // Ronda de corrección 1 (I2): un `visual` truthy que NO pasa el esquema completo (mismo que
+    // tools/visualizar.js#validarVisual, ver esVisualValido en visuales.js) no debe pisar uno bueno
+    // ni apagar `visualPendiente` para siempre -- se ignora el cambio ENTERO para esta pregunta
+    // (ni visual, ni explicación, ni visualPendiente se tocan) y cuenta como no aplicado, igual que
+    // un id desconocido. `null`/ausente sigue siendo válido: es "el servidor todavía no tiene
+    // ninguno", no un visual mal formado.
+    if (cambio.visual && !esVisualValido(cambio.visual)) return p;
     aplicadas += 1;
     const explicacion =
       typeof cambio.explicacion === 'string' && cambio.explicacion.trim() ? cambio.explicacion : p.explicacion;
@@ -395,8 +406,8 @@ export function aplicarActualizaciones(actualizadas, estado) {
       ...p,
       explicacion,
       visual: cambio.visual ?? p.visual ?? null,
-      // Si el servidor manda un visual, deja de faltar. Si manda `null` (no consiguió ninguno), la
-      // marca se conserva tal cual: el servidor lo volverá a intentar en otra pasada.
+      // Si el servidor manda un visual (ya validado arriba), deja de faltar. Si manda `null` (no
+      // consiguió ninguno), la marca se conserva tal cual: el servidor lo volverá a intentar.
       visualPendiente: cambio.visual ? false : p.visualPendiente === true,
     };
   });
