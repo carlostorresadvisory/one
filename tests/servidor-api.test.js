@@ -431,6 +431,62 @@ test('v0.2b4.1 §5: si `actualizadas` falla, /estado responde igual con las preg
   });
 });
 
+// Minor 4 (ronda de corrección 1): un `desde` malformado antes se colaba hasta `cola.actualizadas`
+// (`new Date(desde).getTime()` -> NaN -> se trataba igual que "sin `desde`", devolviendo TODO) --
+// un fail-open silencioso. Ahora solo AUSENTE es "primera sincronización"; presente pero inválido
+// responde 400. Cubre los tres casos: ausente, ISO válida y basura.
+test('v0.2b4.1 §5 (Minor 4): `desde` ausente sigue siendo la primera sincronización (200, sin error)', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200);
+  });
+});
+
+test('v0.2b4.1 §5 (Minor 4): `desde` válido (ISO o epoch ms) se acepta y llega a cola.actualizadas normalizado', async () => {
+  const vistos = [];
+  const colaFake = colaEstadoFalsa({
+    actualizadas: async ({ desde }) => {
+      vistos.push(desde);
+      return [];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const r1 = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: '2026-09-15T10:00:00.000Z' }),
+    });
+    assert.equal(r1.status, 200);
+
+    const r2 = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: 1757930400000 }),
+    });
+    assert.equal(r2.status, 200);
+  });
+  assert.equal(vistos[0], '2026-09-15T10:00:00.000Z', 'una ISO ya válida llega tal cual');
+  assert.equal(typeof vistos[1], 'string', 'un epoch ms se normaliza a ISO antes de llegar a cola.actualizadas');
+  assert.ok(!Number.isNaN(new Date(vistos[1]).getTime()));
+});
+
+test('v0.2b4.1 §5 (Minor 4): `desde` malformado responde 400 con motivo claro (no hay fail-open silencioso)', async () => {
+  const colaFake = colaEstadoFalsa({
+    actualizadas: async () => { throw new Error('no debería llamarse con un desde inválido'); },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: 'esto-no-es-una-fecha' }),
+    });
+    assert.equal(resp.status, 400);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+  });
+});
+
 // === POST /generar + GET /trabajo/:id ===========================================================
 
 test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con el pipeline falso', async () => {

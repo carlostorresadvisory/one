@@ -467,15 +467,39 @@ export function crearServidor({
     });
   }
 
+  // v0.2b4.1 §5 (Minor 4, ronda de corrección 1): valida `cuerpo.desde` antes de pasarlo a
+  // `cola.actualizadas`. `undefined`/`null` (el campo no viene en el cuerpo) es la única forma de
+  // "primera sincronización" -- cualquier otra cosa tiene que ser una fecha ISO o un epoch en
+  // milisegundos (número finito) de verdad, normalizada siempre a ISO. Nunca lanza: devuelve
+  // `{ok:false}` para que quien llama decida el 400.
+  function normalizarDesde(valor) {
+    if (valor === undefined || valor === null) return { ok: true, desde: null };
+    if (typeof valor === 'number' && Number.isFinite(valor)) {
+      return { ok: true, desde: new Date(valor).toISOString() };
+    }
+    if (typeof valor === 'string' && valor.length > 0 && Number.isFinite(new Date(valor).getTime())) {
+      return { ok: true, desde: valor };
+    }
+    return { ok: false, desde: null };
+  }
+
   async function manejarEstado(req, res) {
     const cuerpo = await leerJsonCuerpo(req, LIMITE_CUERPO_BYTES);
     const resumen = cuerpo.resumen && typeof cuerpo.resumen === 'object' ? cuerpo.resumen : {};
     const max = Number.isInteger(cuerpo.max) && cuerpo.max > 0 ? cuerpo.max : MAX_ESTADO_DEFECTO;
     const idsConocidos = Array.isArray(resumen.idsConocidos) ? resumen.idsConocidos : [];
     const rutasAtomo = Array.isArray(resumen.rutasAtomo) ? resumen.rutasAtomo : [];
-    // v0.2b4.1 §5: marca de agua del cliente (última vez que preguntó por actualizaciones).
-    // Opcional: un cliente de v0.2b4 no la manda y recibe `actualizadas: []` -- nada cambia para él.
-    const desde = typeof cuerpo.desde === 'string' ? cuerpo.desde : null;
+    // v0.2b4.1 §5 (Minor 4, ronda de corrección 1): marca de agua del cliente (última vez que
+    // preguntó por actualizaciones). Solo AUSENTE significa "primera sincronización" -- un `desde`
+    // presente pero que no es una fecha válida antes se colaba tal cual hasta
+    // `cola.js#actualizadas`, que hace `new Date(desde).getTime()` -> `NaN` -> se trataba exactamente
+    // igual que "sin `desde`" (devolvía TODO): un fail-open silencioso ante cualquier basura como
+    // `desde`. Ahora se valida aquí; presente-pero-inválido es un 400 explícito, nunca un fail-open.
+    const { ok: desdeOk, desde } = normalizarDesde(cuerpo.desde);
+    if (!desdeOk) {
+      responderError(res, 400, 'desde inválido: debe ser una fecha ISO o un epoch en milisegundos');
+      return;
+    }
 
     // Ronda final (revisión, 14-sep-2026) -- Important (I1): `cola.servir()` ya ha marcado
     // `servida` (y persistido) las preguntas devueltas -- ese trabajo real no debe perderse por un
