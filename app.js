@@ -1164,8 +1164,10 @@ function ocultarIndicadorTanda() {
   reservarHuecoIndicadorTanda();
 }
 
-/** Tanda en curso: "4 de 10 · ~1 min" + anillo (spec §2). `hechas`/`pedidas` vienen tal cual de
- * `/trabajo/:id`; el restante lo calcula tanda.js#calcularRestanteSeg (probado sin DOM). */
+/** Tanda en curso: "3 de 10 · ~1 min" + anillo (spec §2 de v0.2b4). `hechas`/`pedidas` vienen tal
+ * cual de `/trabajo/:id`; desde v0.2b4.1 §6 `hechas` avanza pregunta a pregunta (antes solo podía
+ * valer 0, 5 o 10 con `pedidas: 10`), así que aquí ya se ve cualquier número de 1 a 10. El restante
+ * lo calcula tanda.js#calcularRestanteSeg (probado sin DOM). */
 function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
   const total = Number.isInteger(pedidas) && pedidas > 0 ? pedidas : atomoTandaPedidas;
   const hechasValidas = Number.isInteger(hechas) && hechas > 0 ? hechas : 0;

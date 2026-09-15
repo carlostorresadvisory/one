@@ -3599,6 +3599,74 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
   });
 
+  /** v0.2b4.1 §6: `hechas` avanza por pregunta verificada, así que el indicador puede enseñar
+   * cualquier número de 1 a 10 -- no solo 0, 5 y 10 como en v0.2b4 (donde subía de lote en lote).
+   * El servidor falso devuelve 3 y luego 7 para demostrar los dos que antes eran imposibles. */
+  function servidorTandaFinaFalso({ contadores = {} } = {}) {
+    let sondeos = 0;
+    const suma = (clave) => { contadores[clave] = (contadores[clave] || 0) + 1; };
+    const pasos = [
+      { estado: 'generando', hechas: 3, preguntas: [] },
+      { estado: 'generando', hechas: 7, preguntas: [] },
+    ];
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0,"actualizadas":[]}' });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados', completo: 'Mercados y crisis' }] }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        suma('generar');
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ trabajoId: 'tanda-fina-1', enCola: 0, estimadoSeg: 40, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      if (url.pathname === '/trabajo/tanda-fina-1') {
+        suma('trabajo');
+        const paso = pasos[sondeos] || null;
+        sondeos += 1;
+        const cuerpo = paso
+          ? { ...paso, pedidas: 10, motivo: null, segundosPorPregunta: 4 }
+          : {
+              estado: 'lista', hechas: 10, pedidas: 10, motivo: null, segundosPorPregunta: 4,
+              preguntas: Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-fina-${i + 1}`)),
+            };
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(cuerpo) });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('v0.2b4.1 §6: el indicador enseña "3 de 10" (progreso por pregunta, no por lote de 5)', async ({ page }) => {
+    test.setTimeout(45000);
+    const contadores = {};
+    await page.route(`${URL_SERVIDOR}/**`, servidorTandaFinaFalso({ contadores }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 12000 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4.1-indicador-3-de-10-375.png` });
+    await expect(texto).toHaveText(/^7 de 10 · ~/, { timeout: 12000 });
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {
     await page.goto('/?test=1');
     await page.locator('[data-test="cerebro"]').click();
