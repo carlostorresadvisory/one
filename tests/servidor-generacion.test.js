@@ -936,13 +936,23 @@ test('v0.2b4.1 §3: una tanda urgente usa las cascadas rápidas y una de fondo l
   assert.equal(visualFondo.modelos[0], GENERADOR_VISUAL_FONDO[0]);
 });
 
-test('producirTanda: sin urgente (aunque permitirPago sea true), usa las cascadas normales, no las de pago barato', async () => {
+// REESCRITO (v0.2b4.1 §3, excepción declarada en Global Constraints): antes afirmaba que sin
+// `urgente` se usaban "las cascadas normales" (MODELOS.generador). Desde v0.2b4.1 un trabajo de
+// fondo tiene cascada PROPIA a propósito -- lo contrario sería gastar en el colchón nocturno la
+// cuota rápida que el jugador necesita de día. Lo que sigue siendo cierto, y es lo que este test
+// protege ahora, es que `permitirPago` no basta: sin `urgente` NO se usan las de pago barato.
+test('producirTanda: sin urgente (aunque permitirPago sea true), nunca usa las cascadas de pago barato', async () => {
   const { llamar, registro } = crearLlamarPipeline({});
 
   await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, permitirPago: true, urgente: false });
 
-  const primeraLlamadaGeneracion = registro.find((r) => r.sistema.includes('autor de preguntas'));
-  assert.deepEqual(primeraLlamadaGeneracion.modelos, MODELOS.generador);
+  const cascadasVistas = registro.map((r) => r.modelos);
+  for (const cascada of cascadasVistas) {
+    assert.ok(!cascada.includes(GENERADOR_PREGUNTAS_SOLO_PAGO[0]), 'nada de pago barato en un trabajo de fondo');
+    assert.ok(!cascada.includes(VERIFICADOR_PREGUNTAS_SOLO_PAGO[0]));
+  }
+  const primeraGeneracion = registro.find((r) => r.sistema.includes('autor de preguntas'));
+  assert.deepEqual(primeraGeneracion.modelos, MODELOS.generadorFondo);
 });
 
 test('producirTanda: devuelve en "modelos" los modelos realmente usados a lo largo del pipeline', async () => {
