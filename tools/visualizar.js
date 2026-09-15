@@ -41,23 +41,39 @@ const AREAS = ['economia', 'historia', 'ciencia', 'tecnologia', 'geografia', 'fi
 const TAMANO_LOTE = 8;
 const PAUSA_ENTRE_PREGUNTAS_MS = 1000; // cortesía con la cascada de modelos ':free', mismo espíritu que buscar-imagenes.js
 
-// v0.2b4 §6a: Gemini gratis primero, igual que ya hace servidor/generacion.js#MODELOS desde v0.2b3
-// (`GEMINI_API_KEY_GRATIS`, coste 0, ver tools/openrouter.js#esModeloGratis). La tanda real del
-// 15-sep (spec §0) gastó 17 de sus 24 llamadas justo aquí, con los ':free' de OpenRouter saturados:
-// este paso es el que de verdad marca cuánto tarda una tanda.
+// v0.2b4.1 §3: el paso de visual es el que MÁS llamadas hace de toda la tanda (17 de 24 en la tanda
+// real del 15-sep), así que su cascada empieza por el modelo más rápido medido -- groq gpt-oss-20b,
+// 1,0 s -- y no por el más potente. Gemini flash-lite detrás como segundo rápido de otro proveedor,
+// para que una cuota agotada en uno no pare el paso entero.
 export const GENERADOR_VISUAL = [
+  'groq:openai/gpt-oss-20b',
   'gemini:gemini-flash-lite-latest',
+  'groq:qwen/qwen3.8-27b',
+  'cerebras:qwen-3.8-27b',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'deepseek/deepseek-v4-flash',
 ];
 
-// v0.2b4 §6a: id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro
-// modelo), así `excluirModelo` nunca deja esta cascada sin primer eslabón.
+// Id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro modelo), así
+// `excluirModelo` nunca deja esta cascada sin primer eslabón.
 export const VERIFICADOR_VISUAL = [
+  'groq:openai/gpt-oss-120b',
+  'gemini:gemini-flash-lite-latest',
   'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
-  'google/gemini-2.5-flash-lite',
+];
+
+// Cascadas del colchón nocturno y del trabajo de fondo que completa visuales pendientes (Tarea 4):
+// nadie espera, así que se usa lo lento y se deja intacta la cuota rápida para el día (spec §3).
+export const GENERADOR_VISUAL_FONDO = [
+  'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'gemini:gemini-flash-lite-latest',
+];
+export const VERIFICADOR_VISUAL_FONDO = [
+  'nvidia:openai/gpt-oss-20b',
+  'google/gemma-4-31b-it:free',
+  'gemini:gemini-3.6-flash',
 ];
 
 // Cascadas SOLO de pago (--sin-gratis): fijado por el controlador el 13-sep-2026 -- con los
