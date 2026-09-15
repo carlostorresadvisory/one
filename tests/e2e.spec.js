@@ -2863,6 +2863,153 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await page.locator('[data-test="comenzar"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
   });
+
+  /** v0.2b4.1 §5: la pregunta llega SIN visual (`visualPendiente: true`) porque la tanda urgente no
+   * lo esperó; en la siguiente sincronización el servidor la manda en `actualizadas` y el banco
+   * extendido la incorpora sin que el jugador tenga que hacer nada. */
+  test('v0.2b4.1 §5: una tarjeta sin visual lo recibe en la siguiente sincronización', async ({ page }) => {
+    test.setTimeout(45000);
+    let sincronizaciones = 0;
+    let desdeRecibido;
+    const ID = 'srv-pendiente-1';
+    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname !== '/estado') {
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+        return;
+      }
+      sincronizaciones += 1;
+      const cuerpo = JSON.parse(req.postData() || '{}');
+      if (sincronizaciones === 1) {
+        // Primera: la pregunta entra en el banco extendido sin visual y marcada como pendiente.
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({
+            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            enCola: 0,
+            actualizadas: [],
+          }),
+        });
+        return;
+      }
+      // Segunda: nada nuevo, pero el visual que faltaba ya está listo.
+      desdeRecibido = cuerpo.desde;
+      await route.fulfill({
+        status: 200, contentType: 'application/json', headers: CORS,
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+      });
+    }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Estado tras la primera sincronización: en el banco, sin visual, marcada.
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p ? `${p.visual === null}|${p.visualPendiente === true}` : null;
+      }, ID), { timeout: 10000 })
+      .toBe('true|true');
+
+    // Segunda sincronización: se dispara al recargar (mismo camino que "al abrir la app").
+    await page.reload();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p && p.visual ? `${p.visual.tipo}|${p.visualPendiente}` : null;
+      }, ID), { timeout: 10000 })
+      .toBe('formula|false');
+
+    expect(desdeRecibido).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  // Requisito extra del controlador (no en el brief, va más allá de comprobar solo localStorage):
+  // la MISMA situación de arriba, pero verificando que el visual de verdad se PINTA en la tarjeta
+  // cuando el jugador la ve en el repaso -- construirTarjetaRespondida (app.js) es la misma función
+  // para la tarjeta respondida en partida y para el repaso, así que fallar la pregunta a propósito
+  // (aterriza en "para repasar", primera del tramo 1) es el camino más corto y determinista hasta
+  // esa pantalla sin depender del orden del banco real (295 preguntas).
+  test('v0.2b4.1 §5 (extra): la tarjeta en el repaso muestra el visual que llegó en la sincronización', async ({
+    page,
+  }) => {
+    test.setTimeout(45000);
+    let sincronizaciones = 0;
+    const ID = 'srv-pendiente-repaso-1';
+    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname !== '/estado') {
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+        return;
+      }
+      sincronizaciones += 1;
+      if (sincronizaciones === 1) {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({
+            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            enCola: 0,
+            actualizadas: [],
+          }),
+        });
+        return;
+      }
+      // Cualquier sincronización posterior (aquí, la que dispara finalizarPartida): el visual ya está.
+      await route.fulfill({
+        status: 200, contentType: 'application/json', headers: CORS,
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+      });
+    }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // La primera sincronización trae la pregunta sin visual; el chip la ofrece para jugar.
+    const chip = page.locator('[data-test="nuevas-servidor"]');
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    // Falla A PROPÓSITO (preguntaServidor siempre respuesta:true): así aterriza en "para repasar" y
+    // será la ÚNICA tarjeta de ese tramo (nada más se jugó en este test).
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-falso"]').click();
+    await avanzarTrasRespuesta(page); // única pregunta de la partida -> termina -> finalizarPartida sincroniza otra vez.
+    await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+
+    // La segunda sincronización (disparada por finalizarPartida) ya trae el visual: se espera a que
+    // el banco extendido lo refleje antes de comprobar la pantalla.
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p && p.visual ? p.visual.tipo : null;
+      }, ID), { timeout: 10000 })
+      .toBe('formula');
+
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const tarjetaRepaso = tarjetaActual(page);
+    await expect(tarjetaRepaso.locator('[data-test="visual"]')).toBeVisible();
+    await expect(tarjetaRepaso.locator('[data-test="visual-pie"]')).toHaveText(VISUAL.leyenda);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+  });
 });
 
 // C4 de la revisión final v0.2b3-atomo-amplio-gemini: el `::before` de 44×44 que amplía el área
