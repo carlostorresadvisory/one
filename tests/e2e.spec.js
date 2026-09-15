@@ -3618,6 +3618,20 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Estado terminal ya mostrado: la clave se limpia (spec §1) -- y NO reaparece al jugar la tanda.
     expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
   });
+
+  test('v0.2b4: capturas del "+" del HUB y del nodo "Regenerar temas"', async ({ page }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]')).toHaveText('+');
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4-hub-mas-375.png` });
+    await assertSinScroll(page);
+
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4-atomo-regenerar-375.png` });
+    await assertSinScroll(page);
+  });
 });
 
 // Tarea 3 del plan v0.2b3-atomo-amplio-gemini: nodo "Más…" con paginación (excluir), 6 anillos, y
