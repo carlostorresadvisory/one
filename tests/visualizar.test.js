@@ -15,6 +15,7 @@ import {
   GENERADOR_SOLO_PAGO,
   VERIFICADOR_SOLO_PAGO,
 } from '../tools/visualizar.js';
+import { esModeloGratis } from '../tools/openrouter.js';
 
 // --- validarVisual --------------------------------------------------------------------------
 
@@ -281,6 +282,22 @@ test('datos/visuales-excluidos.json: cada entrada tiene forma válida ({tipos: s
     assert.ok(Array.isArray(entrada.tipos), `${id}: "tipos" debe ser un array`);
     assert.ok(typeof entrada.motivo === 'string' && entrada.motivo.length > 0, `${id}: "motivo" debe ser texto no vacío`);
   }
+});
+
+// --- cascadas de modelos (v0.2b4 §6a) -----------------------------------------------------------
+
+test('v0.2b4 §6a: las cascadas de visual empiezan por Gemini gratis, con papeles distintos', () => {
+  assert.equal(GENERADOR_VISUAL[0], 'gemini:gemini-flash-lite-latest');
+  assert.equal(VERIFICADOR_VISUAL[0], 'gemini:gemini-3.6-flash');
+  // Gratis de verdad (GEMINI_API_KEY_GRATIS, coste 0): nada de pago se cuela por delante.
+  assert.equal(esModeloGratis(GENERADOR_VISUAL[0]), true);
+  assert.equal(esModeloGratis(VERIFICADOR_VISUAL[0]), true);
+  // Regla fija de Carlos: verifica SIEMPRE un modelo distinto del que generó. Con ids distintos,
+  // `excluirModelo` no deja al verificador sin cascada.
+  assert.notEqual(GENERADOR_VISUAL[0], VERIFICADOR_VISUAL[0]);
+  // Los ':free' de OpenRouter siguen detrás como red (spec §0: la cascada gratis se satura a ratos).
+  assert.ok(GENERADOR_VISUAL.includes('nvidia/nemotron-3-ultra-550b-a55b:free'));
+  assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
 });
 
 // --- generarVisualYExplicacion ----------------------------------------------------------------

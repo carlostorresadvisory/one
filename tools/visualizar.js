@@ -41,21 +41,21 @@ const AREAS = ['economia', 'historia', 'ciencia', 'tecnologia', 'geografia', 'fi
 const TAMANO_LOTE = 8;
 const PAUSA_ENTRE_PREGUNTAS_MS = 1000; // cortesía con la cascada de modelos ':free', mismo espíritu que buscar-imagenes.js
 
+// v0.2b4 §6a: Gemini gratis primero, igual que ya hace servidor/generacion.js#MODELOS desde v0.2b3
+// (`GEMINI_API_KEY_GRATIS`, coste 0, ver tools/openrouter.js#esModeloGratis). La tanda real del
+// 15-sep (spec §0) gastó 17 de sus 24 llamadas justo aquí, con los ':free' de OpenRouter saturados:
+// este paso es el que de verdad marca cuánto tarda una tanda.
 export const GENERADOR_VISUAL = [
+  'gemini:gemini-flash-lite-latest',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
   'deepseek/deepseek-v4-flash',
 ];
 
-// Solo 1 modelo ':free' antes de caer al de pago (a diferencia del generador, que prueba 2):
-// visto en vivo el 13-sep-2026 en la ejecución real que 'nex-agi/nex-n2.5-pro:free' -- cuando
-// responde en vez de fallar rápido -- tarda sistemáticamente 60-120s por llamada, y al ser el
-// segundo de la cascada duplicaba el tiempo de CADA verificación (la mayoría de las preguntas
-// necesitan 1-2 verificaciones). 'google/gemma-4-31b-it:free' falla rápido (HTTP 429 en <2s) o
-// responde rápido; quitar el intermedio lento y caer directo al de pago (rápido, fiable, barato)
-// respeta igual "que caiga al pago sin insistir demasiado" y evita la mayor causa de lentitud
-// observada, sin tocar el presupuesto real (el sobrecoste es de decimas de céntimo).
+// v0.2b4 §6a: id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro
+// modelo), así `excluirModelo` nunca deja esta cascada sin primer eslabón.
 export const VERIFICADOR_VISUAL = [
+  'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
   'google/gemini-2.5-flash-lite',
 ];
