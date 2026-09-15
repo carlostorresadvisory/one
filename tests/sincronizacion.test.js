@@ -548,10 +548,35 @@ test('consultarTrabajo: GET /trabajo/:id con el id codificado, devuelve el objet
   assert.equal(fetchFalso.llamadas[0].url, `${URL_SERVIDOR}/trabajo/${encodeURIComponent('t 1')}`);
 });
 
-test('consultarTrabajo: 404 (trabajo no encontrado) → null', async () => {
+// Ola final v0.2b4 -- Critical C2: "el trabajo ya no existe" (404) y "no he podido preguntar"
+// (red caída, 5xx, timeout) NO son lo mismo. Antes los dos colapsaban en `null` y el sondeo del
+// átomo borraba la tanda y decía "La tanda se perdió, genera otra" ante un simple corte de red
+// (reproducido con un único `route.abort('internetdisconnected')` en el 3.er sondeo).
+test('consultarTrabajo: 404 (trabajo no encontrado) → { perdido: true }', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: false, status: 404, cuerpo: { error: 'Trabajo no encontrado' } }]);
-  assert.equal(await consultarTrabajo('inexistente', { fetchImpl: fetchFalso }), null);
+  assert.deepEqual(await consultarTrabajo('inexistente', { fetchImpl: fetchFalso }), { perdido: true });
+});
+
+test('consultarTrabajo: 500 (servidor caído) → null, NO { perdido: true }', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: false, status: 500, cuerpo: { error: 'boom' } }]);
+  assert.equal(await consultarTrabajo('t-1', { fetchImpl: fetchFalso }), null);
+});
+
+test('consultarTrabajo: fetch que lanza (red caída/timeout) → null, NO { perdido: true }', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ lanza: new TypeError('Failed to fetch') }]);
+  assert.equal(await consultarTrabajo('t-1', { fetchImpl: fetchFalso }), null);
+});
+
+test('consultarTrabajo: sin configuración o con id inválido → null sin tocar la red', async () => {
+  prepararGlobales();
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { estado: 'lista' } }]);
+  assert.equal(await consultarTrabajo('t-1', { fetchImpl: fetchFalso }), null);
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(await consultarTrabajo('', { fetchImpl: fetchFalso }), null);
+  assert.equal(fetchFalso.llamadas.length, 0);
 });
 
 // Ronda final de arreglos (revisión, 14-sep-2026) -- Critical (C2): `pedirSubtemas` debe usar el

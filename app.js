@@ -193,6 +193,11 @@ let atomoSondeoEnVuelo = false;
 // arrancar un trabajo NUEVO (manejarGenerarAtomo), nunca al pausar/reanudar (visibilitychange), o
 // un jugador que minimizara y volviera a abrir la app cada minuto alargaría el sondeo para siempre.
 let atomoConsultas = 0;
+// Ola final v0.2b4 (Critical C2): sondeos SEGUIDOS que no han podido preguntar (red caída, 5xx,
+// timeout) -- NO cuentan los 404, que sí significan "el trabajo ya no existe". Un sondeo que
+// responde lo pone a 0. Se reinicia también en iniciarSondeoAtomo: cada arranque/reanudación del
+// sondeo empieza con la tolerancia entera, si no un corte antiguo condenaría al primer fallo nuevo.
+let atomoSondeosFallidos = 0;
 // Ronda final de revisión (Critical #2): qué hace el botón único de la tarjeta de espera una vez
 // resuelto el trabajo -- {tipo:'jugar', ids, corto} o {tipo:'volver'}; null mientras se sigue
 // generando (esperaAtomo muestra los dos botones de siempre, no este).
@@ -1039,6 +1044,9 @@ function limpiarAtomo() {
 }
 
 const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sondeo.
+// Ola final v0.2b4 (Critical C2): fallos de red SEGUIDOS que se aguantan antes de parar el sondeo
+// -- 5 x 5 s ≈ 25 s, de sobra para un túnel, un cambio de wifi a datos o un servidor reiniciándose.
+const MAX_SONDEOS_FALLIDOS = 5;
 const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
 const N_TANDA_ATOMO = 10; // preguntas por tanda del Átomo (lo que se pide y lo que cuenta el indicador)
 
@@ -1242,7 +1250,25 @@ async function sondearTrabajoAtomo() {
   if (idEnCurso !== atomoTrabajoId) return; // carrera post-await: ya no es el trabajo vigente.
 
   if (!trabajo) {
-    // 404 (trabajo perdido tras reiniciar el servidor) o cualquier otro fallo de red/servidor.
+    // Ola final v0.2b4 (Critical C2): NO se ha podido preguntar (red caída, 5xx, timeout). Eso no
+    // dice nada sobre si el trabajo sigue vivo, así que ni se borra la tanda ni se para el sondeo:
+    // se aguantan MAX_SONDEOS_FALLIDOS seguidos (~25 s) y el siguiente sondeo que responda
+    // continúa como si nada. Antes esto se confundía con el 404 y un solo corte de red mataba la
+    // tanda ("La tanda se perdió, genera otra", con la clave ya borrada).
+    atomoSondeosFallidos += 1;
+    if (atomoSondeosFallidos >= MAX_SONDEOS_FALLIDOS) {
+      // Se para el intervalo para no machacar una red que claramente no está, pero la tanda
+      // sobrevive: la clave sigue en localStorage y `atomoTrabajoId` sigue en memoria, así que
+      // reanudarSondeoAtomoSiHaceFalta (volver a la app) o reanudarTandaGuardada (recarga de iOS)
+      // la retoman solas. De ahí el texto del aviso.
+      detenerSondeoAtomo();
+      mostrarIndicadorTandaFallida('Sin conexión, se retomará al abrir');
+    }
+    return;
+  }
+
+  if (trabajo.perdido) {
+    // 404: el trabajo YA NO EXISTE (p. ej. el servidor se reinició). Aquí sí es terminal.
     detenerSondeoAtomo();
     finalizarTrabajoAtomo();
     borrarTanda(); // spec §1: no reanudar en la próxima apertura algo que ya no existe
@@ -1250,6 +1276,8 @@ async function sondearTrabajoAtomo() {
     actualizarEsperaAtomoConResultado({ ok: false, mensaje: 'La tanda se perdió, genera otra' });
     return;
   }
+
+  atomoSondeosFallidos = 0; // el servidor ha respondido: la racha de fallos se corta aquí.
 
   // Tarea 3: el servidor manda su media móvil real; mientras no haya ninguna pregunta hecha, es la
   // única base para el "~N s" (ver tanda.js#calcularRestanteSeg).
@@ -1301,6 +1329,7 @@ async function sondearTrabajoAtomo() {
 
 function iniciarSondeoAtomo() {
   detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
+  atomoSondeosFallidos = 0; // C2: cada arranque/reanudación empieza con la tolerancia entera.
   sondearTrabajoAtomo(); // Minor #11: primer sondeo inmediato, no a ciegas 5s.
   atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
 }

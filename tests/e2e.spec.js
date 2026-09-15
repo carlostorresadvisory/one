@@ -3619,6 +3619,57 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
   });
 
+  /** Ola final v0.2b4 -- Critical C2: un corte de red de UN SOLO sondeo no puede matar la tanda.
+   * Antes `consultarTrabajo` devolvía `null` igual para un 404 que para la red caída, y
+   * `sondearTrabajoAtomo` lo trataba siempre como "el trabajo ya no existe": paraba el sondeo,
+   * borraba `one.atomoTrabajo` y mentía con "La tanda se perdió, genera otra". Aquí se aborta
+   * exactamente el 3.er sondeo (`internetdisconnected`, lo que pasa al salir de cobertura) y se
+   * comprueba que el indicador sigue en curso, la clave sigue guardada y el sondeo siguiente
+   * continúa hasta "Tanda lista". */
+  test('v0.2b4 §1: un sondeo con la red caída NO borra la tanda ni para el sondeo (C2)', async ({ page }) => {
+    // Cinco sondeos reales a 5 s cada uno: no cabe en el timeout por defecto de 30 s.
+    test.setTimeout(60000);
+    const contadores = {};
+    let sondeos = 0;
+    // Un ÚNICO manejador (su contador interno de sondeos es una clausura: recrearlo en cada
+    // petición lo reiniciaría y el trabajo no llegaría nunca a "lista"). Con el 3.er sondeo
+    // abortado, el manejador solo ve 4 de los 5: termina en el 5.º sondeo real.
+    const servidor = servidorTandaFalso({ contadores, sondeosAntesDeTerminar: 4 });
+    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
+      const peticion = route.request();
+      const url = new URL(peticion.url());
+      if (url.pathname === '/trabajo/tanda-recarga-1' && peticion.method() !== 'OPTIONS') {
+        sondeos += 1;
+        if (sondeos === 3) {
+          await route.abort('internetdisconnected');
+          return;
+        }
+      }
+      await servidor(route);
+    });
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const indicador = page.locator('[data-test="indicador-tanda"]');
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 8000 });
+
+    // Se espera a que el 3.er sondeo (el abortado) haya ocurrido de verdad.
+    await expect.poll(() => sondeos, { timeout: 15000 }).toBeGreaterThanOrEqual(3);
+
+    // Nada de "La tanda se perdió": el indicador sigue en curso y la clave sigue ahí.
+    await expect(indicador).toBeVisible();
+    await expect(texto).not.toHaveText(/La tanda se perdió|No se pudo generar|Sin conexión/);
+    const guardada = await page.evaluate(() => JSON.parse(localStorage.getItem('one.atomoTrabajo') || 'null'));
+    expect(guardada && guardada.id).toBe('tanda-recarga-1');
+
+    // Y el sondeo siguiente (ya con red) continúa hasta el final.
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 25000 });
+  });
+
   test('v0.2b4: capturas del "+" del HUB y del nodo "Regenerar temas"', async ({ page }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
     await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
