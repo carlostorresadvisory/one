@@ -88,3 +88,9 @@ repo ni se manda a nadie más):
   (desde `/opt/one`).
 - Los datos persistentes (preguntas, cola, log de llamadas) viven en `/opt/one-datos` en el VPS,
   fuera del contenedor: reconstruir o actualizar el contenedor nunca los borra.
+- **Al depurar con `curl`, cuidado con el límite de peticiones**: el servidor aplica 60 peticiones
+  por minuto y por IP (ventana fija: la primera petición de la IP abre el minuto, las 60 siguientes
+  pasan, la 61 recibe `HTTP 429`). Un bucle de sondeo a `/trabajo/:id` cada segundo se lo come en
+  un minuto justo, y a partir de ahí los 429 son del propio servidor de ONE, **no del modelo ni de
+  su cuota** -- es el error más fácil de confundir al medir una tanda a mano. Si pasa, se espera al
+  minuto siguiente (o se sondea cada 3-5 s, que es lo que hace la app de verdad).

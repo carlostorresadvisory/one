@@ -36,6 +36,12 @@ const MAX_VISUALES_PENDIENTES_POR_PASADA = 10;
 // se reintentaba indefinidamente y, con `pendientes.slice(0, max)` siempre desde el principio,
 // también bloqueaba a las que iban detrás -- ver la rotación por `intentosVisual` más abajo).
 const MAX_INTENTOS_VISUAL = 3;
+// Ola final v0.2b4.1 (M1): tope de lo que `actualizadas` puede devolver en UNA respuesta de
+// `POST /estado`. Un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y cada
+// elemento lleva un visual entero: sin tope, esa respuesta se dispara de tamaño justo en la
+// petición que el jugador espera al abrir la app. Lo que no entra conserva su `actualizadaEn` y
+// entra en la sincronización siguiente -- no se pierde nada, solo se reparte.
+const MAX_ACTUALIZADAS = 50;
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M4, segunda mitad): lo que `servir()` devuelve a
 // quien llamó (la API, y a través de ella el móvil) nunca lleva los campos de gestión interna del
@@ -808,6 +814,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
    * haber servido una pregunta (el trabajo de fondo de `completarVisualesPendientes`). Mandar la
    * pregunta entera sería invitar a que el cliente pise un enunciado que el jugador está leyendo.
    * No toca el disco más que para leer: no marca nada, no purga, no sirve nada nuevo.
+   * M1 (ola final v0.2b4.1): como mucho `MAX_ACTUALIZADAS`, las más recientes primero.
    * @param {{idsConocidos?: string[], desde?: string}} params `desde` en ISO; sin él, todo lo marcado
    * @returns {Promise<{id: string, visual: object|null, explicacion: string}[]>}
    */
@@ -823,6 +830,10 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
         const marca = new Date(p.actualizadaEn).getTime();
         return Number.isFinite(marca) && marca > limite;
       })
+      // M1: las más recientes primero y tope duro. El orden importa: si algo se queda fuera, que
+      // sea lo más antiguo -- es lo que el jugador tiene menos probabilidades de estar mirando.
+      .sort((a, b) => new Date(b.actualizadaEn).getTime() - new Date(a.actualizadaEn).getTime())
+      .slice(0, MAX_ACTUALIZADAS)
       .map((p) => ({ id: p.id, visual: p.visual ?? null, explicacion: p.explicacion }));
   }
 

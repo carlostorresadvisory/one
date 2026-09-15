@@ -1286,6 +1286,31 @@ test('v0.2b4.1 §5: sin `desde`, `actualizadas` devuelve TODO lo conocido que te
   assert.deepEqual(await cola.actualizadas({ idsConocidos: [] }), []);
 });
 
+// Ola final v0.2b4.1 (M1): un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y
+// `actualizadas` le devolvía TODAS las que tuvieran marca -- visuales incluidos, que son objetos
+// grandes -- en la misma respuesta de `POST /estado`. Tope de 50 y las más recientes primero: lo
+// que no entre sigue teniendo su `actualizadaEn`, así que entra en la sincronización siguiente.
+test('v0.2b4.1 (M1): `actualizadas` devuelve como mucho 50, las más recientes primero', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const colchon = Array.from({ length: 70 }, (_, i) => ({
+    ...aprobada('economia', i),
+    id: `srv-eco-${String(i).padStart(2, '0')}`,
+    servida: '2026-09-15T08:00:00.000Z',
+    creada: '2026-09-15T07:00:00.000Z',
+    // i=0 la más antigua, i=69 la más reciente.
+    actualizadaEn: new Date(Date.UTC(2026, 8, 15, 9, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(colchon);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const salida = await cola.actualizadas({ idsConocidos: colchon.map((p) => p.id) });
+  assert.equal(salida.length, 50, 'tope duro: una respuesta de /estado no puede llevar 70 visuales');
+  assert.equal(salida[0].id, 'srv-eco-69', 'la más reciente primero');
+  assert.equal(salida[49].id, 'srv-eco-20');
+  assert.equal(salida.some((p) => p.id === 'srv-eco-00'), false, 'lo más viejo es lo que se queda fuera');
+});
+
 // Autorrevisión (Tarea 4): procesarCola dispara completarVisualesPendientes() DESPUÉS de que su
 // `while` se vacíe, y esa llamada puede tardar de verdad (red). `dispararProcesamiento` solo mira
 // el flag `procesando` -- si un trabajo (sobre todo uno urgente, un jugador esperando) llega
