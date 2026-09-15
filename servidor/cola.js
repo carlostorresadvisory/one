@@ -17,9 +17,10 @@ const PEDIDAS_DEFECTO = 10;
 const OBJETIVO_TOTAL_COLCHON = 30;
 const PARTE_AREAS = Math.round(OBJETIVO_TOTAL_COLCHON * 0.6); // 18 (60 %)
 const PARTE_RUTAS = OBJETIVO_TOTAL_COLCHON - PARTE_AREAS; // 12 (40 %)
-const TERMINADOS_MAX = 100;
 const MUESTRAS_SEG_POR_PREGUNTA = 5; // "las últimas 5 tandas" (spec v0.2b4 §6c)
 const SEG_POR_PREGUNTA_INICIAL = 20; // arranque en frío, antes de haber medido ninguna
+const RETENCION_TERMINADOS_MS = 60 * 60 * 1000; // spec v0.2b4 §1: al menos 1 h
+const TERMINADOS_MAX = 500; // tope duro de memoria; solo entra en juego con 500 tandas en una hora
 const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
@@ -180,10 +181,22 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
 
   function guardarTerminado(trabajo) {
     registro.delete(trabajo.id);
+    trabajo.terminadoEn = reloj();
     terminados.set(trabajo.id, trabajo);
-    if (terminados.size > TERMINADOS_MAX) {
-      const primeraClave = terminados.keys().next().value;
-      terminados.delete(primeraClave);
+    purgarTerminados();
+  }
+
+  /** v0.2b4 §1: un terminado se conserva AL MENOS 1 h. Antes se tiraba el más antiguo en cuanto
+   * había 100, así que un móvil que reabriera la app y retomara el sondeo de su tanda guardada
+   * (`one.atomoTrabajo`) podía comerse un 404 con el servidor perfectamente vivo. Solo se descarta
+   * lo que ya pasó la hora; el tope duro es la red de seguridad contra un crecimiento sin límite. */
+  function purgarTerminados() {
+    const ahora = reloj();
+    for (const [id, t] of terminados) {
+      if (ahora - t.terminadoEn >= RETENCION_TERMINADOS_MS) terminados.delete(id);
+    }
+    while (terminados.size > TERMINADOS_MAX) {
+      terminados.delete(terminados.keys().next().value);
     }
   }
 

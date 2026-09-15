@@ -31,11 +31,6 @@ const ORIGENES_DEFECTO = ['https://carlostorresadvisory.github.io', 'http://loca
 const HORA_NOCTURNA_INICIO = 2;
 const HORA_NOCTURNA_FIN = 7; // exclusivo: 7:00 en punto ya no cuenta como nocturno.
 const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
-// Ronda final (revisión, 14-sep-2026) -- Menor (M2): subido de 40 a 90 s/puesto -- medido en
-// vivo, la cascada gratis tarda MINUTOS por lote (no segundos); prometerle al móvil 40 s por
-// delante era optimista y llevaba a una espera peor que la anunciada. Sigue siendo una heurística
-// (no hay telemetría real de duración por lote todavía), documentada en el informe de la tarea.
-const SEGUNDOS_ESTIMADOS_POR_PUESTO = 90;
 const MAX_ESTADO_DEFECTO = 10;
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
@@ -536,12 +531,15 @@ export function crearServidor({
     // turno, así que un móvil que consultara justo después de encolar podía ver "0 en cola" con un
     // trabajo ya corriendo delante del suyo.
     const estadisticasCola = cola.estadisticas();
+    const segPorPregunta = estadisticasCola.segundosPorPregunta;
     responderJson(res, 200, {
       trabajoId: resultado.trabajoId,
       enCola: estadisticasCola.enCola + estadisticasCola.activo,
-      // Heurística (medida en vivo, ver M2 en el informe de la tarea): ~90 s por puesto de espera
-      // delante del trabajo nuevo, con la cascada gratis.
-      estimadoSeg: (resultado.posicion + 1) * SEGUNDOS_ESTIMADOS_POR_PUESTO,
+      // v0.2b4 §6c: ya no es "90 s por puesto" a ciegas (heurística de v0.2b1, medida una sola vez
+      // con la cascada gratis saturada): media móvil REAL de las últimas 5 tandas x las preguntas
+      // que hay por delante en la cola más las que pide este trabajo.
+      estimadoSeg: Math.max(1, Math.round(segPorPregunta * (resultado.preguntasPorDelante + resultado.pedidas))),
+      segundosPorPregunta: segPorPregunta,
     });
   }
 

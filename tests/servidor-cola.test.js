@@ -469,6 +469,29 @@ test('cola v0.2b4 §6c: encolar dice cuántas preguntas hay POR DELANTE, no cuá
   resolverLote();
 });
 
+test('cola v0.2b4 §1: un trabajo terminado se conserva al menos 1 h (antes se tiraba al llegar a 100)', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({ almacen, producirTanda: async ({ area, n }) => resultadoOk(area, n, n), reloj: reloj.leer });
+
+  const primero = cola.encolar({ area: 'economia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(primero.trabajoId)?.estado === 'lista');
+
+  // 150 tandas más (muy por encima del viejo tope de 100) dentro de la misma hora.
+  for (let i = 0; i < 150; i += 1) {
+    const { trabajoId } = cola.encolar({ area: 'historia', n: 5, urgente: true });
+    await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+    reloj.avanzar(1000);
+  }
+  assert.notEqual(cola.estadoTrabajo(primero.trabajoId), null); // sigue ahí: no ha pasado la hora
+
+  reloj.avanzar(60 * 60 * 1000);
+  const ultimo = cola.encolar({ area: 'ciencia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(ultimo.trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadoTrabajo(primero.trabajoId), null); // ya pasó la hora: se purga
+});
+
 // === servidor/cola.js: calcularObjetivo / rellenarHaciaObjetivo ==============================
 
 test('calcularObjetivo: sin áreas flojas y sin rutasAtomo, reparte los 30 entre TODAS las áreas', async () => {
