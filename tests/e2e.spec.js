@@ -3628,6 +3628,11 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
         )
       )
       .toBe('Regenerar temas');
+    // Ola final v0.2b4 (concern 5): el `aria-label` se quedó en "Más subtemas" del nombre anterior,
+    // así que un lector de pantalla anunciaba una cosa y el nodo decía otra. Debe coincidir con lo
+    // que se lee, sobre todo aquí: el texto visible va partido en <tspan>, y el nombre accesible es
+    // lo único que suena entero.
+    await expect(mas).toHaveAttribute('aria-label', 'Regenerar temas');
     await assertSinScroll(page);
   });
 

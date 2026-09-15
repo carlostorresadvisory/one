@@ -293,7 +293,12 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
     if (!vacio) {
       atributos.role = 'button';
       atributos.tabindex = '0';
-      atributos['aria-label'] = 'Más subtemas';
+      // Ola final v0.2b4: el `aria-label` se quedó en "Más subtemas" cuando el nodo pasó de "Más…"
+      // a "Regenerar temas" (§5), así que un lector de pantalla anunciaba una cosa y el nodo decía
+      // otra. Aquí importa más que en otros sitios: el texto visible va partido en <tspan>, de modo
+      // que el nombre accesible es lo único que se oye entero. El del estado vacío ("No hay más por
+      // ahora") no lleva `aria-label` ni rol: es un mensaje, no un botón.
+      atributos['aria-label'] = 'Regenerar temas';
     }
     const boton = crearElementoSvg('g', atributos);
     const circulo = crearElementoSvg('circle', {
