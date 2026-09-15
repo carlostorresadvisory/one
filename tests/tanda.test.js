@@ -16,10 +16,24 @@ import {
 
 // === calcularRestanteSeg ==========================================================================
 
-test('calcularRestanteSeg: con >= 1 hecha usa el ritmo REAL medido, no la estimación del servidor', () => {
-  // 40 s para 4 preguntas = 10 s/pregunta; faltan 6 => 60 s. `segundosPorPregunta` se ignora.
-  const seg = calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10, segundosPorPregunta: 99 });
-  assert.equal(seg, 60);
+// Ola final v0.2b4 (M8): el `segundosPorPregunta` del servidor manda siempre que venga, también
+// con preguntas ya hechas. El ritmo propio ((ahora - inicio) / hechas) mide desde que se PIDIÓ la
+// tanda, así que incluye el rato que estuvo esperando en cola sin que nadie generara nada: con una
+// cola por delante daba estimaciones disparatadas ("~16 min" para lo que el servidor sabe que le
+// quedan 30 s). El del servidor es tiempo de generación real. Ritmo propio, solo como respaldo.
+test('calcularRestanteSeg: el `segundosPorPregunta` del servidor manda aunque haya preguntas hechas', () => {
+  // 4 s/pregunta del servidor x 6 que faltan = 24 s (el ritmo propio diría 60 s: incluye la cola).
+  const seg = calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10, segundosPorPregunta: 4 });
+  assert.equal(seg, 24);
+});
+
+test('calcularRestanteSeg: sin dato del servidor y con >= 1 hecha, respaldo con el ritmo REAL medido', () => {
+  // 40 s para 4 preguntas = 10 s/pregunta; faltan 6 => 60 s.
+  assert.equal(calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10 }), 60);
+  // Un `segundosPorPregunta` inservible (0, negativo, no numérico) no cuenta como dato del servidor.
+  assert.equal(calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10, segundosPorPregunta: 0 }), 60);
+  assert.equal(calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10, segundosPorPregunta: -3 }), 60);
+  assert.equal(calcularRestanteSeg({ inicio: 0, ahora: 40000, hechas: 4, pedidas: 10, segundosPorPregunta: 'rápido' }), 60);
 });
 
 test('calcularRestanteSeg: con 0 hechas usa la estimación del servidor por pregunta', () => {
@@ -114,7 +128,15 @@ test('guardarTanda: rechaza datos inservibles sin escribir nada', () => {
   assert.equal(leerTanda(), null);
 });
 
-test('guardarTanda: con localStorage lleno devuelve false y no lanza (la sesión sigue en memoria)', () => {
+// Ola final v0.2b4 (M11): este test deja un `localStorage` cuyo `setItem` LANZA. node:test no
+// aísla globales entre tests, así que sin restaurarlo contaminaría cualquier test posterior que
+// escribiera en localStorage (hoy es el último del fichero; mañana puede no serlo). `t.after` lo
+// devuelve a un localStorage limpio pase lo que pase, incluso si la aserción falla.
+test('guardarTanda: con localStorage lleno devuelve false y no lanza (la sesión sigue en memoria)', (t) => {
+  const anterior = globalThis.localStorage;
+  t.after(() => {
+    globalThis.localStorage = anterior;
+  });
   prepararLocalStorage();
   globalThis.localStorage.setItem = () => {
     throw new Error('QuotaExceededError');

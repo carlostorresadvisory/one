@@ -59,10 +59,16 @@ export function borrarTanda() {
 }
 
 /**
- * Segundos que faltan (spec §2): con >= 1 pregunta hecha, el ritmo REAL medido
- * ((ahora - inicio) / hechas) x las que faltan; con 0 hechas, la estimación del servidor
- * (`segundosPorPregunta`, o SEG_POR_PREGUNTA_DEFECTO). `null` cuando los datos no dan para nada
- * (nunca NaN: el indicador nunca debe pintar "~NaN s").
+ * Segundos que faltan (spec §2): el `segundosPorPregunta` que manda el servidor (su media móvil
+ * real de generación) x las que faltan. Si no viene, respaldo con el ritmo propio medido
+ * ((ahora - inicio) / hechas) cuando ya hay alguna hecha, y con SEG_POR_PREGUNTA_DEFECTO cuando no
+ * hay ni eso. `null` cuando los datos no dan para nada (nunca NaN: el indicador nunca debe pintar
+ * "~NaN s").
+ *
+ * Ola final v0.2b4 (M8): antes el ritmo propio ganaba en cuanto había >= 1 hecha, y eso mide desde
+ * que se PIDIÓ la tanda -- incluye el rato parado en cola, sin que nadie estuviera generando nada.
+ * Con una cola por delante daba estimaciones disparatadas ("~16 min" para lo que el servidor sabía
+ * que le quedaban 30 s). El dato del servidor es tiempo de generación de verdad: manda él.
  */
 export function calcularRestanteSeg({ inicio, ahora, hechas, pedidas, segundosPorPregunta } = {}) {
   if (!Number.isFinite(inicio) || !Number.isFinite(ahora)) return null;
@@ -70,15 +76,14 @@ export function calcularRestanteSeg({ inicio, ahora, hechas, pedidas, segundosPo
   const hechasValidas = Number.isInteger(hechas) && hechas > 0 ? Math.min(hechas, pedidas) : 0;
   const faltan = pedidas - hechasValidas;
   if (faltan <= 0) return 0;
+  if (Number.isFinite(segundosPorPregunta) && segundosPorPregunta > 0) {
+    return Math.max(1, Math.round(segundosPorPregunta * faltan));
+  }
   const transcurridoSeg = (ahora - inicio) / 1000;
   if (hechasValidas >= 1 && transcurridoSeg > 0) {
     return Math.max(1, Math.round((transcurridoSeg / hechasValidas) * faltan));
   }
-  const porPregunta =
-    Number.isFinite(segundosPorPregunta) && segundosPorPregunta > 0
-      ? segundosPorPregunta
-      : SEG_POR_PREGUNTA_DEFECTO;
-  return Math.max(1, Math.round(porPregunta * faltan));
+  return Math.max(1, Math.round(SEG_POR_PREGUNTA_DEFECTO * faltan));
 }
 
 /** "~40 s" por debajo del minuto (decenas, de 10 a 50 — "~60 s" sería un minuto mal escrito) y
