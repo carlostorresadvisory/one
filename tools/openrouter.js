@@ -70,10 +70,28 @@ function claveGeminiGratis() {
   return (process.env.GEMINI_API_KEY_GRATIS || '').trim();
 }
 
+// Campos de body que son EXTENSIONES de OpenRouter sobre el protocolo de OpenAI, no estándar.
+// Google AI Studio valida el JSON del body de forma estricta y rechaza con HTTP 400
+// `Invalid JSON payload received. Unknown name "reasoning"` cualquier nombre que no conozca, así
+// que estos campos se retiran del body cuando el destino es Gemini (ola final v0.2b4, Critical C1:
+// `tools/visualizar.js` manda siempre `extra: SIN_RAZONAMIENTO` y eso mataba los dos eslabones
+// Gemini de la cascada visual -- 491 s y 0/4 visuales en la tanda real del 15-sep-2026).
+// Lista de https://openrouter.ai/docs/api-reference/overview; los campos estándar de OpenAI
+// (`temperature`, `top_p`, `response_format`, `stop`...) NO se tocan: Google los entiende.
+const CAMPOS_PROPIOS_OPENROUTER = [
+  'reasoning',
+  'include_reasoning',
+  'provider',
+  'transforms',
+  'route',
+  'models',
+  'plugins',
+];
+
 // Resuelve a qué API va cada modelo de la cascada: OpenRouter (por defecto) o el endpoint
 // compatible con OpenAI de Google AI Studio para los ids "gemini:<modelo>". El body de Gemini
-// lleva el nombre del modelo SIN el prefijo; las cabeceras HTTP-Referer/X-Title son propias de
-// OpenRouter y no se mandan a Gemini.
+// lleva el nombre del modelo SIN el prefijo; las cabeceras HTTP-Referer/X-Title y los campos de
+// `camposPropiosOpenRouter` son propios de OpenRouter y no se mandan a Gemini.
 function destinoDe(modelo) {
   if (modelo.startsWith('gemini:')) {
     return {
@@ -83,6 +101,8 @@ function destinoDe(modelo) {
         'Content-Type': 'application/json',
       },
       modelBody: modelo.slice('gemini:'.length),
+      esGemini: true,
+      camposPropiosOpenRouter: CAMPOS_PROPIOS_OPENROUTER,
     };
   }
   return {
@@ -94,6 +114,8 @@ function destinoDe(modelo) {
       'X-Title': 'ONE',
     },
     modelBody: modelo,
+    esGemini: false,
+    camposPropiosOpenRouter: [],
   };
 }
 
@@ -199,8 +221,11 @@ export function extraerJson(texto) {
  * Llama a OpenRouter recorriendo una cascada de modelos.
  * @param {object} opciones
  * @param {object} [opciones.extra] Campos adicionales para el body (p. ej. `reasoning` para
- *   modelos de razonamiento que necesitan desactivarlo explícitamente). Se aplican igual a
- *   todos los modelos de la cascada; un modelo que no reconozca el campo lo ignora.
+ *   modelos de razonamiento que necesitan desactivarlo explícitamente). Se aplican a todos los
+ *   modelos de la cascada EXCEPTO los campos propios de OpenRouter (`CAMPOS_PROPIOS_OPENROUTER`),
+ *   que se retiran del body cuando el destino es Gemini. No es cierto que "un modelo que no
+ *   reconozca el campo lo ignora": Google AI Studio responde HTTP 400 `Invalid JSON payload
+ *   received. Unknown name "reasoning"` (reproducido el 15-sep-2026, ver Critical C1).
  * @returns {Promise<{texto: string, modelo: string, coste: number, usage: object}>}
  */
 export async function llamar({
@@ -245,7 +270,7 @@ export async function llamar({
     }
     primeraLlamada = false;
 
-    const { url, cabeceras, modelBody } = destinoDe(modelo);
+    const { url, cabeceras, modelBody, camposPropiosOpenRouter } = destinoDe(modelo);
     const body = {
       model: modelBody,
       messages: mensajes,
@@ -254,6 +279,12 @@ export async function llamar({
       ...(json ? { response_format: { type: 'json_object' } } : {}),
       ...extra,
     };
+    // El `extra` es único para toda la cascada, pero no todos los destinos entienden lo mismo:
+    // los campos propios de OpenRouter se retiran aquí para el destino que no los conoce (Gemini),
+    // sin que quien llama tenga que saber a qué API va cada eslabón (Critical C1).
+    for (const campo of camposPropiosOpenRouter) {
+      delete body[campo];
+    }
 
     // Reintento único ante 429/503 (cuota agotada o servicio saturado): se ve a menudo tanto en
     // los ':free' de OpenRouter como en Gemini gratis, y un segundo intento suele bastar.
