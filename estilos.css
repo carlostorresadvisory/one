@@ -2020,11 +2020,61 @@ button.punto-servidor::before {
   font-size: 13px;
 }
 
-/* Chip "Tanda lista"/"No se pudo generar" del Átomo (v0.2b2 §4): mismo lenguaje visual que
-   .hub-chip-nuevas (se declara con las dos clases en index.html), justo debajo si los dos chips
-   coincidieran visibles a la vez. */
-.hub-chip-tanda {
-  margin-top: -2px;
+/* --- Indicador de tanda (spec v0.2b4 §2) ------------------------------------------------------
+   Fijo arriba a la derecha, por encima de cualquier vista y de la cabecera, por debajo de la hoja
+   "Conectar" (z-index 20). Vive fuera de <main> justamente para poder verse en todas las vistas a
+   la vez; respeta la zona segura de iOS igual que .cabecera. */
+.indicador-tanda {
+  position: fixed;
+  top: max(6px, env(safe-area-inset-top));
+  right: 8px;
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 12px 4px 5px;
+  border: 1px solid var(--acento);
+  border-radius: 22px;
+  background: rgba(76, 201, 240, 0.14);
+  color: var(--acento);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Mismo motivo que .hub-chip-nuevas[hidden] más arriba: con `display:flex` declarado, el [hidden]
+   del user-agent deja de bastar y el indicador se seguiría pintando al ocultarlo desde JS. */
+.indicador-tanda[hidden] {
+  display: none;
+}
+
+.indicador-tanda-anillo {
+  width: 26px;
+  height: 26px;
+  transform: rotate(-90deg); /* el avance empieza arriba, no a las 3 en punto */
+}
+
+.indicador-tanda-pista {
+  fill: none;
+  stroke: rgba(76, 201, 240, 0.25);
+  stroke-width: 4;
+}
+
+.indicador-tanda-avance {
+  fill: none;
+  stroke: var(--acento);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 94.2; /* 2 x PI x 15, el perímetro del círculo r=15 del viewBox 36x36 */
+  stroke-dashoffset: 94.2;
+  transition: stroke-dashoffset 400ms ease-out;
+}
+
+/* El cambio de estado sigue siendo inmediato; lo que se apaga es solo la animación del anillo. */
+@media (prefers-reduced-motion: reduce) {
+  .indicador-tanda-avance {
+    transition: none;
+  }
 }
 
 /* Botones con `disabled` (Generar/Atrás del Átomo, v0.2b2 §4): no había ninguna regla genérica

@@ -106,12 +106,6 @@
            servidor que trajo preguntas todavía no vistas; desaparece al tocarlo (no hace falta
            más acción -- ya están mezcladas en el banco en memoria, ver app.js). -->
       <button type="button" class="hub-chip-nuevas" data-test="nuevas-servidor" hidden></button>
-      <!-- Chip de una tanda pedida desde el Átomo (v0.2b2 §4): "Tanda lista: N de <subtema>"
-           cuando el trabajo llega a "lista" (o a "parcial" con >= 5), o "No se pudo generar,
-           prueba otra vez" si falla/desaparece (404 tras reinicio del servidor) -- mismo nodo en
-           los dos casos, ver app.js#mostrarChipTandaFallida. Tocarlo arranca la partida con esas
-           preguntas (o solo lo cierra, si es el aviso de fallo). -->
-      <button type="button" class="hub-chip-nuevas hub-chip-tanda" data-test="tanda-lista" hidden></button>
       <div class="hub-destacados">
         <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
         <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>
@@ -221,6 +215,19 @@
       <button type="button" class="boton boton-principal atomo-espera-resultado" data-test="atomo-espera-resultado" hidden></button>
     </section>
   </main>
+
+  <!-- Indicador de tanda (spec v0.2b4 §2): FUERA de <main>, fijo arriba a la derecha, así se ve en
+       TODAS las vistas (inicio, HUB, partida, repaso, átomo, espera) mientras hay una tanda en
+       curso o lista. SUSTITUYE al chip "tanda-lista" del HUB (una sola señal, decisión de la spec).
+       Tocarlo: en curso abre la vista de espera del átomo; lista arranca la partida con esas
+       preguntas; en fallo solo se cierra (y se cierra solo a los 6 s). -->
+  <button type="button" class="indicador-tanda" data-test="indicador-tanda" hidden aria-live="polite">
+    <svg class="indicador-tanda-anillo" viewBox="0 0 36 36" aria-hidden="true">
+      <circle class="indicador-tanda-pista" cx="18" cy="18" r="15"></circle>
+      <circle class="indicador-tanda-avance" data-test="indicador-tanda-anillo" cx="18" cy="18" r="15"></circle>
+    </svg>
+    <span class="indicador-tanda-texto" data-test="indicador-tanda-texto"></span>
+  </button>
 
   <!-- Hoja "Conectar" (Tarea 4, v0.2b3: "Conectar desde la app instalada"): en iOS la app añadida a
        la pantalla de inicio tiene almacenamiento SEPARADO de Safari, así que el enlace de conexión

@@ -16,7 +16,7 @@ const CACHE = 'one-v13';
 // que un despliegue con el núcleo completo consiga instalarse). Lo
 // SECUNDARIO (iconos, manifest, el catálogo de imágenes) sigue siendo
 // tolerante: que falte un icono no debe tumbar la app.
-const NUCLEO = ['./', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'estilos.css', 'datos/banco.json'];
+const NUCLEO = ['./', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js', 'estilos.css', 'datos/banco.json'];
 
 const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
 

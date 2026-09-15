@@ -3078,11 +3078,11 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // el chip aparece -- timeout ampliado porque son ~10s reales de sondeo (2 x 5000ms).
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    const chip = page.locator('[data-test="tanda-lista"]');
-    await expect(chip).toHaveText('Tanda lista: 10 de Mercados y crisis', { timeout: 13000 });
+    const indicador = page.locator('[data-test="indicador-tanda"]');
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
 
-    await chip.click();
-    await expect(chip).toBeHidden();
+    await indicador.click();
+    await expect(indicador).toBeHidden();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     // "0/10": recién arrancada (0 respondidas), 10 preguntas totales -- exactamente los ids de
@@ -3131,8 +3131,12 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="atomo-generar"]').click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
 
-    const chip = page.locator('[data-test="tanda-lista"]');
-    await expect(chip).toHaveText('No se pudo generar, prueba otra vez', { timeout: 8000 });
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText(
+      'La tanda se perdió, genera otra',
+      { timeout: 8000 }
+    );
+    // Spec §1: en 404 la tanda guardada se limpia, para no reanudar un trabajo que ya no existe.
+    expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
 
     // El sondeo se detiene en cuanto consultarTrabajo devuelve null (404): un ciclo más (5s) no
     // debe sumar ninguna llamada más a /trabajo/:id.
@@ -3171,8 +3175,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
     await page.locator('[data-test="atomo-generar"]').click();
 
-    const chip = page.locator('[data-test="tanda-lista"]');
-    await expect(chip).toHaveText('Tanda lista: 3 de Economía', { timeout: 5000 });
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 3', { timeout: 5000 });
 
     // Sondeo detenido de verdad: un ciclo más (>5s) no debe sumar ninguna llamada más.
     const llamadasTrasChip = contadores.trabajo;
@@ -3364,6 +3367,51 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       return encontradas;
     });
     expect(clavesConToken).toEqual([]);
+  });
+
+  test('v0.2b4 §2: el indicador se ve en todas las vistas mientras se genera y tocarlo abre la espera', async ({ page }) => {
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      servidorAtomoFalso({
+        trabajoRespuesta: {
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null, segundosPorPregunta: 4 }),
+        },
+      })
+    );
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const indicador = page.locator('[data-test="indicador-tanda"]');
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('0 de 10 · ~40 s');
+
+    // Vista de espera -> HUB -> partida: el indicador nunca desaparece (vive fuera de <main>).
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await expect(indicador).toBeVisible();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(indicador).toBeVisible();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(indicador).toBeVisible();
+
+    // Spec §2: en curso, tocarlo abre la vista de espera del átomo.
+    await indicador.click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="tanda-lista"]')).toHaveCount(0);
   });
 });
 
