@@ -25,6 +25,7 @@ import {
   leerBancoExtra,
   fusionarBancoExtra,
   sincronizarEstado,
+  aplicarActualizaciones,
   reportarAlServidor,
   pedirSubtemas,
   pedirTanda,
@@ -629,7 +630,11 @@ function mostrarChipNuevas(anadidas, ids = []) {
 /** "Modo normal" (spec v0.2 §4): al abrir y al terminar cada partida, en segundo plano (nunca
  * bloquea la UI ni lanza). Sin configuración guardada, `sincronizarEstado` no hace ninguna
  * petición y el punto se queda gris. Con configuración: verde si respondió algo válido, ámbar si
- * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos. */
+ * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos.
+ * v0.2b4.1 §5: esta función SOLO se llama al abrir la app (iniciar), al terminar una partida
+ * (finalizarPartida) y al conectar desde la hoja "Conectar" (manejarConectarOk) -- nunca a mitad de
+ * una partida en curso -- así que aplicar las actualizaciones del servidor aquí nunca le cambia la
+ * pregunta bajo el dedo al jugador. */
 async function sincronizarEnSegundoPlano() {
   if (!leerConfiguracion()) {
     estadoServidor = 'gris';
@@ -639,7 +644,20 @@ async function sincronizarEnSegundoPlano() {
   const resultado = await sincronizarEstado({ estado, banco, hoy: hoy(), fetchImpl: fetch });
   estadoServidor = resultado ? 'verde' : 'ambar';
   actualizarPuntoServidor();
-  if (resultado && resultado.preguntas.length > 0) {
+  if (!resultado) return;
+
+  // v0.2b4.1 §5: primero las correcciones de lo que YA tenemos (el visual que llegó tarde), después
+  // las preguntas nuevas -- da igual el orden en la práctica (ids distintos), pero así el chip de
+  // "preguntas nuevas" es siempre el último aviso que ve el jugador tras una sincronización.
+  const { aplicadas } = aplicarActualizaciones(resultado.actualizadas, estado);
+  if (aplicadas > 0) {
+    // Sin esto, `banco`/`bancoPorId` en memoria seguirían con el visual viejo hasta recargar --
+    // aplicarActualizaciones ya reescribió `one.bancoExtra` en disco, pero reconstruirBanco es lo
+    // que lo vuelve a leer y lo mezcla en las variables que de verdad usa la UI.
+    reconstruirBanco();
+  }
+
+  if (resultado.preguntas.length > 0) {
     const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
     if (anadidas > 0) {
       reconstruirBanco();
