@@ -20,7 +20,7 @@ import { AREAS } from '../tools/validar-banco.js';
 import { HILOS_POR_AREA, textoCriterio } from '../tools/criterio.js';
 import { crearAlmacen } from './almacen.js';
 import { crearCola } from './cola.js';
-import { producirTanda } from './generacion.js';
+import { producirTanda, completarVisual } from './generacion.js';
 
 const require = createRequire(import.meta.url);
 
@@ -473,6 +473,9 @@ export function crearServidor({
     const max = Number.isInteger(cuerpo.max) && cuerpo.max > 0 ? cuerpo.max : MAX_ESTADO_DEFECTO;
     const idsConocidos = Array.isArray(resumen.idsConocidos) ? resumen.idsConocidos : [];
     const rutasAtomo = Array.isArray(resumen.rutasAtomo) ? resumen.rutasAtomo : [];
+    // v0.2b4.1 §5: marca de agua del cliente (última vez que preguntó por actualizaciones).
+    // Opcional: un cliente de v0.2b4 no la manda y recibe `actualizadas: []` -- nada cambia para él.
+    const desde = typeof cuerpo.desde === 'string' ? cuerpo.desde : null;
 
     // Ronda final (revisión, 14-sep-2026) -- Important (I1): `cola.servir()` ya ha marcado
     // `servida` (y persistido) las preguntas devueltas -- ese trabajo real no debe perderse por un
@@ -482,7 +485,18 @@ export function crearServidor({
     // las viera). Se responde primero; guardar el resumen (como el relleno de después) pasa a ser
     // efecto de fondo con su propio manejo de errores.
     const preguntas = await cola.servir({ idsConocidos, resumen, max });
-    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola });
+    // v0.2b4.1 §5: un fallo leyendo lo actualizado NUNCA puede impedir la respuesta -- mismo
+    // razonamiento que I1 arriba: `servir()` ya marcó esas preguntas en disco, así que perder la
+    // respuesta las quemaría sin que el móvil las haya visto. `actualizadas()` es de solo lectura
+    // (no cambia nada en disco), así que esperarla aquí -- a diferencia del resumen/relleno de
+    // abajo, que sí son efecto de fondo puro -- no arriesga ese trabajo ya hecho.
+    let actualizadas = [];
+    try {
+      actualizadas = await cola.actualizadas({ idsConocidos, desde });
+    } catch (err) {
+      console.error(`servidor: fallo al calcular las actualizadas de /estado: ${err?.message || err}`);
+    }
+    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola, actualizadas });
 
     almacen.escribirAtomico('ultimo-resumen.json', resumen).catch((err) => {
       console.error(`servidor: fallo al guardar ultimo-resumen.json: ${err?.message || err}`);
@@ -493,6 +507,14 @@ export function crearServidor({
     // para que un fallo aquí no se convierta en un unhandledRejection.
     cola.rellenarHaciaObjetivo(resumen, rutasAtomo).catch((err) => {
       console.error(`servidor: fallo al rellenar el colchón desde /estado: ${err?.message || err}`);
+    });
+
+    // v0.2b4.1 §5: y de paso se empuja el trabajo de fondo de los visuales pendientes. La cola lo
+    // ignora si ya hay uno en marcha o si no hay nada pendiente (ver completarVisualesPendientes),
+    // así que es barato pedirlo aquí: sin este empujón, un colchón con visuales a medias esperaría
+    // a que el trabajador se quedara sin trabajos por su cuenta (procesarCola).
+    cola.completarVisualesPendientes?.().catch((err) => {
+      console.error(`servidor: fallo al completar visuales pendientes desde /estado: ${err?.message || err}`);
     });
   }
 
@@ -820,6 +842,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const colaReal = crearCola({
     almacen: almacenReal,
     producirTanda,
+    completarVisual,
     opciones: { permitirPago, topeEur, rutaLog: path.join(rutaDatos, 'llamadas.log') },
   });
 

@@ -355,6 +355,82 @@ test('POST /estado responde con las preguntas aunque falle el guardado de ultimo
   }
 });
 
+// v0.2b4.1 §5: cola falsa mínima para probar manejarEstado en aislamiento (mismo patrón que la
+// cola falsa de "GET /salud expone ultimoError..." más arriba) -- `servir`/`actualizadas` se
+// sobrescriben por test, el resto son no-ops suficientes para que /estado no lance.
+function colaEstadoFalsa(extra = {}) {
+  return {
+    servir: async () => [],
+    estadisticas: () => ({ enCola: 0 }),
+    rellenarHaciaObjetivo: async () => [],
+    actualizadas: async () => [],
+    ...extra,
+  };
+}
+
+async function conColaFalsa(colaFake, fn) {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const servidor = crearServidor({ cola: colaFake, almacen, token: TOKEN, rutaDatos: dir });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    await fn({ base, dir, almacen });
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
+  }
+}
+
+test('v0.2b4.1 §5: POST /estado devuelve `actualizadas` sin tocar `preguntas` ni `enCola`', async () => {
+  const colaFake = colaEstadoFalsa({
+    servir: async () => [{ id: 'srv-eco-nueva', area: 'economia', enunciado: 'Nueva' }],
+    actualizadas: async ({ idsConocidos, desde }) => {
+      assert.deepEqual(idsConocidos, ['srv-eco-vieja']);
+      assert.equal(desde, '2026-09-15T10:00:00.000Z', 'el `desde` del cliente llega tal cual');
+      return [{ id: 'srv-eco-vieja', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'L' }, explicacion: 'Igual.' }];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { idsConocidos: ['srv-eco-vieja'] }, desde: '2026-09-15T10:00:00.000Z' }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.preguntas.map((p) => p.id), ['srv-eco-nueva'], 'el contrato de v0.2b4 no cambia');
+    assert.equal(typeof datos.enCola, 'number');
+    assert.deepEqual(datos.actualizadas.map((p) => p.id), ['srv-eco-vieja']);
+  });
+});
+
+test('v0.2b4.1 §5: un cliente viejo (sin `desde`) sigue funcionando y recibe `actualizadas: []`', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.actualizadas, []);
+  });
+});
+
+test('v0.2b4.1 §5: si `actualizadas` falla, /estado responde igual con las preguntas (no se pierde el servir)', async () => {
+  const colaFake = colaEstadoFalsa({
+    servir: async () => [{ id: 'srv-eco-nueva', area: 'economia' }],
+    actualizadas: async () => { throw new Error('disco de solo lectura'); },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200, 'servir() ya marcó esas preguntas: perder la respuesta las quemaría');
+    const datos = await resp.json();
+    assert.deepEqual(datos.preguntas.map((p) => p.id), ['srv-eco-nueva']);
+    assert.deepEqual(datos.actualizadas, []);
+  });
+});
+
 // === POST /generar + GET /trabajo/:id ===========================================================
 
 test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con el pipeline falso', async () => {
