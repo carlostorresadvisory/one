@@ -350,22 +350,40 @@ function avisarFalloPeticion(url, motivo) {
   }
 }
 
+// Igual que `peticionJson`, pero además dice QUÉ pasó: `codigo` es el estado HTTP recibido, o 0
+// cuando ni siquiera hubo respuesta (red caída, DNS, timeout). Solo lo necesita `consultarTrabajo`
+// (ola final v0.2b4, Critical C2): un 404 es "ese trabajo ya no existe" y justifica olvidar la
+// tanda, mientras que un 5xx o un corte de red solo significa "no he podido preguntar" y NO debe
+// borrar nada. El resto de funciones sigue usando `peticionJson`, que no distingue.
+async function peticionJsonDetallada(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
+  let respuesta;
+  try {
+    respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
+  } catch {
+    avisarFalloPeticion(url, 'red');
+    return { datos: null, codigo: 0 };
+  }
+  const codigo = Number.isFinite(respuesta.status) ? respuesta.status : 0;
+  if (!respuesta.ok) {
+    avisarFalloPeticion(url, String(respuesta.status));
+    return { datos: null, codigo };
+  }
+  try {
+    return { datos: await respuesta.json(), codigo };
+  } catch {
+    // Cuerpo que no es JSON: la petición llegó, pero no sirve. Se trata como fallo, no como 404.
+    avisarFalloPeticion(url, 'red');
+    return { datos: null, codigo };
+  }
+}
+
 // Único punto que toca la red: siempre con timeout (10 s por defecto, 90 s para /subtemas -- ver
 // `timeoutMs`/TIMEOUT_SUBTEMAS_MS más abajo) y siempre `null` en vez de lanzar (cuerpo no-JSON,
 // HTTP no-ok, red caída, timeout...) — así cada función pública de arriba puede limitarse a
 // comprobar `datos === null` sin su propio try/catch repetido.
 async function peticionJson(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
-  try {
-    const respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
-    if (!respuesta.ok) {
-      avisarFalloPeticion(url, String(respuesta.status));
-      return null;
-    }
-    return await respuesta.json();
-  } catch {
-    avisarFalloPeticion(url, 'red');
-    return null;
-  }
+  const { datos } = await peticionJsonDetallada(fetchImpl, url, opciones, timeoutMs);
+  return datos;
 }
 
 function areasParaServidor(estado, banco, hoy) {
@@ -457,20 +475,27 @@ export async function pedirTanda({ area, ruta = [], n, fetchImpl = fetch } = {})
 
 /**
  * `GET /trabajo/:id`: estado de una tanda pedida con `pedirTanda` (el átomo la sondea cada 5 s
- * mientras espera). Devuelve el objeto tal cual lo manda el servidor
- * (`{estado, hechas, pedidas, preguntas, motivo}`) o `null` si no hay configuración, el id no es
- * válido, o cualquier error (404 incluido: un trabajo que ya no existe -- p. ej. tras reiniciar el
- * servidor -- no es distinto de cualquier otro fallo para quien llama).
+ * mientras espera). Tres resultados posibles (ola final v0.2b4, Critical C2):
+ *  - el objeto tal cual lo manda el servidor (`{estado, hechas, pedidas, preguntas, motivo}`);
+ *  - `{ perdido: true }` con HTTP 404: ese trabajo YA NO EXISTE (p. ej. el servidor se reinició),
+ *    así que tiene sentido olvidar la tanda guardada;
+ *  - `null` en cualquier otro fallo (sin configuración, id inválido, 5xx, red caída, timeout,
+ *    cuerpo no-JSON): solo significa "no he podido preguntar", NUNCA "el trabajo no existe".
+ * Antes los dos últimos casos eran el mismo `null` y quien llamaba no podía distinguirlos: un
+ * corte de red de un solo sondeo borraba la tanda en curso y mentía con "La tanda se perdió".
  * @param {string} id
  * @param {{fetchImpl?: Function}} [opciones]
- * @returns {Promise<object | null>}
+ * @returns {Promise<object | {perdido: true} | null>}
  */
 export async function consultarTrabajo(id, { fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || typeof id !== 'string' || !id) return null;
-  const datos = await peticionJson(fetchImpl, `${configuracion.url}/trabajo/${encodeURIComponent(id)}`, {
-    headers: cabeceras(configuracion.token),
-  });
+  const { datos, codigo } = await peticionJsonDetallada(
+    fetchImpl,
+    `${configuracion.url}/trabajo/${encodeURIComponent(id)}`,
+    { headers: cabeceras(configuracion.token) }
+  );
+  if (codigo === 404) return { perdido: true };
   if (!datos || typeof datos.estado !== 'string') return null;
   return datos;
 }

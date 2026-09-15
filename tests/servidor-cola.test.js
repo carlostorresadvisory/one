@@ -401,6 +401,149 @@ test('cola: dos encolar seguidos nunca dejan a producirTanda con más de 1 llama
   assert.equal(maxEnCurso, 1, 'nunca debe haber más de 1 llamada a producirTanda en curso a la vez');
 });
 
+// === servidor/cola.js: segundosPorPregunta / preguntasPorDelante (v0.2b4 §6c) =================
+
+// Reloj falso inyectable (v0.2b4 §6c): la media móvil mide segundos reales, y un test no puede
+// esperar 20 s por tanda. `avanzar(ms)` simula el paso del tiempo entre lotes.
+function relojFalso(inicio = 0) {
+  let ahora = inicio;
+  return { leer: () => ahora, avanzar: (ms) => { ahora += ms; } };
+}
+
+test('cola v0.2b4 §6c: segundosPorPregunta arranca en 20 y pasa a ser la media de las tandas medidas', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const producirTanda = async ({ area, n }) => {
+    reloj.avanzar(n * 6000); // 6 s por pregunta en este lote
+    return resultadoOk(area, n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+
+  assert.equal(cola.estadisticas().segundosPorPregunta, 20); // arranque en frío
+
+  const { trabajoId } = cola.encolar({ area: 'economia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadisticas().segundosPorPregunta, 6);
+  // `/trabajo/:id` la devuelve para que el móvil afine su cuenta atrás.
+  assert.equal(cola.estadoTrabajo(trabajoId).segundosPorPregunta, 6);
+});
+
+// Ronda de corrección 1 (revisión Opus, Important #2): un trabajo de fondo que cede el turno a un
+// urgente conservaba `inicio` desde su primer lote -- la muestra medía tiempo de PARED de punta a
+// punta, así que se comía íntegro el tiempo que el urgente tardó mientras el de fondo esperaba su
+// turno. `rellenarHaciaObjetivo` se dispara en cada /estado (servidor/index.js), así que fondo y
+// urgentes conviven a diario: con ventana de 5 muestras, una sola cesión inflaba el estimadoSeg de
+// TODOS los usuarios siguientes. La media debe medir solo el tiempo ACTIVO de este trabajo (sus
+// propios lotes), nunca el tiempo que pasó aparcado mientras otro trabajo ocupaba al trabajador.
+test('cola v0.2b4 §6c (corrección 1): un fondo que cede el turno a un urgente NO incorpora el tiempo del urgente a su propia muestra', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const producirTanda = async ({ area, n }) => {
+    if (area === 'historia') {
+      reloj.avanzar(10000); // 10 s de trabajo ACTIVO real por lote (2 lotes de 5 -> 20 s en total)
+      return resultadoOk(area, n, n);
+    }
+    // El urgente ('economia') tarda muchísimo MIENTRAS el de fondo está cedido/aparcado, y no debe
+    // dejar ninguna muestra propia (0 aprobadas -> 'fallida', fuera de la ventana de medición) para
+    // que la única muestra que acabe en la media sea la del propio 'historia'.
+    reloj.avanzar(100000); // 100 s "perdidos" por el de fondo si el bug sigue vivo
+    return resultadoVacio(n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+
+  // Mismo patrón que el test de Ronda 1 en la sección de arriba: el urgente se encola en la MISMA
+  // vuelta síncrona que el de fondo, así que ya está en `colaUrgente` cuando el primer lote de
+  // 'historia' termina y decide si cede.
+  const { trabajoId: idFondo } = cola.encolar({ area: 'historia', n: 10, urgente: false });
+  cola.encolar({ area: 'economia', n: 5, urgente: true });
+
+  await hastaQue(() => cola.estadoTrabajo(idFondo)?.estado === 'lista');
+
+  // Con el fix: 20 s de trabajo activo / 10 preguntas = 2 s/pregunta. Con el bug (tiempo de pared
+  // de punta a punta): (10 + 100 + 10) s / 10 preguntas = 12 s/pregunta.
+  assert.equal(cola.estadisticas().segundosPorPregunta, 2);
+});
+
+test('cola v0.2b4 §6c: la media usa solo las últimas 5 tandas y las fallidas no cuentan', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  let segPorPregunta = 10;
+  const producirTanda = async ({ area, n }) => {
+    reloj.avanzar(n * segPorPregunta * 1000);
+    return resultadoOk(area, n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+  for (let i = 0; i < 5; i += 1) {
+    const { trabajoId } = cola.encolar({ area: 'economia', n: 5, urgente: true });
+    await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+  }
+  assert.equal(cola.estadisticas().segundosPorPregunta, 10);
+  segPorPregunta = 20;
+  for (let i = 0; i < 5; i += 1) {
+    const { trabajoId } = cola.encolar({ area: 'economia', n: 5, urgente: true });
+    await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+  }
+  assert.equal(cola.estadisticas().segundosPorPregunta, 20); // las 5 viejas ya salieron de la ventana
+});
+
+test('cola v0.2b4 §6c: encolar dice cuántas preguntas hay POR DELANTE, no cuántos trabajos', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  let resolverLote;
+  const producirTanda = ({ area, n }) => new Promise((r) => { resolverLote = () => r(resultadoOk(area, n, n)); });
+  const cola = crearCola({ almacen, producirTanda });
+
+  const a = cola.encolar({ area: 'economia', n: 10, urgente: true });
+  assert.equal(a.preguntasPorDelante, 0);
+  assert.equal(a.pedidas, 10);
+  await hastaQue(() => typeof resolverLote === 'function');
+  const b = cola.encolar({ area: 'historia', n: 10, urgente: true });
+  // El activo tiene 10 pedidas y 0 hechas: 10 preguntas por delante de `b`.
+  assert.equal(b.preguntasPorDelante, 10);
+  resolverLote();
+});
+
+test('cola v0.2b4 §6c: una tanda fallida (0 hechas antes de terminar) no ensucia la media móvil', async () => {
+  // Caso borde pedido en la autorrevisión: un trabajo puede terminar 'fallida' con preguntas.length
+  // === 0 -- finalizarTrabajo no debe intentar dividir por trabajo.hechas === 0 ni registrar una
+  // muestra falsa. La media móvil debe seguir en el valor inicial (20) tras un fallo total.
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({ almacen, producirTanda: async (params) => resultadoVacio(params.n), reloj: reloj.leer });
+
+  const { trabajoId } = cola.encolar({ area: 'historia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'fallida');
+
+  assert.equal(cola.estadisticas().segundosPorPregunta, 20, 'una tanda sin ninguna aprobada no debe alterar la media');
+});
+
+test('cola v0.2b4 §1: un trabajo terminado se conserva al menos 1 h (antes se tiraba al llegar a 100)', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({ almacen, producirTanda: async ({ area, n }) => resultadoOk(area, n, n), reloj: reloj.leer });
+
+  const primero = cola.encolar({ area: 'economia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(primero.trabajoId)?.estado === 'lista');
+
+  // 150 tandas más (muy por encima del viejo tope de 100) dentro de la misma hora.
+  for (let i = 0; i < 150; i += 1) {
+    const { trabajoId } = cola.encolar({ area: 'historia', n: 5, urgente: true });
+    await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+    reloj.avanzar(1000);
+  }
+  assert.notEqual(cola.estadoTrabajo(primero.trabajoId), null); // sigue ahí: no ha pasado la hora
+
+  reloj.avanzar(60 * 60 * 1000);
+  const ultimo = cola.encolar({ area: 'ciencia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(ultimo.trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadoTrabajo(primero.trabajoId), null); // ya pasó la hora: se purga
+});
+
 // === servidor/cola.js: calcularObjetivo / rellenarHaciaObjetivo ==============================
 
 test('calcularObjetivo: sin áreas flojas y sin rutasAtomo, reparte los 30 entre TODAS las áreas', async () => {

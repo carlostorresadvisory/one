@@ -10,11 +10,13 @@ import {
   resolverPregunta,
   reverificarVisualesGuardados,
   aplicarExclusionVisual,
+  explicacionYaCumple,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
   GENERADOR_SOLO_PAGO,
   VERIFICADOR_SOLO_PAGO,
 } from '../tools/visualizar.js';
+import { esModeloGratis } from '../tools/openrouter.js';
 
 // --- validarVisual --------------------------------------------------------------------------
 
@@ -283,6 +285,22 @@ test('datos/visuales-excluidos.json: cada entrada tiene forma válida ({tipos: s
   }
 });
 
+// --- cascadas de modelos (v0.2b4 §6a) -----------------------------------------------------------
+
+test('v0.2b4 §6a: las cascadas de visual empiezan por Gemini gratis, con papeles distintos', () => {
+  assert.equal(GENERADOR_VISUAL[0], 'gemini:gemini-flash-lite-latest');
+  assert.equal(VERIFICADOR_VISUAL[0], 'gemini:gemini-3.6-flash');
+  // Gratis de verdad (GEMINI_API_KEY_GRATIS, coste 0): nada de pago se cuela por delante.
+  assert.equal(esModeloGratis(GENERADOR_VISUAL[0]), true);
+  assert.equal(esModeloGratis(VERIFICADOR_VISUAL[0]), true);
+  // Regla fija de Carlos: verifica SIEMPRE un modelo distinto del que generó. Con ids distintos,
+  // `excluirModelo` no deja al verificador sin cascada.
+  assert.notEqual(GENERADOR_VISUAL[0], VERIFICADOR_VISUAL[0]);
+  // Los ':free' de OpenRouter siguen detrás como red (spec §0: la cascada gratis se satura a ratos).
+  assert.ok(GENERADOR_VISUAL.includes('nvidia/nemotron-3-ultra-550b-a55b:free'));
+  assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
+});
+
 // --- generarVisualYExplicacion ----------------------------------------------------------------
 
 function preguntaBase(extra) {
@@ -395,6 +413,25 @@ test('generarVisualYExplicacion: si la explicación se pasa de 40 palabras dos v
   assert.equal(r.explicacion, explicacionCorta);
   assert.match(notasVistas[1], /45 palabras/, 'el segundo intento debe avisar de cuántas palabras se pasó');
   assert.match(notasVistas[2], /máximo 32 palabras/i, 'el tercer intento debe pedir explícitamente 32 palabras');
+});
+
+test('v0.2b4 §6b: el prompt del generador de visuales también pide de 25 a 40 palabras', async () => {
+  let sistema = '';
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    sistema = mensajes[0].content;
+    return {
+      texto: JSON.stringify({ explicacion: 'Una explicación corta y correcta.', visual: null }),
+      modelo: modelos[0],
+      coste: 0,
+      usage: {},
+    };
+  };
+  await generarVisualYExplicacion(preguntaBase(), { llamar: llamarFalso, necesitaVisual: false });
+  assert.match(sistema, /DE 25 A 40 PALABRAS/);
+  // Ola final v0.2b4 (M2): "en 2 frases" era una talla única; una explicación que cabe en una
+  // frase no debe alargarse solo para cumplir el formato.
+  assert.match(sistema, /en 1-2 frases/);
+  assert.doesNotMatch(sistema, /en 2 frases/);
 });
 
 // --- verificarVisualYExplicacion ---------------------------------------------------------------
@@ -678,6 +715,92 @@ test('resolverPregunta: si explicacionOk es false, conserva la explicación orig
   assert.equal(r.explicacion, pregunta.explicacion);
   assert.equal(r.explicacionCambiada, false);
   assert.match(r.motivoExplicacionRechazo, /error/);
+});
+
+// --- resolverPregunta: saltarAcortado (v0.2b4 §6b) ----------------------------------------------
+
+test('v0.2b4 §6b: resolverPregunta con saltarAcortado y explicación que ya cumple pide SOLO el visual', async () => {
+  const sistemas = [];
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    sistemas.push({ papel: modelos === GENERADOR_VISUAL ? 'generador' : 'verificador', texto: mensajes[0].content });
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ visual: { tipo: 'formula', texto: 'PIB = C + I + G', leyenda: 'Componentes del PIB' } }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ visualOk: true, motivo: 'datos correctos' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const pregunta = preguntaBase({
+    explicacion: 'La inflación sube cuando la demanda supera a la oferta disponible; por eso el banco central sube los tipos para enfriarla.',
+  });
+  const r = await resolverPregunta(pregunta, { llamar: llamarFalso, necesitaVisual: true, saltarAcortado: true });
+
+  assert.equal(r.explicacion, pregunta.explicacion); // intacta, ni una palabra tocada
+  assert.equal(r.explicacionCambiada, false);
+  assert.equal(r.motivoExplicacionRechazo, null);
+  assert.equal(r.visual.tipo, 'formula');
+  // Una llamada al generador + una al verificador: ni un intento de acortado.
+  assert.equal(sistemas.filter((s) => s.papel === 'generador').length, 1);
+  assert.match(sistemas[0].texto, /NO la reescribas/);
+  // Ola final v0.2b4 (M1): con soloVisual, NADA del prompt puede pedir la explicación -- ni la
+  // frase de entrada ("es reescribir la EXPLICACIÓN...") ni la forma del JSON de salida.
+  assert.doesNotMatch(sistemas[0].texto, /es reescribir la EXPLICACIÓN/);
+  assert.match(sistemas[0].texto, /Devuelve SOLO JSON con la forma exacta: \{"visual"/);
+  assert.doesNotMatch(sistemas[0].texto, /\{"explicacion":/);
+});
+
+test('v0.2b4 §6b: con saltarAcortado pero explicación de más de 40 palabras, se reescribe como siempre', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ explicacion: 'Versión corta y correcta de la explicación.', visual: null }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: 'ok' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const larga = Array.from({ length: 55 }, (_, i) => `palabra${i}`).join(' ');
+  const r = await resolverPregunta(preguntaBase({ explicacion: larga }), {
+    llamar: llamarFalso,
+    necesitaVisual: false,
+    saltarAcortado: true,
+  });
+  assert.equal(r.explicacionCambiada, true);
+  assert.equal(r.explicacion, 'Versión corta y correcta de la explicación.');
+});
+
+test('v0.2b4 §6b: explicacionYaCumple cuenta palabras, no caracteres', () => {
+  assert.equal(explicacionYaCumple('Una explicación de siete palabras exactas aquí.'), true);
+  assert.equal(explicacionYaCumple(''), false);
+  // Caso borde: EXACTAMENTE 40 palabras cabe (límite inclusivo); 41 ya no.
+  assert.equal(explicacionYaCumple(Array.from({ length: 40 }, () => 'x').join(' ')), true);
+  assert.equal(explicacionYaCumple(Array.from({ length: 41 }, () => 'x').join(' ')), false);
+});
+
+test('v0.2b4 §6b: con saltarAcortado pero explicación VACÍA, se reescribe como siempre (no hay nada que "ya cumpla")', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ explicacion: 'Explicación generada desde cero.', visual: null }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: 'ok' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const r = await resolverPregunta(preguntaBase({ explicacion: '' }), {
+    llamar: llamarFalso,
+    necesitaVisual: false,
+    saltarAcortado: true,
+  });
+  assert.equal(r.explicacionCambiada, true, 'explicación vacía no "ya cumple": no se salta el acortado');
+  assert.equal(r.explicacion, 'Explicación generada desde cero.');
 });
 
 // --- reverificarVisualesGuardados (modo --reverificar-visuales, hallazgo 4) --------------------

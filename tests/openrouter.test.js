@@ -467,3 +467,119 @@ test(
     await limpiarLog();
   }),
 );
+
+// (g) Ola final v0.2b4 -- Critical C1: los campos propios de OpenRouter (`reasoning` y compañía)
+// NO pueden viajar en el body de Gemini. Google AI Studio valida el JSON del body de forma
+// estricta y responde HTTP 400 `Invalid JSON payload received. Unknown name "reasoning"`
+// (reproducido por el revisor el 15-sep-2026: flash-lite sin `reasoning` -> 200; con
+// `reasoning` -> 400). Como `tools/visualizar.js` manda siempre `extra: SIN_RAZONAMIENTO`, los
+// dos eslabones Gemini de la cascada visual estaban muertos: 491 s y 0/4 visuales en la tanda real.
+test(
+  'gemini: los campos propios de OpenRouter (reasoning) NO se envían en el body',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      opcionesRecibidas = opts;
+      return respuestaOk('gemini-flash-lite-latest');
+    };
+    await llamar({
+      modelos: ['gemini:gemini-flash-lite-latest'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      extra: { reasoning: { enabled: false, exclude: true } },
+    });
+    const body = JSON.parse(opcionesRecibidas.body);
+    assert.equal('reasoning' in body, false, 'Google AI Studio da 400 si el body trae "reasoning"');
+    assert.equal(body.model, 'gemini-flash-lite-latest');
+    assert.deepEqual(body.messages, [{ role: 'user', content: 'hola' }]);
+    await limpiarLog();
+  }),
+);
+
+test(
+  'openrouter: el mismo `extra.reasoning` SÍ viaja en el body de un id de OpenRouter',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      opcionesRecibidas = opts;
+      return respuestaOk('a/uno:free');
+    };
+    await llamar({
+      modelos: ['a/uno:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      extra: { reasoning: { enabled: false, exclude: true } },
+    });
+    const body = JSON.parse(opcionesRecibidas.body);
+    assert.deepEqual(body.reasoning, { enabled: false, exclude: true });
+    await limpiarLog();
+  }),
+);
+
+// La misma cascada con los dos destinos: a Gemini se le quita `reasoning`, al ':free' de
+// OpenRouter que va detrás se le mantiene (el `extra` es único para toda la cascada).
+test(
+  'cascada mixta: se limpia el body de Gemini sin perder `reasoning` para el siguiente de OpenRouter',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    const cuerpos = [];
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      cuerpos.push(body);
+      if (body.model === 'gemini-flash-lite-latest') return respuestaError(500);
+      return respuestaOk(body.model);
+    };
+    const r = await llamar({
+      modelos: ['gemini:gemini-flash-lite-latest', 'b/dos:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      extra: { reasoning: { enabled: false, exclude: true } },
+    });
+    assert.equal(r.modelo, 'b/dos:free');
+    assert.equal('reasoning' in cuerpos[0], false);
+    assert.deepEqual(cuerpos[1].reasoning, { enabled: false, exclude: true });
+    await limpiarLog();
+  }),
+);
+
+// Los demás campos propios de OpenRouter (provider, transforms, route, models, plugins,
+// include_reasoning) tampoco pueden colarse: Google rechaza cualquier nombre desconocido.
+test(
+  'gemini: ningún campo propio de OpenRouter sobrevive en el body; los estándar sí',
+  conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
+    await limpiarLog();
+    let opcionesRecibidas;
+    const fetchImpl = async (url, opts) => {
+      opcionesRecibidas = opts;
+      return respuestaOk('gemini-3.6-flash');
+    };
+    await llamar({
+      modelos: ['gemini:gemini-3.6-flash'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      extra: {
+        reasoning: { enabled: false },
+        include_reasoning: false,
+        provider: { zdr: true },
+        transforms: ['middle-out'],
+        route: 'fallback',
+        models: ['otro/modelo:free'],
+        plugins: [{ id: 'web' }],
+        // Estándar del protocolo OpenAI: Google sí lo entiende, no se toca.
+        top_p: 0.9,
+      },
+    });
+    const body = JSON.parse(opcionesRecibidas.body);
+    for (const campo of ['reasoning', 'include_reasoning', 'provider', 'transforms', 'route', 'models', 'plugins']) {
+      assert.equal(campo in body, false, `"${campo}" es propio de OpenRouter y no debe ir a Gemini`);
+    }
+    assert.equal(body.top_p, 0.9, 'top_p es estándar de OpenAI: debe llegar a Gemini');
+    await limpiarLog();
+  }),
+);

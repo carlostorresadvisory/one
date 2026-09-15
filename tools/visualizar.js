@@ -41,21 +41,21 @@ const AREAS = ['economia', 'historia', 'ciencia', 'tecnologia', 'geografia', 'fi
 const TAMANO_LOTE = 8;
 const PAUSA_ENTRE_PREGUNTAS_MS = 1000; // cortesía con la cascada de modelos ':free', mismo espíritu que buscar-imagenes.js
 
+// v0.2b4 §6a: Gemini gratis primero, igual que ya hace servidor/generacion.js#MODELOS desde v0.2b3
+// (`GEMINI_API_KEY_GRATIS`, coste 0, ver tools/openrouter.js#esModeloGratis). La tanda real del
+// 15-sep (spec §0) gastó 17 de sus 24 llamadas justo aquí, con los ':free' de OpenRouter saturados:
+// este paso es el que de verdad marca cuánto tarda una tanda.
 export const GENERADOR_VISUAL = [
+  'gemini:gemini-flash-lite-latest',
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
   'deepseek/deepseek-v4-flash',
 ];
 
-// Solo 1 modelo ':free' antes de caer al de pago (a diferencia del generador, que prueba 2):
-// visto en vivo el 13-sep-2026 en la ejecución real que 'nex-agi/nex-n2.5-pro:free' -- cuando
-// responde en vez de fallar rápido -- tarda sistemáticamente 60-120s por llamada, y al ser el
-// segundo de la cascada duplicaba el tiempo de CADA verificación (la mayoría de las preguntas
-// necesitan 1-2 verificaciones). 'google/gemma-4-31b-it:free' falla rápido (HTTP 429 en <2s) o
-// responde rápido; quitar el intermedio lento y caer directo al de pago (rápido, fiable, barato)
-// respeta igual "que caiga al pago sin insistir demasiado" y evita la mayor causa de lentitud
-// observada, sin tocar el presupuesto real (el sobrecoste es de decimas de céntimo).
+// v0.2b4 §6a: id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro
+// modelo), así `excluirModelo` nunca deja esta cascada sin primer eslabón.
 export const VERIFICADOR_VISUAL = [
+  'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
   'google/gemini-2.5-flash-lite',
 ];
@@ -290,6 +290,21 @@ export function contarPalabras(texto) {
   return partes.length;
 }
 
+// Ola final v0.2b4 (M3): ÚNICA fuente del límite de palabras de la explicación. Antes el 40 estaba
+// además escrito a mano en los prompts, en el corte del reintento y en la comprobación en código
+// del verificador -- cambiar el límite en un sitio y olvidarlo en otro daba un generador pidiendo
+// una cosa y un verificador rechazando otra.
+const LIMITE_PALABRAS_EXPLICACION = 40;
+
+/** v0.2b4 §6b: ¿la explicación que YA trae la pregunta cabe en el límite? Si la respuesta es sí, no
+ * tiene sentido gastar una llamada en reescribirla: el verificador de preguntas
+ * (servidor/generacion.js#verificarBorradores) ya la dio por buena factualmente, y "reescribir para
+ * acortar" era el único motivo de ese paso. */
+export function explicacionYaCumple(texto) {
+  const palabras = contarPalabras(texto);
+  return palabras > 0 && palabras <= LIMITE_PALABRAS_EXPLICACION;
+}
+
 // --- Prompts ----------------------------------------------------------------------------------
 
 // Igual que conceptoCorrecto() en tools/buscar-imagenes.js (no se importa de allí para no tocar
@@ -307,18 +322,37 @@ function resumirPregunta(p) {
   return base;
 }
 
-function promptSistemaGenerador(criterioTexto) {
+function promptSistemaGenerador(criterioTexto, { soloVisual = false } = {}) {
+  // v0.2b4 §6b: cuando la explicación que trae la pregunta ya cabe en el límite de palabras
+  // (`explicacionYaCumple`), no tiene sentido pedirle al modelo que la reescriba -- ya la verificó
+  // verificarBorradores, y esta llamada existía solo para acortarla. `soloVisual` sustituye ese
+  // párrafo por una instrucción explícita de NO tocarla, y solo se pide el VISUAL.
+  const bloqueExplicacion = soloVisual
+    ? 'La EXPLICACIÓN de esta pregunta ya es correcta y ya cabe en el límite de palabras: NO la ' +
+      'reescribas y NO la devuelvas. Tu única tarea en esta llamada es el VISUAL.\n\n'
+    : `EXPLICACIÓN: DE 25 A ${LIMITE_PALABRAS_EXPLICACION} PALABRAS -- por debajo de 25 se queda coja ` +
+      `y por encima de ${LIMITE_PALABRAS_EXPLICACION} se ` +
+      'RECHAZA automáticamente aunque el contenido sea perfecto, así que apunta a 32-36 palabras como ' +
+      'objetivo real (cuenta las palabras que llevas antes de terminar la frase; si te pasas, recorta, ' +
+      'no añadas "..."). Español ' +
+      // M2: "en 2 frases" era una talla única que empujaba a alargar explicaciones que cabían en una.
+      'impecable, en 1-2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
+      '(2) un gancho memorable: una anécdota, un dato sorprendente o su conexión con la actualidad ' +
+      '(2022-2026) si existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la ' +
+      'explicación original.\n\n';
+  // Ola final v0.2b4 (M1): con `soloVisual`, la frase de entrada tampoco puede hablar de
+  // "reescribir la EXPLICACIÓN" -- contradecía al párrafo siguiente ("NO la reescribas") y era una
+  // invitación a devolverla igualmente. La forma exacta del JSON pedido ya excluye "explicacion"
+  // en ese modo (ver el final de esta función).
+  const introduccion = soloVisual
+    ? 'Tu tarea ahora NO es generar preguntas nuevas: es proponer un VISUAL de apoyo para la ' +
+      'tarjeta de respuesta de una pregunta ya existente.\n\n'
+    : 'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
+      'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n';
   return (
     `${criterioTexto}\n\n` +
-    'Tu tarea ahora NO es generar preguntas nuevas: es reescribir la EXPLICACIÓN de una pregunta ya ' +
-    'existente y, si se te pide, proponer un VISUAL de apoyo para la tarjeta de respuesta.\n\n' +
-    'EXPLICACIÓN: LÍMITE DURO de 40 palabras -- una propuesta de más de 40 se RECHAZA automáticamente ' +
-    'aunque el contenido sea perfecto, así que apunta a 30-32 palabras como objetivo real (cuenta las ' +
-    'palabras que llevas antes de terminar la frase; si te pasas, recorta, no añadas "..."). Español ' +
-    'impecable, en 2 frases: (1) el porqué -- el mecanismo o la razón, no solo repetir el enunciado; ' +
-    '(2) un gancho memorable: una anécdota, un dato sorprendente o su conexión con la actualidad ' +
-    '(2022-2026) si existe, sin que la pregunta dependa de él. No pierdas el hecho clave de la ' +
-    'explicación original.\n\n' +
+    introduccion +
+    bloqueExplicacion +
     'VISUAL (solo si "necesita_visual" es true): un objeto de DATOS -- nunca un dibujo, la app lo ' +
     'pinta con plantillas propias -- que ilustre la "respuesta_correcta" indicada (nunca una opción ' +
     'incorrecta ni el dato erróneo cuando se te avisa de cuál es). Elige el tipo más natural para el ' +
@@ -366,7 +400,9 @@ function promptSistemaGenerador(criterioTexto) {
     'en sí sea correcto. Si no tienes un dato real, publicado y verificable con esa fuente exacta, ' +
     'NO propongas barras/dato: usa otro tipo.\n' +
     'Si "necesita_visual" es false, no incluyas la clave "visual" (o ponla a null).\n\n' +
-    'Devuelve SOLO JSON con la forma exacta: {"explicacion":"…","visual":{...}|null}'
+    (soloVisual
+      ? 'Devuelve SOLO JSON con la forma exacta: {"visual":{...}|null}'
+      : 'Devuelve SOLO JSON con la forma exacta: {"explicacion":"…","visual":{...}|null}')
   );
 }
 
@@ -381,14 +417,22 @@ function promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) {
   return texto;
 }
 
-function promptSistemaVerificador(criterioTexto) {
+function promptSistemaVerificador(criterioTexto, { soloVisual = false } = {}) {
+  // v0.2b4 §6b: cuando la explicación no se ha reescrito (resolverPregunta#saltarAcortado), no se
+  // le pide al verificador que la juzgue -- no hay nada nuevo que verificar ahí, y el párrafo solo
+  // añadiría ruido (o peor, una excusa para rechazar algo que no se tocó).
+  const bloqueExplicacion = soloVisual
+    ? 'Verificas, de forma ESCÉPTICA e independiente de quien lo propuso, un visual de apoyo para ' +
+      'una pregunta de quiz ya existente. La explicación de esta pregunta NO se ha tocado (ya estaba ' +
+      'verificada de antes): no la juzgues, céntrate solo en el visual.\n'
+    : 'Verificas, de forma ESCÉPTICA e independiente de quien la propuso, una explicación corta y (si ' +
+      'se te da) un visual de apoyo para una pregunta de quiz ya existente.\n' +
+      '"explicacionOk" es true SOLO si la propuesta conserva el hecho clave de la "explicacion_actual", ' +
+      'no introduce ningún error factual ni de redacción/concordancia, y no se pasa claramente de ' +
+      `${LIMITE_PALABRAS_EXPLICACION} palabras.\n`;
   return (
     `${criterioTexto}\n\n` +
-    'Verificas, de forma ESCÉPTICA e independiente de quien la propuso, una explicación corta y (si ' +
-    'se te da) un visual de apoyo para una pregunta de quiz ya existente.\n' +
-    '"explicacionOk" es true SOLO si la propuesta conserva el hecho clave de la "explicacion_actual", ' +
-    'no introduce ningún error factual ni de redacción/concordancia, y no se pasa claramente de 40 ' +
-    'palabras.\n' +
+    bloqueExplicacion +
     '"visualOk" (solo si se te da "visual_propuesto", si no lo hay pon true) es true SOLO si los ' +
     'datos son reales y comprobables (nunca inventados ni aproximados sin base), ilustran la ' +
     '"respuesta_correcta" indicada (nunca una opción incorrecta ni el dato erróneo cuando se avisa de ' +
@@ -407,9 +451,11 @@ function promptSistemaVerificador(criterioTexto) {
     'COMPROBACIÓN OBLIGATORIA cuando el tipo sea "linea-tiempo": comprueba que los "hitos" están en ' +
     'orden cronológico ascendente (el año más antiguo primero); si están desordenados, "visualOk" es ' +
     'false con motivo "hitos desordenados cronológicamente".\n' +
-    'Ante la duda, false. Devuelve SOLO JSON con la forma exacta: {"explicacionOk":true|false,' +
-    '"visualOk":true|false,"motivo":"…"} ("motivo" explica cualquier false, breve y en español; puede ' +
-    'ir vacío si todo es true).'
+    'Ante la duda, false. Devuelve SOLO JSON con la forma exacta: ' +
+    (soloVisual
+      ? '{"visualOk":true|false,"motivo":"…"}'
+      : '{"explicacionOk":true|false,"visualOk":true|false,"motivo":"…"}') +
+    ' ("motivo" explica cualquier false, breve y en español; puede ir vacío si todo es true).'
   );
 }
 
@@ -449,6 +495,10 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     motivoRechazo = null,
     modelos = GENERADOR_VISUAL,
     rutaLog,
+    // v0.2b4 §6b: cuando la explicación ya cumple el límite (ver resolverPregunta#saltarAcortado),
+    // esta llamada solo pide el VISUAL -- una sola vuelta, sin reintentos de "explicacion" que no
+    // se ha pedido.
+    soloVisual = false,
   } = opciones;
 
   // Hasta 3 intentos (endurecido en la ronda de corrección 1, 13-sep-2026 -- antes eran 2 y solo
@@ -463,11 +513,12 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
   let modeloUsado = '';
   let costeTotal = 0;
   const INTENTOS_EXPLICACION = 3;
+  const intentosExplicacion = soloVisual ? 1 : INTENTOS_EXPLICACION;
   let notaReintento = '';
 
-  for (let intento = 0; intento < INTENTOS_EXPLICACION; intento++) {
+  for (let intento = 0; intento < intentosExplicacion; intento++) {
     const mensajes = [
-      { role: 'system', content: promptSistemaGenerador(criterio) },
+      { role: 'system', content: promptSistemaGenerador(criterio, { soloVisual }) },
       { role: 'user', content: promptUsuarioGenerador(pregunta, necesitaVisual, motivoRechazo) + notaReintento },
     ];
 
@@ -486,6 +537,15 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     modeloUsado = salida.modelo;
 
     const datos = extraerJson(salida.texto);
+
+    if (soloVisual) {
+      // La explicación se devuelve tal cual llegó: este modo no la juzga ni la toca (no se le pidió
+      // al modelo, así que "datos.explicacion" ni siquiera debería venir).
+      explicacion = pregunta.explicacion;
+      visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
+      break;
+    }
+
     const explicacionCandidata = typeof datos.explicacion === 'string' ? datos.explicacion.trim() : '';
     const palabras = contarPalabras(explicacionCandidata);
 
@@ -493,14 +553,14 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
       explicacion = explicacionCandidata;
       visual = necesitaVisual && datos.visual && typeof datos.visual === 'object' ? datos.visual : null;
     }
-    if (explicacionCandidata && palabras <= 40) {
+    if (explicacionCandidata && palabras <= LIMITE_PALABRAS_EXPLICACION) {
       break; // válida: no gasta el/los intento(s) que quedaran
     }
 
     // Prepara la nota del siguiente intento, si queda alguno.
     if (intento === 0) {
       notaReintento = explicacionCandidata
-        ? `\n\nIMPORTANTE: en el intento anterior tu "explicacion" tenía ${palabras} palabras (> 40, se habría rechazado). Recórtala sin perder el hecho clave.`
+        ? `\n\nIMPORTANTE: en el intento anterior tu "explicacion" tenía ${palabras} palabras (> ${LIMITE_PALABRAS_EXPLICACION}, se habría rechazado). Recórtala sin perder el hecho clave.`
         : '\n\nIMPORTANTE: en el intento anterior no devolviste "explicacion" (vacía o ausente). Esta vez inclúyela SIEMPRE, no vacía.';
     } else if (intento === 1) {
       notaReintento =
@@ -525,6 +585,8 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
  * @param {string} [opciones.criterio]
  * @param {string[]} [opciones.modelos] cascada a usar; por defecto VERIFICADOR_VISUAL
  * @param {string} [opciones.rutaLog]
+ * @param {boolean} [opciones.soloVisual] v0.2b4 §6b: no juzga la explicación (fuerza explicacionOk:
+ *   true), ni al modelo ni en código -- para cuando no se le pidió reescribirla.
  * @returns {Promise<{explicacionOk: boolean, visualOk: boolean, motivo: string, modelo: string, coste: number}>}
  */
 export async function verificarVisualYExplicacion(pregunta, propuesta, opciones = {}) {
@@ -537,6 +599,9 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     criterio = textoCriterio(pregunta.area),
     modelos = VERIFICADOR_VISUAL,
     rutaLog,
+    // v0.2b4 §6b: cuando la explicación no se ha tocado (soloVisual, ver generarVisualYExplicacion),
+    // no se juzga -- ni al modelo (el prompt omite el párrafo) ni en código.
+    soloVisual = false,
   } = opciones;
 
   const listaModelos = excluirModelo ? modelos.filter((m) => m !== excluirModelo) : modelos;
@@ -545,7 +610,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
   }
 
   const mensajes = [
-    { role: 'system', content: promptSistemaVerificador(criterio) },
+    { role: 'system', content: promptSistemaVerificador(criterio, { soloVisual }) },
     { role: 'user', content: promptUsuarioVerificador(pregunta, propuesta) },
   ];
 
@@ -564,22 +629,28 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
   const datos = extraerJson(salida.texto);
   const motivoModelo = typeof datos.motivo === 'string' ? datos.motivo : '';
 
-  // Comprobación en código, no solo criterio del modelo: visto en vivo el 13-sep-2026 (primera
-  // pregunta de la ejecución completa, art-001) que el verificador puede dar explicacionOk:true a
-  // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
-  // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
-  const dentroDelLimite = contarPalabras(propuesta.explicacion) <= 40;
-  // Igual de objetivo: una explicación vacía nunca es válida, tras el reintento de
-  // generarVisualYExplicacion o no (fijado tras la pasada adversarial del 13-sep-2026).
-  const explicacionVacia = !esTextoNoVacio(propuesta.explicacion);
-  const explicacionOk = datos.explicacionOk === true && dentroDelLimite && !explicacionVacia;
+  let explicacionOk;
   let motivoExplicacion = '';
-  if (!explicacionOk) {
-    motivoExplicacion = explicacionVacia
-      ? 'el generador no produjo una explicación válida (vacía tras reintentar)'
-      : !dentroDelLimite
-        ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> 40)`
-        : motivoModelo || 'explicación rechazada sin motivo';
+  if (soloVisual) {
+    // No se ha pedido reescribirla: no hay nada nuevo que rechazar.
+    explicacionOk = true;
+  } else {
+    // Comprobación en código, no solo criterio del modelo: visto en vivo el 13-sep-2026 (primera
+    // pregunta de la ejecución completa, art-001) que el verificador puede dar explicacionOk:true a
+    // una propuesta de 54 palabras (el límite de 40 es un dato objetivo y contable, igual que los
+    // límites de validarVisual -- no debe depender solo de que el modelo cuente bien).
+    const dentroDelLimite = contarPalabras(propuesta.explicacion) <= LIMITE_PALABRAS_EXPLICACION;
+    // Igual de objetivo: una explicación vacía nunca es válida, tras el reintento de
+    // generarVisualYExplicacion o no (fijado tras la pasada adversarial del 13-sep-2026).
+    const explicacionVacia = !esTextoNoVacio(propuesta.explicacion);
+    explicacionOk = datos.explicacionOk === true && dentroDelLimite && !explicacionVacia;
+    if (!explicacionOk) {
+      motivoExplicacion = explicacionVacia
+        ? 'el generador no produjo una explicación válida (vacía tras reintentar)'
+        : !dentroDelLimite
+          ? `explicación de ${contarPalabras(propuesta.explicacion)} palabras (> ${LIMITE_PALABRAS_EXPLICACION})`
+          : motivoModelo || 'explicación rechazada sin motivo';
+    }
   }
 
   let visualOk;
@@ -622,6 +693,14 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
  * false se conserva la original. La verificación nunca se salta.
  * @param {object} pregunta
  * @param {object} opciones mismas que generarVisualYExplicacion/verificarVisualYExplicacion
+ * @param {boolean} [opciones.saltarAcortado] v0.2b4 §6b: opt-in, por defecto `false`. Cuando es
+ *   `true` Y `pregunta.explicacion` ya cabe en el límite de palabras (`explicacionYaCumple`), esta
+ *   llamada NO reescribe la explicación -- solo pide/verifica el visual (una llamada al generador +
+ *   una al verificador, en vez de las dos rondas normales). Lo activa servidor/generacion.js, donde
+ *   la explicación acaba de salir del generador de preguntas ya con el límite de 25-40 y ya la
+ *   verificó verificarBorradores. Por defecto `false`: la CLI de este mismo fichero existe
+ *   justamente para reescribir explicaciones del banco, y sus tests (y su utilidad) no deben
+ *   cambiar sin pedirlo explícitamente.
  * @returns {Promise<{
  *   explicacion: string, explicacionCambiada: boolean, motivoExplicacionRechazo: string|null,
  *   visual: object|null, motivoVisualRechazo: string|null,
@@ -630,14 +709,25 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
  */
 export async function resolverPregunta(pregunta, opciones = {}) {
   const necesitaVisual = opciones.necesitaVisual !== false;
+  const saltarAcortado = opciones.saltarAcortado === true && explicacionYaCumple(pregunta.explicacion);
   let coste = 0;
 
   // opciones.modelosGenerador/modelosVerificador (distintos de "modelos" a secas) permiten forzar
   // una cascada concreta para cada papel sin que se mezclen entre sí -- los usa la CLI con
   // --sin-gratis para saltar del todo los modelos ':free' cuando están saturados (fijado por el
   // controlador el 13-sep-2026: la cascada gratis llevaba 25+ min sin resolver una sola pregunta).
-  const opcionesGenerador = { ...opciones, necesitaVisual, ...(opciones.modelosGenerador ? { modelos: opciones.modelosGenerador } : {}) };
-  const opcionesVerificador = { ...opciones, necesitaVisual, ...(opciones.modelosVerificador ? { modelos: opciones.modelosVerificador } : {}) };
+  const opcionesGenerador = {
+    ...opciones,
+    necesitaVisual,
+    soloVisual: saltarAcortado,
+    ...(opciones.modelosGenerador ? { modelos: opciones.modelosGenerador } : {}),
+  };
+  const opcionesVerificador = {
+    ...opciones,
+    necesitaVisual,
+    soloVisual: saltarAcortado,
+    ...(opciones.modelosVerificador ? { modelos: opciones.modelosVerificador } : {}),
+  };
 
   const propuesta = await generarVisualYExplicacion(pregunta, opcionesGenerador);
   coste += propuesta.coste;
@@ -679,12 +769,19 @@ export async function resolverPregunta(pregunta, opciones = {}) {
     }
   }
 
-  const explicacionCambiada = verif.explicacionOk === true;
+  // saltarAcortado nunca cuenta como "cambiada": verif.explicacionOk viene forzado a true (soloVisual
+  // no la juzga), pero la explicación es literalmente la misma que ya traía la pregunta -- ni una
+  // palabra tocada.
+  const explicacionCambiada = !saltarAcortado && verif.explicacionOk === true;
 
   return {
     explicacion: explicacionCambiada ? propuesta.explicacion : pregunta.explicacion,
     explicacionCambiada,
-    motivoExplicacionRechazo: explicacionCambiada ? null : verif.motivoExplicacion || verif.motivo || 'explicación rechazada sin motivo',
+    motivoExplicacionRechazo: saltarAcortado
+      ? null
+      : explicacionCambiada
+        ? null
+        : verif.motivoExplicacion || verif.motivo || 'explicación rechazada sin motivo',
     visual: visualFinal,
     motivoVisualRechazo,
     modeloGenerador: propuesta.modelo,
@@ -1022,7 +1119,7 @@ async function main() {
     const antes = candidatas.length;
     candidatas = candidatas.filter((p) => {
       const sinVisualNiImagen = !tieneVisualValido(p) && !(p.id in imagenes);
-      const explicacionLarga = contarPalabras(p.explicacion) > 40;
+      const explicacionLarga = contarPalabras(p.explicacion) > LIMITE_PALABRAS_EXPLICACION;
       return sinVisualNiImagen || explicacionLarga;
     });
     await registrar(`--solo-pendientes: ${antes - candidatas.length} ya resueltas, ${candidatas.length} pendientes.`);

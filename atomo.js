@@ -193,16 +193,17 @@ function posicionNodo(indice, total) {
  * app.js). Tocar/activar por teclado un nodo real llama `alElegir(subtema)` (el objeto completo
  * `{indice, corto, completo}`, tal cual lo da `pedirSubtemas`); tocar/activar el núcleo llama
  * `alVolver()` (un anillo atrás — no-op en el anillo 1, lo decide `retroceder` en app.js); tocar el
- * nodo "Más…" llama `alMas()` (paginación del anillo actual, ver app.js#manejarMasAtomo).
+ * nodo "Regenerar temas" (v0.2b4 §5, antes "Más…") llama `alMas()` (paginación del anillo actual,
+ * ver app.js#manejarMasAtomo).
  *
  * v0.2b3 Tarea 3 ("Ampliación", dirección de Carlos): sin órbita giratoria -- el átomo es un árbol
  * que se abre, no un sistema solar. `actualizar` acepta un tercer parámetro `opciones`:
  * - `esperando` (bool): pinta 6 nodos vacíos discontinuos con un punto que late
  *   (`.atomo-nodo--esperando`, `data-test="atomo-esperando"`), no interactivos, en vez de
  *   `nuevosSubtemas` -- se usa mientras `pedirSubtemas` está en vuelo (app.js).
- * - `conMas` (bool): añade el nodo "Más…" (círculo discontinuo, `data-test="atomo-mas"`) en la
- *   última posición de la órbita, contando en el reparto equiespaciado.
- * - `masVacio` (bool): el nodo "Más…" se pinta como "No hay más por ahora" (`data-test=
+ * - `conMas` (bool): añade el nodo "Regenerar temas" (v0.2b4 §5, antes "Más…"; círculo discontinuo,
+ *   `data-test="atomo-mas"`) en la última posición de la órbita, contando en el reparto equiespaciado.
+ * - `masVacio` (bool): el nodo "Regenerar temas" se pinta como "No hay más por ahora" (`data-test=
  *   "atomo-mas-vacio"`), sin interacción -- transitorio, app.js lo revierte a los 2s.
  * `prefers-reduced-motion` desactiva toda animación/transición vía la regla general de
  * estilos.css; aquí no hace falta ninguna comprobación aparte.
@@ -281,8 +282,9 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
     return boton;
   }
 
-  /** Nodo "Más…" (o "No hay más por ahora" si `vacio`): círculo discontinuo. Sin interacción
-   * mientras `vacio` es true -- es un mensaje transitorio, no un botón que hacer doble-tap. */
+  /** Nodo "Regenerar temas" (v0.2b4 §5, antes "Más…"; o "No hay más por ahora" si `vacio`): círculo
+   * discontinuo. Sin interacción mientras `vacio` es true -- es un mensaje transitorio, no un botón
+   * que hacer doble-tap. */
   function crearNodoMas(vacio) {
     const atributos = {
       class: 'atomo-nodo-boton atomo-nodo-boton--mas',
@@ -291,7 +293,12 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
     if (!vacio) {
       atributos.role = 'button';
       atributos.tabindex = '0';
-      atributos['aria-label'] = 'Más subtemas';
+      // Ola final v0.2b4: el `aria-label` se quedó en "Más subtemas" cuando el nodo pasó de "Más…"
+      // a "Regenerar temas" (§5), así que un lector de pantalla anunciaba una cosa y el nodo decía
+      // otra. Aquí importa más que en otros sitios: el texto visible va partido en <tspan>, de modo
+      // que el nombre accesible es lo único que se oye entero. El del estado vacío ("No hay más por
+      // ahora") no lleva `aria-label` ni rol: es un mensaje, no un botón.
+      atributos['aria-label'] = 'Regenerar temas';
     }
     const boton = crearElementoSvg('g', atributos);
     const circulo = crearElementoSvg('circle', {
@@ -305,7 +312,10 @@ export function crearAtomo({ contenedor, area, subtemas = [], alElegir, alVolver
     });
     boton.appendChild(circulo);
     boton.appendChild(texto);
-    pintarLineas(texto, envolverTexto(vacio ? 'No hay más por ahora' : 'Más…', 11, 3), ALTURA_LINEA_NODO);
+    // v0.2b4 §5: "Regenerar temas" en vez de "Más…" (Carlos, 15-sep: "Más…" no dice qué hace, y lo
+    // que hace es SUSTITUIR el anillo por otros temas, no añadirlos). El mensaje de agotado y los
+    // de error no cambian.
+    pintarLineas(texto, envolverTexto(vacio ? 'No hay más por ahora' : 'Regenerar temas', 11, 3), ALTURA_LINEA_NODO);
     if (!vacio) {
       activarConTecladoYClic(boton, () => {
         if (typeof alMas === 'function') alMas();

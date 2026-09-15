@@ -131,6 +131,10 @@ test('envolverTexto: palabras normales (ninguna supera maxPorLinea) siguen envol
   assert.deepEqual(envolverTexto('Mercados y crisis', 11, 3), ['Mercados y', 'crisis']);
 });
 
+test('v0.2b4 §5: "Regenerar temas" cabe en dos líneas dentro del nodo (11 caracteres por línea)', () => {
+  assert.deepEqual(envolverTexto('Regenerar temas', 11, 3), ['Regenerar', 'temas']);
+});
+
 test('envolverTexto: texto vacío devuelve una sola línea vacía', () => {
   assert.deepEqual(envolverTexto('', 11, 3), ['']);
 });

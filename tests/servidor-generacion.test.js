@@ -15,7 +15,7 @@ import {
 import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { GENERADOR_SOLO_PAGO, VERIFICADOR_SOLO_PAGO } from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
-import { EJEMPLOS, promptUsuarioVF } from '../tools/prompts-preguntas.js';
+import { EJEMPLOS, promptUsuarioVF, promptSistemaGenerador } from '../tools/prompts-preguntas.js';
 import { MEZCLA } from '../motor.js';
 
 // --- helpers de test -----------------------------------------------------------------------
@@ -239,6 +239,14 @@ for (const tipo of ['test4', 'ordenar', 'error']) {
     assert.equal(validarPregunta(borrador).length, 0, `debe pasar validarPregunta: ${validarPregunta(borrador).join('; ')}`);
   });
 }
+
+// --- promptSistemaGenerador (v0.2b4 §6b) ---------------------------------------------------------
+
+test('v0.2b4 §6b: el prompt de preguntas pide la explicación de 25 a 40 palabras desde la primera llamada', () => {
+  const texto = promptSistemaGenerador('economia');
+  assert.match(texto, /de 25 a 40 palabras/i);
+  assert.match(texto, /nunca más de 40/i);
+});
 
 // --- promptUsuarioVF (Ronda 2, punto 2: el reparto 50/50 real, no solo el recuento final) --------
 // Antes solo se comprobaba el RESULTADO ya parseado (2 true/3 false) con un `llamar` falso que
@@ -793,16 +801,31 @@ test('producirTanda: descarta lo rechazado por el verificador y lo que no pasa v
   assert.match(rechazoValidacion.motivo, /nivel/);
 });
 
-test('producirTanda: incluye la explicación corta y el visual de resolverPregunta en las aprobadas', async () => {
+test('producirTanda: incluye el visual de resolverPregunta en las aprobadas', async () => {
   const { llamar } = crearLlamarPipeline({});
 
   const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
 
   assert.equal(resultado.aprobadas.length, 1);
   const [p] = resultado.aprobadas;
-  assert.equal(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
   assert.equal(p.visual.tipo, 'dato');
   assert.ok(validarPregunta(p).length === 0, `la aprobada debe ser válida: ${validarPregunta(p).join('; ')}`);
+});
+
+// v0.2b4 §6b: producirTanda llama a resolverPregunta con saltarAcortado:true -- el borrador que
+// acaba de salir del generador de preguntas (y que ya pasó verificarBorradores) ya cumple el límite
+// de 25-40 palabras (preguntaGenerica produce "Explicación N con mecanismo real.", 5 palabras), así
+// que resolverPregunta NO debe gastar una llamada en reescribirla: la aprobada conserva la
+// explicación original tal cual, aunque el `llamar` falso del paso de visual devuelva otra distinta.
+test('v0.2b4 §6b: producirTanda no reescribe una explicación que ya cumple el límite de palabras', async () => {
+  const { llamar } = crearLlamarPipeline({});
+
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+
+  assert.equal(resultado.aprobadas.length, 1);
+  const [p] = resultado.aprobadas;
+  assert.match(p.explicacion, /^Explicación \d+ con mecanismo real\.$/, 'conserva la explicación del borrador, no la del mock de visual');
+  assert.notEqual(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
 });
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M5): la confianza del verificador se copia a la

@@ -31,6 +31,7 @@ import {
   consultarTrabajo,
 } from './sincronizacion.js';
 import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
+import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -192,10 +193,25 @@ let atomoSondeoEnVuelo = false;
 // arrancar un trabajo NUEVO (manejarGenerarAtomo), nunca al pausar/reanudar (visibilitychange), o
 // un jugador que minimizara y volviera a abrir la app cada minuto alargaría el sondeo para siempre.
 let atomoConsultas = 0;
+// Ola final v0.2b4 (Critical C2): sondeos SEGUIDOS que no han podido preguntar (red caída, 5xx,
+// timeout) -- NO cuentan los 404, que sí significan "el trabajo ya no existe". Un sondeo que
+// responde lo pone a 0. Se reinicia también en iniciarSondeoAtomo: cada arranque/reanudación del
+// sondeo empieza con la tolerancia entera, si no un corte antiguo condenaría al primer fallo nuevo.
+let atomoSondeosFallidos = 0;
 // Ronda final de revisión (Critical #2): qué hace el botón único de la tarjeta de espera una vez
 // resuelto el trabajo -- {tipo:'jugar', ids, corto} o {tipo:'volver'}; null mientras se sigue
 // generando (esperaAtomo muestra los dos botones de siempre, no este).
 let atomoEsperaResultado = null;
+
+// --- Indicador de tanda (v0.2b4 §1 y §2): sustituye al chip "tanda-lista" del HUB. `atomoTandaInicio`
+// y `atomoTandaPedidas` son la copia en memoria de lo que vive en `localStorage` (tanda.js), para
+// poder calcular el restante sin releer la clave en cada sondeo. `atomoTandaSegPorPregunta` es lo
+// último que dijo el servidor (`/trabajo/:id`, Tarea 3), la estimación mientras no hay ninguna hecha.
+let atomoTandaInicio = null;
+let atomoTandaPedidas = 0;
+let atomoTandaSegPorPregunta = null;
+let atomoTandaEstado = null; // 'en-curso' | 'lista' | 'fallo' | null (decide qué hace el toque)
+let indicadorTandaTimeoutId = null; // los 6 s del aviso de fallo antes de esconderse solo
 
 // --- Átomo dinámico (v0.2b3 Tarea 3, "Ampliación"): nodo "Más…", paginación y transición
 // inmediata al tocar (sin órbita giratoria, nodos de espera mientras se pide el anillo). ---
@@ -214,6 +230,12 @@ let atomoTopeTimeoutId = null; // setTimeout de 2s del aviso "Máximo detalle: t
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
+// Ronda de corrección 1 del indicador de tanda (Plan B, segunda fila bajo la cabecera): su borde
+// inferior real es lo que mide `posicionarIndicadorTanda` para no solaparla.
+const nodoCabecera = document.querySelector('.cabecera');
+// `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
+// visible, para que ninguna vista quede tapada bajo él (ver esa función).
+const nodoContenidoApp = document.querySelector('main#app');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
 const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
@@ -237,7 +259,9 @@ const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
 // Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
-const nodoTandaLista = document.querySelector('[data-test="tanda-lista"]');
+const nodoIndicadorTanda = document.querySelector('[data-test="indicador-tanda"]');
+const nodoIndicadorTandaTexto = document.querySelector('[data-test="indicador-tanda-texto"]');
+const nodoIndicadorTandaAvance = document.querySelector('[data-test="indicador-tanda-anillo"]');
 // Átomo (v0.2b2 §4).
 const nodoAtomoRuta = document.querySelector('[data-test="atomo-ruta"]');
 const nodoAtomoEstadoServidor = document.querySelector('[data-test="atomo-estado-servidor"]');
@@ -414,6 +438,10 @@ function actualizarCabecera() {
   } else {
     nodoModoArea.hidden = true;
   }
+  // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
+  // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
+  // tanda ya está visible, se reposiciona para seguir pegado justo debajo.
+  posicionarIndicadorTanda();
 }
 
 function vistaActual() {
@@ -474,14 +502,31 @@ function irAlHub() {
   mostrarVista('progreso');
 }
 
+/** Vistas en las que hay una partida a medias que no se puede pisar: la tarjeta del mazo "ES la
+ * vista" (spec v0.1c §1), así que salir de `pregunta`/`repaso` por cualquier vía que pase por
+ * `irAlHub` desmonta el mazo y pierde el sitio donde iba el jugador (ola final v0.2b4, I1). */
+function hayPartidaAMedias() {
+  return ['pregunta', 'repaso'].includes(vistaActual());
+}
+
 /** "←" de la cabecera: desde el HUB vuelve a los emojis; desde cualquier otro
- * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis. */
+ * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis.
+ *
+ * Ola final v0.2b4 (I1c): excepción para `atomo-espera` -- si se llegó ahí desde una partida que
+ * sigue montada, "←" devuelve a la partida en vez de mandarla a la basura. Defensivo: hoy el
+ * toque en el indicador ya no abre la espera desde `pregunta`/`repaso` (I1a), así que este caso
+ * no debería darse; si algún camino futuro vuelve a abrirla con el mazo vivo, el "←" no destruye
+ * la partida por sorpresa. */
 function manejarVolver() {
   if (vistaActual() === 'progreso') {
     irAInicioEmojis();
-  } else {
-    irAlHub();
+    return;
   }
+  if (vistaActual() === 'atomo-espera' && mazoControlador) {
+    mostrarVista('pregunta');
+    return;
+  }
+  irAlHub();
 }
 
 let avisoCuerpoId = null;
@@ -558,12 +603,26 @@ function actualizarPuntoServidor() {
   actualizarAyudaAtomo();
 }
 
-/** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
- * `fusionarBancoExtra` y se oculta solo al tocarlo (ver el listener más abajo, junto al resto de
- * eventos de navegación) -- no hace falta ninguna otra acción, las preguntas ya están mezcladas
- * en `banco`. */
-function mostrarChipNuevas(anadidas) {
-  nodoNuevasServidor.textContent = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+// Ids de la última tanda de "modo normal" que de verdad están en el banco (spec v0.2b4 §3): el chip
+// ya no solo se cierra, arranca una partida con ellas. Se limpian al jugarlas.
+let nuevasServidorIds = [];
+const MAX_PARTIDA_NUEVAS = 10; // una partida son 10 tarjetas; el resto se queda en el banco
+
+/** Chip "N preguntas nuevas · Jugar" (data-test="nuevas-servidor"): aparece con el recuento de
+ * `fusionarBancoExtra` y, al tocarlo, arranca la partida con las 10 primeras por prioridad (el
+ * servidor ya las manda ordenadas, ver servidor/cola.js#servir: área más floja primero y, a
+ * igualdad, la más antigua). Las que sobren siguen en el banco, disponibles como cualquier otra. */
+function mostrarChipNuevas(anadidas, ids = []) {
+  nuevasServidorIds = ids.slice(0, MAX_PARTIDA_NUEVAS);
+  // Ola final v0.2b4 (M5): con más nuevas de las que caben en una partida, el chip prometía "14
+  // preguntas nuevas · Jugar" y luego arrancaba una partida de 10 -- el número que se lee y el que
+  // se juega tienen que ser los dos visibles, sin sorpresa al tocarlo.
+  const cuantas = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+  nodoNuevasServidor.textContent =
+    anadidas > MAX_PARTIDA_NUEVAS
+      ? `${anadidas} nuevas · Jugar ${nuevasServidorIds.length}`
+      : `${cuantas} · Jugar`;
+  nodoNuevasServidor.setAttribute('aria-label', `Jugar ${nuevasServidorIds.length} preguntas nuevas`);
   nodoNuevasServidor.hidden = false;
 }
 
@@ -584,7 +643,11 @@ async function sincronizarEnSegundoPlano() {
     const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
     if (anadidas > 0) {
       reconstruirBanco();
-      mostrarChipNuevas(anadidas);
+      // Solo los ids que de verdad EXISTEN en el banco tras fusionar (fusionarBancoExtra descarta
+      // reportadas y repetidas) -- mismo cuidado que idsUtilizablesDeTanda: un id sin hueco en
+      // `bancoPorId` dejaría una tarjeta vacía en la partida.
+      const ids = resultado.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
+      mostrarChipNuevas(anadidas, ids);
     }
   }
 }
@@ -815,13 +878,13 @@ function mostrarAvisoTopeAtomo() {
   }, 2000);
 }
 
-/** "No se pudo cargar más" (Ronda de revisión combinada, Tarea 3+4, Important): "Más…" con un
- * error real (network/HTTP -- 400 "Exclusión inválida" incluido, si el `excluir` disparara ese
- * límite pese al recorte de `sincronizacion.js#pedirSubtemas`), DISTINTO de "agotado" (el servidor
- * respondió `[]` de verdad, ver `manejarMasAtomo` más abajo: esa rama sí usa
- * `atomoInstancia.actualizar(..., {masVacio:true})`, una opción de atomo.js). Mismo patrón que
- * `mostrarAvisoTopeAtomo` -- elemento propio creado una sola vez, para no tocar atomo.js: "Más…"
- * sigue pulsable, los subtemas ya pintados no cambian. */
+/** "No se pudo cargar más" (Ronda de revisión combinada, Tarea 3+4, Important): "Regenerar temas"
+ * (v0.2b4 §5, antes "Más…") con un error real (network/HTTP -- 400 "Exclusión inválida" incluido,
+ * si el `excluir` disparara ese límite pese al recorte de `sincronizacion.js#pedirSubtemas`),
+ * DISTINTO de "agotado" (el servidor respondió `[]` de verdad, ver `manejarMasAtomo` más abajo: esa
+ * rama sí usa `atomoInstancia.actualizar(..., {masVacio:true})`, una opción de atomo.js). Mismo
+ * patrón que `mostrarAvisoTopeAtomo` -- elemento propio creado una sola vez, para no tocar
+ * atomo.js: "Regenerar temas" sigue pulsable, los subtemas ya pintados no cambian. */
 let nodoAtomoMasError = null;
 let atomoMasErrorTimeoutId = null;
 function mostrarErrorMasAtomo() {
@@ -887,18 +950,18 @@ async function cargarAnilloAtomo() {
   atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
 }
 
-/** "Más…": pide la siguiente página del anillo VIGENTE (misma ruta, `excluir` = lo ya mostrado) --
- * no avanza de anillo, así que pasa por el mismo estado "cargando" que cargarAnilloAtomo pero sin
- * tocar la cabecera/ruta (no cambian).
+/** "Regenerar temas" (v0.2b4 §5, antes "Más…"): pide la siguiente página del anillo VIGENTE (misma
+ * ruta, `excluir` = lo ya mostrado) -- no avanza de anillo, así que pasa por el mismo estado
+ * "cargando" que cargarAnilloAtomo pero sin tocar la cabecera/ruta (no cambian).
  *
  * Ronda de revisión combinada (Tarea 3+4, Important): página `null` (cualquier error real --
  * network/HTTP) y página `[]` (el servidor respondió de verdad "no hay más subtemas") ya NO se
  * tratan igual. Antes ambas caían en la misma rama "agotado", así que un 400 "Exclusión inválida"
  * (que `pedirSubtemas` convierte en `null`, como cualquier otro fallo) dejaba el anillo roto en
  * silencio a partir de ese toque -- ahora `null` avisa "No se pudo cargar más" 2s
- * (`mostrarErrorMasAtomo`) y deja "Más…" operativo, sin marcar el anillo como agotado. Página
- * vacía de verdad: revierte a los subtemas anteriores con "No hay más por ahora" 2s
- * (atomo.js#actualizar `masVacio`) y vuelve a "Más…", igual que siempre. */
+ * (`mostrarErrorMasAtomo`) y deja "Regenerar temas" operativo, sin marcar el anillo como agotado.
+ * Página vacía de verdad: revierte a los subtemas anteriores con "No hay más por ahora" 2s
+ * (atomo.js#actualizar `masVacio`) y vuelve a "Regenerar temas", igual que siempre. */
 async function manejarMasAtomo() {
   if (!atomoEstado || atomoCargando) return;
   const clave = claveAnilloAtomo();
@@ -1004,7 +1067,11 @@ function limpiarAtomo() {
 }
 
 const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sondeo.
+// Ola final v0.2b4 (Critical C2): fallos de red SEGUIDOS que se aguantan antes de parar el sondeo
+// -- 5 x 5 s ≈ 25 s, de sobra para un túnel, un cambio de wifi a datos o un servidor reiniciándose.
+const MAX_SONDEOS_FALLIDOS = 5;
 const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
+const N_TANDA_ATOMO = 10; // preguntas por tanda del Átomo (lo que se pide y lo que cuenta el indicador)
 
 function detenerSondeoAtomo() {
   if (atomoSondeoId !== null) {
@@ -1016,25 +1083,125 @@ function detenerSondeoAtomo() {
 function finalizarTrabajoAtomo() {
   atomoTrabajoId = null;
   atomoTrabajoInfo = null;
+  atomoTandaInicio = null;
+  atomoTandaPedidas = 0;
+  atomoTandaSegPorPregunta = null;
   actualizarBotonGenerarAtomo();
   actualizarFilaMientras(); // ya no hay tanda generándose: puede que la fila-mientras deba ocultarse
 }
 
-/** Chip del HUB (data-test="tanda-lista"): mismo nodo para el éxito ("Tanda lista: N de <corto>")
- * y para el fallo (`mensaje` por defecto "No se pudo generar, prueba otra vez", o uno propio --
- * Ronda final Important #8, "el servidor tarda demasiado"); tocarlo lanza la partida en el primer
- * caso y solo se cierra a sí mismo en el segundo (ver el listener del chip, más abajo junto al
- * resto de eventos de navegación). */
-function mostrarChipTandaLista(ids, corto) {
-  atomoTandaLista = { ids, corto };
-  nodoTandaLista.textContent = `Tanda lista: ${ids.length} de ${corto}`;
-  nodoTandaLista.hidden = false;
+const PERIMETRO_ANILLO_TANDA = 2 * Math.PI * 15; // r=15 del viewBox 36x36 de index.html
+const MS_AVISO_FALLO_TANDA = 6000; // spec §2: el aviso de fallo dura 6 s y desaparece
+const SEPARACION_INDICADOR_TANDA = 8; // hueco vertical hasta el borde inferior de .cabecera
+
+/** Ronda de corrección 1 (Important, hallazgo del revisor, verificado en vivo con Playwright a
+ * 375x812 en `pregunta`): en la misma fila que la cabecera no cabía sin solapar -- a 375px de
+ * ancho, botón "←" + logo + el indicador en su estado más ancho ("N de 10 · ~40 s") +
+ * `.cabecera-estado` (racha/nivel) no dejan hueco de sobra (llegaba a solapar el LOGO, no solo
+ * `.cabecera-estado`). Plan B del controlador: segunda fila, pegada al borde inferior REAL de
+ * `.cabecera` -- se mide en vivo con `getBoundingClientRect()` en vez de reconstruir su alto a
+ * mano, porque ese alto ya incluye `env(safe-area-inset-top)` horneado en el propio padding-top de
+ * `.cabecera` (sumarlo aparte aquí lo contaría dos veces en un iPhone con muesca). Se llama antes de
+ * cada vez que el indicador se muestra/actualiza, y también desde `actualizarCabecera`/`resize` por
+ * si la cabecera cambia de alto mientras el indicador ya está visible (p. ej. tipografía dinámica
+ * del sistema). Sin número mágico de posición: el único valor fijo es el hueco deliberado de 8px. */
+function posicionarIndicadorTanda() {
+  if (!nodoCabecera) return;
+  const bordeCabecera = nodoCabecera.getBoundingClientRect().bottom;
+  nodoIndicadorTanda.style.top = `${Math.round(bordeCabecera + SEPARACION_INDICADOR_TANDA)}px`;
 }
 
-function mostrarChipTandaFallida(mensaje = 'No se pudo generar, prueba otra vez') {
+/** Ronda de corrección 1 (Plan B): con el indicador en una segunda fila, el contenido de la vista
+ * necesita ceder ese hueco -- la tarjeta del mazo "ES la vista" (spec v0.1c §1) y arranca pegada
+ * arriba del todo, sin margen propio, así que sin esto quedaría tapada bajo el indicador (hallazgo
+ * verificado con Playwright: la tarjeta solapaba el indicador en `pregunta` y `repaso`). Se mide la
+ * altura REAL del indicador YA VISIBLE (min-height:44px es un suelo, no el alto final con
+ * padding/borde) -- se llama SIEMPRE después de mostrarlo/ocultarlo, nunca antes (oculto = alto 0).
+ * Empuja `<main>` entero (todas las vistas), no solo `pregunta`/`repaso`: más simple y sin casos
+ * especiales por vista que mantener sincronizados, a cambio de un margen de sobra en HUB mientras
+ * genera -- coste aceptable frente a la complejidad de decidir vista por vista. */
+function reservarHuecoIndicadorTanda() {
+  if (!nodoContenidoApp) return;
+  if (nodoIndicadorTanda.hidden) {
+    nodoContenidoApp.style.paddingTop = '';
+    return;
+  }
+  const altoIndicador = nodoIndicadorTanda.getBoundingClientRect().height;
+  nodoContenidoApp.style.paddingTop = `${Math.round(altoIndicador + SEPARACION_INDICADOR_TANDA * 2)}px`;
+}
+
+/** Anillo de progreso: fracción 0..1 sobre `stroke-dashoffset` (la transición y su apagado con
+ * prefers-reduced-motion están en estilos.css, aquí solo se mueve el número). */
+function pintarAnilloTanda(fraccion) {
+  const acotada = Math.max(0, Math.min(1, Number.isFinite(fraccion) ? fraccion : 0));
+  nodoIndicadorTandaAvance.style.strokeDasharray = String(PERIMETRO_ANILLO_TANDA);
+  nodoIndicadorTandaAvance.style.strokeDashoffset = String(PERIMETRO_ANILLO_TANDA * (1 - acotada));
+}
+
+function ocultarIndicadorTanda() {
+  clearTimeout(indicadorTandaTimeoutId);
+  indicadorTandaTimeoutId = null;
+  atomoTandaEstado = null;
+  nodoIndicadorTanda.hidden = true;
+  reservarHuecoIndicadorTanda();
+}
+
+/** Tanda en curso: "4 de 10 · ~1 min" + anillo (spec §2). `hechas`/`pedidas` vienen tal cual de
+ * `/trabajo/:id`; el restante lo calcula tanda.js#calcularRestanteSeg (probado sin DOM). */
+function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
+  const total = Number.isInteger(pedidas) && pedidas > 0 ? pedidas : atomoTandaPedidas;
+  const hechasValidas = Number.isInteger(hechas) && hechas > 0 ? hechas : 0;
+  const restante = formatearRestante(
+    calcularRestanteSeg({
+      inicio: atomoTandaInicio,
+      ahora: Date.now(),
+      hechas: hechasValidas,
+      pedidas: total,
+      segundosPorPregunta: atomoTandaSegPorPregunta,
+    })
+  );
+  atomoTandaEstado = 'en-curso';
+  nodoIndicadorTandaTexto.textContent = restante
+    ? `${hechasValidas} de ${total} · ${restante}`
+    : `${hechasValidas} de ${total}`;
+  nodoIndicadorTanda.setAttribute('aria-label', `Tanda en curso, ${hechasValidas} de ${total}; toca para ver la espera`);
+  pintarAnilloTanda(total > 0 ? hechasValidas / total : 0);
+  clearTimeout(indicadorTandaTimeoutId);
+  indicadorTandaTimeoutId = null;
+  posicionarIndicadorTanda();
+  nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
+}
+
+/** Estado terminal con >= 1 pregunta: "Tanda lista · N"; tocarlo arranca la partida (ver el
+ * listener junto al resto de eventos de navegación). No se esconde solo: es una oferta, no un aviso. */
+function mostrarIndicadorTandaLista(ids, corto) {
+  atomoTandaLista = { ids, corto };
+  atomoTandaEstado = 'lista';
+  nodoIndicadorTandaTexto.textContent = `Tanda lista · ${ids.length}`;
+  nodoIndicadorTanda.setAttribute('aria-label', `Tanda lista: ${ids.length} preguntas de ${corto}; toca para jugarlas`);
+  pintarAnilloTanda(1);
+  clearTimeout(indicadorTandaTimeoutId);
+  indicadorTandaTimeoutId = null;
+  posicionarIndicadorTanda();
+  nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
+}
+
+/** Fallo (spec §2: 6 s y desaparece). Tres textos posibles, todos por aquí: "No se pudo generar"
+ * (fallo total), "La tanda se perdió, genera otra" (404, spec §1) y "El servidor tarda demasiado"
+ * (tope de 120 sondeos, ya existente en este fichero). */
+function mostrarIndicadorTandaFallida(mensaje = 'No se pudo generar') {
   atomoTandaLista = null;
-  nodoTandaLista.textContent = mensaje;
-  nodoTandaLista.hidden = false;
+  atomoTandaEstado = 'fallo';
+  nodoIndicadorTandaTexto.textContent = mensaje;
+  nodoIndicadorTanda.setAttribute('aria-label', mensaje);
+  pintarAnilloTanda(0);
+  posicionarIndicadorTanda();
+  nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
+  clearTimeout(indicadorTandaTimeoutId);
+  indicadorTandaTimeoutId = setTimeout(ocultarIndicadorTanda, MS_AVISO_FALLO_TANDA);
 }
 
 /** Contrato real del servidor (servidor/cola.js#finalizarTrabajo, línea ~300): 'lista' y 'fallida'
@@ -1106,31 +1273,64 @@ async function sondearTrabajoAtomo() {
   if (idEnCurso !== atomoTrabajoId) return; // carrera post-await: ya no es el trabajo vigente.
 
   if (!trabajo) {
-    // 404 (trabajo perdido tras reiniciar el servidor) o cualquier otro fallo de red/servidor.
-    detenerSondeoAtomo();
-    finalizarTrabajoAtomo();
-    mostrarChipTandaFallida();
-    actualizarEsperaAtomoConResultado({ ok: false });
+    // Ola final v0.2b4 (Critical C2): NO se ha podido preguntar (red caída, 5xx, timeout). Eso no
+    // dice nada sobre si el trabajo sigue vivo, así que ni se borra la tanda ni se para el sondeo:
+    // se aguantan MAX_SONDEOS_FALLIDOS seguidos (~25 s) y el siguiente sondeo que responda
+    // continúa como si nada. Antes esto se confundía con el 404 y un solo corte de red mataba la
+    // tanda ("La tanda se perdió, genera otra", con la clave ya borrada).
+    atomoSondeosFallidos += 1;
+    if (atomoSondeosFallidos >= MAX_SONDEOS_FALLIDOS) {
+      // Se para el intervalo para no machacar una red que claramente no está, pero la tanda
+      // sobrevive: la clave sigue en localStorage y `atomoTrabajoId` sigue en memoria, así que
+      // reanudarSondeoAtomoSiHaceFalta (volver a la app) o reanudarTandaGuardada (recarga de iOS)
+      // la retoman solas. De ahí el texto del aviso.
+      detenerSondeoAtomo();
+      mostrarIndicadorTandaFallida('Sin conexión, se retomará al abrir');
+    }
     return;
   }
 
+  if (trabajo.perdido) {
+    // 404: el trabajo YA NO EXISTE (p. ej. el servidor se reinició). Aquí sí es terminal.
+    detenerSondeoAtomo();
+    finalizarTrabajoAtomo();
+    borrarTanda(); // spec §1: no reanudar en la próxima apertura algo que ya no existe
+    mostrarIndicadorTandaFallida('La tanda se perdió, genera otra');
+    actualizarEsperaAtomoConResultado({ ok: false, mensaje: 'La tanda se perdió, genera otra' });
+    return;
+  }
+
+  atomoSondeosFallidos = 0; // el servidor ha respondido: la racha de fallos se corta aquí.
+
+  // Tarea 3: el servidor manda su media móvil real; mientras no haya ninguna pregunta hecha, es la
+  // única base para el "~N s" (ver tanda.js#calcularRestanteSeg).
+  if (Number.isFinite(trabajo.segundosPorPregunta) && trabajo.segundosPorPregunta > 0) {
+    atomoTandaSegPorPregunta = trabajo.segundosPorPregunta;
+  }
+
   if (!trabajoAtomoTerminal(trabajo)) {
-    // Chip ADELANTADO (sigue sondeando): solo con un colchón razonable de preguntas ya aprobadas,
-    // nunca con 1-2 (mejor esperar a que haya de verdad algo que ofrecer). No toca la tarjeta de
-    // espera -- esa solo reacciona al resultado FINAL (Critical #2).
+    actualizarIndicadorTanda({ hechas: trabajo.hechas, pedidas: trabajo.pedidas });
+    // v0.2b4: la fusión ADELANTADA se conserva (las preguntas entran antes en el banco), pero ya
+    // NO se anuncia como "Tanda lista" mientras sigue generando: el indicador dice "5 de 10" y
+    // anunciar lo contrario a la vez sería mentir. Los ids se guardan por si salta el tope de
+    // sondeos y hay que ofrecer algo jugable de todas formas.
     if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= UMBRAL_ANTICIPADO_ATOMO) {
       const ids = idsUtilizablesDeTanda(trabajo);
-      if (ids.length > 0) mostrarChipTandaLista(ids, atomoTrabajoInfo.corto);
+      if (ids.length > 0) atomoTandaLista = { ids, corto: atomoTrabajoInfo.corto };
     }
     atomoConsultas += 1;
     if (atomoConsultas >= TOPE_SONDEOS_ATOMO) {
-      // Ronda final -- Important #8: un trabajo que nunca termina no debe dejar a Carlos
-      // esperando indefinidamente ni el sondeo corriendo para siempre.
-      const mensaje = 'El servidor tarda demasiado, prueba más tarde';
       detenerSondeoAtomo();
+      const parcial = atomoTandaLista;
       finalizarTrabajoAtomo();
-      mostrarChipTandaFallida(mensaje);
-      actualizarEsperaAtomoConResultado({ ok: false, mensaje });
+      borrarTanda();
+      if (parcial && parcial.ids.length > 0) {
+        mostrarIndicadorTandaLista(parcial.ids, parcial.corto);
+        actualizarEsperaAtomoConResultado({ ok: true, ids: parcial.ids, corto: parcial.corto });
+      } else {
+        mostrarIndicadorTandaFallida('El servidor tarda demasiado');
+        actualizarEsperaAtomoConResultado({ ok: false, mensaje: 'El servidor tarda demasiado, prueba más tarde' });
+      }
     }
     return;
   }
@@ -1140,17 +1340,19 @@ async function sondearTrabajoAtomo() {
   const corto = atomoTrabajoInfo ? atomoTrabajoInfo.corto : '';
   const ids = idsUtilizablesDeTanda(trabajo);
   finalizarTrabajoAtomo();
+  borrarTanda(); // spec §1: se borra en estado terminal, tras decidir qué mostrar
   if (ids.length > 0) {
-    mostrarChipTandaLista(ids, corto);
+    mostrarIndicadorTandaLista(ids, corto);
     actualizarEsperaAtomoConResultado({ ok: true, ids, corto });
   } else {
-    mostrarChipTandaFallida();
+    mostrarIndicadorTandaFallida();
     actualizarEsperaAtomoConResultado({ ok: false });
   }
 }
 
 function iniciarSondeoAtomo() {
   detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
+  atomoSondeosFallidos = 0; // C2: cada arranque/reanudación empieza con la tolerancia entera.
   sondearTrabajoAtomo(); // Minor #11: primer sondeo inmediato, no a ciegas 5s.
   atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
 }
@@ -1168,8 +1370,12 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
   nodoAtomoEsperaResultado.hidden = true;
   // Minor #9: `estimadoSeg` validado (entero > 0) -- si no, se omite el "~N s" en vez de mostrar
   // "~undefined s"/"~NaN s".
-  const sufijoSeg = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? ` · ~${estimadoSeg} s` : '';
-  nodoAtomoEsperaTexto.textContent = `Generando 10 preguntas de ${rutaTexto}${sufijoSeg}`;
+  // Ola final v0.2b4 (I3): el redondeo es el MISMO que el del indicador (tanda.js#formatearRestante)
+  // -- antes esta tarjeta pintaba los segundos crudos ("· ~980 s") mientras el indicador, a un dedo
+  // de distancia, decía "~16 min" de lo mismo.
+  const restante = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? formatearRestante(estimadoSeg) : '';
+  const sufijoSeg = restante ? ` · ${restante}` : '';
+  nodoAtomoEsperaTexto.textContent = `Generando ${atomoTandaPedidas} preguntas de ${rutaTexto}${sufijoSeg}`;
   mostrarVista('atomo-espera');
 }
 
@@ -1191,7 +1397,7 @@ async function manejarGenerarAtomo() {
 
   atomoGenerarEnVuelo = true;
   actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
-  const resultado = await pedirTanda({ area, ruta, n: 10, fetchImpl: fetch });
+  const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
   if (!resultado) {
@@ -1200,11 +1406,58 @@ async function manejarGenerarAtomo() {
     return;
   }
   atomoTrabajoId = resultado.trabajoId;
-  atomoTrabajoInfo = { corto };
+  atomoTrabajoInfo = { corto, rutaTexto };
+  atomoTandaInicio = Date.now();
+  atomoTandaPedidas = N_TANDA_ATOMO;
+  // Estimación inicial por pregunta a partir de lo que dijo /generar, hasta que /trabajo/:id mande
+  // su `segundosPorPregunta` propio (Tarea 3).
+  atomoTandaSegPorPregunta =
+    Number.isInteger(resultado.estimadoSeg) && resultado.estimadoSeg > 0
+      ? resultado.estimadoSeg / N_TANDA_ATOMO
+      : null;
+  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO });
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
   actualizarFilaMientras(); // tanda generándose: si se reabre el átomo mientras tanto, se ve
+  actualizarIndicadorTanda({ hechas: 0, pedidas: N_TANDA_ATOMO });
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
+  iniciarSondeoAtomo();
+}
+
+// Spec §1: una tanda guardada de hace más de 2 h no se reanuda (el servidor conserva los terminados
+// 1 h, Tarea 3 — pasado ese rato lo único que se conseguiría es un 404 y un susto).
+const MAX_EDAD_TANDA_MS = 2 * 60 * 60 * 1000;
+
+/** Al arrancar la app, si quedó una tanda a medias en `localStorage`, se retoma el sondeo sin que
+ * el jugador tenga que hacer nada (spec §1). Es el arreglo del diagnóstico §0: iOS recarga la PWA
+ * al cambiar de app o bloquear el móvil y `atomoTrabajoId` (solo en memoria) se perdía, así que el
+ * aviso "Tanda lista" no llegaba nunca aunque el servidor sí terminase. */
+function reanudarTandaGuardada() {
+  const guardada = leerTanda();
+  if (!guardada || atomoTrabajoId) return;
+  // Ola final v0.2b4 (M4): sin configuración de servidor no hay a quién preguntar --
+  // `consultarTrabajo` devolvería `null` en cada sondeo sin tocar la red. Antes se arrancaba el
+  // indicador y un intervalo de 5 s condenados a no averiguar nunca nada; ahora la tanda
+  // huérfana (p. ej. si se borró la configuración) se limpia y no se reanuda.
+  if (!leerConfiguracion()) {
+    borrarTanda();
+    return;
+  }
+  if (Date.now() - guardada.inicio > MAX_EDAD_TANDA_MS) {
+    borrarTanda();
+    return;
+  }
+  atomoTrabajoId = guardada.id;
+  // Tras una recarga no queda la ruta completa, solo el `corto` guardado: sirve igual para el
+  // indicador, para el chip de la partida y para el texto de la vista de espera.
+  atomoTrabajoInfo = { corto: guardada.corto, rutaTexto: guardada.corto };
+  atomoTandaInicio = guardada.inicio;
+  atomoTandaPedidas = guardada.pedidas;
+  atomoTandaSegPorPregunta = null;
+  atomoConsultas = 0;
+  actualizarIndicadorTanda({ hechas: 0, pedidas: guardada.pedidas });
+  // iniciarSondeoAtomo hace un primer sondeo INMEDIATO: si el servidor ya terminó mientras la app
+  // estaba cerrada, el indicador pasa a "Tanda lista · N" en la misma apertura.
   iniciarSondeoAtomo();
 }
 
@@ -1224,6 +1477,7 @@ async function iniciar() {
   imagenesPorId = await cargarImagenes(esEjemplo);
   actualizarCabecera();
   actualizarPuntoServidor();
+  reanudarTandaGuardada(); // spec §1: la tanda a medias sobrevive a la recarga de iOS
 
   if (seGuardoConfiguracion) {
     // Directo al HUB (no a los emojis): es donde vive el punto de estado y el aviso, y así se ve
@@ -1385,9 +1639,18 @@ function listaActual() {
   return lista;
 }
 
+/** Total "oficial" de la partida en curso, para el contador de cabecera y la
+ * barra de progreso: N_PARTIDA (10) salvo que haya un filtro cerrado de ids
+ * (Misión de hoy, Pendientes, chip "N preguntas nuevas · Jugar"...), que es
+ * "sin relleno" por definición (ver empezarPartida) y por tanto tiene su
+ * propio total -- v0.2b4 §3, expuesto por el chip con partidas de menos de 10. */
+function totalPartidaActual() {
+  return filtroPartida && Array.isArray(filtroPartida.ids) ? filtroPartida.ids.length : N_PARTIDA;
+}
+
 function actualizarBarraProgreso() {
   const respondidas = mazo.filter((h) => h.respondida).length;
-  barraProgresoRelleno.style.transform = `scaleX(${respondidas / N_PARTIDA})`;
+  barraProgresoRelleno.style.transform = `scaleX(${respondidas / totalPartidaActual()})`;
   // Contador de la cabecera de pregunta (spec v0.1d §1, "3/10"): el mismo
   // valor para TODAS las tarjetas visibles ahora mismo (la ventana de 3 nodos
   // de montarMazo), así que basta con volver a pintar lo que ya esté en el
@@ -1400,12 +1663,13 @@ function actualizarBarraProgreso() {
   });
 }
 
-/** "3/10" (respondidas/N_PARTIDA) para el contador de la cabecera de pregunta
- * (spec v0.1d §1). Solo tiene sentido en la partida: el repaso usa su propia
- * posición dentro del mazo de resumen (ver construirTarjetaRepaso). */
+/** "3/10" (respondidas/total) para el contador de la cabecera de pregunta
+ * (spec v0.1d §1; el total es totalPartidaActual(), no siempre N_PARTIDA).
+ * Solo tiene sentido en la partida: el repaso usa su propia posición dentro
+ * del mazo de resumen (ver construirTarjetaRepaso). */
 function contadorTextoPartida() {
   const respondidas = mazo.filter((h) => h.respondida).length;
-  return `${respondidas}/${N_PARTIDA}`;
+  return `${respondidas}/${totalPartidaActual()}`;
 }
 
 /** Rellena el hueco `i` la primera vez que se llega a él (spec v0.1c §2.1): solo
@@ -3301,8 +3565,10 @@ function renderHub() {
     botonAtomo.dataset.test = 'atomo-abrir';
     botonAtomo.setAttribute('role', 'button');
     botonAtomo.setAttribute('tabindex', '0');
-    botonAtomo.setAttribute('aria-label', `Elegir subtema de ${nombreArea(fila.area)}`);
-    botonAtomo.textContent = '⚛';
+    // v0.2b4 §4: "+" en vez de "⚛" (Carlos, 15-sep: el símbolo del átomo no decía nada). El
+    // `aria-label` dice la acción completa, que es lo que anuncia un lector de pantalla.
+    botonAtomo.setAttribute('aria-label', `Explorar subtemas de ${nombreArea(fila.area)}`);
+    botonAtomo.textContent = '+';
     botonAtomo.addEventListener('click', (ev) => {
       ev.stopPropagation();
       abrirAtomo(fila.area);
@@ -3413,19 +3679,45 @@ function importarEstadoDesdeArchivo(archivo) {
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
 document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
-// Chip "N preguntas nuevas" (v0.2b2 §4): desaparece al tocarlo, sin más acción — las preguntas ya
-// están mezcladas en `banco` desde que llegaron (ver sincronizarEnSegundoPlano).
+// Chip "N preguntas nuevas · Jugar" (v0.2b4 §3): arranca la partida con ellas. Sin ids utilizables
+// (todas descartadas al fusionar) solo se cierra, sin fingir una partida vacía -- mismo criterio
+// que "Misión de hoy"/"Pendientes" más abajo.
 nodoNuevasServidor.addEventListener('click', () => {
   nodoNuevasServidor.hidden = true;
+  if (nuevasServidorIds.length === 0) return;
+  const ids = nuevasServidorIds;
+  nuevasServidorIds = [];
+  empezarPartida({ ids, etiqueta: 'Nuevas' });
 });
-// Chip "Tanda lista"/"No se pudo generar" del Átomo (v0.2b2 §4): con tanda lista arranca la
-// partida con esas preguntas; con el aviso de fallo (atomoTandaLista null) solo se cierra.
-nodoTandaLista.addEventListener('click', () => {
-  nodoTandaLista.hidden = true;
-  if (!atomoTandaLista) return;
-  const { ids, corto } = atomoTandaLista;
-  atomoTandaLista = null;
-  empezarPartida({ ids, etiqueta: corto });
+// Indicador de tanda (v0.2b4 §2): un solo nodo con tres comportamientos según el estado.
+// - 'lista': arranca la partida con esas preguntas (`empezarPartida({ids, etiqueta: corto})`).
+// - 'en-curso': abre la vista de espera del átomo (tras una recarga esta vista todavía no tiene
+//   texto: `mostrarEsperaAtomo` lo pinta desde `atomoTrabajoInfo` antes de mostrarla).
+// - 'fallo' o cualquier otro: solo se cierra.
+//
+// Ola final v0.2b4 (I1, hallazgo del revisor ejecutando la app): el indicador vive FUERA de
+// <main>, así que está encima de la partida mientras se juega -- y tocarlo la abandonaba, tanto
+// en 'en-curso' (abría la espera; el "←" de ahí llamaba a irAlHub y desmontaba el mazo) como en
+// 'lista' (arrancaba OTRA partida encima de la que se estaba jugando). Ruling del controlador:
+// desde `pregunta`/`repaso` el toque NO hace nada, ni navega ni pisa nada; el indicador se queda
+// donde está ("Tanda lista · N" no se apaga) hasta que el jugador termine o salga al HUB, y allí
+// el toque vuelve a funcionar como siempre. Sin diálogos nativos (confirm() está prohibido).
+nodoIndicadorTanda.addEventListener('click', () => {
+  if (atomoTandaEstado === 'lista' && atomoTandaLista) {
+    if (hayPartidaAMedias()) return; // no se pisa la partida en curso (I1b)
+    const { ids, corto } = atomoTandaLista;
+    atomoTandaLista = null;
+    ocultarIndicadorTanda();
+    empezarPartida({ ids, etiqueta: corto });
+    return;
+  }
+  if (atomoTandaEstado === 'en-curso') {
+    if (hayPartidaAMedias()) return; // no se abandona la partida en curso (I1a)
+    const info = atomoTrabajoInfo || {};
+    mostrarEsperaAtomo(info.rutaTexto || info.corto || 'tu tanda', null);
+    return;
+  }
+  ocultarIndicadorTanda();
 });
 // Botones fijos del Átomo: Atrás (un anillo), Generar, y Reintentar del aviso de fallo al cargar
 // subtemas (ver cargarAnilloAtomo).
@@ -3484,6 +3776,13 @@ document.addEventListener('visibilitychange', () => {
   else reanudarSondeoAtomoSiHaceFalta();
 });
 window.addEventListener('pageshow', reanudarSondeoAtomoSiHaceFalta);
+// Ronda de corrección 1 del indicador de tanda: barato (dos lecturas de layout) e inocuo si el
+// indicador está oculto -- por si rotar el móvil cambiara el alto de la cabecera o del propio
+// indicador (ver posicionarIndicadorTanda/reservarHuecoIndicadorTanda).
+window.addEventListener('resize', () => {
+  posicionarIndicadorTanda();
+  reservarHuecoIndicadorTanda();
+});
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);

@@ -384,6 +384,28 @@ test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con 
   }
 });
 
+test('v0.2b4 §6c: /generar estima con la media móvil x (por delante + pedidas), no 90 s por puesto', async () => {
+  const producirTandaFake = async ({ area, n }) => resultadoOk(area, n, n);
+  const { base, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });
+  try {
+    const respuesta = await fetch(`${base}/generar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ area: 'economia', ruta: [], n: 5, urgente: true }),
+    });
+    const cuerpo = await respuesta.json();
+    assert.equal(respuesta.status, 200);
+    assert.equal(cuerpo.segundosPorPregunta, 20); // sin tandas medidas todavía
+    assert.equal(cuerpo.estimadoSeg, 100); // 20 s x (0 por delante + 5 pedidas)
+
+    const trabajo = await fetch(`${base}/trabajo/${cuerpo.trabajoId}`, { headers: cabeceras() });
+    const estado = await trabajo.json();
+    assert.equal(estado.segundosPorPregunta, 20);
+  } finally {
+    await cerrar();
+  }
+});
+
 test('GET /trabajo/:id con id desconocido responde 404', async () => {
   const { base, cerrar } = await crearServidorDePrueba();
   try {

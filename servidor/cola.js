@@ -17,7 +17,10 @@ const PEDIDAS_DEFECTO = 10;
 const OBJETIVO_TOTAL_COLCHON = 30;
 const PARTE_AREAS = Math.round(OBJETIVO_TOTAL_COLCHON * 0.6); // 18 (60 %)
 const PARTE_RUTAS = OBJETIVO_TOTAL_COLCHON - PARTE_AREAS; // 12 (40 %)
-const TERMINADOS_MAX = 100;
+const MUESTRAS_SEG_POR_PREGUNTA = 5; // "las últimas 5 tandas" (spec v0.2b4 §6c)
+const SEG_POR_PREGUNTA_INICIAL = 20; // arranque en frío, antes de haber medido ninguna
+const RETENCION_TERMINADOS_MS = 60 * 60 * 1000; // spec v0.2b4 §1: al menos 1 h
+const TERMINADOS_MAX = 500; // tope duro de memoria; solo entra en juego con 500 tandas en una hora
 const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
@@ -114,7 +117,7 @@ function purgarColchon(lista) {
  * @param {object} [params.opciones] opciones base pasadas a producirTanda en cada lote (llamar,
  *   permitirPago, topeEur, rutaLog); `urgente` se añade/sobrescribe por trabajo.
  */
-export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
+export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () => Date.now() } = {}) {
   if (!almacen) throw new Error('crearCola: falta almacen');
   if (typeof producirTanda !== 'function') throw new Error('crearCola: falta producirTanda');
 
@@ -122,6 +125,9 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   const colaFondo = [];
   const registro = new Map(); // trabajos en-cola o en curso, por id
   const terminados = new Map(); // últimos 100 trabajos terminados, por id (no se persisten)
+  // v0.2b4 §6c: media móvil de segundos por pregunta. En memoria a propósito (no se persiste): tras
+  // reiniciar el servidor se vuelve al valor inicial y se recalibra sola con la primera tanda.
+  const muestrasSegPorPregunta = [];
   let activo = null;
   let procesando = false;
   let contadorId = 0;
@@ -149,6 +155,30 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     return delante;
   }
 
+  function segundosPorPregunta() {
+    if (muestrasSegPorPregunta.length === 0) return SEG_POR_PREGUNTA_INICIAL;
+    const suma = muestrasSegPorPregunta.reduce((a, b) => a + b, 0);
+    return Math.max(1, Math.round(suma / muestrasSegPorPregunta.length));
+  }
+
+  /** Preguntas que hay POR DELANTE de `trabajo` (incluido lo que le queda al activo): eso, y no
+   * "cuántos trabajos hay en cola", es lo que determina cuánto va a esperar quien acaba de pedir. */
+  function preguntasPorDelante(trabajo) {
+    const pendientesDe = (t) => Math.max(0, t.pedidas - t.hechas);
+    let total = activo && activo !== trabajo ? pendientesDe(activo) : 0;
+    // Ola final v0.2b4 (M9): `indexOf` puede devolver -1 (el trabajo ya no está en su cola: es el
+    // activo, o terminó entre medias) y `slice(0, -1)` no es "nada por delante", es TODA la cola
+    // menos el último -- justo lo contrario. Hoy solo se llama justo después de encolar, así que
+    // no se ve; la guarda evita que un cambio futuro lo convierta en una estimación absurda.
+    const posicion = trabajo.urgente ? colaUrgente.indexOf(trabajo) : colaFondo.indexOf(trabajo);
+    const hasta = posicion >= 0 ? posicion : 0;
+    const antes = trabajo.urgente
+      ? colaUrgente.slice(0, hasta)
+      : [...colaUrgente, ...colaFondo.slice(0, hasta)];
+    for (const t of antes) total += pendientesDe(t);
+    return total;
+  }
+
   function tomarSiguiente() {
     if (colaUrgente.length > 0) return colaUrgente.shift();
     if (colaFondo.length > 0) return colaFondo.shift();
@@ -157,10 +187,22 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
 
   function guardarTerminado(trabajo) {
     registro.delete(trabajo.id);
+    trabajo.terminadoEn = reloj();
     terminados.set(trabajo.id, trabajo);
-    if (terminados.size > TERMINADOS_MAX) {
-      const primeraClave = terminados.keys().next().value;
-      terminados.delete(primeraClave);
+    purgarTerminados();
+  }
+
+  /** v0.2b4 §1: un terminado se conserva AL MENOS 1 h. Antes se tiraba el más antiguo en cuanto
+   * había 100, así que un móvil que reabriera la app y retomara el sondeo de su tanda guardada
+   * (`one.atomoTrabajo`) podía comerse un 404 con el servidor perfectamente vivo. Solo se descarta
+   * lo que ya pasó la hora; el tope duro es la red de seguridad contra un crecimiento sin límite. */
+  function purgarTerminados() {
+    const ahora = reloj();
+    for (const [id, t] of terminados) {
+      if (ahora - t.terminadoEn >= RETENCION_TERMINADOS_MS) terminados.delete(id);
+    }
+    while (terminados.size > TERMINADOS_MAX) {
+      terminados.delete(terminados.keys().next().value);
     }
   }
 
@@ -229,6 +271,13 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // Ronda de corrección 1 (revisión Opus, Important #2): tiempo de PARED de ESTE lote en
+    // concreto, no de punta a punta del trabajo -- un trabajo de fondo que cede el turno (ver
+    // procesarCola) puede pasar minutos aparcado en colaFondo mientras otro trabajo ocupa al
+    // trabajador; ese tiempo aparcado NUNCA debe contar como "tiempo de generar" en la media móvil
+    // de §6c. Se acumula en `trabajo.msActivos` (finally, debajo) y es lo único que usa
+    // finalizarTrabajo para calcular la muestra.
+    const inicioLote = reloj();
     // Ronda final (C2): resultado de ESTE lote en concreto (no de `trabajo.huboFallo`, que puede
     // venir ya en `true` de un lote anterior del mismo trabajo) -- es lo que alimenta
     // `ultimoError`/`ultimaGeneracionOk` al final, en el `finally`.
@@ -288,6 +337,9 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
       // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
       trabajo.hechas += tamanoLote;
+      // Solo el tiempo de ESTE lote (desde que el trabajador lo cogió hasta que lo suelta), nunca
+      // el tiempo aparcado entre cesiones -- ver comentario de `inicioLote` arriba.
+      trabajo.msActivos = (trabajo.msActivos || 0) + (reloj() - inicioLote);
       if (falloEsteLote) {
         ultimoError = String(falloEsteLote).slice(0, 300);
       } else {
@@ -298,6 +350,18 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
 
   function finalizarTrabajo(trabajo) {
     trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo ? 'parcial' : 'lista') : 'fallida';
+    // v0.2b4 §6c: media móvil de segundos por pregunta. Solo cuentan las tandas que de verdad
+    // produjeron algo: una 'fallida' mide el tiempo de un fallo (429 en cadena, red caída), no el de
+    // generar, y contaminaría la estimación. Ronda de corrección 1: usa `msActivos` (tiempo activo
+    // acumulado lote a lote, ver ejecutarUnLote), NUNCA el tiempo de pared desde que el trabajo
+    // arrancó -- un trabajo que cedió el turno pasó parte de ese tiempo aparcado, no generando.
+    if (trabajo.preguntas.length > 0 && Number.isFinite(trabajo.msActivos) && trabajo.hechas > 0) {
+      const seg = trabajo.msActivos / 1000 / trabajo.hechas;
+      if (seg > 0) {
+        muestrasSegPorPregunta.push(seg);
+        if (muestrasSegPorPregunta.length > MUESTRAS_SEG_POR_PREGUNTA) muestrasSegPorPregunta.shift();
+      }
+    }
   }
 
   // Ronda 1 (ruling del controlador, 14-sep-2026): "un usuario esperando 40 s no puede quedarse
@@ -397,8 +461,9 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     else colaFondo.push(trabajo);
 
     const posicion = calcularPosicion(trabajo);
+    const delante = preguntasPorDelante(trabajo);
     dispararProcesamiento();
-    return { trabajoId: id, posicion };
+    return { trabajoId: id, posicion, preguntasPorDelante: delante, pedidas: trabajo.pedidas };
   }
 
   function estadoTrabajo(id) {
@@ -410,6 +475,8 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       pedidas: trabajo.pedidas,
       preguntas: trabajo.preguntas,
       motivo: trabajo.motivo,
+      // v0.2b4 §6c: para que el móvil afine su propia cuenta atrás mientras sondea.
+      segundosPorPregunta: segundosPorPregunta(),
     };
   }
 
@@ -569,6 +636,8 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
       // Ronda final (C2): señal de salud del trabajador para /salud (ver ejecutarUnLote).
       ultimoError,
       ultimaGeneracionOk,
+      // v0.2b4 §6c: media móvil real, no la heurística fija de 90 s por puesto (ver servidor/index.js).
+      segundosPorPregunta: segundosPorPregunta(),
     };
   }
 
@@ -580,5 +649,6 @@ export function crearCola({ almacen, producirTanda, opciones = {} } = {}) {
     servir,
     reportar,
     estadisticas,
+    segundosPorPregunta,
   };
 }
