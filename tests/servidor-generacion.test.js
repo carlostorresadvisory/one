@@ -1317,6 +1317,79 @@ test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de visu
   assert.ok(transcurrido < 200, `el lote no espera los 5 visuales (~300 ms), solo el primero (medido: ${transcurrido} ms)`);
 });
 
+// --- Ola final v0.2b4.1 (I3): reponer lo rechazado en una tanda urgente --------------------------
+// Ruling del controlador: "10 preguntas" significa 10 VERIFICADAS, no "las que sobrevivan". Medido
+// el 15-sep: tandas de 10 que entregaban 8-9 (y una segunda seguida, 4-5). El verificador rechaza,
+// y hasta ahora lo rechazado simplemente faltaba en la tanda del jugador.
+test('v0.2b4.1 (I3): una tanda urgente repone lo rechazado en UNA ronda extra (3 de 5 -> pide 2 -> 5)', async () => {
+  let rechazados = 0;
+  const { llamar: base, registro } = crearLlamarPipeline({
+    veredictoPorEnunciado: () =>
+      rechazados++ < 2
+        ? { ...VEREDICTO_OK_POR_DEFECTO, correcta: false, motivo: 'dato inventado' }
+        : VEREDICTO_OK_POR_DEFECTO,
+  });
+
+  const avisos = [];
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 5, evitar: ['Un enunciado viejo del colchón'] },
+    { llamar: base, urgente: true, onProgreso: (p) => avisos.push(p.verificadas) },
+  );
+
+  assert.equal(resultado.aprobadas.length, 5, '10 (aquí 5) significa 5 verificadas, no "las que sobrevivan"');
+  assert.equal(resultado.rechazadas.length, 2, 'las rechazadas siguen contándose como tales');
+  assert.equal(Math.max(...avisos), 5, 'el indicador del móvil llega a 5: las repuestas también cuentan');
+
+  const generaciones = registro.filter((l) => l.sistema.includes('autor de preguntas'));
+  const reparto = repartoPorTipo(5);
+  const tiposPrimeraPasada = Object.values(reparto).filter((c) => c > 0).length;
+  assert.ok(generaciones.length > tiposPrimeraPasada, 'hay una segunda ronda de generación');
+
+  // La ronda extra evita lo que ya se generó (además de lo que ya traía `evitar`).
+  const extra = generaciones[generaciones.length - 1];
+  assert.match(extra.sistema, /Un enunciado viejo del colchón/);
+  assert.match(extra.sistema, /Pregunta (vf|test4|ordenar|error) 0/, 'los enunciados de la 1.ª pasada entran en `evitar`');
+});
+
+test('v0.2b4.1 (I3): si el lote ya lleva más de 45 s, NO se repone (el jugador espera menos, no más)', async () => {
+  let rechazados = 0;
+  const { llamar } = crearLlamarPipeline({
+    veredictoPorEnunciado: () =>
+      rechazados++ < 2
+        ? { ...VEREDICTO_OK_POR_DEFECTO, correcta: false, motivo: 'dato inventado' }
+        : VEREDICTO_OK_POR_DEFECTO,
+  });
+
+  let lecturas = 0;
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 5 },
+    { llamar, urgente: true, reloj: () => (lecturas++ === 0 ? 0 : 60000) },
+  );
+
+  assert.equal(resultado.aprobadas.length, 3, 'sin tiempo para reponer, se entrega lo que hay');
+});
+
+test('v0.2b4.1 (I3): la reposición es SOLO urgente y SOLO una ronda extra', async () => {
+  // Un fondo con rechazos no repone (nadie espera: ya volverá el colchón a por más)...
+  const rechazaTodo = () => ({ ...VEREDICTO_OK_POR_DEFECTO, correcta: false, motivo: 'no' });
+  const fondo = crearLlamarPipeline({ veredictoPorEnunciado: rechazaTodo });
+  const rFondo = await producirTanda({ area: 'economia', ruta: [], n: 4 }, { llamar: fondo.llamar, urgente: false });
+  assert.equal(rFondo.aprobadas.length, 0);
+  assert.equal(
+    fondo.registro.filter((l) => l.sistema.includes('autor de preguntas')).length,
+    Object.values(repartoPorTipo(4)).filter((c) => c > 0).length,
+    'el fondo genera una sola vez',
+  );
+
+  // ...y un urgente al que le rechazan TODO tampoco entra en bucle: una ronda extra y se acabó.
+  const urgente = crearLlamarPipeline({ veredictoPorEnunciado: rechazaTodo });
+  const rUrgente = await producirTanda({ area: 'economia', ruta: [], n: 4 }, { llamar: urgente.llamar, urgente: true });
+  assert.equal(rUrgente.aprobadas.length, 0);
+  const rondas = urgente.registro.filter((l) => l.sistema.includes('autor de preguntas')).length;
+  const tipos = Object.values(repartoPorTipo(4)).filter((c) => c > 0).length;
+  assert.ok(rondas > tipos && rondas <= tipos * 2, `una sola ronda extra, nunca un bucle (llamadas: ${rondas})`);
+});
+
 // --- Ola final v0.2b4.1 (I1/I2): plazo corto por llamada en una tanda urgente --------------------
 test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 30 s a los cuatro pasos; la de fondo no lo toca', async () => {
   const { llamar: base } = crearLlamarPipeline({});
