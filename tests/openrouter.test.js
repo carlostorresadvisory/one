@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
-import { llamar, extraerJson } from '../tools/openrouter.js';
+import { llamar, extraerJson, esModeloGratis, proveedorDe } from '../tools/openrouter.js';
 
 const RUTA_LOG = 'datos/llamadas.test.log';
 
@@ -583,3 +583,48 @@ test(
     await limpiarLog();
   }),
 );
+
+// --- Proveedores gratis nuevos (Tarea 1, v0.2b4.1) --------------------------------------------
+// Claves FICTICIAS solo para estos tests: nunca se lee `.env` ni se usa ninguna clave real. Mismo
+// patrón (guardar -> poner -> finally restaurar) que conClaveGeminiDeTest, generalizado a las tres
+// variables nuevas para no repetir el try/finally en cada test.
+const CLAVES_TEST = {
+  GEMINI_API_KEY_GRATIS: 'clave-test-gemini',
+  GROQ_API_KEY: 'clave-test-groq',
+  NVIDIA_API_KEY: 'clave-test-nvidia',
+  CEREBRAS_API_KEY: 'clave-test-cerebras',
+};
+
+function conClavesDeTest(valores, fn) {
+  return async () => {
+    const anteriores = {};
+    for (const [nombre, valor] of Object.entries(valores)) {
+      anteriores[nombre] = process.env[nombre];
+      if (valor === undefined) delete process.env[nombre];
+      else process.env[nombre] = valor;
+    }
+    try {
+      await fn();
+    } finally {
+      for (const [nombre, anterior] of Object.entries(anteriores)) {
+        if (anterior === undefined) delete process.env[nombre];
+        else process.env[nombre] = anterior;
+      }
+    }
+  };
+}
+
+test('v0.2b4.1 §1: los tres proveedores nuevos se reconocen por prefijo y cuentan como gratis', () => {
+  assert.equal(proveedorDe('groq:openai/gpt-oss-120b').variable, 'GROQ_API_KEY');
+  assert.equal(proveedorDe('nvidia:nvidia/nemotron-3.5-lightning-30b-a3b').variable, 'NVIDIA_API_KEY');
+  assert.equal(proveedorDe('cerebras:gpt-oss-120b').variable, 'CEREBRAS_API_KEY');
+  assert.equal(proveedorDe('gemini:gemini-flash-lite-latest').variable, 'GEMINI_API_KEY_GRATIS');
+  assert.equal(proveedorDe('z-ai/glm-4.7-flash'), null, 'un id sin prefijo sigue siendo de OpenRouter');
+
+  // Gratis de verdad: son claves de nivel gratuito sin tarjeta (spec §0), un exceso da 429 o 402,
+  // nunca un cargo. Sin esto, servidor/generacion.js#filtrarPorPago los descartaría con PERMITIR_PAGO=0.
+  for (const id of ['groq:openai/gpt-oss-20b', 'nvidia:openai/gpt-oss-20b', 'cerebras:qwen-3.8-27b']) {
+    assert.equal(esModeloGratis(id), true, `${id} debe contar como gratis`);
+  }
+  assert.equal(esModeloGratis('z-ai/glm-4.7-flash'), false);
+});

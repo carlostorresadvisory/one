@@ -3,11 +3,10 @@
 import { appendFile, readFile } from 'node:fs/promises';
 
 const URL_CHAT = 'https://openrouter.ai/api/v1/chat/completions';
-// Endpoint compatible con OpenAI de Google AI Studio (clave GRATUITA, proyecto sin facturación:
-// GEMINI_API_KEY_GRATIS). El `model` del body va SIN el prefijo "gemini:" que usamos en la
-// cascada para distinguirlo de los ids de OpenRouter (ver destinoDe()).
-const URL_GEMINI_OPENAI = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 const RUTA_LOG_DEFECTO = 'datos/llamadas.log';
+// TODO(Step 23, v0.2b4.1): esta pausa entre eslabones se elimina en el paso que reestructura
+// `llamar` para saltar en seco ante 429/503 -- se mantiene aquí solo para que el fichero cargue
+// mientras los pasos intermedios (1-20) siguen usándola.
 const PAUSA_MS = 1500;
 // Reintento único ante 429 (cuota agotada) o 503 (servicio saturado), visto en vivo tanto en
 // modelos ':free' de OpenRouter como en Gemini gratis: a menudo el segundo intento sí responde.
@@ -52,22 +51,49 @@ function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Un id "gemini:<modelo>" es siempre gratis: es la clave de AI Studio sin facturación (el
-// proyecto no puede cobrar; un exceso de cuota da 429, nunca un cargo).
-// Exportada (Tarea 2, v0.2b3): servidor/generacion.js y servidor/index.js tenían cada uno su
-// propio filtro "solo gratis" mirando solo ':free', así que los ids "gemini:*" nunca llegaban a
-// `llamar` con permitirPago=false -- ver el informe de esa tarea.
-export function esModeloGratis(id) {
-  return id.endsWith(':free') || id.startsWith('gemini:');
+// Proveedores con API compatible con OpenAI y nivel gratuito SIN tarjeta, cada uno con su clave
+// propia (spec §1). Generaliza el mecanismo que v0.2b3 hizo a medida para Gemini: el id de la
+// cascada lleva el prefijo del proveedor ("groq:openai/gpt-oss-120b"), y el `model` del body va
+// SIEMPRE sin él. Un id sin prefijo conocido es de OpenRouter, como siempre.
+// Medido el 15-sep-2026 con los prompts reales (spec §0): Groq gpt-oss-120b 1,8 s, gpt-oss-20b
+// 1,0 s; Gemini flash-lite 1,3 s; NVIDIA 35-72 s (último recurso); Cerebras 402 mientras no active
+// su nivel gratuito -- se integra igual y la cascada lo salta solo.
+const PROVEEDORES = {
+  'gemini:': {
+    url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    variable: 'GEMINI_API_KEY_GRATIS',
+    etiqueta: 'Gemini',
+  },
+  'groq:': { url: 'https://api.groq.com/openai/v1/chat/completions', variable: 'GROQ_API_KEY', etiqueta: 'Groq' },
+  'nvidia:': {
+    url: 'https://integrate.api.nvidia.com/v1/chat/completions',
+    variable: 'NVIDIA_API_KEY',
+    etiqueta: 'NVIDIA',
+  },
+  'cerebras:': { url: 'https://api.cerebras.ai/v1/chat/completions', variable: 'CEREBRAS_API_KEY', etiqueta: 'Cerebras' },
+};
+
+/** Proveedor propio de un id de cascada, o `null` si el id es de OpenRouter. */
+export function proveedorDe(modelo) {
+  if (typeof modelo !== 'string') return null;
+  for (const [prefijo, datos] of Object.entries(PROVEEDORES)) {
+    if (modelo.startsWith(prefijo)) return { prefijo, ...datos };
+  }
+  return null;
 }
 
-// Defensivo (triaje adversarial, ronda final de arreglos, 14-sep-2026): un `.env` con espacios de
-// sobra alrededor de la clave (copia-pega, salto de línea final del editor...) no debe colarse tal
-// cual en la cabecera `Authorization` ni contar como "hay clave" si tras el trim queda vacía --
-// `''` trim no es una clave, es ausencia de clave, aunque `process.env.GEMINI_API_KEY_GRATIS` sea
-// una cadena (truthy) de solo espacios.
-function claveGeminiGratis() {
-  return (process.env.GEMINI_API_KEY_GRATIS || '').trim();
+// Defensivo (heredado de claveGeminiGratis, triaje adversarial 14-sep-2026): un `.env` con espacios
+// de sobra alrededor de la clave no debe colarse en la cabecera `Authorization` ni contar como
+// "hay clave" si tras el trim queda vacía.
+function claveDe(variable) {
+  return (process.env[variable] || '').trim();
+}
+
+// Un id con prefijo de proveedor propio es siempre gratis: son claves de nivel gratuito sin tarjeta
+// (Gemini AI Studio sin facturación; Groq/NVIDIA/Cerebras free tier). Un exceso de cuota devuelve
+// 429 o 402, nunca un cargo. Exportada y compartida por servidor/generacion.js y servidor/index.js.
+export function esModeloGratis(id) {
+  return typeof id === 'string' && (id.endsWith(':free') || proveedorDe(id) !== null);
 }
 
 // Campos de body que son EXTENSIONES de OpenRouter sobre el protocolo de OpenAI, no estándar.
@@ -95,9 +121,9 @@ const CAMPOS_PROPIOS_OPENROUTER = [
 function destinoDe(modelo) {
   if (modelo.startsWith('gemini:')) {
     return {
-      url: URL_GEMINI_OPENAI,
+      url: PROVEEDORES['gemini:'].url,
       cabeceras: {
-        Authorization: `Bearer ${claveGeminiGratis()}`,
+        Authorization: `Bearer ${claveDe('GEMINI_API_KEY_GRATIS')}`,
         'Content-Type': 'application/json',
       },
       modelBody: modelo.slice('gemini:'.length),
@@ -260,7 +286,7 @@ export async function llamar({
     }
 
     const esGemini = modelo.startsWith('gemini:');
-    if (esGemini && !claveGeminiGratis()) {
+    if (esGemini && !claveDe('GEMINI_API_KEY_GRATIS')) {
       errores.push(`${modelo}: sin clave de Gemini`);
       continue;
     }
