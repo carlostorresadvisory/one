@@ -3138,6 +3138,9 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Spec §1: en 404 la tanda guardada se limpia, para no reanudar un trabajo que ya no existe.
     expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
 
+    // Spec §2: el aviso de fallo dura 6 s y desaparece; no se queda ocupando la esquina.
+    await expect(page.locator('[data-test="indicador-tanda"]')).toBeHidden({ timeout: 9000 });
+
     // El sondeo se detiene en cuanto consultarTrabajo devuelve null (404): un ciclo más (5s) no
     // debe sumar ninguna llamada más a /trabajo/:id.
     const llamadasTrasElFallo = contadores.trabajo;
