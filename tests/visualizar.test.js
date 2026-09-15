@@ -10,6 +10,7 @@ import {
   resolverPregunta,
   reverificarVisualesGuardados,
   aplicarExclusionVisual,
+  explicacionYaCumple,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
   GENERADOR_SOLO_PAGO,
@@ -710,6 +711,64 @@ test('resolverPregunta: si explicacionOk es false, conserva la explicación orig
   assert.equal(r.explicacion, pregunta.explicacion);
   assert.equal(r.explicacionCambiada, false);
   assert.match(r.motivoExplicacionRechazo, /error/);
+});
+
+// --- resolverPregunta: saltarAcortado (v0.2b4 §6b) ----------------------------------------------
+
+test('v0.2b4 §6b: resolverPregunta con saltarAcortado y explicación que ya cumple pide SOLO el visual', async () => {
+  const sistemas = [];
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    sistemas.push({ papel: modelos === GENERADOR_VISUAL ? 'generador' : 'verificador', texto: mensajes[0].content });
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ visual: { tipo: 'formula', texto: 'PIB = C + I + G', leyenda: 'Componentes del PIB' } }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ visualOk: true, motivo: 'datos correctos' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const pregunta = preguntaBase({
+    explicacion: 'La inflación sube cuando la demanda supera a la oferta disponible; por eso el banco central sube los tipos para enfriarla.',
+  });
+  const r = await resolverPregunta(pregunta, { llamar: llamarFalso, necesitaVisual: true, saltarAcortado: true });
+
+  assert.equal(r.explicacion, pregunta.explicacion); // intacta, ni una palabra tocada
+  assert.equal(r.explicacionCambiada, false);
+  assert.equal(r.motivoExplicacionRechazo, null);
+  assert.equal(r.visual.tipo, 'formula');
+  // Una llamada al generador + una al verificador: ni un intento de acortado.
+  assert.equal(sistemas.filter((s) => s.papel === 'generador').length, 1);
+  assert.match(sistemas[0].texto, /NO la reescribas/);
+});
+
+test('v0.2b4 §6b: con saltarAcortado pero explicación de más de 40 palabras, se reescribe como siempre', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    if (modelos === GENERADOR_VISUAL) {
+      return {
+        texto: JSON.stringify({ explicacion: 'Versión corta y correcta de la explicación.', visual: null }),
+        modelo: modelos[0],
+        coste: 0,
+        usage: {},
+      };
+    }
+    return { texto: JSON.stringify({ explicacionOk: true, visualOk: true, motivo: 'ok' }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const larga = Array.from({ length: 55 }, (_, i) => `palabra${i}`).join(' ');
+  const r = await resolverPregunta(preguntaBase({ explicacion: larga }), {
+    llamar: llamarFalso,
+    necesitaVisual: false,
+    saltarAcortado: true,
+  });
+  assert.equal(r.explicacionCambiada, true);
+  assert.equal(r.explicacion, 'Versión corta y correcta de la explicación.');
+});
+
+test('v0.2b4 §6b: explicacionYaCumple cuenta palabras, no caracteres', () => {
+  assert.equal(explicacionYaCumple('Una explicación de siete palabras exactas aquí.'), true);
+  assert.equal(explicacionYaCumple(''), false);
+  assert.equal(explicacionYaCumple(Array.from({ length: 41 }, () => 'x').join(' ')), false);
 });
 
 // --- reverificarVisualesGuardados (modo --reverificar-visuales, hallazgo 4) --------------------

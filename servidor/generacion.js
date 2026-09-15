@@ -660,6 +660,9 @@ export async function producirTanda(params, opciones = {}) {
         topeEur,
         rutaLog,
         necesitaVisual: true,
+        // v0.2b4 §6b: la explicación acaba de salir del generador de preguntas YA con el límite de
+        // 25-40 palabras y ya la verificó verificarBorradores -- reescribirla solo añadía latencia.
+        saltarAcortado: true,
         ...(usaPagoBarato
           ? {
               modelosGenerador: [...GENERADOR_SOLO_PAGO, ...GENERADOR_VISUAL],

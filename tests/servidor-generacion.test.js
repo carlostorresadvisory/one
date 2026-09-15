@@ -801,16 +801,31 @@ test('producirTanda: descarta lo rechazado por el verificador y lo que no pasa v
   assert.match(rechazoValidacion.motivo, /nivel/);
 });
 
-test('producirTanda: incluye la explicación corta y el visual de resolverPregunta en las aprobadas', async () => {
+test('producirTanda: incluye el visual de resolverPregunta en las aprobadas', async () => {
   const { llamar } = crearLlamarPipeline({});
 
   const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
 
   assert.equal(resultado.aprobadas.length, 1);
   const [p] = resultado.aprobadas;
-  assert.equal(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
   assert.equal(p.visual.tipo, 'dato');
   assert.ok(validarPregunta(p).length === 0, `la aprobada debe ser válida: ${validarPregunta(p).join('; ')}`);
+});
+
+// v0.2b4 §6b: producirTanda llama a resolverPregunta con saltarAcortado:true -- el borrador que
+// acaba de salir del generador de preguntas (y que ya pasó verificarBorradores) ya cumple el límite
+// de 25-40 palabras (preguntaGenerica produce "Explicación N con mecanismo real.", 5 palabras), así
+// que resolverPregunta NO debe gastar una llamada en reescribirla: la aprobada conserva la
+// explicación original tal cual, aunque el `llamar` falso del paso de visual devuelva otra distinta.
+test('v0.2b4 §6b: producirTanda no reescribe una explicación que ya cumple el límite de palabras', async () => {
+  const { llamar } = crearLlamarPipeline({});
+
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+
+  assert.equal(resultado.aprobadas.length, 1);
+  const [p] = resultado.aprobadas;
+  assert.match(p.explicacion, /^Explicación \d+ con mecanismo real\.$/, 'conserva la explicación del borrador, no la del mock de visual');
+  assert.notEqual(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
 });
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M5): la confianza del verificador se copia a la
