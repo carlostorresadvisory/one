@@ -828,3 +828,17 @@ test(
     await limpiarLog();
   }),
 );
+
+test('v0.2b4.1 §1: las tres claves nuevas están documentadas en servidor/.env.ejemplo y en DESPLIEGUE.md', async () => {
+  const ejemplo = await readFile('servidor/.env.ejemplo', 'utf8');
+  const despliegue = await readFile('servidor/DESPLIEGUE.md', 'utf8');
+  for (const variable of ['GEMINI_API_KEY_GRATIS', 'GROQ_API_KEY', 'NVIDIA_API_KEY', 'CEREBRAS_API_KEY']) {
+    assert.match(ejemplo, new RegExp(`^${variable}=`, 'm'), `${variable} falta en servidor/.env.ejemplo`);
+    assert.ok(despliegue.includes(variable), `${variable} falta en servidor/DESPLIEGUE.md`);
+  }
+  // Nunca un valor: este fichero se versiona en git.
+  for (const linea of ejemplo.split('\n')) {
+    if (linea.startsWith('#') || !linea.includes('=')) continue;
+    assert.equal(linea.split('=')[1].trim(), '', `servidor/.env.ejemplo lleva un valor en "${linea.split('=')[0]}"`);
+  }
+});
