@@ -1177,3 +1177,50 @@ test('v0.2b4.1 §5: sin `desde`, `actualizadas` devuelve TODO lo conocido que te
   // Y sin ids conocidos no hay nada que actualizar: no se manda contenido que el móvil no tiene.
   assert.deepEqual(await cola.actualizadas({ idsConocidos: [] }), []);
 });
+
+// Autorrevisión (Tarea 4): procesarCola dispara completarVisualesPendientes() DESPUÉS de que su
+// `while` se vacíe, y esa llamada puede tardar de verdad (red). `dispararProcesamiento` solo mira
+// el flag `procesando` -- si un trabajo (sobre todo uno urgente, un jugador esperando) llega
+// MIENTRAS completarVisualesPendientes sigue en marcha, `encolar()` lo empuja a la cola pero
+// `dispararProcesamiento()` no hace nada (procesando ya es true) y NADA vuelve a mirar la cola
+// cuando termina -- el trabajo se queda atascado hasta que un encolar() futuro y no relacionado lo
+// destrabe por pura casualidad. Este test demuestra que NO pasa: procesarCola debe recomprobar la
+// cola al terminar el trabajo de fondo y seguir procesando lo que haya llegado mientras tanto.
+test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan visuales pendientes no se queda atascado en la cola', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+
+  let soltar;
+  const enEspera = new Promise((r) => { soltar = r; });
+  let empezoCompletar = false;
+  const completarVisualFalso = async (pregunta) => {
+    empezoCompletar = true;
+    await enEspera;
+    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: pregunta.explicacion, coste: 0 };
+  };
+
+  const cola = crearCola({
+    almacen,
+    // El trabajo inicial (n=0) no aprueba nada -- solo sirve para disparar procesarCola. El
+    // urgente sí necesita aprobadas de verdad para poder llegar a 'lista'.
+    producirTanda: async ({ area, n }) => resultadoOk(area, n, n),
+    completarVisual: completarVisualFalso,
+  });
+
+  // Trabajo mínimo (0 preguntas pedidas) que termina al instante: al vaciarse la cola justo
+  // después, procesarCola entra en completarVisualesPendientes() y se queda colgado de `enEspera`.
+  cola.encolar({ area: 'economia', n: 0, urgente: false });
+  await hastaQue(() => empezoCompletar);
+
+  // Mientras el trabajo de fondo sigue bloqueado, llega un urgente real -- un jugador esperando.
+  const { trabajoId } = cola.encolar({ area: 'historia', n: 1, urgente: true });
+
+  soltar(); // el trabajo de fondo por fin termina
+
+  // El urgente debe procesarse solo, sin que haga falta un tercer encolar() que "desatasque" la cola.
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadoTrabajo(trabajoId).hechas, 1);
+});

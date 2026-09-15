@@ -462,49 +462,63 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   // que a cualquier urgente más reciente (FIFO real entre urgentes). Sigue habiendo un solo
   // trabajo activo a la vez (concurrencia 1): `tomarSiguiente()`/`activo` no cambian de sitio.
   async function procesarCola() {
-    let siguiente;
-    // eslint-disable-next-line no-cond-assign
-    while ((siguiente = tomarSiguiente())) {
-      activo = siguiente;
-      // 'generando' solo la primera vez que el trabajo corre (todavía sin ninguna aprobada). Si
-      // retoma tras ceder con >=1 aprobada, su estado ya es 'parcial' y se queda así -- no vuelve
-      // a 'generando' (mismo principio que ya regía antes de esta ronda: en cuanto hay resultados
-      // parciales, se muestran hasta el final).
-      if (siguiente.preguntas.length === 0) {
-        siguiente.estado = 'generando';
+    // v0.2b4.1 §5 (autorrevisión): bucle EXTERIOR alrededor del `while` de siempre + el trabajo de
+    // fondo de visuales. `completarVisualesPendientes()` hace red de verdad (puede tardar segundos,
+    // no un tick) -- si se llamara solo una vez DESPUÉS del `while` y se retornara sin más, un
+    // trabajo que llega mientras tanto (`encolar()` lo empuja, pero `dispararProcesamiento()` no
+    // hace nada porque `procesando` sigue en true) se quedaría atascado en la cola hasta que un
+    // `encolar()` futuro y sin relación lo destrabara por casualidad -- justo lo que esta tarea NO
+    // debe permitir con un urgente (un jugador esperando). Se sale del todo solo cuando, tras
+    // completar visuales, las dos colas siguen vacías.
+    for (;;) {
+      let siguiente;
+      // eslint-disable-next-line no-cond-assign
+      while ((siguiente = tomarSiguiente())) {
+        activo = siguiente;
+        // 'generando' solo la primera vez que el trabajo corre (todavía sin ninguna aprobada). Si
+        // retoma tras ceder con >=1 aprobada, su estado ya es 'parcial' y se queda así -- no vuelve
+        // a 'generando' (mismo principio que ya regía antes de esta ronda: en cuanto hay resultados
+        // parciales, se muestran hasta el final).
+        if (siguiente.preguntas.length === 0) {
+          siguiente.estado = 'generando';
+        }
+
+        // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
+        // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en
+        // profundidad, tal como pidió la revisión, por si un fallo futuro se cuela de todos modos.
+        try {
+          await ejecutarUnLote(siguiente);
+        } finally {
+          activo = null;
+        }
+
+        if (siguiente.hechas >= siguiente.pedidas) {
+          finalizarTrabajo(siguiente);
+          guardarTerminado(siguiente);
+          continue;
+        }
+
+        const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
+        if (debeCeder) {
+          siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
+          colaFondo.unshift(siguiente);
+        } else {
+          siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
+          if (siguiente.urgente) colaUrgente.unshift(siguiente);
+          else colaFondo.unshift(siguiente);
+        }
       }
 
-      // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
-      // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en
-      // profundidad, tal como pidió la revisión, por si un fallo futuro se cuela de todos modos.
-      try {
-        await ejecutarUnLote(siguiente);
-      } finally {
-        activo = null;
-      }
+      // El trabajador se ha quedado sin trabajos: es el momento exacto de completar visuales
+      // pendientes -- lo más bajo de la escala de prioridad, detrás de todo urgente y de todo fondo.
+      await completarVisualesPendientes().catch((err) => {
+        console.error(`servidor/cola: fallo al completar visuales pendientes: ${err?.message || err}`);
+      });
 
-      if (siguiente.hechas >= siguiente.pedidas) {
-        finalizarTrabajo(siguiente);
-        guardarTerminado(siguiente);
-        continue;
-      }
-
-      const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
-      if (debeCeder) {
-        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
-        colaFondo.unshift(siguiente);
-      } else {
-        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
-        if (siguiente.urgente) colaUrgente.unshift(siguiente);
-        else colaFondo.unshift(siguiente);
-      }
+      // Si nada llegó mientras se completaban visuales, se sale de verdad -- si algo llegó
+      // (urgente o de fondo), el `while` de arriba lo recoge en la próxima vuelta.
+      if (colaUrgente.length === 0 && colaFondo.length === 0) break;
     }
-
-    // El trabajador se ha quedado sin trabajos: es el momento exacto de completar visuales
-    // pendientes -- lo más bajo de la escala de prioridad, detrás de todo urgente y de todo fondo.
-    await completarVisualesPendientes().catch((err) => {
-      console.error(`servidor/cola: fallo al completar visuales pendientes: ${err?.message || err}`);
-    });
   }
 
   // Ronda 2 (revisión), punto 2: si, pese a todo, `procesarCola` llegara a rechazar (defensa en
