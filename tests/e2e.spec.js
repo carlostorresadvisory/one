@@ -3111,8 +3111,11 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
     await page.locator('[data-test="atomo-generar"]').click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    // Ola final v0.2b4 (I3): el restante se redondea con tanda.js#formatearRestante, igual que el
+    // indicador -- antes la espera decía "· ~42 s" crudos mientras el indicador decía "~40 s"
+    // (y con una cola larga, "· ~980 s" frente a "~16 min").
     await expect(page.locator('[data-test="atomo-espera-texto"]')).toHaveText(
-      'Generando 10 preguntas de Economía › Mercados y crisis · ~42 s'
+      'Generando 10 preguntas de Economía › Mercados y crisis · ~40 s'
     );
     await page.screenshot({ path: `${CAPTURAS}/v0.2b2-espera-375.png` });
     await assertSinScroll(page);

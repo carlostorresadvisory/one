@@ -1364,7 +1364,11 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
   nodoAtomoEsperaResultado.hidden = true;
   // Minor #9: `estimadoSeg` validado (entero > 0) -- si no, se omite el "~N s" en vez de mostrar
   // "~undefined s"/"~NaN s".
-  const sufijoSeg = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? ` · ~${estimadoSeg} s` : '';
+  // Ola final v0.2b4 (I3): el redondeo es el MISMO que el del indicador (tanda.js#formatearRestante)
+  // -- antes esta tarjeta pintaba los segundos crudos ("· ~980 s") mientras el indicador, a un dedo
+  // de distancia, decía "~16 min" de lo mismo.
+  const restante = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? formatearRestante(estimadoSeg) : '';
+  const sufijoSeg = restante ? ` · ${restante}` : '';
   nodoAtomoEsperaTexto.textContent = `Generando ${atomoTandaPedidas} preguntas de ${rutaTexto}${sufijoSeg}`;
   mostrarVista('atomo-espera');
 }
