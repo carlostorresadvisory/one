@@ -271,6 +271,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // v0.2b4.1 §6: `hechas` al empezar el lote. El progreso DENTRO del lote se pinta sobre esta
+    // base y el `finally` la cierra sumando el lote entero -- así el indicador puede enseñar
+    // 1..10 sin que un fallo a mitad deje el contador a medias y el trabajo reintentando siempre
+    // el mismo lote (que es justo lo que garantizaba el `hechas += tamanoLote` de antes).
+    const hechasAlEmpezar = trabajo.hechas;
     // Ronda de corrección 1 (revisión Opus, Important #2): tiempo de PARED de ESTE lote en
     // concreto, no de punta a punta del trabajo -- un trabajo de fondo que cede el turno (ver
     // procesarCola) puede pasar minutos aparcado en colaFondo mientras otro trabajo ocupa al
@@ -289,7 +294,14 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       try {
         resultado = await producirTanda(
           { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
-          { ...opciones, urgente: trabajo.urgente },
+          {
+            ...opciones,
+            urgente: trabajo.urgente,
+            onProgreso: ({ verificadas }) => {
+              const dentroDelLote = Math.min(Math.max(0, verificadas), tamanoLote);
+              trabajo.hechas = Math.min(hechasAlEmpezar + dentroDelLote, trabajo.pedidas);
+            },
+          },
         );
       } catch (err) {
         trabajo.huboFallo = true;
@@ -336,7 +348,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       // anterior (condición de carrera real de la ronda de estabilidad anterior). El `finally`
       // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
       // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
-      trabajo.hechas += tamanoLote;
+      //
+      // El lote se cuenta SIEMPRE entero, haya ido bien o mal: es lo que evita que un trabajo se
+      // quede reintentando el mismo lote para siempre. `onProgreso` solo puede adelantar el
+      // contador dentro de este mismo tramo, nunca pasarse ni quedarse corto al cerrar.
+      trabajo.hechas = Math.min(hechasAlEmpezar + tamanoLote, trabajo.pedidas);
       // Solo el tiempo de ESTE lote (desde que el trabajador lo cogió hasta que lo suelta), nunca
       // el tiempo aparcado entre cesiones -- ver comentario de `inicioLote` arriba.
       trabajo.msActivos = (trabajo.msActivos || 0) + (reloj() - inicioLote);

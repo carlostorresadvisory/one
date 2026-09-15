@@ -1065,3 +1065,21 @@ test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuel
   // hay serialización oculta, no una latencia concreta.
   assert.ok(duracion < 2000, `una tanda de 10 con dobles de 15 ms no puede tardar ${duracion} ms`);
 });
+
+test('v0.2b4.1 §6: producirTanda avisa por cada pregunta resuelta, no por lote', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const avisos = [];
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 5 },
+    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p }) },
+  );
+  assert.equal(avisos.length, resultado.aprobadas.length, 'un aviso por aprobada');
+  assert.deepEqual(avisos.map((a) => a.verificadas), avisos.map((_, i) => i + 1), '1, 2, 3... nunca saltos');
+  assert.ok(avisos.every((a) => a.pedidas === 5));
+});
+
+test('v0.2b4.1 §6: sin onProgreso, producirTanda funciona exactamente igual (opción opcional)', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
+  assert.equal(resultado.aprobadas.length, 2);
+});

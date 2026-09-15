@@ -613,7 +613,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
  */
 export async function producirTanda(params, opciones = {}) {
   const { area, ruta = [], n = 10, nivelObjetivo, evitar = [] } = params || {};
-  const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog, urgente = false } = opciones;
+  const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog, urgente = false, onProgreso } = opciones;
 
   const usaPagoBarato = urgente && permitirPago;
   // v0.2b4.1 §3: quién espera decide qué cascada se usa. Urgente = el jugador mirando el indicador,
@@ -742,6 +742,14 @@ export async function producirTanda(params, opciones = {}) {
       // opcional (el 11 % del banco tampoco lo tiene) y nunca justifica tirar una pregunta que YA
       // pasó la verificación.
       aprobadas.push({ ...candidata, visual: null });
+    }
+    // v0.2b4.1 §6: el indicador del móvil debe poder mostrar 1..10, no 0/5/10. Se avisa cuando la
+    // pregunta está DE VERDAD terminada (verificada, validada y con su visual resuelto o
+    // descartado), que es lo que el jugador va a recibir -- no cuando el modelo devolvió el borrador.
+    try {
+      onProgreso?.({ verificadas: aprobadas.length, pedidas: n });
+    } catch {
+      // Un fallo en el callback de quien llama nunca puede tumbar la tanda a medias.
     }
   });
 

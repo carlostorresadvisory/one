@@ -1020,3 +1020,44 @@ test('ejecutarUnLote (I4): registra rechazadas en rechazadas.json y una línea p
   assert.ok(lineas[0].trabajoId);
   assert.ok(lineas[0].fecha);
 });
+
+// --- v0.2b4.1 §6: `hechas` avanza por pregunta verificada, no por lote -----------------------
+
+test('v0.2b4.1 §6: `hechas` del trabajo avanza pregunta a pregunta, no de 5 en 5', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const vistos = [];
+  let soltarLote;
+  const enEspera = new Promise((r) => { soltarLote = r; });
+
+  const producirTandaFalso = async ({ n }, { onProgreso }) => {
+    for (let i = 1; i <= n; i++) onProgreso?.({ verificadas: i, pedidas: n });
+    await enEspera; // el lote no termina hasta que el test haya podido mirar el estado
+    return resultadoOk('economia', n, n);
+  };
+
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+  const { trabajoId } = cola.encolar({ area: 'economia', n: 10, urgente: true });
+
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).hechas === 5);
+  vistos.push(cola.estadoTrabajo(trabajoId).hechas);
+  soltarLote();
+
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'lista');
+  const final = cola.estadoTrabajo(trabajoId);
+  assert.equal(final.hechas, 10, 'al cerrar, hechas cuadra exactamente con pedidas');
+  assert.deepEqual(vistos, [5], 'y por el camino se vio el progreso dentro del lote');
+});
+
+test('v0.2b4.1 §6: si producirTanda avisa de más preguntas de las del lote, `hechas` nunca pasa de `pedidas`', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const producirTandaFalso = async ({ n }, { onProgreso }) => {
+    for (let i = 1; i <= n + 7; i++) onProgreso?.({ verificadas: i, pedidas: n });
+    return resultadoOk('economia', n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+  const { trabajoId } = cola.encolar({ area: 'economia', n: 10, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'lista');
+  assert.equal(cola.estadoTrabajo(trabajoId).hechas, 10);
+});
