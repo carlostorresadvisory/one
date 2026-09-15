@@ -850,13 +850,13 @@ function mostrarAvisoTopeAtomo() {
   }, 2000);
 }
 
-/** "No se pudo cargar más" (Ronda de revisión combinada, Tarea 3+4, Important): "Más…" con un
- * error real (network/HTTP -- 400 "Exclusión inválida" incluido, si el `excluir` disparara ese
- * límite pese al recorte de `sincronizacion.js#pedirSubtemas`), DISTINTO de "agotado" (el servidor
- * respondió `[]` de verdad, ver `manejarMasAtomo` más abajo: esa rama sí usa
- * `atomoInstancia.actualizar(..., {masVacio:true})`, una opción de atomo.js). Mismo patrón que
- * `mostrarAvisoTopeAtomo` -- elemento propio creado una sola vez, para no tocar atomo.js: "Más…"
- * sigue pulsable, los subtemas ya pintados no cambian. */
+/** "No se pudo cargar más" (Ronda de revisión combinada, Tarea 3+4, Important): "Regenerar temas"
+ * (v0.2b4 §5, antes "Más…") con un error real (network/HTTP -- 400 "Exclusión inválida" incluido,
+ * si el `excluir` disparara ese límite pese al recorte de `sincronizacion.js#pedirSubtemas`),
+ * DISTINTO de "agotado" (el servidor respondió `[]` de verdad, ver `manejarMasAtomo` más abajo: esa
+ * rama sí usa `atomoInstancia.actualizar(..., {masVacio:true})`, una opción de atomo.js). Mismo
+ * patrón que `mostrarAvisoTopeAtomo` -- elemento propio creado una sola vez, para no tocar
+ * atomo.js: "Regenerar temas" sigue pulsable, los subtemas ya pintados no cambian. */
 let nodoAtomoMasError = null;
 let atomoMasErrorTimeoutId = null;
 function mostrarErrorMasAtomo() {
@@ -922,18 +922,18 @@ async function cargarAnilloAtomo() {
   atomoInstancia.actualizar(subtemas, nucleoAtomoTexto(), { conMas: true });
 }
 
-/** "Más…": pide la siguiente página del anillo VIGENTE (misma ruta, `excluir` = lo ya mostrado) --
- * no avanza de anillo, así que pasa por el mismo estado "cargando" que cargarAnilloAtomo pero sin
- * tocar la cabecera/ruta (no cambian).
+/** "Regenerar temas" (v0.2b4 §5, antes "Más…"): pide la siguiente página del anillo VIGENTE (misma
+ * ruta, `excluir` = lo ya mostrado) -- no avanza de anillo, así que pasa por el mismo estado
+ * "cargando" que cargarAnilloAtomo pero sin tocar la cabecera/ruta (no cambian).
  *
  * Ronda de revisión combinada (Tarea 3+4, Important): página `null` (cualquier error real --
  * network/HTTP) y página `[]` (el servidor respondió de verdad "no hay más subtemas") ya NO se
  * tratan igual. Antes ambas caían en la misma rama "agotado", así que un 400 "Exclusión inválida"
  * (que `pedirSubtemas` convierte en `null`, como cualquier otro fallo) dejaba el anillo roto en
  * silencio a partir de ese toque -- ahora `null` avisa "No se pudo cargar más" 2s
- * (`mostrarErrorMasAtomo`) y deja "Más…" operativo, sin marcar el anillo como agotado. Página
- * vacía de verdad: revierte a los subtemas anteriores con "No hay más por ahora" 2s
- * (atomo.js#actualizar `masVacio`) y vuelve a "Más…", igual que siempre. */
+ * (`mostrarErrorMasAtomo`) y deja "Regenerar temas" operativo, sin marcar el anillo como agotado.
+ * Página vacía de verdad: revierte a los subtemas anteriores con "No hay más por ahora" 2s
+ * (atomo.js#actualizar `masVacio`) y vuelve a "Regenerar temas", igual que siempre. */
 async function manejarMasAtomo() {
   if (!atomoEstado || atomoCargando) return;
   const clave = claveAnilloAtomo();

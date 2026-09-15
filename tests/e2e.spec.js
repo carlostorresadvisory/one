@@ -3503,6 +3503,16 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="tanda-lista"]')).toHaveCount(0);
   });
+
+  test('v0.2b4 §5: el nodo de paginación dice "Regenerar temas" y el mensaje de agotado no cambia', async ({ page }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    const mas = page.locator('[data-test="atomo-mas"]');
+    await expect(mas).toBeVisible();
+    await expect(mas).toHaveText('Regenerartemas'); // dos <tspan>: "Regenerar" + "temas", sin espacio entre ellos.
+    await assertSinScroll(page);
+  });
 });
 
 // Tarea 3 del plan v0.2b3-atomo-amplio-gemini: nodo "Más…" con paginación (excluir), 6 anillos, y
