@@ -4,10 +4,6 @@ import { appendFile, readFile } from 'node:fs/promises';
 
 const URL_CHAT = 'https://openrouter.ai/api/v1/chat/completions';
 const RUTA_LOG_DEFECTO = 'datos/llamadas.log';
-// TODO(Step 23, v0.2b4.1): esta pausa entre eslabones se elimina en el paso que reestructura
-// `llamar` para saltar en seco ante 429/503 -- se mantiene aquí solo para que el fichero cargue
-// mientras los pasos intermedios (1-20) siguen usándola.
-const PAUSA_MS = 1500;
 // Reintento único ante 429 (cuota agotada) o 503 (servicio saturado), visto en vivo tanto en
 // modelos ':free' de OpenRouter como en Gemini gratis: a menudo el segundo intento sí responde.
 // Inyectable como opción `reintentoMs` de `llamar` para que los tests no esperen 4s reales.
@@ -287,15 +283,21 @@ export function extraerJson(texto) {
   return JSON.parse(limpio);
 }
 
+// Un 402 (sin plan), 404 (id retirado) o 410 (id desaparecido) es un "no" definitivo de ESE
+// eslabón: reintentarlo es tiempo tirado. Un 429/503 es un "ahora no": se salta igual, pero el
+// eslabón queda apuntado por si al final de la cascada no hubo suerte con ninguno.
+const ESTADOS_SATURADO = new Set([429, 503]);
+
 /**
  * Llama a OpenRouter recorriendo una cascada de modelos.
  * @param {object} opciones
  * @param {object} [opciones.extra] Campos adicionales para el body (p. ej. `reasoning` para
  *   modelos de razonamiento que necesitan desactivarlo explícitamente). Se aplican a todos los
  *   modelos de la cascada EXCEPTO los campos propios de OpenRouter (`CAMPOS_PROPIOS_OPENROUTER`),
- *   que se retiran del body cuando el destino es Gemini. No es cierto que "un modelo que no
- *   reconozca el campo lo ignora": Google AI Studio responde HTTP 400 `Invalid JSON payload
- *   received. Unknown name "reasoning"` (reproducido el 15-sep-2026, ver Critical C1).
+ *   que se retiran del body cuando el destino es propio (Gemini/Groq/NVIDIA/Cerebras). No es
+ *   cierto que "un modelo que no reconozca el campo lo ignora": Google AI Studio responde HTTP 400
+ *   `Invalid JSON payload received. Unknown name "reasoning"` (reproducido el 15-sep-2026, ver
+ *   Critical C1).
  * @returns {Promise<{texto: string, modelo: string, coste: number, usage: object}>}
  */
 export async function llamar({
@@ -310,93 +312,64 @@ export async function llamar({
   rutaLog = RUTA_LOG_DEFECTO,
   extra = {},
   reintentoMs = REINTENTO_MS,
+  // Solo para los tests: contar que la espera del último recurso ocurre UNA vez (con reintentoMs:0
+  // no se puede medir por reloj). En producción no lo pasa nadie.
+  alEsperar = () => {},
 }) {
   const errores = [];
-  let primeraLlamada = true;
+  const saturados = [];
 
-  for (const modelo of modelos) {
+  // Devuelve {ok:true, salida} | {ok:false, saturado}. Nunca lanza: todo fallo se anota en
+  // `errores` y se decide fuera si queda algo que probar.
+  async function intentarModelo(modelo) {
     if (!esModeloGratis(modelo) && !permitirPago) {
       errores.push(`${modelo}: pago desactivado (falta --permitir-pago)`);
-      continue;
+      return { ok: false, saturado: false };
     }
-
     if (!esModeloGratis(modelo) && permitirPago) {
       const acumulado = await costeAcumuladoHoy(rutaLog);
-      // Estimación conservadora previa a la llamada: si ya se ha superado el tope, no se llama.
       if (acumulado >= topeEur) {
         errores.push(`${modelo}: tope de gasto superado (${acumulado} >= ${topeEur})`);
-        continue;
+        return { ok: false, saturado: false };
       }
     }
 
     const destino = destinoDe(modelo);
     if (destino.propio && !destino.clave) {
       errores.push(`${modelo}: sin clave de ${destino.etiqueta} (${destino.variable})`);
-      continue;
+      return { ok: false, saturado: false };
     }
 
-    if (!primeraLlamada) {
-      await esperar(PAUSA_MS);
-    }
-    primeraLlamada = false;
-
-    const { url, cabeceras, modelBody, camposPropiosOpenRouter } = destino;
     const body = {
-      model: modelBody,
+      model: destino.modelBody,
       messages: mensajes,
       temperature: temperatura,
       max_tokens: maxTokens,
       ...(json ? { response_format: { type: 'json_object' } } : {}),
       ...extra,
     };
-    // El `extra` es único para toda la cascada, pero no todos los destinos entienden lo mismo:
-    // los campos propios de OpenRouter se retiran aquí para el destino que no los conoce (Gemini),
-    // sin que quien llama tenga que saber a qué API va cada eslabón (Critical C1).
-    for (const campo of camposPropiosOpenRouter) {
-      delete body[campo];
-    }
-    // Los extras del proveedor se aplican DESPUÉS del borrado: `reasoning_effort` y
-    // `chat_template_kwargs` son campos estándar del proveedor de destino, no extensiones de
-    // OpenRouter, y no deben caer en el mismo filtro.
+    for (const campo of destino.camposPropiosOpenRouter) delete body[campo];
     const bodyFinal = ajustarPeticion(modelo, body);
 
-    // Reintento único ante 429/503 (cuota agotada o servicio saturado): se ve a menudo tanto en
-    // los ':free' de OpenRouter como en Gemini gratis, y un segundo intento suele bastar.
     let respuesta;
-    let motivoRed = null;
-    let yaReintentado = false;
-    for (;;) {
-      try {
-        respuesta = await fetchImpl(url, {
-          method: 'POST',
-          headers: cabeceras,
-          body: JSON.stringify(bodyFinal),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
-        });
-      } catch (err) {
-        motivoRed = err.name === 'TimeoutError' ? `sin respuesta en ${TIMEOUT_MS / 1000}s` : err.message;
-        respuesta = null;
-        break;
-      }
-      if (respuesta.ok) break;
-      if (!yaReintentado && (respuesta.status === 429 || respuesta.status === 503)) {
-        yaReintentado = true;
-        await esperar(reintentoMs);
-        continue;
-      }
-      break;
-    }
-
-    if (motivoRed) {
-      errores.push(`${modelo}: error de red (${motivoRed})`);
-      await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `red: ${motivoRed}` });
-      continue;
+    try {
+      respuesta = await fetchImpl(destino.url, {
+        method: 'POST',
+        headers: destino.cabeceras,
+        body: JSON.stringify(bodyFinal),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch (err) {
+      const motivo = err.name === 'TimeoutError' ? `sin respuesta en ${TIMEOUT_MS / 1000}s` : err.message;
+      errores.push(`${modelo}: error de red (${motivo})`);
+      await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `red: ${motivo}` });
+      return { ok: false, saturado: false };
     }
 
     if (!respuesta.ok) {
       errores.push(`${modelo}: HTTP ${respuesta.status}`);
       await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `HTTP ${respuesta.status}` });
-      continue;
+      return { ok: false, saturado: ESTADOS_SATURADO.has(respuesta.status) };
     }
 
     let datos;
@@ -405,7 +378,7 @@ export async function llamar({
     } catch (err) {
       errores.push(`${modelo}: respuesta no es JSON (${err.message})`);
       await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: 'respuesta no es JSON' });
-      continue;
+      return { ok: false, saturado: false };
     }
 
     const texto = datos?.choices?.[0]?.message?.content ?? '';
@@ -421,13 +394,32 @@ export async function llamar({
       } catch (err) {
         errores.push(`${modelo}: JSON inválido (${err.message})`);
         await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste, tokens, ok: false, motivo: `JSON inválido: ${String(err.message).slice(0, 80)}` });
-        continue;
+        return { ok: false, saturado: false };
       }
     }
 
     await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste, tokens, ok: true });
+    return { ok: true, salida: { texto, modelo, coste, usage } };
+  }
 
-    return { texto, modelo, coste, usage };
+  // Un intento por eslabón, sin ninguna pausa entre ellos: saltar es SIEMPRE más rápido que
+  // esperar mientras queden candidatos (spec §1). La pausa de cortesía de 1,5 s de v0.2b1 se
+  // elimina: costaba hasta 9 s por cascada agotada y no evitaba ningún 429 medible.
+  const pendientes = [...modelos];
+  while (pendientes.length > 0) {
+    const modelo = pendientes.shift();
+    const resultado = await intentarModelo(modelo);
+    if (resultado.ok) return resultado.salida;
+    if (resultado.saturado) saturados.push(modelo);
+  }
+
+  // Último recurso: ya no queda ningún eslabón sin probar. SOLO aquí tiene sentido esperar, y solo
+  // para los que dijeron "ahora no" (429/503) -- un 402/404/410 no cambia por esperar.
+  if (saturados.length > 0) {
+    alEsperar();
+    await esperar(reintentoMs);
+    const resultado = await intentarModelo(saturados[0]);
+    if (resultado.ok) return resultado.salida;
   }
 
   throw new Error(`Ningún modelo respondió. Detalle: ${errores.join(' | ')}`);

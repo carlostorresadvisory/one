@@ -29,11 +29,12 @@ function respuestaError(status) {
   };
 }
 
-// Adaptado en la Tarea 1 de v0.2b3: el 429 ahora se reintenta UNA vez (universal, no solo para
-// Gemini) antes de pasar al siguiente modelo -- ver el bloque "reintento ante 429/503" más abajo.
-// Antes este test esperaba una sola llamada a 'a/uno:free'; ahora espera dos (intento + reintento)
-// porque ambas devuelven 429. reintentoMs:0 evita que el test tarde los 4s reales de producción.
-test('primer modelo responde 429 → reintenta una vez y, si sigue fallando, usa el segundo', async () => {
+// REESCRITO (v0.2b4.1 §1, excepción declarada en Global Constraints): antes este test esperaba
+// ['a/uno:free', 'a/uno:free', 'b/dos:free'] -- intento + reintento con 4 s de espera ANTES de
+// saltar. Medido el 15-sep: esperar con eslabones por delante es siempre peor que saltar (Groq
+// responde en 1,8 s; la espera sola son 4 s). Ahora se salta ya y el reintento con espera queda
+// como último recurso, solo cuando no queda ningún eslabón por probar.
+test('v0.2b4.1 §1: 429 en el primer eslabón salta al segundo SIN esperar ni reintentar', async () => {
   await limpiarLog();
   const llamadas = [];
   const fetchImpl = async (url, opts) => {
@@ -50,8 +51,81 @@ test('primer modelo responde 429 → reintenta una vez y, si sigue fallando, usa
     reintentoMs: 0,
   });
   assert.equal(r.modelo, 'b/dos:free');
-  assert.deepEqual(llamadas, ['a/uno:free', 'a/uno:free', 'b/dos:free']);
+  assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free'], 'un intento por eslabón, sin reintento intermedio');
   await limpiarLog();
+});
+
+test('v0.2b4.1 §1: si TODOS los eslabones se saturan, se espera una vez y se reintenta el primero', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  let esperas = 0;
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    // El reintento final (4.ª llamada) sí responde: es el caso que justifica que exista.
+    if (llamadas.length === 4) return respuestaOk(body.model);
+    return respuestaError(body.model === 'b/dos:free' ? 503 : 429);
+  };
+  const r = await llamar({
+    modelos: ['a/uno:free', 'b/dos:free', 'c/tres:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 0,
+    alEsperar: () => { esperas += 1; },
+  });
+  assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free', 'c/tres:free', 'a/uno:free']);
+  assert.equal(r.modelo, 'a/uno:free', 'el reintento vuelve al PRIMERO que se saturó, no al último');
+  assert.equal(esperas, 1, 'se espera exactamente una vez, y solo al final');
+  await limpiarLog();
+});
+
+test('v0.2b4.1 §1: 402/404/410 saltan en seco (nunca se reintentan, ni siendo el último eslabón)', async () => {
+  for (const estado of [402, 404, 410]) {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaError(estado);
+    };
+    await assert.rejects(
+      llamar({
+        modelos: ['a/uno:free'],
+        mensajes: [{ role: 'user', content: 'hola' }],
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+      }),
+      new RegExp(`HTTP ${estado}`),
+    );
+    assert.equal(llamadas.length, 1, `HTTP ${estado} no se reintenta: es un "no y no volverá a ser que sí"`);
+  }
+  await limpiarLog();
+});
+
+test('v0.2b4.1 §1: Cerebras con 402 (nivel gratuito sin activar) no rompe la cascada, la deja seguir', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    if (url.includes('cerebras')) return respuestaError(402);
+    return respuestaOk(body.model, '{"ok":true}');
+  };
+  const r = await conClavesDeTest(CLAVES_TEST, async () => {
+    const salida = await llamar({
+      modelos: ['cerebras:gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.equal(salida.modelo, 'groq:openai/gpt-oss-20b');
+  })();
+  assert.deepEqual(llamadas, ['gpt-oss-120b', 'openai/gpt-oss-20b']);
+  await limpiarLog();
+  return r;
 });
 
 test('todos los modelos fallan → lanza con ambos ids en el mensaje', async () => {
@@ -341,9 +415,10 @@ test(
   }),
 );
 
-// (c) 429 → reintento único tras reintentoMs → si el reintento también falla, pasa al siguiente.
+// (c) 429 siendo el ÚNICO eslabón: no hay a dónde saltar, así que se espera y se reintenta una vez
+// (v0.2b4.1 §1: el salto en seco solo aplica mientras queden eslabones sin probar).
 test(
-  'gemini: 429 reintenta una vez y, si el reintento responde 200, usa esa respuesta (mismo modelo)',
+  'gemini: 429 siendo el ÚNICO eslabón, se espera y se reintenta una vez',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     let intentos = 0;
@@ -366,8 +441,10 @@ test(
   }),
 );
 
+// REESCRITO (v0.2b4.1 §1): con un eslabón detrás, el 429 salta ya -- ya no reintenta el mismo
+// modelo antes de pasar al siguiente. Una llamada por eslabón, no dos.
 test(
-  'gemini: 429 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  'gemini: 429 en el primer eslabón pasa al siguiente modelo de la cascada sin reintentar',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     const llamadas = [];
@@ -385,14 +462,14 @@ test(
       reintentoMs: 0,
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
 
-// (d) 503 se comporta igual que 429: reintento único y luego el siguiente modelo.
+// (d) 503 se comporta igual que 429: salta ya, una sola llamada por eslabón.
 test(
-  'gemini: 503 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  'gemini: 503 en el primer eslabón pasa al siguiente modelo de la cascada sin reintentar',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     const llamadas = [];
@@ -410,7 +487,7 @@ test(
       reintentoMs: 0,
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
