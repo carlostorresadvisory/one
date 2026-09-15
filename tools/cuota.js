@@ -59,10 +59,87 @@ export function msDeCabecera(valor) {
   return null;
 }
 
-// Marcador temporal (Step 3 del brief): el import de tests/cuota.test.js ya declara las cuatro
-// exportaciones desde el principio (ESM resuelve los imports en estático, antes de ejecutar ningún
-// test), así que `crearRegistroCuota` tiene que existir ya aunque los tests de este ciclo TDD
-// todavía no la llamen. Se sustituye por la implementación real en el Step 8.
-export function crearRegistroCuota() {
-  throw new Error('cuota: crearRegistroCuota aún no implementado (llega en el siguiente ciclo TDD)');
+// Una respuesta puede traer `headers` como un `Headers` real (fetch) o como un objeto plano (los
+// dobles de los tests): se leen las dos formas, siempre en minúsculas (HTTP no distingue).
+function leerCabecera(cabeceras, nombre) {
+  if (!cabeceras) return null;
+  const crudo = typeof cabeceras.get === 'function' ? cabeceras.get(nombre) : cabeceras[nombre] ?? cabeceras[nombre.toUpperCase()];
+  if (crudo === undefined || crudo === null || crudo === '') return null;
+  return String(crudo);
+}
+
+function numeroDeCabecera(valor) {
+  if (valor === null) return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Registro en memoria de la cuota de cada eslabón, por su id COMPLETO de cascada
+ * (`proveedor:modelo`, o el id de OpenRouter tal cual): dos modelos del mismo proveedor tienen
+ * cuotas independientes (Groq: 8.000 tokens/min POR MODELO), así que la clave nunca es el proveedor.
+ * En memoria a propósito, sin persistir: tras reiniciar el proceso se vuelve a "no sé nada de
+ * nadie", que es el estado seguro (todos disponibles) y se recalibra solo con la primera respuesta.
+ * @param {{reloj?: () => number}} [params]
+ */
+export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
+  const porModelo = new Map();
+
+  /** Anota lo que esta respuesta cuenta sobre la cuota de `modelo`. Nunca lanza. */
+  function registrarRespuesta(modelo, respuesta) {
+    const cabeceras = respuesta?.headers;
+    const tokens = numeroDeCabecera(leerCabecera(cabeceras, CABECERA_TOKENS_RESTANTES));
+    const peticiones = numeroDeCabecera(leerCabecera(cabeceras, CABECERA_PETICIONES_RESTANTES));
+    const reset = msDeCabecera(leerCabecera(cabeceras, CABECERA_RESET_TOKENS));
+    const retry = msDeCabecera(leerCabecera(cabeceras, CABECERA_RETRY_AFTER));
+    const saturado = respuesta?.status === 429 || respuesta?.status === 503;
+
+    // Sin ningún dato y sin saturación no hay nada que recordar: "sin registro" = disponible.
+    if (tokens === null && peticiones === null && retry === null && !saturado) return;
+
+    const ahora = reloj();
+    const previo = porModelo.get(modelo) || {};
+    porModelo.set(modelo, {
+      tokensRestantesMinuto: tokens === null ? previo.tokensRestantesMinuto ?? null : tokens,
+      peticionesRestantesDia: peticiones === null ? previo.peticionesRestantesDia ?? null : peticiones,
+      resetTokensMs: reset === null ? previo.resetTokensMs ?? null : reset,
+      medidoEn: ahora,
+      // `hasta`: instante a partir del cual el eslabón vuelve a estar disponible. Solo lo fija una
+      // saturación real -- una respuesta buena nunca bloquea nada, por bajos que vengan los restos.
+      hasta: retry !== null ? ahora + retry : saturado ? ahora + VENTANA_TOKENS_MS : previo.hasta ?? 0,
+    });
+  }
+
+  /** ¿Puede esta llamada, de `tokensEstimados`, entrar ahora mismo por este eslabón? */
+  function hayHueco(modelo, tokensEstimados = 0) {
+    const info = porModelo.get(modelo);
+    if (!info) return true; // sin datos = disponible (spec §2)
+    const ahora = reloj();
+    if (info.hasta > ahora) return false;
+    if (info.peticionesRestantesDia !== null && info.peticionesRestantesDia <= 0) return false;
+    if (info.tokensRestantesMinuto === null) return true;
+    // La cuota de tokens es por minuto: pasada la ventana desde la medición, se da por repuesta.
+    if (ahora - info.medidoEn >= VENTANA_TOKENS_MS) return true;
+    return info.tokensRestantesMinuto >= tokensEstimados;
+  }
+
+  /** Cuánto falta (ms) para que este eslabón vuelva a estar disponible. 0 si ya lo está. */
+  function disponibleEnMs(modelo) {
+    const info = porModelo.get(modelo);
+    if (!info) return 0;
+    const ahora = reloj();
+    if (info.peticionesRestantesDia !== null && info.peticionesRestantesDia <= 0) return UN_DIA_MS;
+    const porEspera = Math.max(0, info.hasta - ahora);
+    const porVentana =
+      info.tokensRestantesMinuto === null
+        ? 0
+        : Math.max(0, info.medidoEn + (info.resetTokensMs ?? VENTANA_TOKENS_MS) - ahora);
+    return Math.max(porEspera, porVentana);
+  }
+
+  function olvidar() {
+    porModelo.clear();
+  }
+
+  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo: null, olvidar };
 }
