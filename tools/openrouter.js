@@ -114,20 +114,25 @@ const CAMPOS_PROPIOS_OPENROUTER = [
   'plugins',
 ];
 
-// Resuelve a qué API va cada modelo de la cascada: OpenRouter (por defecto) o el endpoint
-// compatible con OpenAI de Google AI Studio para los ids "gemini:<modelo>". El body de Gemini
-// lleva el nombre del modelo SIN el prefijo; las cabeceras HTTP-Referer/X-Title y los campos de
-// `camposPropiosOpenRouter` son propios de OpenRouter y no se mandan a Gemini.
+// Resuelve a qué API va cada eslabón de la cascada: OpenRouter (por defecto) o el endpoint
+// compatible con OpenAI del proveedor propio del prefijo. El body lleva el nombre del modelo SIN el
+// prefijo; las cabeceras HTTP-Referer/X-Title y los campos de `camposPropiosOpenRouter` son propios
+// de OpenRouter y no se mandan a ningún otro destino.
 function destinoDe(modelo) {
-  if (modelo.startsWith('gemini:')) {
+  const proveedor = proveedorDe(modelo);
+  if (proveedor) {
+    const clave = claveDe(proveedor.variable);
     return {
-      url: PROVEEDORES['gemini:'].url,
-      cabeceras: {
-        Authorization: `Bearer ${claveDe('GEMINI_API_KEY_GRATIS')}`,
-        'Content-Type': 'application/json',
-      },
-      modelBody: modelo.slice('gemini:'.length),
-      esGemini: true,
+      url: proveedor.url,
+      cabeceras: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
+      modelBody: modelo.slice(proveedor.prefijo.length),
+      // `propio` sustituye al antiguo `esGemini`: todos estos destinos son gratis (coste 0) y
+      // ninguno entiende las extensiones de OpenRouter.
+      propio: true,
+      prefijo: proveedor.prefijo,
+      clave,
+      variable: proveedor.variable,
+      etiqueta: proveedor.etiqueta,
       camposPropiosOpenRouter: CAMPOS_PROPIOS_OPENROUTER,
     };
   }
@@ -140,7 +145,11 @@ function destinoDe(modelo) {
       'X-Title': 'ONE',
     },
     modelBody: modelo,
-    esGemini: false,
+    propio: false,
+    prefijo: '',
+    clave: process.env.OPENROUTER_API_KEY || '',
+    variable: 'OPENROUTER_API_KEY',
+    etiqueta: 'OpenRouter',
     camposPropiosOpenRouter: [],
   };
 }
@@ -285,9 +294,9 @@ export async function llamar({
       }
     }
 
-    const esGemini = modelo.startsWith('gemini:');
-    if (esGemini && !claveDe('GEMINI_API_KEY_GRATIS')) {
-      errores.push(`${modelo}: sin clave de Gemini`);
+    const destino = destinoDe(modelo);
+    if (destino.propio && !destino.clave) {
+      errores.push(`${modelo}: sin clave de ${destino.etiqueta} (${destino.variable})`);
       continue;
     }
 
@@ -296,7 +305,7 @@ export async function llamar({
     }
     primeraLlamada = false;
 
-    const { url, cabeceras, modelBody, camposPropiosOpenRouter } = destinoDe(modelo);
+    const { url, cabeceras, modelBody, camposPropiosOpenRouter } = destino;
     const body = {
       model: modelBody,
       messages: mensajes,
@@ -362,9 +371,9 @@ export async function llamar({
 
     const texto = datos?.choices?.[0]?.message?.content ?? '';
     const usage = datos?.usage ?? {};
-    // Gemini gratis (GEMINI_API_KEY_GRATIS) es un proyecto sin facturación: coste siempre 0 aunque
-    // la respuesta traiga usage.cost. Los tokens sí se registran si vienen, por informativos.
-    const coste = esGemini ? 0 : Number(usage.cost) || 0;
+    // Todo destino propio es un nivel gratuito sin facturación: coste 0 aunque la respuesta traiga
+    // usage.cost. Los tokens sí se registran si vienen, por informativos.
+    const coste = destino.propio ? 0 : Number(usage.cost) || 0;
     const tokens = (Number(usage.prompt_tokens) || 0) + (Number(usage.completion_tokens) || 0);
 
     if (json) {

@@ -628,3 +628,54 @@ test('v0.2b4.1 §1: los tres proveedores nuevos se reconocen por prefijo y cuent
   }
   assert.equal(esModeloGratis('z-ai/glm-4.7-flash'), false);
 });
+
+test(
+  'v0.2b4.1 §1: cada proveedor va a SU endpoint, con SU clave y el modelo sin prefijo en el body',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const casos = [
+      ['groq:openai/gpt-oss-120b', 'https://api.groq.com/openai/v1/chat/completions', 'clave-test-groq', 'openai/gpt-oss-120b'],
+      ['nvidia:openai/gpt-oss-20b', 'https://integrate.api.nvidia.com/v1/chat/completions', 'clave-test-nvidia', 'openai/gpt-oss-20b'],
+      ['cerebras:gpt-oss-120b', 'https://api.cerebras.ai/v1/chat/completions', 'clave-test-cerebras', 'gpt-oss-120b'],
+    ];
+    for (const [id, url, clave, modelBody] of casos) {
+      let urlRecibida;
+      let opcionesRecibidas;
+      const fetchImpl = async (u, opts) => {
+        urlRecibida = u;
+        opcionesRecibidas = opts;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [{ message: { content: '{"ok":true}' } }],
+            // Coste distinto de 0 a propósito: un proveedor propio es gratis y `llamar` debe
+            // forzar coste 0 sin fiarse de lo que traiga la respuesta.
+            usage: { prompt_tokens: 7, completion_tokens: 3, cost: 0.05 },
+          }),
+        };
+      };
+      const r = await llamar({
+        modelos: [id],
+        mensajes: [{ role: 'user', content: 'hola' }],
+        json: true,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        // `reasoning` es campo PROPIO de OpenRouter: Google devolvió HTTP 400 por él (v0.2b4 C1) y
+        // no hay razón para creer que Groq/NVIDIA/Cerebras lo acepten. No debe viajar a ninguno.
+        extra: { reasoning: { enabled: false }, temperature_extra_falso: 1 },
+      });
+      assert.equal(urlRecibida, url, `${id} debe ir a ${url}`);
+      assert.equal(opcionesRecibidas.headers.Authorization, `Bearer ${clave}`);
+      assert.equal(opcionesRecibidas.headers['HTTP-Referer'], undefined, 'HTTP-Referer es solo de OpenRouter');
+      assert.equal(opcionesRecibidas.headers['X-Title'], undefined, 'X-Title es solo de OpenRouter');
+      const body = JSON.parse(opcionesRecibidas.body);
+      assert.equal(body.model, modelBody, 'el prefijo del proveedor nunca viaja en el body');
+      assert.equal(body.reasoning, undefined, 'los campos propios de OpenRouter no viajan aquí');
+      assert.deepEqual(body.response_format, { type: 'json_object' });
+      assert.equal(r.modelo, id, 'el id devuelto conserva el prefijo (es la clave de la cascada)');
+      assert.equal(r.coste, 0);
+    }
+    await limpiarLog();
+  }),
+);
