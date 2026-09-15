@@ -426,9 +426,14 @@ function avisarFalloPeticion(url, motivo) {
 // `fetchImpl` la expone -- es el reloj del SERVIDOR, el mismo que estampa `actualizadaEn` en su
 // colchón (servidor/cola.js#completarVisual), así que preferirla sobre la hora local de este móvil
 // evita que un desfase de reloj entre los dos haga que una actualización real se dé por "ya vista".
-// La mayoría de `fetchImpl` falsos de los tests no traen `headers` -- por eso todo esto es opcional
-// y nunca lanza: sin cabecera (o con una que no parsea a fecha), `null`, y quien llama cae a la hora
-// local al recibir la respuesta.
+// AVISO HONESTO (comprobado, no solo supuesto): en producción esto casi nunca "viene". La app vive
+// en un origen (GitHub Pages) y el servidor en otro (one.ctadvisory.es) -- una petición cross-origin
+// de verdad -- y `servidor/index.js` no manda `Access-Control-Expose-Headers: Date` en sus cabeceras
+// CORS (solo Allow-Origin/Methods/Headers), así que el navegador oculta `Date` a este JS aunque viaje
+// por la red. Queda igualmente como la vía preferida (barata, correcta, y activa el día que el
+// servidor la exponga) y cae sola a la hora local si no hay nada que leer -- nunca lanza, nunca
+// bloquea. La mayoría de `fetchImpl` falsos de los tests tampoco traen `headers`: por eso esto es
+// opcional de punta a punta.
 function leerFechaServidor(respuesta) {
   try {
     const cabecera =
