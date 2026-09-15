@@ -1,7 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
-import { llamar, extraerJson, esModeloGratis, proveedorDe, MODELOS } from '../tools/openrouter.js';
+import {
+  llamar,
+  extraerJson,
+  esModeloGratis,
+  proveedorDe,
+  MODELOS,
+  esperaDeReintento,
+  TOPE_ESPERA_REINTENTO_MS,
+} from '../tools/openrouter.js';
 import { crearRegistroCuota } from '../tools/cuota.js';
 
 const RUTA_LOG = 'datos/llamadas.test.log';
@@ -198,6 +206,49 @@ test('v0.2b4.1 (I1): un `timeoutMs` inválido (0, negativo, NaN) cae al plazo po
     assert.equal(r.modelo, 'a/uno:free');
   }
   await limpiarLog();
+});
+
+// === T1 (minor, ola final v0.2b4.1): la espera del último recurso obedece a `retry-after` ========
+test('v0.2b4.1 (T1): con `retry-after` en la respuesta, el reintento espera ESO, no los 4 s fijos', async () => {
+  await limpiarLog();
+  const cuota = crearRegistroCuota();
+  const esperas = [];
+  const llamadas = [];
+  const fetchImpl = async (url, opts) => {
+    llamadas.push(JSON.parse(opts.body).model);
+    if (llamadas.length === 2) return respuestaOk('a/uno:free');
+    return { ok: false, status: 429, headers: new Headers({ 'retry-after': '0.05' }), json: async () => ({}) };
+  };
+
+  const inicio = Date.now();
+  const r = await llamar({
+    modelos: ['a/uno:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 4000, // el valor de producción: si se usara, este test tardaría 4 s
+    alEsperar: (ms) => esperas.push(ms),
+    cuota,
+  });
+  const transcurrido = Date.now() - inicio;
+
+  assert.equal(r.modelo, 'a/uno:free');
+  assert.equal(esperas.length, 1, 'se espera una sola vez, y solo al final');
+  assert.ok(esperas[0] > 0 && esperas[0] <= 50, `espera los ~50 ms que pidió el proveedor (fue ${esperas[0]} ms)`);
+  assert.ok(transcurrido < 1000, `y de verdad, no los 4 s (medido: ${transcurrido} ms)`);
+  await limpiarLog();
+});
+
+test('v0.2b4.1 (T1): esperaDeReintento acota a 10 s y cae al valor por defecto si nadie sugirió nada', () => {
+  const cuota = crearRegistroCuota();
+  assert.equal(esperaDeReintento(cuota, 'sin/registro:free', 4000), 4000, 'sin sugerencia, la espera de siempre');
+
+  cuota.registrarRespuesta('lento/pide-mucho:free', { status: 429, headers: new Headers({ 'retry-after': '30' }) });
+  assert.equal(esperaDeReintento(cuota, 'lento/pide-mucho:free', 4000), TOPE_ESPERA_REINTENTO_MS);
+  assert.equal(TOPE_ESPERA_REINTENTO_MS, 10000, 'nadie espera medio minuto a un eslabón: para eso está la cascada');
+
+  cuota.registrarRespuesta('corto/pide-poco:free', { status: 429, headers: new Headers({ 'retry-after': '2' }) });
+  assert.equal(esperaDeReintento(cuota, 'corto/pide-poco:free', 4000), 2000, 'por debajo del tope, manda el proveedor');
 });
 
 // === #3 (adversarial, ola final v0.2b4.1): `signal` de quien llama ==============================
@@ -1098,8 +1149,10 @@ test(
   conClavesDeTest(CLAVES_TEST, async () => {
     await limpiarLog();
     const cuota = crearRegistroCuota();
-    // Límite conocido de antemano (como si ya hubiera respondido una vez): 8.000 tokens/min.
-    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 200, headers: new Headers({ 'x-ratelimit-remaining-tokens': '8000' }) });
+    // Límite conocido de antemano (como si ya hubiera respondido una vez). Ola final v0.2b4.1
+    // (#7): la estimación de salida se acota en 1.200 tokens, así que el resto conocido baja a
+    // 2.500 para que sigan cabiendo DOS llamadas y no la tercera -- que es lo que este test mide.
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 200, headers: new Headers({ 'x-ratelimit-remaining-tokens': '2500' }) });
 
     const llamadasVistas = [];
     // Cada fetch tarda un poco y NO resuelve hasta que las 3 llamadas ya han tenido que elegir
@@ -1114,7 +1167,8 @@ test(
     const unaLlamada = () =>
       llamar({
         modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
-        // ~3.000 tokens estimados cada una (maxTokens grande para forzarlo sin depender del texto).
+        // ~1.200 tokens estimados cada una (maxTokens grande: el tope de salida de #7 lo fija en
+        // 1.200 pase lo que pase, sin depender del texto).
         mensajes: [{ role: 'user', content: 'hola' }],
         maxTokens: 3000,
         json: false,
@@ -1127,7 +1181,7 @@ test(
     // Las 3 arrancan a la vez, compartiendo `cuota`, sin esperar respuesta entre medias.
     await Promise.all([unaLlamada(), unaLlamada(), unaLlamada()]);
 
-    // Con reserva en vuelo: 8.000 tokens, ~3.000 por llamada -> caben 2 en "120b" y la 3.ª debe
+    // Con reserva en vuelo: 2.500 tokens, ~1.200 por llamada -> caben 2 en "120b" y la 3.ª debe
     // saltar a "20b" (sin reserva, las 3 habrían elegido "120b" porque ninguna respuesta real había
     // llegado todavía para descontar nada).
     const en120b = llamadasVistas.filter((m) => m === 'openai/gpt-oss-120b').length;

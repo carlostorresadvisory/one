@@ -13,6 +13,18 @@ test('estimarTokens: longitud del prompt / 3,5 más el margen de salida (spec §
   assert.equal(estimarTokens(mensajes, 800), 1100);
 });
 
+// Ola final v0.2b4.1 (#7, adversarial): `maxTokens` es el TECHO que se le concede al modelo, no lo
+// que va a escribir. Con el 4.000 por defecto de `llamar`, cada llamada "reservaba" 4.000 tokens de
+// salida contra una ventana de 8.000 por minuto: dos llamadas y el eslabón parecía agotado aunque
+// las respuestas reales rondan los 800-1.200 tokens. Sobreestimar así no protege de nada -- empuja
+// a la cascada a eslabones peores por una saturación que no existe.
+test('estimarTokens (#7): la salida estimada se acota a 1.200 aunque maxTokens sea mucho mayor', () => {
+  const mensajes = [{ role: 'system', content: 'a'.repeat(350) }]; // 100 tokens de entrada
+  assert.equal(estimarTokens(mensajes, 4000), 100 + 1200, 'el techo de 4.000 no es una previsión de salida');
+  assert.equal(estimarTokens(mensajes, 1500), 100 + 1200);
+  assert.equal(estimarTokens(mensajes, 800), 100 + 800, 'por debajo del tope, manda maxTokens');
+});
+
 test('estimarTokens: sin mensajes, sin maxTokens o con contenido no-texto, devuelve 0 o solo el margen', () => {
   assert.equal(estimarTokens([], 0), 0);
   assert.equal(estimarTokens(undefined, 500), 500);
@@ -29,6 +41,25 @@ test('msDeCabecera: entiende los formatos que devuelven de verdad Groq y OpenRou
   assert.equal(msDeCabecera('2m'), 120000);
   assert.equal(msDeCabecera(null), null);
   assert.equal(msDeCabecera('mañana'), null, 'lo que no se entiende es null, nunca NaN');
+});
+
+// === esperaSugeridaMs (T1 minor, ola final v0.2b4.1) =============================================
+
+test('cuota (T1): esperaSugeridaMs devuelve lo que dijo `retry-after`, y 0 si nadie lo dijo', () => {
+  const { registro, avanzar } = registroDePrueba();
+
+  // Un 429 SIN cabecera no sugiere nada: el bloqueo de un minuto que se apunta internamente es una
+  // suposición del código, no una instrucción del proveedor -- no debe convertirse en una espera.
+  registro.registrarRespuesta('a/sin-cabecera:free', { status: 429, headers: new Headers({}) });
+  assert.equal(registro.esperaSugeridaMs('a/sin-cabecera:free'), 0);
+  assert.equal(registro.esperaSugeridaMs('b/desconocido:free'), 0, 'de quien no se sabe nada, tampoco');
+
+  registro.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 429, headers: new Headers({ 'retry-after': '3' }) });
+  assert.equal(registro.esperaSugeridaMs('groq:openai/gpt-oss-120b'), 3000);
+  avanzar(1000);
+  assert.equal(registro.esperaSugeridaMs('groq:openai/gpt-oss-120b'), 2000, 'descuenta lo ya esperado');
+  avanzar(5000);
+  assert.equal(registro.esperaSugeridaMs('groq:openai/gpt-oss-120b'), 0, 'pasado el plazo, nada que esperar');
 });
 
 // === registrarRespuesta + hayHueco ================================================================

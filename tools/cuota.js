@@ -21,6 +21,15 @@ export const VENTANA_TOKENS_MS = 60000;
 const UN_DIA_MS = 24 * 60 * 60 * 1000;
 /** Spec §2: "Estimación de tokens = longitud del prompt / 3,5 + maxTokens". */
 const CARACTERES_POR_TOKEN = 3.5;
+/**
+ * Ola final v0.2b4.1 (#7, adversarial): techo de la parte de SALIDA de la estimación. `maxTokens`
+ * es lo máximo que se le concede al modelo (4.000 por defecto en `llamar`, 1.500 en el visual), no
+ * lo que va a escribir: las respuestas reales de este pipeline rondan los 800-1.200 tokens. Contar
+ * 4.000 por llamada contra una ventana de 8.000 tokens/minuto daba por agotado un eslabón tras dos
+ * llamadas y empujaba la cascada a modelos peores por una saturación que no existía. Errar por
+ * exceso es prudente; errar por 4x no.
+ */
+const MAX_SALIDA_ESTIMADA = 1200;
 
 /**
  * Tokens que va a costar, más o menos, una llamada. No hace falta que sea exacto: solo decide si
@@ -34,7 +43,7 @@ export function estimarTokens(mensajes, maxTokens = 0) {
     (suma, m) => suma + (typeof m?.content === 'string' ? m.content.length : 0),
     0,
   );
-  return Math.ceil(caracteres / CARACTERES_POR_TOKEN) + (Number(maxTokens) || 0);
+  return Math.ceil(caracteres / CARACTERES_POR_TOKEN) + Math.min(Number(maxTokens) || 0, MAX_SALIDA_ESTIMADA);
 }
 
 /**
@@ -112,6 +121,10 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
       // `hasta`: instante a partir del cual el eslabón vuelve a estar disponible. Solo lo fija una
       // saturación real -- una respuesta buena nunca bloquea nada, por bajos que vengan los restos.
       hasta: retry !== null ? ahora + retry : saturado ? ahora + VENTANA_TOKENS_MS : previo.hasta ?? 0,
+      // T1 (ola final v0.2b4.1): lo mismo, pero SOLO cuando lo dijo el proveedor en una cabecera.
+      // El minuto que se apunta arriba ante un 429 sin cabecera es una suposición del código, y no
+      // debe convertirse nunca en una espera real (ver esperaSugeridaMs).
+      hastaPorCabecera: retry !== null ? ahora + retry : previo.hastaPorCabecera ?? null,
     });
   }
 
@@ -153,6 +166,19 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
     else reservasPorModelo.set(modelo, restante);
   }
 
+  /**
+   * T1 (ola final v0.2b4.1): cuánto pidió ESPERAR el proveedor, en ms, y solo si lo pidió de verdad
+   * (cabecera `retry-after`). 0 = "no dijo nada" -- quien llama usa entonces su espera por defecto.
+   * A diferencia de `disponibleEnMs`, no mezcla la ventana de tokens: aquí solo interesa la
+   * instrucción explícita del proveedor, que es la única que merece la pena obedecer al pie de la
+   * letra.
+   */
+  function esperaSugeridaMs(modelo) {
+    const info = porModelo.get(modelo);
+    if (!info || !Number.isFinite(info.hastaPorCabecera)) return 0;
+    return Math.max(0, info.hastaPorCabecera - reloj());
+  }
+
   /** Cuánto falta (ms) para que este eslabón vuelva a estar disponible. 0 si ya lo está. */
   function disponibleEnMs(modelo) {
     const info = porModelo.get(modelo);
@@ -190,7 +216,7 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
     return [...lista].sort((a, b) => disponibleEnMs(a) - disponibleEnMs(b))[0];
   }
 
-  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo, reservar, liberar, olvidar };
+  return { registrarRespuesta, hayHueco, disponibleEnMs, esperaSugeridaMs, elegirModelo, reservar, liberar, olvidar };
 }
 
 /**

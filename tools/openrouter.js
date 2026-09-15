@@ -9,6 +9,13 @@ const RUTA_LOG_DEFECTO = 'datos/llamadas.log';
 // modelos ':free' de OpenRouter como en Gemini gratis: a menudo el segundo intento sí responde.
 // Inyectable como opción `reintentoMs` de `llamar` para que los tests no esperen 4s reales.
 const REINTENTO_MS = 4000;
+/**
+ * T1 (minor, ola final v0.2b4.1): tope de la espera del último recurso. Si el proveedor mandó
+ * `retry-after`, se le obedece (es la única fuente fiable de "cuándo vuelvo a estar"), pero nunca
+ * más de esto: una tanda urgente entera cabe en 60 s, y un `retry-after: 60` no puede convertirse
+ * en un minuto de pantalla parada -- para eso está el resto de la cascada.
+ */
+export const TOPE_ESPERA_REINTENTO_MS = 10000;
 // Sin esto, una conexión colgada con un modelo ':free' bloquea el pipeline entero de
 // forma indefinida (visto en la Tarea 4 contra la API real: más de 3 minutos sin
 // respuesta ni error). 120s da margen de sobra a los modelos lentos observados
@@ -71,6 +78,23 @@ export const MODELOS = {
 
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * T1 (minor, ola final v0.2b4.1): cuánto esperar antes del reintento del último recurso. Hasta
+ * ahora eran 4 s fijos, decididos sin datos; si el eslabón saturado dijo en su `retry-after`
+ * cuándo vuelve, esa cifra es mejor que cualquier constante -- más corta casi siempre (Groq suele
+ * pedir 1-3 s) y, cuando es más larga, acotada a TOPE_ESPERA_REINTENTO_MS. Sin sugerencia real del
+ * proveedor se conserva el valor de siempre.
+ * @param {{esperaSugeridaMs?: (modelo: string) => number}} cuota registro de tools/cuota.js
+ * @param {string} modelo eslabón saturado que se va a reintentar
+ * @param {number} reintentoMs espera por defecto
+ * @returns {number}
+ */
+export function esperaDeReintento(cuota, modelo, reintentoMs) {
+  const sugerida = typeof cuota?.esperaSugeridaMs === 'function' ? cuota.esperaSugeridaMs(modelo) : 0;
+  if (!Number.isFinite(sugerida) || sugerida <= 0) return reintentoMs;
+  return Math.min(sugerida, TOPE_ESPERA_REINTENTO_MS);
 }
 
 // Proveedores con API compatible con OpenAI y nivel gratuito SIN tarjeta, cada uno con su clave
@@ -351,7 +375,7 @@ export async function llamar({
   // gastaría cuota; el plazo propio, en cambio, sigue saltando de eslabón en eslabón como siempre.
   signal = null,
   // Solo para los tests: contar que la espera del último recurso ocurre UNA vez (con reintentoMs:0
-  // no se puede medir por reloj). En producción no lo pasa nadie.
+  // no se puede medir por reloj) y con cuántos ms. En producción no lo pasa nadie.
   alEsperar = () => {},
   // Registro de cuota por eslabón (spec §2): por defecto el compartido del proceso, para que una
   // tanda entera reparta con lo que ya aprendió de llamadas anteriores. Inyectable para que cada
@@ -503,8 +527,9 @@ export async function llamar({
   // Último recurso: ya no queda ningún eslabón sin probar. SOLO aquí tiene sentido esperar, y solo
   // para los que dijeron "ahora no" (429/503) -- un 402/404/410 no cambia por esperar.
   if (saturados.length > 0 && !abortadoFuera()) {
-    alEsperar();
-    await esperar(reintentoMs);
+    const msEspera = esperaDeReintento(cuota, saturados[0], reintentoMs);
+    alEsperar(msEspera);
+    await esperar(msEspera);
     const resultado = await intentarModelo(saturados[0]);
     if (resultado.ok) return resultado.salida;
   }
