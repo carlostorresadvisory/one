@@ -1035,6 +1035,23 @@ test('v0.2b4.1 §4: enParalelo con un fallo no tumba al resto (cada tarea se res
   assert.deepEqual(salida, [{ ok: true, valor: 10 }, { ok: false, error: 'boom' }, { ok: true, valor: 30 }]);
 });
 
+// M5 (ronda de corrección 1): un `tope` no numérico (NaN, Infinity venido de una división por 0,
+// undefined...) no debe colarse tal cual en `Math.min(Math.max(1, tope), lista.length)` -- se trata
+// como 1 (secuencial), la opción segura, nunca como "sin límite".
+test('v0.2b4.1 §4 (M5): enParalelo con tope no numérico (NaN) se trata como 1, nunca como sin límite', async () => {
+  let max = 0;
+  let enVuelo = 0;
+  const salida = await enParalelo([1, 2, 3], NaN, async (n) => {
+    enVuelo += 1;
+    max = Math.max(max, enVuelo);
+    await new Promise((r) => setTimeout(r, 5));
+    enVuelo -= 1;
+    return n;
+  });
+  assert.equal(max, 1, 'tope no numérico se trata como 1 (secuencial), no como NaN/Infinity sin control');
+  assert.deepEqual(salida, [{ ok: true, valor: 1 }, { ok: true, valor: 2 }, { ok: true, valor: 3 }]);
+});
+
 test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuelo y sin pausa entre preguntas', async () => {
   const { llamar: base } = crearLlamarPipeline({});
   let visualesEnVuelo = 0;

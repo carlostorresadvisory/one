@@ -138,7 +138,12 @@ export async function enParalelo(items, tope, fn) {
       }
     }
   };
-  await Promise.all(Array.from({ length: Math.min(Math.max(1, tope), lista.length) }, trabajador));
+  // M5 (ronda de corrección 1): un `tope` no numérico (NaN, Infinity, undefined...) no debe colarse
+  // en el cálculo de la longitud del array de workers -- `Array.from({length: NaN})` da longitud 0,
+  // es decir CERO trabajadores y ningún item procesado nunca. Se trata como 1 (secuencial, la
+  // opción segura), nunca como "sin límite" ni como "no hacer nada".
+  const topeSeguro = Number.isFinite(tope) ? tope : 1;
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, topeSeguro), lista.length) }, trabajador));
   return resultados;
 }
 
