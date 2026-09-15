@@ -102,3 +102,37 @@ test('cuota: olvidar() deja el registro como recién creado (aislamiento entre t
   registro.olvidar();
   assert.equal(registro.hayHueco('groq:openai/gpt-oss-120b', 10), true);
 });
+
+// === elegirModelo =================================================================================
+
+const CASCADA = ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'];
+
+test('elegirModelo: sin datos de nadie, devuelve el PRIMERO de la cascada (el orden manda)', () => {
+  const { registro } = registroDePrueba();
+  assert.equal(registro.elegirModelo(CASCADA, 5000), CASCADA[0]);
+  assert.equal(registro.elegirModelo([], 5000), null);
+});
+
+test('elegirModelo: salta el eslabón sin hueco y devuelve el primero que sí lo tiene', () => {
+  const { registro } = registroDePrueba();
+  registro.registrarRespuesta('gemini:gemini-flash-lite-latest', respuestaConCabeceras({ 'retry-after': '30' }, 429));
+  registro.registrarRespuesta('groq:openai/gpt-oss-120b', respuestaConCabeceras({ 'x-ratelimit-remaining-tokens': '500' }));
+  // Gemini bloqueado 30 s, Groq 120b sin tokens para 5.000 -> gana el 20b, del que no se sabe nada.
+  assert.equal(registro.elegirModelo(CASCADA, 5000), 'groq:openai/gpt-oss-20b');
+  // Para una llamada pequeña, el 120b sí tiene hueco y recupera su sitio en el orden.
+  assert.equal(registro.elegirModelo(CASCADA, 100), 'groq:openai/gpt-oss-120b');
+});
+
+test('elegirModelo: si NINGUNO tiene hueco, devuelve el que antes se recupera (spec §2)', () => {
+  const { registro } = registroDePrueba();
+  registro.registrarRespuesta('gemini:gemini-flash-lite-latest', respuestaConCabeceras({ 'retry-after': '40' }, 429));
+  registro.registrarRespuesta('groq:openai/gpt-oss-120b', respuestaConCabeceras({ 'retry-after': '8' }, 429));
+  registro.registrarRespuesta('groq:openai/gpt-oss-20b', respuestaConCabeceras({ 'retry-after': '25' }, 429));
+  assert.equal(registro.elegirModelo(CASCADA, 5000), 'groq:openai/gpt-oss-120b', '8 s es antes que 25 y que 40');
+});
+
+test('elegirModelo: con dos empatados en "cuándo vuelve", gana el que va antes en la cascada', () => {
+  const { registro } = registroDePrueba();
+  for (const m of CASCADA) registro.registrarRespuesta(m, respuestaConCabeceras({ 'retry-after': '10' }, 429));
+  assert.equal(registro.elegirModelo(CASCADA, 5000), CASCADA[0]);
+});

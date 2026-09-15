@@ -141,5 +141,31 @@ export function crearRegistroCuota({ reloj = () => Date.now() } = {}) {
     porModelo.clear();
   }
 
-  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo: null, olvidar };
+  /**
+   * Qué eslabón de `cascada` conviene probar AHORA para una llamada de `tokensEstimados`.
+   * Regla de la spec §2: el primero con hueco (o del que no se sepa nada); si ninguno tiene hueco,
+   * el que antes se recupere -- mejor esperar 8 s al segundo que 40 s al primero. El orden de la
+   * cascada sigue mandando: solo se rompe cuando hay un motivo medido para romperlo.
+   * @param {string[]} cascada
+   * @param {number} [tokensEstimados]
+   * @returns {string|null} `null` solo si la cascada viene vacía
+   */
+  function elegirModelo(cascada, tokensEstimados = 0) {
+    const lista = Array.isArray(cascada) ? cascada : [];
+    if (lista.length === 0) return null;
+    const conHueco = lista.find((m) => hayHueco(m, tokensEstimados));
+    if (conHueco) return conHueco;
+    // `sort` es estable en Node, así que un empate conserva el orden de la cascada.
+    return [...lista].sort((a, b) => disponibleEnMs(a) - disponibleEnMs(b))[0];
+  }
+
+  return { registrarRespuesta, hayHueco, disponibleEnMs, elegirModelo, olvidar };
 }
+
+/**
+ * Registro que usa `tools/openrouter.js#llamar` por defecto: uno por proceso, así todas las
+ * llamadas de una misma tanda comparten lo aprendido (que es justamente lo que hace útil el
+ * reparto: el lote 2 ya sabe lo que el lote 1 gastó). Inyectable como opción `cuota` de `llamar`
+ * para que cada test tenga el suyo y no se contaminen entre sí.
+ */
+export const cuotaGlobal = crearRegistroCuota();
