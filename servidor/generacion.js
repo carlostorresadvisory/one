@@ -164,23 +164,36 @@ export async function enParalelo(items, tope, fn) {
 }
 
 /**
- * v0.2b4.1 §5: corre `promesa` con un límite de tiempo. Devuelve `null` si se pasa, sin cancelar
- * nada: la llamada que sigue viva acabará sola y su resultado se descarta (no hay forma de abortar
- * una llamada ya en vuelo a través del `llamar` inyectado, y forzarla solo añadiría una vía de
- * fallo). `ms <= 0` significa "sin límite" -- devuelve `promesa` tal cual, sin envolverla.
+ * v0.2b4.1 §5: corre lo que devuelve `crearPromesa(signal)` con un límite de tiempo. Devuelve
+ * `null` si se pasa. `ms <= 0` significa "sin límite" -- se devuelve la promesa tal cual, sin
+ * envolverla (el `signal` se pasa igualmente, pero nadie lo va a disparar).
+ *
+ * Ola final v0.2b4.1 (#3, adversarial): además de dejar de esperar, ahora ABORTA. Antes la llamada
+ * que se pasaba del plazo seguía viva contra el modelo: gastaba cuota de la ventana del minuto por
+ * una respuesta que ya nadie iba a mirar y, con 5 visuales en vuelo (`enParalelo`), alimentaba
+ * justo los 429 en cadena que la tanda intenta evitar. `crearPromesa` recibe el `signal` del
+ * AbortController que esta función crea y lo baja hasta `tools/openrouter.js#llamar`, que lo
+ * combina con su propio plazo; la reserva de cuota se libera en el `finally` de `llamar`, pase lo
+ * que pase.
+ *
  * El temporizador se cancela (`clearTimeout`) en cuanto CUALQUIERA de las dos partes gana la
- * carrera -- tanto si gana `promesa` (no tiene sentido dejar el timer vivo hasta que dispare solo)
- * como si gana el propio timeout: no queda ningún temporizador colgando en ningún caso, y
- * `unref()` además evita que, si llegara a disparar, retenga el proceso vivo por su cuenta.
- * @param {Promise<any>} promesa
+ * carrera, y `unref()` evita que, si llegara a disparar, retenga el proceso vivo por su cuenta.
+ * `Promise.race` deja un manejador puesto en la promesa huérfana, así que su rechazo posterior
+ * (el abort) nunca sale como `unhandledRejection`.
+ * @param {(signal: AbortSignal) => Promise<any>} crearPromesa
  * @param {number} ms
  * @returns {Promise<any|null>}
  */
-function conLimite(promesa, ms) {
+export function conLimite(crearPromesa, ms) {
+  const controlador = new AbortController();
+  const promesa = crearPromesa(controlador.signal);
   if (!(ms > 0)) return promesa;
   let idTimeout;
   const limite = new Promise((resolver) => {
-    idTimeout = setTimeout(() => resolver(null), ms);
+    idTimeout = setTimeout(() => {
+      controlador.abort();
+      resolver(null);
+    }, ms);
     idTimeout.unref?.();
   });
   return Promise.race([promesa, limite]).finally(() => clearTimeout(idTimeout));
@@ -865,12 +878,14 @@ export async function producirTanda(params, opciones = {}) {
         // C2: hay un jugador esperando -- esta pregunta sale ya, sin visual y marcada pendiente.
         if (cortarPorUrgente()) return null;
         const resolucion = await conLimite(
-          resolverPregunta(candidata, {
+          (senal) => resolverPregunta(candidata, {
             llamar: llamarFn,
             permitirPago,
             topeEur,
             rutaLog,
             timeoutMs: timeoutLlamadaMs,
+            // #3: si el plazo del visual vence, esta señal corta las llamadas que sigan en vuelo.
+            signal: senal,
             necesitaVisual: true,
             saltarAcortado: true,
             modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
@@ -911,6 +926,14 @@ export async function producirTanda(params, opciones = {}) {
           visualPendiente: false,
         });
       } else {
+        // Ola final v0.2b4.1 (M2), documentado a propósito: de un visual que se pasó del plazo (o
+        // cuya cascada falló) NO se contabiliza nada en `coste` ni en `modelos`, ni siquiera las
+        // llamadas que SÍ habían respondido antes del abort. `resolverPregunta` acumula su coste
+        // dentro y solo lo devuelve al terminar entera, así que al abortarla ese dato se pierde
+        // con ella. Hoy no tiene consecuencia práctica -- las cascadas de visual son 100 % gratis
+        // (coste 0) y `modelos` es informativo --, y arreglarlo de verdad exigiría cambiar la
+        // forma de retorno de resolverPregunta (tools/visualizar.js, fuera del alcance de esta
+        // ola). Queda anotado aquí para que nadie lea `coste` como "todo lo que se llamó".
         aprobadas.push({ ...candidata, visual: null, visualPendiente: true });
       }
     });

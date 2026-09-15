@@ -518,6 +518,9 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     // Ola final v0.2b4.1 (I1/I2): plazo por llamada. `undefined` = el de siempre (120 s, ver
     // tools/openrouter.js); servidor/generacion.js pasa 30 s en las tandas urgentes.
     timeoutMs,
+    // Ola final v0.2b4.1 (#3): señal para abortar la llamada si quien espera ya se rindió (el
+    // plazo del visual de una tanda urgente, ver servidor/generacion.js#conLimite).
+    signal,
     // v0.2b4 §6b: cuando la explicación ya cumple el límite (ver resolverPregunta#saltarAcortado),
     // esta llamada solo pide el VISUAL -- una sola vuelta, sin reintentos de "explicacion" que no
     // se ha pedido.
@@ -554,6 +557,7 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
       permitirPago,
       topeEur,
       timeoutMs,
+      signal,
       extra: SIN_RAZONAMIENTO,
       ...(rutaLog ? { rutaLog } : {}),
     });
@@ -624,6 +628,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     modelos = VERIFICADOR_VISUAL,
     rutaLog,
     timeoutMs, // I1/I2, igual que en generarVisualYExplicacion
+    signal, // #3, igual que en generarVisualYExplicacion
     // v0.2b4 §6b: cuando la explicación no se ha tocado (soloVisual, ver generarVisualYExplicacion),
     // no se juzga -- ni al modelo (el prompt omite el párrafo) ni en código.
     soloVisual = false,
@@ -648,6 +653,7 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     permitirPago,
     topeEur,
     timeoutMs,
+    signal,
     extra: SIN_RAZONAMIENTO,
     ...(rutaLog ? { rutaLog } : {}),
   });

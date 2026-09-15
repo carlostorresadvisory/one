@@ -16,8 +16,10 @@ import {
   MAX_VISUALES_EN_VUELO,
   completarVisual,
   TIMEOUT_LLAMADA_URGENTE_MS,
+  conLimite,
 } from '../servidor/generacion.js';
-import { MODELOS, esModeloGratis } from '../tools/openrouter.js';
+import { MODELOS, esModeloGratis, llamar as llamarReal } from '../tools/openrouter.js';
+import { crearRegistroCuota } from '../tools/cuota.js';
 import {
   GENERADOR_SOLO_PAGO,
   VERIFICADOR_SOLO_PAGO,
@@ -1315,6 +1317,69 @@ test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de visu
     assert.equal(p.visualPendiente, p.visual === null, 'lo que se corta sale marcado como pendiente');
   }
   assert.ok(transcurrido < 200, `el lote no espera los 5 visuales (~300 ms), solo el primero (medido: ${transcurrido} ms)`);
+});
+
+// --- Ola final v0.2b4.1 (#3, adversarial): el visual que se pasa del plazo se ABORTA de verdad ---
+// Antes, `conLimite` se limitaba a dejar de esperar: la llamada seguía viva contra el modelo,
+// gastando cuota de la ventana del minuto para una respuesta que ya nadie iba a mirar -- con
+// `enParalelo` y 5 visuales en vuelo, eso es exactamente lo que provoca los 429 en cadena que la
+// tanda intentaba evitar. Ahora `conLimite` crea un AbortController, lo pasa hasta `llamar` y lo
+// aborta al vencer el plazo; la reserva de cuota se libera en el `finally` de siempre.
+test('v0.2b4.1 (#3): conLimite aborta la llamada huérfana y la reserva de cuota queda liberada', async () => {
+  const cuota = crearRegistroCuota();
+  // Límite conocido: 2.000 tokens en la ventana del minuto para este eslabón.
+  cuota.registrarRespuesta('a/lento:free', { status: 200, headers: new Headers({ 'x-ratelimit-remaining-tokens': '2000' }) });
+
+  let abortada = false;
+  let terminada = false;
+  const fetchImpl = (url, opts) =>
+    new Promise((resolver, rechazar) => {
+      const id = setTimeout(() => resolver({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'tarde' } }] }) }), 5000);
+      opts.signal?.addEventListener('abort', () => {
+        clearTimeout(id);
+        abortada = true;
+        const err = new Error('abortada por quien llamó');
+        err.name = 'AbortError';
+        rechazar(err);
+      });
+    });
+
+  const inicio = Date.now();
+  const resultado = await conLimite(
+    (senal) =>
+      llamarReal({
+        modelos: ['a/lento:free'],
+        mensajes: [{ role: 'user', content: 'hola' }],
+        maxTokens: 800,
+        fetchImpl,
+        rutaLog: 'datos/llamadas.test.log',
+        reintentoMs: 0,
+        cuota,
+        signal: senal,
+      }).catch(() => null),
+    40,
+  );
+  const transcurrido = Date.now() - inicio;
+
+  assert.equal(resultado, null, 'conLimite devuelve null al vencer el plazo, como siempre');
+  assert.ok(transcurrido < 500, `no espera a la llamada huérfana (medido: ${transcurrido} ms)`);
+  await new Promise((r) => setTimeout(r, 30)); // deja que la huérfana termine de abortarse
+  assert.equal(abortada, true, 'la llamada en vuelo recibe el abort, no se queda gastando cuota');
+  assert.equal(terminada, false);
+  assert.equal(
+    cuota.hayHueco('a/lento:free', 1500),
+    true,
+    'la reserva se liberó en el `finally` de llamar: el eslabón vuelve a tener su hueco entero',
+  );
+});
+
+test('v0.2b4.1 (#3): sin plazo (ms <= 0) conLimite no aborta nada y devuelve el resultado tal cual', async () => {
+  const valor = await conLimite(async (senal) => {
+    assert.ok(senal, 'siempre hay signal, aunque no haya plazo que lo dispare');
+    assert.equal(senal.aborted, false);
+    return { ok: true };
+  }, 0);
+  assert.deepEqual(valor, { ok: true });
 });
 
 // --- Ola final v0.2b4.1 (I3): reponer lo rechazado en una tanda urgente --------------------------

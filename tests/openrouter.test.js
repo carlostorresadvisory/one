@@ -200,6 +200,41 @@ test('v0.2b4.1 (I1): un `timeoutMs` inválido (0, negativo, NaN) cae al plazo po
   await limpiarLog();
 });
 
+// === #3 (adversarial, ola final v0.2b4.1): `signal` de quien llama ==============================
+test('v0.2b4.1 (#3): un abort de quien llamó detiene la cascada entera, no salta al siguiente eslabón', async () => {
+  await limpiarLog();
+  const controlador = new AbortController();
+  const llamadas = [];
+  const fetchImpl = (url, opts) => {
+    llamadas.push(JSON.parse(opts.body).model);
+    return new Promise((resolver, rechazar) => {
+      const id = setTimeout(() => resolver(respuestaOk('tarde')), 2000);
+      opts.signal?.addEventListener('abort', () => {
+        clearTimeout(id);
+        const err = new Error('abortada');
+        err.name = 'AbortError';
+        rechazar(err);
+      });
+    });
+  };
+
+  setTimeout(() => controlador.abort(), 20);
+  await assert.rejects(
+    llamar({
+      modelos: ['a/uno:free', 'b/dos:free', 'c/tres:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota: crearRegistroCuota(),
+      signal: controlador.signal,
+    }),
+    /abortada por quien la pidió/i,
+  );
+  assert.equal(llamadas.length, 1, 'con el resultado ya descartado, probar más eslabones solo gasta cuota');
+  await limpiarLog();
+});
+
 test('todos los modelos fallan → lanza con ambos ids en el mensaje', async () => {
   await limpiarLog();
   const fetchImpl = async () => respuestaError(500);

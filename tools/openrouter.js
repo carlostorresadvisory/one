@@ -344,6 +344,12 @@ export async function llamar({
   // siguiente (medido el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free dentro de una
   // tanda urgente). Un valor no finito o <= 0 cae al defecto: "sin plazo" nunca es una opción.
   timeoutMs = TIMEOUT_MS,
+  // Ola final v0.2b4.1 (#3, adversarial): señal de quien llama para cancelar la llamada entera
+  // (servidor/generacion.js#conLimite la dispara cuando el visual se pasa de su plazo). Se combina
+  // con el plazo propio de cada intento: lo que llegue antes, aborta el `fetch`. Un abort de FUERA
+  // detiene la cascada entera -- si nadie espera ya el resultado, probar el siguiente eslabón solo
+  // gastaría cuota; el plazo propio, en cambio, sigue saltando de eslabón en eslabón como siempre.
+  signal = null,
   // Solo para los tests: contar que la espera del último recurso ocurre UNA vez (con reintentoMs:0
   // no se puede medir por reloj). En producción no lo pasa nadie.
   alEsperar = () => {},
@@ -355,6 +361,21 @@ export async function llamar({
   const errores = [];
   const saturados = [];
   const msLimite = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : TIMEOUT_MS;
+  const abortadoFuera = () => signal?.aborted === true;
+
+  // Plazo propio de ESTE intento combinado con la señal de quien llama. `AbortSignal.any` existe en
+  // Node 20+; el controlador propio es la red por si el entorno no lo trae.
+  function senalDelIntento() {
+    const porPlazo = AbortSignal.timeout(msLimite);
+    if (!signal) return porPlazo;
+    if (typeof AbortSignal.any === 'function') return AbortSignal.any([porPlazo, signal]);
+    const controlador = new AbortController();
+    const abortar = () => controlador.abort();
+    if (signal.aborted) abortar();
+    else signal.addEventListener('abort', abortar, { once: true });
+    porPlazo.addEventListener('abort', abortar, { once: true });
+    return controlador.signal;
+  }
 
   // Devuelve {ok:true, salida} | {ok:false, saturado}. Nunca lanza: todo fallo se anota en
   // `errores` y se decide fuera si queda algo que probar.
@@ -394,10 +415,14 @@ export async function llamar({
         method: 'POST',
         headers: destino.cabeceras,
         body: JSON.stringify(bodyFinal),
-        signal: AbortSignal.timeout(msLimite),
+        signal: senalDelIntento(),
       });
     } catch (err) {
-      const motivo = err.name === 'TimeoutError' ? `sin respuesta en ${msLimite / 1000}s` : err.message;
+      const motivo = abortadoFuera()
+        ? 'abortada por quien llamó'
+        : err.name === 'TimeoutError'
+          ? `sin respuesta en ${msLimite / 1000}s`
+          : err.message;
       errores.push(`${modelo}: error de red (${motivo})`);
       await registrarLog(rutaLog, { fecha: new Date().toISOString(), modelo, coste: 0, tokens: 0, ok: false, motivo: `red: ${motivo}` });
       return { ok: false, saturado: false };
@@ -454,6 +479,8 @@ export async function llamar({
   const tokensEstimados = estimarTokens(mensajes, maxTokens);
   const pendientes = [...modelos];
   while (pendientes.length > 0) {
+    // #3: si quien llamó ya no espera la respuesta, no se empieza ningún eslabón más.
+    if (abortadoFuera()) break;
     const modelo = cuota.elegirModelo(pendientes, tokensEstimados);
     pendientes.splice(pendientes.indexOf(modelo), 1);
     // v0.2b4.1 §2 (M2, ronda de corrección 1): reserva ANTES del intento, se libera SIEMPRE al
@@ -475,12 +502,15 @@ export async function llamar({
 
   // Último recurso: ya no queda ningún eslabón sin probar. SOLO aquí tiene sentido esperar, y solo
   // para los que dijeron "ahora no" (429/503) -- un 402/404/410 no cambia por esperar.
-  if (saturados.length > 0) {
+  if (saturados.length > 0 && !abortadoFuera()) {
     alEsperar();
     await esperar(reintentoMs);
     const resultado = await intentarModelo(saturados[0]);
     if (resultado.ok) return resultado.salida;
   }
 
+  if (abortadoFuera()) {
+    throw new Error(`Llamada abortada por quien la pidió. Detalle: ${errores.join(' | ')}`);
+  }
   throw new Error(`Ningún modelo respondió. Detalle: ${errores.join(' | ')}`);
 }
