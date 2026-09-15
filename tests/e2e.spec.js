@@ -3513,6 +3513,103 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(mas).toHaveText('Regenerartemas'); // dos <tspan>: "Regenerar" + "temas", sin espacio entre ellos.
     await assertSinScroll(page);
   });
+
+  /** Servidor falso para el caso "iOS recarga la PWA a mitad de tanda" (spec v0.2b4 §1): el mismo
+   * `trabajoId` sobrevive a la recarga, y /trabajo/:id responde "generando 3 de 10" hasta el
+   * sondeo `sondeosAntesDeTerminar`, momento en el que pasa a "lista" con 10 preguntas. */
+  function servidorTandaFalso({ contadores = {}, sondeosAntesDeTerminar = 3 } = {}) {
+    let sondeos = 0;
+    const suma = (clave) => { contadores[clave] = (contadores[clave] || 0) + 1; };
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        suma('estado');
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0}' });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' }] }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        suma('generar');
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ trabajoId: 'tanda-recarga-1', enCola: 0, estimadoSeg: 40, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      if (url.pathname === '/trabajo/tanda-recarga-1') {
+        suma('trabajo');
+        sondeos += 1;
+        if (sondeos < sondeosAntesDeTerminar) {
+          await route.fulfill({
+            status: 200, contentType: 'application/json', headers: CORS,
+            body: JSON.stringify({ estado: 'generando', hechas: 3, pedidas: 10, preguntas: [], motivo: null, segundosPorPregunta: 4 }),
+          });
+          return;
+        }
+        const preguntas = Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-recarga-${i + 1}`));
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ estado: 'lista', hechas: 10, pedidas: 10, preguntas, motivo: null, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('v0.2b4 §1: recargar a mitad de tanda retoma el sondeo y acaba en "Tanda lista"', async ({ page }) => {
+    const contadores = {};
+    await page.route(`${URL_SERVIDOR}/**`, servidorTandaFalso({ contadores, sondeosAntesDeTerminar: 3 }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const indicador = page.locator('[data-test="indicador-tanda"]');
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    await expect(indicador).toBeVisible();
+    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 8000 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4-indicador-375.png` });
+
+    // La tanda está persistida ANTES de recargar (spec §1, clave one.atomoTrabajo).
+    const guardada = await page.evaluate(() => JSON.parse(localStorage.getItem('one.atomoTrabajo') || 'null'));
+    expect(guardada.id).toBe('tanda-recarga-1');
+    expect(guardada.pedidas).toBe(10);
+    expect(guardada.corto).toBe('Economía');
+    const sondeosAntes = contadores.trabajo;
+
+    // Exactamente lo que hace iOS al cambiar de app o bloquear el móvil.
+    await page.reload();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    // Sin tocar nada: el indicador sigue ahí y el sondeo se ha reanudado solo.
+    await expect(indicador).toBeVisible();
+    // Extra (hallazgo Minor diferido de tareas anteriores): reanudar NO debe pasar por ningún
+    // texto de fallo (mostrarIndicadorTandaFallida) -- sería una regresión silenciosa de
+    // reanudarTandaGuardada/idsUtilizablesDeTanda (ver brief §Step 2, el fallo típico ahí).
+    await expect(texto).not.toHaveText(/No se pudo generar|La tanda se perdió|El servidor tarda demasiado/);
+    await expect.poll(() => contadores.trabajo, { timeout: 8000 }).toBeGreaterThan(sondeosAntes);
+
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4-indicador-lista-375.png` });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    await indicador.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+    // Estado terminal ya mostrado: la clave se limpia (spec §1) -- y NO reaparece al jugar la tanda.
+    expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
+  });
 });
 
 // Tarea 3 del plan v0.2b3-atomo-amplio-gemini: nodo "Más…" con paginación (excluir), 6 anillos, y
