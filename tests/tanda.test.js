@@ -7,6 +7,9 @@ import assert from 'node:assert/strict';
 import {
   CLAVE_TANDA,
   SEG_POR_PREGUNTA_DEFECTO,
+  leerTanda,
+  guardarTanda,
+  borrarTanda,
   calcularRestanteSeg,
   formatearRestante,
 } from '../tanda.js';
@@ -59,4 +62,62 @@ test('formatearRestante: sin nada que decir devuelve cadena vacía', () => {
   assert.equal(formatearRestante(0), '');
   assert.equal(formatearRestante(null), '');
   assert.equal(formatearRestante(NaN), '');
+});
+
+// === persistencia en localStorage (clave one.atomoTrabajo) ========================================
+
+function prepararLocalStorage() {
+  const mapa = new Map();
+  globalThis.localStorage = {
+    getItem: (clave) => (mapa.has(clave) ? mapa.get(clave) : null),
+    setItem: (clave, valor) => mapa.set(clave, String(valor)),
+    removeItem: (clave) => mapa.delete(clave),
+    clear: () => mapa.clear(),
+  };
+  return mapa;
+}
+
+const TANDA = { id: 't-abc-1', corto: 'Mercados y crisis', inicio: 1789000000000, pedidas: 10 };
+
+test('guardarTanda + leerTanda: la tanda sobrevive a una recarga (el caso real de iOS)', () => {
+  prepararLocalStorage();
+  assert.equal(guardarTanda(TANDA), true);
+  assert.deepEqual(leerTanda(), TANDA);
+});
+
+test('leerTanda: sin nada guardado devuelve null', () => {
+  prepararLocalStorage();
+  assert.equal(leerTanda(), null);
+});
+
+test('borrarTanda: deja la clave vacía (estado terminal o 404, spec §1)', () => {
+  prepararLocalStorage();
+  guardarTanda(TANDA);
+  borrarTanda();
+  assert.equal(leerTanda(), null);
+});
+
+test('leerTanda: una clave corrupta o incompleta se trata como "no hay tanda", nunca lanza', () => {
+  const mapa = prepararLocalStorage();
+  mapa.set(CLAVE_TANDA, '{no es json');
+  assert.equal(leerTanda(), null);
+  mapa.set(CLAVE_TANDA, JSON.stringify({ id: 't-1' })); // sin corto/inicio/pedidas
+  assert.equal(leerTanda(), null);
+  mapa.set(CLAVE_TANDA, JSON.stringify({ ...TANDA, pedidas: 0 }));
+  assert.equal(leerTanda(), null);
+});
+
+test('guardarTanda: rechaza datos inservibles sin escribir nada', () => {
+  prepararLocalStorage();
+  assert.equal(guardarTanda({ id: '', corto: 'x', inicio: 1, pedidas: 10 }), false);
+  assert.equal(guardarTanda({ id: 't-1', corto: 'x', inicio: 'ayer', pedidas: 10 }), false);
+  assert.equal(leerTanda(), null);
+});
+
+test('guardarTanda: con localStorage lleno devuelve false y no lanza (la sesión sigue en memoria)', () => {
+  prepararLocalStorage();
+  globalThis.localStorage.setItem = () => {
+    throw new Error('QuotaExceededError');
+  };
+  assert.equal(guardarTanda(TANDA), false);
 });
