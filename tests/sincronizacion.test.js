@@ -529,7 +529,9 @@ test('sincronizarEstado: cabecera Authorization y cuerpo con resumen/idsConocido
 
   const resultado = await sincronizarEstado({ estado, banco: bancoMinimo(), hoy: HOY, fetchImpl: fetchFalso });
 
-  assert.deepEqual(resultado, { preguntas: [], enCola: 3 });
+  // v0.2b4.1 §5: `actualizadas` ahora viaja siempre en el resultado (array vacío si el servidor no
+  // manda nada útil) -- deepEqual del objeto entero, así que este campo nuevo entra también aquí.
+  assert.deepEqual(resultado, { preguntas: [], enCola: 3, actualizadas: [] });
   assert.equal(fetchFalso.llamadas.length, 1);
   const { url, opciones } = fetchFalso.llamadas[0];
   assert.equal(url, `${URL_SERVIDOR}/estado`);
@@ -542,6 +544,113 @@ test('sincronizarEstado: cabecera Authorization y cuerpo con resumen/idsConocido
   assert.deepEqual(cuerpo.resumen.rutasAtomo, [{ area: 'economia', ruta: ['inflacion'] }]);
   assert.equal(cuerpo.resumen.areas.economia.nivel, 1);
   assert.equal(cuerpo.resumen.areas.economia.aciertoReciente, null);
+});
+
+test('v0.2b4.1 §5: sincronizarEstado manda `desde` y devuelve `actualizadas`', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, '2026-09-15T10:00:00.000Z');
+  localStorage.setItem('one.bancoExtra', JSON.stringify([{ id: 'srv-eco-1', area: 'economia' }]));
+  let cuerpoEnviado = null;
+  const fetchImpl = async (url, opciones) => {
+    cuerpoEnviado = JSON.parse(opciones.body);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        preguntas: [],
+        enCola: 0,
+        actualizadas: [{ id: 'srv-eco-1', visual: { tipo: 'dato' }, explicacion: 'Igual.' }],
+      }),
+    };
+  };
+
+  const salida = await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  assert.equal(cuerpoEnviado.desde, '2026-09-15T10:00:00.000Z');
+  assert.deepEqual(cuerpoEnviado.resumen.idsConocidos, ['srv-eco-1']);
+  assert.deepEqual(salida.actualizadas.map((a) => a.id), ['srv-eco-1']);
+  // La marca avanza sola tras una respuesta válida: la próxima vez solo pide lo posterior.
+  const marcaNueva = localStorage.getItem(CLAVE_ACTUALIZADO_HASTA);
+  assert.ok(marcaNueva > '2026-09-15T10:00:00.000Z', `la marca debe avanzar, y está en ${marcaNueva}`);
+});
+
+test('v0.2b4.1 §5: la primera vez no manda `desde`, y un servidor viejo sin `actualizadas` no rompe', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  let cuerpoEnviado = null;
+  const fetchImpl = async (url, opciones) => {
+    cuerpoEnviado = JSON.parse(opciones.body);
+    return { ok: true, status: 200, json: async () => ({ preguntas: [], enCola: 0 }) };
+  };
+
+  const salida = await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  assert.equal(cuerpoEnviado.desde, undefined, 'sin marca previa, no se manda el campo');
+  assert.deepEqual(salida.actualizadas, [], 'siempre un array: quien llama no tiene que comprobarlo');
+  assert.equal(salida.preguntas.length, 0);
+});
+
+test('v0.2b4.1 §5: si la sincronización falla, la marca NO avanza (no se da por visto lo que no se vio)', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, '2026-09-15T10:00:00.000Z');
+  const fetchImpl = async () => ({ ok: false, status: 500, json: async () => ({}) });
+
+  const salida = await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  assert.equal(salida, null);
+  assert.equal(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA), '2026-09-15T10:00:00.000Z');
+});
+
+// Requisito extra del controlador (no en el brief): `leerActualizadoHasta` ya valida ISO, pero esto
+// comprueba el efecto de punta a punta -- una marca corrupta en disco (versión antigua, manipulación
+// manual, un valor no-fecha) nunca debe viajar como `desde`, ni tumbar la sincronización.
+test('v0.2b4.1 §5 (extra): una marca guardada que NO es una fecha ISO válida no se manda como `desde`', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, 'esto-no-es-una-fecha');
+  let cuerpoEnviado = null;
+  const fetchImpl = async (url, opciones) => {
+    cuerpoEnviado = JSON.parse(opciones.body);
+    return { ok: true, status: 200, json: async () => ({ preguntas: [], enCola: 0, actualizadas: [] }) };
+  };
+
+  const salida = await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  assert.notEqual(salida, null);
+  assert.equal(cuerpoEnviado.desde, undefined, 'basura guardada se trata como si no hubiera marca');
+  // La sincronización tuvo éxito, así que la marca SÍ avanza tras esta llamada (mismo camino que
+  // cualquier otra respuesta válida) -- lo que no debía pasar era mandar la basura como `desde`,
+  // no que el valor guardado se quedara congelado para siempre.
+  assert.notEqual(leerActualizadoHasta(), 'esto-no-es-una-fecha');
+});
+
+// Requisito extra del controlador: si la respuesta trae la fecha del propio servidor (cabecera HTTP
+// `Date`, estándar en cualquier respuesta real), la marca nueva usa ESA hora -- evita el desfase
+// entre el reloj de este móvil y el del servidor, que es quien de verdad estampa `actualizadaEn`
+// (servidor/cola.js#completarVisual). Sin esa cabecera (como en el resto de mocks de este fichero,
+// que no la traen), cae a la hora local al recibir la respuesta -- ver el siguiente test.
+test('v0.2b4.1 §5 (extra): si la respuesta trae la cabecera `Date`, la marca nueva usa la hora del SERVIDOR, no la local', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: (nombre) => (nombre.toLowerCase() === 'date' ? 'Wed, 15 Sep 2026 12:00:00 GMT' : null) },
+    json: async () => ({ preguntas: [], enCola: 0, actualizadas: [] }),
+  });
+
+  await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  assert.equal(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA), new Date('Wed, 15 Sep 2026 12:00:00 GMT').toISOString());
+});
+
+test('v0.2b4.1 §5 (extra): sin cabecera `Date` (mocks normales, sin `headers`), la marca usa la hora local al recibir la respuesta', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const antes = Date.now();
+  const fetchImpl = async () => ({ ok: true, status: 200, json: async () => ({ preguntas: [], enCola: 0 }) });
+
+  await sincronizarEstado({ estado: crearEstado(), banco: bancoMinimo(), hoy: HOY, fetchImpl });
+
+  const marca = new Date(localStorage.getItem(CLAVE_ACTUALIZADO_HASTA)).getTime();
+  assert.ok(marca >= antes, 'la marca debe ser de justo ahora (recibida), no de una fecha arbitraria');
+  assert.ok(marca <= Date.now() + 1000);
 });
 
 for (const caso of [
@@ -800,4 +909,26 @@ test('reportarAlServidor: error del servidor → null', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: false, status: 500, cuerpo: {} }]);
   assert.equal(await reportarAlServidor({ id: 'srv-1', fetchImpl: fetchFalso }), null);
+});
+
+// === v0.2b4.1: enganche en app.js y documentación ==================================================
+
+test('v0.2b4.1 §5: app.js importa aplicarActualizaciones y reconstruye el banco tras aplicarlas', async () => {
+  const fuente = await readFile('app.js', 'utf8');
+  assert.match(fuente, /aplicarActualizaciones/, 'app.js debe importar y usar aplicarActualizaciones');
+  // El orden importa: aplicar y NO reconstruir dejaría `banco`/`bancoPorId` con el visual viejo en
+  // memoria hasta la siguiente recarga, que es exactamente el fallo que este bloque evita.
+  const bloque = fuente.slice(fuente.indexOf('async function sincronizarEnSegundoPlano'));
+  const posAplicar = bloque.indexOf('aplicarActualizaciones');
+  const posReconstruir = bloque.indexOf('reconstruirBanco', posAplicar);
+  assert.ok(posAplicar !== -1 && posReconstruir !== -1 && posReconstruir > posAplicar);
+});
+
+test('v0.2b4.1: el README describe los proveedores nuevos y las variables de entorno que hacen falta', async () => {
+  const readme = await readFile('README.md', 'utf8');
+  for (const variable of ['GROQ_API_KEY', 'NVIDIA_API_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY_GRATIS']) {
+    assert.ok(readme.includes(variable), `${variable} falta en el README`);
+  }
+  assert.match(readme, /v0\.2b4\.1/, 'el estado debe mencionar la versión');
+  assert.match(readme, /actualizadas/, 'el contrato nuevo de POST /estado debe estar documentado');
 });

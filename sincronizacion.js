@@ -422,30 +422,53 @@ function avisarFalloPeticion(url, motivo) {
   }
 }
 
+// v0.2b4.1 §5 (requisito extra del controlador): la cabecera HTTP `Date` de la respuesta, si el
+// `fetchImpl` la expone -- es el reloj del SERVIDOR, el mismo que estampa `actualizadaEn` en su
+// colchón (servidor/cola.js#completarVisual), así que preferirla sobre la hora local de este móvil
+// evita que un desfase de reloj entre los dos haga que una actualización real se dé por "ya vista".
+// La mayoría de `fetchImpl` falsos de los tests no traen `headers` -- por eso todo esto es opcional
+// y nunca lanza: sin cabecera (o con una que no parsea a fecha), `null`, y quien llama cae a la hora
+// local al recibir la respuesta.
+function leerFechaServidor(respuesta) {
+  try {
+    const cabecera =
+      respuesta && respuesta.headers && typeof respuesta.headers.get === 'function'
+        ? respuesta.headers.get('date')
+        : null;
+    if (!cabecera) return null;
+    const momento = new Date(cabecera);
+    return Number.isFinite(momento.getTime()) ? momento.toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // Igual que `peticionJson`, pero además dice QUÉ pasó: `codigo` es el estado HTTP recibido, o 0
 // cuando ni siquiera hubo respuesta (red caída, DNS, timeout). Solo lo necesita `consultarTrabajo`
 // (ola final v0.2b4, Critical C2): un 404 es "ese trabajo ya no existe" y justifica olvidar la
 // tanda, mientras que un 5xx o un corte de red solo significa "no he podido preguntar" y NO debe
-// borrar nada. El resto de funciones sigue usando `peticionJson`, que no distingue.
+// borrar nada. `fechaServidor` (v0.2b4.1 §5) la usa `sincronizarEstado`; el resto de funciones la
+// ignora sin más (sigue destructurando solo `{datos}` o `{datos, codigo}`).
 async function peticionJsonDetallada(fetchImpl, url, opciones, timeoutMs = TIMEOUT_MS) {
   let respuesta;
   try {
     respuesta = await fetchImpl(url, { ...opciones, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     avisarFalloPeticion(url, 'red');
-    return { datos: null, codigo: 0 };
+    return { datos: null, codigo: 0, fechaServidor: null };
   }
   const codigo = Number.isFinite(respuesta.status) ? respuesta.status : 0;
+  const fechaServidor = leerFechaServidor(respuesta);
   if (!respuesta.ok) {
     avisarFalloPeticion(url, String(respuesta.status));
-    return { datos: null, codigo };
+    return { datos: null, codigo, fechaServidor };
   }
   try {
-    return { datos: await respuesta.json(), codigo };
+    return { datos: await respuesta.json(), codigo, fechaServidor };
   } catch {
     // Cuerpo que no es JSON: la petición llegó, pero no sirve. Se trata como fallo, no como 404.
     avisarFalloPeticion(url, 'red');
-    return { datos: null, codigo };
+    return { datos: null, codigo, fechaServidor };
   }
 }
 
@@ -494,13 +517,21 @@ function leerRutasAtomoRecientes(hoy) {
  * ya conoce y las rutas del átomo de los últimos 7 días. Sin configuración guardada, no hace
  * ninguna petición (devuelve `null` directamente) — silencioso por diseño, la app debe funcionar
  * exactamente igual sin servidor. `null` también ante cualquier error HTTP/red/timeout.
+ * v0.2b4.1 §5: manda `desde` (la marca de agua guardada, `leerActualizadoHasta` -- omitido si no
+ * hay ninguna o si lo guardado no es una fecha ISO válida, nunca se manda basura) y devuelve
+ * también `actualizadas` (siempre un array, `[]` si el servidor no manda nada o es de una versión
+ * anterior que no conoce el campo). Tras una respuesta válida, la marca avanza sola: usa la hora
+ * del SERVIDOR si la respuesta la trae (cabecera `Date`, ver `leerFechaServidor`) o, si no, la hora
+ * local al recibirla. Si la petición falla, la marca NO avanza -- lo que no se vio no se da por
+ * visto, y la próxima vez se vuelve a pedir desde el mismo punto.
  * @param {{estado: object, banco: object[], hoy: string, fetchImpl?: Function}} params
- * @returns {Promise<{preguntas: object[], enCola: number} | null>}
+ * @returns {Promise<{preguntas: object[], enCola: number, actualizadas: object[]} | null>}
  */
 export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion) return null;
 
+  const desde = leerActualizadoHasta();
   const cuerpo = {
     resumen: {
       areas: areasParaServidor(estado, banco, hoy),
@@ -509,15 +540,28 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
         .filter((id) => typeof id === 'string' && id.startsWith('srv-')),
       rutasAtomo: leerRutasAtomoRecientes(hoy),
     },
+    ...(desde ? { desde } : {}),
   };
 
-  const datos = await peticionJson(fetchImpl, `${configuracion.url}/estado`, {
+  const { datos, fechaServidor } = await peticionJsonDetallada(fetchImpl, `${configuracion.url}/estado`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
     body: JSON.stringify(cuerpo),
   });
   if (!datos || !Array.isArray(datos.preguntas)) return null;
-  return { preguntas: datos.preguntas, enCola: datos.enCola };
+
+  const marca = fechaServidor || new Date().toISOString();
+  try {
+    localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, marca);
+  } catch {
+    // localStorage lleno: se seguirá pidiendo desde la marca anterior, que es lo conservador.
+  }
+
+  return {
+    preguntas: datos.preguntas,
+    enCola: datos.enCola,
+    actualizadas: Array.isArray(datos.actualizadas) ? datos.actualizadas : [],
+  };
 }
 
 /**
