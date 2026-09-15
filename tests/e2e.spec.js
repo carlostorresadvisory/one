@@ -3072,6 +3072,8 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     expect(toque).toBeGreaterThanOrEqual(44);
     await boton.click();
     await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    // Extra (hallazgo Minor diferido): sin-scroll también aquí, como en el resto de la suite.
+    await assertSinScroll(page);
   });
 
   test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
@@ -3462,14 +3464,19 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // racha/nivel) en HUB, pregunta y repaso, a 375×812 y 393×852, con el indicador en su estado
     // más ancho ("0 de 10 · ~40 s", mismo ancho renderizado que "5 de 10 · ~40 s") y en el más
     // corto ("Tanda lista · 10").
+    // Extra (hallazgo Minor diferido): assertSinScroll(page) en las tres vistas, a 375×812 y
+    // 393×852 (esta función se llama bajo los dos tamaños de viewport más abajo) -- cierra el
+    // riesgo del `padding-top` dinámico de <main> mientras el indicador está visible (Plan B).
     async function comprobarSolapeEnTresVistas() {
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await assertSinSolapeCabecera(page);
+      await assertSinScroll(page);
 
       await page.locator('[data-test="comenzar"]').click();
       await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
       await esperarAsentamientoMazo(page); // geometría definitiva de la tarjeta, no a mitad de transición
       await assertSinSolapeCabecera(page);
+      await assertSinScroll(page);
       await page.locator('[data-test="volver"]').click();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
@@ -3477,6 +3484,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
       await assertSinSolapeCabecera(page);
+      await assertSinScroll(page);
       await page.locator('[data-test="volver"]').click();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     }
