@@ -581,12 +581,20 @@ function actualizarPuntoServidor() {
   actualizarAyudaAtomo();
 }
 
-/** Chip "N preguntas nuevas" (data-test="nuevas-servidor"): aparece con el recuento de
- * `fusionarBancoExtra` y se oculta solo al tocarlo (ver el listener más abajo, junto al resto de
- * eventos de navegación) -- no hace falta ninguna otra acción, las preguntas ya están mezcladas
- * en `banco`. */
-function mostrarChipNuevas(anadidas) {
-  nodoNuevasServidor.textContent = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+// Ids de la última tanda de "modo normal" que de verdad están en el banco (spec v0.2b4 §3): el chip
+// ya no solo se cierra, arranca una partida con ellas. Se limpian al jugarlas.
+let nuevasServidorIds = [];
+const MAX_PARTIDA_NUEVAS = 10; // una partida son 10 tarjetas; el resto se queda en el banco
+
+/** Chip "N preguntas nuevas · Jugar" (data-test="nuevas-servidor"): aparece con el recuento de
+ * `fusionarBancoExtra` y, al tocarlo, arranca la partida con las 10 primeras por prioridad (el
+ * servidor ya las manda ordenadas, ver servidor/cola.js#servir: área más floja primero y, a
+ * igualdad, la más antigua). Las que sobren siguen en el banco, disponibles como cualquier otra. */
+function mostrarChipNuevas(anadidas, ids = []) {
+  nuevasServidorIds = ids.slice(0, MAX_PARTIDA_NUEVAS);
+  const cuantas = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
+  nodoNuevasServidor.textContent = `${cuantas} · Jugar`;
+  nodoNuevasServidor.setAttribute('aria-label', `Jugar ${nuevasServidorIds.length} preguntas nuevas`);
   nodoNuevasServidor.hidden = false;
 }
 
@@ -607,7 +615,11 @@ async function sincronizarEnSegundoPlano() {
     const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
     if (anadidas > 0) {
       reconstruirBanco();
-      mostrarChipNuevas(anadidas);
+      // Solo los ids que de verdad EXISTEN en el banco tras fusionar (fusionarBancoExtra descarta
+      // reportadas y repetidas) -- mismo cuidado que idsUtilizablesDeTanda: un id sin hueco en
+      // `bancoPorId` dejaría una tarjeta vacía en la partida.
+      const ids = resultado.preguntas.map((p) => p.id).filter((id) => bancoPorId.has(id));
+      mostrarChipNuevas(anadidas, ids);
     }
   }
 }
@@ -1563,9 +1575,18 @@ function listaActual() {
   return lista;
 }
 
+/** Total "oficial" de la partida en curso, para el contador de cabecera y la
+ * barra de progreso: N_PARTIDA (10) salvo que haya un filtro cerrado de ids
+ * (Misión de hoy, Pendientes, chip "N preguntas nuevas · Jugar"...), que es
+ * "sin relleno" por definición (ver empezarPartida) y por tanto tiene su
+ * propio total -- v0.2b4 §3, expuesto por el chip con partidas de menos de 10. */
+function totalPartidaActual() {
+  return filtroPartida && Array.isArray(filtroPartida.ids) ? filtroPartida.ids.length : N_PARTIDA;
+}
+
 function actualizarBarraProgreso() {
   const respondidas = mazo.filter((h) => h.respondida).length;
-  barraProgresoRelleno.style.transform = `scaleX(${respondidas / N_PARTIDA})`;
+  barraProgresoRelleno.style.transform = `scaleX(${respondidas / totalPartidaActual()})`;
   // Contador de la cabecera de pregunta (spec v0.1d §1, "3/10"): el mismo
   // valor para TODAS las tarjetas visibles ahora mismo (la ventana de 3 nodos
   // de montarMazo), así que basta con volver a pintar lo que ya esté en el
@@ -1578,12 +1599,13 @@ function actualizarBarraProgreso() {
   });
 }
 
-/** "3/10" (respondidas/N_PARTIDA) para el contador de la cabecera de pregunta
- * (spec v0.1d §1). Solo tiene sentido en la partida: el repaso usa su propia
- * posición dentro del mazo de resumen (ver construirTarjetaRepaso). */
+/** "3/10" (respondidas/total) para el contador de la cabecera de pregunta
+ * (spec v0.1d §1; el total es totalPartidaActual(), no siempre N_PARTIDA).
+ * Solo tiene sentido en la partida: el repaso usa su propia posición dentro
+ * del mazo de resumen (ver construirTarjetaRepaso). */
 function contadorTextoPartida() {
   const respondidas = mazo.filter((h) => h.respondida).length;
-  return `${respondidas}/${N_PARTIDA}`;
+  return `${respondidas}/${totalPartidaActual()}`;
 }
 
 /** Rellena el hueco `i` la primera vez que se llega a él (spec v0.1c §2.1): solo
@@ -3591,10 +3613,15 @@ function importarEstadoDesdeArchivo(archivo) {
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
 document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
-// Chip "N preguntas nuevas" (v0.2b2 §4): desaparece al tocarlo, sin más acción — las preguntas ya
-// están mezcladas en `banco` desde que llegaron (ver sincronizarEnSegundoPlano).
+// Chip "N preguntas nuevas · Jugar" (v0.2b4 §3): arranca la partida con ellas. Sin ids utilizables
+// (todas descartadas al fusionar) solo se cierra, sin fingir una partida vacía -- mismo criterio
+// que "Misión de hoy"/"Pendientes" más abajo.
 nodoNuevasServidor.addEventListener('click', () => {
   nodoNuevasServidor.hidden = true;
+  if (nuevasServidorIds.length === 0) return;
+  const ids = nuevasServidorIds;
+  nuevasServidorIds = [];
+  empezarPartida({ ids, etiqueta: 'Nuevas' });
 });
 // Indicador de tanda (v0.2b4 §2): un solo nodo con tres comportamientos según el estado.
 // - 'lista': arranca la partida con esas preguntas (`empezarPartida({ids, etiqueta: corto})`).

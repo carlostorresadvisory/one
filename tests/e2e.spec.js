@@ -2793,17 +2793,13 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     // El chip de banco extendido aparece con el recuento correcto de esta tanda...
     const chip = page.locator('[data-test="nuevas-servidor"]');
     await expect(chip).toBeVisible();
-    await expect(chip).toHaveText('2 preguntas nuevas');
-    // ...y desaparece al tocarlo, sin más acción (spec §4).
+    await expect(chip).toHaveText('2 preguntas nuevas · Jugar');
+    // ...y al tocarlo arranca la partida con esas preguntas (spec v0.2b4 §3), no solo se cierra.
     await chip.click();
     await expect(chip).toBeHidden();
-
-    // Las preguntas nuevas ya están en el banco en memoria: la partida puede servirlas sin recargar.
-    await page.evaluate(() =>
-      window.__one.empezarPartida({ ids: ['srv-e2e-1', 'srv-e2e-2'], etiqueta: 'servidor-e2e' })
-    );
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/2');
     await expect(tarjetaActual(page).locator('[data-test="vf-verdadero"]')).toBeVisible();
   });
 
