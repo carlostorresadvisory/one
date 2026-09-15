@@ -2803,6 +2803,35 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await expect(tarjetaActual(page).locator('[data-test="vf-verdadero"]')).toBeVisible();
   });
 
+  // Ola final v0.2b4 (M5): con más nuevas de las que caben en una partida (10), el chip decía "14
+  // preguntas nuevas · Jugar" y al tocarlo arrancaba una partida de 10. Los dos números a la vista.
+  test('v0.2b4 §3 (M5): con más de 10 nuevas el chip dice "14 nuevas · Jugar 10"', async ({ page }) => {
+    await page.route(
+      `${URL_SERVIDOR}/**`,
+      conPreflight(async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: CORS,
+          body: JSON.stringify({
+            preguntas: Array.from({ length: 14 }, (_, i) => preguntaServidor(`srv-muchas-${i + 1}`)),
+            enCola: 0,
+          }),
+        });
+      })
+    );
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    const chip = page.locator('[data-test="nuevas-servidor"]');
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveText('14 nuevas · Jugar 10');
+    await expect(chip).toHaveAttribute('aria-label', 'Jugar 10 preguntas nuevas');
+    await chip.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
   test('sin configuración de servidor: cero peticiones y punto gris (la app funciona igual que sin servidor)', async ({
     page,
   }) => {
@@ -3733,6 +3762,24 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
     // Y el sondeo siguiente (ya con red) continúa hasta el final.
     await expect(texto).toHaveText('Tanda lista · 10', { timeout: 25000 });
+  });
+
+  // Ola final v0.2b4 (M4): una tanda guardada sin configuración de servidor no se puede sondear
+  // (no hay a quién preguntar). Antes se pintaba el indicador y se arrancaba un intervalo de 5 s
+  // condenado a no averiguar nunca nada; ahora la clave huérfana se limpia al arrancar.
+  test('v0.2b4 §1 (M4): una tanda guardada sin configuración de servidor se descarta al arrancar', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'one.atomoTrabajo',
+        JSON.stringify({ id: 'tanda-huerfana-1', corto: 'Economía', inicio: Date.now(), pedidas: 10 })
+      );
+    });
+    await page.goto('/?test=1'); // sin ?servidor=&token=: no hay configuración guardada
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-test="indicador-tanda"]')).toBeHidden();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
   });
 
   test('v0.2b4: capturas del "+" del HUB y del nodo "Regenerar temas"', async ({ page }) => {

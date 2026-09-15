@@ -614,8 +614,14 @@ const MAX_PARTIDA_NUEVAS = 10; // una partida son 10 tarjetas; el resto se queda
  * igualdad, la más antigua). Las que sobren siguen en el banco, disponibles como cualquier otra. */
 function mostrarChipNuevas(anadidas, ids = []) {
   nuevasServidorIds = ids.slice(0, MAX_PARTIDA_NUEVAS);
+  // Ola final v0.2b4 (M5): con más nuevas de las que caben en una partida, el chip prometía "14
+  // preguntas nuevas · Jugar" y luego arrancaba una partida de 10 -- el número que se lee y el que
+  // se juega tienen que ser los dos visibles, sin sorpresa al tocarlo.
   const cuantas = anadidas === 1 ? '1 pregunta nueva' : `${anadidas} preguntas nuevas`;
-  nodoNuevasServidor.textContent = `${cuantas} · Jugar`;
+  nodoNuevasServidor.textContent =
+    anadidas > MAX_PARTIDA_NUEVAS
+      ? `${anadidas} nuevas · Jugar ${nuevasServidorIds.length}`
+      : `${cuantas} · Jugar`;
   nodoNuevasServidor.setAttribute('aria-label', `Jugar ${nuevasServidorIds.length} preguntas nuevas`);
   nodoNuevasServidor.hidden = false;
 }
@@ -1429,6 +1435,14 @@ const MAX_EDAD_TANDA_MS = 2 * 60 * 60 * 1000;
 function reanudarTandaGuardada() {
   const guardada = leerTanda();
   if (!guardada || atomoTrabajoId) return;
+  // Ola final v0.2b4 (M4): sin configuración de servidor no hay a quién preguntar --
+  // `consultarTrabajo` devolvería `null` en cada sondeo sin tocar la red. Antes se arrancaba el
+  // indicador y un intervalo de 5 s condenados a no averiguar nunca nada; ahora la tanda
+  // huérfana (p. ej. si se borró la configuración) se limpia y no se reanuda.
+  if (!leerConfiguracion()) {
+    borrarTanda();
+    return;
+  }
   if (Date.now() - guardada.inicio > MAX_EDAD_TANDA_MS) {
     borrarTanda();
     return;
