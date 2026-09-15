@@ -679,3 +679,27 @@ test(
     await limpiarLog();
   }),
 );
+
+test(
+  'v0.2b4.1 §1: sin la clave del proveedor, el eslabón se salta SIN llamar y sigue la cascada',
+  conClavesDeTest({ ...CLAVES_TEST, GROQ_API_KEY: undefined, CEREBRAS_API_KEY: '   ' }, async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('gemini-flash-lite-latest', '{"ok":true}');
+    };
+    const r = await llamar({
+      // Groq sin variable y Cerebras con una cadena de solo espacios: las dos son "sin clave".
+      modelos: ['groq:openai/gpt-oss-120b', 'cerebras:gpt-oss-120b', 'gemini:gemini-flash-lite-latest'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest'], 'los dos sin clave no llegan a la red');
+    assert.equal(r.modelo, 'gemini:gemini-flash-lite-latest');
+    await limpiarLog();
+  }),
+);
