@@ -1083,3 +1083,35 @@ test('v0.2b4.1 §6: sin onProgreso, producirTanda funciona exactamente igual (op
   const resultado = await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
   assert.equal(resultado.aprobadas.length, 2);
 });
+
+// --- Ronda de corrección 1 (Opus, controlador) --------------------------------------------------
+
+// I1: la concurrencia también debe distinguir urgente/fondo -- no solo los modelos (Task 3, cascadas
+// por urgencia). Un trabajo de fondo (colchón nocturno) no debe disparar ráfagas de 4 generaciones +
+// 5 visuales contra NVIDIA/`:free`, que son justo los eslabones con menos margen.
+test('v0.2b4.1 §4 (I1): una tanda de FONDO procesa secuencial (tope 1); una URGENTE sigue en paralelo', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+
+  async function medirConcurrencia(urgente) {
+    let enVuelo = 0;
+    let max = 0;
+    const llamar = async (opciones) => {
+      enVuelo += 1;
+      max = Math.max(max, enVuelo);
+      try {
+        await new Promise((r) => setTimeout(r, 15));
+        return base(opciones);
+      } finally {
+        enVuelo -= 1;
+      }
+    };
+    await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar, urgente });
+    return max;
+  }
+
+  const maxFondo = await medirConcurrencia(false);
+  const maxUrgente = await medirConcurrencia(true);
+
+  assert.equal(maxFondo, 1, 'el colchón nocturno nunca dispara dos llamadas a la vez');
+  assert.ok(maxUrgente >= 2, 'una tanda urgente sí solapa llamadas');
+});

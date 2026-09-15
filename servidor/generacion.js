@@ -632,6 +632,12 @@ export async function producirTanda(params, opciones = {}) {
         visualGenerador: GENERADOR_VISUAL_FONDO,
         visualVerificador: VERIFICADOR_VISUAL_FONDO,
       };
+  // v0.2b4.1 §4 (ronda de corrección 1 -- I1): la concurrencia también depende de quién espera, no
+  // solo los modelos. Una tanda urgente sigue paralela (MAX_LOTES_EN_VUELO/MAX_VISUALES_EN_VUELO);
+  // el colchón nocturno procesa SECUENCIAL (tope 1) -- si no, dispara 4 generaciones + 5 visuales de
+  // golpe contra NVIDIA y los ':free', justo los eslabones con menos margen y sin nadie esperando.
+  const topeLotes = urgente ? MAX_LOTES_EN_VUELO : 1;
+  const topeVisuales = urgente ? MAX_VISUALES_EN_VUELO : 1;
   const acumulador = { coste: 0 };
   const modelosUsados = new Set();
   const rechazadas = [];
@@ -642,8 +648,8 @@ export async function producirTanda(params, opciones = {}) {
   const tipos = Object.keys(reparto).filter((tipo) => reparto[tipo] > 0);
   // v0.2b4.1 §4: los cuatro tipos ya no se generan uno detrás de otro. Son llamadas independientes
   // (cada una con su prompt y su sub-lote) y a proveedores que aguantan concurrencia: en serie
-  // costaban 4 x 1,8 s solo de generación. El tope de 4 evita disparar de golpe contra la cuota.
-  const porTipo = await enParalelo(tipos, MAX_LOTES_EN_VUELO, (tipo) =>
+  // costaban 4 x 1,8 s solo de generación. El tope evita disparar de golpe contra la cuota.
+  const porTipo = await enParalelo(tipos, topeLotes, (tipo) =>
     generarBorradores(
       { area, ruta, n: reparto[tipo], tipo, nivelObjetivo, evitar },
       {
@@ -713,7 +719,7 @@ export async function producirTanda(params, opciones = {}) {
   // la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detrás de otra. La pausa
   // de 1 s entre preguntas desaparece de aquí -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la CLI
   // offline de tools/visualizar.js, que es donde tiene sentido ser cortés con la cascada.
-  const resueltas = await enParalelo(candidatas, MAX_VISUALES_EN_VUELO, async (candidata) => {
+  const resueltas = await enParalelo(candidatas, topeVisuales, async (candidata) => {
     const resolucion = await resolverPregunta(candidata, {
       llamar: llamarFn,
       permitirPago,
