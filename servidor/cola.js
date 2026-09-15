@@ -166,9 +166,15 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   function preguntasPorDelante(trabajo) {
     const pendientesDe = (t) => Math.max(0, t.pedidas - t.hechas);
     let total = activo && activo !== trabajo ? pendientesDe(activo) : 0;
+    // Ola final v0.2b4 (M9): `indexOf` puede devolver -1 (el trabajo ya no está en su cola: es el
+    // activo, o terminó entre medias) y `slice(0, -1)` no es "nada por delante", es TODA la cola
+    // menos el último -- justo lo contrario. Hoy solo se llama justo después de encolar, así que
+    // no se ve; la guarda evita que un cambio futuro lo convierta en una estimación absurda.
+    const posicion = trabajo.urgente ? colaUrgente.indexOf(trabajo) : colaFondo.indexOf(trabajo);
+    const hasta = posicion >= 0 ? posicion : 0;
     const antes = trabajo.urgente
-      ? colaUrgente.slice(0, colaUrgente.indexOf(trabajo))
-      : [...colaUrgente, ...colaFondo.slice(0, colaFondo.indexOf(trabajo))];
+      ? colaUrgente.slice(0, hasta)
+      : [...colaUrgente, ...colaFondo.slice(0, hasta)];
     for (const t of antes) total += pendientesDe(t);
     return total;
   }

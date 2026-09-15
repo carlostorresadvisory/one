@@ -3612,12 +3612,27 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
     const mas = page.locator('[data-test="atomo-mas"]');
     await expect(mas).toBeVisible();
-    await expect(mas).toHaveText('Regenerartemas'); // dos <tspan>: "Regenerar" + "temas", sin espacio entre ellos.
+    // Ola final v0.2b4 (M10): el texto se parte en un <tspan> por línea (atomo.js#pintarLineas) y
+    // los tspan se crean sin nada entre medias, así que el `textContent` crudo viene PEGADO. La
+    // aserción anterior comparaba con esa cadena pegada ('Regenerartemas'), que no es texto de
+    // producto: dice tanto del reparto en líneas como del texto, y habría que reescribirla si el
+    // salto cayera en otro sitio. Se compara la frase que de verdad lee el jugador: cada línea
+    // normalizada y unidas por un espacio.
+    await expect
+      .poll(() =>
+        mas.evaluate((n) =>
+          [...n.querySelectorAll('tspan')]
+            .map((t) => t.textContent.replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .join(' ')
+        )
+      )
+      .toBe('Regenerar temas');
     await assertSinScroll(page);
   });
 
   /** Servidor falso para el caso "iOS recarga la PWA a mitad de tanda" (spec v0.2b4 §1): el mismo
-   * `trabajoId` sobrevive a la recarga, y /trabajo/:id responde "generando 3 de 10" hasta el
+   * `trabajoId` sobrevive a la recarga, y /trabajo/:id responde "generando 5 de 10" hasta el
    * sondeo `sondeosAntesDeTerminar`, momento en el que pasa a "lista" con 10 preguntas. */
   function servidorTandaFalso({ contadores = {}, sondeosAntesDeTerminar = 3 } = {}) {
     let sondeos = 0;
@@ -3650,7 +3665,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
         if (sondeos < sondeosAntesDeTerminar) {
           await route.fulfill({
             status: 200, contentType: 'application/json', headers: CORS,
-            body: JSON.stringify({ estado: 'generando', hechas: 3, pedidas: 10, preguntas: [], motivo: null, segundosPorPregunta: 4 }),
+            body: JSON.stringify({ estado: 'generando', hechas: 5, pedidas: 10, preguntas: [], motivo: null, segundosPorPregunta: 4 }),
           });
           return;
         }
@@ -3677,7 +3692,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     const indicador = page.locator('[data-test="indicador-tanda"]');
     const texto = page.locator('[data-test="indicador-tanda-texto"]');
     await expect(indicador).toBeVisible();
-    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 8000 });
+    await expect(texto).toHaveText(/^5 de 10 · ~/, { timeout: 8000 });
     await page.screenshot({ path: `${CAPTURAS}/v0.2b4-indicador-375.png` });
 
     // La tanda está persistida ANTES de recargar (spec §1, clave one.atomoTrabajo).
@@ -3749,7 +3764,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
     const indicador = page.locator('[data-test="indicador-tanda"]');
     const texto = page.locator('[data-test="indicador-tanda-texto"]');
-    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 8000 });
+    await expect(texto).toHaveText(/^5 de 10 · ~/, { timeout: 8000 });
 
     // Se espera a que el 3.er sondeo (el abortado) haya ocurrido de verdad.
     await expect.poll(() => sondeos, { timeout: 15000 }).toBeGreaterThanOrEqual(3);
