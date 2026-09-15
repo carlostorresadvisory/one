@@ -2021,13 +2021,23 @@ button.punto-servidor::before {
 }
 
 /* --- Indicador de tanda (spec v0.2b4 §2) ------------------------------------------------------
-   Fijo arriba a la derecha, por encima de cualquier vista y de la cabecera, por debajo de la hoja
-   "Conectar" (z-index 20). Vive fuera de <main> justamente para poder verse en todas las vistas a
-   la vez; respeta la zona segura de iOS igual que .cabecera. */
+   Fijo arriba a la derecha, por debajo de la hoja "Conectar" (z-index 20). Vive fuera de <main>
+   justamente para poder verse en todas las vistas a la vez.
+   Ronda de corrección 1 (Important, verificado con Playwright a 375x812 en `pregunta`): en la
+   MISMA fila que la cabecera (`top` alineado con ella) no cabía sin solapar -- con el botón "←" +
+   el logo "🧠 ONE" + el indicador en su estado más ancho ("N de 10 · ~40 s") + `.cabecera-estado`
+   (racha/nivel), no sobra hueco a 375px de ancho (medido con Playwright: el indicador llegaba a
+   solapar el LOGO, no solo `.cabecera-estado`, que era el hallazgo original). Plan B del
+   controlador: SEGUNDA fila, justo debajo de la cabecera entera -- así no compite por ancho con
+   nada de la cabecera. `top` aquí es solo el valor por defecto mientras está oculto (nunca se ve,
+   ver [hidden] más abajo): `app.js#posicionarIndicadorTanda` lo sobrescribe con un estilo en línea
+   ANTES de mostrarlo, midiendo en vivo el borde inferior real de `.cabecera` (que ya incluye
+   `env(safe-area-inset-top)`, horneado en su propio padding-top) -- sin duplicar esa cuenta ni
+   ningún número mágico de alto de cabecera. */
 .indicador-tanda {
   position: fixed;
-  top: max(6px, env(safe-area-inset-top));
-  right: 8px;
+  top: 54px;
+  right: 16px;
   z-index: 15;
   display: flex;
   align-items: center;

@@ -17,6 +17,38 @@ async function assertSinScroll(page) {
   expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
 }
 
+/** Ronda de corrección 1 del indicador de tanda (hallazgo Important, verificado en vivo por el
+ * revisor a 375×812 en la vista `pregunta`): con un `right` fijo, el indicador solapaba
+ * `.cabecera-estado` (racha 🔥 y "Nivel N") porque ese bloque cambia de ancho según su texto. Se
+ * midió que ni siquiera cabía sin solapar en la MISMA fila que la cabecera (llegaba a tocar el
+ * logo) a 375px con el botón "←" también visible, así que el indicador pasó a una segunda fila bajo
+ * la cabecera entera (Plan B) -- el riesgo ahí ya no es la cabecera sino el contenido de la vista,
+ * que no deja hueco propio arriba (la tarjeta del mazo "ES la vista", spec v0.1c §1). Esta
+ * comprobación es geometría real (getBoundingClientRect), no una asunción de que "cabía": mira
+ * CUALQUIER hijo directo de `.cabecera` (el botón "←", el logo "🧠 ONE" y `.cabecera-estado`) y,
+ * cuando hay una tarjeta de mazo visible (vistas `pregunta`/`repaso`), también esa tarjeta. No-op si
+ * el indicador está oculto (nada que solapar). Llamar tras `esperarAsentamientoMazo` si hay tarjeta
+ * en pantalla: a mitad de la transición de entrada su geometría real todavía no es la definitiva. */
+async function assertSinSolapeCabecera(page) {
+  const solapes = await page.evaluate(() => {
+    const indicador = document.querySelector('[data-test="indicador-tanda"]');
+    if (!indicador || indicador.hidden) return [];
+    const cajaIndicador = indicador.getBoundingClientRect();
+    const seSolapan = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const candidatos = [...document.querySelectorAll('.cabecera > *'), document.querySelector('.tarjeta-mazo--actual')].filter(
+      Boolean
+    );
+    return candidatos
+      .filter((hijo) => !hijo.hidden)
+      .map((hijo) => ({
+        testId: hijo.dataset.test || hijo.className || hijo.tagName,
+        caja: hijo.getBoundingClientRect(),
+      }))
+      .filter(({ caja }) => caja.width > 0 && caja.height > 0 && seSolapan(cajaIndicador, caja));
+  });
+  expect(solapes, `el indicador de tanda solapa con: ${JSON.stringify(solapes)}`).toEqual([]);
+}
+
 /** Ninguna TARJETA hace scroll tampoco (spec v0.1c §4.2). Es un contrato más
  * estricto que assertSinScroll: cada tarjeta del mazo recorta su propio
  * contenido con overflow:hidden, así que un desbordamiento interno no se vería
@@ -3404,10 +3436,52 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Spec §2: en curso, tocarlo abre la vista de espera del átomo.
     await indicador.click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await assertSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
     await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    // Ronda de corrección 1 (Important, hallazgo del revisor verificado en vivo a 375×812 en
+    // `pregunta`): el indicador no debe solapar NINGÚN hijo de la cabecera (botón "←", logo,
+    // racha/nivel) en HUB, pregunta y repaso, a 375×812 y 393×852, con el indicador en su estado
+    // más ancho ("0 de 10 · ~40 s", mismo ancho renderizado que "5 de 10 · ~40 s") y en el más
+    // corto ("Tanda lista · 10").
+    async function comprobarSolapeEnTresVistas() {
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+      await assertSinSolapeCabecera(page);
+
+      await page.locator('[data-test="comenzar"]').click();
+      await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+      await esperarAsentamientoMazo(page); // geometría definitiva de la tarjeta, no a mitad de transición
+      await assertSinSolapeCabecera(page);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      await page.locator('[data-test="repaso-hub"]').click();
+      await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      await assertSinSolapeCabecera(page);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    }
+
+    await comprobarSolapeEnTresVistas();
+    await page.setViewportSize({ width: 393, height: 852 });
+    await comprobarSolapeEnTresVistas();
+    await page.setViewportSize({ width: 375, height: 812 });
+
+    // Estado terminal "Tanda lista · 10" (spec §2): el mismo mock por defecto (sin
+    // `trabajoRespuesta` fija) resuelve "lista" con 10 preguntas en su segundo sondeo.
+    await page.unroute(`${URL_SERVIDOR}/**`);
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
+
+    await comprobarSolapeEnTresVistas();
+    await page.setViewportSize({ width: 393, height: 852 });
+    await comprobarSolapeEnTresVistas();
   });
 
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {

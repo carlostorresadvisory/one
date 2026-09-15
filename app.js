@@ -225,6 +225,12 @@ let atomoTopeTimeoutId = null; // setTimeout de 2s del aviso "Máximo detalle: t
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
+// Ronda de corrección 1 del indicador de tanda (Plan B, segunda fila bajo la cabecera): su borde
+// inferior real es lo que mide `posicionarIndicadorTanda` para no solaparla.
+const nodoCabecera = document.querySelector('.cabecera');
+// `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
+// visible, para que ninguna vista quede tapada bajo él (ver esa función).
+const nodoContenidoApp = document.querySelector('main#app');
 const nodoVolver = document.querySelector('[data-test="volver"]');
 const nodoModoArea = document.querySelector('[data-test="modo-area"]');
 const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
@@ -427,6 +433,10 @@ function actualizarCabecera() {
   } else {
     nodoModoArea.hidden = true;
   }
+  // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
+  // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
+  // tanda ya está visible, se reposiciona para seguir pegado justo debajo.
+  posicionarIndicadorTanda();
 }
 
 function vistaActual() {
@@ -1039,6 +1049,43 @@ function finalizarTrabajoAtomo() {
 
 const PERIMETRO_ANILLO_TANDA = 2 * Math.PI * 15; // r=15 del viewBox 36x36 de index.html
 const MS_AVISO_FALLO_TANDA = 6000; // spec §2: el aviso de fallo dura 6 s y desaparece
+const SEPARACION_INDICADOR_TANDA = 8; // hueco vertical hasta el borde inferior de .cabecera
+
+/** Ronda de corrección 1 (Important, hallazgo del revisor, verificado en vivo con Playwright a
+ * 375x812 en `pregunta`): en la misma fila que la cabecera no cabía sin solapar -- a 375px de
+ * ancho, botón "←" + logo + el indicador en su estado más ancho ("N de 10 · ~40 s") +
+ * `.cabecera-estado` (racha/nivel) no dejan hueco de sobra (llegaba a solapar el LOGO, no solo
+ * `.cabecera-estado`). Plan B del controlador: segunda fila, pegada al borde inferior REAL de
+ * `.cabecera` -- se mide en vivo con `getBoundingClientRect()` en vez de reconstruir su alto a
+ * mano, porque ese alto ya incluye `env(safe-area-inset-top)` horneado en el propio padding-top de
+ * `.cabecera` (sumarlo aparte aquí lo contaría dos veces en un iPhone con muesca). Se llama antes de
+ * cada vez que el indicador se muestra/actualiza, y también desde `actualizarCabecera`/`resize` por
+ * si la cabecera cambia de alto mientras el indicador ya está visible (p. ej. tipografía dinámica
+ * del sistema). Sin número mágico de posición: el único valor fijo es el hueco deliberado de 8px. */
+function posicionarIndicadorTanda() {
+  if (!nodoCabecera) return;
+  const bordeCabecera = nodoCabecera.getBoundingClientRect().bottom;
+  nodoIndicadorTanda.style.top = `${Math.round(bordeCabecera + SEPARACION_INDICADOR_TANDA)}px`;
+}
+
+/** Ronda de corrección 1 (Plan B): con el indicador en una segunda fila, el contenido de la vista
+ * necesita ceder ese hueco -- la tarjeta del mazo "ES la vista" (spec v0.1c §1) y arranca pegada
+ * arriba del todo, sin margen propio, así que sin esto quedaría tapada bajo el indicador (hallazgo
+ * verificado con Playwright: la tarjeta solapaba el indicador en `pregunta` y `repaso`). Se mide la
+ * altura REAL del indicador YA VISIBLE (min-height:44px es un suelo, no el alto final con
+ * padding/borde) -- se llama SIEMPRE después de mostrarlo/ocultarlo, nunca antes (oculto = alto 0).
+ * Empuja `<main>` entero (todas las vistas), no solo `pregunta`/`repaso`: más simple y sin casos
+ * especiales por vista que mantener sincronizados, a cambio de un margen de sobra en HUB mientras
+ * genera -- coste aceptable frente a la complejidad de decidir vista por vista. */
+function reservarHuecoIndicadorTanda() {
+  if (!nodoContenidoApp) return;
+  if (nodoIndicadorTanda.hidden) {
+    nodoContenidoApp.style.paddingTop = '';
+    return;
+  }
+  const altoIndicador = nodoIndicadorTanda.getBoundingClientRect().height;
+  nodoContenidoApp.style.paddingTop = `${Math.round(altoIndicador + SEPARACION_INDICADOR_TANDA * 2)}px`;
+}
 
 /** Anillo de progreso: fracción 0..1 sobre `stroke-dashoffset` (la transición y su apagado con
  * prefers-reduced-motion están en estilos.css, aquí solo se mueve el número). */
@@ -1053,6 +1100,7 @@ function ocultarIndicadorTanda() {
   indicadorTandaTimeoutId = null;
   atomoTandaEstado = null;
   nodoIndicadorTanda.hidden = true;
+  reservarHuecoIndicadorTanda();
 }
 
 /** Tanda en curso: "4 de 10 · ~1 min" + anillo (spec §2). `hechas`/`pedidas` vienen tal cual de
@@ -1077,7 +1125,9 @@ function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
   pintarAnilloTanda(total > 0 ? hechasValidas / total : 0);
   clearTimeout(indicadorTandaTimeoutId);
   indicadorTandaTimeoutId = null;
+  posicionarIndicadorTanda();
   nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
 }
 
 /** Estado terminal con >= 1 pregunta: "Tanda lista · N"; tocarlo arranca la partida (ver el
@@ -1090,7 +1140,9 @@ function mostrarIndicadorTandaLista(ids, corto) {
   pintarAnilloTanda(1);
   clearTimeout(indicadorTandaTimeoutId);
   indicadorTandaTimeoutId = null;
+  posicionarIndicadorTanda();
   nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
 }
 
 /** Fallo (spec §2: 6 s y desaparece). Tres textos posibles, todos por aquí: "No se pudo generar"
@@ -1102,7 +1154,9 @@ function mostrarIndicadorTandaFallida(mensaje = 'No se pudo generar') {
   nodoIndicadorTandaTexto.textContent = mensaje;
   nodoIndicadorTanda.setAttribute('aria-label', mensaje);
   pintarAnilloTanda(0);
+  posicionarIndicadorTanda();
   nodoIndicadorTanda.hidden = false;
+  reservarHuecoIndicadorTanda();
   clearTimeout(indicadorTandaTimeoutId);
   indicadorTandaTimeoutId = setTimeout(ocultarIndicadorTanda, MS_AVISO_FALLO_TANDA);
 }
@@ -3619,6 +3673,13 @@ document.addEventListener('visibilitychange', () => {
   else reanudarSondeoAtomoSiHaceFalta();
 });
 window.addEventListener('pageshow', reanudarSondeoAtomoSiHaceFalta);
+// Ronda de corrección 1 del indicador de tanda: barato (dos lecturas de layout) e inocuo si el
+// indicador está oculto -- por si rotar el móvil cambiara el alto de la cabecera o del propio
+// indicador (ver posicionarIndicadorTanda/reservarHuecoIndicadorTanda).
+window.addEventListener('resize', () => {
+  posicionarIndicadorTanda();
+  reservarHuecoIndicadorTanda();
+});
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
