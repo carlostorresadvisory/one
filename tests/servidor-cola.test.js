@@ -463,7 +463,56 @@ test('cola v0.2b4 §6c (corrección 1): un fondo que cede el turno a un urgente 
 
   // Con el fix: 20 s de trabajo activo / 10 preguntas = 2 s/pregunta. Con el bug (tiempo de pared
   // de punta a punta): (10 + 100 + 10) s / 10 preguntas = 12 s/pregunta.
-  assert.equal(cola.estadisticas().segundosPorPregunta, 2);
+  // Ola final v0.2b4.1 (I4): la muestra de un trabajo de FONDO ya no va a la misma media que las
+  // urgentes -- se comprueba en la ventana de fondo, que es donde ahora cae.
+  assert.equal(cola.estadisticas().segundosPorPreguntaFondo, 2);
+});
+
+// Ola final v0.2b4.1 (I4): una sola media mezclaba dos poblaciones que no tienen nada que ver --
+// el fondo usa cascadas lentas a propósito (NVIDIA, ':free': 35-90 s por llamada) y corre
+// secuencial; el urgente usa las rápidas en paralelo. Con la ventana de 5 muestras compartida,
+// UNA tanda de fondo bastaba para que el `estimadoSeg` que ve el jugador se multiplicara por
+// cinco. `/generar` y `/trabajo/:id` solo pueden usar la media de las urgentes.
+test('cola v0.2b4.1 (I4): una tanda de FONDO lenta no altera el segundosPorPregunta de un urgente', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const producirTanda = async ({ area, n }) => {
+    reloj.avanzar(area === 'historia' ? n * 100000 : n * 4000); // fondo 100 s/pregunta, urgente 4 s
+    return resultadoOk(area, n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+
+  const urgente = cola.encolar({ area: 'economia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(urgente.trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadisticas().segundosPorPregunta, 4);
+
+  const fondo = cola.encolar({ area: 'historia', n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(fondo.trabajoId)?.estado === 'lista');
+
+  assert.equal(cola.estadisticas().segundosPorPregunta, 4, 'la media urgente no se entera del fondo');
+  assert.equal(cola.estadisticas().segundosPorPreguntaFondo, 100, 'el fondo tiene la suya, para /salud');
+  assert.equal(cola.segundosPorPregunta(), 4, 'lo que usan /generar y /trabajo/:id es la urgente');
+
+  // Y un urgente nuevo sigue estimando con la ventana rápida.
+  const otro = cola.encolar({ area: 'ciencia', n: 5, urgente: true });
+  assert.equal(cola.estadoTrabajo(otro.trabajoId).segundosPorPregunta, 4);
+  await hastaQue(() => cola.estadoTrabajo(otro.trabajoId)?.estado === 'lista');
+});
+
+test('cola v0.2b4.1 (I4): sin ninguna tanda urgente medida, la estimación sigue siendo el arranque en frío de 20 s', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({
+    almacen,
+    producirTanda: async ({ area, n }) => { reloj.avanzar(n * 90000); return resultadoOk(area, n, n); },
+    reloj: reloj.leer,
+  });
+
+  const fondo = cola.encolar({ area: 'historia', n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(fondo.trabajoId)?.estado === 'lista');
+  assert.equal(cola.segundosPorPregunta(), 20, 'nunca el 90 del fondo: eso multiplicaría por 4,5 el "~N s" del móvil');
 });
 
 test('cola v0.2b4 §6c: la media usa solo las últimas 5 tandas y las fallidas no cuentan', async () => {

@@ -146,7 +146,13 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   const terminados = new Map(); // últimos 100 trabajos terminados, por id (no se persisten)
   // v0.2b4 §6c: media móvil de segundos por pregunta. En memoria a propósito (no se persiste): tras
   // reiniciar el servidor se vuelve al valor inicial y se recalibra sola con la primera tanda.
-  const muestrasSegPorPregunta = [];
+  // Ola final v0.2b4.1 (I4): DOS ventanas, no una. El fondo usa cascadas lentas a propósito (NVIDIA
+  // y los ':free', 35-90 s por llamada) y corre secuencial; un urgente usa las rápidas en paralelo.
+  // Con una sola ventana de 5 muestras, UNA tanda de fondo multiplicaba por cinco el `estimadoSeg`
+  // que ve el jugador en el móvil. La de urgente es la única que sale por `/generar` y
+  // `/trabajo/:id`; la de fondo solo se asoma en `estadisticas()` (y de ahí a `/salud`).
+  const muestrasUrgente = [];
+  const muestrasFondo = [];
   let activo = null;
   let procesando = false;
   let contadorId = 0;
@@ -178,10 +184,16 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
     return delante;
   }
 
+  function mediaDe(muestras) {
+    if (muestras.length === 0) return SEG_POR_PREGUNTA_INICIAL;
+    const suma = muestras.reduce((a, b) => a + b, 0);
+    return Math.max(1, Math.round(suma / muestras.length));
+  }
+
+  /** I4: la media de las tandas URGENTES -- la única que vale para decirle a un jugador cuánto le
+   * queda. Sin ninguna medida todavía, el arranque en frío de 20 s. */
   function segundosPorPregunta() {
-    if (muestrasSegPorPregunta.length === 0) return SEG_POR_PREGUNTA_INICIAL;
-    const suma = muestrasSegPorPregunta.reduce((a, b) => a + b, 0);
-    return Math.max(1, Math.round(suma / muestrasSegPorPregunta.length));
+    return mediaDe(muestrasUrgente);
   }
 
   /** Preguntas que hay POR DELANTE de `trabajo` (incluido lo que le queda al activo): eso, y no
@@ -403,8 +415,10 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
     if (trabajo.preguntas.length > 0 && Number.isFinite(trabajo.msActivos) && trabajo.hechas > 0) {
       const seg = trabajo.msActivos / 1000 / trabajo.hechas;
       if (seg > 0) {
-        muestrasSegPorPregunta.push(seg);
-        if (muestrasSegPorPregunta.length > MUESTRAS_SEG_POR_PREGUNTA) muestrasSegPorPregunta.shift();
+        // I4: cada trabajo alimenta SOLO la ventana de los suyos (ver muestrasUrgente/muestrasFondo).
+        const muestras = trabajo.urgente ? muestrasUrgente : muestrasFondo;
+        muestras.push(seg);
+        if (muestras.length > MUESTRAS_SEG_POR_PREGUNTA) muestras.shift();
       }
     }
   }
@@ -837,7 +851,11 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       ultimoError,
       ultimaGeneracionOk,
       // v0.2b4 §6c: media móvil real, no la heurística fija de 90 s por puesto (ver servidor/index.js).
+      // I4: esta es la de las tandas URGENTES -- es la que `/generar` copia a `estimadoSeg`.
       segundosPorPregunta: segundosPorPregunta(),
+      // I4: la del fondo no sale a ningún cliente; está aquí (y de ahí en /salud) para poder ver
+      // cuánto tarda de verdad el colchón sin contaminar la estimación de nadie.
+      segundosPorPreguntaFondo: mediaDe(muestrasFondo),
     };
   }
 
