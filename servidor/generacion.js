@@ -715,24 +715,49 @@ export async function producirTanda(params, opciones = {}) {
     candidatas.push(candidata);
   }
 
+  // v0.2b4.1 §6 (ronda de corrección 1 -- I2): el indicador del móvil debe poder mostrar 1..10, no
+  // 0/5/10. `avisarProgreso` se llama DENTRO de `fn` (más abajo), al terminar cada candidata
+  // individual -- NUNCA en un `.forEach` posterior a `await enParalelo(...)`, que corre síncrono
+  // DESPUÉS de que las `topeVisuales` promesas ya se resolvieron todas (ese era el bug: con las 5
+  // llamadas terminando "a la vez" en el mismo tick de after-await, GET /trabajo/:id nunca veía
+  // valores intermedios reales, solo 0 -> 5 -> 10). El contador es una variable compartida por
+  // closure: el incremento es síncrono, sin ningún `await` de por medio, así que no hay condición de
+  // carrera aunque varias candidatas "terminen" en el mismo tick de JS (single-threaded).
+  const progreso = { verificadas: 0 };
+  function avisarProgreso() {
+    progreso.verificadas = Math.min(progreso.verificadas + 1, n);
+    try {
+      onProgreso?.({ verificadas: progreso.verificadas, pedidas: n });
+    } catch {
+      // Un fallo en el callback de quien llama nunca puede tumbar la tanda a medias.
+    }
+  }
+
   // Fase 2: el visual de cada candidata, EN PARALELO (spec §4). Era el bucle secuencial más caro de
   // la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detrás de otra. La pausa
   // de 1 s entre preguntas desaparece de aquí -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la CLI
   // offline de tools/visualizar.js, que es donde tiene sentido ser cortés con la cascada.
   const resueltas = await enParalelo(candidatas, topeVisuales, async (candidata) => {
-    const resolucion = await resolverPregunta(candidata, {
-      llamar: llamarFn,
-      permitirPago,
-      topeEur,
-      rutaLog,
-      necesitaVisual: true,
-      saltarAcortado: true,
-      modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
-      modelosVerificador: usaPagoBarato
-        ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
-        : cascadas.visualVerificador,
-    });
-    return resolucion;
+    try {
+      const resolucion = await resolverPregunta(candidata, {
+        llamar: llamarFn,
+        permitirPago,
+        topeEur,
+        rutaLog,
+        necesitaVisual: true,
+        saltarAcortado: true,
+        modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
+        modelosVerificador: usaPagoBarato
+          ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
+          : cascadas.visualVerificador,
+      });
+      return resolucion;
+    } finally {
+      // Se avisa cuando la candidata está DE VERDAD terminada (con su visual resuelto o
+      // descartado), tanto si `resolverPregunta` acabó bien como si lanzó -- las dos ramas siguen
+      // (más abajo) dejando la pregunta en `aprobadas`, así que las dos cuentan como "una más".
+      avisarProgreso();
+    }
   });
 
   resueltas.forEach((resultado, i) => {
@@ -748,14 +773,6 @@ export async function producirTanda(params, opciones = {}) {
       // opcional (el 11 % del banco tampoco lo tiene) y nunca justifica tirar una pregunta que YA
       // pasó la verificación.
       aprobadas.push({ ...candidata, visual: null });
-    }
-    // v0.2b4.1 §6: el indicador del móvil debe poder mostrar 1..10, no 0/5/10. Se avisa cuando la
-    // pregunta está DE VERDAD terminada (verificada, validada y con su visual resuelto o
-    // descartado), que es lo que el jugador va a recibir -- no cuando el modelo devolvió el borrador.
-    try {
-      onProgreso?.({ verificadas: aprobadas.length, pedidas: n });
-    } catch {
-      // Un fallo en el callback de quien llama nunca puede tumbar la tanda a medias.
     }
   });
 

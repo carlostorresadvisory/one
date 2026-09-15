@@ -1066,16 +1066,37 @@ test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuel
   assert.ok(duracion < 2000, `una tanda de 10 con dobles de 15 ms no puede tardar ${duracion} ms`);
 });
 
-test('v0.2b4.1 §6: producirTanda avisa por cada pregunta resuelta, no por lote', async () => {
-  const { llamar } = crearLlamarPipeline({});
+// Actualizado en la ronda de corrección 1 (I2): la versión original solo comprobaba la forma final
+// de `avisos` (contador 1..n, `pedidas` correcto), que seguía en verde aunque los avisos llegaran
+// TODOS juntos al terminar el lote entero -- el bug real que encontró la revisión. Ahora también se
+// mide EN QUÉ MOMENTO llega cada aviso, con resoluciones que terminan en ticks distintos.
+test('v0.2b4.1 §6: producirTanda avisa por cada pregunta resuelta, no por lote (y en tiempo real, no al final)', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  let contadorVisual = 0;
+  const llamar = async (opciones) => {
+    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
+    if (esGeneradorVisual) {
+      const i = contadorVisual++;
+      await new Promise((r) => setTimeout(r, i * 25)); // ticks distintos: 0, 25, 50, 75, 100 ms
+    }
+    return base(opciones);
+  };
+
   const avisos = [];
+  const inicio = Date.now();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 5 },
-    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p }) },
+    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
   );
   assert.equal(avisos.length, resultado.aprobadas.length, 'un aviso por aprobada');
   assert.deepEqual(avisos.map((a) => a.verificadas), avisos.map((_, i) => i + 1), '1, 2, 3... nunca saltos');
   assert.ok(avisos.every((a) => a.pedidas === 5));
+
+  // Si onProgreso solo se disparara DESPUÉS de que las 5 promesas de la Fase 2 ya se resolvieran
+  // todas (el bug de I2), el primero y el último aviso tendrían prácticamente el mismo instante.
+  const primero = Math.min(...avisos.map((a) => a.enMs));
+  const ultimo = Math.max(...avisos.map((a) => a.enMs));
+  assert.ok(ultimo - primero > 30, `los avisos deben repartirse en el tiempo, no llegar todos juntos (rango medido: ${ultimo - primero} ms)`);
 });
 
 test('v0.2b4.1 §6: sin onProgreso, producirTanda funciona exactamente igual (opción opcional)', async () => {
@@ -1114,4 +1135,40 @@ test('v0.2b4.1 §4 (I1): una tanda de FONDO procesa secuencial (tope 1); una URG
 
   assert.equal(maxFondo, 1, 'el colchón nocturno nunca dispara dos llamadas a la vez');
   assert.ok(maxUrgente >= 2, 'una tanda urgente sí solapa llamadas');
+});
+
+// I2: onProgreso está cableado pero era inerte -- las 5 llamadas de la Fase 2 (visuales) se
+// resolvían en el mismo tick sincrono DESPUÉS de `await enParalelo(...)`, así que GET /trabajo/:id
+// nunca veía valores intermedios reales. Este test usa resoluciones que terminan en TICKS DISTINTOS
+// (stagger creciente por orden de llamada) y comprueba que los avisos llegan repartidos en el
+// tiempo, no todos juntos al final.
+test('v0.2b4.1 §6 (I2): onProgreso llega en tiempo real, según cada candidata va terminando -- no todo junto al final', async () => {
+  const { llamar: base } = crearLlamarPipeline({});
+  let contadorVisual = 0;
+  const llamar = async (opciones) => {
+    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
+    if (esGeneradorVisual) {
+      const i = contadorVisual++;
+      await new Promise((r) => setTimeout(r, i * 30)); // ticks distintos: 0, 30, 60, 90, 120 ms
+    }
+    return base(opciones);
+  };
+
+  const avisos = [];
+  const inicio = Date.now();
+  const resultado = await producirTanda(
+    { area: 'economia', ruta: [], n: 5 },
+    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
+  );
+
+  assert.equal(resultado.aprobadas.length, 5);
+  assert.equal(avisos.length, 5);
+  assert.deepEqual(avisos.map((a) => a.verificadas), [1, 2, 3, 4, 5], 'contador monótono, un aviso por candidata terminada');
+
+  // Si onProgreso solo se disparara al final (el bug de I2), todos los avisos tendrían prácticamente
+  // el mismo instante. Con las resoluciones escalonadas 0/30/60/90/120 ms, el primero y el último
+  // deben separarse claramente en el tiempo.
+  const primero = Math.min(...avisos.map((a) => a.enMs));
+  const ultimo = Math.max(...avisos.map((a) => a.enMs));
+  assert.ok(ultimo - primero > 40, `los avisos deben repartirse en el tiempo, no llegar todos juntos (rango medido: ${ultimo - primero} ms)`);
 });
