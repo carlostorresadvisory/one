@@ -421,7 +421,13 @@ export async function generarBorradores(params, opciones = {}) {
     }
     const lista = Array.isArray(datos) ? datos : datos.preguntas || [];
 
-    for (const bruto of lista) {
+    // Ola final v0.2b4.1 (C3): el modelo puede devolver MÁS de lo que se le pidió -- medido en
+    // vivo el 15-sep-2026: un lote de fondo que pidió 4 produjo 14. Lo que sobra no es gratis: se
+    // verifica (llamadas de lotes de 4), se resuelve con su visual (2 llamadas por pregunta) y se
+    // guarda en el colchón, así que un solo lote desbocado puede triplicar el tiempo del trabajo y
+    // dejar a un urgente esperando detrás. El tope es el de ESTE sub-lote, no el `n` de la llamada
+    // entera (los sub-lotes siguientes traen los suyos).
+    for (const bruto of lista.slice(0, tamanoLote)) {
       borradores.push({
         ...soloCamposContenido(bruto),
         id: generarIdServidor(prefijo),

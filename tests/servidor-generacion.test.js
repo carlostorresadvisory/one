@@ -147,6 +147,50 @@ test('generarBorradores: con n mayor que el tamaño de lote hace varias llamadas
   for (const id of ids) assert.match(id, /^srv-his-/);
 });
 
+// Ola final v0.2b4.1 (C3): medido en vivo el 15-sep -- un lote de fondo que pidió 4 preguntas
+// produjo 14 (el modelo ignoró la cantidad del prompt). Todo lo que sobra se genera, se VERIFICA y
+// se resuelve con su visual: llamadas de minutos y cuota gastada por preguntas que nadie pidió, y
+// un lote de fondo que se lleva por delante el turno de un urgente. El prompt pide una cantidad;
+// el código la impone.
+test('generarBorradores (C3): un modelo que devuelve de más se recorta a lo pedido (14 -> 4)', async () => {
+  const llamarFalso = async ({ modelos }) => {
+    const preguntas = Array.from({ length: 14 }, (_, i) => ({
+      enunciado: `De más #${i}`,
+      explicacion: 'una explicación cualquiera con mecanismo',
+      nivel: 3,
+      respuesta: i % 2 === 0,
+      hilo: 1,
+    }));
+    return respuestaVF(preguntas, modelos[0]);
+  };
+
+  const borradores = await generarBorradores({ area: 'economia', ruta: [], n: 4 }, { llamar: llamarFalso });
+  assert.equal(borradores.length, 4, 'se queda con las 4 primeras, no con las 14 que devolvió el modelo');
+  assert.deepEqual(borradores.map((b) => b.enunciado), ['De más #0', 'De más #1', 'De más #2', 'De más #3']);
+});
+
+test('generarBorradores (C3): el recorte es POR SUB-LOTE, no sobre el total de la llamada', async () => {
+  // n=8 -> sub-lotes [5, 3]. Si cada llamada devuelve 10, el tope de cada una es el de SU sub-lote
+  // (5 y 3), nunca 8 para la primera y 0 para la segunda.
+  let llamadas = 0;
+  const llamarFalso = async ({ modelos }) => {
+    llamadas++;
+    const preguntas = Array.from({ length: 10 }, (_, i) => ({
+      enunciado: `Lote ${llamadas} #${i}`,
+      explicacion: 'una explicación cualquiera con mecanismo',
+      nivel: 3,
+      respuesta: i % 2 === 0,
+      hilo: 1,
+    }));
+    return respuestaVF(preguntas, modelos[0]);
+  };
+
+  const borradores = await generarBorradores({ area: 'historia', ruta: [], n: 8 }, { llamar: llamarFalso });
+  assert.equal(borradores.length, 8);
+  assert.equal(borradores.filter((b) => b.enunciado.startsWith('Lote 1')).length, 5);
+  assert.equal(borradores.filter((b) => b.enunciado.startsWith('Lote 2')).length, 3);
+});
+
 test('generarBorradores: incluye la ruta del átomo y la lista "evitar" en el prompt de sistema cuando se pasan', async () => {
   let sistemaVisto = '';
   const llamarFalso = async ({ modelos, mensajes }) => {
