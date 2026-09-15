@@ -3057,6 +3057,23 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await assertSinScroll(page);
   });
 
+  test('v0.2b4 §4: el botón del área muestra "+" con su aria-label, y el toque sigue siendo de 44 px', async ({ page }) => {
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    const boton = page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]');
+    await expect(boton).toHaveText('+');
+    await expect(boton).toHaveAttribute('aria-label', 'Explorar subtemas de Economía');
+    // El glyph es pequeño a propósito, pero el ::before amplía el área REAL de toque a >= 44 px.
+    const toque = await boton.evaluate((n) => {
+      const antes = getComputedStyle(n, '::before');
+      const caja = n.getBoundingClientRect();
+      return caja.width + parseFloat(antes.left) * -2;
+    });
+    expect(toque).toBeGreaterThanOrEqual(44);
+    await boton.click();
+    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+  });
+
   test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
     page,
   }) => {

@@ -1887,7 +1887,7 @@ button.punto-servidor::before {
 }
 
 .tarjeta-area {
-  position: relative; /* ancla el botón "⚛" (v0.2b2 §4), ver .tarjeta-area-atomo */
+  position: relative; /* ancla el botón "+" (v0.2b2 §4, glyph cambiado en v0.2b4 §4), ver .tarjeta-area-atomo */
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1967,12 +1967,13 @@ button.punto-servidor::before {
   background: var(--acento);
 }
 
-/* Botón "⚛" (v0.2b2 §4): abre el Átomo del área, alternativa descubrible a mantener pulsada la
-   tarjeta. El glyph visible es pequeño a propósito (24px) para no tapar el resto de una tarjeta ya
-   muy compacta (4 columnas a 375px) -- pero el ::before amplía el área de TOQUE real a >= 44px
-   (un pseudo-elemento cuenta como parte de la caja de su elemento a efectos de clic/puntero, así
-   que el listener sigue en el span real). Asomado por fuera de la esquina superior derecha de la
-   tarjeta (como una insignia de notificación), lejos del texto "S · R" de abajo. */
+/* Botón "+" (v0.2b2 §4, glyph cambiado en v0.2b4 §4): abre el Átomo del área, alternativa
+   descubrible a mantener pulsada la tarjeta. El glyph visible es pequeño a propósito (24px) para
+   no tapar el resto de una tarjeta ya muy compacta (4 columnas a 375px) -- pero el ::before amplía
+   el área de TOQUE real a >= 44px (un pseudo-elemento cuenta como parte de la caja de su elemento
+   a efectos de clic/puntero, así que el listener sigue en el span real). Asomado por fuera de la
+   esquina superior derecha de la tarjeta (como una insignia de notificación), lejos del texto
+   "S · R" de abajo. */
 .tarjeta-area-atomo {
   position: absolute;
   top: -6px;
@@ -1983,7 +1984,8 @@ button.punto-servidor::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 17px;   /* v0.2b4 §4: el "+" necesita más cuerpo que el "⚛" para leerse a 24px */
+  font-weight: 600;
   line-height: 1;
   border-radius: 50%;
   background: var(--tarjeta);

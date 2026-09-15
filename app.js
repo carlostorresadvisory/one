@@ -3501,8 +3501,10 @@ function renderHub() {
     botonAtomo.dataset.test = 'atomo-abrir';
     botonAtomo.setAttribute('role', 'button');
     botonAtomo.setAttribute('tabindex', '0');
-    botonAtomo.setAttribute('aria-label', `Elegir subtema de ${nombreArea(fila.area)}`);
-    botonAtomo.textContent = '⚛';
+    // v0.2b4 §4: "+" en vez de "⚛" (Carlos, 15-sep: el símbolo del átomo no decía nada). El
+    // `aria-label` dice la acción completa, que es lo que anuncia un lector de pantalla.
+    botonAtomo.setAttribute('aria-label', `Explorar subtemas de ${nombreArea(fila.area)}`);
+    botonAtomo.textContent = '+';
     botonAtomo.addEventListener('click', (ev) => {
       ev.stopPropagation();
       abrirAtomo(fila.area);
