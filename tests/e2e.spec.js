@@ -1265,115 +1265,158 @@ test.describe('ONE · integración e2e', () => {
   // desaparece (solo baja su suelo). Pregunta sintética inyectada vía
   // window.__one.inyectarPregunta: más simple y menos frágil que interceptar
   // datos/banco.json con page.route, y no depende de qué traiga el banco real.
-  test('spec §8 (Tarea 2, Ronda 1 I2): cascada de encaje paso a paso de la tarjeta revelada — respuesta → enunciado 14px → explicación → visual al 30% → enunciado clamp, la visual nunca desaparece', async ({ page }) => {
-    await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  //
+  // Ronda 2 de revisión (I2 parcial): antes se comprobaba un absoluto
+  // (`zonaImagenAlto >= 118`), que colaba un suelo roto -- `flex-basis:30%`
+  // sin más no es un suelo de verdad porque `.zona-imagen` sigue con
+  // `flex-shrink:1` (medido en vivo: 124px de 554px, 22.4%, por debajo del
+  // 30% que exige la spec, con un `min-height:120px` fijo que ya no
+  // representaba el 30% real de una tarjeta más alta). Arreglado en
+  // estilos.css (`min-height:max(120px, 30%)`, misma técnica que el suelo
+  // del 40%). Este test pasa a comprobar la RATIO real (`.zona-imagen` >=
+  // 30% de `.tarjeta-contenido`, con el mismo margen de 0.01 que ya usa el
+  // test de "estructura fija" para el redondeo) en las TRES resoluciones,
+  // no un absoluto en una sola.
+  const VIEWPORTS_CASCADA = [
+    { width: 375, height: 812, nombre: '375' },
+    { width: 393, height: 852, nombre: '393', zonaSegura: true },
+    { width: 430, height: 932, nombre: '430' },
+  ];
 
-    const idSintetico = 'sintetico-desborde-extremo';
-    const preguntaSintetica = {
-      id: idSintetico,
-      area: 'historia',
-      tipo: 'vf',
-      nivel: 1,
-      enunciado:
-        'Enunciado sintético deliberadamente larguísimo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación y la visual. '.repeat(
-          4
-        ),
-      explicacion:
-        'Explicación sintética igualmente larguísima, pensada para seguir sin caber ni siquiera después de quitar las respuestas y el enunciado enteros, de forma que la cascada llegue también a encoger la explicación (spec v0.1d §3/§4, ronda 1 de revisión, 13-sep). '.repeat(
-          4
-        ),
-      confianza: 1,
-      generador: 'manual',
-      verificador: 'manual',
-      verificado: true,
-      respuesta: true,
-    };
-    const imagenSintetica = {
-      id: idSintetico,
-      url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-      pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo-desborde-extremo.png',
-      titulo: 'Ejemplo-desborde-extremo.png',
-      autor: 'Autor forzado',
-      licencia: 'CC BY 4.0',
-      leyenda: 'Imagen forzada para el desborde extremo (ronda 1 de revisión)',
-      termino: 'ejemplo',
-      ancho: 1,
-      alto: 1,
-    };
+  for (const vp of VIEWPORTS_CASCADA) {
+    test(`spec §8 (Tarea 2, Ronda 1 I2, Ronda 2): cascada de encaje paso a paso de la tarjeta revelada a ${vp.nombre}×${vp.height} — respuesta → enunciado 14px → explicación → visual ≥30% real → enunciado clamp, la visual nunca desaparece`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
-    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
-    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenSintetica);
-    await page.evaluate(
-      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'desborde-extremo' }),
-      idSintetico
-    );
+      if (vp.zonaSegura) {
+        // Mismas zonas seguras reales de un iPhone que el resto de la suite
+        // (ver "C1 visual desbordado con zonas seguras del iPhone" más
+        // arriba): env(safe-area-inset-*) vale 0 en Chromium headless.
+        await page.addStyleTag({
+          content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
+        });
+      }
 
-    const t = tarjetaActual(page);
-    await expect(t.locator('[data-test="imagen"]')).toHaveCount(0); // nunca antes de responder
-    await t.locator('[data-test="vf-verdadero"]').click();
-    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
-    await esperarAsentamientoMazo(page);
-
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-
-    const estado = await t.evaluate((tarjeta) => {
-      const respuestaResumen = tarjeta.querySelector('.respuesta-resumen');
-      const enunciado = tarjeta.querySelector('.enunciado');
-      const explicacion = tarjeta.querySelector('.explicacion');
-      const imagen = tarjeta.querySelector('[data-test="imagen"]');
-      const zonaImagen = tarjeta.querySelector('.zona-imagen');
-      return {
-        clases: [...tarjeta.classList],
-        zonaImagenClases: zonaImagen ? [...zonaImagen.classList] : [],
-        respuestaResumenDisplay: respuestaResumen ? getComputedStyle(respuestaResumen).display : null,
-        enunciadoFontSize: enunciado ? getComputedStyle(enunciado).fontSize : null,
-        enunciadoLineClamp: enunciado ? getComputedStyle(enunciado).webkitLineClamp : null,
-        explicacionLineClamp: explicacion ? getComputedStyle(explicacion).webkitLineClamp : null,
-        imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
-        zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
+      const idSintetico = `sintetico-desborde-extremo-${vp.nombre}`;
+      const preguntaSintetica = {
+        id: idSintetico,
+        area: 'historia',
+        tipo: 'vf',
+        nivel: 1,
+        enunciado:
+          'Enunciado sintético deliberadamente larguísimo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación y la visual. '.repeat(
+            4
+          ),
+        explicacion:
+          'Explicación sintética igualmente larguísima, pensada para seguir sin caber ni siquiera después de quitar las respuestas y el enunciado enteros, de forma que la cascada llegue también a encoger la explicación (spec v0.1d §3/§4, ronda 1 de revisión, 13-sep). '.repeat(
+            4
+          ),
+        confianza: 1,
+        generador: 'manual',
+        verificador: 'manual',
+        verificado: true,
+        respuesta: true,
       };
+      const imagenSintetica = {
+        id: idSintetico,
+        url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo-desborde-extremo.png',
+        titulo: 'Ejemplo-desborde-extremo.png',
+        autor: 'Autor forzado',
+        licencia: 'CC BY 4.0',
+        leyenda: 'Imagen forzada para el desborde extremo (ronda 1 de revisión)',
+        termino: 'ejemplo',
+        ancho: 1,
+        alto: 1,
+      };
+
+      await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
+      await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenSintetica);
+      await page.evaluate(
+        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'desborde-extremo' }),
+        idSintetico
+      );
+
+      const t = tarjetaActual(page);
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0); // nunca antes de responder
+      await t.locator('[data-test="vf-verdadero"]').click();
+      await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+      await esperarAsentamientoMazo(page);
+
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+
+      const estado = await t.evaluate((tarjeta) => {
+        const respuestaResumen = tarjeta.querySelector('.respuesta-resumen');
+        const enunciado = tarjeta.querySelector('.enunciado');
+        const explicacion = tarjeta.querySelector('.explicacion');
+        const imagen = tarjeta.querySelector('[data-test="imagen"]');
+        const zonaImagen = tarjeta.querySelector('.zona-imagen');
+        const contenido = tarjeta.querySelector('.tarjeta-contenido');
+        return {
+          clases: [...tarjeta.classList],
+          zonaImagenClases: zonaImagen ? [...zonaImagen.classList] : [],
+          respuestaResumenDisplay: respuestaResumen ? getComputedStyle(respuestaResumen).display : null,
+          enunciadoFontSize: enunciado ? getComputedStyle(enunciado).fontSize : null,
+          enunciadoLineClamp: enunciado ? getComputedStyle(enunciado).webkitLineClamp : null,
+          explicacionLineClamp: explicacion ? getComputedStyle(explicacion).webkitLineClamp : null,
+          imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
+          zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
+          contenidoAlto: contenido ? contenido.clientHeight : null,
+        };
+      });
+
+      // La visual NUNCA desaparece por falta de espacio (spec §8): con este
+      // desborde a propósito absurdo, sigue ahí, aunque sea a su suelo
+      // reducido -- Ronda 2: la RATIO real frente a `.tarjeta-contenido`,
+      // no un absoluto (ver el porqué en el comentario de cabecera).
+      expect(estado.imagenAlto).not.toBeNull();
+      expect(estado.contenidoAlto).toBeGreaterThan(0);
+      expect(
+        estado.zonaImagenAlto / estado.contenidoAlto,
+        `.zona-imagen mide ${estado.zonaImagenAlto}px de ${estado.contenidoAlto}px de .tarjeta-contenido (< 30%) a ${vp.nombre}px`
+      ).toBeGreaterThanOrEqual(0.29);
+
+      // Paso (a): la respuesta pasa a su resumen de una línea
+      // (tarjeta--compacta-1) — lo primero en ceder, igual que antes.
+      expect(estado.clases).toContain('tarjeta--compacta-1');
+      expect(estado.respuestaResumenDisplay).toBe('block');
+
+      // Paso (b): el enunciado baja a 14px (tarjeta--enunciado-14, spec §8) —
+      // con este desborde tan extremo, la cascada tiene que haber llegado aquí.
+      expect(estado.clases).toContain('tarjeta--enunciado-14');
+      expect(estado.enunciadoFontSize).toBe('14px');
+
+      // Paso (c): la explicación se recorta con line-clamp calculado (mínimo 2
+      // líneas, o 1 si hizo falta el último recurso) — getComputedStyle
+      // confirma el recorte real, no solo el nombre de la clase.
+      expect(estado.clases).toContain('tarjeta--explicacion-clamp');
+      expect(['1', '2']).toContain(estado.explicacionLineClamp);
+
+      // Paso (d), justo antes del último recurso: la visual baja su suelo del
+      // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
+      // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
+      expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
+
+      // Paso (e), Ronda 1 de revisión (I2): con un enunciado `.repeat(4)` tan
+      // extremo, ni siquiera (a)-(d) bastan — la cascada tiene que llegar a
+      // recortar también el enunciado (mínimo 2 líneas, mismo mecanismo que la
+      // cascada sin responder). Antes de este paso, este mismo test desbordaba
+      // sin converger con este enunciado (por eso se había reducido a
+      // `.repeat(2)` en la primera versión de la Tarea 2). El enunciado
+      // absorbe el resto del desborde SIN que la visual baje de su 30% real
+      // (ya comprobado arriba con la ratio) -- si algún día no bastara, el
+      // último recurso de la cascada (paso (f), calcularLineasClamp de la
+      // explicación a 1 línea) es quien cede después, nunca la visual.
+      expect(estado.clases).toContain('tarjeta--enunciado-clamp');
+      expect(Number(estado.enunciadoLineClamp)).toBeGreaterThanOrEqual(2);
     });
-
-    // La visual NUNCA desaparece por falta de espacio (spec §8): con este
-    // desborde a propósito absurdo, sigue ahí, aunque sea a su suelo reducido
-    // (30%/120px, paso (d) de la cascada nueva).
-    expect(estado.imagenAlto).not.toBeNull();
-    expect(estado.zonaImagenAlto).toBeGreaterThanOrEqual(118);
-
-    // Paso (a): la respuesta pasa a su resumen de una línea
-    // (tarjeta--compacta-1) — lo primero en ceder, igual que antes.
-    expect(estado.clases).toContain('tarjeta--compacta-1');
-    expect(estado.respuestaResumenDisplay).toBe('block');
-
-    // Paso (b): el enunciado baja a 14px (tarjeta--enunciado-14, spec §8) —
-    // con este desborde tan extremo, la cascada tiene que haber llegado aquí.
-    expect(estado.clases).toContain('tarjeta--enunciado-14');
-    expect(estado.enunciadoFontSize).toBe('14px');
-
-    // Paso (c): la explicación se recorta con line-clamp calculado (mínimo 2
-    // líneas, o 1 si hizo falta el último recurso) — getComputedStyle
-    // confirma el recorte real, no solo el nombre de la clase.
-    expect(estado.clases).toContain('tarjeta--explicacion-clamp');
-    expect(['1', '2']).toContain(estado.explicacionLineClamp);
-
-    // Paso (d), justo antes del último recurso: la visual baja su suelo del
-    // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
-    // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
-    expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
-
-    // Paso (e), Ronda 1 de revisión (I2): con un enunciado `.repeat(4)) tan
-    // extremo, ni siquiera (a)-(d) bastan — la cascada tiene que llegar a
-    // recortar también el enunciado (mínimo 2 líneas, mismo mecanismo que la
-    // cascada sin responder). Antes de este paso, este mismo test desbordaba
-    // sin converger con este enunciado (por eso se había reducido a
-    // `.repeat(2)` en la primera versión de la Tarea 2).
-    expect(estado.clases).toContain('tarjeta--enunciado-clamp');
-    expect(Number(estado.enunciadoLineClamp)).toBeGreaterThanOrEqual(2);
-  });
+  }
 
   test('Tarea 3b: capturas con art-003 respondida (banco real) a 375×812 y 430×932', async ({ page }) => {
     // art-003 (La noche estrellada, Public domain) ya tiene entrada real en
