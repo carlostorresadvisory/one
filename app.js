@@ -16,7 +16,7 @@ import {
   listarNoRespondidas,
   AREAS,
 } from './motor.js';
-import { construirVisual } from './visuales.js';
+import { construirVisual, construirVisualClave } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -1854,14 +1854,34 @@ function finalizarPartida() {
  * v0.1d §1 a la derecha si se pasa `contadorTexto` ("3/10" en la partida,
  * "2/5" en el repaso — cada llamador decide cuál según el contexto). Sin
  * contador, la cabecera queda igual que en v0.1c (usado nunca hoy, pero deja
- * la función utilizable sin el segundo argumento). */
-function construirCabeceraPregunta(pregunta, contadorTexto) {
+ * la función utilizable sin el segundo argumento).
+ *
+ * `marca` (spec §8, v0.2a.2 — "la cabecera con nivel y la marca de repaso se
+ * funden en la misma línea"): opcional `{ texto, clase, dataTest }`, se pinta
+ * ENTRE el área/nivel y el contador. `construirTarjetaRepaso` es el único
+ * llamador que la pasa; antes vivía como un `<p class="repaso-marca">` aparte
+ * insertado después de esta cabecera (`insertAdjacentElement('afterend', …)`
+ * en construirTarjetaRepaso) — ahora es un `<span>` más, tercer hijo de
+ * `.pregunta-cabecera` (CSS: el contador se ancla a la derecha con
+ * margin-left:auto sobre sí mismo, ya no con justify-content:space-between,
+ * que con 3 hijos habría centrado la marca en vez de dejarla junto al
+ * texto). `clase` ya lleva el modificador completo (p. ej.
+ * "repaso-marca--fallo"); `dataTest` solo lo trae la marca "sin responder"
+ * (spec v0.2a.1 §7), igual que antes. */
+function construirCabeceraPregunta(pregunta, contadorTexto, marca) {
   const cabecera = document.createElement('p');
   cabecera.className = 'pregunta-cabecera';
   cabecera.dataset.test = 'nivel-pregunta';
   const texto = document.createElement('span');
   texto.textContent = `${nombreArea(pregunta.area)} · nivel ${pregunta.nivel}`;
   cabecera.appendChild(texto);
+  if (marca) {
+    const marcaEl = document.createElement('span');
+    marcaEl.className = `repaso-marca ${marca.clase}`;
+    if (marca.dataTest) marcaEl.dataset.test = marca.dataTest;
+    marcaEl.textContent = marca.texto;
+    cabecera.appendChild(marcaEl);
+  }
   if (contadorTexto) {
     const contador = document.createElement('span');
     contador.dataset.test = 'mazo-contador';
@@ -2684,23 +2704,18 @@ function construirBloqueImagen(pregunta) {
   // prioridad fija imagen->visual de construirTarjetaRespondida se decide en
   // el momento de construir la tarjeta, cuando la imagen "existe" a efectos
   // de datos aunque su carga real falle después — sin este respaldo, una
-  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno). Si
-  // `construirBloqueVisual` también devuelve null (sin visual, o inválido),
-  // se cae al comportamiento anterior: se quita el bloque entero y la marca
-  // de "hay imagen" del contenido (vuelve a centrarse como si nunca hubiera
-  // tenido imagen, spec v0.1d §3). Se recalcula el encaje en ambos casos,
+  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno).
+  // Spec §8 (v0.2a.2): el respaldo cae a la CAPA SIGUIENTE, nunca a "sin
+  // visual" — si `construirBloqueVisual` tampoco tiene datos, cae a la
+  // tercera capa, `construirBloqueVisualClave`, que no lanza y nunca
+  // devuelve null (garantiza el 100% con visual). Se recalcula el encaje
   // porque el alto disponible cambia.
   img.addEventListener('error', () => {
     const tarjeta = zona.closest('.tarjeta');
     const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
-    const respaldo = construirBloqueVisual(pregunta);
-    if (respaldo) {
-      zona.replaceWith(respaldo);
-      if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
-    } else {
-      zona.remove();
-      if (contenido) contenido.classList.remove('tarjeta-contenido--imagen');
-    }
+    const respaldo = construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
+    zona.replaceWith(respaldo);
+    if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
     if (tarjeta) ajustarEncaje(tarjeta);
   });
   figura.appendChild(img);
@@ -2749,23 +2764,53 @@ function construirBloqueVisual(pregunta) {
   return zona;
 }
 
+/** Bloque de la TERCERA capa (spec §8, v0.2a.2, Tarea 1: `construirVisualClave`
+ * en visuales.js): la tarjeta tipográfica que garantiza el 100% con visual
+ * cuando no hay ni imagen de Commons ni visual de datos — también cubre toda
+ * pregunta `srv-` del servidor que llegue sin ninguno de los dos (Ruling R3).
+ * Misma caja flexible que la imagen/el visual (`.zona-imagen`, con las clases
+ * extra `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia
+ * de `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
+ * devuelve null: `construirVisualClave` no lanza y siempre entrega un SVG
+ * (con solo el área si la pregunta viene rota) — es el fin de la cascada de
+ * tres capas, nunca "sin visual". */
+function construirBloqueVisualClave(pregunta) {
+  const svg = construirVisualClave(pregunta, { nombreArea });
+
+  const zona = document.createElement('div');
+  zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
+  zona.appendChild(svg);
+
+  return zona;
+}
+
 /**
- * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
- * cabecera (con contador, spec v0.1d §1), enunciado, confianza compacta
- * (activa, salvo soloLectura), respuesta compacta + resumen a una línea (para
- * tarjeta--compacta-1), imagen de Wikimedia Commons si la pregunta tiene una
- * (Tarea 3b), feedback y, en la zona de acción, la fila "Preguntar a"
- * (construirPreguntarA) y, salvo soloLectura, la fila compacta de 44px "esta
- * pregunta está mal" + Siguiente (spec v0.1d §2). Único toque permitido en
- * esta tarjeta, aparte de esos cuatro controles: ninguno — spec v0.1d §3/§4
- * (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado, así que
- * ni la explicación, ni la respuesta compacta, ni la imagen tienen listener.
- * `contadorTexto` lo decide cada llamador ("3/10" en partida, "n/N" en
- * repaso): ver manejarRespuesta y construirTarjetaRepaso.
+ * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso;
+ * estructura fija reordenada en spec §8/v0.2a.2, "protagonismo visual"):
+ * cabecera (con contador y, si se pasa, la marca de repaso fundida en la
+ * misma línea — spec v0.1d §1), **visual protagonista** (imagen de Commons,
+ * si no visual de datos, si no la tarjeta tipográfica: SIEMPRE una de las
+ * tres, nunca vacío), enunciado compacto, respuesta compacta + resumen a una
+ * línea (para tarjeta--compacta-1), feedback (con la explicación) y, salvo
+ * soloLectura, la fila de confianza justo encima de la zona de acción. En la
+ * zona de acción: "Preguntar a" (construirPreguntarA) y, salvo soloLectura,
+ * la fila compacta de 44px "esta pregunta está mal" + Siguiente (spec v0.1d
+ * §2). Único toque permitido en esta tarjeta, aparte de esos cuatro
+ * controles: ninguno — spec v0.1d §3/§4 (Carlos, 13-sep 10:15) quita toda
+ * alternancia de despliegue/plegado, así que ni la explicación, ni la
+ * respuesta compacta, ni la imagen tienen listener. `contadorTexto` lo
+ * decide cada llamador ("3/10" en partida, "n/N" en repaso): ver
+ * manejarRespuesta y construirTarjetaRepaso. `marca` (spec §8) solo la pasa
+ * construirTarjetaRepaso.
  */
-function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, contadorTexto } = {}) {
+function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, contadorTexto, marca } = {}) {
   const tarjeta = document.createElement('div');
-  tarjeta.className = 'tarjeta';
+  // tarjeta--revelada (spec §8): TODA tarjeta construida aquí lo es, incluida
+  // la "sin responder" del repaso (Ruling R2 de la Tarea 2 — misma estructura
+  // y visual fija que una respondida de verdad; la única que NO lleva esta
+  // clase es la pregunta ACTIVA sin responder, construida por
+  // construirTarjetaSinResponder, una función totalmente distinta).
+  tarjeta.className = 'tarjeta tarjeta--revelada';
   tarjeta.dataset.test = 'tarjeta';
   // Sin responder (v0.2a.1 §7, tramo 2 del repaso infinito): hueco.correcta
   // es undefined a propósito (nunca se ha respondido de verdad, ni acierto
@@ -2785,37 +2830,48 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
     tarjeta.dataset.respondida = 'true';
     tarjeta.classList.add(hueco.correcta ? 'correcto' : 'incorrecto');
   }
+  // Entrada con fundido + 8px (spec §8, 220ms, CSS puro): SOLO al responder
+  // en la partida, nunca en el repaso (soloLectura siempre true ahí) — la
+  // única llamada con soloLectura:false es manejarRespuesta.
+  if (!soloLectura) tarjeta.classList.add('tarjeta--recien-revelada');
 
   const contenido = document.createElement('div');
-  contenido.className = 'tarjeta-contenido';
-  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto));
+  // tarjeta-contenido--imagen: siempre (spec §8) — la visual es SIEMPRE una
+  // de las tres capas, así que el bloque ya no se centra con márgenes
+  // automáticos (ver estilos.css): se alinea arriba con el borde superior de
+  // la visual fijo justo bajo la cabecera, y es la propia visual (flex
+  // 1 1 auto) la que absorbe el sobrante.
+  contenido.className = 'tarjeta-contenido tarjeta-contenido--imagen';
+  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto, marca));
+
+  // Visual protagonista (spec §8, orden fijo #2, justo bajo la cabecera):
+  // imagen de Commons -> visual de datos -> tarjeta tipográfica
+  // (construirVisualClave, Tarea 1). Las tres "nunca lanzan" y la última
+  // nunca devuelve null, así que SIEMPRE hay un bloque que pintar — el 100%
+  // de las tarjetas reveladas tiene visual, garantizado en código.
+  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
+  contenido.appendChild(bloqueImagen);
+
   contenido.appendChild(construirBloqueEnunciado(pregunta));
-  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
 
   // Zona de respuesta ya fija: la compacta (completa) y su resumen a una
   // línea conviven en el DOM, CSS decide cuál se ve según la cascada de
-  // ajustarEncaje (tarjeta--compacta-1 / tarjeta--sin-respuestas) — sin
-  // listeners, nunca se alternan con un toque.
+  // ajustarEncaje (tarjeta--compacta-1) — sin listeners, nunca se alternan
+  // con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
   zonaRespuesta.appendChild(construirRespuestaCompacta(pregunta, hueco));
   zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
   contenido.appendChild(zonaRespuesta);
 
-  // La imagen (o, en su falta, el visual) absorbe el sobrante (spec v0.1d
-  // §3, ampliado en v0.1e §2): el bloque de contenido deja de centrarse con
-  // márgenes automáticos y se alinea arriba (ver .tarjeta-contenido--imagen
-  // en estilos.css) en cuanto hay CUALQUIERA de los dos; sin ninguno, o en
-  // la tarjeta sin responder, el centrado de v0.1c se mantiene. Prioridad
-  // fija: imagen de Commons si existe; si no, el visual verificado de la
-  // pregunta; si tampoco, nada (como hasta ahora) — nunca los dos a la vez.
-  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta);
-  if (bloqueImagen) {
-    contenido.classList.add('tarjeta-contenido--imagen');
-    contenido.appendChild(bloqueImagen);
-  }
-
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
+
+  // La confianza va justo ENCIMA de tarjeta-accion (spec §8, Ruling R4): como
+  // último hijo de tarjeta-contenido queda pegada visualmente justo por
+  // encima de esa zona hermana. Solo en la partida (soloLectura:false): el
+  // repaso no la construye en absoluto (soloLectura:true, ver más abajo).
+  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
+
   tarjeta.appendChild(contenido);
 
   const zonaAccion = document.createElement('div');
@@ -3124,7 +3180,8 @@ function textoDiasDesde(dias) {
 
 /** Una tarjeta de repaso: la MISMA tarjeta respondida (construirTarjetaRespondida,
  * soloLectura: sin confianza ni Siguiente, con "Preguntar a" ya relleno), con
- * una marca añadida justo tras la cabecera de área/nivel. Sirve a TRES
+ * una marca fundida en la misma línea de la cabecera de área/nivel (spec §8,
+ * ver `marca` en construirCabeceraPregunta). Sirve a TRES
  * orígenes, distinguidos por `item.estadoRepaso`:
  *  - Resumen (`repasoPartida`, item = { pregunta, correcta, respuesta, delta },
  *    sin `estadoRepaso`): `delta` es el REAL de esa respuesta (XP, combo,
@@ -3178,6 +3235,19 @@ function construirTarjetaRepaso(item, indice, total) {
     reportada: false,
     nodo: null,
   };
+  // Marca de por qué está esta pregunta en el repaso (spec v0.1c §6, fundida
+  // en la cabecera desde spec §8/v0.2a.2 — ver construirCabeceraPregunta):
+  // `clase` ya lleva el modificador completo, `dataTest` solo lo trae
+  // "sin responder" (spec v0.2a.1 §7), igual que antes de la Tarea 2.
+  const marca = {
+    clase: `repaso-marca--${claseRepasoMarca(estadoRepaso)}`,
+    dataTest: esSinResponder ? 'repaso-marca-nueva' : undefined,
+    texto: esSinResponder
+      ? textoRepasoMarca(estadoRepaso)
+      : esFeedHub
+        ? `${textoRepasoMarca(estadoRepaso)} · ${textoDiasDesde(item.diasDesde)}`
+        : textoRepasoMarca(estadoRepaso),
+  };
   // Contador "n/N" (spec v0.1d §1, redefinido en v0.2a.1 §7 para el repaso
   // infinito): la posición de ESTA tarjeta DENTRO DE SU VUELTA — cada llamador
   // (renderRepaso/mantenerVueltasRepaso) construye una vuelta entera de una
@@ -3186,6 +3256,7 @@ function construirTarjetaRepaso(item, indice, total) {
   const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, {
     soloLectura: true,
     contadorTexto: `${indice + 1}/${total}`,
+    marca,
   });
   tarjeta.dataset.test = 'repaso-tarjeta';
 
@@ -3195,18 +3266,6 @@ function construirTarjetaRepaso(item, indice, total) {
     const feedbackTexto = tarjeta.querySelector('[data-test="feedback-texto"]');
     if (feedbackTexto) feedbackTexto.hidden = true;
   }
-
-  const marca = document.createElement('p');
-  marca.className = `repaso-marca repaso-marca--${claseRepasoMarca(estadoRepaso)}`;
-  if (esSinResponder) {
-    marca.dataset.test = 'repaso-marca-nueva';
-    marca.textContent = textoRepasoMarca(estadoRepaso);
-  } else {
-    marca.textContent = esFeedHub
-      ? `${textoRepasoMarca(estadoRepaso)} · ${textoDiasDesde(item.diasDesde)}`
-      : textoRepasoMarca(estadoRepaso);
-  }
-  tarjeta.querySelector('.pregunta-cabecera').insertAdjacentElement('afterend', marca);
 
   return tarjeta;
 }

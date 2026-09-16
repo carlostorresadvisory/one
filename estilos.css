@@ -363,10 +363,13 @@ main#app {
   flex: none;
 }
 
-/* Fila de confianza (spec v0.1c §2.3): ahora vive DENTRO de cada tarjeta del
-   mazo, tras el enunciado y antes de las opciones (una plantilla clonada por
-   tarjeta, ver plantilla-confianza en index.html / construirFilaConfianza en
-   app.js). Etiqueta a la izquierda, control segmentado ocupando el resto. */
+/* Fila de confianza (spec v0.1c §2.3): vive DENTRO de cada tarjeta del mazo
+   (una plantilla clonada por tarjeta, ver plantilla-confianza en index.html /
+   construirFilaConfianza en app.js). Etiqueta a la izquierda, control
+   segmentado ocupando el resto. En la tarjeta ACTIVA sin responder va tras el
+   enunciado; en la tarjeta REVELADA (spec §8/v0.2a.2, Tarea 2) es el último
+   hijo de .tarjeta-contenido, justo encima de .tarjeta-accion — solo en la
+   partida (soloLectura:false): el repaso no la construye. */
 .confianza-fila {
   display: flex;
   align-items: center;
@@ -696,16 +699,27 @@ main#app {
 
 /* Cabecera "Área · nivel N" + contador "3/10"/"n/N" a la derecha (spec v0.1d
    §1, data-test="mazo-contador"). Ambos textos heredan tamaño/color de aquí:
-   el contador no necesita su propia regla. */
+   el contador no necesita su propia regla salvo el anclaje de abajo.
+   La marca de repaso (spec §8/v0.2a.2, ".repaso-marca") se funde aquí como
+   tercer hijo opcional, entre el área/nivel y el contador -- ver
+   construirCabeceraPregunta en app.js. */
 .pregunta-cabecera {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
   gap: 8px;
   font-size: 13px;
   color: var(--texto-suave);
   margin: 0;
   flex: none;
+}
+
+/* El contador siempre pegado al borde derecho: antes bastaba
+   justify-content:space-between con 2 hijos (texto + contador); con la marca
+   de repaso fundida como tercer hijo, ese space-between la habría dejado
+   centrada en la fila en vez de junto al texto. margin-left:auto en el
+   propio contador da el mismo resultado con 2 o 3 hijos. */
+.pregunta-cabecera [data-test="mazo-contador"] {
+  margin-left: auto;
 }
 
 /* Bloque de contenido de la tarjeta (spec v0.1c §4.1, corrección ronda 1):
@@ -997,6 +1011,24 @@ main#app {
   font-size: clamp(18px, 5.4vw, 26px);
   line-height: 1.3;
   margin: 0;
+}
+
+/* Enunciado compacto de la tarjeta REVELADA (spec §8, punto 3 de la
+   estructura fija): 15px, mucho más pequeño que el clamp(18-26px) de arriba
+   -- ahí manda el texto porque no hay visual; aquí la visual ya protagoniza
+   (mínimo 40% de la altura, ver .tarjeta--revelada .zona-imagen más abajo),
+   así que el enunciado solo necesita ser legible, no grande. Más específico
+   que la regla de arriba (2 clases), gana sin depender del orden en la hoja. */
+.tarjeta--revelada .enunciado {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+/* Paso (b) de la cascada de la tarjeta revelada (spec §8, ver ajustarEncaje
+   en mazo.js): un paso más compacto que los 15px de base, antes de tocar la
+   explicación. */
+.tarjeta--enunciado-14 .enunciado {
+  font-size: 14px;
 }
 
 /* Ya NO hay recorte fijo a 5 líneas antes de responder (Añadido A, feedback
@@ -1350,14 +1382,16 @@ main#app {
 
 /* --- imagen de Wikimedia Commons (Tarea 3b, spec v0.1c §4; flexible y sin
    plegado en v0.1d §4) ---
-   Solo en la tarjeta respondida, entre la respuesta compacta y el feedback
-   (construirBloqueImagen en app.js). La caja es flexible: crece hasta 40vh si
-   sobra espacio y se encoge hasta la franja de 90px si hace falta (ver
-   .tarjeta-contenido > .zona-imagen más arriba, que le da flex-grow/shrink).
-   No se pliega ni desaparece por falta de espacio (spec v0.1d §3, cambio de
-   contrato de Carlos 13-sep 10:19: la imagen es de lo último que se
-   sacrifica) — solo desaparece si la imagen de verdad falla al cargar (ver el
-   `error` del <img> en construirBloqueImagen). */
+   Solo en la tarjeta revelada, SIEMPRE la segunda, justo bajo la cabecera
+   (spec §8/v0.2a.2, reordenada en la Tarea 2; construirBloqueImagen en
+   app.js). La caja es flexible: crece si sobra espacio y se encoge hasta su
+   suelo si hace falta (ver .tarjeta-contenido > .zona-imagen más arriba, que
+   le da flex-grow/shrink, y la regla más específica justo debajo, que fija el
+   suelo/techo reales de la tarjeta revelada). No se pliega ni desaparece por
+   falta de espacio (spec v0.1d §3, cambio de contrato de Carlos 13-sep
+   10:19: la imagen es de lo último que se sacrifica) — solo desaparece si la
+   imagen de verdad falla al cargar (ver el `error` del <img> en
+   construirBloqueImagen, que cae a la capa siguiente, nunca a "sin visual"). */
 .zona-imagen {
   display: flex;
   flex-direction: column;
@@ -1365,6 +1399,50 @@ main#app {
   flex: 1 1 auto;
   min-height: 90px;
   max-height: 55vh; /* Carlos 13-sep 12:17: la imagen protagoniza la explicación */
+}
+
+/* Suelo/techo de la tarjeta REVELADA (spec §8, enmienda 16-sep-2026): un
+   mínimo del 40% de `.tarjeta-contenido` (nunca menos de 160px, para
+   pantallas muy bajas) que crece hasta un máximo de 55vh cuando el enunciado
+   de esa tarjeta deja sitio. Más específica que `.zona-imagen` de arriba
+   (2 clases > 1), gana sin depender del orden en la hoja -- efectivamente
+   sustituye al mínimo genérico de 90px en TODA tarjeta revelada, que hoy son
+   todas las que llegan a tener `.zona-imagen` (spec §8 punto 3: 100% de las
+   tarjetas reveladas tiene visual).
+   Doble declaración de `min-height` (respaldo, no @supports): si el
+   navegador no entiende `max()`, descarta esa línea entera y se queda con el
+   valor anterior (160px fijo) en vez de con un `min-height` roto. */
+.tarjeta--revelada .zona-imagen {
+  flex: 1 1 auto;
+  min-height: 160px;
+  min-height: max(160px, 40%);
+  max-height: 55vh;
+}
+
+/* Paso (d) de la cascada de la tarjeta revelada (spec §8, ver ajustarEncaje
+   en mazo.js): último recorte antes de tocar la explicación otra vez -- el
+   suelo baja del 40% al 30%, la visual sigue sin quitarse nunca. */
+.tarjeta--revelada .zona-imagen--reducida {
+  flex-basis: 30%;
+  min-height: 120px;
+}
+
+/* Entrada de la visual al responder (spec §8): fundido + 8px de desplazamiento
+   en 220ms. Solo al responder EN LA PARTIDA (tarjeta--recien-revelada, ver
+   construirTarjetaRespondida en app.js: la única llamada con soloLectura:false
+   la añade) -- nunca en el repaso, donde la tarjeta ya llega revelada. Sin
+   "reducir movimiento" activo (ver el bloque prefers-reduced-motion al final
+   de esta hoja): la regla explícita de ahí, más la genérica que ya anula
+   cualquier animation-duration, la neutraliza del todo. */
+@keyframes visual-entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.tarjeta--revelada.tarjeta--recien-revelada .zona-imagen {
+  animation: visual-entra 220ms ease-out;
 }
 
 .imagen {
@@ -1551,8 +1629,10 @@ main#app {
    igual" en .mazo-cierre-acciones (ver más abajo). */
 .resumen-acciones .boton:not(.boton-principal) { background: var(--fondo); }
 
-/* Marca de POR QUÉ está esta pregunta en el repaso (spec v0.1c §6): justo tras
-   la cabecera de área/nivel de la tarjeta reutilizada. */
+/* Marca de POR QUÉ está esta pregunta en el repaso (spec v0.1c §6). Spec §8/
+   v0.2a.2: ya no es un <p> aparte tras la cabecera de área/nivel -- ahora es
+   un <span> MÁS dentro de `.pregunta-cabecera` (ver construirCabeceraPregunta
+   en app.js), en la misma línea que el área/nivel y el contador. */
 .repaso-marca {
   margin: 0;
   font-weight: 700;
@@ -2452,6 +2532,9 @@ button.punto-servidor::before {
 @media (prefers-reduced-motion: reduce) {
   .fondo-luz { animation: none; }
   .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
+  /* spec §8/v0.2a.2: la entrada de la visual al responder (visual-entra, ver
+     más arriba) tampoco anima con "reducir movimiento" activo. */
+  .tarjeta--revelada.tarjeta--recien-revelada .zona-imagen { animation: none; }
   /* v0.2b3 Tarea 3: ya no hay órbita giratoria -- el "pop" del núcleo, la entrada de los nodos y
      el punto que late de los nodos de espera se anulan aquí explícitamente (la regla genérica de
      abajo ya los neutraliza también, esto lo deja explícito, mismo criterio que el resto de esta
