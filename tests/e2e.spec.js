@@ -5551,4 +5551,207 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await enlace.evaluate((a) => a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
     expect(await overlay.evaluate((el) => el.hidden), 'el enlace de atribución clonado no debe cerrar la superposición').toBe(false);
   });
+
+  // Ola final de revisión (Critical #1): el cierre por deslizamiento NUNCA funcionaba con un gesto
+  // táctil REAL -- solo con los eventos `PointerEvent` sintéticos que ya cubría el test de arriba
+  // ("cierra deslizando..."). `touch-action:auto` heredado dejaba que el navegador reclamase el
+  // desplazamiento vertical como scroll y cancelase el puntero (`pointercancel`) antes de entregar
+  // `pointerup`, con lo que ni el umbral de 60px ni el respaldo "toque en cualquier sitio" (que
+  // depende de un `click` que `pointercancel` también suprime) llegaban a ejecutarse. Reproducido con
+  // `Input.dispatchTouchEvent` vía CDP, igual que hizo el revisor final (`fase3c.mjs`/`fase13.mjs`).
+  test('Critical: cierra con un gesto táctil REAL (CDP Input.dispatchTouchEvent), no solo con pointerdown/pointerup sintéticos', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'l');
+    const t = await jugarYRevelar(page, idImagen, 'pc-l');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const cdp = await page.context().newCDPSession(page);
+    const caja = await page.locator('[data-test="visual-completa-medio"] > *').boundingBox();
+    expect(caja).not.toBeNull();
+    const cx = Math.round(caja.x + caja.width / 2);
+    const y0 = Math.round(caja.y + caja.height / 2) - 50;
+
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0 }] });
+    for (let k = 1; k <= 8; k += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 + k * 15 }] }); // 120px totales
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'un deslizamiento táctil REAL hacia abajo (120px) debe cerrar la superposición'
+    ).toBe(true);
+  });
+
+  // Ola final de revisión (Important #1): con la superposición abierta, el mazo de debajo NO debe
+  // seguir navegando por teclado (ArrowUp/PageUp) -- mazo.js#alKeydown vive en `document` y solo
+  // comprobaba si la VISTA estaba visible, no si había un diálogo por encima; y al cerrar, el foco
+  // no debe perderse en <body> (mismo hallazgo, efecto colateral: `zonaImagenAbrio` podía apuntar a
+  // una tarjeta que ya no es la actual). Usa el repaso del HUB con el banco real (igual que el
+  // guión de reproducción del revisor, fase5.mjs) para tener varias tarjetas navegables de verdad.
+  test('Important: con la superposición abierta el mazo no navega por teclado; al cerrar el foco queda dentro de la tarjeta actual', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    await page.evaluate(() => window.__one.irA(5));
+    await esperarAsentamientoMazo(page);
+    const indiceAntes = await page.evaluate(() => document.querySelector('.tarjeta-mazo--actual').dataset.indice);
+    const enunciadoAntes = await page.locator('.tarjeta-mazo--actual .enunciado').textContent();
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    // Adversarial A2 + Important #1: <main> queda inert mientras está abierta.
+    expect(await page.evaluate(() => document.querySelector('main#app').inert), '<main> debería quedar inert al abrir').toBe(true);
+
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(250); // margen: si el mazo se hubiera movido, la transición ya habría acabado
+    const indiceDuranteAbierta = await page.evaluate(() => document.querySelector('.tarjeta-mazo--actual').dataset.indice);
+    const enunciadoDuranteAbierta = await page.locator('.tarjeta-mazo--actual .enunciado').textContent();
+    expect(indiceDuranteAbierta, 'ArrowUp ×2 con la superposición abierta no debería mover el mazo').toBe(indiceAntes);
+    expect(enunciadoDuranteAbierta, 'el enunciado bajo la superposición no debería cambiar').toBe(enunciadoAntes);
+
+    await page.keyboard.press('Escape');
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
+    expect(await page.evaluate(() => document.querySelector('main#app').inert), '<main> debería dejar de ser inert al cerrar').toBe(false);
+
+    const focoDentroDeLaActual = await page.evaluate(() => {
+      const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+      return Boolean(tarjeta && document.activeElement && tarjeta.contains(document.activeElement));
+    });
+    expect(focoDentroDeLaActual, 'el foco debería quedar dentro de la tarjeta actual al cerrar, nunca en <body>').toBe(true);
+    expect(await page.evaluate(() => document.activeElement === document.body), 'el foco no debería perderse en <body>').toBe(false);
+  });
+
+  // Ola final de revisión (adversarial A1 + A3): una doble apertura no debe reconstruir el clon dos
+  // veces ni perder la referencia de la apertura real; 30 ciclos abrir/cerrar no deben dejar nodos
+  // residuales en el DOM ni acumular errores de JS (listeners registrados una sola vez al cargar el
+  // módulo, nunca dentro de abrirVisualCompleta/cerrarVisualCompleta).
+  test('una doble apertura no clona el medio dos veces (A1); 30 ciclos abrir/cerrar no dejan nodos residuales ni errores (A3)', async ({
+    page,
+  }) => {
+    const errores = [];
+    page.on('pageerror', (e) => errores.push(e.message));
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'n');
+    const t = await jugarYRevelar(page, idImagen, 'pc-n');
+    const overlay = page.locator('[data-test="visual-completa"]');
+
+    // A1: dos toques en el mismo tick de JS (sin await entre ellos) sobre la misma zona -- la
+    // segunda apertura debe ignorarse (nodoVisualCompleta ya no está `hidden`), sin reconstruir el
+    // clon ni perder la referencia de foco de la apertura real.
+    await page.evaluate(() => {
+      const zona = document.querySelector('.tarjeta-mazo--actual [data-test="visual-abrir"]');
+      zona.click();
+      zona.click();
+    });
+    await expect(overlay).toBeVisible();
+    const hijosMedioTrasDobleToque = await page.evaluate(
+      () => document.querySelector('[data-test="visual-completa-medio"]').children.length
+    );
+    expect(hijosMedioTrasDobleToque, 'una doble apertura no debería clonar el medio dos veces').toBe(1);
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+    const focoEnZonaTrasDobleToque = await page.evaluate(
+      () => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.test === 'visual-abrir'
+    );
+    expect(focoEnZonaTrasDobleToque, 'el foco debería volver a la zona correctamente tras una doble apertura').toBe(true);
+
+    // A3: 30 ciclos abrir/cerrar.
+    const zona = t.locator('[data-test="visual-abrir"]');
+    for (let i = 0; i < 30; i += 1) {
+      await zona.click();
+      await expect(overlay).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(overlay).toBeHidden();
+    }
+
+    const hijosResiduales = await page.evaluate(() => ({
+      medio: document.querySelector('[data-test="visual-completa-medio"]').children.length,
+      pie: document.querySelector('[data-test="visual-completa-pie"]').children.length,
+    }));
+    expect(hijosResiduales, 'no deberían quedar nodos residuales tras 30 ciclos').toEqual({ medio: 0, pie: 0 });
+    expect(errores, `errores JS durante los ciclos: ${errores.join('; ')}`).toEqual([]);
+
+    // Sigue funcionando con normalidad después de los 30 ciclos (ni un Escape "acumulado" cierra
+    // dos veces de forma anómala, ni Tab se comporta distinto).
+    await zona.click();
+    await expect(overlay).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
+  // Ola final de revisión (Minor #1 + Minor #4): el clon de la imagen debe conservar
+  // `referrerPolicy="no-referrer"` (si no, un fallo de caché real filtraría el origen de la app a
+  // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon del SVG de
+  // la tarjeta tipográfica no debe duplicar el `id` del degradado radial del original (HTML inválido,
+  // aunque hoy sea inocuo porque las dos definiciones son idénticas).
+  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon del SVG no duplica el id del degradado (M4)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen, idClave } = await inyectarImagenYClave(page, 'o');
+    const overlay = page.locator('[data-test="visual-completa"]');
+
+    let t = await jugarYRevelar(page, idImagen, 'pc-o1');
+    await t.locator('[data-test="visual-abrir"]').click();
+    await expect(overlay).toBeVisible();
+    const referrerPolicy = await page.evaluate(() => document.querySelector('.visual-completa-media').referrerPolicy);
+    expect(referrerPolicy, 'el clon de la imagen debería conservar referrerPolicy="no-referrer"').toBe('no-referrer');
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+
+    t = await jugarYRevelar(page, idClave, 'pc-o2');
+    await t.locator('[data-test="visual-abrir"]').click();
+    await expect(overlay).toBeVisible();
+    const fills = await page.evaluate(() => {
+      const original = document.querySelector('.tarjeta-mazo--actual .visual-clave-fondo');
+      const clon = document.querySelector('[data-test="visual-completa-medio"] .visual-clave-fondo');
+      return {
+        original: original ? original.getAttribute('fill') : null,
+        clon: clon ? clon.getAttribute('fill') : null,
+      };
+    });
+    expect(fills.original, 'no se encontró el rect de fondo original').not.toBeNull();
+    expect(fills.clon, 'no se encontró el rect de fondo clonado').not.toBeNull();
+    expect(fills.clon, 'el fill del rect clonado no debería seguir apuntando al mismo id que el original (duplicado)').not.toBe(
+      fills.original
+    );
+    // Cada id referenciado (el del original y el del clon, renombrado) existe UNA sola vez en el documento.
+    const apariciones = await page.evaluate((valoresFill) =>
+      valoresFill.map((f) => {
+        const id = f.match(/url\(#(.+)\)/)[1];
+        return document.querySelectorAll(`#${CSS.escape(id)}`).length;
+      })
+    , [fills.original, fills.clon]);
+    expect(apariciones).toEqual([1, 1]);
+  });
 });
