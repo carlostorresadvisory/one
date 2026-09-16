@@ -5194,14 +5194,10 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     return t;
   }
 
-  test('abre desde la imagen en partida: hidden=false, contenido ≥80% del ancho de la ventana, foco en el diálogo, cierra por toque en cualquier sitio, foco vuelve a la zona y el mazo sigue en la misma tarjeta', async ({
+  test('abre desde la imagen en partida: hidden=false, contenido ≥80% del ancho de la ventana, foco en el botón de cierre, cierra por toque en cualquier sitio, foco vuelve a la zona y el mazo sigue en la misma tarjeta', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    // Geometría/captura deterministas (mismo motivo que el resto de la suite de "protagonismo
-    // visual": sin esto, medir/capturar justo tras abrir puede pillar el fundido de 160ms a mitad
-    // de camino -- Playwright no espera animaciones CSS por su cuenta).
-    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -5222,15 +5218,17 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     });
     expect(anchoRatio, `el contenido mide ${(anchoRatio * 100).toFixed(1)}% del ancho de la ventana`).toBeGreaterThanOrEqual(0.8);
 
-    const focoEsElDialogo = await page.evaluate(
-      () => document.activeElement === document.querySelector('[data-test="visual-completa"]')
+    // Ronda 1 de revisión (Important #2/#3): el foco al abrir va al botón de cierre, el ÚNICO
+    // elemento enfocable del diálogo -- ya no al contenedor `.visual-completa` en sí.
+    const focoEsElBotonCerrar = await page.evaluate(
+      () => document.activeElement === document.querySelector('[data-test="visual-cerrar"]')
     );
-    expect(focoEsElDialogo, 'el foco no está en el diálogo al abrir').toBe(true);
+    expect(focoEsElBotonCerrar, 'el foco no está en el botón de cierre al abrir').toBe(true);
 
-    await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
-
-    // Toque en cualquier sitio (spec §8): la esquina, no el centro -- no hace falta acertar el medio.
-    await overlay.click({ position: { x: 10, y: 10 } });
+    // Toque en cualquier sitio (spec §8): lejos del botón de cierre (arriba-izquierda, 44x44) para
+    // que esta comprobación sea de verdad "cualquier sitio" y no coincida con el test dedicado del
+    // botón (I2, más abajo).
+    await overlay.click({ position: { x: 300, y: 750 } });
     expect(await overlay.evaluate((el) => el.hidden), 'un toque en cualquier sitio debe cerrar').toBe(true);
 
     const focoEnZona = await page.evaluate(
@@ -5247,6 +5245,14 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
+    // Ronda 1 de revisión (Important #1): la captura del brief (docs/capturas/v0.2a2-completa-375.png)
+    // se toma AQUÍ, no desde la imagen -- el fixture de imagen de ?ejemplo=1 es un PNG 1x1 (data:
+    // URI), así que esa captura salía negra sin mostrar ni encaje ni contenido real. La tarjeta
+    // tipográfica es determinista y sin red: SIEMPRE tiene el mismo degradado + texto, sin depender
+    // de qué imagen use el fixture del momento. reducedMotion evita pillar el fundido de 160ms a
+    // mitad de camino (mismo motivo que el resto de la suite de "protagonismo visual" -- Playwright
+    // no espera animaciones CSS por su cuenta y su toBeVisible() no mira `opacity`).
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -5277,6 +5283,8 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
       return rect ? getComputedStyle(rect).display : null;
     });
     expect(rectFondoEnSuperposicion, 'el rect de fondo del SVG clonado debe verse fuera de .zona-imagen--clave').not.toBe('none');
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
 
     await page.keyboard.press('Escape');
     expect(await overlay.evaluate((el) => el.hidden), 'Escape debe cerrar la superposición').toBe(true);
@@ -5409,5 +5417,103 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     expect(await overlay.evaluate((el) => el.hidden)).toBe(false);
     await page.keyboard.press('Escape');
     expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  // Ronda 1 de revisión (Important #2): la flecha "←" de la cabecera dejó de cerrar la
+  // superposición (era inalcanzable por un toque real, tapada por la propia superposición) --
+  // este botón de dentro es su reemplazo, y este test lo ejercita con una interacción real.
+  test('el botón de cierre (44×44, arriba a la izquierda) cierra la superposición', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'g');
+    const t = await jugarYRevelar(page, idImagen, 'pc-g');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const boton = page.locator('[data-test="visual-cerrar"]');
+    await expect(boton).toHaveAttribute('aria-label', 'Cerrar');
+    const caja = await boton.boundingBox();
+    expect(caja).not.toBeNull();
+    expect(caja.width, 'el botón de cierre debe medir al menos 44px de ancho').toBeGreaterThanOrEqual(44);
+    expect(caja.height, 'el botón de cierre debe medir al menos 44px de alto').toBeGreaterThanOrEqual(44);
+
+    await boton.click();
+    expect(await overlay.evaluate((el) => el.hidden), 'el botón de cierre debe cerrar la superposición').toBe(true);
+  });
+
+  // Ronda 1 de revisión (Important #3): trampa de foco -- con un solo elemento enfocable dentro del
+  // diálogo (el botón de cierre), Tab/Shift+Tab no deben sacar el foco hacia los controles de la
+  // vista de debajo (tapados pero técnicamente presentes en el DOM mientras la superposición está
+  // abierta y capturando punteros).
+  test('trampa de foco: Tab y Shift+Tab no sacan el foco de la superposición', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'h');
+    const t = await jugarYRevelar(page, idImagen, 'pc-h');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const focoDentro = async () =>
+      page.evaluate(() => {
+        const dialogo = document.querySelector('[data-test="visual-completa"]');
+        return Boolean(dialogo && document.activeElement && dialogo.contains(document.activeElement));
+      });
+
+    expect(await focoDentro(), 'el foco no empieza dentro de la superposición').toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await focoDentro(), 'Tab sacó el foco de la superposición').toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await focoDentro(), 'un segundo Tab sacó el foco de la superposición').toBe(true);
+    await page.keyboard.press('Shift+Tab');
+    expect(await focoDentro(), 'Shift+Tab sacó el foco de la superposición').toBe(true);
+
+    // Sigue siendo el botón de cierre en concreto (único enfocable), no solo "algo" dentro del diálogo.
+    const focoEsElBoton = await page.evaluate(
+      () => document.activeElement === document.querySelector('[data-test="visual-cerrar"]')
+    );
+    expect(focoEsElBoton, 'el foco debería seguir en el botón de cierre tras Tab/Shift+Tab').toBe(true);
+  });
+
+  // Ronda 1 de revisión (Important #4): la atribución (autor/licencia/enlace a Commons) ya no se
+  // pierde en pantalla completa -- el pie reutiliza el MISMO figcaption que la tarjeta, con el
+  // fixture de e2e (his-001: "Autor de ejemplo", "CC BY-SA 4.0", licencia que SÍ exige atribución).
+  test('el pie de la imagen en pantalla completa contiene la leyenda, el autor, la licencia y un enlace a Commons', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'i');
+    const t = await jugarYRevelar(page, idImagen, 'pc-i');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const pie = page.locator('[data-test="visual-completa-pie"]');
+    await expect(pie).toBeVisible();
+    await expect(pie.locator('.imagen-pie-leyenda')).toHaveText('La toma de la Bastilla, 14 de julio de 1789 (imagen de ejemplo para el e2e)');
+    const atribucion = pie.locator('.imagen-pie-atribucion');
+    await expect(atribucion).toContainText('Autor de ejemplo');
+    await expect(atribucion).toContainText('CC BY-SA 4.0');
+    const enlace = atribucion.locator('a');
+    await expect(enlace).toHaveText('Commons');
+    await expect(enlace).toHaveAttribute('target', '_blank');
+    await expect(enlace).toHaveAttribute('rel', 'noopener');
+    await expect(enlace).toHaveAttribute('href', 'https://commons.wikimedia.org/wiki/File:Ejemplo-toma-bastilla.png');
+
+    // El enlace clonado sigue sin abrir/cerrar la superposición al tocarlo (stopPropagation propio,
+    // no heredado de cloneNode -- ver construirPieVisualCompleta).
+    await enlace.evaluate((a) => a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
+    expect(await overlay.evaluate((el) => el.hidden), 'el enlace de atribución clonado no debe cerrar la superposición').toBe(false);
   });
 });
