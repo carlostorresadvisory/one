@@ -455,24 +455,28 @@ export function calcularLineasClamp(el, contenedor, minimo) {
 
 /**
  * Regla de encaje sin scroll (spec v0.1c §4.2, cascada de la tarjeta revelada
- * reescrita en spec §8/v0.2a.2 — "protagonismo visual"). Ninguna tarjeta hace
- * scroll: lo que cede espacio primero es la respuesta ya fija, luego el
- * tamaño del enunciado, luego la explicación (recortada con line-clamp
- * calculado) y, en la tarjeta revelada, la propia visual (mínimo 30% de
- * `.tarjeta-contenido`, nunca se quita). Se llama tras cada render del mazo y
- * en resize/orientationchange.
+ * reescrita en spec §8/v0.2a.2 — "protagonismo visual", con un último recorte
+ * de enunciado añadido en la Ronda 1 de revisión de la Tarea 2, I2). Ninguna
+ * tarjeta hace scroll: lo que cede espacio primero es la respuesta ya fija,
+ * luego el tamaño del enunciado, luego la explicación (recortada con
+ * line-clamp calculado) y, en la tarjeta revelada, la propia visual (mínimo
+ * 30% de `.tarjeta-contenido`, nunca se quita); si con todo eso no basta, el
+ * enunciado se recorta también con line-clamp calculado (mínimo 2 líneas)
+ * antes del último recurso, que vuelve a recortar la explicación a 1 línea.
+ * Se llama tras cada render del mazo y en resize/orientationchange.
  */
 export function ajustarEncaje(tarjetaNodo) {
   if (!tarjetaNodo) return;
+  // Ronda 1 de revisión de la Tarea 2 (M3): se retiran de este reset
+  // 'tarjeta--sin-respuestas'/'--sin-enunciado'/'--explicacion-menor'/
+  // '--explicacion-minima' -- ninguna rama de esta función las añade ya
+  // (grep lo confirma), y su CSS también se retiró (ver estilos.css). Las
+  // que quedan SÍ las usa alguna de las dos ramas de abajo.
   tarjetaNodo.classList.remove(
     'tarjeta--compacta-1',
-    'tarjeta--sin-respuestas',
     'tarjeta--enunciado-menor',
-    'tarjeta--sin-enunciado',
     'tarjeta--opciones-compactas',
     'tarjeta--enunciado-clamp',
-    'tarjeta--explicacion-menor',
-    'tarjeta--explicacion-minima',
     'tarjeta--explicacion-clamp',
     // spec §8 / v0.2a.2 (Tarea 2): paso nuevo de la cascada revelada — 14px
     // de enunciado, un paso más compacto que tarjeta--enunciado-menor (15px,
@@ -548,11 +552,11 @@ export function ajustarEncaje(tarjetaNodo) {
   // Cascada de la tarjeta REVELADA (spec §8, enmienda 16-sep-2026, v0.2a.2
   // "protagonismo visual" — SUSTITUYE la cascada anterior de v0.1d §3/§4
   // entera: ya no hay tarjeta--sin-respuestas/--sin-enunciado/
-  // --explicacion-menor/--explicacion-minima en esta rama, aunque su CSS
-  // sigue en estilos.css por si acaso — grep confirma que la cascada SIN
-  // responder de arriba no las usa). La visual NUNCA se pliega por debajo
-  // del 30% ni se quita: es la penúltima en ceder, justo antes del recorte
-  // final de la explicación. Se para en el primer paso en el que ya cabe:
+  // --explicacion-menor/--explicacion-minima en esta rama — su CSS, muerto
+  // desde entonces (grep confirmó que la cascada SIN responder de arriba
+  // tampoco las usa nunca), se retiró en la Ronda 1 de revisión de la Tarea 2
+  // (M3). La visual NUNCA se pliega por debajo del 30% ni se quita. Se para
+  // en el primer paso en el que ya cabe:
   //  (a) la respuesta pasa a una sola línea ("Respuesta: X ✓" / "Orden: A ›
   //      B › C › D…", tarjeta--compacta-1, ya existía).
   //  (b) el enunciado baja a 14px (tarjeta--enunciado-14) — un paso más que
@@ -564,7 +568,18 @@ export function ajustarEncaje(tarjetaNodo) {
   //      (mismo cálculo que calcularLineasClamp ya usaba, ver abajo).
   //  (d) la visual (imagen/visual de datos/tarjeta tipográfica, todas
   //      `.zona-imagen`) baja su suelo del 40% al 30% (zona-imagen--reducida).
-  //  (e) último recurso (no debería hacer falta con el banco actual): la
+  //  (e) Ronda 1 de revisión de la Tarea 2 (I2): último recurso antes de la
+  //      explicación, el ENUNCIADO se recorta también con line-clamp
+  //      CALCULADO, mínimo 2 líneas (reutiliza tarjeta--enunciado-clamp, el
+  //      mismo mecanismo que ya usa la cascada SIN responder de arriba) — sin
+  //      este paso, un enunciado largo en una tarjeta ya revelada no tenía
+  //      ninguna red de seguridad más allá del tamaño de letra fijo (hallazgo
+  //      de la revisión: el e2e de esta misma cascada, con un enunciado
+  //      sintético `.repeat(4)`, desbordaba sin converger). Acotar la
+  //      longitud real del enunciado en el pipeline de generación/validación
+  //      sigue siendo deuda para v0.2c — Carlos decide si hace falta además
+  //      de esta red de seguridad, ver nota en task-2-report.md.
+  //  (f) último recurso (no debería hacer falta con el banco actual): la
   //      explicación se recorta aún más, a 1 línea mínima.
   tarjetaNodo.classList.add('tarjeta--compacta-1');
   if (cabe()) return;
@@ -580,6 +595,12 @@ export function ajustarEncaje(tarjetaNodo) {
 
   if (zonaImagenEl) {
     zonaImagenEl.classList.add('zona-imagen--reducida');
+    if (cabe()) return;
+  }
+
+  if (enunciadoEl && contenidoEl) {
+    tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
+    calcularLineasClamp(enunciadoEl, contenidoEl, 2);
     if (cabe()) return;
   }
 

@@ -2633,8 +2633,9 @@ function construirBloqueFeedback(pregunta, hueco) {
 
   // Sin toque para desplegar/plegar (spec v0.1d §3/§4, cambio de contrato de
   // Carlos 13-sep 10:15/10:19: "evitar cantidad de clics"): si no cabe, la
-  // cascada de ajustarEncaje la encoge (tarjeta--explicacion-menor/-minima) o,
-  // como último recurso, la recorta con line-clamp — nunca con una alternancia
+  // cascada de ajustarEncaje (reescrita en spec §8/v0.2a.2) la recorta con
+  // line-clamp calculado (tarjeta--explicacion-clamp, dos veces: mínimo 2
+  // líneas y, como último recurso, mínimo 1) — nunca con una alternancia
   // táctil que el jugador tenga que descubrir.
   const explicacion = document.createElement('p');
   explicacion.className = 'explicacion';
