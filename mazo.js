@@ -365,6 +365,15 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
 
   function alKeydown(ev) {
     if (!estaVisible()) return;
+    // Ronda final de revisión (Important #1): con la pantalla completa abierta (app.js#abrirVisualCompleta,
+    // spec §8, Tarea 3) el mazo de debajo NO debe navegar con el teclado -- `estaVisible()` de arriba
+    // solo mira si la VISTA está activa, no si hay un diálogo por encima capturando la interacción,
+    // así que ArrowUp/PageUp seguían avanzando el mazo mientras la superposición mostraba, sin que el
+    // jugador lo viera, una tarjeta que ya no era la actual (contradice el propio contrato de
+    // index.html: "mientras está abierta captura todos los eventos: el mazo de debajo no recibe
+    // gestos"). mazo.js no tiene una referencia directa a `.visual-completa` (vive en app.js): un
+    // selector es más barato que inventar un canal de comunicación entre los dos módulos para esto.
+    if (document.querySelector('.visual-completa:not([hidden])')) return;
     if (ev.key === 'ArrowUp' || ev.key === 'PageUp') {
       ev.preventDefault();
       intentarIr(indice + 1);
@@ -454,28 +463,44 @@ export function calcularLineasClamp(el, contenedor, minimo) {
 }
 
 /**
- * Regla de encaje sin scroll (spec v0.1c §4.2). Ninguna tarjeta hace scroll ni
- * cambia tamaños de letra: lo que cede espacio es la respuesta ya fija y, si
- * aún no basta, la explicación (recortada con line-clamp calculado). Se llama
- * tras cada render del mazo y en resize/orientationchange.
+ * Regla de encaje sin scroll (spec v0.1c §4.2, cascada de la tarjeta revelada
+ * reescrita en spec §8/v0.2a.2 — "protagonismo visual", con un último recorte
+ * de enunciado añadido en la Ronda 1 de revisión de la Tarea 2, I2). Ninguna
+ * tarjeta hace scroll: lo que cede espacio primero es la respuesta ya fija,
+ * luego el tamaño del enunciado, luego la explicación (recortada con
+ * line-clamp calculado) y, en la tarjeta revelada, la propia visual (mínimo
+ * 30% de `.tarjeta-contenido`, nunca se quita); si con todo eso no basta, el
+ * enunciado se recorta también con line-clamp calculado (mínimo 2 líneas)
+ * antes del último recurso, que vuelve a recortar la explicación a 1 línea.
+ * Se llama tras cada render del mazo y en resize/orientationchange.
  */
 export function ajustarEncaje(tarjetaNodo) {
   if (!tarjetaNodo) return;
+  // Ronda 1 de revisión de la Tarea 2 (M3): se retiran de este reset
+  // 'tarjeta--sin-respuestas'/'--sin-enunciado'/'--explicacion-menor'/
+  // '--explicacion-minima' -- ninguna rama de esta función las añade ya
+  // (grep lo confirma), y su CSS también se retiró (ver estilos.css). Las
+  // que quedan SÍ las usa alguna de las dos ramas de abajo.
   tarjetaNodo.classList.remove(
     'tarjeta--compacta-1',
-    'tarjeta--sin-respuestas',
     'tarjeta--enunciado-menor',
-    'tarjeta--sin-enunciado',
     'tarjeta--opciones-compactas',
     'tarjeta--enunciado-clamp',
-    'tarjeta--explicacion-menor',
-    'tarjeta--explicacion-minima',
-    'tarjeta--explicacion-clamp'
+    'tarjeta--explicacion-clamp',
+    // spec §8 / v0.2a.2 (Tarea 2): paso nuevo de la cascada revelada — 14px
+    // de enunciado, un paso más compacto que tarjeta--enunciado-menor (15px,
+    // que sigue siendo el paso (a) de la cascada SIN responder de más abajo).
+    'tarjeta--enunciado-14'
   );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
   const enunciadoEl = tarjetaNodo.querySelector('.enunciado');
   if (enunciadoEl) enunciadoEl.style.webkitLineClamp = '';
+  // zona-imagen--reducida (spec §8) vive en `.zona-imagen`, no en la tarjeta
+  // (el CSS `.tarjeta--revelada .zona-imagen--reducida` la apunta ahí): se
+  // resetea aparte, en las dos ramas de la cascada de abajo por igual.
+  const zonaImagenEl = tarjetaNodo.querySelector('.zona-imagen');
+  if (zonaImagenEl) zonaImagenEl.classList.remove('zona-imagen--reducida');
 
   // Se mide `.tarjeta-contenido`, NO la tarjeta entera (hallazgo de la Tarea
   // 3b probando con art-003 + su imagen real a 430×932): la tarjeta es una
@@ -533,48 +558,62 @@ export function ajustarEncaje(tarjetaNodo) {
     return;
   }
 
-  // Cascada de la tarjeta RESPONDIDA, automática y sin ningún toque para
-  // desplegar/plegar (decisión de Carlos, 13-sep 10:19, sustituye la de las
-  // 10:15: "lo que sale primero si no hay espacio son las respuestas; si no,
-  // se reduce el tamaño de la pregunta; si no, desaparece la pregunta. La
-  // imagen y la explicación es lo que más valor añadido tiene después de
-  // responder"). Se para en el primer paso en el que ya cabe:
-  //  (a) la imagen (si la hay) ya se ha encogido por flex hasta su mínimo de
-  //      90px — es pasivo (CSS), no un paso de esta cascada, y la imagen
-  //      NUNCA se quita: es de lo último que Carlos quiere sacrificar.
-  //  (b) la respuesta pasa a una sola línea ("Respuesta: X ✓" / "Orden: A ›
+  // Cascada de la tarjeta REVELADA (spec §8, enmienda 16-sep-2026, v0.2a.2
+  // "protagonismo visual" — SUSTITUYE la cascada anterior de v0.1d §3/§4
+  // entera: ya no hay tarjeta--sin-respuestas/--sin-enunciado/
+  // --explicacion-menor/--explicacion-minima en esta rama — su CSS, muerto
+  // desde entonces (grep confirmó que la cascada SIN responder de arriba
+  // tampoco las usa nunca), se retiró en la Ronda 1 de revisión de la Tarea 2
+  // (M3). La visual NUNCA se pliega por debajo del 30% ni se quita. Se para
+  // en el primer paso en el que ya cabe:
+  //  (a) la respuesta pasa a una sola línea ("Respuesta: X ✓" / "Orden: A ›
   //      B › C › D…", tarjeta--compacta-1, ya existía).
-  //  (c) la respuesta desaparece del todo (ni la línea): tarjeta--sin-respuestas.
-  //  (d) el enunciado baja un paso de tamaño (a 15px, interlineado 1,3):
-  //      tarjeta--enunciado-menor. Única relajación de "los tamaños de letra
-  //      no cambian" fuera de la explicación, aprobada explícitamente por
-  //      Carlos para este caso.
-  //  (e) el enunciado desaparece entero (queda la cabecera "Área · nivel" y
-  //      la fila de confianza): tarjeta--sin-enunciado.
-  //  (f) la explicación baja de tamaño en dos pasos (14px, luego 13px con más
-  //      interlineado): tarjeta--explicacion-menor / tarjeta--explicacion-minima.
-  //  (g) último recurso (no debería hacer falta con el banco actual): recorte
-  //      con line-clamp calculado y "…", sin toque para desplegarla.
+  //  (b) el enunciado baja a 14px (tarjeta--enunciado-14) — un paso más que
+  //      los 15px fijos de la tarjeta revelada (ver .tarjeta--revelada
+  //      .enunciado en estilos.css), no los 15px de tarjeta--enunciado-menor
+  //      (paso (a) de la cascada SIN responder de arriba, que sigue partiendo
+  //      del tamaño grande con clamp()).
+  //  (c) la explicación se recorta con line-clamp CALCULADO, mínimo 2 líneas
+  //      (mismo cálculo que calcularLineasClamp ya usaba, ver abajo).
+  //  (d) la visual (imagen/visual de datos/tarjeta tipográfica, todas
+  //      `.zona-imagen`) baja su suelo del 40% al 30% (zona-imagen--reducida).
+  //  (e) Ronda 1 de revisión de la Tarea 2 (I2): último recurso antes de la
+  //      explicación, el ENUNCIADO se recorta también con line-clamp
+  //      CALCULADO, mínimo 2 líneas (reutiliza tarjeta--enunciado-clamp, el
+  //      mismo mecanismo que ya usa la cascada SIN responder de arriba) — sin
+  //      este paso, un enunciado largo en una tarjeta ya revelada no tenía
+  //      ninguna red de seguridad más allá del tamaño de letra fijo (hallazgo
+  //      de la revisión: el e2e de esta misma cascada, con un enunciado
+  //      sintético `.repeat(4)`, desbordaba sin converger). Acotar la
+  //      longitud real del enunciado en el pipeline de generación/validación
+  //      sigue siendo deuda para v0.2c — Carlos decide si hace falta además
+  //      de esta red de seguridad, ver nota en task-2-report.md.
+  //  (f) último recurso (no debería hacer falta con el banco actual): la
+  //      explicación se recorta aún más, a 1 línea mínima.
   tarjetaNodo.classList.add('tarjeta--compacta-1');
   if (cabe()) return;
 
-  tarjetaNodo.classList.add('tarjeta--sin-respuestas');
+  tarjetaNodo.classList.add('tarjeta--enunciado-14');
   if (cabe()) return;
 
-  tarjetaNodo.classList.add('tarjeta--enunciado-menor');
-  if (cabe()) return;
+  if (explicacionEl && contenidoEl) {
+    tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
+    calcularLineasClamp(explicacionEl, contenidoEl, 2);
+    if (cabe()) return;
+  }
 
-  tarjetaNodo.classList.add('tarjeta--sin-enunciado');
-  if (cabe()) return;
+  if (zonaImagenEl) {
+    zonaImagenEl.classList.add('zona-imagen--reducida');
+    if (cabe()) return;
+  }
 
-  if (!explicacionEl || !contenidoEl) return;
+  if (enunciadoEl && contenidoEl) {
+    tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
+    calcularLineasClamp(enunciadoEl, contenidoEl, 2);
+    if (cabe()) return;
+  }
 
-  tarjetaNodo.classList.add('tarjeta--explicacion-menor');
-  if (cabe()) return;
-
-  tarjetaNodo.classList.add('tarjeta--explicacion-minima');
-  if (cabe()) return;
-
-  tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
-  calcularLineasClamp(explicacionEl, contenidoEl, 1);
+  if (explicacionEl && contenidoEl) {
+    calcularLineasClamp(explicacionEl, contenidoEl, 1);
+  }
 }

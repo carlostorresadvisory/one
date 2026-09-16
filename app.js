@@ -16,7 +16,7 @@ import {
   listarNoRespondidas,
   AREAS,
 } from './motor.js';
-import { construirVisual } from './visuales.js';
+import { construirVisual, construirVisualClave } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -286,6 +286,13 @@ const nodoConectar = document.querySelector('[data-test="conectar"]');
 const nodoConectarTexto = document.querySelector('[data-test="conectar-texto"]');
 const nodoConectarError = document.querySelector('[data-test="conectar-error"]');
 const nodoConectarHecho = document.querySelector('[data-test="conectar-hecho"]');
+// Ver a pantalla completa (spec §8, Tarea 3): superposición fuera de <main> (ver index.html), con
+// el botón de cierre, el "medio" (imagen/SVG clonados) y el pie como únicos hijos que
+// app.js#abrirVisualCompleta rellena en cada apertura.
+const nodoVisualCompleta = document.querySelector('[data-test="visual-completa"]');
+const nodoVisualCompletaCerrar = document.querySelector('[data-test="visual-cerrar"]');
+const nodoVisualCompletaMedio = document.querySelector('[data-test="visual-completa-medio"]');
+const nodoVisualCompletaPie = document.querySelector('[data-test="visual-completa-pie"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -1854,14 +1861,34 @@ function finalizarPartida() {
  * v0.1d §1 a la derecha si se pasa `contadorTexto` ("3/10" en la partida,
  * "2/5" en el repaso — cada llamador decide cuál según el contexto). Sin
  * contador, la cabecera queda igual que en v0.1c (usado nunca hoy, pero deja
- * la función utilizable sin el segundo argumento). */
-function construirCabeceraPregunta(pregunta, contadorTexto) {
+ * la función utilizable sin el segundo argumento).
+ *
+ * `marca` (spec §8, v0.2a.2 — "la cabecera con nivel y la marca de repaso se
+ * funden en la misma línea"): opcional `{ texto, clase, dataTest }`, se pinta
+ * ENTRE el área/nivel y el contador. `construirTarjetaRepaso` es el único
+ * llamador que la pasa; antes vivía como un `<p class="repaso-marca">` aparte
+ * insertado después de esta cabecera (`insertAdjacentElement('afterend', …)`
+ * en construirTarjetaRepaso) — ahora es un `<span>` más, tercer hijo de
+ * `.pregunta-cabecera` (CSS: el contador se ancla a la derecha con
+ * margin-left:auto sobre sí mismo, ya no con justify-content:space-between,
+ * que con 3 hijos habría centrado la marca en vez de dejarla junto al
+ * texto). `clase` ya lleva el modificador completo (p. ej.
+ * "repaso-marca--fallo"); `dataTest` solo lo trae la marca "sin responder"
+ * (spec v0.2a.1 §7), igual que antes. */
+function construirCabeceraPregunta(pregunta, contadorTexto, marca) {
   const cabecera = document.createElement('p');
   cabecera.className = 'pregunta-cabecera';
   cabecera.dataset.test = 'nivel-pregunta';
   const texto = document.createElement('span');
   texto.textContent = `${nombreArea(pregunta.area)} · nivel ${pregunta.nivel}`;
   cabecera.appendChild(texto);
+  if (marca) {
+    const marcaEl = document.createElement('span');
+    marcaEl.className = `repaso-marca ${marca.clase}`;
+    if (marca.dataTest) marcaEl.dataset.test = marca.dataTest;
+    marcaEl.textContent = marca.texto;
+    cabecera.appendChild(marcaEl);
+  }
   if (contadorTexto) {
     const contador = document.createElement('span');
     contador.dataset.test = 'mazo-contador';
@@ -2613,8 +2640,9 @@ function construirBloqueFeedback(pregunta, hueco) {
 
   // Sin toque para desplegar/plegar (spec v0.1d §3/§4, cambio de contrato de
   // Carlos 13-sep 10:15/10:19: "evitar cantidad de clics"): si no cabe, la
-  // cascada de ajustarEncaje la encoge (tarjeta--explicacion-menor/-minima) o,
-  // como último recurso, la recorta con line-clamp — nunca con una alternancia
+  // cascada de ajustarEncaje (reescrita en spec §8/v0.2a.2) la recorta con
+  // line-clamp calculado (tarjeta--explicacion-clamp, dos veces: mínimo 2
+  // líneas y, como último recurso, mínimo 1) — nunca con una alternancia
   // táctil que el jugador tenga que descubrir.
   const explicacion = document.createElement('p');
   explicacion.className = 'explicacion';
@@ -2650,8 +2678,25 @@ function construirAtribucionImagen(datos) {
   enlace.target = '_blank';
   enlace.rel = 'noopener';
   enlace.textContent = 'Commons';
+  // Ver a pantalla completa (spec §8, Tarea 3, decisión del controlador): "los enlaces de
+  // atribución del pie siguen funcionando" -- sin este stopPropagation, el toque burbujearía hasta
+  // el listener delegado del contenedor de tarjetas y abriría la superposición A LA VEZ que este
+  // enlace navega a Commons.
+  enlace.addEventListener('click', (ev) => ev.stopPropagation());
   p.appendChild(enlace);
   return p;
+}
+
+/** Ver a pantalla completa (spec §8, Tarea 3): marca CUALQUIER `.zona-imagen` (imagen, visual de
+ * datos o tarjeta tipográfica) como tocable -- el abrir en sí lo hace un único listener delegado
+ * por contenedor de mazo (`alClicContenedorTarjetas`/`alKeydownContenedorTarjetas`, más abajo), no
+ * uno por tarjeta; esta función solo pone los atributos que hacen falta para que el ratón, el
+ * teclado (Enter/Espacio) y un lector de pantalla sepan que es interactiva. */
+function marcarZonaImagenAbrible(zona) {
+  zona.setAttribute('role', 'button');
+  zona.tabIndex = 0;
+  zona.setAttribute('aria-label', 'Ver a pantalla completa');
+  zona.dataset.test = 'visual-abrir';
 }
 
 /** Bloque de imagen: figura + pie, sin enlace "Ver imagen" (spec v0.1d §4,
@@ -2684,23 +2729,18 @@ function construirBloqueImagen(pregunta) {
   // prioridad fija imagen->visual de construirTarjetaRespondida se decide en
   // el momento de construir la tarjeta, cuando la imagen "existe" a efectos
   // de datos aunque su carga real falle después — sin este respaldo, una
-  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno). Si
-  // `construirBloqueVisual` también devuelve null (sin visual, o inválido),
-  // se cae al comportamiento anterior: se quita el bloque entero y la marca
-  // de "hay imagen" del contenido (vuelve a centrarse como si nunca hubiera
-  // tenido imagen, spec v0.1d §3). Se recalcula el encaje en ambos casos,
+  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno).
+  // Spec §8 (v0.2a.2): el respaldo cae a la CAPA SIGUIENTE, nunca a "sin
+  // visual" — si `construirBloqueVisual` tampoco tiene datos, cae a la
+  // tercera capa, `construirBloqueVisualClave`, que no lanza y nunca
+  // devuelve null (garantiza el 100% con visual). Se recalcula el encaje
   // porque el alto disponible cambia.
   img.addEventListener('error', () => {
     const tarjeta = zona.closest('.tarjeta');
     const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
-    const respaldo = construirBloqueVisual(pregunta);
-    if (respaldo) {
-      zona.replaceWith(respaldo);
-      if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
-    } else {
-      zona.remove();
-      if (contenido) contenido.classList.remove('tarjeta-contenido--imagen');
-    }
+    const respaldo = construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
+    zona.replaceWith(respaldo);
+    if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
     if (tarjeta) ajustarEncaje(tarjeta);
   });
   figura.appendChild(img);
@@ -2716,6 +2756,7 @@ function construirBloqueImagen(pregunta) {
   figura.appendChild(pie);
 
   zona.appendChild(figura);
+  marcarZonaImagenAbrible(zona);
   return zona;
 }
 
@@ -2746,26 +2787,273 @@ function construirBloqueVisual(pregunta) {
   leyenda.textContent = (pregunta.visual && pregunta.visual.leyenda) || '';
   zona.appendChild(leyenda);
 
+  marcarZonaImagenAbrible(zona);
   return zona;
 }
 
+/** Bloque de la TERCERA capa (spec §8, v0.2a.2, Tarea 1: `construirVisualClave`
+ * en visuales.js): la tarjeta tipográfica que garantiza el 100% con visual
+ * cuando no hay ni imagen de Commons ni visual de datos — también cubre toda
+ * pregunta `srv-` del servidor que llegue sin ninguno de los dos (Ruling R3).
+ * Misma caja flexible que la imagen/el visual (`.zona-imagen`, con las clases
+ * extra `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia
+ * de `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
+ * devuelve null: `construirVisualClave` no lanza y siempre entrega un SVG
+ * (con solo el área si la pregunta viene rota) — es el fin de la cascada de
+ * tres capas, nunca "sin visual". */
+function construirBloqueVisualClave(pregunta) {
+  const svg = construirVisualClave(pregunta, { nombreArea });
+
+  const zona = document.createElement('div');
+  zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
+  zona.appendChild(svg);
+
+  marcarZonaImagenAbrible(zona);
+  return zona;
+}
+
+// ============================================================================
+// --- Ver a pantalla completa (spec §8 "Ver a pantalla completa", Tarea 3):
+// un toque en `.zona-imagen` de una tarjeta revelada (partida, resumen y
+// repaso — las tres montan tarjetas con construirTarjetaRespondida, ver más
+// abajo) la abre a pantalla completa sobre `.visual-completa` (index.html),
+// fuera del mazo. Delegado desde CADA contenedor de mazo, un único listener
+// por tipo de evento y contenedor (nunca uno por tarjeta) — se conectan al
+// final del fichero, junto al resto del cableado de eventos.
+// ============================================================================
+
+/** Pie de pantalla completa (Ronda 1 de revisión, Important #4 — sustituye a la `leyendaZonaImagen`
+ * original): para una IMAGEN, reutiliza el MISMO `<figcaption class="imagen-pie">` que ya construye
+ * `construirBloqueImagen` — clon profundo, no un texto reconstruido — así la atribución (autor,
+ * licencia, enlace a Commons) no desaparece en pantalla completa. Antes esta función daba prioridad
+ * a la leyenda y solo caía a la atribución si la leyenda estaba vacía: comprobado contra
+ * `datos/imagenes.json`, las 167 imágenes del banco real TIENEN leyenda (incluidas las 72 con
+ * licencia que exige atribución), así que esa rama de fallback nunca se alcanzaba en producción — el
+ * 43% de las imágenes reales se quedaban sin autor, sin licencia y sin forma de llegar a la fuente.
+ * `cloneNode` no copia listeners JS: el enlace "Commons" clonado necesita su propio
+ * `stopPropagation` aquí también (mismo motivo que el original en `construirAtribucionImagen`) para
+ * que un toque en el enlace no cierre la superposición a la vez que navega. Se retira también el
+ * `data-test="imagen-pie"` del clon: con la tarjeta original todavía en el DOM detrás de la
+ * superposición, dejarlo duplicaría ese selector mientras la superposición está abierta.
+ * Para un visual de datos, solo su leyenda como texto plano (sin atribución que citar en un dibujo
+ * generado por la propia app); la tarjeta tipográfica no tiene pie propio (el texto ya vive dentro
+ * del SVG) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
+function construirPieVisualCompleta(zona) {
+  const pieImagen = zona.querySelector('.imagen-pie');
+  if (pieImagen) {
+    const clon = pieImagen.cloneNode(true);
+    clon.removeAttribute('data-test');
+    // Ronda final de revisión (adversarial A5): además de `data-test`, se retira cualquier `id` que
+    // el clon pudiera arrastrar (hoy no lleva ninguno -- ni la leyenda ni la atribución lo usan --
+    // pero es el mismo cinturón que M4 aplica al clon del SVG: un nodo clonado para vivir FUERA de
+    // la tarjeta original no debe conservar identificadores que solo tenían sentido dentro de ella).
+    clon.removeAttribute('id');
+    clon.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+    const enlace = clon.querySelector('a');
+    if (enlace) enlace.addEventListener('click', (ev) => ev.stopPropagation());
+    return clon;
+  }
+  const visualPie = zona.querySelector('.visual-pie');
+  const texto = visualPie ? visualPie.textContent.trim() : '';
+  if (!texto) return null;
+  const p = document.createElement('p');
+  p.className = 'visual-completa-pie-texto';
+  p.textContent = texto;
+  return p;
+}
+
+/** Ronda final de revisión (Minor #4, `visuales.js#construirVisualClave`): el `<radialGradient>` de
+ * la tarjeta tipográfica lleva un `id` fijo por instancia (`visual-clave-gradiente-N`) referenciado
+ * por el `fill="url(#...)"` del rect de fondo — clonar el SVG tal cual duplica ese `id` en el
+ * documento mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML
+ * inválido, inocuo hoy porque las dos definiciones son idénticas, pero una trampa si el degradado
+ * llegara a depender de la pregunta). Se renombra el `id` del CLON (nunca el del SVG original, que
+ * se queda intacto detrás de la superposición) y se actualiza su propia referencia `fill` en el
+ * mismo clon antes de insertarlo. No hace nada si el SVG no lleva ningún `id` (visual de datos). */
+function evitarIdsDuplicados(clonSvg) {
+  clonSvg.querySelectorAll('[id]').forEach((el) => {
+    const idViejo = el.id;
+    const idNuevo = `${idViejo}-completa`;
+    el.id = idNuevo;
+    clonSvg.querySelectorAll(`[fill="url(#${idViejo})"]`).forEach((ref) => ref.setAttribute('fill', `url(#${idNuevo})`));
+  });
+  return clonSvg;
+}
+
+/** Red de seguridad de foco al cerrar (Ronda final de revisión, Important #1): si la zona que abrió
+ * la superposición ya no está conectada al DOM (p. ej. `construirBloqueImagen` la sustituyó por el
+ * respaldo tras un fallo de carga de la imagen mientras la superposición seguía abierta, Minor #2),
+ * `zona.focus()` no hace nada y el foco se queda perdido en `<body>`. Se prueba primero la
+ * `.zona-imagen` de la tarjeta ACTUAL del mazo visible (la tarjeta sigue siendo la misma aunque su
+ * nodo de zona haya cambiado); si esa tarjeta no tiene ninguna (la activa sin responder no la
+ * tiene), el propio contenedor del mazo visible, con `tabindex="-1"` (ver index.html) precisamente
+ * para servir de último recurso enfocable — nunca se deja `<body>` en silencio. */
+function enfocarTrasCerrarVisualCompleta(zona) {
+  if (zona && zona.isConnected) {
+    zona.focus();
+    return;
+  }
+  const zonaActual = document.querySelector('.tarjeta-mazo--actual .zona-imagen');
+  if (zonaActual) {
+    zonaActual.focus();
+    return;
+  }
+  const contenedorVisible = [contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].find((c) => {
+    const vista = c.closest('.vista');
+    return vista && !vista.hidden;
+  });
+  if (contenedorVisible) contenedorVisible.focus();
+}
+
+// La zona que abrió la superposición: se le devuelve el foco al cerrar (spec §8: "foco al abrir y
+// devolución del foco a la zona al cerrar" — mismo patrón que nodoConectarDisparador con la hoja
+// "Conectar", más arriba en este fichero).
+let zonaImagenAbrio = null;
+
+/** Abre `.visual-completa` con un clon de la `img` o el `svg` de `zona` (spec §8, Tarea 3): imagen
+ * primero (misma prioridad fija que la propia tarjeta), si no hay `img` se clona el `svg` COMPLETO
+ * (`cloneNode(true)`) SIN quitarle ninguna clase — el rect de fondo de la tarjeta tipográfica
+ * (`.visual-clave-fondo`) solo se oculta por CSS dentro de `.zona-imagen--clave` (ver estilos.css),
+ * así que fuera de esa caja se pinta solo, tal y como ya documenta visuales.js#construirVisualClave
+ * ("si el mismo SVG se reutiliza fuera de esta caja (pantalla completa, Tarea 3)..."). */
+function abrirVisualCompleta(zona) {
+  // Ronda final de revisión (adversarial A1): una doble apertura (p. ej. dos toques rapidísimos que
+  // ambos pasan el filtro de distancia de alClicContenedorTarjetas) se ignora — la superposición ya
+  // abierta no se reconstruye a medio camino ni pierde `zonaImagenAbrio`/el foco de la apertura real.
+  if (!nodoVisualCompleta.hidden) return;
+
+  const imgOriginal = zona.querySelector('img');
+  const svgOriginal = zona.querySelector('svg');
+  nodoVisualCompletaMedio.innerHTML = '';
+  if (imgOriginal) {
+    const clon = document.createElement('img');
+    clon.src = imgOriginal.src;
+    clon.alt = imgOriginal.alt || '';
+    clon.className = 'visual-completa-media';
+    // Ronda final de revisión (Critical #1, cinturón para el caso del ratón): arrastrar sobre una
+    // <img> dispara el drag NATIVO del navegador (dragstart), que cancela el puntero igual que el
+    // touch-action sin arreglar -- draggable=false lo desactiva. Minor #1: el clon perdía
+    // referrerPolicy frente al original (`construirBloqueImagen`), filtrando el origen de la app a
+    // upload.wikimedia.org si la petición no sale de caché.
+    clon.draggable = false;
+    clon.referrerPolicy = 'no-referrer';
+    nodoVisualCompletaMedio.appendChild(clon);
+  } else if (svgOriginal) {
+    const clon = svgOriginal.cloneNode(true);
+    clon.classList.add('visual-completa-media');
+    evitarIdsDuplicados(clon); // Minor #4
+    nodoVisualCompletaMedio.appendChild(clon);
+  } else {
+    return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
+  }
+
+  nodoVisualCompletaPie.innerHTML = '';
+  const pie = construirPieVisualCompleta(zona);
+  if (pie) nodoVisualCompletaPie.appendChild(pie);
+  nodoVisualCompletaPie.hidden = !pie;
+
+  zonaImagenAbrio = zona;
+  nodoVisualCompleta.hidden = false;
+  // Ronda final de revisión (Important #1): `<main>` queda `inert` mientras la superposición está
+  // abierta -- sin foco, sin toques/clics y fuera del árbol de accesibilidad para todo lo de debajo
+  // (mazo incluido), de un solo mecanismo nativo. Resuelve de paso el Minor #3 (zonas de tarjetas
+  // vecinas fuera de pantalla, que el mazo mantiene montadas, dejaban de ser tabulables).
+  if (nodoContenidoApp) nodoContenidoApp.inert = true;
+  // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
+  // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
+  // el fundido de 160ms.
+  nodoVisualCompleta.classList.remove('visual-completa--entra');
+  void nodoVisualCompleta.offsetWidth;
+  nodoVisualCompleta.classList.add('visual-completa--entra');
+  // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
+  // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
+  // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
+  // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
+  if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
+}
+
+/** Cierra la superposición y devuelve el foco a un sitio seguro (spec §8 + Ronda final, Important
+ * #1: ver enfocarTrasCerrarVisualCompleta). Vacía el "medio" y el pie al cerrar: sin esto, el clon
+ * de una imagen grande (o su pie, con el enlace a Commons) se quedaría colgado del DOM oculto hasta
+ * la próxima apertura, sin motivo. Guarda con `hidden` para que llamarla dos veces seguidas (p. ej.
+ * el toque de cierre Y el deslizamiento de cierre disparándose por el mismo gesto) sea inofensivo. */
+function cerrarVisualCompleta() {
+  if (nodoVisualCompleta.hidden) return;
+  nodoVisualCompleta.hidden = true;
+  if (nodoContenidoApp) nodoContenidoApp.inert = false;
+  nodoVisualCompletaMedio.innerHTML = '';
+  nodoVisualCompletaPie.innerHTML = '';
+  const zona = zonaImagenAbrio;
+  zonaImagenAbrio = null;
+  enfocarTrasCerrarVisualCompleta(zona);
+}
+
+/** Toque en `.zona-imagen` vs. deslizamiento del mazo (spec §8, decisión del controlador): mismo
+ * umbral que el `ARRANQUE` de mazo.js (10px) entre el `pointerdown` y el `click` que abriría la
+ * superposición — con más desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se
+ * rastrea aparte de mazo.js (que sigue recibiendo el mismo `pointerdown` sin exclusión:
+ * `.zona-imagen` no es un `button`/`a`, así que sigue siendo un punto válido desde el que deslizar
+ * el mazo — decisión explícita del controlador, no un descuido). */
+let inicioToqueZonaImagen = null;
+
+function alPointerDownContenedorTarjetas(ev) {
+  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  inicioToqueZonaImagen = zona ? { x: ev.clientX, y: ev.clientY } : null;
+}
+
+function alClicContenedorTarjetas(ev) {
+  // Los enlaces de atribución (imagen-pie a) llevan su propio stopPropagation
+  // (construirAtribucionImagen) y nunca deberían llegar aquí — este `closest('a')` es solo un
+  // cinturón extra, por si algún día otro enlace se cuela dentro de `.zona-imagen`.
+  if (ev.target.closest && ev.target.closest('a')) return;
+  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  const inicio = inicioToqueZonaImagen;
+  inicioToqueZonaImagen = null;
+  if (!zona) return;
+  if (inicio) {
+    const distancia = Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y);
+    if (distancia > 10) return; // deslizamiento del mazo, no un toque
+  }
+  abrirVisualCompleta(zona);
+}
+
+/** `.zona-imagen` es `role="button"`/`tabindex="0"` (marcarZonaImagenAbrible): a diferencia de un
+ * `<button>` real, un `<div>` con rol ARIA no dispara `click` solo con Enter/Espacio — hace falta
+ * este listener aparte para que el teclado abra igual que un toque. */
+function alKeydownContenedorTarjetas(ev) {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  if (!ev.target.classList || !ev.target.classList.contains('zona-imagen')) return;
+  ev.preventDefault(); // Espacio no debe además desplazar la vista
+  abrirVisualCompleta(ev.target);
+}
+
 /**
- * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso):
- * cabecera (con contador, spec v0.1d §1), enunciado, confianza compacta
- * (activa, salvo soloLectura), respuesta compacta + resumen a una línea (para
- * tarjeta--compacta-1), imagen de Wikimedia Commons si la pregunta tiene una
- * (Tarea 3b), feedback y, en la zona de acción, la fila "Preguntar a"
- * (construirPreguntarA) y, salvo soloLectura, la fila compacta de 44px "esta
- * pregunta está mal" + Siguiente (spec v0.1d §2). Único toque permitido en
- * esta tarjeta, aparte de esos cuatro controles: ninguno — spec v0.1d §3/§4
- * (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado, así que
- * ni la explicación, ni la respuesta compacta, ni la imagen tienen listener.
- * `contadorTexto` lo decide cada llamador ("3/10" en partida, "n/N" en
- * repaso): ver manejarRespuesta y construirTarjetaRepaso.
+ * Tarjeta de un hueco ya respondido (spec v0.1c, interfaz para el repaso;
+ * estructura fija reordenada en spec §8/v0.2a.2, "protagonismo visual"):
+ * cabecera (con contador y, si se pasa, la marca de repaso fundida en la
+ * misma línea — spec v0.1d §1), **visual protagonista** (imagen de Commons,
+ * si no visual de datos, si no la tarjeta tipográfica: SIEMPRE una de las
+ * tres, nunca vacío), enunciado compacto, respuesta compacta + resumen a una
+ * línea (para tarjeta--compacta-1), feedback (con la explicación) y, salvo
+ * soloLectura, la fila de confianza justo encima de la zona de acción. En la
+ * zona de acción: "Preguntar a" (construirPreguntarA) y, salvo soloLectura,
+ * la fila compacta de 44px "esta pregunta está mal" + Siguiente (spec v0.1d
+ * §2). Único toque permitido en esta tarjeta, aparte de esos cuatro
+ * controles: ninguno — spec v0.1d §3/§4 (Carlos, 13-sep 10:15) quita toda
+ * alternancia de despliegue/plegado, así que ni la explicación, ni la
+ * respuesta compacta, ni la imagen tienen listener. `contadorTexto` lo
+ * decide cada llamador ("3/10" en partida, "n/N" en repaso): ver
+ * manejarRespuesta y construirTarjetaRepaso. `marca` (spec §8) solo la pasa
+ * construirTarjetaRepaso.
  */
-function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, contadorTexto } = {}) {
+function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, contadorTexto, marca } = {}) {
   const tarjeta = document.createElement('div');
-  tarjeta.className = 'tarjeta';
+  // tarjeta--revelada (spec §8): TODA tarjeta construida aquí lo es, incluida
+  // la "sin responder" del repaso (Ruling R2 de la Tarea 2 — misma estructura
+  // y visual fija que una respondida de verdad; la única que NO lleva esta
+  // clase es la pregunta ACTIVA sin responder, construida por
+  // construirTarjetaSinResponder, una función totalmente distinta).
+  tarjeta.className = 'tarjeta tarjeta--revelada';
   tarjeta.dataset.test = 'tarjeta';
   // Sin responder (v0.2a.1 §7, tramo 2 del repaso infinito): hueco.correcta
   // es undefined a propósito (nunca se ha respondido de verdad, ni acierto
@@ -2785,37 +3073,48 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
     tarjeta.dataset.respondida = 'true';
     tarjeta.classList.add(hueco.correcta ? 'correcto' : 'incorrecto');
   }
+  // Entrada con fundido + 8px (spec §8, 220ms, CSS puro): SOLO al responder
+  // en la partida, nunca en el repaso (soloLectura siempre true ahí) — la
+  // única llamada con soloLectura:false es manejarRespuesta.
+  if (!soloLectura) tarjeta.classList.add('tarjeta--recien-revelada');
 
   const contenido = document.createElement('div');
-  contenido.className = 'tarjeta-contenido';
-  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto));
+  // tarjeta-contenido--imagen: siempre (spec §8) — la visual es SIEMPRE una
+  // de las tres capas, así que el bloque ya no se centra con márgenes
+  // automáticos (ver estilos.css): se alinea arriba con el borde superior de
+  // la visual fijo justo bajo la cabecera, y es la propia visual (flex
+  // 1 1 auto) la que absorbe el sobrante.
+  contenido.className = 'tarjeta-contenido tarjeta-contenido--imagen';
+  contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto, marca));
+
+  // Visual protagonista (spec §8, orden fijo #2, justo bajo la cabecera):
+  // imagen de Commons -> visual de datos -> tarjeta tipográfica
+  // (construirVisualClave, Tarea 1). Las tres "nunca lanzan" y la última
+  // nunca devuelve null, así que SIEMPRE hay un bloque que pintar — el 100%
+  // de las tarjetas reveladas tiene visual, garantizado en código.
+  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
+  contenido.appendChild(bloqueImagen);
+
   contenido.appendChild(construirBloqueEnunciado(pregunta));
-  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
 
   // Zona de respuesta ya fija: la compacta (completa) y su resumen a una
   // línea conviven en el DOM, CSS decide cuál se ve según la cascada de
-  // ajustarEncaje (tarjeta--compacta-1 / tarjeta--sin-respuestas) — sin
-  // listeners, nunca se alternan con un toque.
+  // ajustarEncaje (tarjeta--compacta-1) — sin listeners, nunca se alternan
+  // con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
   zonaRespuesta.appendChild(construirRespuestaCompacta(pregunta, hueco));
   zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
   contenido.appendChild(zonaRespuesta);
 
-  // La imagen (o, en su falta, el visual) absorbe el sobrante (spec v0.1d
-  // §3, ampliado en v0.1e §2): el bloque de contenido deja de centrarse con
-  // márgenes automáticos y se alinea arriba (ver .tarjeta-contenido--imagen
-  // en estilos.css) en cuanto hay CUALQUIERA de los dos; sin ninguno, o en
-  // la tarjeta sin responder, el centrado de v0.1c se mantiene. Prioridad
-  // fija: imagen de Commons si existe; si no, el visual verificado de la
-  // pregunta; si tampoco, nada (como hasta ahora) — nunca los dos a la vez.
-  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta);
-  if (bloqueImagen) {
-    contenido.classList.add('tarjeta-contenido--imagen');
-    contenido.appendChild(bloqueImagen);
-  }
-
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
+
+  // La confianza va justo ENCIMA de tarjeta-accion (spec §8, Ruling R4): como
+  // último hijo de tarjeta-contenido queda pegada visualmente justo por
+  // encima de esa zona hermana. Solo en la partida (soloLectura:false): el
+  // repaso no la construye en absoluto (soloLectura:true, ver más abajo).
+  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
+
   tarjeta.appendChild(contenido);
 
   const zonaAccion = document.createElement('div');
@@ -3124,7 +3423,8 @@ function textoDiasDesde(dias) {
 
 /** Una tarjeta de repaso: la MISMA tarjeta respondida (construirTarjetaRespondida,
  * soloLectura: sin confianza ni Siguiente, con "Preguntar a" ya relleno), con
- * una marca añadida justo tras la cabecera de área/nivel. Sirve a TRES
+ * una marca fundida en la misma línea de la cabecera de área/nivel (spec §8,
+ * ver `marca` en construirCabeceraPregunta). Sirve a TRES
  * orígenes, distinguidos por `item.estadoRepaso`:
  *  - Resumen (`repasoPartida`, item = { pregunta, correcta, respuesta, delta },
  *    sin `estadoRepaso`): `delta` es el REAL de esa respuesta (XP, combo,
@@ -3178,6 +3478,19 @@ function construirTarjetaRepaso(item, indice, total) {
     reportada: false,
     nodo: null,
   };
+  // Marca de por qué está esta pregunta en el repaso (spec v0.1c §6, fundida
+  // en la cabecera desde spec §8/v0.2a.2 — ver construirCabeceraPregunta):
+  // `clase` ya lleva el modificador completo, `dataTest` solo lo trae
+  // "sin responder" (spec v0.2a.1 §7), igual que antes de la Tarea 2.
+  const marca = {
+    clase: `repaso-marca--${claseRepasoMarca(estadoRepaso)}`,
+    dataTest: esSinResponder ? 'repaso-marca-nueva' : undefined,
+    texto: esSinResponder
+      ? textoRepasoMarca(estadoRepaso)
+      : esFeedHub
+        ? `${textoRepasoMarca(estadoRepaso)} · ${textoDiasDesde(item.diasDesde)}`
+        : textoRepasoMarca(estadoRepaso),
+  };
   // Contador "n/N" (spec v0.1d §1, redefinido en v0.2a.1 §7 para el repaso
   // infinito): la posición de ESTA tarjeta DENTRO DE SU VUELTA — cada llamador
   // (renderRepaso/mantenerVueltasRepaso) construye una vuelta entera de una
@@ -3186,6 +3499,7 @@ function construirTarjetaRepaso(item, indice, total) {
   const tarjeta = construirTarjetaRespondida(item.pregunta, hueco, {
     soloLectura: true,
     contadorTexto: `${indice + 1}/${total}`,
+    marca,
   });
   tarjeta.dataset.test = 'repaso-tarjeta';
 
@@ -3195,18 +3509,6 @@ function construirTarjetaRepaso(item, indice, total) {
     const feedbackTexto = tarjeta.querySelector('[data-test="feedback-texto"]');
     if (feedbackTexto) feedbackTexto.hidden = true;
   }
-
-  const marca = document.createElement('p');
-  marca.className = `repaso-marca repaso-marca--${claseRepasoMarca(estadoRepaso)}`;
-  if (esSinResponder) {
-    marca.dataset.test = 'repaso-marca-nueva';
-    marca.textContent = textoRepasoMarca(estadoRepaso);
-  } else {
-    marca.textContent = esFeedHub
-      ? `${textoRepasoMarca(estadoRepaso)} · ${textoDiasDesde(item.diasDesde)}`
-      : textoRepasoMarca(estadoRepaso);
-  }
-  tarjeta.querySelector('.pregunta-cabecera').insertAdjacentElement('afterend', marca);
 
   return tarjeta;
 }
@@ -3762,6 +4064,84 @@ document.querySelector('[data-test="conectar-cancelar"]').addEventListener('clic
 // Escape (brief): cierra y vacía el campo, igual que Cancelar.
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && !nodoConectar.hidden) cerrarHojaConectar();
+});
+// Ver a pantalla completa (spec §8, Tarea 3): un toque en `.zona-imagen` de una tarjeta revelada la
+// abre — delegado desde los TRES contenedores de mazo que construyen tarjetas reveladas (partida,
+// resumen y repaso del HUB), sin listener por tarjeta (alPointerDownContenedorTarjetas/
+// alClicContenedorTarjetas/alKeydownContenedorTarjetas, definidos más arriba junto a los bloques de
+// visual). La propia superposición cierra con un toque en cualquier sitio, con deslizar hacia abajo
+// >= 60px (su propio pointerdown/pointerup, nunca los de mazo.js: está fuera del mazo y mientras
+// está abierta captura todos los eventos), con Escape o con el botón `.visual-completa-cerrar`.
+// Ronda 1 de revisión (Important #2): la flecha "←" de la cabecera YA NO cierra la superposición —
+// la propia superposición la tapa físicamente (z-index 30, pantalla completa), así que un toque real
+// nunca llegaba a ese botón (confirmado en vivo por el revisor con elementFromPoint); manejarVolver
+// se quedó sin esa rama, que era código muerto.
+[contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].forEach((contenedor) => {
+  contenedor.addEventListener('pointerdown', alPointerDownContenedorTarjetas);
+  contenedor.addEventListener('click', alClicContenedorTarjetas);
+  contenedor.addEventListener('keydown', alKeydownContenedorTarjetas);
+});
+nodoVisualCompleta.addEventListener('click', () => cerrarVisualCompleta());
+// Botón de cierre (Ronda 1 de revisión, Important #2): redundante con el "click en cualquier sitio"
+// de arriba (burbujea hasta el mismo listener), pero explícito a propósito — es un control con
+// nombre propio, no un efecto colateral de "cualquier toque cierra".
+nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta());
+// Ronda final de revisión (Critical #1): el cierre por deslizamiento NUNCA funcionaba con un gesto
+// táctil real -- `.visual-completa` heredaba `touch-action: manipulation` de `body` (nunca se le
+// puso su propio `touch-action: none`, a diferencia de `.mazo`, que sí lo lleva desde v0.1c), así
+// que el navegador reclamaba el desplazamiento vertical como scroll y cancelaba el puntero:
+// `pointerdown → pointermove → pointercancel`, sin `pointerup` NUNCA — la rama de abajo no se
+// ejecutaba jamás, y el `pointercancel` también suprime el `click` sintético, así que ni el
+// respaldo "toque en cualquier sitio" saltaba. El arreglo real es `touch-action: none` en
+// `.visual-completa` (estilos.css); con eso solo, un deslizamiento táctil real de 120px ya cierra.
+// Re-revisión de la ola final (Important N1): esta rama tuvo, brevemente, un `setPointerCapture` de
+// cinturón aquí (mismo patrón que mazo.js) -- SE QUITÓ: con ratón/trackpad, capturar el puntero en
+// `.visual-completa` hacía que el clic en el enlace "Commons" del pie (dentro de la superposición)
+// lo recibiera la propia superposición en vez del enlace, así que se cerraba sin navegar. Sin la
+// captura, el cierre táctil real sigue funcionando igual (touch-action:none ya lo garantiza) y el
+// enlace vuelve a recibir el clic con normalidad.
+let inicioCierreVisualCompleta = null;
+nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
+  inicioCierreVisualCompleta = { y: ev.clientY };
+});
+nodoVisualCompleta.addEventListener('pointerup', (ev) => {
+  // El `click` de arriba ya cierra con cualquier toque; este umbral cubre además el deslizamiento
+  // explícito de la spec para un gesto real que no llegue a disparar `click` (p. ej. un
+  // desplazamiento táctil grande, que los navegadores suelen suprimir como toque). Llamar dos veces
+  // a cerrarVisualCompleta() es inofensivo (ya guarda con `if (nodoVisualCompleta.hidden) return`).
+  const fueDeslizamiento = inicioCierreVisualCompleta && ev.clientY - inicioCierreVisualCompleta.y >= 60;
+  inicioCierreVisualCompleta = null;
+  if (fueDeslizamiento) cerrarVisualCompleta();
+});
+nodoVisualCompleta.addEventListener('pointercancel', () => {
+  // Minor #6: sin este listener, un pointercancel dejaba `inicioCierreVisualCompleta` con una `y`
+  // obsoleta que sobrevivía al gesto cancelado -- se limpia, sin cerrar (un cancel no es un
+  // deslizamiento completado de verdad, aunque con touch-action:none ya no debería disparar por un
+  // simple deslizamiento vertical).
+  inicioCierreVisualCompleta = null;
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !nodoVisualCompleta.hidden) cerrarVisualCompleta();
+});
+// Trampa de foco (Ronda 1 de revisión, Important #3; ciclo de 2 paradas añadido en la Ronda 2,
+// Important de accesibilidad): el botón de cierre es SIEMPRE enfocable, y el enlace "Commons"
+// clonado dentro del pie (construirPieVisualCompleta) lo es también cuando la imagen tiene
+// atribución — antes esta trampa devolvía el foco al botón en CUALQUIER Tab sin mirar si ese enlace
+// existía, así que quedaba en el DOM, clicable con ratón/dedo, pero inalcanzable por teclado (nunca
+// recibía el foco). Con solo dos paradas, Tab y Shift+Tab hacen lo mismo (alternar entre las dos) —
+// no hace falta distinguir dirección salvo que se añada una tercera parada algún día. Sin enlace
+// (visual de datos / tarjeta tipográfica), el botón sigue siendo el único enfocable: mismo
+// comportamiento que la Ronda 1, sin cambios.
+nodoVisualCompleta.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Tab') return;
+  ev.preventDefault();
+  const enlace = nodoVisualCompletaPie.querySelector('a');
+  if (!enlace) {
+    nodoVisualCompletaCerrar.focus();
+    return;
+  }
+  const focoEnBoton = document.activeElement === nodoVisualCompletaCerrar;
+  (focoEnBoton ? enlace : nodoVisualCompletaCerrar).focus();
 });
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
