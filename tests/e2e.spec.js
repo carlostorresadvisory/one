@@ -1023,13 +1023,19 @@ test.describe('ONE · integración e2e', () => {
      * relajación de "los tamaños de letra no cambian"), así que no se
      * comparan aquí a propósito — solo la respuesta, que nunca cambia. */
     async function comprobarFontSizeEstable(tarjetaLocator) {
+      // Ronda 1 de revisión de la Tarea 2 (M3): lista actualizada a las
+      // clases que la cascada REVELADA usa de verdad hoy (spec §8) —
+      // 'tarjeta--sin-respuestas'/'--sin-enunciado'/'--explicacion-menor'/
+      // '--explicacion-minima' ya no las añade ajustarEncaje en ninguna
+      // rama (su CSS se retiró en esta misma ronda, ver estilos.css), y
+      // 'tarjeta--enunciado-menor' sigue viva pero solo en la cascada SIN
+      // responder (paso (a), no la revelada) — se deja aquí igualmente por
+      // si esta tarjeta cayera en esa rama alguna vez.
       const CLASES_CASCADA = [
         'tarjeta--compacta-1',
-        'tarjeta--sin-respuestas',
         'tarjeta--enunciado-menor',
-        'tarjeta--sin-enunciado',
-        'tarjeta--explicacion-menor',
-        'tarjeta--explicacion-minima',
+        'tarjeta--enunciado-14',
+        'tarjeta--enunciado-clamp',
         'tarjeta--explicacion-clamp',
       ];
       const { compactado, normal } = await tarjetaLocator.evaluate((tarjeta, clases) => {
@@ -1241,22 +1247,25 @@ test.describe('ONE · integración e2e', () => {
   // Reescrito en la Tarea 2 de spec §8/v0.2a.2 (protagonismo visual, 16-sep):
   // la cascada de la tarjeta REVELADA cambió entera (ver ajustarEncaje en
   // mazo.js) -- ya no hay tarjeta--sin-respuestas/--sin-enunciado/
-  // --explicacion-menor/--explicacion-minima en esta rama, NI un paso que
-  // recorte el enunciado (a diferencia de la cascada SIN responder, que sí lo
-  // clampea como último recurso): la nueva cascada asume un enunciado
-  // acotado, así que este sintético usa uno largo pero NO absurdo (a
-  // diferencia del `.repeat(4)` de antes de esta ronda, que desbordaba sin
-  // converger nunca — hallazgo al verificar en vivo). Con esto, la explicación
-  // sí puede ser larguísima (tiene su propio recorte calculado) para forzar
-  // la cascada nueva entera y comprobar paso a paso -- con getComputedStyle,
-  // no solo con el nombre de la clase -- que cada pieza realmente se encoge y
-  // que el ORDEN es siempre respuesta compacta -> enunciado 14px ->
-  // explicación (clamp 2) -> visual al 30% -> explicación (clamp 1), y que la
-  // visual NUNCA desaparece (solo baja su suelo). Pregunta sintética
-  // inyectada vía window.__one.inyectarPregunta: más simple y menos frágil
-  // que interceptar datos/banco.json con page.route, y no depende de qué
-  // traiga el banco real.
-  test('spec §8 (Tarea 2): cascada de encaje paso a paso de la tarjeta revelada — respuesta → enunciado 14px → explicación → visual al 30%, la visual nunca desaparece', async ({ page }) => {
+  // --explicacion-menor/--explicacion-minima en esta rama. La primera versión
+  // de este test (Tarea 2) tuvo que reducir el enunciado sintético de
+  // `.repeat(4)` a `.repeat(2)` porque la cascada de entonces no tenía NINGÚN
+  // paso que recortara el enunciado y `.repeat(4)` desbordaba sin converger
+  // nunca -- exactamente el riesgo que la Ronda 1 de revisión (I2) señaló:
+  // sin tope de longitud en el pipeline de generación, un enunciado largo de
+  // verdad podía reproducir el mismo desborde. Con el paso nuevo
+  // (tarjeta--enunciado-clamp, penúltimo de la cascada) el `.repeat(4)`
+  // original ya converge -- restaurado aquí para comprobarlo de verdad, no
+  // solo en teoría. La explicación también larguísima (tiene su propio
+  // recorte calculado) fuerza la cascada nueva entera y comprueba paso a
+  // paso -- con getComputedStyle, no solo con el nombre de la clase -- que
+  // cada pieza realmente se encoge y que el ORDEN es siempre respuesta
+  // compacta -> enunciado 14px -> explicación (clamp 2) -> visual al 30% ->
+  // enunciado (clamp 2) -> explicación (clamp 1), y que la visual NUNCA
+  // desaparece (solo baja su suelo). Pregunta sintética inyectada vía
+  // window.__one.inyectarPregunta: más simple y menos frágil que interceptar
+  // datos/banco.json con page.route, y no depende de qué traiga el banco real.
+  test('spec §8 (Tarea 2, Ronda 1 I2): cascada de encaje paso a paso de la tarjeta revelada — respuesta → enunciado 14px → explicación → visual al 30% → enunciado clamp, la visual nunca desaparece', async ({ page }) => {
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1269,8 +1278,8 @@ test.describe('ONE · integración e2e', () => {
       tipo: 'vf',
       nivel: 1,
       enunciado:
-        'Enunciado sintético deliberadamente largo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación y la visual. '.repeat(
-          2
+        'Enunciado sintético deliberadamente larguísimo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación y la visual. '.repeat(
+          4
         ),
       explicacion:
         'Explicación sintética igualmente larguísima, pensada para seguir sin caber ni siquiera después de quitar las respuestas y el enunciado enteros, de forma que la cascada llegue también a encoger la explicación (spec v0.1d §3/§4, ronda 1 de revisión, 13-sep). '.repeat(
@@ -1322,6 +1331,7 @@ test.describe('ONE · integración e2e', () => {
         zonaImagenClases: zonaImagen ? [...zonaImagen.classList] : [],
         respuestaResumenDisplay: respuestaResumen ? getComputedStyle(respuestaResumen).display : null,
         enunciadoFontSize: enunciado ? getComputedStyle(enunciado).fontSize : null,
+        enunciadoLineClamp: enunciado ? getComputedStyle(enunciado).webkitLineClamp : null,
         explicacionLineClamp: explicacion ? getComputedStyle(explicacion).webkitLineClamp : null,
         imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
         zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
@@ -1354,6 +1364,15 @@ test.describe('ONE · integración e2e', () => {
     // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
     // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
     expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
+
+    // Paso (e), Ronda 1 de revisión (I2): con un enunciado `.repeat(4)) tan
+    // extremo, ni siquiera (a)-(d) bastan — la cascada tiene que llegar a
+    // recortar también el enunciado (mínimo 2 líneas, mismo mecanismo que la
+    // cascada sin responder). Antes de este paso, este mismo test desbordaba
+    // sin converger con este enunciado (por eso se había reducido a
+    // `.repeat(2)` en la primera versión de la Tarea 2).
+    expect(estado.clases).toContain('tarjeta--enunciado-clamp');
+    expect(Number(estado.enunciadoLineClamp)).toBeGreaterThanOrEqual(2);
   });
 
   test('Tarea 3b: capturas con art-003 respondida (banco real) a 375×812 y 430×932', async ({ page }) => {
@@ -5029,5 +5048,70 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     }, total);
 
     expect(faltantes, `${faltantes.length} de ${total} tarjetas sin .zona-imagen con visual`).toEqual([]);
+  });
+
+  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica
+  // solo llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y
+  // abajo), medido en vivo por el revisor con una pregunta sintética sin
+  // imagen ni `visual`. Arreglo en estilos.css (degradado en la zona, SVG a
+  // width/height:100%) + visuales.js (clase `visual-clave-fondo` en el rect
+  // de fondo del SVG, para poder ocultarlo solo aquí sin tocar el DOM). Una
+  // pregunta de lógica sin imagen ni `visual` (cae en la tercera capa),
+  // comprobada en el REPASO (mismo camino que usa Carlos: partida -> resumen).
+  test('spec §8 (Ronda 1 de revisión, I1): en el repaso, la tarjeta tipográfica llena `.zona-imagen` — el SVG mide ≥ 95% del alto y del ancho, y el rect de fondo del propio SVG no es visible', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const idClave = 'pv-i1-clave';
+    const preguntaClave = {
+      id: idClave,
+      area: 'logica',
+      tipo: 'vf',
+      nivel: 1,
+      enunciado: 'Si todos los A son B y todos los B son C, entonces todos los A son C.',
+      explicacion: 'Es un silogismo válido: la relación se transmite de A a B y de B a C.',
+      confianza: 1,
+      generador: 'manual',
+      verificador: 'manual',
+      verificado: true,
+      respuesta: true,
+    };
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaClave);
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'i1-clave' }), idClave);
+
+    const t = tarjetaActual(page);
+    // Falla a propósito (respuesta:true): así entra en repasoPartida y
+    // aparece en el carrusel de resumen (mismo motivo que inyectarTresCapas).
+    await t.locator('[data-test="vf-falso"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
+
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+
+    const medidas = await page.evaluate(() => {
+      const zona = document.querySelector('.tarjeta-mazo--actual .zona-imagen--clave');
+      const svg = zona ? zona.querySelector('svg') : null;
+      const rectFondo = zona ? zona.querySelector('.visual-clave-fondo') : null;
+      if (!zona || !svg || !rectFondo) return null;
+      const rectZona = zona.getBoundingClientRect();
+      const rectSvg = svg.getBoundingClientRect();
+      return {
+        altoRatio: rectSvg.height / rectZona.height,
+        anchoRatio: rectSvg.width / rectZona.width,
+        rectFondoDisplay: getComputedStyle(rectFondo).display,
+      };
+    });
+    expect(medidas, '.zona-imagen--clave, su svg o el rect de fondo no están en la tarjeta actual').not.toBeNull();
+    expect(medidas.altoRatio, `el SVG mide ${(medidas.altoRatio * 100).toFixed(1)}% del alto de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
+    expect(medidas.anchoRatio, `el SVG mide ${(medidas.anchoRatio * 100).toFixed(1)}% del ancho de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
+    expect(medidas.rectFondoDisplay).toBe('none');
   });
 });
