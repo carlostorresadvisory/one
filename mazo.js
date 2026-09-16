@@ -365,6 +365,15 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
 
   function alKeydown(ev) {
     if (!estaVisible()) return;
+    // Ronda final de revisión (Important #1): con la pantalla completa abierta (app.js#abrirVisualCompleta,
+    // spec §8, Tarea 3) el mazo de debajo NO debe navegar con el teclado -- `estaVisible()` de arriba
+    // solo mira si la VISTA está activa, no si hay un diálogo por encima capturando la interacción,
+    // así que ArrowUp/PageUp seguían avanzando el mazo mientras la superposición mostraba, sin que el
+    // jugador lo viera, una tarjeta que ya no era la actual (contradice el propio contrato de
+    // index.html: "mientras está abierta captura todos los eventos: el mazo de debajo no recibe
+    // gestos"). mazo.js no tiene una referencia directa a `.visual-completa` (vive en app.js): un
+    // selector es más barato que inventar un canal de comunicación entre los dos módulos para esto.
+    if (document.querySelector('.visual-completa:not([hidden])')) return;
     if (ev.key === 'ArrowUp' || ev.key === 'PageUp') {
       ev.preventDefault();
       intentarIr(indice + 1);
