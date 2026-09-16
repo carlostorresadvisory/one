@@ -55,7 +55,7 @@ Política de privacidad y términos (RGPD, hosting UE, Supabase como encargado),
 
 ## 7. Decisiones que necesita Carlos
 - Aprobar el escalón de pago ultrabarato y su tope diario (0,50 $/día ahora; 1-5 $/día en beta/público).
-- Gratis, freemium o de pago — umbrales reales: hasta 1.000 usuarios, coste despreciable (<1 $/mes); hasta 5.000, plan gratis de Supabase; desde 5.000, Pro (25 $/mes) más hosting del worker.
+- DECIDIDO por Carlos (16-sep, 19:39): GRATIS para el público, paso a paso. Umbrales reales: hasta 1.000 usuarios, coste despreciable (<1 $/mes); hasta 5.000, plan gratis de Supabase; desde 5.000, Pro (25 $/mes) más hosting del worker.
 - Solo PWA o también App Store (la PWA basta para la beta; sin ella no hay push en iOS).
 - Plazo objetivo de la beta cerrada.
 
