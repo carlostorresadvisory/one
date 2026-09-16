@@ -57,8 +57,12 @@
            hasta 10 huecos, navegable deslizando arriba/abajo; montarMazo() (ver
            app.js) gestiona el gesto, los puntos laterales, el chevrón y las
            teclas. Cada tarjeta lleva su propia confianza y su propio feedback:
-           nada de esto vive ya fuera de la tarjeta. -->
-      <div id="mazo" class="mazo" data-test="mazo"></div>
+           nada de esto vive ya fuera de la tarjeta. `tabindex="-1"` (ronda final
+           de revisión, Important #1): último recurso enfocable de
+           app.js#enfocarTrasCerrarVisualCompleta si al cerrar la pantalla
+           completa la tarjeta actual no tiene ninguna `.zona-imagen` -- nunca
+           alcanzable con Tab (solo `.focus()` programático). -->
+      <div id="mazo" class="mazo" data-test="mazo" tabindex="-1"></div>
     </section>
 
     <section class="vista vista-resumen" data-vista="resumen" data-test="resumen" hidden>
@@ -66,8 +70,9 @@
            montado con montarMazo() (el mismo componente que la partida, ver
            app.js/construirMazoResumen). Tarjeta 0: cifras de la partida. 1..N:
            una por cada fallo/frágil, en estado respondida de solo lectura.
-           Última: Otra partida / Inicio. -->
-      <div id="mazo-resumen" class="mazo" data-test="repaso"></div>
+           Última: Otra partida / Inicio. `tabindex="-1"`: mismo motivo que
+           `#mazo` de arriba. -->
+      <div id="mazo-resumen" class="mazo" data-test="repaso" tabindex="-1"></div>
     </section>
 
     <!-- REPASO del HUB (spec v0.2 §2, distinto del repaso de UNA partida de
@@ -77,7 +82,8 @@
          (app.js/renderRepaso). Se entra desde el botón "Repaso" del HUB. -->
     <section class="vista" data-vista="repaso" data-test="repaso-vista" hidden>
       <div class="repaso-filtro" data-test="repaso-filtro" role="group" aria-label="Filtrar por área"></div>
-      <div id="mazo-repaso" class="mazo"></div>
+      <!-- `tabindex="-1"`: mismo motivo que `#mazo` de arriba. -->
+      <div id="mazo-repaso" class="mazo" tabindex="-1"></div>
     </section>
 
     <!-- HUB: sustituye a "Progreso". Se conservan data-vista="progreso" y
@@ -274,8 +280,20 @@
        manejarVolver en app.js, ya sin esa rama muerta): el botón `.visual-completa-cerrar` de aquí es
        el cierre por gesto explícito, y además el ÚNICO elemento enfocable del diálogo (foco al abrir,
        Tab/Shift+Tab lo mantienen ahí -- ver el keydown de app.js -- y devolución del foco a la zona
-       que abrió la superposición al cerrar). -->
-  <div class="visual-completa" data-test="visual-completa" hidden role="dialog" aria-label="Visual a pantalla completa">
+       que abrió la superposición al cerrar).
+       Ronda final de revisión (adversarial A2 + Important #1): `aria-modal="true"` declara el diálogo
+       modal para tecnología de asistencia; `<main>` pasa a `inert` mientras está abierta
+       (app.js#abrirVisualCompleta/cerrarVisualCompleta) para que el cursor virtual de un lector de
+       pantalla tampoco pueda recorrer la tarjeta de debajo (y, de paso, para que el mazo deje de
+       recibir teclas -- ver mazo.js#alKeydown). -->
+  <div
+    class="visual-completa"
+    data-test="visual-completa"
+    hidden
+    role="dialog"
+    aria-modal="true"
+    aria-label="Visual a pantalla completa"
+  >
     <button type="button" class="visual-completa-cerrar" data-test="visual-cerrar" aria-label="Cerrar">←</button>
     <div class="visual-completa-medio" data-test="visual-completa-medio"></div>
     <div class="visual-completa-pie" data-test="visual-completa-pie" hidden></div>

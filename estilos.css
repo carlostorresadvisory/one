@@ -2587,6 +2587,12 @@ button.punto-servidor::before {
   gap: 10px;
   background: #000;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  /* Ronda final de revisión (Critical #1): sin esto, `touch-action` computado hereda `manipulation`
+     de `body` -- el navegador reclama el desplazamiento vertical como scroll y cancela el puntero
+     ANTES de entregar `pointerup`, así que el cierre por deslizamiento no funciona nunca con un
+     gesto táctil real (verificado con Input.dispatchTouchEvent; el `click` sintético tampoco salta
+     porque `pointercancel` también lo suprime). Mismo criterio que `.mazo` (estilos.css:~505). */
+  touch-action: none;
 }
 
 /* Mismo motivo que `.vista[hidden]`/`.hoja-conectar[hidden]` en esta hoja: con `display:flex` ya
