@@ -286,6 +286,12 @@ const nodoConectar = document.querySelector('[data-test="conectar"]');
 const nodoConectarTexto = document.querySelector('[data-test="conectar-texto"]');
 const nodoConectarError = document.querySelector('[data-test="conectar-error"]');
 const nodoConectarHecho = document.querySelector('[data-test="conectar-hecho"]');
+// Ver a pantalla completa (spec §8, Tarea 3): superposición fuera de <main> (ver index.html), con
+// el "medio" (imagen/SVG clonados) y la leyenda como únicos hijos que app.js#abrirVisualCompleta
+// rellena en cada apertura.
+const nodoVisualCompleta = document.querySelector('[data-test="visual-completa"]');
+const nodoVisualCompletaMedio = document.querySelector('[data-test="visual-completa-medio"]');
+const nodoVisualCompletaLeyenda = document.querySelector('[data-test="visual-completa-leyenda"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -519,6 +525,14 @@ function hayPartidaAMedias() {
  * no debería darse; si algún camino futuro vuelve a abrirla con el mazo vivo, el "←" no destruye
  * la partida por sorpresa. */
 function manejarVolver() {
+  // Ver a pantalla completa (spec §8, Tarea 3, decisión del controlador): "la flecha ← de la
+  // cabecera si está visible" es también un cierre de la superposición -- se comprueba ANTES que
+  // el resto (que navega de vista), así que un "←" con la superposición abierta la cierra sin
+  // además saltar de vista por debajo.
+  if (!nodoVisualCompleta.hidden) {
+    cerrarVisualCompleta();
+    return;
+  }
   if (vistaActual() === 'progreso') {
     irAInicioEmojis();
     return;
@@ -2671,8 +2685,25 @@ function construirAtribucionImagen(datos) {
   enlace.target = '_blank';
   enlace.rel = 'noopener';
   enlace.textContent = 'Commons';
+  // Ver a pantalla completa (spec §8, Tarea 3, decisión del controlador): "los enlaces de
+  // atribución del pie siguen funcionando" -- sin este stopPropagation, el toque burbujearía hasta
+  // el listener delegado del contenedor de tarjetas y abriría la superposición A LA VEZ que este
+  // enlace navega a Commons.
+  enlace.addEventListener('click', (ev) => ev.stopPropagation());
   p.appendChild(enlace);
   return p;
+}
+
+/** Ver a pantalla completa (spec §8, Tarea 3): marca CUALQUIER `.zona-imagen` (imagen, visual de
+ * datos o tarjeta tipográfica) como tocable -- el abrir en sí lo hace un único listener delegado
+ * por contenedor de mazo (`alClicContenedorTarjetas`/`alKeydownContenedorTarjetas`, más abajo), no
+ * uno por tarjeta; esta función solo pone los atributos que hacen falta para que el ratón, el
+ * teclado (Enter/Espacio) y un lector de pantalla sepan que es interactiva. */
+function marcarZonaImagenAbrible(zona) {
+  zona.setAttribute('role', 'button');
+  zona.tabIndex = 0;
+  zona.setAttribute('aria-label', 'Ver a pantalla completa');
+  zona.dataset.test = 'visual-abrir';
 }
 
 /** Bloque de imagen: figura + pie, sin enlace "Ver imagen" (spec v0.1d §4,
@@ -2732,6 +2763,7 @@ function construirBloqueImagen(pregunta) {
   figura.appendChild(pie);
 
   zona.appendChild(figura);
+  marcarZonaImagenAbrible(zona);
   return zona;
 }
 
@@ -2762,6 +2794,7 @@ function construirBloqueVisual(pregunta) {
   leyenda.textContent = (pregunta.visual && pregunta.visual.leyenda) || '';
   zona.appendChild(leyenda);
 
+  marcarZonaImagenAbrible(zona);
   return zona;
 }
 
@@ -2782,7 +2815,130 @@ function construirBloqueVisualClave(pregunta) {
   zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
   zona.appendChild(svg);
 
+  marcarZonaImagenAbrible(zona);
   return zona;
+}
+
+// ============================================================================
+// --- Ver a pantalla completa (spec §8 "Ver a pantalla completa", Tarea 3):
+// un toque en `.zona-imagen` de una tarjeta revelada (partida, resumen y
+// repaso — las tres montan tarjetas con construirTarjetaRespondida, ver más
+// abajo) la abre a pantalla completa sobre `.visual-completa` (index.html),
+// fuera del mazo. Delegado desde CADA contenedor de mazo, un único listener
+// por tipo de evento y contenedor (nunca uno por tarjeta) — se conectan al
+// final del fichero, junto al resto del cableado de eventos.
+// ============================================================================
+
+/** Texto de leyenda/atribución a reutilizar en pantalla completa (decisión del controlador:
+ * "reutilizando el texto del pie"): la leyenda de la imagen si la hay; si no, su atribución
+ * (autor/licencia/Commons) COMO TEXTO PLANO — el enlace en sí se queda en la tarjeta, no se clona,
+ * así que aquí no hace falta ningún stopPropagation propio; si tampoco hay imagen, la leyenda del
+ * visual de datos. La tarjeta tipográfica no tiene pie propio (el texto ya vive dentro del SVG):
+ * '' dejará oculta la leyenda de la superposición (ver abrirVisualCompleta). */
+function leyendaZonaImagen(zona) {
+  const leyendaImagen = zona.querySelector('.imagen-pie-leyenda');
+  if (leyendaImagen && leyendaImagen.textContent.trim()) return leyendaImagen.textContent.trim();
+  const atribucion = zona.querySelector('.imagen-pie-atribucion');
+  if (atribucion && atribucion.textContent.trim()) return atribucion.textContent.trim();
+  const visualPie = zona.querySelector('.visual-pie');
+  if (visualPie && visualPie.textContent.trim()) return visualPie.textContent.trim();
+  return '';
+}
+
+// La zona que abrió la superposición: se le devuelve el foco al cerrar (spec §8: "foco al abrir y
+// devolución del foco a la zona al cerrar" — mismo patrón que nodoConectarDisparador con la hoja
+// "Conectar", más arriba en este fichero).
+let zonaImagenAbrio = null;
+
+/** Abre `.visual-completa` con un clon de la `img` o el `svg` de `zona` (spec §8, Tarea 3): imagen
+ * primero (misma prioridad fija que la propia tarjeta), si no hay `img` se clona el `svg` COMPLETO
+ * (`cloneNode(true)`) SIN quitarle ninguna clase — el rect de fondo de la tarjeta tipográfica
+ * (`.visual-clave-fondo`) solo se oculta por CSS dentro de `.zona-imagen--clave` (ver estilos.css),
+ * así que fuera de esa caja se pinta solo, tal y como ya documenta visuales.js#construirVisualClave
+ * ("si el mismo SVG se reutiliza fuera de esta caja (pantalla completa, Tarea 3)..."). */
+function abrirVisualCompleta(zona) {
+  const imgOriginal = zona.querySelector('img');
+  const svgOriginal = zona.querySelector('svg');
+  nodoVisualCompletaMedio.innerHTML = '';
+  if (imgOriginal) {
+    const clon = document.createElement('img');
+    clon.src = imgOriginal.src;
+    clon.alt = imgOriginal.alt || '';
+    clon.className = 'visual-completa-media';
+    nodoVisualCompletaMedio.appendChild(clon);
+  } else if (svgOriginal) {
+    const clon = svgOriginal.cloneNode(true);
+    clon.classList.add('visual-completa-media');
+    nodoVisualCompletaMedio.appendChild(clon);
+  } else {
+    return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
+  }
+
+  const texto = leyendaZonaImagen(zona);
+  nodoVisualCompletaLeyenda.textContent = texto;
+  nodoVisualCompletaLeyenda.hidden = !texto;
+
+  zonaImagenAbrio = zona;
+  nodoVisualCompleta.hidden = false;
+  // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
+  // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
+  // el fundido de 160ms.
+  nodoVisualCompleta.classList.remove('visual-completa--entra');
+  void nodoVisualCompleta.offsetWidth;
+  nodoVisualCompleta.classList.add('visual-completa--entra');
+  nodoVisualCompleta.focus();
+}
+
+/** Cierra la superposición y devuelve el foco a la zona que la abrió (spec §8). Vacía el "medio" al
+ * cerrar: sin esto, el clon de una imagen grande se quedaría colgado del DOM oculto hasta la
+ * próxima apertura, sin motivo. Guarda con `hidden` para que llamarla dos veces seguidas (p. ej.
+ * el toque de cierre Y el deslizamiento de cierre disparándose por el mismo gesto) sea inofensivo. */
+function cerrarVisualCompleta() {
+  if (nodoVisualCompleta.hidden) return;
+  nodoVisualCompleta.hidden = true;
+  nodoVisualCompletaMedio.innerHTML = '';
+  const zona = zonaImagenAbrio;
+  zonaImagenAbrio = null;
+  if (zona && typeof zona.focus === 'function') zona.focus();
+}
+
+/** Toque en `.zona-imagen` vs. deslizamiento del mazo (spec §8, decisión del controlador): mismo
+ * umbral que el `ARRANQUE` de mazo.js (10px) entre el `pointerdown` y el `click` que abriría la
+ * superposición — con más desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se
+ * rastrea aparte de mazo.js (que sigue recibiendo el mismo `pointerdown` sin exclusión:
+ * `.zona-imagen` no es un `button`/`a`, así que sigue siendo un punto válido desde el que deslizar
+ * el mazo — decisión explícita del controlador, no un descuido). */
+let inicioToqueZonaImagen = null;
+
+function alPointerDownContenedorTarjetas(ev) {
+  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  inicioToqueZonaImagen = zona ? { x: ev.clientX, y: ev.clientY } : null;
+}
+
+function alClicContenedorTarjetas(ev) {
+  // Los enlaces de atribución (imagen-pie a) llevan su propio stopPropagation
+  // (construirAtribucionImagen) y nunca deberían llegar aquí — este `closest('a')` es solo un
+  // cinturón extra, por si algún día otro enlace se cuela dentro de `.zona-imagen`.
+  if (ev.target.closest && ev.target.closest('a')) return;
+  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  const inicio = inicioToqueZonaImagen;
+  inicioToqueZonaImagen = null;
+  if (!zona) return;
+  if (inicio) {
+    const distancia = Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y);
+    if (distancia > 10) return; // deslizamiento del mazo, no un toque
+  }
+  abrirVisualCompleta(zona);
+}
+
+/** `.zona-imagen` es `role="button"`/`tabindex="0"` (marcarZonaImagenAbrible): a diferencia de un
+ * `<button>` real, un `<div>` con rol ARIA no dispara `click` solo con Enter/Espacio — hace falta
+ * este listener aparte para que el teclado abra igual que un toque. */
+function alKeydownContenedorTarjetas(ev) {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  if (!ev.target.classList || !ev.target.classList.contains('zona-imagen')) return;
+  ev.preventDefault(); // Espacio no debe además desplazar la vista
+  abrirVisualCompleta(ev.target);
 }
 
 /**
@@ -3822,6 +3978,36 @@ document.querySelector('[data-test="conectar-cancelar"]').addEventListener('clic
 // Escape (brief): cierra y vacía el campo, igual que Cancelar.
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && !nodoConectar.hidden) cerrarHojaConectar();
+});
+// Ver a pantalla completa (spec §8, Tarea 3): un toque en `.zona-imagen` de una tarjeta revelada la
+// abre — delegado desde los TRES contenedores de mazo que construyen tarjetas reveladas (partida,
+// resumen y repaso del HUB), sin listener por tarjeta (alPointerDownContenedorTarjetas/
+// alClicContenedorTarjetas/alKeydownContenedorTarjetas, definidos más arriba junto a los bloques de
+// visual). La propia superposición cierra con un toque en cualquier sitio, con deslizar hacia abajo
+// >= 60px (su propio pointerdown/pointerup, nunca los de mazo.js: está fuera del mazo y mientras
+// está abierta captura todos los eventos) o con Escape; la flecha "←" de la cabecera la cierra
+// también (ver manejarVolver, más arriba).
+[contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].forEach((contenedor) => {
+  contenedor.addEventListener('pointerdown', alPointerDownContenedorTarjetas);
+  contenedor.addEventListener('click', alClicContenedorTarjetas);
+  contenedor.addEventListener('keydown', alKeydownContenedorTarjetas);
+});
+nodoVisualCompleta.addEventListener('click', () => cerrarVisualCompleta());
+let inicioCierreVisualCompleta = null;
+nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
+  inicioCierreVisualCompleta = { y: ev.clientY };
+});
+nodoVisualCompleta.addEventListener('pointerup', (ev) => {
+  // El `click` de arriba ya cierra con cualquier toque; este umbral cubre además el deslizamiento
+  // explícito de la spec para un gesto real que no llegue a disparar `click` (p. ej. un
+  // desplazamiento táctil grande, que los navegadores suelen suprimir como toque). Llamar dos veces
+  // a cerrarVisualCompleta() es inofensivo (ya guarda con `if (nodoVisualCompleta.hidden) return`).
+  const fueDeslizamiento = inicioCierreVisualCompleta && ev.clientY - inicioCierreVisualCompleta.y >= 60;
+  inicioCierreVisualCompleta = null;
+  if (fueDeslizamiento) cerrarVisualCompleta();
+});
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !nodoVisualCompleta.hidden) cerrarVisualCompleta();
 });
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
