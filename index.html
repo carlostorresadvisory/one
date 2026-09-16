@@ -260,6 +260,27 @@
        app.js#mostrarAvisoConectado). -->
   <p class="aviso-conectado" data-test="conectar-hecho" hidden aria-live="polite">Conectado</p>
 
+  <!-- Ver a pantalla completa (spec §8 "Ver a pantalla completa", Tarea 3): un toque en la visual
+       protagonista de una tarjeta revelada (imagen, visual de datos o tarjeta tipográfica) abre esto
+       -- FUERA de <main>, mismo precedente que la hoja "Conectar" de arriba (una hoja modal), pero a
+       PANTALLA COMPLETA entera: fondo #000, `position:fixed;inset:0`, por encima de todo (z-index 30,
+       la más alta usada hasta ahora en esta hoja -- ver estilos.css). Mientras está abierta captura
+       todos los eventos: el mazo de debajo no recibe gestos. Contenido dinámico (clon de la `img` o
+       del `svg` tocados + su leyenda/atribución) lo construye app.js#abrirVisualCompleta en cada
+       apertura -- aquí solo el armazón vacío. `tabindex="-1"` para poder enfocar el propio diálogo al
+       abrir (foco al abrir y devolución del foco a la zona al cerrar, ver app.js). -->
+  <div
+    class="visual-completa"
+    data-test="visual-completa"
+    hidden
+    role="dialog"
+    aria-label="Visual a pantalla completa"
+    tabindex="-1"
+  >
+    <div class="visual-completa-medio" data-test="visual-completa-medio"></div>
+    <p class="visual-completa-leyenda" data-test="visual-completa-leyenda" hidden></p>
+  </div>
+
   <!-- Plantilla clonada por cada tarjeta del mazo (spec v0.1c §2.3): confianza
        dentro de la tarjeta, tras el enunciado y antes de las opciones. -->
   <template id="plantilla-confianza">

@@ -2570,6 +2570,82 @@ button.punto-servidor::before {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+/* Ver a pantalla completa (spec §8 "Ver a pantalla completa", Tarea 3): superposición sobre TODO
+   (fondo #000, `inset:0`), z-index más alto de la hoja hasta ahora (20 era el de `.hoja-conectar`/
+   `.aviso-conectado`) porque debe tapar cualquier otra hoja que pudiera estar abierta detrás.
+   Columna centrada: el medio (imagen/SVG clonados) absorbe el espacio libre y la leyenda queda fija
+   abajo, sea cual sea el alto real del contenido -- mismo patrón `flex:1 1 auto;min-height:0` +
+   `flex:none` que ya usa `.imagen`/`.imagen-pie` en la tarjeta. */
+.visual-completa {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #000;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+
+/* Mismo motivo que `.vista[hidden]`/`.hoja-conectar[hidden]` en esta hoja: con `display:flex` ya
+   declarado arriba, el `[hidden]` por defecto del navegador deja de bastar por sí solo. */
+.visual-completa[hidden] {
+  display: none;
+}
+
+.visual-completa-medio {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Clase que app.js añade al clon (`img` o `svg`) que construye dentro de `.visual-completa-medio`:
+   ambos centrados, sin deformarse (`object-fit:contain`) y sin salirse del viewport (brief: "centrado
+   con max-width:100vw;max-height:100vh;object-fit:contain"). `width/height:100%` le dan al elemento
+   un tamaño DEFINIDO contra el que `object-fit` pueda encajar el contenido real (un `<svg>` sin
+   `width`/`height` propios, a diferencia de una `<img>`, no tiene tamaño intrínseco fiable sin esto
+   -- mismo motivo que `.zona-imagen--visual .visual-svg` ya usa `width:100%;height:100%` en vez de
+   fiarse del `viewBox`). */
+.visual-completa-media {
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+  display: block;
+}
+
+.visual-completa-leyenda {
+  flex: none;
+  margin: 0;
+  max-width: 100%;
+  font-size: 13px;
+  color: var(--texto);
+  text-align: center;
+}
+
+.visual-completa-leyenda[hidden] {
+  display: none;
+}
+
+/* Entrada con fundido de 160ms (spec §8/brief Tarea 3), anulada bajo "reducir movimiento" por la
+   regla explícita de abajo Y por la genérica `*, *::before, *::after` que ya neutraliza cualquier
+   `animation-duration` -- mismo doble criterio que `visual-entra` más arriba en esta hoja. */
+@keyframes visual-completa-entra {
+  from {
+    opacity: 0;
+  }
+}
+
+.visual-completa--entra {
+  animation: visual-completa-entra 160ms ease-out;
+}
+
 /* --- accesibilidad de movimiento ---
    Con "reducir movimiento" activo: sin fondo animado, sin pulso/sacudida de la
    tarjeta, y ninguna transición/animación del resto de la app (barra de
@@ -2581,6 +2657,9 @@ button.punto-servidor::before {
   /* spec §8/v0.2a.2: la entrada de la visual al responder (visual-entra, ver
      más arriba) tampoco anima con "reducir movimiento" activo. */
   .tarjeta--revelada.tarjeta--recien-revelada .zona-imagen { animation: none; }
+  /* Ver a pantalla completa (spec §8, Tarea 3): mismo criterio que la entrada de la visual de arriba
+     -- sin fundido con "reducir movimiento" activo. */
+  .visual-completa--entra { animation: none; }
   /* v0.2b3 Tarea 3: ya no hay órbita giratoria -- el "pop" del núcleo, la entrada de los nodos y
      el punto que late de los nodos de espera se anulan aquí explícitamente (la regla genérica de
      abajo ya los neutraliza también, esto lo deja explícito, mismo criterio que el resto de esta
