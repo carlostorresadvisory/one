@@ -5445,11 +5445,16 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     expect(await overlay.evaluate((el) => el.hidden), 'el botón de cierre debe cerrar la superposición').toBe(true);
   });
 
-  // Ronda 1 de revisión (Important #3): trampa de foco -- con un solo elemento enfocable dentro del
-  // diálogo (el botón de cierre), Tab/Shift+Tab no deben sacar el foco hacia los controles de la
-  // vista de debajo (tapados pero técnicamente presentes en el DOM mientras la superposición está
-  // abierta y capturando punteros).
-  test('trampa de foco: Tab y Shift+Tab no sacan el foco de la superposición', async ({ page }) => {
+  // Ronda 1 de revisión (Important #3) + Ronda 2 (Important de accesibilidad, corrige una fuga de
+  // la Ronda 1): trampa de foco de DOS paradas -- botón de cierre y, cuando el pie clona un enlace
+  // de atribución (I4), también ese enlace. Antes (Ronda 1) el `keydown` de Tab devolvía el foco al
+  // botón SIEMPRE, sin mirar si había un enlace: el enlace existía en el DOM y era clicable con
+  // ratón/dedo, pero un usuario de teclado nunca podía llegar a él. Con solo dos paradas, Tab y
+  // Shift+Tab hacen lo mismo (alternan entre las mismas dos) -- no hay una tercera a la que "saltar
+  // de más" en ninguna dirección.
+  test('trampa de foco con atribución (imagen): Tab pasa al enlace de Commons y de vuelta al botón; Shift+Tab hace el mismo camino', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
@@ -5466,20 +5471,50 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
         const dialogo = document.querySelector('[data-test="visual-completa"]');
         return Boolean(dialogo && document.activeElement && dialogo.contains(document.activeElement));
       });
+    const focoEsSelector = async (selector) => page.evaluate((sel) => document.activeElement === document.querySelector(sel), selector);
 
-    expect(await focoDentro(), 'el foco no empieza dentro de la superposición').toBe(true);
+    expect(await focoEsSelector('[data-test="visual-cerrar"]'), 'el foco no empieza en el botón de cierre').toBe(true);
+
     await page.keyboard.press('Tab');
     expect(await focoDentro(), 'Tab sacó el foco de la superposición').toBe(true);
+    expect(await focoEsSelector('[data-test="visual-completa-pie"] a'), 'Tab debería llevar el foco al enlace de Commons').toBe(true);
+
     await page.keyboard.press('Tab');
-    expect(await focoDentro(), 'un segundo Tab sacó el foco de la superposición').toBe(true);
+    expect(await focoEsSelector('[data-test="visual-cerrar"]'), 'un segundo Tab debería devolver el foco al botón de cierre').toBe(true);
+
     await page.keyboard.press('Shift+Tab');
     expect(await focoDentro(), 'Shift+Tab sacó el foco de la superposición').toBe(true);
+    expect(await focoEsSelector('[data-test="visual-completa-pie"] a'), 'Shift+Tab desde el botón debería llevar el foco al enlace').toBe(true);
 
-    // Sigue siendo el botón de cierre en concreto (único enfocable), no solo "algo" dentro del diálogo.
-    const focoEsElBoton = await page.evaluate(
-      () => document.activeElement === document.querySelector('[data-test="visual-cerrar"]')
-    );
-    expect(focoEsElBoton, 'el foco debería seguir en el botón de cierre tras Tab/Shift+Tab').toBe(true);
+    await page.keyboard.press('Shift+Tab');
+    expect(await focoEsSelector('[data-test="visual-cerrar"]'), 'un segundo Shift+Tab debería devolver el foco al botón').toBe(true);
+  });
+
+  // Sin atribución que clonar (tarjeta tipográfica: construirPieVisualCompleta devuelve null, el
+  // pie queda vacío/oculto), el botón de cierre sigue siendo el único enfocable -- mismo
+  // comportamiento que la Ronda 1, verificado explícitamente para que una regresión futura en el
+  // ciclo de dos paradas no se cuele sin test.
+  test('trampa de foco sin atribución (tarjeta tipográfica): Tab se queda en el botón de cierre', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idClave } = await inyectarImagenYClave(page, 'j');
+    const t = await jugarYRevelar(page, idClave, 'pc-j');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(page.locator('[data-test="visual-completa-pie"] a')).toHaveCount(0);
+
+    const focoEsElBoton = async () =>
+      page.evaluate(() => document.activeElement === document.querySelector('[data-test="visual-cerrar"]'));
+
+    expect(await focoEsElBoton(), 'el foco no empieza en el botón de cierre').toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await focoEsElBoton(), 'Tab debería quedarse en el botón de cierre (sin enlace al que ir)').toBe(true);
+    await page.keyboard.press('Tab');
+    expect(await focoEsElBoton(), 'un segundo Tab debería quedarse en el botón de cierre').toBe(true);
   });
 
   // Ronda 1 de revisión (Important #4): la atribución (autor/licencia/enlace a Commons) ya no se

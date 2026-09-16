@@ -4032,14 +4032,25 @@ nodoVisualCompleta.addEventListener('pointerup', (ev) => {
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && !nodoVisualCompleta.hidden) cerrarVisualCompleta();
 });
-// Trampa de foco (Ronda 1 de revisión, Important #3): `.visual-completa-cerrar` es el ÚNICO
-// elemento enfocable del diálogo (ver abrirVisualCompleta), así que Tab/Shift+Tab no tienen a dónde
-// más ir dentro — se limitan a devolver el foco ahí mismo, sin dejar que salgan a los controles
-// (tapados pero técnicamente presentes en el DOM) de la vista de debajo.
+// Trampa de foco (Ronda 1 de revisión, Important #3; ciclo de 2 paradas añadido en la Ronda 2,
+// Important de accesibilidad): el botón de cierre es SIEMPRE enfocable, y el enlace "Commons"
+// clonado dentro del pie (construirPieVisualCompleta) lo es también cuando la imagen tiene
+// atribución — antes esta trampa devolvía el foco al botón en CUALQUIER Tab sin mirar si ese enlace
+// existía, así que quedaba en el DOM, clicable con ratón/dedo, pero inalcanzable por teclado (nunca
+// recibía el foco). Con solo dos paradas, Tab y Shift+Tab hacen lo mismo (alternar entre las dos) —
+// no hace falta distinguir dirección salvo que se añada una tercera parada algún día. Sin enlace
+// (visual de datos / tarjeta tipográfica), el botón sigue siendo el único enfocable: mismo
+// comportamiento que la Ronda 1, sin cambios.
 nodoVisualCompleta.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Tab') return;
   ev.preventDefault();
-  nodoVisualCompletaCerrar.focus();
+  const enlace = nodoVisualCompletaPie.querySelector('a');
+  if (!enlace) {
+    nodoVisualCompletaCerrar.focus();
+    return;
+  }
+  const focoEnBoton = document.activeElement === nodoVisualCompletaCerrar;
+  (focoEnBoton ? enlace : nodoVisualCompletaCerrar).focus();
 });
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
