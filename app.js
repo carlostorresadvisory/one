@@ -287,11 +287,12 @@ const nodoConectarTexto = document.querySelector('[data-test="conectar-texto"]')
 const nodoConectarError = document.querySelector('[data-test="conectar-error"]');
 const nodoConectarHecho = document.querySelector('[data-test="conectar-hecho"]');
 // Ver a pantalla completa (spec §8, Tarea 3): superposición fuera de <main> (ver index.html), con
-// el "medio" (imagen/SVG clonados) y la leyenda como únicos hijos que app.js#abrirVisualCompleta
-// rellena en cada apertura.
+// el botón de cierre, el "medio" (imagen/SVG clonados) y el pie como únicos hijos que
+// app.js#abrirVisualCompleta rellena en cada apertura.
 const nodoVisualCompleta = document.querySelector('[data-test="visual-completa"]');
+const nodoVisualCompletaCerrar = document.querySelector('[data-test="visual-cerrar"]');
 const nodoVisualCompletaMedio = document.querySelector('[data-test="visual-completa-medio"]');
-const nodoVisualCompletaLeyenda = document.querySelector('[data-test="visual-completa-leyenda"]');
+const nodoVisualCompletaPie = document.querySelector('[data-test="visual-completa-pie"]');
 const vistas = document.querySelectorAll('[data-vista]');
 const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
@@ -525,14 +526,6 @@ function hayPartidaAMedias() {
  * no debería darse; si algún camino futuro vuelve a abrirla con el mazo vivo, el "←" no destruye
  * la partida por sorpresa. */
 function manejarVolver() {
-  // Ver a pantalla completa (spec §8, Tarea 3, decisión del controlador): "la flecha ← de la
-  // cabecera si está visible" es también un cierre de la superposición -- se comprueba ANTES que
-  // el resto (que navega de vista), así que un "←" con la superposición abierta la cierra sin
-  // además saltar de vista por debajo.
-  if (!nodoVisualCompleta.hidden) {
-    cerrarVisualCompleta();
-    return;
-  }
   if (vistaActual() === 'progreso') {
     irAInicioEmojis();
     return;
@@ -2829,20 +2822,38 @@ function construirBloqueVisualClave(pregunta) {
 // final del fichero, junto al resto del cableado de eventos.
 // ============================================================================
 
-/** Texto de leyenda/atribución a reutilizar en pantalla completa (decisión del controlador:
- * "reutilizando el texto del pie"): la leyenda de la imagen si la hay; si no, su atribución
- * (autor/licencia/Commons) COMO TEXTO PLANO — el enlace en sí se queda en la tarjeta, no se clona,
- * así que aquí no hace falta ningún stopPropagation propio; si tampoco hay imagen, la leyenda del
- * visual de datos. La tarjeta tipográfica no tiene pie propio (el texto ya vive dentro del SVG):
- * '' dejará oculta la leyenda de la superposición (ver abrirVisualCompleta). */
-function leyendaZonaImagen(zona) {
-  const leyendaImagen = zona.querySelector('.imagen-pie-leyenda');
-  if (leyendaImagen && leyendaImagen.textContent.trim()) return leyendaImagen.textContent.trim();
-  const atribucion = zona.querySelector('.imagen-pie-atribucion');
-  if (atribucion && atribucion.textContent.trim()) return atribucion.textContent.trim();
+/** Pie de pantalla completa (Ronda 1 de revisión, Important #4 — sustituye a la `leyendaZonaImagen`
+ * original): para una IMAGEN, reutiliza el MISMO `<figcaption class="imagen-pie">` que ya construye
+ * `construirBloqueImagen` — clon profundo, no un texto reconstruido — así la atribución (autor,
+ * licencia, enlace a Commons) no desaparece en pantalla completa. Antes esta función daba prioridad
+ * a la leyenda y solo caía a la atribución si la leyenda estaba vacía: comprobado contra
+ * `datos/imagenes.json`, las 167 imágenes del banco real TIENEN leyenda (incluidas las 72 con
+ * licencia que exige atribución), así que esa rama de fallback nunca se alcanzaba en producción — el
+ * 43% de las imágenes reales se quedaban sin autor, sin licencia y sin forma de llegar a la fuente.
+ * `cloneNode` no copia listeners JS: el enlace "Commons" clonado necesita su propio
+ * `stopPropagation` aquí también (mismo motivo que el original en `construirAtribucionImagen`) para
+ * que un toque en el enlace no cierre la superposición a la vez que navega. Se retira también el
+ * `data-test="imagen-pie"` del clon: con la tarjeta original todavía en el DOM detrás de la
+ * superposición, dejarlo duplicaría ese selector mientras la superposición está abierta.
+ * Para un visual de datos, solo su leyenda como texto plano (sin atribución que citar en un dibujo
+ * generado por la propia app); la tarjeta tipográfica no tiene pie propio (el texto ya vive dentro
+ * del SVG) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
+function construirPieVisualCompleta(zona) {
+  const pieImagen = zona.querySelector('.imagen-pie');
+  if (pieImagen) {
+    const clon = pieImagen.cloneNode(true);
+    clon.removeAttribute('data-test');
+    const enlace = clon.querySelector('a');
+    if (enlace) enlace.addEventListener('click', (ev) => ev.stopPropagation());
+    return clon;
+  }
   const visualPie = zona.querySelector('.visual-pie');
-  if (visualPie && visualPie.textContent.trim()) return visualPie.textContent.trim();
-  return '';
+  const texto = visualPie ? visualPie.textContent.trim() : '';
+  if (!texto) return null;
+  const p = document.createElement('p');
+  p.className = 'visual-completa-pie-texto';
+  p.textContent = texto;
+  return p;
 }
 
 // La zona que abrió la superposición: se le devuelve el foco al cerrar (spec §8: "foco al abrir y
@@ -2874,9 +2885,10 @@ function abrirVisualCompleta(zona) {
     return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
   }
 
-  const texto = leyendaZonaImagen(zona);
-  nodoVisualCompletaLeyenda.textContent = texto;
-  nodoVisualCompletaLeyenda.hidden = !texto;
+  nodoVisualCompletaPie.innerHTML = '';
+  const pie = construirPieVisualCompleta(zona);
+  if (pie) nodoVisualCompletaPie.appendChild(pie);
+  nodoVisualCompletaPie.hidden = !pie;
 
   zonaImagenAbrio = zona;
   nodoVisualCompleta.hidden = false;
@@ -2886,17 +2898,21 @@ function abrirVisualCompleta(zona) {
   nodoVisualCompleta.classList.remove('visual-completa--entra');
   void nodoVisualCompleta.offsetWidth;
   nodoVisualCompleta.classList.add('visual-completa--entra');
-  nodoVisualCompleta.focus();
+  // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
+  // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
+  nodoVisualCompletaCerrar.focus();
 }
 
-/** Cierra la superposición y devuelve el foco a la zona que la abrió (spec §8). Vacía el "medio" al
- * cerrar: sin esto, el clon de una imagen grande se quedaría colgado del DOM oculto hasta la
- * próxima apertura, sin motivo. Guarda con `hidden` para que llamarla dos veces seguidas (p. ej.
- * el toque de cierre Y el deslizamiento de cierre disparándose por el mismo gesto) sea inofensivo. */
+/** Cierra la superposición y devuelve el foco a la zona que la abrió (spec §8). Vacía el "medio" y
+ * el pie al cerrar: sin esto, el clon de una imagen grande (o su pie, con el enlace a Commons)
+ * se quedaría colgado del DOM oculto hasta la próxima apertura, sin motivo. Guarda con `hidden`
+ * para que llamarla dos veces seguidas (p. ej. el toque de cierre Y el deslizamiento de cierre
+ * disparándose por el mismo gesto) sea inofensivo. */
 function cerrarVisualCompleta() {
   if (nodoVisualCompleta.hidden) return;
   nodoVisualCompleta.hidden = true;
   nodoVisualCompletaMedio.innerHTML = '';
+  nodoVisualCompletaPie.innerHTML = '';
   const zona = zonaImagenAbrio;
   zonaImagenAbrio = null;
   if (zona && typeof zona.focus === 'function') zona.focus();
@@ -3985,14 +4001,21 @@ document.addEventListener('keydown', (ev) => {
 // alClicContenedorTarjetas/alKeydownContenedorTarjetas, definidos más arriba junto a los bloques de
 // visual). La propia superposición cierra con un toque en cualquier sitio, con deslizar hacia abajo
 // >= 60px (su propio pointerdown/pointerup, nunca los de mazo.js: está fuera del mazo y mientras
-// está abierta captura todos los eventos) o con Escape; la flecha "←" de la cabecera la cierra
-// también (ver manejarVolver, más arriba).
+// está abierta captura todos los eventos), con Escape o con el botón `.visual-completa-cerrar`.
+// Ronda 1 de revisión (Important #2): la flecha "←" de la cabecera YA NO cierra la superposición —
+// la propia superposición la tapa físicamente (z-index 30, pantalla completa), así que un toque real
+// nunca llegaba a ese botón (confirmado en vivo por el revisor con elementFromPoint); manejarVolver
+// se quedó sin esa rama, que era código muerto.
 [contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].forEach((contenedor) => {
   contenedor.addEventListener('pointerdown', alPointerDownContenedorTarjetas);
   contenedor.addEventListener('click', alClicContenedorTarjetas);
   contenedor.addEventListener('keydown', alKeydownContenedorTarjetas);
 });
 nodoVisualCompleta.addEventListener('click', () => cerrarVisualCompleta());
+// Botón de cierre (Ronda 1 de revisión, Important #2): redundante con el "click en cualquier sitio"
+// de arriba (burbujea hasta el mismo listener), pero explícito a propósito — es un control con
+// nombre propio, no un efecto colateral de "cualquier toque cierra".
+nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta());
 let inicioCierreVisualCompleta = null;
 nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
   inicioCierreVisualCompleta = { y: ev.clientY };
@@ -4008,6 +4031,15 @@ nodoVisualCompleta.addEventListener('pointerup', (ev) => {
 });
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && !nodoVisualCompleta.hidden) cerrarVisualCompleta();
+});
+// Trampa de foco (Ronda 1 de revisión, Important #3): `.visual-completa-cerrar` es el ÚNICO
+// elemento enfocable del diálogo (ver abrirVisualCompleta), así que Tab/Shift+Tab no tienen a dónde
+// más ir dentro — se limitan a devolver el foco ahí mismo, sin dejar que salgan a los controles
+// (tapados pero técnicamente presentes en el DOM) de la vista de debajo.
+nodoVisualCompleta.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Tab') return;
+  ev.preventDefault();
+  nodoVisualCompletaCerrar.focus();
 });
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).

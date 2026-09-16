@@ -266,19 +266,19 @@
        PANTALLA COMPLETA entera: fondo #000, `position:fixed;inset:0`, por encima de todo (z-index 30,
        la más alta usada hasta ahora en esta hoja -- ver estilos.css). Mientras está abierta captura
        todos los eventos: el mazo de debajo no recibe gestos. Contenido dinámico (clon de la `img` o
-       del `svg` tocados + su leyenda/atribución) lo construye app.js#abrirVisualCompleta en cada
-       apertura -- aquí solo el armazón vacío. `tabindex="-1"` para poder enfocar el propio diálogo al
-       abrir (foco al abrir y devolución del foco a la zona al cerrar, ver app.js). -->
-  <div
-    class="visual-completa"
-    data-test="visual-completa"
-    hidden
-    role="dialog"
-    aria-label="Visual a pantalla completa"
-    tabindex="-1"
-  >
+       del `svg` tocados + su pie) lo construye app.js#abrirVisualCompleta en cada apertura -- aquí
+       solo el armazón vacío.
+       Ronda 1 de revisión (Important #2/#3): la propia superposición tapa físicamente la cabecera de
+       debajo (la flecha "←" del header dejó de ser alcanzable por un toque real -- confirmado con
+       elementFromPoint en vivo por el revisor), así que ya no se intercepta esa flecha (ver
+       manejarVolver en app.js, ya sin esa rama muerta): el botón `.visual-completa-cerrar` de aquí es
+       el cierre por gesto explícito, y además el ÚNICO elemento enfocable del diálogo (foco al abrir,
+       Tab/Shift+Tab lo mantienen ahí -- ver el keydown de app.js -- y devolución del foco a la zona
+       que abrió la superposición al cerrar). -->
+  <div class="visual-completa" data-test="visual-completa" hidden role="dialog" aria-label="Visual a pantalla completa">
+    <button type="button" class="visual-completa-cerrar" data-test="visual-cerrar" aria-label="Cerrar">←</button>
     <div class="visual-completa-medio" data-test="visual-completa-medio"></div>
-    <p class="visual-completa-leyenda" data-test="visual-completa-leyenda" hidden></p>
+    <div class="visual-completa-pie" data-test="visual-completa-pie" hidden></div>
   </div>
 
   <!-- Plantilla clonada por cada tarjeta del mazo (spec v0.1c §2.3): confianza

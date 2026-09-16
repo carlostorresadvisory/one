@@ -2620,17 +2620,50 @@ button.punto-servidor::before {
   display: block;
 }
 
-.visual-completa-leyenda {
+/* Botón de cierre (Ronda 1 de revisión, Important #2/#3): arriba a la izquierda, `position:fixed`
+   (no `absolute`) para que su `top`/`left` midan desde el viewport real y no desde el padding-box
+   de `.visual-completa` (que ya reserva su propio `padding`) -- así no se suman los dos. Mismo estilo
+   que `.boton-volver` de la cabecera (44px de área táctil, mismo glifo "←"), con `padding:8px` en vez
+   de `padding:0` (pedido explícito del ruling) y su propio `env(safe-area-inset-top)`: es EL ÚNICO
+   elemento enfocable del diálogo (ver el `tabindex` que ya no lleva `.visual-completa`, y el keydown
+   de Tab en app.js que mantiene el foco aquí). */
+.visual-completa-cerrar {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--texto);
+  font-size: 24px;
+}
+
+.visual-completa-pie {
   flex: none;
   margin: 0;
   max-width: 100%;
-  font-size: 13px;
   color: var(--texto);
   text-align: center;
 }
 
-.visual-completa-leyenda[hidden] {
+.visual-completa-pie[hidden] {
   display: none;
+}
+
+/* Visual de datos / tarjeta tipográfica (sin atribución que citar): texto plano a 13px, como pedía
+   el brief original. La imagen reutiliza el pie REAL de la tarjeta (`.imagen-pie`/`.imagen-pie-leyenda`/
+   `.imagen-pie-atribucion`, ya definidos más arriba en esta hoja) clonado tal cual -- Ronda 1 de
+   revisión, Important #4: antes se reconstruía como texto plano y la atribución (autor/licencia/
+   enlace a Commons) desaparecía siempre que había leyenda, que es el caso del 100% de las 167
+   imágenes del banco real. */
+.visual-completa-pie-texto {
+  margin: 0;
+  font-size: 13px;
 }
 
 /* Entrada con fundido de 160ms (spec §8/brief Tarea 3), anulada bajo "reducir movimiento" por la
