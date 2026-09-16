@@ -2863,6 +2863,153 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await page.locator('[data-test="comenzar"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
   });
+
+  /** v0.2b4.1 §5: la pregunta llega SIN visual (`visualPendiente: true`) porque la tanda urgente no
+   * lo esperó; en la siguiente sincronización el servidor la manda en `actualizadas` y el banco
+   * extendido la incorpora sin que el jugador tenga que hacer nada. */
+  test('v0.2b4.1 §5: una tarjeta sin visual lo recibe en la siguiente sincronización', async ({ page }) => {
+    test.setTimeout(45000);
+    let sincronizaciones = 0;
+    let desdeRecibido;
+    const ID = 'srv-pendiente-1';
+    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname !== '/estado') {
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+        return;
+      }
+      sincronizaciones += 1;
+      const cuerpo = JSON.parse(req.postData() || '{}');
+      if (sincronizaciones === 1) {
+        // Primera: la pregunta entra en el banco extendido sin visual y marcada como pendiente.
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({
+            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            enCola: 0,
+            actualizadas: [],
+          }),
+        });
+        return;
+      }
+      // Segunda: nada nuevo, pero el visual que faltaba ya está listo.
+      desdeRecibido = cuerpo.desde;
+      await route.fulfill({
+        status: 200, contentType: 'application/json', headers: CORS,
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+      });
+    }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // Estado tras la primera sincronización: en el banco, sin visual, marcada.
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p ? `${p.visual === null}|${p.visualPendiente === true}` : null;
+      }, ID), { timeout: 10000 })
+      .toBe('true|true');
+
+    // Segunda sincronización: se dispara al recargar (mismo camino que "al abrir la app").
+    await page.reload();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p && p.visual ? `${p.visual.tipo}|${p.visualPendiente}` : null;
+      }, ID), { timeout: 10000 })
+      .toBe('formula|false');
+
+    expect(desdeRecibido).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  // Requisito extra del controlador (no en el brief, va más allá de comprobar solo localStorage):
+  // la MISMA situación de arriba, pero verificando que el visual de verdad se PINTA en la tarjeta
+  // cuando el jugador la ve en el repaso -- construirTarjetaRespondida (app.js) es la misma función
+  // para la tarjeta respondida en partida y para el repaso, así que fallar la pregunta a propósito
+  // (aterriza en "para repasar", primera del tramo 1) es el camino más corto y determinista hasta
+  // esa pantalla sin depender del orden del banco real (295 preguntas).
+  test('v0.2b4.1 §5 (extra): la tarjeta en el repaso muestra el visual que llegó en la sincronización', async ({
+    page,
+  }) => {
+    test.setTimeout(45000);
+    let sincronizaciones = 0;
+    const ID = 'srv-pendiente-repaso-1';
+    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+
+    await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname !== '/estado') {
+        await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+        return;
+      }
+      sincronizaciones += 1;
+      if (sincronizaciones === 1) {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({
+            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            enCola: 0,
+            actualizadas: [],
+          }),
+        });
+        return;
+      }
+      // Cualquier sincronización posterior (aquí, la que dispara finalizarPartida): el visual ya está.
+      await route.fulfill({
+        status: 200, contentType: 'application/json', headers: CORS,
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+      });
+    }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    // La primera sincronización trae la pregunta sin visual; el chip la ofrece para jugar.
+    const chip = page.locator('[data-test="nuevas-servidor"]');
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    // Falla A PROPÓSITO (preguntaServidor siempre respuesta:true): así aterriza en "para repasar" y
+    // será la ÚNICA tarjeta de ese tramo (nada más se jugó en este test).
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-falso"]').click();
+    await avanzarTrasRespuesta(page); // única pregunta de la partida -> termina -> finalizarPartida sincroniza otra vez.
+    await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+
+    // La segunda sincronización (disparada por finalizarPartida) ya trae el visual: se espera a que
+    // el banco extendido lo refleje antes de comprobar la pantalla.
+    await expect
+      .poll(() => page.evaluate((id) => {
+        const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
+        const p = b.find((q) => q.id === id);
+        return p && p.visual ? p.visual.tipo : null;
+      }, ID), { timeout: 10000 })
+      .toBe('formula');
+
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const tarjetaRepaso = tarjetaActual(page);
+    await expect(tarjetaRepaso.locator('[data-test="visual"]')).toBeVisible();
+    await expect(tarjetaRepaso.locator('[data-test="visual-pie"]')).toHaveText(VISUAL.leyenda);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+  });
 });
 
 // C4 de la revisión final v0.2b3-atomo-amplio-gemini: el `::before` de 44×44 que amplía el área
@@ -3597,6 +3744,134 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
+  /** v0.2b4.1 §6: `hechas` avanza por pregunta verificada, así que el indicador puede enseñar
+   * cualquier número de 1 a 10 -- no solo 0, 5 y 10 como en v0.2b4 (donde subía de lote en lote).
+   * El servidor falso devuelve 3 y luego 7 para demostrar los dos que antes eran imposibles. */
+  function servidorTandaFinaFalso({ contadores = {} } = {}) {
+    let sondeos = 0;
+    const suma = (clave) => { contadores[clave] = (contadores[clave] || 0) + 1; };
+    const pasos = [
+      { estado: 'generando', hechas: 3, preguntas: [] },
+      { estado: 'generando', hechas: 7, preguntas: [] },
+    ];
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0,"actualizadas":[]}' });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados', completo: 'Mercados y crisis' }] }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        suma('generar');
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ trabajoId: 'tanda-fina-1', enCola: 0, estimadoSeg: 40, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      if (url.pathname === '/trabajo/tanda-fina-1') {
+        suma('trabajo');
+        const paso = pasos[sondeos] || null;
+        sondeos += 1;
+        const cuerpo = paso
+          ? { ...paso, pedidas: 10, motivo: null, segundosPorPregunta: 4 }
+          : {
+              estado: 'lista', hechas: 10, pedidas: 10, motivo: null, segundosPorPregunta: 4,
+              preguntas: Array.from({ length: 10 }, (_, i) => preguntaServidor(`srv-fina-${i + 1}`)),
+            };
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(cuerpo) });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('v0.2b4.1 §6: el indicador enseña "3 de 10" (progreso por pregunta, no por lote de 5)', async ({ page }) => {
+    test.setTimeout(45000);
+    const contadores = {};
+    await page.route(`${URL_SERVIDOR}/**`, servidorTandaFinaFalso({ contadores }));
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 12000 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.2b4.1-indicador-3-de-10-375.png` });
+    await expect(texto).toHaveText(/^7 de 10 · ~/, { timeout: 12000 });
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 393, height: 852 });
+    await assertSinScroll(page);
+  });
+
+  /** Ola final v0.2b4.1 (C1): el servidor pone un trabajo URGENTE en 'parcial' entre sus dos lotes
+   * de 5 (servidor/cola.js#procesarCola: `siguiente.estado = siguiente.preguntas.length > 0 ?
+   * 'parcial' : 'generando'` cuando el trabajo continúa). Con la lista de estados "en curso" del
+   * cliente ('en-cola'/'generando') ese 'parcial' se leía como TERMINAL y la app cerraba la tanda
+   * con las 5 que hubiera -- medido en vivo el 15-sep: "Tanda lista · 4" mientras el servidor
+   * seguía y acabó con 8. Solo 'lista'/'fallida' (o `hechas >= pedidas`) son terminales. */
+  function servidorTandaParcialFalso() {
+    let sondeos = 0;
+    const pregunta = (i) => preguntaServidor(`srv-parcial-${i + 1}`);
+    return conPreflight(async (route, req) => {
+      const url = new URL(req.url());
+      if (url.pathname === '/estado') {
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: '{"preguntas":[],"enCola":0,"actualizadas":[]}' });
+        return;
+      }
+      if (url.pathname === '/subtemas') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados', completo: 'Mercados y crisis' }] }),
+        });
+        return;
+      }
+      if (url.pathname === '/generar') {
+        await route.fulfill({
+          status: 200, contentType: 'application/json', headers: CORS,
+          body: JSON.stringify({ trabajoId: 'tanda-parcial-1', enCola: 0, estimadoSeg: 40, segundosPorPregunta: 4 }),
+        });
+        return;
+      }
+      if (url.pathname === '/trabajo/tanda-parcial-1') {
+        // Primer sondeo: 'parcial' a mitad (5 de 10) -- el lote 1 acabó con algún fallo y el
+        // trabajo SIGUE. Del segundo en adelante: 'parcial' ya completo (10 de 10), terminal.
+        const primero = sondeos === 0;
+        sondeos += 1;
+        const cuerpo = primero
+          ? { estado: 'parcial', hechas: 5, pedidas: 10, motivo: null, segundosPorPregunta: 4, preguntas: Array.from({ length: 5 }, (_, i) => pregunta(i)) }
+          : { estado: 'parcial', hechas: 10, pedidas: 10, motivo: null, segundosPorPregunta: 4, preguntas: Array.from({ length: 10 }, (_, i) => pregunta(i)) };
+        await route.fulfill({ status: 200, contentType: 'application/json', headers: CORS, body: JSON.stringify(cuerpo) });
+        return;
+      }
+      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
+    });
+  }
+
+  test('v0.2b4.1 (C1): un "parcial" a mitad (5 de 10) NO cierra la tanda; se cierra al llegar a 10', async ({ page }) => {
+    test.setTimeout(45000);
+    await page.route(`${URL_SERVIDOR}/**`, servidorTandaParcialFalso());
+
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const texto = page.locator('[data-test="indicador-tanda-texto"]');
+    // Con el bug: aquí ya ponía "Tanda lista · 5" y el sondeo se paraba para siempre.
+    await expect(texto).toHaveText(/^5 de 10 · ~/, { timeout: 12000 });
+    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await assertSinScroll(page);
   });
 
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {

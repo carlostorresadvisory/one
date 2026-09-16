@@ -25,6 +25,23 @@ const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
 const CERROJO_COLCHON = 'colchon.json';
+// v0.2b4.1 §5: cuántas preguntas se intentan completar en UNA pasada del trabajo de fondo. Un tope
+// bajo a propósito -- procesarCola lo llama cada vez que se queda sin trabajos (potencialmente muy
+// seguido), y cada visual es una llamada de red de segundos; no tiene sentido intentar de golpe
+// todo lo que haya pendiente en el colchón.
+const MAX_VISUALES_PENDIENTES_POR_PASADA = 10;
+// v0.2b4.1 §5 (I2, ronda de corrección 1): a partir de este número de intentos fallidos, una
+// pregunta con el visual pendiente se rinde -- deja de reintentarse para siempre en vez de ocupar
+// un hueco de cada pasada sin avanzar nunca (antes no había ningún límite: un visual que nunca sale
+// se reintentaba indefinidamente y, con `pendientes.slice(0, max)` siempre desde el principio,
+// también bloqueaba a las que iban detrás -- ver la rotación por `intentosVisual` más abajo).
+const MAX_INTENTOS_VISUAL = 3;
+// Ola final v0.2b4.1 (M1): tope de lo que `actualizadas` puede devolver en UNA respuesta de
+// `POST /estado`. Un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y cada
+// elemento lleva un visual entero: sin tope, esa respuesta se dispara de tamaño justo en la
+// petición que el jugador espera al abrir la app. Lo que no entra conserva su `actualizadaEn` y
+// entra en la sincronización siguiente -- no se pierde nada, solo se reparte.
+const MAX_ACTUALIZADAS = 50;
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M4, segunda mitad): lo que `servir()` devuelve a
 // quien llamó (la API, y a través de ella el móvil) nunca lleva los campos de gestión interna del
@@ -46,6 +63,10 @@ const CAMPOS_PUBLICOS_PREGUNTA = [
   'criterio',
   'hilo',
   'visual',
+  // v0.2b4.1 §5: "esta pregunta todavía no tiene su visual, pero lo tendrá". El cliente lo usa
+  // para no dar por definitiva una tarjeta sin visual (y para saber que merece la pena volver a
+  // preguntar). `actualizadaEn` NO entra aquí: es logística del colchón, como `creada`/`servida`.
+  'visualPendiente',
   'tarjeta',
   'sospechoso',
   'confianza',
@@ -114,10 +135,14 @@ function purgarColchon(lista) {
  * @param {object} params
  * @param {ReturnType<import('./almacen.js').crearAlmacen>} params.almacen
  * @param {Function} params.producirTanda
+ * @param {Function} [params.completarVisual] v0.2b4.1 §5: misma firma que
+ *   servidor/generacion.js#completarVisual. Opcional -- sin ella, `completarVisualesPendientes` es
+ *   un no-op (ver más abajo); así los tests que no necesitan el trabajo de fondo no tienen que
+ *   inyectarla.
  * @param {object} [params.opciones] opciones base pasadas a producirTanda en cada lote (llamar,
  *   permitirPago, topeEur, rutaLog); `urgente` se añade/sobrescribe por trabajo.
  */
-export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () => Date.now() } = {}) {
+export function crearCola({ almacen, producirTanda, completarVisual = null, opciones = {}, reloj = () => Date.now() } = {}) {
   if (!almacen) throw new Error('crearCola: falta almacen');
   if (typeof producirTanda !== 'function') throw new Error('crearCola: falta producirTanda');
 
@@ -127,10 +152,20 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   const terminados = new Map(); // últimos 100 trabajos terminados, por id (no se persisten)
   // v0.2b4 §6c: media móvil de segundos por pregunta. En memoria a propósito (no se persiste): tras
   // reiniciar el servidor se vuelve al valor inicial y se recalibra sola con la primera tanda.
-  const muestrasSegPorPregunta = [];
+  // Ola final v0.2b4.1 (I4): DOS ventanas, no una. El fondo usa cascadas lentas a propósito (NVIDIA
+  // y los ':free', 35-90 s por llamada) y corre secuencial; un urgente usa las rápidas en paralelo.
+  // Con una sola ventana de 5 muestras, UNA tanda de fondo multiplicaba por cinco el `estimadoSeg`
+  // que ve el jugador en el móvil. La de urgente es la única que sale por `/generar` y
+  // `/trabajo/:id`; la de fondo solo se asoma en `estadisticas()` (y de ahí a `/salud`).
+  const muestrasUrgente = [];
+  const muestrasFondo = [];
   let activo = null;
   let procesando = false;
   let contadorId = 0;
+  // v0.2b4.1 §5: cerrojo propio (booleano, igual patrón que `procesando`) para que dos disparos de
+  // completarVisualesPendientes -- uno desde procesarCola al vaciarse, otro desde POST /estado -- no
+  // se solapen pidiendo el mismo visual pendiente dos veces a la vez.
+  let completandoVisuales = false;
   // Ronda final (revisión, 14-sep-2026) -- Critical (C2): señal de salud del trabajador, para que
   // /salud pueda decir algo más que "el proceso sigue vivo". `ultimoError` es el motivo (corto, sin
   // trazas) del último lote que falló de cualquier forma; `ultimaGeneracionOk` es el ISO del último
@@ -155,10 +190,16 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     return delante;
   }
 
+  function mediaDe(muestras) {
+    if (muestras.length === 0) return SEG_POR_PREGUNTA_INICIAL;
+    const suma = muestras.reduce((a, b) => a + b, 0);
+    return Math.max(1, Math.round(suma / muestras.length));
+  }
+
+  /** I4: la media de las tandas URGENTES -- la única que vale para decirle a un jugador cuánto le
+   * queda. Sin ninguna medida todavía, el arranque en frío de 20 s. */
   function segundosPorPregunta() {
-    if (muestrasSegPorPregunta.length === 0) return SEG_POR_PREGUNTA_INICIAL;
-    const suma = muestrasSegPorPregunta.reduce((a, b) => a + b, 0);
-    return Math.max(1, Math.round(suma / muestrasSegPorPregunta.length));
+    return mediaDe(muestrasUrgente);
   }
 
   /** Preguntas que hay POR DELANTE de `trabajo` (incluido lo que le queda al activo): eso, y no
@@ -271,6 +312,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
     const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // v0.2b4.1 §6: `hechas` al empezar el lote. El progreso DENTRO del lote se pinta sobre esta
+    // base y el `finally` la cierra sumando el lote entero -- así el indicador puede enseñar
+    // 1..10 sin que un fallo a mitad deje el contador a medias y el trabajo reintentando siempre
+    // el mismo lote (que es justo lo que garantizaba el `hechas += tamanoLote` de antes).
+    const hechasAlEmpezar = trabajo.hechas;
     // Ronda de corrección 1 (revisión Opus, Important #2): tiempo de PARED de ESTE lote en
     // concreto, no de punta a punta del trabajo -- un trabajo de fondo que cede el turno (ver
     // procesarCola) puede pasar minutos aparcado en colaFondo mientras otro trabajo ocupa al
@@ -289,7 +335,20 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       try {
         resultado = await producirTanda(
           { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
-          { ...opciones, urgente: trabajo.urgente },
+          {
+            ...opciones,
+            urgente: trabajo.urgente,
+            // Ola final v0.2b4.1 (C2): "¿hay alguien esperando ahora mismo?", consultable EN VIVO
+            // desde dentro del lote. Ceder entre lotes no basta: un lote de fondo con concurrencia
+            // 1 y cascadas lentas dura minutos él solo (medido: un urgente esperó 5 m 23 s detrás
+            // de UNO). `producirTanda` solo la consulta en modo fondo, y solo para cortar su fase
+            // de visuales (ver generacion.js#cortarPorUrgente).
+            hayUrgente: () => colaUrgente.length > 0,
+            onProgreso: ({ verificadas }) => {
+              const dentroDelLote = Math.min(Math.max(0, verificadas), tamanoLote);
+              trabajo.hechas = Math.min(hechasAlEmpezar + dentroDelLote, trabajo.pedidas);
+            },
+          },
         );
       } catch (err) {
         trabajo.huboFallo = true;
@@ -336,7 +395,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       // anterior (condición de carrera real de la ronda de estabilidad anterior). El `finally`
       // además garantiza que `hechas` avanza SIEMPRE, incluso si el `try` lanzó antes de llegar
       // aquí -- nunca se queda un trabajo colgado reintentando el mismo lote para siempre.
-      trabajo.hechas += tamanoLote;
+      //
+      // El lote se cuenta SIEMPRE entero, haya ido bien o mal: es lo que evita que un trabajo se
+      // quede reintentando el mismo lote para siempre. `onProgreso` solo puede adelantar el
+      // contador dentro de este mismo tramo, nunca pasarse ni quedarse corto al cerrar.
+      trabajo.hechas = Math.min(hechasAlEmpezar + tamanoLote, trabajo.pedidas);
       // Solo el tiempo de ESTE lote (desde que el trabajador lo cogió hasta que lo suelta), nunca
       // el tiempo aparcado entre cesiones -- ver comentario de `inicioLote` arriba.
       trabajo.msActivos = (trabajo.msActivos || 0) + (reloj() - inicioLote);
@@ -358,9 +421,114 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     if (trabajo.preguntas.length > 0 && Number.isFinite(trabajo.msActivos) && trabajo.hechas > 0) {
       const seg = trabajo.msActivos / 1000 / trabajo.hechas;
       if (seg > 0) {
-        muestrasSegPorPregunta.push(seg);
-        if (muestrasSegPorPregunta.length > MUESTRAS_SEG_POR_PREGUNTA) muestrasSegPorPregunta.shift();
+        // I4: cada trabajo alimenta SOLO la ventana de los suyos (ver muestrasUrgente/muestrasFondo).
+        const muestras = trabajo.urgente ? muestrasUrgente : muestrasFondo;
+        muestras.push(seg);
+        if (muestras.length > MUESTRAS_SEG_POR_PREGUNTA) muestras.shift();
       }
+    }
+  }
+
+  /**
+   * v0.2b4.1 §5: el trabajo de fondo que completa los visuales que la tanda urgente no esperó.
+   * Se dispara cuando el trabajador se queda sin trabajos (ver procesarCola, debajo) -- la
+   * prioridad más baja, detrás de todo urgente y de todo fondo. Ronda de corrección 1 (I1): NO
+   * garantiza completar la pasada entera de un tirón -- si un urgente llega a mitad, se corta
+   * ENTRE preguntas (nunca a mitad de una) y `procesarCola` lo recoge en la vuelta siguiente de su
+   * bucle exterior; así un urgente nunca espera más que UN visual ya en curso, nunca la pasada
+   * completa. Cada pregunta completada queda marcada con `actualizadaEn` para que `POST /estado`
+   * pueda contársela al móvil que ya tiene esa pregunta (ver `actualizadas`).
+   * Ronda de corrección 1 (I2): cada intento fallido incrementa `intentosVisual` en la propia
+   * entrada del colchón; al llegar a `MAX_INTENTOS_VISUAL` la pregunta se rinde (`visualPendiente:
+   * false` sin visual, igual criterio que una rechazada por el verificador) y deja de elegirse. Las
+   * pendientes se ordenan por `intentosVisual` ascendente y luego por antigüedad -- así una que
+   * nunca se ha intentado (o se ha intentado menos veces) siempre entra antes que una que ya viene
+   * fallando, lo que rota de forma natural: lo que quedó fuera de `max` esta vez (o lo que cortó
+   * I1 a mitad) entra con prioridad la próxima pasada, en vez de quedarse siempre detrás de las
+   * primeras `max` por orden de creación.
+   * Sin `completarVisual` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
+   * necesitan el trabajo de fondo no tienen que simularla.
+   * @param {{max?: number}} [params]
+   * @returns {Promise<{completadas: number, pendientes: number|null, enCurso?: boolean}>}
+   *   `enCurso: true` (con `pendientes: null`) cuando ya hay una pasada en marcha -- distinguible
+   *   de "no hay nada pendiente" (Minor, ronda de corrección 1): antes las dos devolvían
+   *   `{completadas: 0, pendientes: 0}` y quien llamaba no podía saber si valía la pena reintentar.
+   */
+  async function completarVisualesPendientes({ max = MAX_VISUALES_PENDIENTES_POR_PASADA } = {}) {
+    if (typeof completarVisual !== 'function') return { completadas: 0, pendientes: 0 };
+    if (completandoVisuales) return { completadas: 0, pendientes: null, enCurso: true };
+    completandoVisuales = true;
+    try {
+      const colchon = await almacen.leerColchon();
+      // I2: intentosVisual ascendente primero (nunca intentada, o menos veces, entra antes),
+      // antigüedad como desempate -- ver el JSDoc de arriba.
+      const pendientes = colchon
+        .filter((p) => p.visualPendiente === true)
+        .sort((a, b) => {
+          const ia = Number.isFinite(a.intentosVisual) ? a.intentosVisual : 0;
+          const ib = Number.isFinite(b.intentosVisual) ? b.intentosVisual : 0;
+          if (ia !== ib) return ia - ib;
+          return new Date(a.creada).getTime() - new Date(b.creada).getTime();
+        });
+      if (pendientes.length === 0) return { completadas: 0, pendientes: 0 };
+
+      // Se resuelven FUERA del cerrojo (son llamadas a modelos, de segundos a minutos: tener el
+      // colchón bloqueado ese rato pararía servir() y el guardado de cualquier lote en curso) y
+      // después se aplica el cambio dentro del cerrojo, releyendo -- el colchón puede haber
+      // cambiado mientras tanto (una tanda nueva, un reportar...).
+      const elegidas = pendientes.slice(0, Math.max(0, max));
+      const resueltas = new Map();
+      const intentosFallidos = new Map();
+      for (const pregunta of elegidas) {
+        try {
+          const salida = await completarVisual(pregunta, opciones);
+          if (salida && salida.visual) {
+            resueltas.set(pregunta.id, salida.visual);
+          } else {
+            intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosVisual) ? pregunta.intentosVisual : 0) + 1);
+          }
+        } catch (err) {
+          // Igual criterio que ejecutarUnLote: un fallo aquí nunca puede tumbar al trabajador.
+          ultimoError = String(err?.message || err).slice(0, 300);
+          intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosVisual) ? pregunta.intentosVisual : 0) + 1);
+        }
+        // I1: un urgente que llegó DURANTE esta pasada -- un jugador esperando -- no debe esperar
+        // a que termine el resto de pendientes. Se corta aquí, ENTRE preguntas (nunca a mitad de
+        // una): lo ya resuelto en este `for` se guarda igual más abajo (el guardado va después del
+        // bucle, no dentro de cada iteración) y `procesarCola` recoge al urgente en la siguiente
+        // vuelta de su bucle exterior sin esperar a que esta pasada termine del todo.
+        if (colaUrgente.length > 0) break;
+      }
+      if (resueltas.size === 0 && intentosFallidos.size === 0) {
+        return { completadas: 0, pendientes: pendientes.length };
+      }
+
+      await almacen.conCerrojo(CERROJO_COLCHON, async () => {
+        const actual = await almacen.leerColchon();
+        const ahora = new Date().toISOString();
+        const actualizado = actual.map((p) => {
+          if (p.visualPendiente !== true) return p;
+          if (resueltas.has(p.id)) {
+            return { ...p, visual: resueltas.get(p.id), visualPendiente: false, actualizadaEn: ahora };
+          }
+          if (intentosFallidos.has(p.id)) {
+            const intentos = intentosFallidos.get(p.id);
+            // I2: agotados los intentos, se rinde -- mismo criterio que un visual rechazado por el
+            // verificador: se queda sin él y `visualPendiente:false` lo saca de la lista de
+            // pendientes para siempre (nada cambió de cara al cliente -- sigue sin visual --, así
+            // que no se marca `actualizadaEn`, igual que cuando un intento simplemente no llega).
+            return intentos >= MAX_INTENTOS_VISUAL
+              ? { ...p, visualPendiente: false, intentosVisual: intentos }
+              : { ...p, intentosVisual: intentos };
+          }
+          return p;
+        });
+        await almacen.guardarColchon(purgarColchon(actualizado));
+      });
+
+      return { completadas: resueltas.size, pendientes: pendientes.length - resueltas.size };
+    } finally {
+      completandoVisuales = false;
     }
   }
 
@@ -377,42 +545,65 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   // que a cualquier urgente más reciente (FIFO real entre urgentes). Sigue habiendo un solo
   // trabajo activo a la vez (concurrencia 1): `tomarSiguiente()`/`activo` no cambian de sitio.
   async function procesarCola() {
-    let siguiente;
-    // eslint-disable-next-line no-cond-assign
-    while ((siguiente = tomarSiguiente())) {
-      activo = siguiente;
-      // 'generando' solo la primera vez que el trabajo corre (todavía sin ninguna aprobada). Si
-      // retoma tras ceder con >=1 aprobada, su estado ya es 'parcial' y se queda así -- no vuelve
-      // a 'generando' (mismo principio que ya regía antes de esta ronda: en cuanto hay resultados
-      // parciales, se muestran hasta el final).
-      if (siguiente.preguntas.length === 0) {
-        siguiente.estado = 'generando';
+    // v0.2b4.1 §5 (autorrevisión): bucle EXTERIOR alrededor del `while` de siempre + el trabajo de
+    // fondo de visuales. `completarVisualesPendientes()` hace red de verdad (puede tardar segundos,
+    // no un tick) -- si se llamara solo una vez DESPUÉS del `while` y se retornara sin más, un
+    // trabajo que llega mientras tanto (`encolar()` lo empuja, pero `dispararProcesamiento()` no
+    // hace nada porque `procesando` sigue en true) se quedaría atascado en la cola hasta que un
+    // `encolar()` futuro y sin relación lo destrabara por casualidad -- justo lo que esta tarea NO
+    // debe permitir con un urgente (un jugador esperando). Se sale del todo solo cuando, tras
+    // completar visuales, las dos colas siguen vacías.
+    for (;;) {
+      let siguiente;
+      // eslint-disable-next-line no-cond-assign
+      while ((siguiente = tomarSiguiente())) {
+        activo = siguiente;
+        // 'generando' solo la primera vez que el trabajo corre (todavía sin ninguna aprobada). Si
+        // retoma tras ceder con >=1 aprobada, su estado ya es 'parcial' y se queda así -- no vuelve
+        // a 'generando' (mismo principio que ya regía antes de esta ronda: en cuanto hay resultados
+        // parciales, se muestran hasta el final).
+        if (siguiente.preguntas.length === 0) {
+          siguiente.estado = 'generando';
+        }
+
+        // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
+        // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en
+        // profundidad, tal como pidió la revisión, por si un fallo futuro se cuela de todos modos.
+        try {
+          await ejecutarUnLote(siguiente);
+        } finally {
+          activo = null;
+        }
+
+        if (siguiente.hechas >= siguiente.pedidas) {
+          finalizarTrabajo(siguiente);
+          guardarTerminado(siguiente);
+          continue;
+        }
+
+        const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
+        if (debeCeder) {
+          siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
+          colaFondo.unshift(siguiente);
+        } else {
+          siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
+          if (siguiente.urgente) colaUrgente.unshift(siguiente);
+          else colaFondo.unshift(siguiente);
+        }
       }
 
-      // Ronda 2 (revisión), punto 2: `activo` se libera SIEMPRE en un `finally`, aunque
-      // ejecutarUnLote ya no debería lanzar nunca (lo captura todo internamente) -- defensa en
-      // profundidad, tal como pidió la revisión, por si un fallo futuro se cuela de todos modos.
-      try {
-        await ejecutarUnLote(siguiente);
-      } finally {
-        activo = null;
-      }
+      // El trabajador se ha quedado sin trabajos: es el momento de completar visuales pendientes --
+      // lo más bajo de la escala de prioridad, detrás de todo urgente y de todo fondo. Ronda de
+      // corrección 1 (I1): esta pasada puede cortarse antes de terminar (ver
+      // completarVisualesPendientes) si un urgente llega mientras tanto -- por eso el bucle
+      // exterior de aquí vuelve a mirar la cola justo debajo en vez de darla por vacía sin más.
+      await completarVisualesPendientes().catch((err) => {
+        console.error(`servidor/cola: fallo al completar visuales pendientes: ${err?.message || err}`);
+      });
 
-      if (siguiente.hechas >= siguiente.pedidas) {
-        finalizarTrabajo(siguiente);
-        guardarTerminado(siguiente);
-        continue;
-      }
-
-      const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
-      if (debeCeder) {
-        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
-        colaFondo.unshift(siguiente);
-      } else {
-        siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
-        if (siguiente.urgente) colaUrgente.unshift(siguiente);
-        else colaFondo.unshift(siguiente);
-      }
+      // Si nada llegó mientras se completaban visuales, se sale de verdad -- si algo llegó
+      // (urgente o de fondo), el `while` de arriba lo recoge en la próxima vuelta.
+      if (colaUrgente.length === 0 && colaFondo.length === 0) break;
     }
   }
 
@@ -541,6 +732,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
   }
 
   async function rellenarHaciaObjetivo(resumen, rutasAtomo) {
+    // Ola final v0.2b4.1 (C2): con un jugador esperando su tanda, rellenar el colchón es lo último
+    // que importa -- y cada trabajo de fondo encolado es un turno más que el urgente puede acabar
+    // esperando. Esto se dispara en CADA `POST /estado` (servidor/index.js), así que saltárselo no
+    // pierde nada: el siguiente /estado, segundos después, vuelve a intentarlo.
+    if (colaUrgente.length > 0 || (activo && activo.urgente)) return [];
     const objetivo = await calcularObjetivo(resumen, rutasAtomo);
     const encolados = [];
     for (const { area, ruta, faltan } of objetivo) {
@@ -612,6 +808,35 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     });
   }
 
+  /**
+   * v0.2b4.1 §5: qué ha cambiado, de lo que el móvil YA tiene, desde la última vez que preguntó.
+   * Solo `visual` y `explicacion`: son los dos únicos campos que este servidor reescribe después de
+   * haber servido una pregunta (el trabajo de fondo de `completarVisualesPendientes`). Mandar la
+   * pregunta entera sería invitar a que el cliente pise un enunciado que el jugador está leyendo.
+   * No toca el disco más que para leer: no marca nada, no purga, no sirve nada nuevo.
+   * M1 (ola final v0.2b4.1): como mucho `MAX_ACTUALIZADAS`, las más recientes primero.
+   * @param {{idsConocidos?: string[], desde?: string}} params `desde` en ISO; sin él, todo lo marcado
+   * @returns {Promise<{id: string, visual: object|null, explicacion: string}[]>}
+   */
+  async function actualizadas({ idsConocidos = [], desde = null } = {}) {
+    const conocidos = new Set(idsConocidos);
+    if (conocidos.size === 0) return [];
+    const colchon = await almacen.leerColchon();
+    const limite = typeof desde === 'string' ? new Date(desde).getTime() : NaN;
+    return colchon
+      .filter((p) => {
+        if (!conocidos.has(p.id) || typeof p.actualizadaEn !== 'string') return false;
+        if (!Number.isFinite(limite)) return true; // sin `desde` válido: todo lo que tenga marca
+        const marca = new Date(p.actualizadaEn).getTime();
+        return Number.isFinite(marca) && marca > limite;
+      })
+      // M1: las más recientes primero y tope duro. El orden importa: si algo se queda fuera, que
+      // sea lo más antiguo -- es lo que el jugador tiene menos probabilidades de estar mirando.
+      .sort((a, b) => new Date(b.actualizadaEn).getTime() - new Date(a.actualizadaEn).getTime())
+      .slice(0, MAX_ACTUALIZADAS)
+      .map((p) => ({ id: p.id, visual: p.visual ?? null, explicacion: p.explicacion }));
+  }
+
   // Ronda 2 (revisión), punto 1: el borrado de colchon.json también va dentro del mismo cerrojo
   // ("reportada que revive" era exactamente este caso -- un servir() concurrente podía
   // reescribir el colchón entero justo después de que reportar() leyera pero antes de que
@@ -637,7 +862,11 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
       ultimoError,
       ultimaGeneracionOk,
       // v0.2b4 §6c: media móvil real, no la heurística fija de 90 s por puesto (ver servidor/index.js).
+      // I4: esta es la de las tandas URGENTES -- es la que `/generar` copia a `estimadoSeg`.
       segundosPorPregunta: segundosPorPregunta(),
+      // I4: la del fondo no sale a ningún cliente; está aquí (y de ahí en /salud) para poder ver
+      // cuánto tarda de verdad el colchón sin contaminar la estimación de nadie.
+      segundosPorPreguntaFondo: mediaDe(muestrasFondo),
     };
   }
 
@@ -650,5 +879,7 @@ export function crearCola({ almacen, producirTanda, opciones = {}, reloj = () =>
     reportar,
     estadisticas,
     segundosPorPregunta,
+    completarVisualesPendientes,
+    actualizadas,
   };
 }

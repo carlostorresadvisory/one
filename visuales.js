@@ -481,6 +481,135 @@ function plantillaDato(visual) {
   return svg;
 }
 
+// === esVisualValido: mismo esquema que tools/visualizar.js#validarVisual (v0.2b4.1 §5, I2, ronda de
+// corrección 1) ===================================================================================
+// Duplicado A PROPÓSITO, no importado: este fichero corre en el navegador sin dependencias, y
+// tools/visualizar.js las tiene (fs/promises, tools/openrouter.js...) -- importarlo desde aquí
+// rompería la carga del cliente. Las plantillas de arriba (plantillaFormula, etc.) validan solo su
+// "forma mínima" para poder dibujar (ver comentario de cabecera del fichero); esto es el esquema
+// COMPLETO de la spec §2, el mismo que usa el pipeline para aceptar un visual en datos/banco.json.
+// Lo usa `sincronizacion.js#aplicarActualizaciones` (I2): un visual truthy pero mal formado que
+// llegara del servidor NO debe pisar uno bueno ni apagar `visualPendiente` para siempre. Un test
+// (tests/visuales.test.js) comprueba que el veredicto coincide al 100% con `validarVisual` sobre los
+// visuales reales de datos/banco.json -- si el esquema cambia en un sitio y no en el otro, ese test
+// avisa.
+const TIPOS_VISUAL_VALIDO = ['formula', 'linea-tiempo', 'barras', 'comparacion', 'flujo', 'dato'];
+const REGEX_ANIO_FUENTE_VALIDACION = /\b(18|19|20)\d{2}\b/;
+const FRASES_FUENTE_NO_VERIFICABLE_VALIDACION = [
+  'estandar',
+  'concepto',
+  'aproximad',
+  'tipic',
+  'generic',
+  'de manual',
+  'calculo propio',
+  'estimacion propia',
+  'analisis',
+];
+const FRASES_ILUSTRATIVO_EN_TEXTO_VALIDACION = ['tipic', 'aproximad', 'estimad'];
+
+function normalizarTextoValidacion(texto) {
+  return String(texto)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+// Mismas reglas que tools/visualizar.js#validarFuente, sin el detalle del motivo (aquí solo hace
+// falta el booleano; el motivo textual solo lo necesita el pipeline de generación para su log).
+function validarFuenteVisual(fuente) {
+  if (!esTextoValido(fuente)) return false;
+  if (fuente.length < 8 || fuente.length > 40) return false;
+  if (!REGEX_ANIO_FUENTE_VALIDACION.test(fuente)) return false;
+  const normalizada = normalizarTextoValidacion(fuente);
+  if (FRASES_FUENTE_NO_VERIFICABLE_VALIDACION.some((f) => normalizada.includes(f))) return false;
+  const soloLetras = fuente.replace(REGEX_ANIO_FUENTE_VALIDACION, '').replace(/[^\p{L}]/gu, '');
+  return soloLetras.length >= 3;
+}
+
+function contieneFraseIlustrativaVisual(texto) {
+  if (!esTextoValido(texto)) return false;
+  const normalizado = normalizarTextoValidacion(texto);
+  return FRASES_ILUSTRATIVO_EN_TEXTO_VALIDACION.some((f) => normalizado.includes(f));
+}
+
+/**
+ * v0.2b4.1 §5 (I2): ¿pasa `visual` el esquema completo de la spec §2 (el mismo que
+ * `tools/visualizar.js#validarVisual`)? Nunca lanza. A diferencia de `construirVisual` (que dibuja
+ * con lo que tenga, con su propia comprobación mínima de forma), esto es estricto: un `barras`/`dato`
+ * sin `fuente` verificable, una `formula` con LaTeX crudo, una `linea-tiempo` con años repetidos...
+ * todo lo que el pipeline de generación rechazaría, esto también lo rechaza.
+ * @param {any} visual
+ * @returns {boolean}
+ */
+export function esVisualValido(visual) {
+  if (!visual || typeof visual !== 'object' || Array.isArray(visual)) return false;
+  if (!TIPOS_VISUAL_VALIDO.includes(visual.tipo)) return false;
+  if (!esTextoValido(visual.leyenda) || visual.leyenda.length > 60) return false;
+
+  switch (visual.tipo) {
+    case 'formula': {
+      if (!esTextoValido(visual.texto) || visual.texto.length > 40) return false;
+      // Fijado por Carlos tras la pasada adversarial del 13-sep-2026: LaTeX crudo se pintaría
+      // literal en el SVG -- la notación es siempre plana.
+      return !/[\\$]/.test(visual.texto);
+    }
+    case 'linea-tiempo': {
+      if (!Array.isArray(visual.hitos) || visual.hitos.length < 3 || visual.hitos.length > 5) return false;
+      for (const h of visual.hitos) {
+        if (!h || !esTextoValido(h.ano) || h.ano.length > 9) return false;
+        if (!esTextoValido(h.texto) || h.texto.length > 22) return false;
+      }
+      const anos = visual.hitos.map((h) => h && h.ano).filter((a) => typeof a === 'string');
+      return new Set(anos).size === anos.length; // "ano" repetido: dos hitos en el mismo punto.
+    }
+    case 'barras': {
+      if (!Array.isArray(visual.items) || visual.items.length < 2 || visual.items.length > 5) return false;
+      for (const it of visual.items) {
+        if (!it || !esTextoValido(it.etiqueta) || it.etiqueta.length > 16) return false;
+        // > 0, no solo numérico/finito: son magnitudes comparables en un gráfico de barras -- un
+        // cero o un negativo rompen el dibujo.
+        if (typeof it.valor !== 'number' || !Number.isFinite(it.valor) || it.valor <= 0) return false;
+        if (it.unidad !== undefined && it.unidad !== null) {
+          if (typeof it.unidad !== 'string' || it.unidad.length > 6) return false;
+        }
+      }
+      // "fuente" OBLIGATORIA para barras/dato: sin ella (o con pinta de cifra ilustrativa) no es un
+      // dato real con procedencia.
+      if (!validarFuenteVisual(visual.fuente)) return false;
+      if (contieneFraseIlustrativaVisual(visual.titulo)) return false;
+      if (contieneFraseIlustrativaVisual(visual.leyenda)) return false;
+      return true;
+    }
+    case 'comparacion': {
+      if (!Array.isArray(visual.columnas) || visual.columnas.length !== 2) return false;
+      for (const c of visual.columnas) {
+        if (!c || !esTextoValido(c.titulo) || c.titulo.length > 16) return false;
+        if (!Array.isArray(c.puntos) || c.puntos.length < 2 || c.puntos.length > 3) return false;
+        for (const p of c.puntos) {
+          if (!esTextoValido(p) || p.length > 28) return false;
+        }
+      }
+      return true;
+    }
+    case 'flujo': {
+      if (!Array.isArray(visual.pasos) || visual.pasos.length < 2 || visual.pasos.length > 4) return false;
+      for (const p of visual.pasos) {
+        if (!esTextoValido(p) || p.length > 18) return false;
+      }
+      return true;
+    }
+    case 'dato': {
+      if (!esTextoValido(visual.cifra) || visual.cifra.length > 8) return false;
+      if (!esTextoValido(visual.texto) || visual.texto.length > 40) return false;
+      if (!validarFuenteVisual(visual.fuente)) return false;
+      return !contieneFraseIlustrativaVisual(visual.leyenda);
+    }
+    default:
+      return false; // inalcanzable: ya filtrado por TIPOS_VISUAL_VALIDO arriba.
+  }
+}
+
 const PLANTILLAS = {
   formula: plantillaFormula,
   'linea-tiempo': plantillaLineaTiempo,

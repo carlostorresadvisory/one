@@ -463,7 +463,56 @@ test('cola v0.2b4 §6c (corrección 1): un fondo que cede el turno a un urgente 
 
   // Con el fix: 20 s de trabajo activo / 10 preguntas = 2 s/pregunta. Con el bug (tiempo de pared
   // de punta a punta): (10 + 100 + 10) s / 10 preguntas = 12 s/pregunta.
-  assert.equal(cola.estadisticas().segundosPorPregunta, 2);
+  // Ola final v0.2b4.1 (I4): la muestra de un trabajo de FONDO ya no va a la misma media que las
+  // urgentes -- se comprueba en la ventana de fondo, que es donde ahora cae.
+  assert.equal(cola.estadisticas().segundosPorPreguntaFondo, 2);
+});
+
+// Ola final v0.2b4.1 (I4): una sola media mezclaba dos poblaciones que no tienen nada que ver --
+// el fondo usa cascadas lentas a propósito (NVIDIA, ':free': 35-90 s por llamada) y corre
+// secuencial; el urgente usa las rápidas en paralelo. Con la ventana de 5 muestras compartida,
+// UNA tanda de fondo bastaba para que el `estimadoSeg` que ve el jugador se multiplicara por
+// cinco. `/generar` y `/trabajo/:id` solo pueden usar la media de las urgentes.
+test('cola v0.2b4.1 (I4): una tanda de FONDO lenta no altera el segundosPorPregunta de un urgente', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const producirTanda = async ({ area, n }) => {
+    reloj.avanzar(area === 'historia' ? n * 100000 : n * 4000); // fondo 100 s/pregunta, urgente 4 s
+    return resultadoOk(area, n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda, reloj: reloj.leer });
+
+  const urgente = cola.encolar({ area: 'economia', n: 5, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(urgente.trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadisticas().segundosPorPregunta, 4);
+
+  const fondo = cola.encolar({ area: 'historia', n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(fondo.trabajoId)?.estado === 'lista');
+
+  assert.equal(cola.estadisticas().segundosPorPregunta, 4, 'la media urgente no se entera del fondo');
+  assert.equal(cola.estadisticas().segundosPorPreguntaFondo, 100, 'el fondo tiene la suya, para /salud');
+  assert.equal(cola.segundosPorPregunta(), 4, 'lo que usan /generar y /trabajo/:id es la urgente');
+
+  // Y un urgente nuevo sigue estimando con la ventana rápida.
+  const otro = cola.encolar({ area: 'ciencia', n: 5, urgente: true });
+  assert.equal(cola.estadoTrabajo(otro.trabajoId).segundosPorPregunta, 4);
+  await hastaQue(() => cola.estadoTrabajo(otro.trabajoId)?.estado === 'lista');
+});
+
+test('cola v0.2b4.1 (I4): sin ninguna tanda urgente medida, la estimación sigue siendo el arranque en frío de 20 s', async () => {
+  const carpeta = await carpetaTmp();
+  const almacen = crearAlmacen(carpeta);
+  const reloj = relojFalso();
+  const cola = crearCola({
+    almacen,
+    producirTanda: async ({ area, n }) => { reloj.avanzar(n * 90000); return resultadoOk(area, n, n); },
+    reloj: reloj.leer,
+  });
+
+  const fondo = cola.encolar({ area: 'historia', n: 5, urgente: false });
+  await hastaQue(() => cola.estadoTrabajo(fondo.trabajoId)?.estado === 'lista');
+  assert.equal(cola.segundosPorPregunta(), 20, 'nunca el 90 del fondo: eso multiplicaría por 4,5 el "~N s" del móvil');
 });
 
 test('cola v0.2b4 §6c: la media usa solo las últimas 5 tandas y las fallidas no cuentan', async () => {
@@ -629,6 +678,65 @@ test('rellenarHaciaObjetivo: encola un trabajo de fondo por entrada faltante, si
   pendientes[0].resolver(resultadoVacio(30));
 });
 
+// Ola final v0.2b4.1 (C2): `rellenarHaciaObjetivo` se dispara en CADA `POST /estado`, y el relleno
+// del colchón es lo último que importa cuando hay un jugador esperando su tanda: cada trabajo de
+// fondo que entra en la cola es un turno más que el urgente puede acabar esperando (medido en
+// vivo el 15-sep: 5 m 23 s detrás de UN lote de fondo). Si hay un urgente en cola o en curso, el
+// colchón espera al siguiente /estado -- no se pierde nada, se llama cada pocos segundos.
+test('rellenarHaciaObjetivo (C2): no encola nada de fondo mientras hay un urgente en cola o en curso', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const pendientes = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async (params) => new Promise((resolver) => pendientes.push({ resolver, area: params.area })),
+  });
+
+  const resumen = { areas: { economia: { nivel: 1, aciertoReciente: 0.1 } } };
+  cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: true }); // un solo lote: termina de una
+  await hastaQue(() => pendientes.length === 1, { intentos: 100 });
+  assert.equal(pendientes[0].area, 'historia', 'el urgente es lo que está en curso');
+
+  const encolados = await cola.rellenarHaciaObjetivo(resumen, []);
+  assert.deepEqual(encolados, [], 'con un urgente en curso, el relleno del colchón se salta entero');
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(pendientes.length, 1, 'no ha arrancado ningún trabajo de fondo');
+
+  // En cuanto el urgente termina, el siguiente /estado sí rellena.
+  pendientes[0].resolver(resultadoVacio(5));
+  await hastaQue(() => cola.estadisticas().enCola === 0 && cola.estadisticas().activo === 0);
+  const despues = await cola.rellenarHaciaObjetivo(resumen, []);
+  assert.ok(despues.length > 0, 'sin urgentes, el relleno vuelve a funcionar como siempre');
+  await hastaQue(() => pendientes.length > 1, { intentos: 100 });
+  for (const p of pendientes.slice(1)) p.resolver(resultadoVacio(5));
+});
+
+test('cola (C2): un lote de FONDO recibe `hayUrgente`, y dice la verdad sobre la cola de urgentes', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const vistas = [];
+  let resolverFondo;
+  const cola = crearCola({
+    almacen,
+    producirTanda: (params, opciones) => {
+      vistas.push({ area: params.area, urgente: opciones.urgente, hayUrgente: opciones.hayUrgente });
+      return new Promise((r) => { resolverFondo = () => r(resultadoVacio(params.n)); });
+    },
+  });
+
+  cola.encolar({ area: 'historia', ruta: [], n: 5, urgente: false });
+  await hastaQue(() => vistas.length === 1);
+  assert.equal(typeof vistas[0].hayUrgente, 'function', 'la cola inyecta la consulta en cada lote');
+  assert.equal(vistas[0].hayUrgente(), false, 'nadie esperando todavía');
+
+  cola.encolar({ area: 'economia', ruta: [], n: 5, urgente: true });
+  assert.equal(vistas[0].hayUrgente(), true, 'el urgente recién encolado se ve desde el lote en curso');
+
+  resolverFondo();
+  await hastaQue(() => vistas.length >= 2);
+  resolverFondo();
+});
+
 // === servidor/cola.js: servir / reportar ======================================================
 
 test('servir: excluye idsConocidos y reportadas, marca servida y persiste', async () => {
@@ -685,6 +793,28 @@ test('servir (Ronda final, C3): una conocida que nunca había pasado por servir(
 
   const colchon = await almacen.leerColchon();
   assert.ok(colchon[0].servida, 'se marca servida en cuanto el móvil confirma que ya la conoce');
+});
+
+test('v0.2b4.1 §5: `visualPendiente` llega al cliente; los campos internos del colchón siguen sin salir', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    {
+      ...aprobada('economia', 1, { visual: null, visualPendiente: true }),
+      origen: 'servidor',
+      creada: '2026-09-15T10:00:00.000Z',
+      servida: null,
+      actualizadaEn: '2026-09-15T10:05:00.000Z',
+    },
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const [servida] = await cola.servir({ idsConocidos: [], resumen: {}, max: 5 });
+
+  assert.equal(servida.visualPendiente, true, 'el cliente tiene que poder saber que falta el visual');
+  assert.equal(servida.origen, undefined, 'campo interno del colchón');
+  assert.equal(servida.creada, undefined);
+  assert.equal(servida.actualizadaEn, undefined, 'la marca de actualización es logística, no contenido');
 });
 
 test('servir: prioriza el área con menor aciertoReciente (sin datos cuenta como 0.5), luego la más antigua', async () => {
@@ -1019,4 +1149,368 @@ test('ejecutarUnLote (I4): registra rechazadas en rechazadas.json y una línea p
   assert.deepEqual(lineas[0].modelos, ['modelo-a', 'modelo-b']);
   assert.ok(lineas[0].trabajoId);
   assert.ok(lineas[0].fecha);
+});
+
+// --- v0.2b4.1 §6: `hechas` avanza por pregunta verificada, no por lote -----------------------
+
+test('v0.2b4.1 §6: `hechas` del trabajo avanza pregunta a pregunta, no de 5 en 5', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const vistos = [];
+  let soltarLote;
+  const enEspera = new Promise((r) => { soltarLote = r; });
+
+  const producirTandaFalso = async ({ n }, { onProgreso }) => {
+    for (let i = 1; i <= n; i++) onProgreso?.({ verificadas: i, pedidas: n });
+    await enEspera; // el lote no termina hasta que el test haya podido mirar el estado
+    return resultadoOk('economia', n, n);
+  };
+
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+  const { trabajoId } = cola.encolar({ area: 'economia', n: 10, urgente: true });
+
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).hechas === 5);
+  vistos.push(cola.estadoTrabajo(trabajoId).hechas);
+  soltarLote();
+
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'lista');
+  const final = cola.estadoTrabajo(trabajoId);
+  assert.equal(final.hechas, 10, 'al cerrar, hechas cuadra exactamente con pedidas');
+  assert.deepEqual(vistos, [5], 'y por el camino se vio el progreso dentro del lote');
+});
+
+test('v0.2b4.1 §6: si producirTanda avisa de más preguntas de las del lote, `hechas` nunca pasa de `pedidas`', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const producirTandaFalso = async ({ n }, { onProgreso }) => {
+    for (let i = 1; i <= n + 7; i++) onProgreso?.({ verificadas: i, pedidas: n });
+    return resultadoOk('economia', n, n);
+  };
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+  const { trabajoId } = cola.encolar({ area: 'economia', n: 10, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'lista');
+  assert.equal(cola.estadoTrabajo(trabajoId).hechas, 10);
+});
+
+// --- v0.2b4.1 §5: trabajo de fondo que completa visuales pendientes + actualizadas -------------
+
+test('v0.2b4.1 §5: la cola completa los visuales pendientes del colchón y marca actualizadaEn', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('historia', 2, { visual: { tipo: 'dato' }, visualPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+
+  const pedidas = [];
+  const completarVisualFalso = async (pregunta) => {
+    pedidas.push(pregunta.id);
+    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'Prueba' }, explicacion: pregunta.explicacion, coste: 0 };
+  };
+
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0), completarVisual: completarVisualFalso });
+  const resultado = await cola.completarVisualesPendientes();
+
+  assert.equal(resultado.completadas, 1);
+  assert.equal(pedidas.length, 1, 'solo la que tenía el visual pendiente');
+
+  const colchon = await almacen.leerColchon();
+  const completada = colchon.find((p) => p.id === pedidas[0]);
+  assert.equal(completada.visualPendiente, false);
+  assert.equal(completada.visual.tipo, 'formula');
+  assert.ok(typeof completada.actualizadaEn === 'string' && completada.actualizadaEn.includes('T'), 'marca ISO');
+  // La otra no se toca: ni visual, ni marca.
+  const intacta = colchon.find((p) => p.id !== pedidas[0]);
+  assert.equal(intacta.actualizadaEn, undefined);
+});
+
+test('v0.2b4.1 §5: si completarVisual no consigue visual, la pregunta sigue pendiente para otra pasada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarVisual: async (p) => ({ visual: null, explicacion: p.explicacion, coste: 0 }),
+  });
+
+  const resultado = await cola.completarVisualesPendientes();
+
+  assert.equal(resultado.completadas, 0);
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.visualPendiente, true, 'sigue en la lista de pendientes');
+  assert.equal(p.actualizadaEn, undefined, 'nada cambió, así que no hay nada que anunciar al cliente');
+});
+
+test('v0.2b4.1 §5: sin completarVisual inyectado, completarVisualesPendientes no hace nada (y no rompe)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  assert.deepEqual(await cola.completarVisualesPendientes(), { completadas: 0, pendientes: 0 });
+});
+
+test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha cambiado desde `desde`', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const base = { servida: '2026-09-15T09:00:00.000Z', creada: '2026-09-15T08:00:00.000Z' };
+  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', visual: { tipo: 'dato' } };
+  const vieja = { ...aprobada('economia', 2), ...base, id: 'srv-eco-vieja', actualizadaEn: '2026-09-15T08:30:00.000Z' };
+  const desconocida = { ...aprobada('economia', 3), ...base, id: 'srv-eco-ajena', actualizadaEn: '2026-09-15T10:00:00.000Z' };
+  const sinMarca = { ...aprobada('economia', 4), ...base, id: 'srv-eco-sinmarca' };
+  await almacen.guardarColchon([conocida, vieja, desconocida, sinMarca]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const salida = await cola.actualizadas({
+    idsConocidos: ['srv-eco-conocida', 'srv-eco-vieja', 'srv-eco-sinmarca'],
+    desde: '2026-09-15T09:30:00.000Z',
+  });
+
+  assert.deepEqual(salida.map((p) => p.id), ['srv-eco-conocida']);
+  assert.deepEqual(salida[0].visual, { tipo: 'dato' });
+  assert.equal(typeof salida[0].explicacion, 'string');
+  assert.equal(salida[0].enunciado, undefined, 'solo lo que puede haber cambiado, no la pregunta entera');
+});
+
+test('v0.2b4.1 §5: sin `desde`, `actualizadas` devuelve TODO lo conocido que tenga marca (primera vez)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1), id: 'srv-eco-1', servida: null, creada: '2026-09-15T08:00:00.000Z', actualizadaEn: '2026-09-15T08:30:00.000Z' },
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  const salida = await cola.actualizadas({ idsConocidos: ['srv-eco-1'] });
+  assert.deepEqual(salida.map((p) => p.id), ['srv-eco-1']);
+  // Y sin ids conocidos no hay nada que actualizar: no se manda contenido que el móvil no tiene.
+  assert.deepEqual(await cola.actualizadas({ idsConocidos: [] }), []);
+});
+
+// Ola final v0.2b4.1 (M1): un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y
+// `actualizadas` le devolvía TODAS las que tuvieran marca -- visuales incluidos, que son objetos
+// grandes -- en la misma respuesta de `POST /estado`. Tope de 50 y las más recientes primero: lo
+// que no entre sigue teniendo su `actualizadaEn`, así que entra en la sincronización siguiente.
+test('v0.2b4.1 (M1): `actualizadas` devuelve como mucho 50, las más recientes primero', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const colchon = Array.from({ length: 70 }, (_, i) => ({
+    ...aprobada('economia', i),
+    id: `srv-eco-${String(i).padStart(2, '0')}`,
+    servida: '2026-09-15T08:00:00.000Z',
+    creada: '2026-09-15T07:00:00.000Z',
+    // i=0 la más antigua, i=69 la más reciente.
+    actualizadaEn: new Date(Date.UTC(2026, 8, 15, 9, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(colchon);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+
+  const salida = await cola.actualizadas({ idsConocidos: colchon.map((p) => p.id) });
+  assert.equal(salida.length, 50, 'tope duro: una respuesta de /estado no puede llevar 70 visuales');
+  assert.equal(salida[0].id, 'srv-eco-69', 'la más reciente primero');
+  assert.equal(salida[49].id, 'srv-eco-20');
+  assert.equal(salida.some((p) => p.id === 'srv-eco-00'), false, 'lo más viejo es lo que se queda fuera');
+});
+
+// Autorrevisión (Tarea 4): procesarCola dispara completarVisualesPendientes() DESPUÉS de que su
+// `while` se vacíe, y esa llamada puede tardar de verdad (red). `dispararProcesamiento` solo mira
+// el flag `procesando` -- si un trabajo (sobre todo uno urgente, un jugador esperando) llega
+// MIENTRAS completarVisualesPendientes sigue en marcha, `encolar()` lo empuja a la cola pero
+// `dispararProcesamiento()` no hace nada (procesando ya es true) y NADA vuelve a mirar la cola
+// cuando termina -- el trabajo se queda atascado hasta que un encolar() futuro y no relacionado lo
+// destrabe por pura casualidad. Este test demuestra que NO pasa: procesarCola debe recomprobar la
+// cola al terminar el trabajo de fondo y seguir procesando lo que haya llegado mientras tanto.
+test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan visuales pendientes no se queda atascado en la cola', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+
+  let soltar;
+  const enEspera = new Promise((r) => { soltar = r; });
+  let empezoCompletar = false;
+  const completarVisualFalso = async (pregunta) => {
+    empezoCompletar = true;
+    await enEspera;
+    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: pregunta.explicacion, coste: 0 };
+  };
+
+  const cola = crearCola({
+    almacen,
+    // El trabajo inicial (n=0) no aprueba nada -- solo sirve para disparar procesarCola. El
+    // urgente sí necesita aprobadas de verdad para poder llegar a 'lista'.
+    producirTanda: async ({ area, n }) => resultadoOk(area, n, n),
+    completarVisual: completarVisualFalso,
+  });
+
+  // Trabajo mínimo (0 preguntas pedidas) que termina al instante: al vaciarse la cola justo
+  // después, procesarCola entra en completarVisualesPendientes() y se queda colgado de `enEspera`.
+  cola.encolar({ area: 'economia', n: 0, urgente: false });
+  await hastaQue(() => empezoCompletar);
+
+  // Mientras el trabajo de fondo sigue bloqueado, llega un urgente real -- un jugador esperando.
+  const { trabajoId } = cola.encolar({ area: 'historia', n: 1, urgente: true });
+
+  soltar(); // el trabajo de fondo por fin termina
+
+  // El urgente debe procesarse solo, sin que haga falta un tercer encolar() que "desatasque" la cola.
+  await hastaQue(() => cola.estadoTrabajo(trabajoId)?.estado === 'lista');
+  assert.equal(cola.estadoTrabajo(trabajoId).hechas, 1);
+});
+
+// --- Ronda de corrección 1 (revisión Opus): I1, I2, Minor -------------------------------------
+
+// I1: antes, un urgente que llegaba a mitad de la pasada de visuales pendientes esperaba a que la
+// pasada ENTERA terminara (hasta 10 preguntas secuenciales). Ahora `completarVisualesPendientes`
+// corta el bucle ENTRE preguntas en cuanto ve un urgente en cola -- el urgente solo espera al
+// visual que ya estaba en curso, nunca al resto de la pasada.
+test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de visuales se atiende sin esperar a que termine toda la pasada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const pendientes = Array.from({ length: 5 }, (_, i) => ({
+    ...aprobada('economia', i, { visual: null, visualPendiente: true }),
+    servida: null,
+    creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(pendientes);
+
+  const eventos = [];
+  let soltar;
+  const enEspera = new Promise((r) => { soltar = r; });
+  let cola; // referenciada desde dentro de completarVisualFalso, asignada más abajo
+
+  const completarVisualFalso = async (pregunta) => {
+    eventos.push(`visual:${pregunta.id}`);
+    if (eventos.length === 1) {
+      // Mientras se procesa la 1ª pendiente, llega un urgente real (un jugador esperando).
+      cola.encolar({ area: 'historia', n: 1, urgente: true });
+      await enEspera; // no deja avanzar a la 2ª pendiente hasta que el test lo permita
+    }
+    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: pregunta.explicacion, coste: 0 };
+  };
+  const producirTandaFalso = async ({ area, n }) => {
+    if (area === 'historia') eventos.push('urgente:historia');
+    return resultadoOk(area, n, n);
+  };
+
+  cola = crearCola({ almacen, producirTanda: producirTandaFalso, completarVisual: completarVisualFalso });
+
+  cola.encolar({ area: 'economia', n: 0, urgente: false }); // dispara la pasada de fondo
+  await hastaQue(() => eventos.includes(`visual:${pendientes[0].id}`));
+
+  // El urgente ya está encolado (dentro de completarVisualFalso) pero la pasada sigue bloqueada en
+  // el `await enEspera` de la 1ª pendiente -- todavía no debería haberse procesado.
+  assert.ok(!eventos.includes('urgente:historia'), 'el urgente no debe procesarse mientras la 1ª pendiente sigue en curso');
+
+  soltar(); // termina el completarVisual de la 1ª pendiente -- el bucle debe cortarse aquí (I1)
+
+  await hastaQue(() => eventos.includes('urgente:historia'));
+  const indiceUrgente = eventos.indexOf('urgente:historia');
+  const indiceSegundaPendiente = eventos.indexOf(`visual:${pendientes[1].id}`);
+  assert.equal(indiceSegundaPendiente, -1, 'el bucle se corta tras la 1ª: la 2ª pendiente no debe llegar a intentarse');
+  assert.ok(indiceUrgente >= 0, 'el urgente sí debe procesarse');
+});
+
+// I2: sin límite de reintentos, un visual que nunca sale se reintentaba para siempre. A partir de
+// MAX_INTENTOS_VISUAL (3) intentos fallidos, la pregunta se rinde: deja de estar pendiente (se
+// queda sin visual, igual que una rechazada por el verificador) y deja de elegirse.
+test('v0.2b4.1 §5 (I2): tras 3 pasadas fallidas, la pregunta deja de estar pendiente (se rinde)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarVisual: async (p) => ({ visual: null, explicacion: p.explicacion, coste: 0 }),
+  });
+
+  for (let i = 0; i < 3; i++) {
+    // eslint-disable-next-line no-await-in-loop
+    await cola.completarVisualesPendientes();
+  }
+
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.visualPendiente, false, 'se rinde tras agotar los intentos');
+  assert.equal(p.visual, null, 'nunca llegó a tener visual');
+  assert.equal(p.intentosVisual, 3);
+
+  // Una pasada más no la vuelve a tocar (ya no es "pendiente": el filtro de arriba la descarta).
+  const antes = await almacen.leerColchon();
+  const resultado = await cola.completarVisualesPendientes();
+  assert.equal(resultado.completadas, 0);
+  assert.equal(resultado.pendientes, 0);
+  assert.deepEqual(await almacen.leerColchon(), antes);
+});
+
+// I2 (rotación): con más pendientes que el tope de una pasada, las que se quedaron fuera (y las
+// que nunca se han intentado) entran con prioridad en la pasada siguiente frente a las que ya
+// fallaron una vez -- por eso se ordena por `intentosVisual` ascendente antes de recortar a `max`.
+test('v0.2b4.1 §5 (I2, rotación): con 12 pendientes y tope 10, la 11ª y 12ª se intentan en la pasada siguiente', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const doce = Array.from({ length: 12 }, (_, i) => ({
+    ...aprobada('economia', i, { visual: null, visualPendiente: true }),
+    servida: null,
+    creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(doce);
+
+  const pedidasPorPasada = [];
+  let pedidas = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    // Todas fallan (visual: null) -- así ninguna sale de "pendiente" y se puede comprobar la
+    // rotación (si alguna tuviera éxito, dejaría de competir por hueco en la pasada siguiente).
+    completarVisual: async (p) => {
+      pedidas.push(p.id);
+      return { visual: null, explicacion: p.explicacion, coste: 0 };
+    },
+  });
+
+  await cola.completarVisualesPendientes(); // pasada 1: las 10 más antiguas (índices 0-9)
+  pedidasPorPasada.push(pedidas);
+  pedidas = [];
+  await cola.completarVisualesPendientes(); // pasada 2: deben entrar la 11ª y 12ª (nunca intentadas)
+  pedidasPorPasada.push(pedidas);
+
+  assert.equal(pedidasPorPasada[0].length, 10);
+  assert.deepEqual(pedidasPorPasada[0].slice().sort(), doce.slice(0, 10).map((p) => p.id).sort());
+
+  assert.ok(pedidasPorPasada[1].includes(doce[10].id), 'la 11ª (nunca intentada) debe entrar en la pasada siguiente');
+  assert.ok(pedidasPorPasada[1].includes(doce[11].id), 'la 12ª (nunca intentada) debe entrar en la pasada siguiente');
+});
+
+// Minor (ronda de corrección 1): antes, "no hay nada pendiente" y "ya hay una pasada en marcha"
+// devolvían exactamente lo mismo ({completadas:0, pendientes:0}) -- indistinguibles desde fuera.
+test('v0.2b4.1 §5 (Minor): completarVisualesPendientes() reentrante devuelve un resultado distinguible de "nada pendiente"', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  let soltar;
+  const enEspera = new Promise((r) => { soltar = r; });
+  let entro = false;
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarVisual: async (p) => {
+      entro = true;
+      await enEspera;
+      return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: p.explicacion, coste: 0 };
+    },
+  });
+
+  const primera = cola.completarVisualesPendientes();
+  await hastaQue(() => entro);
+
+  const reentrante = await cola.completarVisualesPendientes();
+  assert.deepEqual(reentrante, { completadas: 0, pendientes: null, enCurso: true });
+
+  soltar();
+  const resultado = await primera;
+  assert.equal(resultado.completadas, 1);
 });

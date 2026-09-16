@@ -25,6 +25,7 @@ import {
   leerBancoExtra,
   fusionarBancoExtra,
   sincronizarEstado,
+  aplicarActualizaciones,
   reportarAlServidor,
   pedirSubtemas,
   pedirTanda,
@@ -629,7 +630,11 @@ function mostrarChipNuevas(anadidas, ids = []) {
 /** "Modo normal" (spec v0.2 §4): al abrir y al terminar cada partida, en segundo plano (nunca
  * bloquea la UI ni lanza). Sin configuración guardada, `sincronizarEstado` no hace ninguna
  * petición y el punto se queda gris. Con configuración: verde si respondió algo válido, ámbar si
- * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos. */
+ * no (red caída, servidor caído, 401...) -- la app sigue funcionando igual en ambos casos.
+ * v0.2b4.1 §5: esta función SOLO se llama al abrir la app (iniciar), al terminar una partida
+ * (finalizarPartida) y al conectar desde la hoja "Conectar" (manejarConectarOk) -- nunca a mitad de
+ * una partida en curso -- así que aplicar las actualizaciones del servidor aquí nunca le cambia la
+ * pregunta bajo el dedo al jugador. */
 async function sincronizarEnSegundoPlano() {
   if (!leerConfiguracion()) {
     estadoServidor = 'gris';
@@ -639,7 +644,20 @@ async function sincronizarEnSegundoPlano() {
   const resultado = await sincronizarEstado({ estado, banco, hoy: hoy(), fetchImpl: fetch });
   estadoServidor = resultado ? 'verde' : 'ambar';
   actualizarPuntoServidor();
-  if (resultado && resultado.preguntas.length > 0) {
+  if (!resultado) return;
+
+  // v0.2b4.1 §5: primero las correcciones de lo que YA tenemos (el visual que llegó tarde), después
+  // las preguntas nuevas -- da igual el orden en la práctica (ids distintos), pero así el chip de
+  // "preguntas nuevas" es siempre el último aviso que ve el jugador tras una sincronización.
+  const { aplicadas } = aplicarActualizaciones(resultado.actualizadas, estado);
+  if (aplicadas > 0) {
+    // Sin esto, `banco`/`bancoPorId` en memoria seguirían con el visual viejo hasta recargar --
+    // aplicarActualizaciones ya reescribió `one.bancoExtra` en disco, pero reconstruirBanco es lo
+    // que lo vuelve a leer y lo mezcla en las variables que de verdad usa la UI.
+    reconstruirBanco();
+  }
+
+  if (resultado.preguntas.length > 0) {
     const { anadidas } = fusionarBancoExtra(resultado.preguntas, estado, idsBancoLocal);
     if (anadidas > 0) {
       reconstruirBanco();
@@ -1146,8 +1164,10 @@ function ocultarIndicadorTanda() {
   reservarHuecoIndicadorTanda();
 }
 
-/** Tanda en curso: "4 de 10 · ~1 min" + anillo (spec §2). `hechas`/`pedidas` vienen tal cual de
- * `/trabajo/:id`; el restante lo calcula tanda.js#calcularRestanteSeg (probado sin DOM). */
+/** Tanda en curso: "3 de 10 · ~1 min" + anillo (spec §2 de v0.2b4). `hechas`/`pedidas` vienen tal
+ * cual de `/trabajo/:id`; desde v0.2b4.1 §6 `hechas` avanza pregunta a pregunta (antes solo podía
+ * valer 0, 5 o 10 con `pedidas: 10`), así que aquí ya se ve cualquier número de 1 a 10. El restante
+ * lo calcula tanda.js#calcularRestanteSeg (probado sin DOM). */
 function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
   const total = Number.isInteger(pedidas) && pedidas > 0 ? pedidas : atomoTandaPedidas;
   const hechasValidas = Number.isInteger(hechas) && hechas > 0 ? hechas : 0;
@@ -1204,15 +1224,18 @@ function mostrarIndicadorTandaFallida(mensaje = 'No se pudo generar') {
   indicadorTandaTimeoutId = setTimeout(ocultarIndicadorTanda, MS_AVISO_FALLO_TANDA);
 }
 
-/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo, línea ~300): 'lista' y 'fallida'
- * son SIEMPRE terminales; 'parcial' lo es cuando `hechas >= pedidas` (al menos una aprobada, algún
- * fallo por el camino) -- 'parcial' con `hechas < pedidas` solo puede darse en un trabajo de FONDO
- * que cede el turno a uno urgente (servidor/cola.js, `debeCeder`), y el Átomo solo pide trabajos
- * `urgente:true` (que nunca ceden, ver sincronizacion.js#pedirTanda), así que en la práctica CUALQUIER
- * 'parcial' que este cliente observe ya es terminal -- `hechas >= pedidas` es el respaldo, no la
- * única vía. 'en-cola'/'generando' son los dos únicos estados realmente en curso. */
+/** Contrato real del servidor (servidor/cola.js#finalizarTrabajo): 'lista' y 'fallida' son SIEMPRE
+ * terminales; cualquier otro estado ('en-cola', 'generando', 'parcial') solo es terminal cuando
+ * `hechas >= pedidas`.
+ *
+ * Ola final v0.2b4.1 (C1) -- esta función afirmaba justo lo contrario ("cualquier 'parcial' que
+ * este cliente observe ya es terminal") y era falso: servidor/cola.js#procesarCola pone en
+ * 'parcial' a CUALQUIER trabajo que continúa y ya tiene alguna aprobada, urgente incluido -- es el
+ * estado normal de un urgente de 10 ENTRE sus dos lotes de 5. Con la lista invertida, la app
+ * cerraba la tanda a mitad: medido en vivo el 15-sep-2026, "Tanda lista · 4" mientras el servidor
+ * seguía generando y acabó con 8. */
 function trabajoAtomoTerminal(trabajo) {
-  return !['en-cola', 'generando'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
+  return ['lista', 'fallida'].includes(trabajo.estado) || trabajo.hechas >= trabajo.pedidas;
 }
 
 /** Fusiona `trabajo.preguntas` en el banco extendido y devuelve los ids que de verdad EXISTEN en

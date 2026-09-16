@@ -20,6 +20,7 @@ import {
   RUTA_ELEMENTO_MAX_LONGITUD,
 } from '../servidor/index.js';
 import { HILOS_POR_AREA } from '../tools/criterio.js';
+import { MODELOS } from '../tools/openrouter.js';
 
 const TOKEN = 'token-de-prueba-0123456789abcdef0123456789abcdef';
 const ORIGEN_PWA = 'https://carlostorresadvisory.github.io';
@@ -352,6 +353,183 @@ test('POST /estado responde con las preguntas aunque falle el guardado de ultimo
       servidor.close(() => resolve());
     });
   }
+});
+
+// v0.2b4.1 §5: cola falsa mínima para probar manejarEstado en aislamiento (mismo patrón que la
+// cola falsa de "GET /salud expone ultimoError..." más arriba) -- `servir`/`actualizadas` se
+// sobrescriben por test, el resto son no-ops suficientes para que /estado no lance.
+function colaEstadoFalsa(extra = {}) {
+  return {
+    servir: async () => [],
+    estadisticas: () => ({ enCola: 0 }),
+    rellenarHaciaObjetivo: async () => [],
+    actualizadas: async () => [],
+    ...extra,
+  };
+}
+
+async function conColaFalsa(colaFake, fn) {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const servidor = crearServidor({ cola: colaFake, almacen, token: TOKEN, rutaDatos: dir });
+  await new Promise((resolve) => servidor.listen(0, resolve));
+  const base = `http://127.0.0.1:${servidor.address().port}`;
+  try {
+    await fn({ base, dir, almacen });
+  } finally {
+    await new Promise((resolve) => {
+      servidor.closeAllConnections?.();
+      servidor.close(() => resolve());
+    });
+  }
+}
+
+test('v0.2b4.1 §5: POST /estado devuelve `actualizadas` sin tocar `preguntas` ni `enCola`', async () => {
+  const colaFake = colaEstadoFalsa({
+    servir: async () => [{ id: 'srv-eco-nueva', area: 'economia', enunciado: 'Nueva' }],
+    actualizadas: async ({ idsConocidos, desde }) => {
+      assert.deepEqual(idsConocidos, ['srv-eco-vieja']);
+      assert.equal(desde, '2026-09-15T10:00:00.000Z', 'el `desde` del cliente llega tal cual');
+      return [{ id: 'srv-eco-vieja', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'L' }, explicacion: 'Igual.' }];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { idsConocidos: ['srv-eco-vieja'] }, desde: '2026-09-15T10:00:00.000Z' }),
+    });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.preguntas.map((p) => p.id), ['srv-eco-nueva'], 'el contrato de v0.2b4 no cambia');
+    assert.equal(typeof datos.enCola, 'number');
+    assert.deepEqual(datos.actualizadas.map((p) => p.id), ['srv-eco-vieja']);
+  });
+});
+
+test('v0.2b4.1 §5: un cliente viejo (sin `desde`) sigue funcionando y recibe `actualizadas: []`', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.deepEqual(datos.actualizadas, []);
+  });
+});
+
+test('v0.2b4.1 §5: si `actualizadas` falla, /estado responde igual con las preguntas (no se pierde el servir)', async () => {
+  const colaFake = colaEstadoFalsa({
+    servir: async () => [{ id: 'srv-eco-nueva', area: 'economia' }],
+    actualizadas: async () => { throw new Error('disco de solo lectura'); },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200, 'servir() ya marcó esas preguntas: perder la respuesta las quemaría');
+    const datos = await resp.json();
+    assert.deepEqual(datos.preguntas.map((p) => p.id), ['srv-eco-nueva']);
+    assert.deepEqual(datos.actualizadas, []);
+  });
+});
+
+// I1 (ronda de corrección 1): la marca de agua que el móvil debe guardar YA NO es su propio reloj
+// (podía ir adelantado respecto al VPS y perder una actualización real para siempre, filtrada por
+// `actualizadaEn > desde` en `cola.js#actualizadas`) -- es el reloj del SERVIDOR, devuelto en
+// `ahora`. Debe capturarse ANTES de llamar a `cola.actualizadas()`, nunca después.
+test('v0.2b4.1 §5 (I1): POST /estado devuelve `ahora` (ISO del servidor)', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const antes = new Date().toISOString();
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    const despues = new Date().toISOString();
+    assert.equal(resp.status, 200);
+    const datos = await resp.json();
+    assert.equal(typeof datos.ahora, 'string');
+    assert.ok(!Number.isNaN(new Date(datos.ahora).getTime()), 'ahora debe ser una fecha ISO válida');
+    assert.ok(datos.ahora >= antes && datos.ahora <= despues, 'ahora debe ser el reloj del servidor, tomado durante esta petición');
+  });
+});
+
+test('v0.2b4.1 §5 (I1): `ahora` se captura ANTES de llamar a cola.actualizadas() -- nunca posterior a una `actualizadaEn` que esa misma respuesta incluya', async () => {
+  let momentoDentroDeActualizadas = null;
+  const colaFake = colaEstadoFalsa({
+    // Simula la escritura real que `completarVisualesPendientes` podría hacer justo antes de que
+    // `cola.actualizadas()` lea el colchón: si el servidor capturase `ahora` DESPUÉS de esta
+    // llamada (en vez de antes), `ahora` podría quedar por delante de esta marca y la PRÓXIMA
+    // sincronización (que pediría `desde: ahora`) la perdería para siempre -- el bug real de I1.
+    actualizadas: async () => {
+      momentoDentroDeActualizadas = new Date().toISOString();
+      return [{ id: 'srv-1', visual: { tipo: 'dato' }, explicacion: '' }];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ resumen: { idsConocidos: ['srv-1'] } }),
+    });
+    const datos = await resp.json();
+    assert.equal(datos.actualizadas.length, 1);
+    assert.ok(
+      datos.ahora <= momentoDentroDeActualizadas,
+      `ahora (${datos.ahora}) debe capturarse ANTES de cola.actualizadas() (${momentoDentroDeActualizadas})`
+    );
+  });
+});
+
+// Minor 4 (ronda de corrección 1): un `desde` malformado antes se colaba hasta `cola.actualizadas`
+// (`new Date(desde).getTime()` -> NaN -> se trataba igual que "sin `desde`", devolviendo TODO) --
+// un fail-open silencioso. Ahora solo AUSENTE es "primera sincronización"; presente pero inválido
+// responde 400. Cubre los tres casos: ausente, ISO válida y basura.
+test('v0.2b4.1 §5 (Minor 4): `desde` ausente sigue siendo la primera sincronización (200, sin error)', async () => {
+  const colaFake = colaEstadoFalsa();
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({}) });
+    assert.equal(resp.status, 200);
+  });
+});
+
+test('v0.2b4.1 §5 (Minor 4): `desde` válido (ISO o epoch ms) se acepta y llega a cola.actualizadas normalizado', async () => {
+  const vistos = [];
+  const colaFake = colaEstadoFalsa({
+    actualizadas: async ({ desde }) => {
+      vistos.push(desde);
+      return [];
+    },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const r1 = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: '2026-09-15T10:00:00.000Z' }),
+    });
+    assert.equal(r1.status, 200);
+
+    const r2 = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: 1757930400000 }),
+    });
+    assert.equal(r2.status, 200);
+  });
+  assert.equal(vistos[0], '2026-09-15T10:00:00.000Z', 'una ISO ya válida llega tal cual');
+  assert.equal(typeof vistos[1], 'string', 'un epoch ms se normaliza a ISO antes de llegar a cola.actualizadas');
+  assert.ok(!Number.isNaN(new Date(vistos[1]).getTime()));
+});
+
+test('v0.2b4.1 §5 (Minor 4): `desde` malformado responde 400 con motivo claro (no hay fail-open silencioso)', async () => {
+  const colaFake = colaEstadoFalsa({
+    actualizadas: async () => { throw new Error('no debería llamarse con un desde inválido'); },
+  });
+  await conColaFalsa(colaFake, async ({ base }) => {
+    const resp = await fetch(`${base}/estado`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ desde: 'esto-no-es-una-fecha' }),
+    });
+    assert.equal(resp.status, 400);
+    const datos = await resp.json();
+    assert.equal(typeof datos.error, 'string');
+  });
 });
 
 // === POST /generar + GET /trabajo/:id ===========================================================
@@ -808,6 +986,27 @@ test('POST /subtemas: si tras filtrar excluir (y deduplicar) no queda ningún su
   }
 });
 
+test('v0.2b4.1 §3: POST /subtemas pide a la cascada corta de subtemas, no a la del generador', async () => {
+  let cascadaVista = null;
+  const llamarFalso = async ({ modelos }) => {
+    cascadaVista = modelos;
+    return { texto: JSON.stringify({ subtemas: ['Uno', 'Dos'] }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ llamar: llamarFalso });
+  try {
+    const resp = await fetch(`${base}/subtemas`, {
+      method: 'POST',
+      headers: cabeceras(),
+      // Anillo 2: obliga a preguntar al modelo (el anillo 1 sale de la lista estática).
+      body: JSON.stringify({ area: 'economia', ruta: ['Finanzas corporativas y M&A'] }),
+    });
+    assert.equal(resp.status, 200);
+  } finally {
+    await cerrar();
+  }
+  assert.deepEqual(cascadaVista, MODELOS.subtemas);
+});
+
 test('POST /subtemas con ruta de 1 elemento llama una vez al modelo y cachea en anillos.json', async () => {
   let llamadas = 0;
   const llamarFake = async () => {
@@ -1059,6 +1258,10 @@ test('CORS solo permite los dos orígenes fijados; preflight OPTIONS responde 20
 
     const conOrigenPermitido = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_PWA } });
     assert.equal(conOrigenPermitido.headers.get('access-control-allow-origin'), ORIGEN_PWA);
+    // Ronda de corrección 1 (I1): sin esta cabecera, un navegador real oculta `Date` al JS del
+    // cliente en una petición cross-origin -- `sincronizacion.js#leerFechaServidor` nunca podría
+    // leerla pese a viajar por la red. Va en la respuesta real, no solo en el preflight.
+    assert.equal(conOrigenPermitido.headers.get('access-control-expose-headers'), 'Date');
 
     const conOrigenAjeno = await fetch(`${base}/salud`, { headers: { Origin: ORIGEN_AJENO } });
     assert.equal(conOrigenAjeno.headers.get('access-control-allow-origin'), null);

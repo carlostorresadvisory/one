@@ -1,6 +1,9 @@
 node_modules/
 datos/llamadas.log
 datos/llamadas.test.log
+# Ola final v0.2b4.1 (M3): cualquier log suelto de datos/ (auditoría, utilidad, generacion-vf,
+# verificacion-pass2...) es salida de una ejecución local, nunca código.
+datos/*.log
 datos/borradores/
 test-results/
 playwright-report/

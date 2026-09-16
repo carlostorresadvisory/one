@@ -15,6 +15,10 @@
 // - Token y URL del servidor viven SOLO en localStorage (`one.servidor`): nunca se registran con
 //   console.*, nunca viajan a ningún sitio salvo al propio servidor configurado.
 import { resumenProgreso, sumarDias } from './motor.js';
+// Ronda de corrección 1 (I2): esVisualValido no toca el DOM (a diferencia de construirVisual, que
+// sí), así que importar este módulo aquí es seguro tanto en el navegador como bajo `node --test`
+// (ver comentario de cabecera de visuales.js -- ningún `document.*` vive fuera de una función).
+import { esVisualValido } from './visuales.js';
 
 // Ronda final de revisión (adversarial A1): `AbortSignal.timeout` no existe en iOS < 16.4 --
 // sin este polyfill, `peticionJson` lanzaría "AbortSignal.timeout is not a function" en vez de
@@ -31,6 +35,16 @@ if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout !== 'functi
 const CLAVE_SERVIDOR = 'one.servidor';
 const CLAVE_BANCO_EXTRA = 'one.bancoExtra';
 const CLAVE_RUTAS_ATOMO = 'one.rutasAtomo';
+/** v0.2b4.1 §5: hasta cuándo sabe este móvil que está al día con las actualizaciones del servidor
+ * (ISO). Se manda como `desde` en `POST /estado` y se guarda tras cada respuesta válida. */
+export const CLAVE_ACTUALIZADO_HASTA = 'one.actualizadoHasta';
+// Ronda de corrección 1 (I1): margen de seguridad para el ÚNICO caso en que este móvil tiene que
+// fiarse de su propio reloj -- un servidor viejo que todavía no manda `ahora` en la respuesta de
+// `POST /estado` (ver `sincronizarEstado`). Restar 60 s antes de guardar la marca cubre un desfase
+// de reloj razonable entre este móvil y el servidor sin arriesgar perder una actualización real
+// para siempre: aplicar una que ya se había aplicado no hace daño (`aplicarActualizaciones` es
+// idempotente por id), mientras que no volver a pedirla sí lo hace.
+const MARGEN_RELOJ_LOCAL_SEG = 60;
 const TOPE_BANCO_EXTRA = 2000;
 // "Últimos 7 días" (spec §4): ventana de 7 días naturales INCLUYENDO hoy, así que se resta 6.
 const DIAS_RUTAS_ATOMO = 7;
@@ -331,6 +345,82 @@ export function fusionarBancoExtra(nuevas, estado, idsLocales) {
   return { anadidas: aAnadir.length, total: combinado.length };
 }
 
+/**
+ * v0.2b4.1 §5: la marca de agua guardada, o `null` si no hay ninguna o si lo guardado NO es una
+ * fecha ISO válida (localStorage corrupto, manipulado a mano, o de una versión anterior a esta que
+ * nunca escribió esta clave con este formato). Nunca manda basura: un valor inválido se trata
+ * exactamente igual que "no hay marca" -- la próxima sincronización pide todo lo que el servidor
+ * tenga marcado, en vez de arriesgarse a un 400 de `POST /estado` (que ahora valida `desde` a
+ * conciencia, ver servidor/index.js#normalizarDesde).
+ * @returns {string | null}
+ */
+export function leerActualizadoHasta() {
+  try {
+    const guardado = localStorage.getItem(CLAVE_ACTUALIZADO_HASTA);
+    if (typeof guardado !== 'string' || !guardado) return null;
+    return Number.isFinite(new Date(guardado).getTime()) ? guardado : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * v0.2b4.1 §5: aplica al banco extendido las correcciones que el servidor ha hecho DESPUÉS de
+ * habernos servido una pregunta -- hoy, solo el visual que no llegó a tiempo en la tanda urgente
+ * (`visualPendiente`). Sustituye únicamente `visual` y `explicacion`, por id: el enunciado, las
+ * opciones y la respuesta correcta NUNCA se tocan desde aquí, porque el jugador puede tener esa
+ * tarjeta delante ahora mismo y cambiarle la pregunta bajo el dedo sería peor que no actualizar.
+ * Quien llama decide CUÁNDO (app.js lo hace al abrir y al terminar partida, igual que la
+ * sincronización, nunca a mitad de una).
+ * @param {{id: string, visual?: object|null, explicacion?: string}[]} actualizadas
+ * @param {object} estado para respetar `estado.reportadas` (lo que el jugador marcó como malo)
+ * @returns {{aplicadas: number}}
+ */
+export function aplicarActualizaciones(actualizadas, estado) {
+  const lista = Array.isArray(actualizadas) ? actualizadas : [];
+  if (lista.length === 0) return { aplicadas: 0 };
+  const reportadas = new Set((estado && estado.reportadas) || []);
+  const porId = new Map();
+  for (const a of lista) {
+    if (!a || typeof a.id !== 'string' || reportadas.has(a.id)) continue;
+    porId.set(a.id, a);
+  }
+  if (porId.size === 0) return { aplicadas: 0 };
+
+  let aplicadas = 0;
+  const actual = leerBancoExtra();
+  const combinado = actual.map((p) => {
+    const cambio = p && typeof p.id === 'string' ? porId.get(p.id) : null;
+    if (!cambio) return p;
+    // Ronda de corrección 1 (I2): un `visual` truthy que NO pasa el esquema completo (mismo que
+    // tools/visualizar.js#validarVisual, ver esVisualValido en visuales.js) no debe pisar uno bueno
+    // ni apagar `visualPendiente` para siempre -- se ignora el cambio ENTERO para esta pregunta
+    // (ni visual, ni explicación, ni visualPendiente se tocan) y cuenta como no aplicado, igual que
+    // un id desconocido. `null`/ausente sigue siendo válido: es "el servidor todavía no tiene
+    // ninguno", no un visual mal formado.
+    if (cambio.visual && !esVisualValido(cambio.visual)) return p;
+    aplicadas += 1;
+    const explicacion =
+      typeof cambio.explicacion === 'string' && cambio.explicacion.trim() ? cambio.explicacion : p.explicacion;
+    return {
+      ...p,
+      explicacion,
+      visual: cambio.visual ?? p.visual ?? null,
+      // Si el servidor manda un visual (ya validado arriba), deja de faltar. Si manda `null` (no
+      // consiguió ninguno), la marca se conserva tal cual: el servidor lo volverá a intentar.
+      visualPendiente: cambio.visual ? false : p.visualPendiente === true,
+    };
+  });
+  if (aplicadas === 0) return { aplicadas: 0 };
+
+  try {
+    localStorage.setItem(CLAVE_BANCO_EXTRA, JSON.stringify(combinado));
+  } catch {
+    // Mismo criterio que fusionarBancoExtra: un localStorage lleno no tumba la sincronización.
+  }
+  return { aplicadas };
+}
+
 // === Peticiones al servidor =========================================================================
 
 function cabeceras(token) {
@@ -422,13 +512,30 @@ function leerRutasAtomoRecientes(hoy) {
  * ya conoce y las rutas del átomo de los últimos 7 días. Sin configuración guardada, no hace
  * ninguna petición (devuelve `null` directamente) — silencioso por diseño, la app debe funcionar
  * exactamente igual sin servidor. `null` también ante cualquier error HTTP/red/timeout.
+ * v0.2b4.1 §5: manda `desde` (la marca de agua guardada, `leerActualizadoHasta` -- omitido si no
+ * hay ninguna o si lo guardado no es una fecha ISO válida, nunca se manda basura) y devuelve
+ * también `actualizadas` (siempre un array, `[]` si el servidor no manda nada o es de una versión
+ * anterior que no conoce el campo). Tras una respuesta válida, la marca avanza sola:
+ * - Ronda de corrección 1 (I1): usa el reloj del SERVIDOR (`datos.ahora`, un ISO que el servidor
+ *   captura ANTES de calcular qué ha cambiado, ver servidor/index.js#manejarEstado) siempre que la
+ *   respuesta lo traiga -- evita que un desfase entre el reloj de este móvil y el del servidor haga
+ *   que una actualización real se filtre para siempre (el servidor compara `actualizadaEn > desde`
+ *   con SU propio reloj, así que fiarse del reloj local para fijar `desde` es lo que podía perderla).
+ * - Si el servidor es una versión vieja que no manda `ahora`, cae al reloj LOCAL tomado ANTES de
+ *   enviar la petición (nunca al recibir la respuesta: cualquier cambio que el servidor haga
+ *   mientras responde debe seguir contando como "posterior" la próxima vez) menos
+ *   `MARGEN_RELOJ_LOCAL_SEG` (60 s) de colchón: aplicar una actualización que ya se había aplicado
+ *   no hace daño (`aplicarActualizaciones` es idempotente por id), perderla para siempre sí.
+ * Si la petición falla, la marca NO avanza -- lo que no se vio no se da por visto, y la próxima vez
+ * se vuelve a pedir desde el mismo punto.
  * @param {{estado: object, banco: object[], hoy: string, fetchImpl?: Function}} params
- * @returns {Promise<{preguntas: object[], enCola: number} | null>}
+ * @returns {Promise<{preguntas: object[], enCola: number, actualizadas: object[]} | null>}
  */
 export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion) return null;
 
+  const desde = leerActualizadoHasta();
   const cuerpo = {
     resumen: {
       areas: areasParaServidor(estado, banco, hoy),
@@ -437,7 +544,14 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
         .filter((id) => typeof id === 'string' && id.startsWith('srv-')),
       rutasAtomo: leerRutasAtomoRecientes(hoy),
     },
+    ...(desde ? { desde } : {}),
   };
+
+  // El instante local se toma ANTES de la petición (I1): es el respaldo si el servidor no manda
+  // `ahora`, y en ese caso cualquier cambio que el servidor haga MIENTRAS responde debe seguir
+  // contando como "posterior" la próxima vez -- adelantarlo al momento de la respuesta podría
+  // saltarse una actualización escrita entre medias.
+  const momentoLocal = new Date().toISOString();
 
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/estado`, {
     method: 'POST',
@@ -445,7 +559,22 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
     body: JSON.stringify(cuerpo),
   });
   if (!datos || !Array.isArray(datos.preguntas)) return null;
-  return { preguntas: datos.preguntas, enCola: datos.enCola };
+
+  const marca =
+    typeof datos.ahora === 'string' && Number.isFinite(new Date(datos.ahora).getTime())
+      ? datos.ahora
+      : new Date(new Date(momentoLocal).getTime() - MARGEN_RELOJ_LOCAL_SEG * 1000).toISOString();
+  try {
+    localStorage.setItem(CLAVE_ACTUALIZADO_HASTA, marca);
+  } catch {
+    // localStorage lleno: se seguirá pidiendo desde la marca anterior, que es lo conservador.
+  }
+
+  return {
+    preguntas: datos.preguntas,
+    enCola: datos.enCola,
+    actualizadas: Array.isArray(datos.actualizadas) ? datos.actualizadas : [],
+  };
 }
 
 /**

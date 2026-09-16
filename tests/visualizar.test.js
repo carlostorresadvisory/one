@@ -13,6 +13,8 @@ import {
   explicacionYaCumple,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
+  GENERADOR_VISUAL_FONDO,
+  VERIFICADOR_VISUAL_FONDO,
   GENERADOR_SOLO_PAGO,
   VERIFICADOR_SOLO_PAGO,
 } from '../tools/visualizar.js';
@@ -287,9 +289,13 @@ test('datos/visuales-excluidos.json: cada entrada tiene forma válida ({tipos: s
 
 // --- cascadas de modelos (v0.2b4 §6a) -----------------------------------------------------------
 
-test('v0.2b4 §6a: las cascadas de visual empiezan por Gemini gratis, con papeles distintos', () => {
-  assert.equal(GENERADOR_VISUAL[0], 'gemini:gemini-flash-lite-latest');
-  assert.equal(VERIFICADOR_VISUAL[0], 'gemini:gemini-3.6-flash');
+// Valores literales actualizados en v0.2b4.1 §3 (ver el test "las cascadas de visual empiezan por
+// los modelos rápidos" más abajo, que es el que fija el contrato completo): este test ya asumía
+// contra QUÉ id concreto debía empezar cada cascada, y ese id cambió a propósito (groq gpt-oss-20b,
+// 1,0 s, es ahora el más rápido medido -- ver tools/visualizar.js).
+test('v0.2b4 §6a: las cascadas de visual empiezan por el modelo más rápido, con papeles distintos', () => {
+  assert.equal(GENERADOR_VISUAL[0], 'groq:openai/gpt-oss-20b');
+  assert.equal(VERIFICADOR_VISUAL[0], 'groq:openai/gpt-oss-120b');
   // Gratis de verdad (GEMINI_API_KEY_GRATIS, coste 0): nada de pago se cuela por delante.
   assert.equal(esModeloGratis(GENERADOR_VISUAL[0]), true);
   assert.equal(esModeloGratis(VERIFICADOR_VISUAL[0]), true);
@@ -297,7 +303,9 @@ test('v0.2b4 §6a: las cascadas de visual empiezan por Gemini gratis, con papele
   // `excluirModelo` no deja al verificador sin cascada.
   assert.notEqual(GENERADOR_VISUAL[0], VERIFICADOR_VISUAL[0]);
   // Los ':free' de OpenRouter siguen detrás como red (spec §0: la cascada gratis se satura a ratos).
-  assert.ok(GENERADOR_VISUAL.includes('nvidia/nemotron-3-ultra-550b-a55b:free'));
+  // Ola final v0.2b4.1 (I2): la red ya no es 'nvidia/nemotron-3-ultra-550b-a55b:free' (minuto y
+  // medio por llamada, medido; se queda en las cascadas de FONDO) sino 'nex-agi/nex-n2.5-pro:free'.
+  assert.ok(GENERADOR_VISUAL.includes('nex-agi/nex-n2.5-pro:free'));
   assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
 });
 
@@ -871,4 +879,32 @@ test('CLI: --sin-gratis sin --permitir-pago falla con error claro y exit code 1,
   assert.match(resultado.stderr, /--permitir-pago/);
   // No debe imprimir nada de "candidatas" ni tocar el banco: falla ANTES de procesar nada.
   assert.doesNotMatch(resultado.stdout, /candidatas/);
+});
+
+test('v0.2b4.1 §3: las cascadas de visual empiezan por los modelos rápidos, con papeles distintos', () => {
+  assert.equal(GENERADOR_VISUAL[0], 'groq:openai/gpt-oss-20b'); // 1,0 s: el paso más repetido de la tanda
+  assert.equal(GENERADOR_VISUAL[1], 'gemini:gemini-flash-lite-latest');
+  assert.equal(VERIFICADOR_VISUAL[0], 'groq:openai/gpt-oss-120b');
+  assert.notEqual(GENERADOR_VISUAL[0], VERIFICADOR_VISUAL[0], 'excluirModelo nunca debe dejar sin cascada');
+
+  // El colchón nocturno tiene las suyas, que empiezan por lo lento (spec §3).
+  assert.equal(GENERADOR_VISUAL_FONDO[0], 'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b');
+  assert.notEqual(GENERADOR_VISUAL_FONDO[0], VERIFICADOR_VISUAL_FONDO[0]);
+  assert.ok(GENERADOR_VISUAL_FONDO.some((m) => m.endsWith(':free')));
+
+  // Nada de pago en ninguna de las cuatro.
+  for (const cascada of [GENERADOR_VISUAL, VERIFICADOR_VISUAL, GENERADOR_VISUAL_FONDO, VERIFICADOR_VISUAL_FONDO]) {
+    for (const m of cascada) assert.equal(esModeloGratis(m), true, `${m} no es gratis`);
+  }
+  // Los ':free' siguen detrás como red (el test de v0.2b4 ya lo exigía; no se pierde la garantía).
+  assert.ok(GENERADOR_VISUAL.includes('nex-agi/nex-n2.5-pro:free'));
+  assert.ok(VERIFICADOR_VISUAL.includes('google/gemma-4-31b-it:free'));
+
+  // Ola final v0.2b4.1 (I2): los dos nemotron lentos de OpenRouter SOLO en las cascadas de fondo.
+  const lentos = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'nvidia/nemotron-3-super-120b-a12b:free'];
+  for (const lento of lentos) {
+    assert.equal(GENERADOR_VISUAL.includes(lento), false, `${lento} no puede estar en la cascada urgente`);
+    assert.equal(VERIFICADOR_VISUAL.includes(lento), false, `${lento} no puede estar en la cascada urgente`);
+  }
+  assert.ok(GENERADOR_VISUAL_FONDO.includes(lentos[0]), 'los lentos siguen disponibles donde nadie espera');
 });

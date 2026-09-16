@@ -1,7 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, rm } from 'node:fs/promises';
-import { llamar, extraerJson } from '../tools/openrouter.js';
+import {
+  llamar,
+  extraerJson,
+  esModeloGratis,
+  proveedorDe,
+  MODELOS,
+  esperaDeReintento,
+  TOPE_ESPERA_REINTENTO_MS,
+} from '../tools/openrouter.js';
+import { crearRegistroCuota } from '../tools/cuota.js';
 
 const RUTA_LOG = 'datos/llamadas.test.log';
 
@@ -29,11 +38,12 @@ function respuestaError(status) {
   };
 }
 
-// Adaptado en la Tarea 1 de v0.2b3: el 429 ahora se reintenta UNA vez (universal, no solo para
-// Gemini) antes de pasar al siguiente modelo -- ver el bloque "reintento ante 429/503" más abajo.
-// Antes este test esperaba una sola llamada a 'a/uno:free'; ahora espera dos (intento + reintento)
-// porque ambas devuelven 429. reintentoMs:0 evita que el test tarde los 4s reales de producción.
-test('primer modelo responde 429 → reintenta una vez y, si sigue fallando, usa el segundo', async () => {
+// REESCRITO (v0.2b4.1 §1, excepción declarada en Global Constraints): antes este test esperaba
+// ['a/uno:free', 'a/uno:free', 'b/dos:free'] -- intento + reintento con 4 s de espera ANTES de
+// saltar. Medido el 15-sep: esperar con eslabones por delante es siempre peor que saltar (Groq
+// responde en 1,8 s; la espera sola son 4 s). Ahora se salta ya y el reintento con espera queda
+// como último recurso, solo cuando no queda ningún eslabón por probar.
+test('v0.2b4.1 §1: 429 en el primer eslabón salta al segundo SIN esperar ni reintentar', async () => {
   await limpiarLog();
   const llamadas = [];
   const fetchImpl = async (url, opts) => {
@@ -50,7 +60,229 @@ test('primer modelo responde 429 → reintenta una vez y, si sigue fallando, usa
     reintentoMs: 0,
   });
   assert.equal(r.modelo, 'b/dos:free');
-  assert.deepEqual(llamadas, ['a/uno:free', 'a/uno:free', 'b/dos:free']);
+  assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free'], 'un intento por eslabón, sin reintento intermedio');
+  await limpiarLog();
+});
+
+test('v0.2b4.1 §1: si TODOS los eslabones se saturan, se espera una vez y se reintenta el primero', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  let esperas = 0;
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    // El reintento final (4.ª llamada) sí responde: es el caso que justifica que exista.
+    if (llamadas.length === 4) return respuestaOk(body.model);
+    return respuestaError(body.model === 'b/dos:free' ? 503 : 429);
+  };
+  const r = await llamar({
+    modelos: ['a/uno:free', 'b/dos:free', 'c/tres:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 0,
+    alEsperar: () => { esperas += 1; },
+    // Cuota propia (Tarea 2, v0.2b4.1 §2): ids genéricos como 'a/uno:free' se repiten en otros
+    // tests de este fichero, y cuotaGlobal es compartida por proceso -- sin un registro propio,
+    // una saturación anotada por otro test dejaría este id "bloqueado" y rompería el orden fijo
+    // que este test verifica.
+    cuota: crearRegistroCuota(),
+  });
+  assert.deepEqual(llamadas, ['a/uno:free', 'b/dos:free', 'c/tres:free', 'a/uno:free']);
+  assert.equal(r.modelo, 'a/uno:free', 'el reintento vuelve al PRIMERO que se saturó, no al último');
+  assert.equal(esperas, 1, 'se espera exactamente una vez, y solo al final');
+  await limpiarLog();
+});
+
+test('v0.2b4.1 §1: 402/404/410 saltan en seco (nunca se reintentan, ni siendo el último eslabón)', async () => {
+  for (const estado of [402, 404, 410]) {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaError(estado);
+    };
+    await assert.rejects(
+      llamar({
+        modelos: ['a/uno:free'],
+        mensajes: [{ role: 'user', content: 'hola' }],
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+      }),
+      new RegExp(`HTTP ${estado}`),
+    );
+    assert.equal(llamadas.length, 1, `HTTP ${estado} no se reintenta: es un "no y no volverá a ser que sí"`);
+  }
+  await limpiarLog();
+});
+
+test('v0.2b4.1 §1: Cerebras con 402 (nivel gratuito sin activar) no rompe la cascada, la deja seguir', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    if (url.includes('cerebras')) return respuestaError(402);
+    return respuestaOk(body.model, '{"ok":true}');
+  };
+  const r = await conClavesDeTest(CLAVES_TEST, async () => {
+    const salida = await llamar({
+      modelos: ['cerebras:gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.equal(salida.modelo, 'groq:openai/gpt-oss-20b');
+  })();
+  assert.deepEqual(llamadas, ['gpt-oss-120b', 'openai/gpt-oss-20b']);
+  await limpiarLog();
+  return r;
+});
+
+// === I1/I2 (ola final v0.2b4.1): plazo máximo por llamada, configurable ==========================
+// El plazo de 120 s era el mismo para todo. Medido en vivo el 15-sep: un parón de 118,9 s en
+// `nvidia/nemotron-3-ultra:free` DENTRO de una tanda urgente -- dos minutos de un jugador mirando
+// el indicador por un eslabón que iba a fallar igual. Con `timeoutMs` corto, la cascada salta al
+// siguiente en cuanto el lento se pasa del plazo; el fondo conserva los 120 s de siempre.
+test('v0.2b4.1 (I1): `timeoutMs` corto corta el eslabón lento y salta al siguiente a tiempo', async () => {
+  await limpiarLog();
+  const llamadas = [];
+  const fetchImpl = (url, opts) => {
+    const body = JSON.parse(opts.body);
+    llamadas.push(body.model);
+    if (body.model !== 'a/lento:free') return Promise.resolve(respuestaOk(body.model));
+    // Un eslabón que tarda 200 ms y SÍ respeta el signal, como hace `fetch` de verdad.
+    return new Promise((resolver, rechazar) => {
+      const id = setTimeout(() => resolver(respuestaOk(body.model)), 200);
+      opts.signal?.addEventListener('abort', () => {
+        clearTimeout(id);
+        const err = new Error('The operation was aborted due to timeout');
+        err.name = 'TimeoutError';
+        rechazar(err);
+      });
+    });
+  };
+
+  const inicio = Date.now();
+  const r = await llamar({
+    modelos: ['a/lento:free', 'b/rapido:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 0,
+    timeoutMs: 50,
+    cuota: crearRegistroCuota(),
+  });
+  const transcurrido = Date.now() - inicio;
+
+  assert.deepEqual(llamadas, ['a/lento:free', 'b/rapido:free']);
+  assert.equal(r.modelo, 'b/rapido:free');
+  assert.ok(transcurrido < 180, `debe saltar a los ~50 ms, no esperar los 200 del lento (medido: ${transcurrido} ms)`);
+
+  const log = await readFile(RUTA_LOG, 'utf8');
+  assert.match(log, /sin respuesta en 0\.05s/, 'el plazo que se registra es el real de esta llamada, no los 120 s fijos');
+  await limpiarLog();
+});
+
+test('v0.2b4.1 (I1): un `timeoutMs` inválido (0, negativo, NaN) cae al plazo por defecto, nunca a "sin plazo"', async () => {
+  await limpiarLog();
+  for (const malo of [0, -1, Number.NaN, 'pronto']) {
+    const fetchImpl = async (url, opts) => {
+      assert.ok(opts.signal, `con timeoutMs=${String(malo)} sigue habiendo signal de plazo`);
+      return respuestaOk(JSON.parse(opts.body).model);
+    };
+    const r = await llamar({
+      modelos: ['a/uno:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      timeoutMs: malo,
+      cuota: crearRegistroCuota(),
+    });
+    assert.equal(r.modelo, 'a/uno:free');
+  }
+  await limpiarLog();
+});
+
+// === T1 (minor, ola final v0.2b4.1): la espera del último recurso obedece a `retry-after` ========
+test('v0.2b4.1 (T1): con `retry-after` en la respuesta, el reintento espera ESO, no los 4 s fijos', async () => {
+  await limpiarLog();
+  const cuota = crearRegistroCuota();
+  const esperas = [];
+  const llamadas = [];
+  const fetchImpl = async (url, opts) => {
+    llamadas.push(JSON.parse(opts.body).model);
+    if (llamadas.length === 2) return respuestaOk('a/uno:free');
+    return { ok: false, status: 429, headers: new Headers({ 'retry-after': '0.05' }), json: async () => ({}) };
+  };
+
+  const inicio = Date.now();
+  const r = await llamar({
+    modelos: ['a/uno:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    rutaLog: RUTA_LOG,
+    reintentoMs: 4000, // el valor de producción: si se usara, este test tardaría 4 s
+    alEsperar: (ms) => esperas.push(ms),
+    cuota,
+  });
+  const transcurrido = Date.now() - inicio;
+
+  assert.equal(r.modelo, 'a/uno:free');
+  assert.equal(esperas.length, 1, 'se espera una sola vez, y solo al final');
+  assert.ok(esperas[0] > 0 && esperas[0] <= 50, `espera los ~50 ms que pidió el proveedor (fue ${esperas[0]} ms)`);
+  assert.ok(transcurrido < 1000, `y de verdad, no los 4 s (medido: ${transcurrido} ms)`);
+  await limpiarLog();
+});
+
+test('v0.2b4.1 (T1): esperaDeReintento acota a 10 s y cae al valor por defecto si nadie sugirió nada', () => {
+  const cuota = crearRegistroCuota();
+  assert.equal(esperaDeReintento(cuota, 'sin/registro:free', 4000), 4000, 'sin sugerencia, la espera de siempre');
+
+  cuota.registrarRespuesta('lento/pide-mucho:free', { status: 429, headers: new Headers({ 'retry-after': '30' }) });
+  assert.equal(esperaDeReintento(cuota, 'lento/pide-mucho:free', 4000), TOPE_ESPERA_REINTENTO_MS);
+  assert.equal(TOPE_ESPERA_REINTENTO_MS, 10000, 'nadie espera medio minuto a un eslabón: para eso está la cascada');
+
+  cuota.registrarRespuesta('corto/pide-poco:free', { status: 429, headers: new Headers({ 'retry-after': '2' }) });
+  assert.equal(esperaDeReintento(cuota, 'corto/pide-poco:free', 4000), 2000, 'por debajo del tope, manda el proveedor');
+});
+
+// === #3 (adversarial, ola final v0.2b4.1): `signal` de quien llama ==============================
+test('v0.2b4.1 (#3): un abort de quien llamó detiene la cascada entera, no salta al siguiente eslabón', async () => {
+  await limpiarLog();
+  const controlador = new AbortController();
+  const llamadas = [];
+  const fetchImpl = (url, opts) => {
+    llamadas.push(JSON.parse(opts.body).model);
+    return new Promise((resolver, rechazar) => {
+      const id = setTimeout(() => resolver(respuestaOk('tarde')), 2000);
+      opts.signal?.addEventListener('abort', () => {
+        clearTimeout(id);
+        const err = new Error('abortada');
+        err.name = 'AbortError';
+        rechazar(err);
+      });
+    });
+  };
+
+  setTimeout(() => controlador.abort(), 20);
+  await assert.rejects(
+    llamar({
+      modelos: ['a/uno:free', 'b/dos:free', 'c/tres:free'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota: crearRegistroCuota(),
+      signal: controlador.signal,
+    }),
+    /abortada por quien la pidió/i,
+  );
+  assert.equal(llamadas.length, 1, 'con el resultado ya descartado, probar más eslabones solo gasta cuota');
   await limpiarLog();
 });
 
@@ -341,9 +573,10 @@ test(
   }),
 );
 
-// (c) 429 → reintento único tras reintentoMs → si el reintento también falla, pasa al siguiente.
+// (c) 429 siendo el ÚNICO eslabón: no hay a dónde saltar, así que se espera y se reintenta una vez
+// (v0.2b4.1 §1: el salto en seco solo aplica mientras queden eslabones sin probar).
 test(
-  'gemini: 429 reintenta una vez y, si el reintento responde 200, usa esa respuesta (mismo modelo)',
+  'gemini: 429 siendo el ÚNICO eslabón, se espera y se reintenta una vez',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     let intentos = 0;
@@ -366,8 +599,10 @@ test(
   }),
 );
 
+// REESCRITO (v0.2b4.1 §1): con un eslabón detrás, el 429 salta ya -- ya no reintenta el mismo
+// modelo antes de pasar al siguiente. Una llamada por eslabón, no dos.
 test(
-  'gemini: 429 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  'gemini: 429 en el primer eslabón pasa al siguiente modelo de la cascada sin reintentar',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     const llamadas = [];
@@ -383,16 +618,18 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
 
-// (d) 503 se comporta igual que 429: reintento único y luego el siguiente modelo.
+// (d) 503 se comporta igual que 429: salta ya, una sola llamada por eslabón.
 test(
-  'gemini: 503 en el intento y en el reintento pasa al siguiente modelo de la cascada',
+  'gemini: 503 en el primer eslabón pasa al siguiente modelo de la cascada sin reintentar',
   conClaveGeminiDeTest(CLAVE_GEMINI_TEST, async () => {
     await limpiarLog();
     const llamadas = [];
@@ -408,9 +645,11 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       reintentoMs: 0,
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
-    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'gemini-flash-lite-latest', 'b/dos:free']);
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest', 'b/dos:free']);
     await limpiarLog();
   }),
 );
@@ -539,6 +778,8 @@ test(
       fetchImpl,
       rutaLog: RUTA_LOG,
       extra: { reasoning: { enabled: false, exclude: true } },
+      // Cuota propia: ver comentario igual en el test "si TODOS los eslabones se saturan".
+      cuota: crearRegistroCuota(),
     });
     assert.equal(r.modelo, 'b/dos:free');
     assert.equal('reasoning' in cuerpos[0], false);
@@ -580,6 +821,373 @@ test(
       assert.equal(campo in body, false, `"${campo}" es propio de OpenRouter y no debe ir a Gemini`);
     }
     assert.equal(body.top_p, 0.9, 'top_p es estándar de OpenAI: debe llegar a Gemini');
+    await limpiarLog();
+  }),
+);
+
+// --- Proveedores gratis nuevos (Tarea 1, v0.2b4.1) --------------------------------------------
+// Claves FICTICIAS solo para estos tests: nunca se lee `.env` ni se usa ninguna clave real. Mismo
+// patrón (guardar -> poner -> finally restaurar) que conClaveGeminiDeTest, generalizado a las tres
+// variables nuevas para no repetir el try/finally en cada test.
+const CLAVES_TEST = {
+  GEMINI_API_KEY_GRATIS: 'clave-test-gemini',
+  GROQ_API_KEY: 'clave-test-groq',
+  NVIDIA_API_KEY: 'clave-test-nvidia',
+  CEREBRAS_API_KEY: 'clave-test-cerebras',
+};
+
+function conClavesDeTest(valores, fn) {
+  return async () => {
+    const anteriores = {};
+    for (const [nombre, valor] of Object.entries(valores)) {
+      anteriores[nombre] = process.env[nombre];
+      if (valor === undefined) delete process.env[nombre];
+      else process.env[nombre] = valor;
+    }
+    try {
+      await fn();
+    } finally {
+      for (const [nombre, anterior] of Object.entries(anteriores)) {
+        if (anterior === undefined) delete process.env[nombre];
+        else process.env[nombre] = anterior;
+      }
+    }
+  };
+}
+
+test('v0.2b4.1 §1: los tres proveedores nuevos se reconocen por prefijo y cuentan como gratis', () => {
+  assert.equal(proveedorDe('groq:openai/gpt-oss-120b').variable, 'GROQ_API_KEY');
+  assert.equal(proveedorDe('nvidia:nvidia/nemotron-3.5-lightning-30b-a3b').variable, 'NVIDIA_API_KEY');
+  assert.equal(proveedorDe('cerebras:gpt-oss-120b').variable, 'CEREBRAS_API_KEY');
+  assert.equal(proveedorDe('gemini:gemini-flash-lite-latest').variable, 'GEMINI_API_KEY_GRATIS');
+  assert.equal(proveedorDe('z-ai/glm-4.7-flash'), null, 'un id sin prefijo sigue siendo de OpenRouter');
+
+  // Gratis de verdad: son claves de nivel gratuito sin tarjeta (spec §0), un exceso da 429 o 402,
+  // nunca un cargo. Sin esto, servidor/generacion.js#filtrarPorPago los descartaría con PERMITIR_PAGO=0.
+  for (const id of ['groq:openai/gpt-oss-20b', 'nvidia:openai/gpt-oss-20b', 'cerebras:qwen-3.8-27b']) {
+    assert.equal(esModeloGratis(id), true, `${id} debe contar como gratis`);
+  }
+  assert.equal(esModeloGratis('z-ai/glm-4.7-flash'), false);
+});
+
+test(
+  'v0.2b4.1 §1: cada proveedor va a SU endpoint, con SU clave y el modelo sin prefijo en el body',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const casos = [
+      ['groq:openai/gpt-oss-120b', 'https://api.groq.com/openai/v1/chat/completions', 'clave-test-groq', 'openai/gpt-oss-120b'],
+      ['nvidia:openai/gpt-oss-20b', 'https://integrate.api.nvidia.com/v1/chat/completions', 'clave-test-nvidia', 'openai/gpt-oss-20b'],
+      ['cerebras:gpt-oss-120b', 'https://api.cerebras.ai/v1/chat/completions', 'clave-test-cerebras', 'gpt-oss-120b'],
+    ];
+    for (const [id, url, clave, modelBody] of casos) {
+      let urlRecibida;
+      let opcionesRecibidas;
+      const fetchImpl = async (u, opts) => {
+        urlRecibida = u;
+        opcionesRecibidas = opts;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            choices: [{ message: { content: '{"ok":true}' } }],
+            // Coste distinto de 0 a propósito: un proveedor propio es gratis y `llamar` debe
+            // forzar coste 0 sin fiarse de lo que traiga la respuesta.
+            usage: { prompt_tokens: 7, completion_tokens: 3, cost: 0.05 },
+          }),
+        };
+      };
+      const r = await llamar({
+        modelos: [id],
+        mensajes: [{ role: 'user', content: 'hola' }],
+        json: true,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        // `reasoning` es campo PROPIO de OpenRouter: Google devolvió HTTP 400 por él (v0.2b4 C1) y
+        // no hay razón para creer que Groq/NVIDIA/Cerebras lo acepten. No debe viajar a ninguno.
+        extra: { reasoning: { enabled: false }, temperature_extra_falso: 1 },
+      });
+      assert.equal(urlRecibida, url, `${id} debe ir a ${url}`);
+      assert.equal(opcionesRecibidas.headers.Authorization, `Bearer ${clave}`);
+      assert.equal(opcionesRecibidas.headers['HTTP-Referer'], undefined, 'HTTP-Referer es solo de OpenRouter');
+      assert.equal(opcionesRecibidas.headers['X-Title'], undefined, 'X-Title es solo de OpenRouter');
+      const body = JSON.parse(opcionesRecibidas.body);
+      assert.equal(body.model, modelBody, 'el prefijo del proveedor nunca viaja en el body');
+      assert.equal(body.reasoning, undefined, 'los campos propios de OpenRouter no viajan aquí');
+      assert.deepEqual(body.response_format, { type: 'json_object' });
+      assert.equal(r.modelo, id, 'el id devuelto conserva el prefijo (es la clave de la cascada)');
+      assert.equal(r.coste, 0);
+    }
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §1: sin la clave del proveedor, el eslabón se salta SIN llamar y sigue la cascada',
+  conClavesDeTest({ ...CLAVES_TEST, GROQ_API_KEY: undefined, CEREBRAS_API_KEY: '   ' }, async () => {
+    await limpiarLog();
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('gemini-flash-lite-latest', '{"ok":true}');
+    };
+    const r = await llamar({
+      // Groq sin variable y Cerebras con una cadena de solo espacios: las dos son "sin clave".
+      modelos: ['groq:openai/gpt-oss-120b', 'cerebras:gpt-oss-120b', 'gemini:gemini-flash-lite-latest'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+    });
+    assert.deepEqual(llamadas, ['gemini-flash-lite-latest'], 'los dos sin clave no llegan a la red');
+    assert.equal(r.modelo, 'gemini:gemini-flash-lite-latest');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §1: Groq gpt-oss recibe reasoning_effort low y NVIDIA el interruptor de "no pensar"',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuerpos = {};
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      cuerpos[body.model] = body;
+      return respuestaOk(body.model, '{"ok":true}');
+    };
+    const pedir = (id) =>
+      llamar({
+        modelos: [id],
+        mensajes: [
+          { role: 'system', content: 'Eres un autor de preguntas.' },
+          { role: 'user', content: 'hola' },
+        ],
+        json: true,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+      });
+
+    await pedir('groq:openai/gpt-oss-120b');
+    assert.equal(cuerpos['openai/gpt-oss-120b'].reasoning_effort, 'low', 'spec §0: gpt-oss lo exige');
+
+    // groq/compound NO admite reasoning_effort (spec §0): el extra es por modelo, no por proveedor.
+    await pedir('groq:groq/compound-mini');
+    assert.equal(cuerpos['groq/compound-mini'].reasoning_effort, undefined);
+
+    await pedir('nvidia:nvidia/nemotron-3.5-lightning-30b-a3b');
+    const nvidia = cuerpos['nvidia/nemotron-3.5-lightning-30b-a3b'];
+    assert.deepEqual(nvidia.chat_template_kwargs, { thinking: false, enable_thinking: false });
+    assert.ok(
+      nvidia.messages[0].content.startsWith('/no_think\ndetailed thinking off\n'),
+      'el prefijo va DENTRO del sistema, delante del criterio, sin borrarlo',
+    );
+    assert.ok(nvidia.messages[0].content.includes('Eres un autor de preguntas.'));
+    assert.equal(nvidia.messages[1].content, 'hola', 'el mensaje de usuario no se toca');
+
+    // Gemini y OpenRouter no reciben nada de esto.
+    await pedir('gemini:gemini-flash-lite-latest');
+    assert.equal(cuerpos['gemini-flash-lite-latest'].reasoning_effort, undefined);
+    assert.equal(cuerpos['gemini-flash-lite-latest'].chat_template_kwargs, undefined);
+    await limpiarLog();
+  }),
+);
+
+test('v0.2b4.1 §1: las tres claves nuevas están documentadas en servidor/.env.ejemplo y en DESPLIEGUE.md', async () => {
+  const ejemplo = await readFile('servidor/.env.ejemplo', 'utf8');
+  const despliegue = await readFile('servidor/DESPLIEGUE.md', 'utf8');
+  for (const variable of ['GEMINI_API_KEY_GRATIS', 'GROQ_API_KEY', 'NVIDIA_API_KEY', 'CEREBRAS_API_KEY']) {
+    assert.match(ejemplo, new RegExp(`^${variable}=`, 'm'), `${variable} falta en servidor/.env.ejemplo`);
+    assert.ok(despliegue.includes(variable), `${variable} falta en servidor/DESPLIEGUE.md`);
+  }
+  // Nunca un valor: este fichero se versiona en git.
+  for (const linea of ejemplo.split('\n')) {
+    if (linea.startsWith('#') || !linea.includes('=')) continue;
+    assert.equal(linea.split('=')[1].trim(), '', `servidor/.env.ejemplo lleva un valor en "${linea.split('=')[0]}"`);
+  }
+});
+
+// --- Cuota por cabeceras x-ratelimit (Tarea 2, v0.2b4.1 §2) ------------------------------------
+
+test(
+  'v0.2b4.1 §2: `llamar` consulta la cuota ANTES de cada intento y se salta el eslabón sin hueco',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota({ reloj: () => 5000 });
+    // El 120b acaba de decir que le quedan 300 tokens: una llamada grande no cabe ahí.
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', {
+      status: 200,
+      headers: new Headers({ 'x-ratelimit-remaining-tokens': '300' }),
+    });
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('ok', '{"ok":true}');
+    };
+    const r = await llamar({
+      modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'x'.repeat(3500) }], // 1.000 tokens + maxTokens
+      json: true,
+      maxTokens: 1500,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.deepEqual(llamadas, ['openai/gpt-oss-20b'], 'el 120b ni se intenta: no cabe');
+    assert.equal(r.modelo, 'groq:openai/gpt-oss-20b');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §2: `llamar` alimenta la cuota con las cabeceras de la respuesta que recibe',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota({ reloj: () => 5000 });
+    const fetchImpl = async () => ({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'x-ratelimit-remaining-tokens': '120', 'x-ratelimit-remaining-requests': '17' }),
+      json: async () => ({ choices: [{ message: { content: '{"ok":true}' } }], usage: {} }),
+    });
+    await llamar({
+      modelos: ['groq:openai/gpt-oss-120b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.equal(cuota.hayHueco('groq:openai/gpt-oss-120b', 100), true);
+    assert.equal(cuota.hayHueco('groq:openai/gpt-oss-120b', 5000), false, 'ya sabe que solo le quedan 120');
+    await limpiarLog();
+  }),
+);
+
+test(
+  'v0.2b4.1 §2: si ningún eslabón tiene hueco, se intenta igual el que antes vuelve (nunca se falla sin llamar)',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    let ahora = 5000;
+    const cuota = crearRegistroCuota({ reloj: () => ahora });
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 429, headers: new Headers({ 'retry-after': '40' }) });
+    cuota.registrarRespuesta('groq:openai/gpt-oss-20b', { status: 429, headers: new Headers({ 'retry-after': '5' }) });
+    const llamadas = [];
+    const fetchImpl = async (url, opts) => {
+      llamadas.push(JSON.parse(opts.body).model);
+      return respuestaOk('ok', '{"ok":true}');
+    };
+    const r = await llamar({
+      modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+      mensajes: [{ role: 'user', content: 'hola' }],
+      json: true,
+      fetchImpl,
+      rutaLog: RUTA_LOG,
+      reintentoMs: 0,
+      cuota,
+    });
+    assert.equal(llamadas[0], 'openai/gpt-oss-20b', 'la cuota reordena: 5 s de espera es mejor que 40');
+    assert.equal(r.modelo, 'groq:openai/gpt-oss-20b');
+    await limpiarLog();
+  }),
+);
+
+test('v0.2b4.1 §3: las cascadas de preguntas son todas gratis, rápidas primero y con papeles distintos', () => {
+  const { generador, verificador, subtemas, generadorFondo, verificadorFondo } = MODELOS;
+
+  // Tanda urgente: el jugador está esperando. Los tiempos son los medidos el 15-sep (spec §0).
+  assert.equal(generador[0], 'gemini:gemini-flash-lite-latest'); // 1,3 s y no se agota en todo el día
+  assert.deepEqual(generador.slice(1, 4), ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b', 'cerebras:gpt-oss-120b']);
+  assert.equal(verificador[0], 'groq:openai/gpt-oss-120b'); // 1,5 s
+  assert.equal(subtemas[0], 'gemini:gemini-flash-lite-latest');
+  assert.deepEqual(subtemas, ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-20b']);
+
+  // Regla fija de Carlos: el verificador NUNCA es el generador. Con primeros eslabones distintos,
+  // `excluirModelo` (servidor/generacion.js) nunca deja al verificador sin cascada.
+  assert.notEqual(generador[0], verificador[0]);
+  assert.notEqual(generadorFondo[0], verificadorFondo[0]);
+
+  // Colchón nocturno: empieza por NVIDIA y los ':free' para NO gastar la cuota rápida de día.
+  assert.equal(generadorFondo[0], 'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b');
+  assert.ok(generadorFondo.some((m) => m.endsWith(':free')));
+  assert.ok(verificadorFondo.some((m) => m.endsWith(':free')));
+  // ...y Groq/Gemini solo detrás, como red de seguridad (spec §3).
+  const primerRapidoFondo = generadorFondo.findIndex((m) => m.startsWith('groq:') || m.startsWith('gemini:'));
+  assert.ok(primerRapidoFondo >= 3, 'en el colchón, Groq/Gemini van al final, no en cabeza');
+
+  // Nada de pago en ninguna de las cinco (spec §2: PERMITIR_PAGO=0 sigue siendo el modo real).
+  for (const [nombre, cascada] of Object.entries(MODELOS)) {
+    assert.ok(cascada.length > 0, `${nombre} vacía`);
+    for (const m of cascada) assert.equal(esModeloGratis(m), true, `${nombre}: ${m} no es gratis`);
+  }
+
+  // NVIDIA y los ':free' de OpenRouter, solo al FINAL de las cascadas urgentes (spec §3: 35-90 s).
+  for (const cascada of [generador, verificador]) {
+    const primerLento = cascada.findIndex((m) => m.startsWith('nvidia') || m.endsWith(':free'));
+    assert.ok(primerLento === -1 || primerLento >= 3, 'lo lento va al final de una cascada urgente');
+  }
+
+  // Ola final v0.2b4.1 (I2): los dos nemotron ':free' de OpenRouter, fuera de las cascadas
+  // URGENTES -- medido el 15-sep, 118,9 s parado en uno de ellos con el jugador esperando. Siguen
+  // en las de fondo, que es donde un eslabón de minuto y medio no le cuesta nada a nadie.
+  const lentos = ['nvidia/nemotron-3-ultra-550b-a55b:free', 'nvidia/nemotron-3-super-120b-a12b:free'];
+  for (const lento of lentos) {
+    assert.equal(generador.includes(lento), false, `${lento} sigue en la cascada urgente de generación`);
+    assert.equal(verificador.includes(lento), false, `${lento} sigue en la cascada urgente de verificación`);
+  }
+  assert.ok(generadorFondo.includes(lentos[0]) && generadorFondo.includes(lentos[1]));
+});
+
+// === M2 (ronda de corrección 1): `llamar` reserva/libera cuota en vuelo ==========================
+// Integración con tools/cuota.js: una ráfaga de `llamar` concurrentes que comparten el mismo
+// registro (como hace producirTanda con `enParalelo`) no deben elegir todas el mismo primer eslabón
+// antes de que llegue ninguna respuesta real -- ver correccion M2 y tests/cuota.test.js.
+test(
+  'v0.2b4.1 §2 (M2): tres `llamar` concurrentes con el mismo registro reparten entre eslabones (reserva en vuelo)',
+  conClavesDeTest(CLAVES_TEST, async () => {
+    await limpiarLog();
+    const cuota = crearRegistroCuota();
+    // Límite conocido de antemano (como si ya hubiera respondido una vez). Ola final v0.2b4.1
+    // (#7): la estimación de salida se acota en 1.200 tokens, así que el resto conocido baja a
+    // 2.500 para que sigan cabiendo DOS llamadas y no la tercera -- que es lo que este test mide.
+    cuota.registrarRespuesta('groq:openai/gpt-oss-120b', { status: 200, headers: new Headers({ 'x-ratelimit-remaining-tokens': '2500' }) });
+
+    const llamadasVistas = [];
+    // Cada fetch tarda un poco y NO resuelve hasta que las 3 llamadas ya han tenido que elegir
+    // eslabón -- así se prueba que la reserva actúa ANTES de que llegue ninguna respuesta real.
+    const fetchImpl = async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      llamadasVistas.push(body.model);
+      await new Promise((r) => setTimeout(r, 20));
+      return respuestaOk(body.model, '{"ok":true}');
+    };
+
+    const unaLlamada = () =>
+      llamar({
+        modelos: ['groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'],
+        // ~1.200 tokens estimados cada una (maxTokens grande: el tope de salida de #7 lo fija en
+        // 1.200 pase lo que pase, sin depender del texto).
+        mensajes: [{ role: 'user', content: 'hola' }],
+        maxTokens: 3000,
+        json: false,
+        fetchImpl,
+        rutaLog: RUTA_LOG,
+        reintentoMs: 0,
+        cuota,
+      });
+
+    // Las 3 arrancan a la vez, compartiendo `cuota`, sin esperar respuesta entre medias.
+    await Promise.all([unaLlamada(), unaLlamada(), unaLlamada()]);
+
+    // Con reserva en vuelo: 2.500 tokens, ~1.200 por llamada -> caben 2 en "120b" y la 3.ª debe
+    // saltar a "20b" (sin reserva, las 3 habrían elegido "120b" porque ninguna respuesta real había
+    // llegado todavía para descontar nada).
+    const en120b = llamadasVistas.filter((m) => m === 'openai/gpt-oss-120b').length;
+    const en20b = llamadasVistas.filter((m) => m === 'openai/gpt-oss-20b').length;
+    assert.equal(en120b + en20b, 3);
+    assert.ok(en20b >= 1, `sin reserva en vuelo, las 3 habrían ido a "120b" (vistas: ${JSON.stringify(llamadasVistas)})`);
     await limpiarLog();
   }),
 );

@@ -32,6 +32,8 @@ import {
   VERIFICADOR_SOLO_PAGO,
   GENERADOR_VISUAL,
   VERIFICADOR_VISUAL,
+  GENERADOR_VISUAL_FONDO,
+  VERIFICADOR_VISUAL_FONDO,
 } from '../tools/visualizar.js';
 import {
   promptSistemaGenerador,
@@ -99,6 +101,103 @@ function soloCamposContenido(bruto) {
 const TAMANO_LOTE_GENERACION = 5;
 const TAMANO_LOTE_VERIFICACION = 4;
 const UMBRAL_CONFIANZA_DEFECTO = 0.7;
+
+// v0.2b4.1 §4: topes de concurrencia de una tanda urgente. No son "cuanto más, mejor": cada
+// llamada en vuelo consume de la MISMA cuota por minuto (8.000 tokens/min por modelo en Groq), así
+// que pasarse de aquí no acelera, solo convierte el trabajo en 429 en cadena. 4 lotes = los 4 tipos
+// de pregunta a la vez; 5 visuales = la mitad de una tanda de 10, repartidos entre dos proveedores.
+export const MAX_LOTES_EN_VUELO = 4;
+export const MAX_VISUALES_EN_VUELO = 5;
+/** Timeout del visual dentro de una tanda urgente (spec §5): pasado esto, la pregunta se sirve sin
+ * él y un trabajo de fondo lo completa después (Tarea 4). Nunca se aplica al colchón. */
+export const TIMEOUT_VISUAL_MS = 20000;
+/**
+ * Ola final v0.2b4.1 (I1/I2): plazo máximo de CADA llamada dentro de una tanda urgente -- los
+ * cuatro pasos (generación, verificación, visual y verificación del visual). El plazo general de
+ * `tools/openrouter.js` son 120 s, pensados para el fondo; con un jugador mirando el indicador,
+ * esperar dos minutos a un eslabón que va a fallar igual es lo peor que se puede hacer (medido en
+ * vivo el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free DENTRO de una tanda urgente).
+ * Pasados estos 30 s la cascada salta al siguiente eslabón, que normalmente responde en 1-2 s.
+ */
+export const TIMEOUT_LLAMADA_URGENTE_MS = 30000;
+/**
+ * Ola final v0.2b4.1 (I3): a partir de aqui, una tanda urgente ya NO intenta reponer lo que el
+ * verificador rechazo. El objetivo es "10 verificadas en menos de 60 s": con 45 s ya gastados, una
+ * ronda extra (generar + verificar + visual) se comeria el minuto entero, y el jugador prefiere 8
+ * preguntas ya que 10 dentro de tres minutos.
+ */
+export const MS_MAX_REPOSICION = 45000;
+
+/**
+ * Ejecuta `fn` sobre `items` con como mucho `tope` en vuelo a la vez, devolviendo los resultados
+ * EN EL ORDEN DE ENTRADA (no en el de terminación) y sin que un fallo cancele a los demás: cada
+ * posición trae `{ok: true, valor}` o `{ok: false, error}`. Es el `Promise.all` con tope de la
+ * spec §4, escrito aquí porque no hay dependencias en este repo y porque `Promise.all` a secas
+ * lanzaría las 10 llamadas de golpe contra una cuota de 8.000 tokens/minuto.
+ * @param {any[]} items
+ * @param {number} tope
+ * @param {(item: any, indice: number) => Promise<any>} fn
+ * @returns {Promise<{ok: boolean, valor?: any, error?: string}[]>}
+ */
+export async function enParalelo(items, tope, fn) {
+  const lista = Array.isArray(items) ? items : [];
+  const resultados = new Array(lista.length);
+  let siguiente = 0;
+  const trabajador = async () => {
+    for (;;) {
+      const indice = siguiente++;
+      if (indice >= lista.length) return;
+      try {
+        resultados[indice] = { ok: true, valor: await fn(lista[indice], indice) };
+      } catch (err) {
+        resultados[indice] = { ok: false, error: err?.message || String(err) };
+      }
+    }
+  };
+  // M5 (ronda de corrección 1): un `tope` no numérico (NaN, Infinity, undefined...) no debe colarse
+  // en el cálculo de la longitud del array de workers -- `Array.from({length: NaN})` da longitud 0,
+  // es decir CERO trabajadores y ningún item procesado nunca. Se trata como 1 (secuencial, la
+  // opción segura), nunca como "sin límite" ni como "no hacer nada".
+  const topeSeguro = Number.isFinite(tope) ? tope : 1;
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, topeSeguro), lista.length) }, trabajador));
+  return resultados;
+}
+
+/**
+ * v0.2b4.1 §5: corre lo que devuelve `crearPromesa(signal)` con un límite de tiempo. Devuelve
+ * `null` si se pasa. `ms <= 0` significa "sin límite" -- se devuelve la promesa tal cual, sin
+ * envolverla (el `signal` se pasa igualmente, pero nadie lo va a disparar).
+ *
+ * Ola final v0.2b4.1 (#3, adversarial): además de dejar de esperar, ahora ABORTA. Antes la llamada
+ * que se pasaba del plazo seguía viva contra el modelo: gastaba cuota de la ventana del minuto por
+ * una respuesta que ya nadie iba a mirar y, con 5 visuales en vuelo (`enParalelo`), alimentaba
+ * justo los 429 en cadena que la tanda intenta evitar. `crearPromesa` recibe el `signal` del
+ * AbortController que esta función crea y lo baja hasta `tools/openrouter.js#llamar`, que lo
+ * combina con su propio plazo; la reserva de cuota se libera en el `finally` de `llamar`, pase lo
+ * que pase.
+ *
+ * El temporizador se cancela (`clearTimeout`) en cuanto CUALQUIERA de las dos partes gana la
+ * carrera, y `unref()` evita que, si llegara a disparar, retenga el proceso vivo por su cuenta.
+ * `Promise.race` deja un manejador puesto en la promesa huérfana, así que su rechazo posterior
+ * (el abort) nunca sale como `unhandledRejection`.
+ * @param {(signal: AbortSignal) => Promise<any>} crearPromesa
+ * @param {number} ms
+ * @returns {Promise<any|null>}
+ */
+export function conLimite(crearPromesa, ms) {
+  const controlador = new AbortController();
+  const promesa = crearPromesa(controlador.signal);
+  if (!(ms > 0)) return promesa;
+  let idTimeout;
+  const limite = new Promise((resolver) => {
+    idTimeout = setTimeout(() => {
+      controlador.abort();
+      resolver(null);
+    }, ms);
+    idTimeout.unref?.();
+  });
+  return Promise.race([promesa, limite]).finally(() => clearTimeout(idTimeout));
+}
 
 // Cascadas de pago barato para preguntas, análogas a GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de
 // tools/visualizar.js (spec §3.1: "un par análogo para preguntas"). Un solo modelo de pago cada
@@ -297,6 +396,8 @@ export async function generarBorradores(params, opciones = {}) {
     rutaLog,
     modelos = MODELOS.generador,
     acumulador,
+    // I1/I2: plazo por llamada. `undefined` = el que trae por defecto tools/openrouter.js#llamar.
+    timeoutMs,
   } = opciones;
 
   const prefijo = PREFIJOS[area];
@@ -334,6 +435,7 @@ export async function generarBorradores(params, opciones = {}) {
         json: true,
         permitirPago,
         topeEur,
+        timeoutMs,
         ...(rutaLog ? { rutaLog } : {}),
       });
     } catch (err) {
@@ -351,7 +453,13 @@ export async function generarBorradores(params, opciones = {}) {
     }
     const lista = Array.isArray(datos) ? datos : datos.preguntas || [];
 
-    for (const bruto of lista) {
+    // Ola final v0.2b4.1 (C3): el modelo puede devolver MÁS de lo que se le pidió -- medido en
+    // vivo el 15-sep-2026: un lote de fondo que pidió 4 produjo 14. Lo que sobra no es gratis: se
+    // verifica (llamadas de lotes de 4), se resuelve con su visual (2 llamadas por pregunta) y se
+    // guarda en el colchón, así que un solo lote desbocado puede triplicar el tiempo del trabajo y
+    // dejar a un urgente esperando detrás. El tope es el de ESTE sub-lote, no el `n` de la llamada
+    // entera (los sub-lotes siguientes traen los suyos).
+    for (const bruto of lista.slice(0, tamanoLote)) {
       borradores.push({
         ...soloCamposContenido(bruto),
         id: generarIdServidor(prefijo),
@@ -420,6 +528,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
     umbral = UMBRAL_CONFIANZA_DEFECTO,
     modelos = MODELOS.verificador,
     acumulador,
+    timeoutMs, // I1/I2, igual que en generarBorradores
   } = opciones;
 
   const resultados = [];
@@ -468,6 +577,7 @@ export async function verificarBorradores(borradores, opciones = {}) {
         json: true,
         permitirPago,
         topeEur,
+        timeoutMs,
         ...(rutaLog ? { rutaLog } : {}),
       });
     } catch (err) {
@@ -555,13 +665,19 @@ export async function verificarBorradores(borradores, opciones = {}) {
  *   tuviera más candidatos detrás. Ahora la cascada efectiva es `[...pago barato, ...normal]`: se
  *   sigue intentando primero lo rápido/barato pensado para "el jugador está esperando", pero nunca
  *   se pierde el resto de la cascada normal como red de seguridad.
+ * @param {number} [opciones.timeoutVisualMs] v0.2b4.1 §5: por defecto TIMEOUT_VISUAL_MS (20 s).
+ *   Solo se aplica con `urgente: true` -- un trabajo de fondo nunca tiene prisa, ver `limiteVisual`
+ *   más abajo. Pasado este tiempo, el visual de esa candidata se descarta (la llamada sigue viva,
+ *   su resultado se ignora) y la pregunta sale con `visual: null, visualPendiente: true`.
  * @returns {Promise<{
  *   aprobadas: object[], rechazadas: {borrador: object, motivo: string}[], coste: number,
  *   modelos: string[], fallos: {tipo: string, motivo: string}[], pedidas: number, obtenidas: number,
  * }>} `fallos` lleva un elemento por tipo cuya generación agotó del todo su cascada (ver
  *   generarBorradores); `pedidas` es el `n` pedido y `obtenidas` los borradores que sí se
  *   generaron (antes de verificar/validar) -- así la cola (Task 2) puede marcar el trabajo
- *   "parcial" u homogéneo sin tener que adivinarlo a partir de `aprobadas`.
+ *   "parcial" u homogéneo sin tener que adivinarlo a partir de `aprobadas`. Cada elemento de
+ *   `aprobadas` lleva `visualPendiente: boolean` (v0.2b4.1 §5): `true` cuando el visual no llegó a
+ *   tiempo (o su cascada falló del todo) y queda para que un trabajo de fondo lo complete.
  *
  * Nota sobre permitirPago=false: generarBorradores/verificarBorradores (código de esta tarea)
  * filtran su cascada a solo ':free' antes de llamar. El paso de visual (resolverPregunta, ya
@@ -571,118 +687,271 @@ export async function verificarBorradores(borradores, opciones = {}) {
  */
 export async function producirTanda(params, opciones = {}) {
   const { area, ruta = [], n = 10, nivelObjetivo, evitar = [] } = params || {};
-  const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog, urgente = false } = opciones;
+  const {
+    llamar: llamarFn = llamarReal,
+    permitirPago = false,
+    topeEur = 0,
+    rutaLog,
+    urgente = false,
+    onProgreso,
+    // v0.2b4.1 §5: timeout del visual SOLO para una tanda urgente (ver `limiteVisual` en fase 2).
+    timeoutVisualMs = TIMEOUT_VISUAL_MS,
+    // Ola final v0.2b4.1 (C2): "¿hay alguien esperando ahora mismo?". La inyecta servidor/cola.js
+    // (`() => colaUrgente.length > 0`) y SOLO se consulta en modo fondo -- ver `cortarPorUrgente`.
+    hayUrgente = null,
+    // Ola final v0.2b4.1 (I3): cuanto tiempo puede llevar ya el lote para que todavia merezca la
+    // pena una ronda de reposicion. `reloj` es inyectable solo para los tests (aqui no hay red).
+    msMaxReposicion = MS_MAX_REPOSICION,
+    reloj = () => Date.now(),
+  } = opciones;
 
   const usaPagoBarato = urgente && permitirPago;
+  // v0.2b4.1 §3: quién espera decide qué cascada se usa. Urgente = el jugador mirando el indicador,
+  // así que lo rápido y gratis (Gemini flash-lite + Groq). Fondo = colchón nocturno, nadie espera:
+  // NVIDIA y los ':free', para llegar a la mañana siguiente con la cuota rápida entera.
+  const cascadas = urgente
+    ? {
+        generador: MODELOS.generador,
+        verificador: MODELOS.verificador,
+        visualGenerador: GENERADOR_VISUAL,
+        visualVerificador: VERIFICADOR_VISUAL,
+      }
+    : {
+        generador: MODELOS.generadorFondo,
+        verificador: MODELOS.verificadorFondo,
+        visualGenerador: GENERADOR_VISUAL_FONDO,
+        visualVerificador: VERIFICADOR_VISUAL_FONDO,
+      };
+  // v0.2b4.1 §4 (ronda de corrección 1 -- I1): la concurrencia también depende de quién espera, no
+  // solo los modelos. Una tanda urgente sigue paralela (MAX_LOTES_EN_VUELO/MAX_VISUALES_EN_VUELO);
+  // el colchón nocturno procesa SECUENCIAL (tope 1) -- si no, dispara 4 generaciones + 5 visuales de
+  // golpe contra NVIDIA y los ':free', justo los eslabones con menos margen y sin nadie esperando.
+  const topeLotes = urgente ? MAX_LOTES_EN_VUELO : 1;
+  const topeVisuales = urgente ? MAX_VISUALES_EN_VUELO : 1;
+  // I1/I2: en una tanda urgente, ninguna llamada de ningún paso puede llevarse más de 30 s (ver
+  // TIMEOUT_LLAMADA_URGENTE_MS). `undefined` deja el plazo por defecto de `llamar` (120 s), que es
+  // el que quiere el fondo: ahí nadie espera y un eslabón lento sigue siendo mejor que ninguno.
+  const timeoutLlamadaMs = urgente ? TIMEOUT_LLAMADA_URGENTE_MS : undefined;
   const acumulador = { coste: 0 };
   const modelosUsados = new Set();
   const rechazadas = [];
   const aprobadas = [];
   const fallos = [];
+  // I3: `obtenidas` y los enunciados ya vistos se acumulan entre las dos pasadas (ver `pasada`).
+  let obtenidas = 0;
+  const enunciadosGenerados = [];
+  const inicio = reloj();
 
-  const reparto = repartoPorTipo(n);
-  let borradores = [];
-  for (const tipo of Object.keys(reparto)) {
-    const cantidad = reparto[tipo];
-    if (cantidad <= 0) continue;
-    // Ronda 2 (controlador, 14-sep-2026): si la cascada se agota del todo para ESTE tipo
-    // (generarBorradores lanza, ver ahí el porqué), se registra en `fallos` y se sigue con los
-    // demás tipos -- una tanda parcial es mejor que ninguna, y el coste ya acumulado en otros tipos
-    // no se pierde (el `acumulador` es el mismo objeto para todas las llamadas).
+  // --- helpers compartidos por las dos pasadas (ver `pasada` e I3, mas abajo) --------------------
+
+  // v0.2b4.1 6 (ronda de correccion 1 -- I2): el indicador del movil debe poder mostrar 1..10, no
+  // 0/5/10. `avisarProgreso` se llama DENTRO de `fn` (mas abajo), al terminar cada candidata
+  // individual -- NUNCA en un `.forEach` posterior a `await enParalelo(...)`, que corre sincrono
+  // DESPUES de que las `topeVisuales` promesas ya se resolvieron todas (ese era el bug: con las 5
+  // llamadas terminando "a la vez" en el mismo tick de after-await, GET /trabajo/:id nunca veia
+  // valores intermedios reales, solo 0 -> 5 -> 10). El contador es una variable compartida por
+  // closure: el incremento es sincrono, sin ningun `await` de por medio, asi que no hay condicion
+  // de carrera aunque varias candidatas "terminen" en el mismo tick de JS (single-threaded).
+  // I3: las repuestas de la ronda extra cuentan igual -- son preguntas de esta misma tanda.
+  const progreso = { verificadas: 0 };
+  function avisarProgreso() {
+    progreso.verificadas = Math.min(progreso.verificadas + 1, n);
     try {
-      const borradoresTipo = await generarBorradores(
-        { area, ruta, n: cantidad, tipo, nivelObjetivo, evitar },
+      onProgreso?.({ verificadas: progreso.verificadas, pedidas: n });
+    } catch {
+      // Un fallo en el callback de quien llama nunca puede tumbar la tanda a medias.
+    }
+  }
+
+  // v0.2b4.1 5: en una tanda URGENTE el visual tiene `timeoutVisualMs` (20 s por defecto);
+  // pasados, la pregunta se sirve sin el, marcada `visualPendiente`, y un trabajo de fondo lo
+  // completa despues (servidor/cola.js#completarVisualesPendientes). Nunca al reves: el jugador
+  // prefiere 10 preguntas jugables en 60 s a 10 completas en 5 minutos. En un trabajo de FONDO no
+  // hay limite: nadie espera y el visual sale entero a la primera.
+  const limiteVisual = urgente ? timeoutVisualMs : 0;
+
+  // Ola final v0.2b4.1 (C2): ha llegado un urgente mientras este lote de FONDO trabajaba? Medido
+  // en vivo el 15-sep: un urgente espero 5 m 23 s detras de UN solo lote de fondo -- el trabajador
+  // ya cede entre lotes (servidor/cola.js), pero un lote con concurrencia 1 y cascadas lentas dura
+  // minutos el solo. Se consulta en el UNICO punto donde cortar no pierde nada: la fase de
+  // visuales. Cada candidata ya esta generada, verificada y validada, asi que la que se corta sale
+  // con `visualPendiente: true` y el trabajo de fondo de la cola le pone el visual despues. La
+  // guarda esta dentro de `fn`, asi que se evalua ANTES DEL PRIMER visual (el corte "entre fases":
+  // si el urgente ya estaba ahi, no se empieza ninguno) y ANTES DE CADA UNO DE LOS SIGUIENTES (el
+  // corte "entre visuales"). Cortar ANTES -- entre generacion y verificacion -- si perderia
+  // trabajo ya pagado: el lote se cierra igual en `hechas` (ejecutarUnLote, `finally`), asi que
+  // esos borradores no volverian a intentarse nunca. Un urgente NUNCA cede (seria cederse a si
+  // mismo): la guarda exige `!urgente`.
+  const cortarPorUrgente = () => !urgente && typeof hayUrgente === 'function' && hayUrgente() === true;
+
+  /**
+   * UNA pasada completa del pipeline para `cuantas` preguntas: generar (los 4 tipos en paralelo) ->
+   * verificar -> validar -> visual. Acumula en `aprobadas`/`rechazadas`/`fallos`/`modelosUsados`/
+   * `acumulador` (no devuelve nada nuevo: la forma de retorno de producirTanda no cambia). Es una
+   * funcion porque I3 la llama DOS veces: la segunda para reponer lo que el verificador rechazo.
+   * @param {number} cuantas
+   * @param {string[]} evitarAhora enunciados a no repetir (los de la peticion + los ya generados)
+   */
+  async function pasada(cuantas, evitarAhora) {
+    const reparto = repartoPorTipo(cuantas);
+    const tipos = Object.keys(reparto).filter((tipo) => reparto[tipo] > 0);
+    // v0.2b4.1 4: los cuatro tipos ya no se generan uno detras de otro. Son llamadas
+    // independientes (cada una con su prompt y su sub-lote) y a proveedores que aguantan
+    // concurrencia: en serie costaban 4 x 1,8 s solo de generacion. El tope evita disparar de
+    // golpe contra la cuota.
+    const porTipo = await enParalelo(tipos, topeLotes, (tipo) =>
+      generarBorradores(
+        { area, ruta, n: reparto[tipo], tipo, nivelObjetivo, evitar: evitarAhora },
         {
           llamar: llamarFn,
           permitirPago,
           topeEur,
           rutaLog,
           acumulador,
-          ...(usaPagoBarato ? { modelos: [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.generador] } : {}),
+          timeoutMs: timeoutLlamadaMs,
+          modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
         },
-      );
-      borradores = borradores.concat(borradoresTipo);
-    } catch (err) {
-      fallos.push({ tipo, motivo: err.message });
+      ),
+    );
+
+    let borradores = [];
+    porTipo.forEach((resultado, i) => {
+      // Misma semantica que el try/catch de antes: un tipo que agota su cascada se anota en
+      // `fallos` y NO se lleva por delante a los otros tres (una tanda parcial es mejor que
+      // ninguna).
+      if (resultado.ok) borradores = borradores.concat(resultado.valor);
+      else fallos.push({ tipo: tipos[i], motivo: resultado.error });
+    });
+    obtenidas += borradores.length;
+    for (const b of borradores) {
+      if (b.generador) modelosUsados.add(b.generador);
+      if (typeof b.enunciado === 'string' && b.enunciado) enunciadosGenerados.push(b.enunciado);
     }
+
+    // Se verifica la lista COMBINADA de los 4 tipos: los lotes de 4 pueden mezclar tipos, igual que
+    // la CLI mezcla areas dentro de un mismo lote de verificacion.
+    const veredictos = await verificarBorradores(borradores, {
+      llamar: llamarFn,
+      permitirPago,
+      topeEur,
+      rutaLog,
+      acumulador,
+      timeoutMs: timeoutLlamadaMs,
+      modelos: usaPagoBarato ? [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.verificador] : cascadas.verificador,
+    });
+    const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
+
+    // Fase 1 (sincrona, sin red): aplicar veredictos y validar. Lo que sobrevive pasa a la fase 2.
+    const candidatas = [];
+    for (const borrador of borradores) {
+      const veredicto = veredictoPorId.get(borrador.id);
+      if (!veredicto) {
+        rechazadas.push({ borrador, motivo: 'sin veredicto del verificador' });
+        continue;
+      }
+      if (veredicto.modelo) modelosUsados.add(veredicto.modelo);
+      if (!veredicto.ok) {
+        rechazadas.push({ borrador, motivo: veredicto.motivo || 'no aprobada por el verificador' });
+        continue;
+      }
+      const candidata = {
+        ...borrador,
+        nivel: Number.isInteger(veredicto.nivel) ? veredicto.nivel : borrador.nivel,
+        confianza: typeof veredicto.confianza === 'number' ? veredicto.confianza : borrador.confianza,
+        verificado: true,
+        verificador: veredicto.modelo,
+      };
+      const erroresValidacion = validarPregunta(candidata);
+      if (erroresValidacion.length > 0) {
+        rechazadas.push({ borrador: candidata, motivo: `validarPregunta: ${erroresValidacion.join('; ')}` });
+        continue;
+      }
+      candidatas.push(candidata);
+    }
+
+    // Fase 2: el visual de cada candidata, EN PARALELO (spec 4). Era el bucle secuencial mas caro
+    // de la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detras de otra. La
+    // pausa de 1 s entre preguntas desaparece de aqui -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la
+    // CLI offline de tools/visualizar.js, que es donde tiene sentido ser cortes con la cascada.
+    const resueltas = await enParalelo(candidatas, topeVisuales, async (candidata) => {
+      try {
+        // C2: hay un jugador esperando -- esta pregunta sale ya, sin visual y marcada pendiente.
+        if (cortarPorUrgente()) return null;
+        const resolucion = await conLimite(
+          (senal) => resolverPregunta(candidata, {
+            llamar: llamarFn,
+            permitirPago,
+            topeEur,
+            rutaLog,
+            timeoutMs: timeoutLlamadaMs,
+            // #3: si el plazo del visual vence, esta señal corta las llamadas que sigan en vuelo.
+            signal: senal,
+            necesitaVisual: true,
+            saltarAcortado: true,
+            modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
+            modelosVerificador: usaPagoBarato
+              ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
+              : cascadas.visualVerificador,
+          }),
+          limiteVisual,
+        );
+        return resolucion; // `null` si se paso del limite (solo posible con `urgente`)
+      } finally {
+        // Se avisa cuando la candidata esta DE VERDAD terminada -- con su visual resuelto,
+        // descartado, o pasado el limite de tiempo -- tanto si `resolverPregunta` acabo bien como
+        // si lanzo. Las tres ramas siguen (mas abajo) dejando la pregunta en `aprobadas`, asi que
+        // las tres cuentan como "una mas" para el indicador de progreso del movil.
+        avisarProgreso();
+      }
+    });
+
+    resueltas.forEach((resultado, i) => {
+      const candidata = candidatas[i];
+      // `resultado.ok === false` = la cascada de visuales lanzo (agotada); `resultado.valor ===
+      // null` = `conLimite` se paso del tiempo. Los dos casos entran sin visual y marcados
+      // `visualPendiente` -- reintentar un visual que fallo por cascada agotada es exactamente lo
+      // que el trabajo de fondo sabe hacer bien (cascada distinta, sin prisa), igual que el que no
+      // llego a tiempo.
+      const resolucion = resultado.ok ? resultado.valor : null;
+      if (resolucion) {
+        acumulador.coste += resolucion.coste || 0;
+        if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);
+        if (resolucion.modeloVerificador) modelosUsados.add(resolucion.modeloVerificador);
+        aprobadas.push({
+          ...candidata,
+          explicacion: resolucion.explicacion,
+          visual: resolucion.visual,
+          // Un visual que el verificador RECHAZO no esta pendiente: esta decidido que no lo lleva.
+          // Solo se marca pendiente lo que no llego a tiempo o lo que fallo del todo (ver arriba).
+          visualPendiente: false,
+        });
+      } else {
+        // Ola final v0.2b4.1 (M2), documentado a propósito: de un visual que se pasó del plazo (o
+        // cuya cascada falló) NO se contabiliza nada en `coste` ni en `modelos`, ni siquiera las
+        // llamadas que SÍ habían respondido antes del abort. `resolverPregunta` acumula su coste
+        // dentro y solo lo devuelve al terminar entera, así que al abortarla ese dato se pierde
+        // con ella. Hoy no tiene consecuencia práctica -- las cascadas de visual son 100 % gratis
+        // (coste 0) y `modelos` es informativo --, y arreglarlo de verdad exigiría cambiar la
+        // forma de retorno de resolverPregunta (tools/visualizar.js, fuera del alcance de esta
+        // ola). Queda anotado aquí para que nadie lea `coste` como "todo lo que se llamó".
+        aprobadas.push({ ...candidata, visual: null, visualPendiente: true });
+      }
+    });
   }
-  const obtenidas = borradores.length;
-  for (const b of borradores) {
-    if (b.generador) modelosUsados.add(b.generador);
-  }
 
-  // Se verifica la lista COMBINADA de los 4 tipos: los lotes de 4 pueden mezclar tipos, igual que
-  // la CLI mezcla áreas dentro de un mismo lote de verificación.
-  const veredictos = await verificarBorradores(borradores, {
-    llamar: llamarFn,
-    permitirPago,
-    topeEur,
-    rutaLog,
-    acumulador,
-    ...(usaPagoBarato ? { modelos: [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...MODELOS.verificador] } : {}),
-  });
-  const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
+  await pasada(n, evitar);
 
-  for (const borrador of borradores) {
-    const veredicto = veredictoPorId.get(borrador.id);
-    if (!veredicto) {
-      rechazadas.push({ borrador, motivo: 'sin veredicto del verificador' });
-      continue;
-    }
-    if (veredicto.modelo) modelosUsados.add(veredicto.modelo);
-    if (!veredicto.ok) {
-      rechazadas.push({ borrador, motivo: veredicto.motivo || 'no aprobada por el verificador' });
-      continue;
-    }
-
-    // El nivel del verificador manda siempre sobre el que propuso el generador (spec §3.1).
-    // Ronda final (M5): `confianza` del verificador se copia a la pregunta -- antes se calculaba
-    // para decidir `ok` en verificarBorradores y se tiraba, perdiendo un dato real y ya calculado.
-    const candidata = {
-      ...borrador,
-      nivel: Number.isInteger(veredicto.nivel) ? veredicto.nivel : borrador.nivel,
-      confianza: typeof veredicto.confianza === 'number' ? veredicto.confianza : borrador.confianza,
-      verificado: true,
-      verificador: veredicto.modelo,
-    };
-
-    const erroresValidacion = validarPregunta(candidata);
-    if (erroresValidacion.length > 0) {
-      rechazadas.push({ borrador: candidata, motivo: `validarPregunta: ${erroresValidacion.join('; ')}` });
-      continue;
-    }
-
-    let resuelta = { ...candidata, visual: null };
-    try {
-      const resolucion = await resolverPregunta(candidata, {
-        llamar: llamarFn,
-        permitirPago,
-        topeEur,
-        rutaLog,
-        necesitaVisual: true,
-        // v0.2b4 §6b: la explicación acaba de salir del generador de preguntas YA con el límite de
-        // 25-40 palabras y ya la verificó verificarBorradores -- reescribirla solo añadía latencia.
-        saltarAcortado: true,
-        ...(usaPagoBarato
-          ? {
-              modelosGenerador: [...GENERADOR_SOLO_PAGO, ...GENERADOR_VISUAL],
-              modelosVerificador: [...VERIFICADOR_SOLO_PAGO, ...VERIFICADOR_VISUAL],
-            }
-          : {}),
-      });
-      acumulador.coste += resolucion.coste || 0;
-      if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);
-      if (resolucion.modeloVerificador) modelosUsados.add(resolucion.modeloVerificador);
-      resuelta = { ...candidata, explicacion: resolucion.explicacion, visual: resolucion.visual };
-    } catch {
-      // Si toda la cascada de visuales falla (red, todos los modelos agotados...), la pregunta
-      // entra igual, sin visual -- igual que cuando resolverPregunta rechaza el visual con calma
-      // (spec §3.4: "una que falle (a) o (b) se descarta con motivo" no aplica al visual, que es
-      // opcional; el 11 % del banco tampoco lo tiene).
-      resuelta = { ...candidata, visual: null };
-    }
-
-    aprobadas.push(resuelta);
+  // Ola final v0.2b4.1 (I3) -- ruling del controlador: "10 preguntas" significa 10 VERIFICADAS, no
+  // "las que sobrevivan". El verificador rechaza de verdad (medido el 15-sep: tandas de 10 que
+  // entregaban 8-9), y hasta ahora lo rechazado simplemente faltaba en la tanda del jugador. UNA
+  // sola ronda extra, y solo si sobra tiempo: reponer es mejor que entregar de menos, pero nunca a
+  // costa de convertir una tanda de 40 s en una de tres minutos -- por eso el tope de tiempo y el
+  // "una y no mas" (sin el, un verificador que rechaza todo seria un bucle infinito). Solo en modo
+  // urgente: en el fondo nadie espera y el colchon vuelve a pedir lo que falte en la pasada
+  // siguiente.
+  const faltan = n - aprobadas.length;
+  if (urgente && faltan > 0 && reloj() - inicio < msMaxReposicion) {
+    await pasada(faltan, [...evitar, ...enunciadosGenerados]);
   }
 
   return {
@@ -694,4 +963,37 @@ export async function producirTanda(params, opciones = {}) {
     pedidas: n,
     obtenidas,
   };
+}
+
+/**
+ * v0.2b4.1 §5: completa el visual de UNA pregunta que salió de una tanda urgente sin él
+ * (`visualPendiente: true`). Es el "produce" testeable del trabajo de fondo de servidor/cola.js
+ * (`completarVisualesPendientes`): sin timeout corto (nadie espera), con las cascadas de FONDO
+ * (para no gastar la cuota rápida del día) y sin tocar la explicación -- ya la verificó
+ * `verificarBorradores` cuando nació la pregunta (`saltarAcortado: true`, igual que en la fase 2 de
+ * `producirTanda`). Nunca lanza: una cascada agotada devuelve `visual: null` y el trabajo de fondo
+ * lo volverá a intentar en otra pasada.
+ * @param {object} pregunta pregunta del colchón, con su explicación ya buena
+ * @param {object} [opciones] `llamar`, `permitirPago`, `topeEur`, `rutaLog`
+ * @returns {Promise<{visual: object|null, explicacion: string, coste: number}>}
+ */
+export async function completarVisual(pregunta, opciones = {}) {
+  const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog } = opciones;
+  try {
+    const resolucion = await resolverPregunta(pregunta, {
+      llamar: llamarFn,
+      permitirPago,
+      topeEur,
+      rutaLog,
+      necesitaVisual: true,
+      saltarAcortado: true, // la explicación ya cumple: aquí solo se pide el visual
+      modelosGenerador: GENERADOR_VISUAL_FONDO,
+      modelosVerificador: VERIFICADOR_VISUAL_FONDO,
+    });
+    return { visual: resolucion.visual, explicacion: resolucion.explicacion, coste: resolucion.coste || 0 };
+  } catch {
+    // Cascada entera agotada (o cualquier otro fallo): nunca se propaga -- el trabajo de fondo
+    // (servidor/cola.js) simplemente deja `visualPendiente` como estaba y lo reintenta más tarde.
+    return { visual: null, explicacion: pregunta.explicacion, coste: 0 };
+  }
 }

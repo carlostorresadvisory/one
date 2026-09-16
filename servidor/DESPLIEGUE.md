@@ -67,6 +67,18 @@ repo ni se manda a nadie más):
   que arriba, y actualizar la PWA con el token nuevo (si no, el móvil empezará a recibir 401).
 - **Si el VPS cambiara de IP** algún día: actualizar el registro A de `one` en el panel DNS de
   IONOS con la IP nueva.
+- **Añadir las claves gratis nuevas al VPS** (v0.2b4.1, `GROQ_API_KEY`, `NVIDIA_API_KEY`,
+  `CEREBRAS_API_KEY`): las crea Carlos en cada web (Groq, NVIDIA, Cerebras — nivel gratuito, sin
+  tarjeta) y quedan en `ONE/.env` en su portátil. La sesión de Claude Code las copia a
+  `/opt/one/.env` por SSH **sin mostrarlas en pantalla en ningún momento**: se leen del `.env`
+  local y se añaden al del VPS en un solo comando, y después se relanza el contenedor para que las
+  recoja (`docker compose -f servidor/docker-compose.yml up -d`, sin `--build`: no cambia el
+  código, solo el entorno). Comprobación de que llegaron, **sin imprimir ningún valor**:
+  `docker compose -f servidor/docker-compose.yml exec one-servidor sh -c 'for v in GROQ_API_KEY
+  NVIDIA_API_KEY CEREBRAS_API_KEY GEMINI_API_KEY_GRATIS; do eval "printf \"%s=%s caracteres\\n\" $v
+  \${#$v}"; done'` — imprime la longitud de cada clave, nunca la clave.
+  `servidor/docker-compose.yml` **no se toca**: `env_file: ../.env` ya pasa al contenedor todo lo
+  que haya en `/opt/one/.env`, que es como llegó `GEMINI_API_KEY_GRATIS` desde v0.2b3.
 
 ## Verificación rápida
 
@@ -76,3 +88,9 @@ repo ni se manda a nadie más):
   (desde `/opt/one`).
 - Los datos persistentes (preguntas, cola, log de llamadas) viven en `/opt/one-datos` en el VPS,
   fuera del contenedor: reconstruir o actualizar el contenedor nunca los borra.
+- **Al depurar con `curl`, cuidado con el límite de peticiones**: el servidor aplica 60 peticiones
+  por minuto y por IP (ventana fija: la primera petición de la IP abre el minuto, las 60 siguientes
+  pasan, la 61 recibe `HTTP 429`). Un bucle de sondeo a `/trabajo/:id` cada segundo se lo come en
+  un minuto justo, y a partir de ahí los 429 son del propio servidor de ONE, **no del modelo ni de
+  su cuota** -- es el error más fácil de confundir al medir una tanda a mano. Si pasa, se espera al
+  minuto siguiente (o se sondea cada 3-5 s, que es lo que hace la app de verdad).

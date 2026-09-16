@@ -41,23 +41,43 @@ const AREAS = ['economia', 'historia', 'ciencia', 'tecnologia', 'geografia', 'fi
 const TAMANO_LOTE = 8;
 const PAUSA_ENTRE_PREGUNTAS_MS = 1000; // cortesía con la cascada de modelos ':free', mismo espíritu que buscar-imagenes.js
 
-// v0.2b4 §6a: Gemini gratis primero, igual que ya hace servidor/generacion.js#MODELOS desde v0.2b3
-// (`GEMINI_API_KEY_GRATIS`, coste 0, ver tools/openrouter.js#esModeloGratis). La tanda real del
-// 15-sep (spec §0) gastó 17 de sus 24 llamadas justo aquí, con los ':free' de OpenRouter saturados:
-// este paso es el que de verdad marca cuánto tarda una tanda.
+// v0.2b4.1 §3: el paso de visual es el que MÁS llamadas hace de toda la tanda (17 de 24 en la tanda
+// real del 15-sep), así que su cascada empieza por el modelo más rápido medido -- groq gpt-oss-20b,
+// 1,0 s -- y no por el más potente. Gemini flash-lite detrás como segundo rápido de otro proveedor,
+// para que una cuota agotada en uno no pare el paso entero.
 export const GENERADOR_VISUAL = [
+  'groq:openai/gpt-oss-20b',
   'gemini:gemini-flash-lite-latest',
-  'nvidia/nemotron-3-ultra-550b-a55b:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'deepseek/deepseek-v4-flash',
+  'groq:qwen/qwen3.8-27b',
+  'cerebras:qwen-3.8-27b',
+  // Ola final v0.2b4.1 (I2): el último eslabón era 'nvidia/nemotron-3-ultra-550b-a55b:free' --
+  // minuto y medio largo por llamada (medido: un parón de 118,9 s dentro de una tanda urgente), y
+  // el visual es el paso que MÁS llamadas hace. Se queda solo en las cascadas de fondo. Como red
+  // gratis de último recurso urgente entra 'nex-agi/nex-n2.5-pro:free', más ligero.
+  'nex-agi/nex-n2.5-pro:free',
 ];
 
-// v0.2b4 §6a: id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro
-// modelo), así `excluirModelo` nunca deja esta cascada sin primer eslabón.
+// Id DISTINTO del primero del generador (regla fija de Carlos: verifica siempre otro modelo), así
+// `excluirModelo` nunca deja esta cascada sin primer eslabón.
 export const VERIFICADOR_VISUAL = [
+  'groq:openai/gpt-oss-120b',
+  'gemini:gemini-flash-lite-latest',
   'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
-  'google/gemini-2.5-flash-lite',
+];
+
+// Cascadas del colchón nocturno y del trabajo de fondo que completa visuales pendientes (Tarea 4):
+// nadie espera, así que se usa lo lento y se deja intacta la cuota rápida para el día (spec §3).
+export const GENERADOR_VISUAL_FONDO = [
+  'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+  'nvidia/nemotron-3-ultra-550b-a55b:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
+  'gemini:gemini-flash-lite-latest',
+];
+export const VERIFICADOR_VISUAL_FONDO = [
+  'nvidia:openai/gpt-oss-20b',
+  'google/gemma-4-31b-it:free',
+  'gemini:gemini-3.6-flash',
 ];
 
 // Cascadas SOLO de pago (--sin-gratis): fijado por el controlador el 13-sep-2026 -- con los
@@ -495,6 +515,12 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     motivoRechazo = null,
     modelos = GENERADOR_VISUAL,
     rutaLog,
+    // Ola final v0.2b4.1 (I1/I2): plazo por llamada. `undefined` = el de siempre (120 s, ver
+    // tools/openrouter.js); servidor/generacion.js pasa 30 s en las tandas urgentes.
+    timeoutMs,
+    // Ola final v0.2b4.1 (#3): señal para abortar la llamada si quien espera ya se rindió (el
+    // plazo del visual de una tanda urgente, ver servidor/generacion.js#conLimite).
+    signal,
     // v0.2b4 §6b: cuando la explicación ya cumple el límite (ver resolverPregunta#saltarAcortado),
     // esta llamada solo pide el VISUAL -- una sola vuelta, sin reintentos de "explicacion" que no
     // se ha pedido.
@@ -530,6 +556,8 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
       maxTokens: 1500,
       permitirPago,
       topeEur,
+      timeoutMs,
+      signal,
       extra: SIN_RAZONAMIENTO,
       ...(rutaLog ? { rutaLog } : {}),
     });
@@ -599,6 +627,8 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     criterio = textoCriterio(pregunta.area),
     modelos = VERIFICADOR_VISUAL,
     rutaLog,
+    timeoutMs, // I1/I2, igual que en generarVisualYExplicacion
+    signal, // #3, igual que en generarVisualYExplicacion
     // v0.2b4 §6b: cuando la explicación no se ha tocado (soloVisual, ver generarVisualYExplicacion),
     // no se juzga -- ni al modelo (el prompt omite el párrafo) ni en código.
     soloVisual = false,
@@ -622,6 +652,8 @@ export async function verificarVisualYExplicacion(pregunta, propuesta, opciones 
     maxTokens: 800,
     permitirPago,
     topeEur,
+    timeoutMs,
+    signal,
     extra: SIN_RAZONAMIENTO,
     ...(rutaLog ? { rutaLog } : {}),
   });

@@ -20,7 +20,7 @@ import { AREAS } from '../tools/validar-banco.js';
 import { HILOS_POR_AREA, textoCriterio } from '../tools/criterio.js';
 import { crearAlmacen } from './almacen.js';
 import { crearCola } from './cola.js';
-import { producirTanda } from './generacion.js';
+import { producirTanda, completarVisual } from './generacion.js';
 
 const require = createRequire(import.meta.url);
 
@@ -467,12 +467,50 @@ export function crearServidor({
     });
   }
 
+  // v0.2b4.1 §5 (Minor 4, ronda de corrección 1): valida `cuerpo.desde` antes de pasarlo a
+  // `cola.actualizadas`. `undefined`/`null` (el campo no viene en el cuerpo) es la única forma de
+  // "primera sincronización" -- cualquier otra cosa tiene que ser una fecha ISO o un epoch en
+  // milisegundos (número finito) de verdad, normalizada siempre a ISO. Nunca lanza: devuelve
+  // `{ok:false}` para que quien llama decida el 400.
+  function normalizarDesde(valor) {
+    if (valor === undefined || valor === null) return { ok: true, desde: null };
+    if (typeof valor === 'number' && Number.isFinite(valor)) {
+      return { ok: true, desde: new Date(valor).toISOString() };
+    }
+    if (typeof valor === 'string' && valor.length > 0 && Number.isFinite(new Date(valor).getTime())) {
+      return { ok: true, desde: valor };
+    }
+    return { ok: false, desde: null };
+  }
+
   async function manejarEstado(req, res) {
     const cuerpo = await leerJsonCuerpo(req, LIMITE_CUERPO_BYTES);
     const resumen = cuerpo.resumen && typeof cuerpo.resumen === 'object' ? cuerpo.resumen : {};
     const max = Number.isInteger(cuerpo.max) && cuerpo.max > 0 ? cuerpo.max : MAX_ESTADO_DEFECTO;
     const idsConocidos = Array.isArray(resumen.idsConocidos) ? resumen.idsConocidos : [];
     const rutasAtomo = Array.isArray(resumen.rutasAtomo) ? resumen.rutasAtomo : [];
+    // v0.2b4.1 §5 (Minor 4, ronda de corrección 1): marca de agua del cliente (última vez que
+    // preguntó por actualizaciones). Solo AUSENTE significa "primera sincronización" -- un `desde`
+    // presente pero que no es una fecha válida antes se colaba tal cual hasta
+    // `cola.js#actualizadas`, que hace `new Date(desde).getTime()` -> `NaN` -> se trataba exactamente
+    // igual que "sin `desde`" (devolvía TODO): un fail-open silencioso ante cualquier basura como
+    // `desde`. Ahora se valida aquí; presente-pero-inválido es un 400 explícito, nunca un fail-open.
+    const { ok: desdeOk, desde } = normalizarDesde(cuerpo.desde);
+    if (!desdeOk) {
+      responderError(res, 400, 'desde inválido: debe ser una fecha ISO o un epoch en milisegundos');
+      return;
+    }
+
+    // Ronda de corrección 1 (I1): el reloj del servidor, capturado LO ANTES POSIBLE -- antes de
+    // `cola.servir()` y, sobre todo, antes de `cola.actualizadas()` (la única línea que importa de
+    // verdad para esta garantía). El móvil lo guardará como su próxima marca de agua en vez de su
+    // propio reloj: así una actualización que `completarVisualesPendientes` marque DESPUÉS de este
+    // punto -- incluso a mitad de esta misma petición -- queda con `actualizadaEn` posterior a
+    // `ahora`, y la próxima sincronización (que pedirá `desde: ahora`) la sigue viendo. Capturarlo
+    // más tarde (p. ej. justo antes de responder) dejaría un hueco: una escritura que ocurriera
+    // entre la lectura de `cola.actualizadas()` y ese punto tendría un `actualizadaEn` anterior a la
+    // marca guardada, y se perdería para siempre la próxima vez (el bug real que motivó esta ronda).
+    const ahora = new Date().toISOString();
 
     // Ronda final (revisión, 14-sep-2026) -- Important (I1): `cola.servir()` ya ha marcado
     // `servida` (y persistido) las preguntas devueltas -- ese trabajo real no debe perderse por un
@@ -482,7 +520,18 @@ export function crearServidor({
     // las viera). Se responde primero; guardar el resumen (como el relleno de después) pasa a ser
     // efecto de fondo con su propio manejo de errores.
     const preguntas = await cola.servir({ idsConocidos, resumen, max });
-    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola });
+    // v0.2b4.1 §5: un fallo leyendo lo actualizado NUNCA puede impedir la respuesta -- mismo
+    // razonamiento que I1 arriba: `servir()` ya marcó esas preguntas en disco, así que perder la
+    // respuesta las quemaría sin que el móvil las haya visto. `actualizadas()` es de solo lectura
+    // (no cambia nada en disco), así que esperarla aquí -- a diferencia del resumen/relleno de
+    // abajo, que sí son efecto de fondo puro -- no arriesga ese trabajo ya hecho.
+    let actualizadas = [];
+    try {
+      actualizadas = await cola.actualizadas({ idsConocidos, desde });
+    } catch (err) {
+      console.error(`servidor: fallo al calcular las actualizadas de /estado: ${err?.message || err}`);
+    }
+    responderJson(res, 200, { preguntas, enCola: cola.estadisticas().enCola, actualizadas, ahora });
 
     almacen.escribirAtomico('ultimo-resumen.json', resumen).catch((err) => {
       console.error(`servidor: fallo al guardar ultimo-resumen.json: ${err?.message || err}`);
@@ -493,6 +542,14 @@ export function crearServidor({
     // para que un fallo aquí no se convierta en un unhandledRejection.
     cola.rellenarHaciaObjetivo(resumen, rutasAtomo).catch((err) => {
       console.error(`servidor: fallo al rellenar el colchón desde /estado: ${err?.message || err}`);
+    });
+
+    // v0.2b4.1 §5: y de paso se empuja el trabajo de fondo de los visuales pendientes. La cola lo
+    // ignora si ya hay uno en marcha o si no hay nada pendiente (ver completarVisualesPendientes),
+    // así que es barato pedirlo aquí: sin este empujón, un colchón con visuales a medias esperaría
+    // a que el trabajador se quedara sin trabajos por su cuenta (procesarCola).
+    cola.completarVisualesPendientes?.().catch((err) => {
+      console.error(`servidor: fallo al completar visuales pendientes desde /estado: ${err?.message || err}`);
     });
   }
 
@@ -614,7 +671,11 @@ export function crearServidor({
       return;
     }
 
-    const modelos = permitirPago ? MODELOS.generador : MODELOS.generador.filter(esModeloGratis);
+    // v0.2b4.1 §3: cascada propia y corta para los subtemas (dos eslabones rápidos). Antes usaba
+    // MODELOS.generador entera, arrastrando su cola de eslabones lentos a una petición que el
+    // jugador está mirando en el átomo con el dedo encima. `filtrarPorPago` ya no hace falta aquí:
+    // MODELOS.subtemas es 100 % gratis por construcción (tests en tests/openrouter.test.js).
+    const modelos = MODELOS.subtemas.filter(esModeloGratis);
     const mensajes = [
       { role: 'system', content: textoCriterio(area) },
       { role: 'user', content: promptSubtemas(area, ruta, excluir) },
@@ -690,6 +751,14 @@ export function crearServidor({
     if (origenPermitido) {
       res.setHeader('Access-Control-Allow-Origin', origen);
       res.setHeader('Vary', 'Origin');
+      // Ronda de corrección 1 (I1): expone la cabecera `Date` (estándar, la manda Node en toda
+      // respuesta) al JS del cliente -- sin esto, `sincronizacion.js#leerFechaServidor` nunca podría
+      // leerla en una petición cross-origin real, aunque viaje por la red (CORS la oculta por
+      // defecto). Va en la respuesta real, no solo en el preflight OPTIONS: `Expose-Headers` se
+      // negocia ahí, `Allow-Methods`/`Allow-Headers` no la sustituyen. Ya no es la vía principal (el
+      // cliente usa `ahora` en el cuerpo JSON, ver `manejarEstado`) pero cuesta una línea y cierra el
+      // hueco por completo, incluido un servidor de terceros que reenvíe esta respuesta sin el campo.
+      res.setHeader('Access-Control-Expose-Headers', 'Date');
     }
 
     if (req.method === 'OPTIONS') {
@@ -816,6 +885,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const colaReal = crearCola({
     almacen: almacenReal,
     producirTanda,
+    completarVisual,
     opciones: { permitirPago, topeEur, rutaLog: path.join(rutaDatos, 'llamadas.log') },
   });
 
