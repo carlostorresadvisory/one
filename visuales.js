@@ -866,7 +866,13 @@ export function construirVisualClave(pregunta, { nombreArea } = {}) {
     defs.appendChild(gradiente);
     svg.appendChild(defs);
 
+    // clase `visual-clave-fondo` (Ronda 1 de revisión de la Tarea 2, I1):
+    // permite a estilos.css OCULTAR este rect solo dentro de `.zona-imagen--clave`
+    // (donde el degradado ya vive en la propia zona, para llenarla de borde a
+    // borde) sin tocarlo cuando el mismo SVG se use en otro sitio (p. ej. la
+    // pantalla completa de la Tarea 3), donde debe conservar su propio fondo.
     const fondo = crearRect(0, 0, 320, 180, `url(#${idGradiente})`);
+    fondo.classList.add('visual-clave-fondo');
     svg.appendChild(fondo);
 
     if (esTextoValido(areaTexto)) {
