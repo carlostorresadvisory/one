@@ -4092,19 +4092,17 @@ nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta())
 // que el navegador reclamaba el desplazamiento vertical como scroll y cancelaba el puntero:
 // `pointerdown → pointermove → pointercancel`, sin `pointerup` NUNCA — la rama de abajo no se
 // ejecutaba jamás, y el `pointercancel` también suprime el `click` sintético, así que ni el
-// respaldo "toque en cualquier sitio" saltaba. `estilos.css` ya lleva `touch-action: none` en
-// `.visual-completa`; aquí, por cinturón (mismo patrón que `mazo.js`: `setPointerCapture` +
-// escuchar `pointercancel`), se captura el puntero al arrancar el gesto y se limpia el estado sin
-// intentar cerrar si el navegador cancela por cualquier otro motivo (Minor #6).
+// respaldo "toque en cualquier sitio" saltaba. El arreglo real es `touch-action: none` en
+// `.visual-completa` (estilos.css); con eso solo, un deslizamiento táctil real de 120px ya cierra.
+// Re-revisión de la ola final (Important N1): esta rama tuvo, brevemente, un `setPointerCapture` de
+// cinturón aquí (mismo patrón que mazo.js) -- SE QUITÓ: con ratón/trackpad, capturar el puntero en
+// `.visual-completa` hacía que el clic en el enlace "Commons" del pie (dentro de la superposición)
+// lo recibiera la propia superposición en vez del enlace, así que se cerraba sin navegar. Sin la
+// captura, el cierre táctil real sigue funcionando igual (touch-action:none ya lo garantiza) y el
+// enlace vuelve a recibir el clic con normalidad.
 let inicioCierreVisualCompleta = null;
 nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
   inicioCierreVisualCompleta = { y: ev.clientY };
-  try {
-    nodoVisualCompleta.setPointerCapture(ev.pointerId);
-  } catch (err) {
-    // Puntero ya liberado o inválido: sin capturar, el gesto se sigue rastreando igual (mismo
-    // patrón defensivo que mazo.js).
-  }
 });
 nodoVisualCompleta.addEventListener('pointerup', (ev) => {
   // El `click` de arriba ya cierra con cualquier toque; este umbral cubre además el deslizamiento

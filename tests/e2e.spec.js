@@ -5593,6 +5593,60 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     ).toBe(true);
   });
 
+  // Re-revisión de la ola final (Important N1, regresión de 15e9a5b): el `setPointerCapture` que se
+  // añadió como cinturón para C1 hacía que, con ratón/trackpad, un clic REAL sobre el enlace
+  // "Commons" del pie lo recibiera la propia `.visual-completa` (capturado) en vez del `<a>` --  se
+  // cerraba sin navegar, y el `stopPropagation` propio del enlace clonado (construirPieVisualCompleta)
+  // nunca llegaba a ejecutarse porque el evento se retargeteaba antes de alcanzarlo. Se quitó la
+  // captura (app.js, cableado de cierre): el cierre táctil real lo sigue garantizando
+  // `touch-action:none` por sí solo (ver el test de arriba), sin necesitar `setPointerCapture`.
+  test('N1: un clic REAL de ratón en el enlace "Commons" del pie NO cierra la superposición y el enlace recibe el clic', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'p');
+    const t = await jugarYRevelar(page, idImagen, 'pc-p');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const enlace = page.locator('[data-test="visual-completa-pie"] a');
+    await expect(enlace).toHaveAttribute('target', '_blank');
+    await expect(enlace).toHaveAttribute('href', /^https:\/\/commons\.wikimedia\.org\//);
+
+    // Clic REAL de Playwright (mousedown+mouseup+click reales vía CDP, no dispatchEvent): esto es
+    // justo lo que rompía setPointerCapture. `page.route` a nivel de CONTEXTO (no de página: el
+    // enlace abre una pestaña nueva por target="_blank", y las rutas de contexto se aplican también
+    // a páginas futuras) intercepta la navegación a Commons SIN dejarla completarse de verdad --
+    // así se confirma que el enlace recibió el clic (la ruta se dispara) sin depender de que
+    // Commons responda ni de esperar a que una pestaña nueva termine de abrirse del todo
+    // (waitForEvent('popup') resultó frágil en este entorno de pruebas, sin red real: probado en
+    // vivo, agotaba su propio timeout de 30s aunque el clic sí llegara al enlace).
+    let seNavego = false;
+    await page.context().route('https://commons.wikimedia.org/**', async (route) => {
+      seNavego = true;
+      await route.abort();
+    });
+
+    await enlace.click();
+    await page.waitForTimeout(500); // margen para que el navegador procese target="_blank" y dispare la ruta
+
+    expect(seNavego, 'el clic debería haber intentado navegar a Commons (el enlace recibió el clic de verdad)').toBe(true);
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'un clic real en el enlace de atribución NO debe cerrar la superposición'
+    ).toBe(false);
+
+    // Cinturón: cierra cualquier pestaña que hubiera llegado a abrirse antes de que la ruta abortara.
+    for (const p of page.context().pages()) {
+      if (p !== page) await p.close();
+    }
+  });
+
   // Ola final de revisión (Important #1): con la superposición abierta, el mazo de debajo NO debe
   // seguir navegando por teclado (ArrowUp/PageUp) -- mazo.js#alKeydown vive en `document` y solo
   // comprobaba si la VISTA estaba visible, no si había un diálogo por encima; y al cerrar, el foco
