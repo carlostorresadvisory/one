@@ -291,8 +291,10 @@ async function avanzarTrasRespuesta(page) {
 }
 
 /** I4 (ola final): espera a que el `<img>` de `[data-test="imagen"]` quede
- * cargado ('ok'), falle ('error': construirBloqueImagen quita el bloque
- * entero, ver app.js) o se agote un timeout corto ('timeout') — nunca cuelga.
+ * cargado ('ok'), falle ('error': construirBloqueImagen sustituye el bloque
+ * por la capa siguiente —visual de datos o, si tampoco hay, la tarjeta
+ * tipográfica—, nunca lo quita del todo desde spec §8/v0.2a.2, ver app.js) o
+ * se agote un timeout corto ('timeout') — nunca cuelga.
  * Antes, un fallo real de red dejaba el test esperando un 'load' que un
  * 'error' ya disparado no iba a emitir nunca (hasta el timeout POR DEFECTO de
  * Playwright, ~30s, con el mensaje de fallo sin explicar la causa real). */
@@ -1236,16 +1238,25 @@ test.describe('ONE · integración e2e', () => {
     await comprobarEnViewport({ width: 430, height: 932 }, '430');
   });
 
-  // Ronda 1 de revisión de v0.1d (Important, punto 3): un desborde EXTREMO
-  // (enunciado + explicación larguísimos, con imagen) que fuerce la cascada
-  // más allá de solo quitar las respuestas, para comprobar paso a paso — con
-  // getComputedStyle, no solo con el nombre de la clase — que cada pieza
-  // realmente se oculta/encoge y que el ORDEN es siempre respuestas ->
-  // enunciado -> explicación, nunca al revés (la imagen no se toca nunca).
-  // Pregunta sintética inyectada vía window.__one.inyectarPregunta (nuevo,
-  // añadido en esta ronda): más simple y menos frágil que interceptar
-  // datos/banco.json con page.route, y no depende de qué traiga el banco real.
-  test('mazo v0.1d §3/§4 (ronda 1 de revisión): cascada de encaje paso a paso — respuestas → enunciado → explicación, la imagen se queda', async ({ page }) => {
+  // Reescrito en la Tarea 2 de spec §8/v0.2a.2 (protagonismo visual, 16-sep):
+  // la cascada de la tarjeta REVELADA cambió entera (ver ajustarEncaje en
+  // mazo.js) -- ya no hay tarjeta--sin-respuestas/--sin-enunciado/
+  // --explicacion-menor/--explicacion-minima en esta rama, NI un paso que
+  // recorte el enunciado (a diferencia de la cascada SIN responder, que sí lo
+  // clampea como último recurso): la nueva cascada asume un enunciado
+  // acotado, así que este sintético usa uno largo pero NO absurdo (a
+  // diferencia del `.repeat(4)` de antes de esta ronda, que desbordaba sin
+  // converger nunca — hallazgo al verificar en vivo). Con esto, la explicación
+  // sí puede ser larguísima (tiene su propio recorte calculado) para forzar
+  // la cascada nueva entera y comprobar paso a paso -- con getComputedStyle,
+  // no solo con el nombre de la clase -- que cada pieza realmente se encoge y
+  // que el ORDEN es siempre respuesta compacta -> enunciado 14px ->
+  // explicación (clamp 2) -> visual al 30% -> explicación (clamp 1), y que la
+  // visual NUNCA desaparece (solo baja su suelo). Pregunta sintética
+  // inyectada vía window.__one.inyectarPregunta: más simple y menos frágil
+  // que interceptar datos/banco.json con page.route, y no depende de qué
+  // traiga el banco real.
+  test('spec §8 (Tarea 2): cascada de encaje paso a paso de la tarjeta revelada — respuesta → enunciado 14px → explicación → visual al 30%, la visual nunca desaparece', async ({ page }) => {
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1258,8 +1269,8 @@ test.describe('ONE · integración e2e', () => {
       tipo: 'vf',
       nivel: 1,
       enunciado:
-        'Enunciado sintético deliberadamente larguísimo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación. '.repeat(
-          4
+        'Enunciado sintético deliberadamente largo para forzar un desborde extremo de la tarjeta respondida y comprobar que la cascada de encaje sacrifica primero las respuestas, luego el enunciado, y solo al final la explicación y la visual. '.repeat(
+          2
         ),
       explicacion:
         'Explicación sintética igualmente larguísima, pensada para seguir sin caber ni siquiera después de quitar las respuestas y el enunciado enteros, de forma que la cascada llegue también a encoger la explicación (spec v0.1d §3/§4, ronda 1 de revisión, 13-sep). '.repeat(
@@ -1301,59 +1312,48 @@ test.describe('ONE · integración e2e', () => {
     await assertTarjetaSinScroll(page);
 
     const estado = await t.evaluate((tarjeta) => {
-      const zonaRespuesta = tarjeta.querySelector('.zona-respuesta');
+      const respuestaResumen = tarjeta.querySelector('.respuesta-resumen');
       const enunciado = tarjeta.querySelector('.enunciado');
       const explicacion = tarjeta.querySelector('.explicacion');
       const imagen = tarjeta.querySelector('[data-test="imagen"]');
+      const zonaImagen = tarjeta.querySelector('.zona-imagen');
       return {
         clases: [...tarjeta.classList],
-        zonaRespuestaDisplay: zonaRespuesta ? getComputedStyle(zonaRespuesta).display : null,
-        enunciadoDisplay: enunciado ? getComputedStyle(enunciado).display : null,
+        zonaImagenClases: zonaImagen ? [...zonaImagen.classList] : [],
+        respuestaResumenDisplay: respuestaResumen ? getComputedStyle(respuestaResumen).display : null,
         enunciadoFontSize: enunciado ? getComputedStyle(enunciado).fontSize : null,
-        explicacionFontSize: explicacion ? getComputedStyle(explicacion).fontSize : null,
+        explicacionLineClamp: explicacion ? getComputedStyle(explicacion).webkitLineClamp : null,
         imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
+        zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
       };
     });
 
-    // La imagen NUNCA desaparece por falta de espacio (spec v0.1d §3/§4): con
-    // este desborde a propósito absurdo, sigue ahí, aunque sea a su mínimo.
+    // La visual NUNCA desaparece por falta de espacio (spec §8): con este
+    // desborde a propósito absurdo, sigue ahí, aunque sea a su suelo reducido
+    // (30%/120px, paso (d) de la cascada nueva).
     expect(estado.imagenAlto).not.toBeNull();
-    expect(estado.imagenAlto).toBeGreaterThanOrEqual(88);
+    expect(estado.zonaImagenAlto).toBeGreaterThanOrEqual(118);
 
-    // Paso (b)/(c): las respuestas son lo primero en ceder. Con este
-    // desborde tan extremo, tienen que haber desaparecido del todo.
-    expect(estado.clases).toContain('tarjeta--sin-respuestas');
-    expect(estado.zonaRespuestaDisplay).toBe('none');
+    // Paso (a): la respuesta pasa a su resumen de una línea
+    // (tarjeta--compacta-1) — lo primero en ceder, igual que antes.
+    expect(estado.clases).toContain('tarjeta--compacta-1');
+    expect(estado.respuestaResumenDisplay).toBe('block');
 
-    // Paso (d)/(e): el enunciado. Con este desborde, la cascada tiene que
-    // haber llegado como mínimo a encogerlo; si además lo ha quitado del
-    // todo, getComputedStyle lo confirma (display:none real, no solo el
-    // nombre de la clase — la corrección de esta ronda: antes el selector
-    // era `>` en vez de descendiente y esta clase no hacía nada).
-    const enunciadoTocado =
-      estado.clases.includes('tarjeta--enunciado-menor') || estado.clases.includes('tarjeta--sin-enunciado');
-    expect(enunciadoTocado).toBe(true);
-    if (estado.clases.includes('tarjeta--sin-enunciado')) {
-      expect(estado.enunciadoDisplay).toBe('none');
-    } else {
-      expect(estado.enunciadoFontSize).toBe('15px');
-    }
+    // Paso (b): el enunciado baja a 14px (tarjeta--enunciado-14, spec §8) —
+    // con este desborde tan extremo, la cascada tiene que haber llegado aquí.
+    expect(estado.clases).toContain('tarjeta--enunciado-14');
+    expect(estado.enunciadoFontSize).toBe('14px');
 
-    // Orden: si la cascada ha llegado a tocar la explicación (menor, mínima o
-    // recorte final), el enunciado tiene que estar YA fuera del todo — nunca
-    // al revés (la imagen y la explicación son "lo último que se toca").
-    const explicacionTocada =
-      estado.clases.includes('tarjeta--explicacion-menor') ||
-      estado.clases.includes('tarjeta--explicacion-minima') ||
-      estado.clases.includes('tarjeta--explicacion-clamp');
-    if (explicacionTocada) {
-      expect(estado.clases).toContain('tarjeta--sin-enunciado');
-      if (estado.clases.includes('tarjeta--explicacion-minima') || estado.clases.includes('tarjeta--explicacion-clamp')) {
-        expect(estado.explicacionFontSize).toBe('13px');
-      } else {
-        expect(estado.explicacionFontSize).toBe('14px');
-      }
-    }
+    // Paso (c): la explicación se recorta con line-clamp calculado (mínimo 2
+    // líneas, o 1 si hizo falta el último recurso) — getComputedStyle
+    // confirma el recorte real, no solo el nombre de la clase.
+    expect(estado.clases).toContain('tarjeta--explicacion-clamp');
+    expect(['1', '2']).toContain(estado.explicacionLineClamp);
+
+    // Paso (d), justo antes del último recurso: la visual baja su suelo del
+    // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
+    // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
+    expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
   });
 
   test('Tarea 3b: capturas con art-003 respondida (banco real) a 375×812 y 430×932', async ({ page }) => {
@@ -1428,7 +1428,17 @@ test.describe('ONE · integración e2e', () => {
     await capturar({ width: 430, height: 932 }, '430');
   });
 
-  test('Tarea 3b: imagen rota (404) se quita entera, sin dejar una caja vacía', async ({ page }) => {
+  // Reescrito en la Tarea 2 de spec §8/v0.2a.2 (protagonismo visual): antes
+  // (v0.1d §3) una imagen rota sin `visual` de respaldo dejaba la tarjeta SIN
+  // NINGÚN visual, re-centrada como si nunca hubiera tenido imagen. Ahora la
+  // cascada de tres capas garantiza el 100% con visual (spec §8 punto 3):
+  // his-001 (banco de ejemplo) no tiene `visual`, así que el `error` del
+  // <img> cae a la TERCERA capa, la tarjeta tipográfica (construirVisualClave),
+  // nunca a "sin visual" — y `tarjeta-contenido--imagen` ya no se quita nunca
+  // (es incondicional desde esta tarea: la visual siempre está).
+  test('spec §8: imagen rota (404) cae a la tarjeta tipográfica (visual-clave), nunca deja la tarjeta sin visual', async ({
+    page,
+  }) => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1456,12 +1466,16 @@ test.describe('ONE · integración e2e', () => {
     await t.locator('[data-test="vf-verdadero"]').click();
     await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
     // El onerror del <img> es asíncrono (espera a la respuesta 404 real):
-    // toHaveCount reintenta hasta que construirBloqueImagen() quita el bloque.
+    // toHaveCount/toBeVisible reintentan hasta que el respaldo sustituye el bloque.
     await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
     await expect(t.locator('[data-test="imagen-pie"]')).toHaveCount(0);
-    // Sin imagen de verdad, el bloque de contenido vuelve a centrarse (spec
-    // v0.1d §3): la marca que lo alineaba arriba se quita con la imagen.
-    await expect(t.locator('.tarjeta-contenido')).not.toHaveClass(/tarjeta-contenido--imagen/);
+    // his-001 no trae `visual` de datos: la capa que aparece es la tercera
+    // (tarjeta tipográfica), con sus clases y su propio data-test.
+    await expect(t.locator('.zona-imagen--clave')).toHaveCount(1);
+    await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
+    // La visual siempre está (spec §8): tarjeta-contenido--imagen es ahora
+    // incondicional, nunca se quita porque una capa haya fallado.
+    await expect(t.locator('.tarjeta-contenido')).toHaveClass(/tarjeta-contenido--imagen/);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
   });
@@ -4763,5 +4777,257 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await expect(page.locator('[data-test="conectar"]')).toBeHidden();
     await page.locator('[data-test="atomo-estado-servidor"]').click();
     await expect(page.locator('[data-test="conectar-texto"]')).toHaveValue('');
+  });
+});
+
+// ============================================================================
+// Tarea 2 del plan v0.2a2-protagonismo-visual (spec §8, enmienda 16-sep-2026):
+// estructura fija de la tarjeta REVELADA (partida respondida y repaso, spec
+// §8 punto 1) con la visual como protagonista, garantizada en las tres capas
+// de la Tarea 1 (imagen de Commons -> visual de datos -> tarjeta tipográfica
+// construirVisualClave). Consume el mismo banco de ejemplo que "ONE ·
+// visuales v0.1e" (datos/visuales.ejemplo.json + datos/imagenes.ejemplo.json)
+// para tener las tres capas bajo control, sin depender de qué traiga el
+// banco real en cada momento.
+// ============================================================================
+test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () => {
+  /** Inyecta tres preguntas vf sintéticas, una por capa (imagen forzada,
+   * visual de datos del banco de ejemplo, y una tercera SIN imagen ni
+   * `visual` para que caiga en la tarjeta tipográfica) — ids sufijados para
+   * no chocar entre viewports que comparten el mismo `page` de test en test.
+   * Las tres son `respuesta: true`: el test las falla A PROPÓSITO
+   * (vf-falso) para que las tres entren en `repasoPartida` (app.js:
+   * `respondidas.filter((h) => !h.correcta || h.delta.fragil)`) y aparezcan
+   * también en el carrusel de resumen — si se acertaran, ArrowUp desde la
+   * tarjeta de cifras no tendría a dónde ir (hallazgo real al verificar este
+   * test en vivo: con las tres acertadas, repasoPartida quedaba vacío y el
+   * mazo de resumen solo tenía 1 tarjeta). */
+  async function inyectarTresCapas(page, sufijo) {
+    const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
+      page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json())),
+    ]);
+
+    const idImagen = `pv-imagen-${sufijo}`;
+    const idVisual = `pv-visual-${sufijo}`;
+    const idClave = `pv-clave-${sufijo}`;
+
+    const preguntaImagen = { ...visualesEjemplo.formula, id: idImagen };
+    const preguntaVisual = { ...visualesEjemplo.barras, id: idVisual };
+    // Copia de "formula" SIN su `visual` (ni imagen forzada): cae en la
+    // tercera capa por las dos primeras faltando de verdad, no porque se
+    // ignoren a propósito.
+    const { visual: _visualDescartado, ...preguntaClaveSinVisual } = visualesEjemplo.formula;
+    const preguntaClave = { ...preguntaClaveSinVisual, id: idClave };
+
+    const imagenForzada = { ...imagenesEjemplo['his-001'], id: idImagen };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaImagen);
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaVisual);
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaClave);
+
+    return { idImagen, idVisual, idClave };
+  }
+
+  /** Geometría + contenido de la tarjeta ACTUAL para una `capa` dada
+   * ('imagen'/'visual'/'clave'): sin scroll (assertTarjetaSinScroll ya cubre
+   * el desborde geométrico de `.zona-imagen`, spec §8 hallazgo C1 de v0.1e),
+   * `.zona-imagen` mide >= 30% de `.tarjeta-contenido` (Ruling R8: suelo 40%,
+   * peor caso de la cascada 30% — el margen de 0.5pp cubre redondeo de
+   * getBoundingClientRect/clientHeight), su borde superior coincide con el
+   * inferior de `.pregunta-cabecera` ± 12px (Ruling R8: el gap real es
+   * 8-10px según si la tarjeta lleva dataset.respondida="true" o es la
+   * "neutra" del repaso sin responder, R2 de la Tarea 2), y la capa que
+   * corresponde está visible dentro. */
+  async function comprobarCapaProtagonista(page, capa) {
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+
+    const medidas = await page.evaluate(() => {
+      const contenido = document.querySelector('.tarjeta-mazo--actual .tarjeta-contenido');
+      const zona = contenido ? contenido.querySelector('.zona-imagen') : null;
+      const cabecera = contenido ? contenido.querySelector('.pregunta-cabecera') : null;
+      if (!zona || !cabecera) return null;
+      const rectZona = zona.getBoundingClientRect();
+      const rectCabecera = cabecera.getBoundingClientRect();
+      return {
+        zonaAlto: rectZona.height,
+        contenidoAlto: contenido.clientHeight,
+        topZona: rectZona.top,
+        bottomCabecera: rectCabecera.bottom,
+      };
+    });
+    expect(medidas, '.zona-imagen o .pregunta-cabecera no están en la tarjeta actual').not.toBeNull();
+    expect(
+      medidas.zonaAlto / medidas.contenidoAlto,
+      `.zona-imagen mide ${medidas.zonaAlto}px de ${medidas.contenidoAlto}px de .tarjeta-contenido (< 30%)`
+    ).toBeGreaterThanOrEqual(0.29);
+    expect(
+      Math.abs(medidas.topZona - medidas.bottomCabecera),
+      `top de .zona-imagen (${medidas.topZona}) se aleja > 12px del bottom de .pregunta-cabecera (${medidas.bottomCabecera})`
+    ).toBeLessThanOrEqual(12);
+
+    const t = tarjetaActual(page);
+    if (capa === 'imagen') await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+    else if (capa === 'visual') await expect(t.locator('[data-test="visual"]')).toBeVisible();
+    else await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
+  }
+
+  const VIEWPORTS = [
+    { width: 375, height: 812, nombre: '375' },
+    { width: 393, height: 852, nombre: '393', zonaSegura: true },
+    { width: 430, height: 932, nombre: '430' },
+  ];
+
+  for (const vp of VIEWPORTS) {
+    test(`estructura fija a ${vp.nombre}×${vp.height}: imagen/visual/tarjeta tipográfica protagonizan sin scroll, en partida y en repaso`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      // Geometría determinista: sin esto, medir justo tras responder puede
+      // pillar la entrada de la visual (visual-entra, spec §8, 220ms) a
+      // mitad de camino y el top de .zona-imagen sale unos px más abajo de
+      // su posición final (hallazgo real al verificar este test en vivo).
+      // De paso ejercita la regla de estilos.css que anula esa animación
+      // bajo "reducir movimiento".
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/?ejemplo=1&test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      if (vp.zonaSegura) {
+        // Mismas zonas seguras reales de un iPhone que "C1 visual desbordado
+        // con zonas seguras del iPhone" más arriba: env(safe-area-inset-*)
+        // vale 0 en Chromium headless, así que se inyecta el mismo padding.
+        await page.addStyleTag({
+          content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
+        });
+      }
+
+      const { idImagen, idVisual, idClave } = await inyectarTresCapas(page, vp.nombre);
+      await page.evaluate(
+        (ids) => window.__one.empezarPartida({ ids, etiqueta: `pv-${ids[0]}` }),
+        [idImagen, idVisual, idClave]
+      );
+
+      // --- partida: las tres, en orden, cada una recién revelada al
+      // responder. Falladas a propósito (vf-falso, las tres son
+      // respuesta:true): así entran en repasoPartida y aparecen también en
+      // el resumen de abajo — ver el porqué en inyectarTresCapas. ---
+      const capas = ['imagen', 'visual', 'clave'];
+      for (const capa of capas) {
+        const t = tarjetaActual(page);
+        await t.locator('[data-test="vf-falso"]').click();
+        await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+        await comprobarCapaProtagonista(page, capa);
+        if (vp.nombre === '375' && capa === 'imagen') {
+          // Captura nombrada por el brief de la Tarea 2 (mirada con Read
+          // antes de commitear, ver task-2-report.md).
+          await page.screenshot({ path: `${CAPTURAS}/v0.2a2-partida-375.png` });
+        }
+        await avanzarTrasRespuesta(page); // la 3ª termina la partida -> resumen.
+      }
+
+      // --- repaso: el mazo de resumen reutiliza construirTarjetaRepaso con
+      // las MISMAS tres tarjetas, en el mismo orden (repasoPartida). ---
+      await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+      await assertSinScroll(page);
+
+      for (const capa of capas) {
+        await page.keyboard.press('ArrowUp');
+        await esperarAsentamientoMazo(page);
+        const tRepaso = tarjetaActual(page);
+        await expect(tRepaso).toHaveAttribute('data-test', 'repaso-tarjeta');
+
+        // La marca de repaso vive DENTRO de .pregunta-cabecera (spec §8: "la
+        // cabecera con nivel y la marca de repaso se funden en la misma
+        // línea"), ya no como <p> aparte tras ella.
+        const marcaEnCabecera = await tRepaso.evaluate((tarjeta) => {
+          const marca = tarjeta.querySelector('.repaso-marca');
+          return Boolean(marca && marca.parentElement && marca.parentElement.classList.contains('pregunta-cabecera'));
+        });
+        expect(marcaEnCabecera, 'la .repaso-marca no está dentro de .pregunta-cabecera').toBe(true);
+
+        await comprobarCapaProtagonista(page, capa);
+        if (vp.nombre === '375' && capa === 'clave') {
+          // Segunda captura nombrada por el brief de la Tarea 2.
+          await page.screenshot({ path: `${CAPTURAS}/v0.2a2-repaso-clave-375.png` });
+        }
+      }
+    });
+  }
+
+  // R2 de la Tarea 2: la tarjeta ACTIVA sin responder (construirTarjetaSinResponder,
+  // dataset.respondida="false") es la ÚNICA que NO lleva tarjeta--revelada —
+  // spec §8 solo aplica a la tarjeta ya revelada (respondida en la partida y
+  // toda tarjeta del repaso, incluida la "sin responder" de ese tramo, que SÍ
+  // la lleva por reutilizar construirTarjetaRespondida).
+  test('la tarjeta ACTIVA sin responder no lleva tarjeta--revelada ni tarjeta--recien-revelada', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-respondida', 'false');
+    await expect(t).not.toHaveClass(/tarjeta--revelada/);
+    await expect(t).not.toHaveClass(/tarjeta--recien-revelada/);
+
+    // Al responder, la tarjeta se RECONSTRUYE (manejarRespuesta): la nueva sí
+    // las lleva — revelada siempre, recién-revelada por ser la partida.
+    // responderPreguntaActual (no un click suelto): "ordenar" necesita CUATRO
+    // toques para enviar la respuesta, no uno — un solo click ahí habría
+    // dejado la tarjeta activa sin responder de verdad (hallazgo real al
+    // verificar este test en vivo, con una pregunta "ordenar" al azar).
+    await responderPreguntaActual(page);
+    const tRevelada = tarjetaActual(page);
+    await expect(tRevelada).toHaveClass(/tarjeta--revelada/);
+    await expect(tRevelada).toHaveClass(/tarjeta--recien-revelada/);
+  });
+
+  // Barrido del banco REAL completo (295 preguntas, spec §8 "Verificación"):
+  // con ?test=1, abrir el repaso (todas sin responder de fábrica) y recorrer
+  // el hook window.__one.irA ya existente (mismo mecanismo que las suites
+  // "ronda final de revisión de rendimiento" de más arriba) comprobando que
+  // CADA tarjeta construida tiene `.zona-imagen` con una imagen, un SVG de
+  // datos o la tarjeta tipográfica — nunca vacía. Todo dentro de un único
+  // page.evaluate (sin 295 idas y vueltas Playwright<->página): asegurarRepasoConstruidoHasta
+  // es idempotente por índice, así que el coste total es el mismo que un solo
+  // irA(294) (ver I1 más arriba), solo repartido en 295 pasos.
+  test('spec §8 "Verificación": barrido de las 295 del banco real en el repaso — el 100% tiene .zona-imagen con imagen, SVG o tarjeta tipográfica', async ({
+    page,
+  }) => {
+    test.setTimeout(60000);
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const total = await page.evaluate(() => window.__one.repasoNodosLength());
+    expect(total).toBeGreaterThan(0);
+
+    const faltantes = await page.evaluate((n) => {
+      const sinVisual = [];
+      for (let i = 0; i < n; i += 1) {
+        window.__one.irA(i);
+        const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+        const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
+        const tieneImagenOSvg = Boolean(zona && zona.querySelector('img, svg'));
+        const esClave = Boolean(zona && zona.classList.contains('zona-imagen--clave'));
+        if (!zona || !(tieneImagenOSvg || esClave)) {
+          sinVisual.push({ indice: i, id: tarjeta ? tarjeta.dataset.indice : null });
+        }
+      }
+      return sinVisual;
+    }, total);
+
+    expect(faltantes, `${faltantes.length} de ${total} tarjetas sin .zona-imagen con visual`).toEqual([]);
   });
 });
