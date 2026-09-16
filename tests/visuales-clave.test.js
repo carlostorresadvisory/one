@@ -109,6 +109,19 @@ test('textoVisualClave: primera frase se corta en el primer "." "?" o "!" -- nun
   assert.equal(r.secundario, 'Primera frase corta.');
 });
 
+test('textoVisualClave: un punto decimal/de miles ("1.000") no cuenta como cierre de frase -- I3, ronda de corrección 1', () => {
+  // Caso real del banco (log-040): "...afecta a 1 de cada 1.000 personas. Existe..." se cortaba mal
+  // en "...cada 1." (el punto de "1.000"). Un '.'/'?'/'!' solo cierra frase si va seguido de espacio
+  // o de fin de texto -- nunca si le sigue un dígito.
+  const r = textoVisualClave({
+    tipo: 'vf',
+    area: 'ciencia',
+    respuesta: true,
+    enunciado: 'Una enfermedad afecta a 1 de cada 1.000 personas. Segunda frase que no debería aparecer.',
+  });
+  assert.equal(r.secundario, 'Una enfermedad afecta a 1 de cada 1.000 personas.');
+});
+
 test('textoVisualClave: enunciado sin puntuación de cierre -- se recorta a máximo 90 caracteres con "…"', () => {
   const enunciadoLargo =
     'Un enunciado deliberadamente largo y sin ningún punto interrogación ni exclamación que sirva de cierre de frase para forzar el recorte por longitud máxima';

@@ -46,13 +46,18 @@ const NS = 'http://www.w3.org/2000/svg';
 // propósito generosa, para errar del lado de recortar antes que desbordar.
 const FACTOR_ANCHO_MEDIO = 0.58;
 
-function medirAncho(texto, tamano) {
+// Exportada (ronda de corrección 1, I4): permite al test de cobertura DOM comprobar el ancho
+// estimado real del `secundario` recortado sin duplicar FACTOR_ANCHO_MEDIO como constante mágica.
+export function medirAncho(texto, tamano) {
   return texto.length * tamano * FACTOR_ANCHO_MEDIO;
 }
 
 /** Recorta `texto` a una sola línea que quepa en `maxAncho` al tamaño dado,
- * añadiendo "…" si hace falta cortar. Nunca devuelve más ancho del permitido. */
-function recortarALinea(texto, maxAncho, tamano) {
+ * añadiendo "…" si hace falta cortar. Nunca devuelve más ancho del permitido.
+ * Exportada (ronda de corrección 1, C1): la usa `construirVisualClave` para el `secundario` de la
+ * tarjeta tipográfica, y así el test de cobertura DOM (`tests/visuales-clave-dom.test.js`) puede
+ * verificar el ancho real sin duplicar la estimación de `medirAncho`/`FACTOR_ANCHO_MEDIO`. */
+export function recortarALinea(texto, maxAncho, tamano) {
   if (!texto) return '';
   if (medirAncho(texto, tamano) <= maxAncho) return texto;
   let t = texto;
@@ -655,11 +660,16 @@ export function construirVisual(visual) {
 
 /** Primera frase de `enunciado`: hasta el primer terminador ('.', '?' o '!') inclusive; sin
  * terminador (o si la frase resultante supera los 90 caracteres) se recorta a 90 caracteres como
- * máximo con "…" -- nunca se coge la segunda frase ni se desborda la longitud. */
+ * máximo con "…" -- nunca se coge la segunda frase ni se desborda la longitud.
+ *
+ * I3 (ronda de corrección 1): un '.'/'.'/'!' solo cuenta como cierre de frase si va seguido de
+ * espacio o de fin de texto -- así un punto decimal o de miles ("1.000") nunca corta la frase a
+ * mitad, porque va seguido de un dígito, no de espacio ni de fin. Confirmado con dato real del banco
+ * (`log-040`: "...afecta a 1 de cada 1.000 personas. Existe..." antes cortaba en "...cada 1."). */
 function primeraFrase(enunciado) {
   if (!esTextoValido(enunciado)) return '';
   const texto = enunciado.trim();
-  const coincidencia = texto.match(/[.?!]/);
+  const coincidencia = texto.match(/[.?!](?=\s|$)/);
   let frase = coincidencia ? texto.slice(0, coincidencia.index + 1) : texto;
   if (frase.length > 90) {
     frase = `${frase.slice(0, 89).trimEnd()}…`;
@@ -799,7 +809,13 @@ let contadorGradienteClave = 0;
  * izquierda. `role="img"`, `aria-label` = `principal` (+ " — " + `secundario` si existe).
  *
  * Nunca lanza: si `textoVisualClave` no puede sacar `principal` (pregunta rota), devuelve un SVG con
- * solo el área (o completamente vacío si ni el área hay).
+ * solo el área (o completamente vacío si ni el área hay). Ronda de corrección 1 (C2): TODO el cuerpo
+ * que construye el SVG -- incluida la llamada a `nombreArea`, que puede venir de fuera (app.js) y no
+ * tiene por qué ser defensiva -- vive dentro de un único `try/catch`; el `catch` reconstruye el SVG
+ * de "solo área" usando siempre `capitalizarArea` (nunca la `nombreArea` externa, que es justo la
+ * que pudo fallar). El área también se guarda con `typeof === 'string' && area` ANTES de intentar
+ * capitalizarla, en los dos caminos (normal y catch), así que un `area` roto ni siquiera llega a
+ * `nombreArea`/`capitalizarArea`.
  *
  * `nombreArea`: NOMBRES_AREA vive en app.js sin exportar (app.js no exporta nada). Quien llama desde
  * ahí puede pasar su propia función `nombreArea` (mismo nombre, por comodidad de `{ nombreArea }` al
@@ -816,70 +832,96 @@ export function construirVisualClave(pregunta, { nombreArea } = {}) {
   } catch (err) {
     datos = {};
   }
-  const principal = esTextoValido(datos.principal) ? datos.principal.trim() : '';
-  const secundario = esTextoValido(datos.secundario) ? datos.secundario.trim() : '';
-  const areaTexto = typeof nombreArea === 'function' ? nombreArea(datos.area) || '' : capitalizarArea(datos.area);
+  // Guarda (C2): un `area` roto (undefined, no-string, '') nunca llega a `nombreArea`/`capitalizarArea`.
+  const areaId = typeof datos.area === 'string' && datos.area ? datos.area : '';
 
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 320 180');
-  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-  svg.style.aspectRatio = '320 / 180';
-  svg.classList.add('visual-svg', 'visual-svg--clave');
-  svg.dataset.test = 'visual-clave';
+  try {
+    const principal = esTextoValido(datos.principal) ? datos.principal.trim() : '';
+    const secundario = esTextoValido(datos.secundario) ? datos.secundario.trim() : '';
+    const areaTexto = areaId ? (typeof nombreArea === 'function' ? nombreArea(areaId) || '' : capitalizarArea(areaId)) : '';
 
-  contadorGradienteClave += 1;
-  const idGradiente = `visual-clave-gradiente-${contadorGradienteClave}`;
-  const defs = document.createElementNS(NS, 'defs');
-  const gradiente = document.createElementNS(NS, 'radialGradient');
-  gradiente.setAttribute('id', idGradiente);
-  gradiente.setAttribute('cx', '50%');
-  gradiente.setAttribute('cy', '40%');
-  gradiente.setAttribute('r', '75%');
-  const stopInicio = document.createElementNS(NS, 'stop');
-  stopInicio.setAttribute('offset', '0%');
-  stopInicio.setAttribute('stop-color', '#0b2a33');
-  const stopFin = document.createElementNS(NS, 'stop');
-  stopFin.setAttribute('offset', '100%');
-  stopFin.setAttribute('stop-color', '#07161b');
-  gradiente.appendChild(stopInicio);
-  gradiente.appendChild(stopFin);
-  defs.appendChild(gradiente);
-  svg.appendChild(defs);
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 320 180');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.style.aspectRatio = '320 / 180';
+    svg.classList.add('visual-svg', 'visual-svg--clave');
+    svg.dataset.test = 'visual-clave';
 
-  const fondo = crearRect(0, 0, 320, 180, `url(#${idGradiente})`);
-  svg.appendChild(fondo);
+    contadorGradienteClave += 1;
+    const idGradiente = `visual-clave-gradiente-${contadorGradienteClave}`;
+    const defs = document.createElementNS(NS, 'defs');
+    const gradiente = document.createElementNS(NS, 'radialGradient');
+    gradiente.setAttribute('id', idGradiente);
+    gradiente.setAttribute('cx', '50%');
+    gradiente.setAttribute('cy', '40%');
+    gradiente.setAttribute('r', '75%');
+    const stopInicio = document.createElementNS(NS, 'stop');
+    stopInicio.setAttribute('offset', '0%');
+    stopInicio.setAttribute('stop-color', '#0b2a33');
+    const stopFin = document.createElementNS(NS, 'stop');
+    stopFin.setAttribute('offset', '100%');
+    stopFin.setAttribute('stop-color', '#07161b');
+    gradiente.appendChild(stopInicio);
+    gradiente.appendChild(stopFin);
+    defs.appendChild(gradiente);
+    svg.appendChild(defs);
 
-  if (esTextoValido(areaTexto)) {
-    svg.appendChild(
-      crearTexto(14, 20, areaTexto.trim().toUpperCase(), { tamano: 11, color: '#5fd4e8', ancla: 'start', peso: 600 })
-    );
-  }
+    const fondo = crearRect(0, 0, 320, 180, `url(#${idGradiente})`);
+    svg.appendChild(fondo);
 
-  if (!principal) {
+    if (esTextoValido(areaTexto)) {
+      svg.appendChild(
+        crearTexto(14, 20, areaTexto.trim().toUpperCase(), { tamano: 11, color: '#5fd4e8', ancla: 'start', peso: 600 })
+      );
+    }
+
+    if (!principal) {
+      svg.setAttribute('role', 'img');
+      svg.setAttribute('aria-label', esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual');
+      return svg;
+    }
+
+    const lineas = envolverPorCaracteres(principal, 22, 2);
+    const tamanoPrincipal = lineas.length > 1 ? 22 : 26;
+    const lineHeight = tamanoPrincipal * 1.2;
+    const bloqueAlto = lineas.length * lineHeight;
+    const yCentro = secundario ? 86 : 96;
+    const ySecundario = secundario ? 144 : 0;
+    const yInicio = yCentro - bloqueAlto / 2 + lineHeight / 2;
+
+    lineas.forEach((linea, i) => {
+      svg.appendChild(
+        crearTexto(160, yInicio + i * lineHeight, linea, { tamano: tamanoPrincipal, ancla: 'middle', color: '#eafbff', peso: 700 })
+      );
+    });
+
+    if (secundario) {
+      // C1 (ronda de corrección 1): sin recorte, un `secundario` real (hasta 90 caracteres por
+      // `primeraFrase`) se salía del `viewBox` por ambos lados -- confirmado en el 85% del banco real
+      // y en la captura de la Tarea 2. Misma convención "ningún texto desborda su línea" que el resto
+      // del fichero (`recortarALinea`/`medirAncho`, ver cabecera). 296 = 320 - 2*12 de margen lateral;
+      // una sola línea (el brief dice "secundario en 13 debajo", en singular, y `ySecundario` es una
+      // única posición fija).
+      const secundarioVisual = recortarALinea(secundario, 296, 13);
+      svg.appendChild(crearTexto(160, ySecundario, secundarioVisual, { tamano: 13, ancla: 'middle', color: '#8fd9e8' }));
+    }
+
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual');
+    svg.setAttribute('aria-label', secundario ? `${principal} — ${secundario}` : principal);
     return svg;
+  } catch (err) {
+    // C2: cualquier fallo inesperado en el bloque de arriba (incluida una `nombreArea` externa que
+    // lance) cae aquí -- el área ya se recalcula SIN volver a llamar a `nombreArea` (la posible
+    // causa del fallo), solo con `capitalizarArea`, que tiene su propia guarda interna.
+    const areaSegura = areaId ? capitalizarArea(areaId) : '';
+    const svgVacio = document.createElementNS(NS, 'svg');
+    svgVacio.setAttribute('viewBox', '0 0 320 180');
+    svgVacio.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svgVacio.style.aspectRatio = '320 / 180';
+    svgVacio.classList.add('visual-svg', 'visual-svg--clave');
+    svgVacio.dataset.test = 'visual-clave';
+    svgVacio.setAttribute('role', 'img');
+    svgVacio.setAttribute('aria-label', esTextoValido(areaSegura) ? areaSegura.trim() : 'Visual');
+    return svgVacio;
   }
-
-  const lineas = envolverPorCaracteres(principal, 22, 2);
-  const tamanoPrincipal = lineas.length > 1 ? 22 : 26;
-  const lineHeight = tamanoPrincipal * 1.2;
-  const bloqueAlto = lineas.length * lineHeight;
-  const yCentro = secundario ? 86 : 96;
-  const ySecundario = secundario ? 144 : 0;
-  const yInicio = yCentro - bloqueAlto / 2 + lineHeight / 2;
-
-  lineas.forEach((linea, i) => {
-    svg.appendChild(
-      crearTexto(160, yInicio + i * lineHeight, linea, { tamano: tamanoPrincipal, ancla: 'middle', color: '#eafbff', peso: 700 })
-    );
-  });
-
-  if (secundario) {
-    svg.appendChild(crearTexto(160, ySecundario, secundario, { tamano: 13, ancla: 'middle', color: '#8fd9e8' }));
-  }
-
-  svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', secundario ? `${principal} — ${secundario}` : principal);
-  return svg;
 }
