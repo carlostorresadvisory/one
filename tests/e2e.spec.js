@@ -5158,3 +5158,256 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     expect(medidas.rectFondoDisplay).toBe('none');
   });
 });
+
+test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.2a.2 — Tarea 3)', () => {
+  /** Inyecta una pregunta vf con imagen forzada y otra SIN imagen ni `visual` (cae en la tercera
+   * capa, tarjeta tipográfica) — mismo patrón que inyectarTresCapas de la suite "protagonismo
+   * visual" de arriba, con solo las dos capas que hacen falta aquí. Ids sufijados para no chocar
+   * entre tests que comparten `page`. */
+  async function inyectarImagenYClave(page, sufijo) {
+    const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
+      page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json())),
+    ]);
+    const idImagen = `pc-imagen-${sufijo}`;
+    const idClave = `pc-clave-${sufijo}`;
+    const preguntaImagen = { ...visualesEjemplo.formula, id: idImagen };
+    const { visual: _sinVisual, ...preguntaClaveSinVisual } = visualesEjemplo.formula;
+    const preguntaClave = { ...preguntaClaveSinVisual, id: idClave };
+    const imagenForzada = { ...imagenesEjemplo['his-001'], id: idImagen };
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaImagen);
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaClave);
+
+    return { idImagen, idClave };
+  }
+
+  /** Arranca una partida de UNA sola pregunta (por su id) y la falla a propósito
+   * (vf-falso): la revela con `tarjeta--revelada` y `.zona-imagen`, lista para tocar. */
+  async function jugarYRevelar(page, id, etiqueta) {
+    await page.evaluate((p) => window.__one.empezarPartida(p), { ids: [id], etiqueta });
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-falso"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    return t;
+  }
+
+  test('abre desde la imagen en partida: hidden=false, contenido ≥80% del ancho de la ventana, foco en el diálogo, cierra por toque en cualquier sitio, foco vuelve a la zona y el mazo sigue en la misma tarjeta', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    // Geometría/captura deterministas (mismo motivo que el resto de la suite de "protagonismo
+    // visual": sin esto, medir/capturar justo tras abrir puede pillar el fundido de 160ms a mitad
+    // de camino -- Playwright no espera animaciones CSS por su cuenta).
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'a');
+    const t = await jugarYRevelar(page, idImagen, 'pc-a');
+
+    const indiceAntes = await page.evaluate(() => document.querySelector('.tarjeta-mazo--actual').dataset.indice);
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(false);
+
+    const anchoRatio = await page.evaluate(() => {
+      const media = document.querySelector('.visual-completa-media');
+      if (!media) return 0;
+      return media.getBoundingClientRect().width / window.innerWidth;
+    });
+    expect(anchoRatio, `el contenido mide ${(anchoRatio * 100).toFixed(1)}% del ancho de la ventana`).toBeGreaterThanOrEqual(0.8);
+
+    const focoEsElDialogo = await page.evaluate(
+      () => document.activeElement === document.querySelector('[data-test="visual-completa"]')
+    );
+    expect(focoEsElDialogo, 'el foco no está en el diálogo al abrir').toBe(true);
+
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
+
+    // Toque en cualquier sitio (spec §8): la esquina, no el centro -- no hace falta acertar el medio.
+    await overlay.click({ position: { x: 10, y: 10 } });
+    expect(await overlay.evaluate((el) => el.hidden), 'un toque en cualquier sitio debe cerrar').toBe(true);
+
+    const focoEnZona = await page.evaluate(
+      () => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.test === 'visual-abrir'
+    );
+    expect(focoEnZona, 'el foco no volvió a la zona al cerrar').toBe(true);
+
+    const indiceDespues = await page.evaluate(() => document.querySelector('.tarjeta-mazo--actual').dataset.indice);
+    expect(indiceDespues, 'el mazo no debe cambiar de tarjeta solo por abrir/cerrar la superposición').toBe(indiceAntes);
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el rect de fondo del SVG es visible fuera de la tarjeta, cierra con Escape', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idClave } = await inyectarImagenYClave(page, 'b');
+    const t = await jugarYRevelar(page, idClave, 'pc-b');
+    await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
+    // Dentro de la tarjeta, el rect de fondo del SVG está oculto (.zona-imagen--clave lo hace vía
+    // CSS): confirma el punto de partida antes de comprobar que fuera de la tarjeta se ve.
+    const rectFondoEnTarjeta = await t.evaluate((tarjeta) => {
+      const rect = tarjeta.querySelector('.visual-clave-fondo');
+      return rect ? getComputedStyle(rect).display : null;
+    });
+    expect(rectFondoEnTarjeta).toBe('none');
+
+    await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+    await page.keyboard.press('ArrowUp');
+    await esperarAsentamientoMazo(page);
+    const tRepaso = tarjetaActual(page);
+    await expect(tRepaso.locator('[data-test="visual-clave"]')).toBeVisible();
+
+    await tRepaso.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const rectFondoEnSuperposicion = await overlay.evaluate((el) => {
+      const rect = el.querySelector('.visual-clave-fondo');
+      return rect ? getComputedStyle(rect).display : null;
+    });
+    expect(rectFondoEnSuperposicion, 'el rect de fondo del SVG clonado debe verse fuera de .zona-imagen--clave').not.toBe('none');
+
+    await page.keyboard.press('Escape');
+    expect(await overlay.evaluate((el) => el.hidden), 'Escape debe cerrar la superposición').toBe(true);
+  });
+
+  test('cierra deslizando hacia abajo ≥60px (pointerdown/pointerup propios de la superposición): un deslizamiento corto no cierra, uno largo sí', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'c');
+    const t = await jugarYRevelar(page, idImagen, 'pc-c');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    // Eventos pointerdown/pointerup dispatched a mano (no page.mouse): así se aísla el mecanismo
+    // de cierre por deslizamiento del propio `click` (que ya cierra con cualquier toque y haría
+    // ambigua esta comprobación -- un mouseup real de page.mouse dispara además un click nativo).
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-test="visual-completa"]');
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 190, clientY: 300 }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 190, clientY: 340 })); // dy=40 < 60
+    });
+    expect(await overlay.evaluate((el) => el.hidden), 'un deslizamiento corto (<60px) no debe cerrar').toBe(false);
+
+    await page.evaluate(() => {
+      const el = document.querySelector('[data-test="visual-completa"]');
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 190, clientY: 300 }));
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 190, clientY: 400 })); // dy=100 >= 60
+    });
+    expect(await overlay.evaluate((el) => el.hidden), 'un deslizamiento largo (>=60px) debe cerrar').toBe(true);
+
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('un deslizamiento que arranca en la zona-imagen (>10px) no abre pantalla completa; un toque limpio después sí', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'd');
+    const t = await jugarYRevelar(page, idImagen, 'pc-d');
+
+    const zona = t.locator('[data-test="visual-abrir"]');
+    const caja = await zona.boundingBox();
+    expect(caja).not.toBeNull();
+    const cx = caja.x + caja.width / 2;
+    const cy = caja.y + caja.height / 2;
+
+    const overlay = page.locator('[data-test="visual-completa"]');
+    // Deslizamiento real con page.mouse (mismo helper `arrastrar` que usa el resto de la suite
+    // para el gesto del mazo): 40px, por encima del ARRANQUE de 10px que distingue toque de
+    // deslizamiento, pero por debajo del UMBRAL_PX de 60px del mazo -- no cambia de tarjeta, solo
+    // prueba que el mismo gesto no abre la superposición aunque el navegador SÍ dispare un `click`
+    // real al soltar sobre el mismo elemento.
+    await arrastrar(page, [
+      { x: cx, y: cy },
+      { x: cx, y: cy - 40 },
+    ]);
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'un deslizamiento (>10px) sobre la zona-imagen no debe abrir pantalla completa'
+    ).toBe(true);
+
+    await zona.click();
+    expect(await overlay.evaluate((el) => el.hidden), 'un toque limpio (sin arrastre) sí debe abrir pantalla completa').toBe(false);
+  });
+
+  test('con prefers-reduced-motion no hay animación de entrada', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'e');
+    const t = await jugarYRevelar(page, idImagen, 'pc-e');
+
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    // Bajo "reducir movimiento" la regla genérica `*, *::before, *::after` de estilos.css fuerza
+    // `animation-duration: 0.001ms !important` -- Chromium lo devuelve en notación científica
+    // (1e-06s = 0.000001s = 0.001ms), así que se compara el NÚMERO, no el string exacto.
+    const duracion = await overlay.evaluate((el) => getComputedStyle(el).animationDuration);
+    expect(parseFloat(duracion)).toBeLessThan(0.01);
+  });
+
+  test('el enlace de atribución del pie de la imagen sigue funcionando y no abre pantalla completa', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const { idImagen } = await inyectarImagenYClave(page, 'f');
+    const t = await jugarYRevelar(page, idImagen, 'pc-f');
+
+    const enlace = t.locator('[data-test="imagen-pie"] a');
+    await expect(enlace).toHaveAttribute('target', '_blank');
+    // Disparado a mano (dispatchEvent), no un `.click()` real de Playwright: un evento sintético
+    // sobre un `<a>` sigue invocando los listeners (incluido el stopPropagation de
+    // construirAtribucionImagen, lo que este test comprueba) pero, al no ser "trusted", el
+    // navegador NO ejecuta la acción por defecto (navegar/abrir pestaña) -- evita depender de red
+    // real hacia Commons o de manejar una pestaña emergente solo para esta comprobación.
+    await enlace.evaluate((a) => a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
+
+    const overlay = page.locator('[data-test="visual-completa"]');
+    expect(await overlay.evaluate((el) => el.hidden), 'el enlace de atribución no debe abrir pantalla completa').toBe(true);
+  });
+
+  test('abre también desde el repaso "sin fin" del HUB (mazo-repaso)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t.locator('[data-test="visual-abrir"]')).toBeVisible();
+    await t.locator('[data-test="visual-abrir"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(false);
+    await page.keyboard.press('Escape');
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
+  });
+});
