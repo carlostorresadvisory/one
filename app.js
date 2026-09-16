@@ -2843,6 +2843,12 @@ function construirPieVisualCompleta(zona) {
   if (pieImagen) {
     const clon = pieImagen.cloneNode(true);
     clon.removeAttribute('data-test');
+    // Ronda final de revisión (adversarial A5): además de `data-test`, se retira cualquier `id` que
+    // el clon pudiera arrastrar (hoy no lleva ninguno -- ni la leyenda ni la atribución lo usan --
+    // pero es el mismo cinturón que M4 aplica al clon del SVG: un nodo clonado para vivir FUERA de
+    // la tarjeta original no debe conservar identificadores que solo tenían sentido dentro de ella).
+    clon.removeAttribute('id');
+    clon.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
     const enlace = clon.querySelector('a');
     if (enlace) enlace.addEventListener('click', (ev) => ev.stopPropagation());
     return clon;
@@ -2854,6 +2860,49 @@ function construirPieVisualCompleta(zona) {
   p.className = 'visual-completa-pie-texto';
   p.textContent = texto;
   return p;
+}
+
+/** Ronda final de revisión (Minor #4, `visuales.js#construirVisualClave`): el `<radialGradient>` de
+ * la tarjeta tipográfica lleva un `id` fijo por instancia (`visual-clave-gradiente-N`) referenciado
+ * por el `fill="url(#...)"` del rect de fondo — clonar el SVG tal cual duplica ese `id` en el
+ * documento mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML
+ * inválido, inocuo hoy porque las dos definiciones son idénticas, pero una trampa si el degradado
+ * llegara a depender de la pregunta). Se renombra el `id` del CLON (nunca el del SVG original, que
+ * se queda intacto detrás de la superposición) y se actualiza su propia referencia `fill` en el
+ * mismo clon antes de insertarlo. No hace nada si el SVG no lleva ningún `id` (visual de datos). */
+function evitarIdsDuplicados(clonSvg) {
+  clonSvg.querySelectorAll('[id]').forEach((el) => {
+    const idViejo = el.id;
+    const idNuevo = `${idViejo}-completa`;
+    el.id = idNuevo;
+    clonSvg.querySelectorAll(`[fill="url(#${idViejo})"]`).forEach((ref) => ref.setAttribute('fill', `url(#${idNuevo})`));
+  });
+  return clonSvg;
+}
+
+/** Red de seguridad de foco al cerrar (Ronda final de revisión, Important #1): si la zona que abrió
+ * la superposición ya no está conectada al DOM (p. ej. `construirBloqueImagen` la sustituyó por el
+ * respaldo tras un fallo de carga de la imagen mientras la superposición seguía abierta, Minor #2),
+ * `zona.focus()` no hace nada y el foco se queda perdido en `<body>`. Se prueba primero la
+ * `.zona-imagen` de la tarjeta ACTUAL del mazo visible (la tarjeta sigue siendo la misma aunque su
+ * nodo de zona haya cambiado); si esa tarjeta no tiene ninguna (la activa sin responder no la
+ * tiene), el propio contenedor del mazo visible, con `tabindex="-1"` (ver index.html) precisamente
+ * para servir de último recurso enfocable — nunca se deja `<body>` en silencio. */
+function enfocarTrasCerrarVisualCompleta(zona) {
+  if (zona && zona.isConnected) {
+    zona.focus();
+    return;
+  }
+  const zonaActual = document.querySelector('.tarjeta-mazo--actual .zona-imagen');
+  if (zonaActual) {
+    zonaActual.focus();
+    return;
+  }
+  const contenedorVisible = [contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].find((c) => {
+    const vista = c.closest('.vista');
+    return vista && !vista.hidden;
+  });
+  if (contenedorVisible) contenedorVisible.focus();
 }
 
 // La zona que abrió la superposición: se le devuelve el foco al cerrar (spec §8: "foco al abrir y
@@ -2868,6 +2917,11 @@ let zonaImagenAbrio = null;
  * así que fuera de esa caja se pinta solo, tal y como ya documenta visuales.js#construirVisualClave
  * ("si el mismo SVG se reutiliza fuera de esta caja (pantalla completa, Tarea 3)..."). */
 function abrirVisualCompleta(zona) {
+  // Ronda final de revisión (adversarial A1): una doble apertura (p. ej. dos toques rapidísimos que
+  // ambos pasan el filtro de distancia de alClicContenedorTarjetas) se ignora — la superposición ya
+  // abierta no se reconstruye a medio camino ni pierde `zonaImagenAbrio`/el foco de la apertura real.
+  if (!nodoVisualCompleta.hidden) return;
+
   const imgOriginal = zona.querySelector('img');
   const svgOriginal = zona.querySelector('svg');
   nodoVisualCompletaMedio.innerHTML = '';
@@ -2876,10 +2930,18 @@ function abrirVisualCompleta(zona) {
     clon.src = imgOriginal.src;
     clon.alt = imgOriginal.alt || '';
     clon.className = 'visual-completa-media';
+    // Ronda final de revisión (Critical #1, cinturón para el caso del ratón): arrastrar sobre una
+    // <img> dispara el drag NATIVO del navegador (dragstart), que cancela el puntero igual que el
+    // touch-action sin arreglar -- draggable=false lo desactiva. Minor #1: el clon perdía
+    // referrerPolicy frente al original (`construirBloqueImagen`), filtrando el origen de la app a
+    // upload.wikimedia.org si la petición no sale de caché.
+    clon.draggable = false;
+    clon.referrerPolicy = 'no-referrer';
     nodoVisualCompletaMedio.appendChild(clon);
   } else if (svgOriginal) {
     const clon = svgOriginal.cloneNode(true);
     clon.classList.add('visual-completa-media');
+    evitarIdsDuplicados(clon); // Minor #4
     nodoVisualCompletaMedio.appendChild(clon);
   } else {
     return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
@@ -2892,6 +2954,11 @@ function abrirVisualCompleta(zona) {
 
   zonaImagenAbrio = zona;
   nodoVisualCompleta.hidden = false;
+  // Ronda final de revisión (Important #1): `<main>` queda `inert` mientras la superposición está
+  // abierta -- sin foco, sin toques/clics y fuera del árbol de accesibilidad para todo lo de debajo
+  // (mazo incluido), de un solo mecanismo nativo. Resuelve de paso el Minor #3 (zonas de tarjetas
+  // vecinas fuera de pantalla, que el mazo mantiene montadas, dejaban de ser tabulables).
+  if (nodoContenidoApp) nodoContenidoApp.inert = true;
   // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
   // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
   // el fundido de 160ms.
@@ -2900,22 +2967,25 @@ function abrirVisualCompleta(zona) {
   nodoVisualCompleta.classList.add('visual-completa--entra');
   // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
   // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
-  nodoVisualCompletaCerrar.focus();
+  // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
+  // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
+  if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
 }
 
-/** Cierra la superposición y devuelve el foco a la zona que la abrió (spec §8). Vacía el "medio" y
- * el pie al cerrar: sin esto, el clon de una imagen grande (o su pie, con el enlace a Commons)
- * se quedaría colgado del DOM oculto hasta la próxima apertura, sin motivo. Guarda con `hidden`
- * para que llamarla dos veces seguidas (p. ej. el toque de cierre Y el deslizamiento de cierre
- * disparándose por el mismo gesto) sea inofensivo. */
+/** Cierra la superposición y devuelve el foco a un sitio seguro (spec §8 + Ronda final, Important
+ * #1: ver enfocarTrasCerrarVisualCompleta). Vacía el "medio" y el pie al cerrar: sin esto, el clon
+ * de una imagen grande (o su pie, con el enlace a Commons) se quedaría colgado del DOM oculto hasta
+ * la próxima apertura, sin motivo. Guarda con `hidden` para que llamarla dos veces seguidas (p. ej.
+ * el toque de cierre Y el deslizamiento de cierre disparándose por el mismo gesto) sea inofensivo. */
 function cerrarVisualCompleta() {
   if (nodoVisualCompleta.hidden) return;
   nodoVisualCompleta.hidden = true;
+  if (nodoContenidoApp) nodoContenidoApp.inert = false;
   nodoVisualCompletaMedio.innerHTML = '';
   nodoVisualCompletaPie.innerHTML = '';
   const zona = zonaImagenAbrio;
   zonaImagenAbrio = null;
-  if (zona && typeof zona.focus === 'function') zona.focus();
+  enfocarTrasCerrarVisualCompleta(zona);
 }
 
 /** Toque en `.zona-imagen` vs. deslizamiento del mazo (spec §8, decisión del controlador): mismo
@@ -4016,9 +4086,25 @@ nodoVisualCompleta.addEventListener('click', () => cerrarVisualCompleta());
 // de arriba (burbujea hasta el mismo listener), pero explícito a propósito — es un control con
 // nombre propio, no un efecto colateral de "cualquier toque cierra".
 nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta());
+// Ronda final de revisión (Critical #1): el cierre por deslizamiento NUNCA funcionaba con un gesto
+// táctil real -- `.visual-completa` heredaba `touch-action: manipulation` de `body` (nunca se le
+// puso su propio `touch-action: none`, a diferencia de `.mazo`, que sí lo lleva desde v0.1c), así
+// que el navegador reclamaba el desplazamiento vertical como scroll y cancelaba el puntero:
+// `pointerdown → pointermove → pointercancel`, sin `pointerup` NUNCA — la rama de abajo no se
+// ejecutaba jamás, y el `pointercancel` también suprime el `click` sintético, así que ni el
+// respaldo "toque en cualquier sitio" saltaba. `estilos.css` ya lleva `touch-action: none` en
+// `.visual-completa`; aquí, por cinturón (mismo patrón que `mazo.js`: `setPointerCapture` +
+// escuchar `pointercancel`), se captura el puntero al arrancar el gesto y se limpia el estado sin
+// intentar cerrar si el navegador cancela por cualquier otro motivo (Minor #6).
 let inicioCierreVisualCompleta = null;
 nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
   inicioCierreVisualCompleta = { y: ev.clientY };
+  try {
+    nodoVisualCompleta.setPointerCapture(ev.pointerId);
+  } catch (err) {
+    // Puntero ya liberado o inválido: sin capturar, el gesto se sigue rastreando igual (mismo
+    // patrón defensivo que mazo.js).
+  }
 });
 nodoVisualCompleta.addEventListener('pointerup', (ev) => {
   // El `click` de arriba ya cierra con cualquier toque; este umbral cubre además el deslizamiento
@@ -4028,6 +4114,13 @@ nodoVisualCompleta.addEventListener('pointerup', (ev) => {
   const fueDeslizamiento = inicioCierreVisualCompleta && ev.clientY - inicioCierreVisualCompleta.y >= 60;
   inicioCierreVisualCompleta = null;
   if (fueDeslizamiento) cerrarVisualCompleta();
+});
+nodoVisualCompleta.addEventListener('pointercancel', () => {
+  // Minor #6: sin este listener, un pointercancel dejaba `inicioCierreVisualCompleta` con una `y`
+  // obsoleta que sobrevivía al gesto cancelado -- se limpia, sin cerrar (un cancel no es un
+  // deslizamiento completado de verdad, aunque con touch-action:none ya no debería disparar por un
+  // simple deslizamiento vertical).
+  inicioCierreVisualCompleta = null;
 });
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape' && !nodoVisualCompleta.hidden) cerrarVisualCompleta();
