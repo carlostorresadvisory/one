@@ -780,11 +780,16 @@ main#app {
   margin-bottom: auto;
 }
 
-/* La tarjeta respondida CON imagen deja de centrarse (spec v0.1d §3): se
-   alinea arriba y es la imagen (flex:1 1 auto, ver más abajo) la que absorbe
-   el espacio sobrante, no los márgenes automáticos. Sin imagen, o sin
-   responder, el centrado de arriba se mantiene tal cual (v0.1c). Dos clases
-   en el selector (mismo elemento) para no depender del orden de la hoja. */
+/* La tarjeta REVELADA (spec §8/v0.2a.2) deja de centrarse: se alinea arriba y
+   es la visual protagonista (flex:1 1 auto, ver más abajo) la que absorbe el
+   espacio sobrante, no los márgenes automáticos. Desde la Tarea 2,
+   `tarjeta-contenido--imagen` es INCONDICIONAL en toda tarjeta revelada (la
+   visual es siempre una de tres capas — imagen, visual de datos o tarjeta
+   tipográfica — nunca falta), así que "sin imagen" ya no puede darse aquí:
+   la única tarjeta que SIGUE centrándose es la pregunta ACTIVA sin responder
+   (construirTarjetaSinResponder, spec v0.1c, función distinta que nunca lleva
+   esta clase). Dos clases en el selector (mismo elemento) para no depender
+   del orden de la hoja. */
 .tarjeta-contenido.tarjeta-contenido--imagen > :first-child {
   margin-top: 0;
 }
@@ -959,48 +964,36 @@ main#app {
 
 /* --- Cascada de encaje de la tarjeta RESPONDIDA (spec v0.1d §3/§4, cambio de
    contrato de Carlos 13-sep 10:19 — ver el comentario de cabecera de
-   ajustarEncaje en app.js para el orden completo). Todo automático: sin
-   scroll y sin ningún toque para desplegar/plegar nada. */
+   ajustarEncaje en mazo.js para el orden completo, reescrito para la tarjeta
+   REVELADA en spec §8/v0.2a.2). Todo automático: sin scroll y sin ningún
+   toque para desplegar/plegar nada.
+   Ronda 1 de revisión de la Tarea 2 (M3, limpieza de CSS muerto): esta
+   sección tenía cuatro reglas de la cascada v0.1d que ya no usa ninguna rama
+   de ajustarEncaje desde que la Tarea 2 reescribió la de la tarjeta revelada
+   (tarjeta--sin-respuestas, tarjeta--sin-enunciado, tarjeta--explicacion-menor,
+   tarjeta--explicacion-minima) — confirmado por grep en app.js/mazo.js/tests
+   antes de retirarlas. Lo que queda abajo SÍ sigue vivo. */
 .tarjeta--compacta-1 .respuesta-compacta { display: none; }
 .tarjeta--compacta-1 .respuesta-resumen { display: block; }
 .tarjeta--compacta-1 .zona-respuesta { gap: 6px; }
 
-/* (c) las respuestas desaparecen del todo: ni la línea completa ni el resumen. */
-.tarjeta--sin-respuestas .zona-respuesta { display: none; }
-
-/* (d)/(e) el enunciado (o "Toca la fila que está mal"/título en "error") baja
-   de tamaño y, si aún no basta, desaparece entero — la cabecera "Área ·
-   nivel" y la fila de confianza se quedan. Única relajación de "los tamaños
-   de letra no cambian" fuera de la explicación, aprobada por Carlos para
-   este caso concreto. */
+/* Paso (a) de la cascada SIN responder (mazo.js, dataset.respondida==='false'):
+   el enunciado (o "Toca la fila que está mal"/título en "error") baja de
+   tamaño un paso antes de compactar las opciones. Única relajación de "los
+   tamaños de letra no cambian" fuera de la explicación, aprobada por Carlos
+   para este caso concreto. */
 .tarjeta--enunciado-menor .enunciado {
   font-size: 15px;
   line-height: 1.3;
 }
 
-/* Descendiente, no hijo directo (corrección ronda 1 de revisión): estos tres
-   nodos viven dentro de `.tarjeta-contenido`, que a su vez vive dentro de
-   `.tarjeta` (donde se pone esta clase) — son nietos, no hijos, así que `>`
-   nunca los alcanzaba y este paso era código muerto. */
-.tarjeta--sin-enunciado .titulo-tarjeta,
-.tarjeta--sin-enunciado .enunciado,
-.tarjeta--sin-enunciado .instruccion-error {
-  display: none;
-}
-
-/* (f) la explicación, lo último que se toca junto con la imagen, baja de
-   tamaño en dos pasos antes de recurrir al recorte de (g). */
-.tarjeta--explicacion-menor .explicacion {
-  font-size: 14px;
-}
-
-.tarjeta--explicacion-minima .explicacion {
-  font-size: 13px;
-  line-height: 1.35;
-}
-
-/* (g) último recurso (no debería hacer falta con el banco actual): recorte
-   con line-clamp, cantidad de líneas calculada en JS (ver ajustarEncaje). */
+/* Recorte con line-clamp, cantidad de líneas calculada en JS (ver
+   ajustarEncaje en mazo.js): en la cascada REVELADA, la explicación se
+   recorta así dos veces (primero con mínimo 2 líneas, y como último recurso
+   con mínimo 1). La regla equivalente para el enunciado
+   (`.tarjeta--enunciado-clamp .enunciado`, que usan tanto la cascada SIN
+   responder como, desde la Ronda 1 de revisión I2, también la revelada) vive
+   más abajo, junto al resto de reglas de `.enunciado`. */
 .tarjeta--explicacion-clamp .explicacion {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -1034,14 +1027,17 @@ main#app {
 /* Ya NO hay recorte fijo a 5 líneas antes de responder (Añadido A, feedback
    de Carlos 13-sep tarde desde el iPhone: "No podemos tener preguntas que no
    caben" — una captura mostraba un enunciado cortado con "…" mientras sobraba
-   media tarjeta vacía arriba y abajo). El enunciado sin responder ahora tiene
-   su PROPIA cascada en ajustarEncaje (spec v0.1d §3/§4 ampliada): (a)
+   media tarjeta vacía arriba y abajo). El enunciado sin responder tiene su
+   PROPIA cascada en ajustarEncaje (spec v0.1d §3/§4 ampliada): (a)
    tarjeta--enunciado-menor; (b) tarjeta--opciones-compactas (ver más abajo);
    (c) último recurso, el mismo recorte con line-clamp CALCULADO (no fijo a 5)
    que ya usa la explicación — mínimo 2 líneas, con "…", sin ningún toque para
    desplegarlo (regla de Carlos: ningún toque en ninguna tarjeta para
-   desplegar/plegar nada). Reutiliza tarjeta--explicacion-clamp como patrón:
-   ver tarjeta--enunciado-clamp aquí y su cálculo en ajustarEncaje. */
+   desplegar/plegar nada). Reutiliza tarjeta--explicacion-clamp como patrón.
+   Ronda 1 de revisión de la Tarea 2 (I2): esta MISMA clase la reutiliza
+   también la cascada REVELADA como penúltimo paso, justo antes de recortar
+   la explicación a 1 línea — mismo mecanismo, mismo `calcularLineasClamp`,
+   solo que ahí la añade `ajustarEncaje` bajo otra condición (ver mazo.js). */
 .tarjeta--enunciado-clamp .enunciado {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -1367,10 +1363,10 @@ main#app {
 
 /* La explicación se muestra siempre, abierta: texto principal, no suave,
    tipografía fluida (spec v0.1c §4.1 punto 5). Ninguna tarjeta hace scroll: si
-   no cabe, ajustarEncaje() (app.js) la encoge (tarjeta--explicacion-menor/
-   -minima) y, como último recurso, la recorta con line-clamp
-   (tarjeta--explicacion-clamp, ver más arriba) — siempre automático, sin
-   ningún toque para desplegarla. */
+   no cabe, ajustarEncaje() (mazo.js, cascada revelada de spec §8/v0.2a.2) la
+   recorta con line-clamp calculado (tarjeta--explicacion-clamp, ver más
+   arriba, dos veces: mínimo 2 líneas y, como último recurso, mínimo 1) —
+   siempre automático, sin ningún toque para desplegarla. */
 .explicacion {
   color: var(--texto);
   font-size: clamp(13px, 3.7vw, 16px);
@@ -1501,18 +1497,23 @@ main#app {
    max-height:55vh — el visual sigue siendo "imagen" a todos los efectos de
    la cascada de encaje de v0.1d §4, y sigue absorbiendo el sobrante igual
    que una foto).
-   El <svg> de DENTRO ya NO se fuerza a height:100% (ronda 1 de revisión, V1:
+   El <svg> de DENTRO se forzaba a `height:auto` (ronda 1 de revisión, V1:
    "las imágenes deberían protagonizar", no dejar fondo vacío alrededor del
-   dibujo). Cada plantilla de visuales.js calcula su propio alto de viewBox
-   según su contenido real (filas, líneas...) y fija `aspect-ratio` en línea
-   igual a ese viewBox; aquí solo hace falta `width:100%; height:auto` para
-   que el SVG ocupe EXACTAMENTE lo que su aspect-ratio pide (nunca más), con
-   `max-height:100%` como red de seguridad si la caja se queda más baja que
-   eso (el 90px mínimo de la cascada). El fondo oscuro (`background`) vive en
-   el propio <svg>, así que nunca es más grande que el dibujo. Si la caja
-   flexible da más alto del que el SVG necesita, `justify-content:center` en
-   `.zona-imagen--visual` centra el bloque svg+leyenda en el sobrante en vez
-   de dejarlo pegado arriba con hueco vacío debajo (o dentro).
+   dibujo) para que ocupara EXACTAMENTE lo que su `aspect-ratio` en línea
+   (fijado por cada plantilla de visuales.js según su contenido real) pedía,
+   nunca más. Revertido en la Ronda 1 de revisión de la Tarea 2 (I1, ver el
+   comentario de `.zona-imagen--clave` más abajo): con el suelo nuevo de la
+   Tarea 2 (`.tarjeta--revelada .zona-imagen`, 40%/160px, mucho mayor que
+   antes), ese `aspect-ratio` propio dejaba un hueco vacío grande alrededor
+   del dibujo en vez de nada — justo lo contrario de "protagonismo visual".
+   Ahora el SVG pasa a `width:100%; height:100%` (llena la zona) y es
+   `preserveAspectRatio="xMidYMid meet"` quien sigue impidiendo que se
+   deforme; el fondo ya NO vive en el propio `<svg>`, vive en la zona (ver
+   más abajo), así que el posible sobrante de encajar sin deformar lo tapa
+   ese fondo en vez de dejarlo vacío. Si la caja flexible da más alto del que
+   el SVG necesita, `justify-content:center` en `.zona-imagen--visual` centra
+   el bloque svg+leyenda en el sobrante en vez de dejarlo pegado arriba con
+   hueco vacío debajo (o dentro).
 
    Hallazgo C1 (revisión final v0.1e, medido en vivo): con `flex:0 0 auto` +
    `max-height:100%`, el 100% se resuelve contra el alto de
@@ -1539,17 +1540,53 @@ main#app {
 .zona-imagen--visual {
   justify-content: center;
   min-height: 128px; /* 90 de dibujo + 4 de gap + 34 de leyenda a DOS líneas (re-review de la ola final: con 112 y leyenda larga el SVG quedaba en 88) */
+  background: #0b0f14;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
+/* Ronda 1 de revisión de la Tarea 2 (I1, medido en vivo: el SVG de la
+   tarjeta tipográfica solo llenaba el 56.9% de `.zona-imagen`, con 43% de
+   hueco oscuro arriba/abajo -- el suelo nuevo de la Tarea 2
+   (.tarjeta--revelada .zona-imagen, 40%/160px) agrandó la caja mucho más de
+   lo que el SVG, sizeado a su propio aspect-ratio 320/180, podía llenar por
+   sí solo). Arreglo: el degradado radial pasa a vivir en la ZONA (mismos
+   colores que el <radialGradient> de construirVisualClave en visuales.js),
+   así que llena `.zona-imagen` de borde a borde sea cual sea el alto real
+   que le toque, y el <rect> de fondo que dibuja el propio SVG se oculta
+   justo aquí (ver `.visual-clave-fondo` más abajo) para no duplicar el
+   degradado encima. Misma especificidad que `.zona-imagen--visual` de
+   arriba (1 clase): declarada DESPUÉS, gana el empate en los elementos que
+   llevan las dos clases a la vez. */
+.zona-imagen--clave {
+  background: radial-gradient(ellipse at 50% 40%, #0b2a33 0%, #07161b 100%);
+}
+
+/* El SVG ya no se limita a su propio aspect-ratio (`height:auto`, Tarea 1/
+   v0.1e): pasa a `width:100%; height:100%` -- llena la zona entera y dentro
+   de ella `preserveAspectRatio="xMidYMid meet"` (fijado en visuales.js) sigue
+   escalando el dibujo SIN deformarlo, solo que ahora el posible sobrante
+   (letterboxing) lo tapa el fondo de la zona de arriba, no un hueco vacío.
+   En la tarjeta tipográfica (un único hijo, sin leyenda) esto la llena del
+   todo; en un visual de datos (SVG + `.visual-pie` como hermanos en la misma
+   columna flex) `flex:0 1 auto` sigue dejando sitio a la leyenda -- el SVG
+   ocupa el resto, que con `height:100%` como base es "toda la zona menos la
+   leyenda", el hueco mínimo posible sin recortar el texto. */
 .zona-imagen--visual .visual-svg {
   flex: 0 1 auto;
   min-height: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
   max-height: none;
   display: block;
-  border-radius: 12px;
-  background: var(--fondo);
+}
+
+/* Oculta el <rect> de fondo del SVG SOLO dentro de esta caja (display:none,
+   no se quita del DOM): el degradado de `.zona-imagen--clave` ya cubre ese
+   papel aquí. Si el mismo SVG se reutiliza fuera de esta caja (pantalla
+   completa, Tarea 3), el rect sigue en el DOM y vuelve a pintarse solo. */
+.zona-imagen--clave .visual-clave-fondo {
+  display: none;
 }
 
 .zona-imagen--visual .visual-pie {
