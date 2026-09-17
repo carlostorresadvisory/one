@@ -957,6 +957,17 @@ main#app {
    antes de retirarlas. Lo que queda abajo SÍ sigue vivo. */
 .tarjeta--compacta-1 .respuesta-compacta { display: none; }
 .tarjeta--compacta-1 .respuesta-resumen { display: block; }
+
+/* C1 (ola final, regresión de la Tarea 1/§1.3): con `tarjeta--clave` (visual tipográfica),
+   `construirRespuestaCompacta(..., {soloFallo: true})` deja SOLO la línea "Tu respuesta: X ✗"
+   dentro de `.respuesta-compacta` (la correcta y las opciones ya las enseña la propia clave) y
+   `app.js` ya no añade `.respuesta-resumen` para sustituirla (sería ruido duplicado). Pero el
+   paso (a) de arriba esconde `.respuesta-compacta` ENTERA casi siempre en la tarjeta revelada, y
+   sin resumen que la reemplace, esa línea se quedaba con `display:none` para siempre: el jugador
+   que fallaba nunca veía qué había contestado. Alternativa aceptada en la revisión final (coste
+   ~20px, que la cascada absorbe con un paso más de recorte de explicación): más específica que la
+   regla de arriba (3 clases vs. 2), así gana tanto si (a) está activo como si no. */
+.tarjeta--clave.tarjeta--compacta-1 .respuesta-compacta { display: flex; }
 .tarjeta--compacta-1 .zona-respuesta { gap: 6px; }
 
 /* Paso (a) de la cascada SIN responder (mazo.js, dataset.respondida==='false'):
@@ -3011,5 +3022,35 @@ button.punto-servidor::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* I2 (ola final, Ruling R17) -- salvaguarda MÍNIMA en apaisado bajo (p. ej. 844×390: fuera de
+   alcance de la spec §2, pero girar el móvil es un gesto de un dedo). Con el suelo fijo del 50 %
+   de arriba, una tarjeta de 283px de alto deja una zona de 141,5px y `.tarjeta-contenido` (cabecera
+   + respuesta + feedback + explicación) desborda 93px que se recortan en silencio: desaparecen la
+   respuesta, "✗ Incorrecto"/"✓ Correcto" y la explicación entera, sin ningún aviso. Aquí, y SOLO
+   aquí, la visual cede su suelo y el contenido puede desplazarse -- sin ninguna garantía de
+   proporción (spec §2, "apaisado fuera de alcance"): el objetivo es que nada quede invisible, no
+   que se vea bien.
+   El desplazamiento TÁCTIL sigue bloqueado por `.mazo { touch-action: none }` (comentario de
+   `.tarjeta` más arriba: el touch-action "usado" de un descendiente es la intersección con el de
+   sus ancestros hasta el scrolling ancestor más cercano -- un `overflow-y` nuevo aquí no cambia esa
+   intersección) -- no se toca el mazo para no rediseñarlo fuera de esta ola. Rueda del ratón y
+   teclado (Tab hasta un elemento enfocable dentro, flechas/Space con el foco ya ahí) sí desplazan
+   `overflow-y: auto` con normalidad, así que en un portátil/tablet con teclado el contenido entero
+   sigue siendo alcanzable; en un móvil real apaisado, sigue sin poder deslizarse con el dedo. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tarjeta--revelada .zona-imagen {
+    /* `calc(var(--alto-tarjeta) * 0.3)`, no `30%` a secas: un `%` en `min-height` se resolvería
+       contra el alto de `.tarjeta-contenido` (su contenedor flex inmediato), no contra la TARJETA
+       entera -- mismo motivo, y misma variable, que ya usa el suelo/techo base de arriba
+       (`calc(var(--alto-tarjeta) * 0.5/0.6)`); verificado en vivo (script de un solo uso, ola
+       final): con `30%` a secas el resultado real era ~17 % de la tarjeta, no el 30 % pedido. */
+    min-height: calc(var(--alto-tarjeta) * 0.3);
+  }
+
+  .tarjeta-contenido {
+    overflow-y: auto;
   }
 }

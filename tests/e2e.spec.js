@@ -5672,8 +5672,14 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
     await expect(t.locator('.visual-clave-veredicto')).toHaveText('Falso');
     await expect(t.locator('.visual-clave-veredicto')).toHaveClass(/visual-clave-veredicto--falso/);
     await expect(t.locator('.visual-clave-frase')).toHaveText('Todo cuadrado es un círculo.');
-    // Falló (respondió Verdadero): SÍ se conserva la línea de su respuesta.
-    await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveText('Tu respuesta: Verdadero ✗');
+    // Falló (respondió Verdadero): SÍ se conserva la línea de su respuesta, y tiene que VERSE de
+    // verdad (I3, ola final): `toHaveText` sola pasa igual con el elemento a `display:none` (lee
+    // `textContent`, no exige visibilidad) -- así fue como C1 se coló sin que este test lo pillara.
+    const lineaRespuestaJugador = t.locator('.respuesta-compacta-linea--tachada');
+    await expect(lineaRespuestaJugador).toHaveText('Tu respuesta: Verdadero ✗');
+    await expect(lineaRespuestaJugador).toBeVisible();
+    const altoLineaRespuesta = await lineaRespuestaJugador.evaluate((el) => el.getBoundingClientRect().height);
+    expect(altoLineaRespuesta).toBeGreaterThan(0);
     await assertTarjetaSinScroll(page);
   });
 });
