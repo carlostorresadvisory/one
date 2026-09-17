@@ -2568,9 +2568,24 @@ function pintarFeedback(feedbackNodo, pregunta, correcta, delta) {
   if (hayRecuperada) {
     chipRecuperada.textContent = `Recuperada · la fallaste el ${formatearFechaCorta(delta.recuperada.fechaFallo)}`;
   }
-  feedbackNodo.querySelector('[data-test="confianza-alta-fallo"]').hidden = !(delta.confianza === 'alta' && !correcta);
+  const hayConfianzaAltaFallo = delta.confianza === 'alta' && !correcta;
+  feedbackNodo.querySelector('[data-test="confianza-alta-fallo"]').hidden = !hayConfianzaAltaFallo;
   feedbackNodo.querySelector('[data-test="mision-completada"]').hidden = !delta.misionCompletada;
   feedbackNodo.querySelector('[data-test="fragil"]').hidden = !delta.fragil;
+
+  // Ronda de corrección 1 (Tarea 6, Ruling R13): `.feedback-chips` es el contenedor flex de los
+  // cuatro chips de arriba -- con `display:flex` fijo en estilos.css, se queda como flex item VISIBLE
+  // de `.feedback` (gap:8px/4px) aunque los cuatro estén `hidden`, gastando un hueco de gap entero
+  // por nada (el comentario de la propia regla CSS ya decía "sin hueco cuando no hay ninguno
+  // visible" -- no se cumplía). Medido en vivo: ese hueco fantasma es 4px de los 9px que le faltaban
+  // a `.tarjeta-contenido` para caber en cie-008 a 375×667 (ver `mazo.js#ajustarEncaje`, paso nuevo
+  // (h), para el resto).
+  feedbackNodo.querySelector('.feedback-chips').hidden = !(
+    hayRecuperada ||
+    hayConfianzaAltaFallo ||
+    delta.misionCompletada ||
+    delta.fragil
+  );
 }
 
 /** Esqueleto del bloque de feedback (resultado, chips, explicación): se pinta

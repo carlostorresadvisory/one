@@ -2039,6 +2039,13 @@ test.describe('ONE · visuales v0.1e', () => {
 // con `preserveAspectRatio="xMidYMid meet"` dejando bandas vacías arriba/abajo. Una pregunta real
 // del banco por cada una de las tres plantillas que el criterio exige (barras/comparación/línea
 // temporal -- formula y dato son deuda menor aceptada por el plan, ver task-6-brief.md).
+//
+// Ronda de corrección 1 (Ruling R13 del coordinador, 18-sep): `assertTarjetaSinScroll` volvió
+// (estaba retirado porque desbordaba 9px a 375×667, un hallazgo real de la cascada de encaje de
+// `ajustarEncaje`, mazo.js -- ver el paso (h) nuevo, "tarjeta--espaciado-minimo", y el "Informe de
+// corrección" de task-6-report.md para el diagnóstico medido). Los tres casos se prueban ahora a
+// los DOS viewports que exige el ruling (375×667 y 390×844, mismo array `VIEWPORTS` que ya usa
+// "ONE · visual al 50-60 % real de la tarjeta" más abajo en este fichero, por consistencia).
 // ============================================================================
 test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', () => {
   // Una pregunta real del banco por plantilla de las tres que nombra la spec, SIN imagen de Commons
@@ -2049,71 +2056,129 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
   //    cuadro de Botticelli), así que con ese id la imagen tapa el visual entero y
   //    `[data-test="visual"]` nunca aparece -- no es un caso de "elige otro del mismo tipo" por
   //    gusto, es que ese id no puede probar este test tal como está escrito.
-  //  - linea-tiempo art-006 -> his-062: cambio por la razón de assertTarjetaSinScroll de abajo (con
-  //    art-006 el mismo hallazgo se reproduce igual que con cie-008/art-048).
+  //  - linea-tiempo art-006 -> his-062: art-006 desbordaba igual que cie-008/art-048 antes de la
+  //    Ronda de corrección 1 (ver arriba); ya no hacía falta el cambio, pero se deja porque no hay
+  //    motivo para revertirlo y así los tres casos representan los tres tipos de pregunta que puede
+  //    llevar un visual de datos (test4, error, vf).
   const CASOS = [
     { id: 'cie-008', tipo: 'barras' },
     { id: 'cie-094', tipo: 'comparacion' },
     { id: 'his-062', tipo: 'linea-tiempo' },
   ];
 
+  const VIEWPORTS_COBERTURA = [
+    { width: 375, height: 667, nombre: '375×667' },
+    { width: 390, height: 844, nombre: '390×844' },
+  ];
+
   for (const caso of CASOS) {
-    test(`${caso.tipo} (${caso.id}): el dibujo cubre ≥85 % del alto de la zona y la leyenda va dentro`, async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-      await page.emulateMedia({ reducedMotion: 'reduce' });
-      await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
-      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-      await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
+    for (const vp of VIEWPORTS_COBERTURA) {
+      test(`${caso.tipo} (${caso.id}) a ${vp.nombre}: el dibujo cubre ≥85 % del alto de la zona, la leyenda va dentro y la tarjeta no desborda`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.goto('/?test=1');
+        await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+        await page.locator('[data-test="cerebro"]').click();
+        await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+        await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
 
-      const t = tarjetaActual(page);
-      // Sin `sospechosoPorTitulo`: no hace falta acertar la fila sospechosa de un "error" para que
-      // el visual se pinte (el visual no depende de si la respuesta fue correcta), así que basta con
-      // la firma de un solo argumento de `responderPreguntaActual`.
-      await responderPreguntaActual(page);
-      await esperarAsentamientoMazo(page);
-      await expect(t.locator('[data-test="visual"]')).toBeVisible();
+        const t = tarjetaActual(page);
+        // Sin `sospechosoPorTitulo`: no hace falta acertar la fila sospechosa de un "error" para que
+        // el visual se pinte (el visual no depende de si la respuesta fue correcta), así que basta
+        // con la firma de un solo argumento de `responderPreguntaActual`.
+        await responderPreguntaActual(page);
+        await esperarAsentamientoMazo(page);
+        await expect(t.locator('[data-test="visual"]')).toBeVisible();
 
-      const medidas = await t.evaluate((tarjeta) => {
+        const medidas = await t.evaluate((tarjeta) => {
+          const zona = tarjeta.querySelector('.zona-imagen');
+          const svg = zona.querySelector('svg');
+          const pie = zona.querySelector('.visual-pie');
+          const rZona = zona.getBoundingClientRect();
+          const rSvg = svg.getBoundingClientRect();
+          // `preserveAspectRatio="xMidYMid meet"` escala el DIBUJO dentro del elemento <svg>: medir
+          // el elemento daría siempre el 100 % y no probaría nada. Lo que se mide es el dibujo real.
+          const vb = svg.viewBox.baseVal;
+          const escala = Math.min(rSvg.width / vb.width, rSvg.height / vb.height);
+          return {
+            cobertura: (vb.height * escala) / rZona.height,
+            pieDentro: pie ? pie.getBoundingClientRect().bottom <= rZona.bottom + 1 : null,
+            piePosicion: pie ? getComputedStyle(pie).position : null,
+          };
+        });
+        expect(
+          medidas.cobertura,
+          `el dibujo cubre el ${(medidas.cobertura * 100).toFixed(1)}% del alto de la zona`
+        ).toBeGreaterThanOrEqual(0.85);
+        if (medidas.piePosicion !== null) {
+          expect(medidas.piePosicion).toBe('absolute');
+          expect(medidas.pieDentro).toBe(true);
+        }
+        await assertTarjetaSinScroll(page);
+      });
+    }
+  }
+
+  // Criterio (2) del Ruling R13: barrido de los ids reales del banco con visual de datos (sin
+  // imagen de Commons, que taparía el visual -- mismo motivo que la sustitución de art-048 de
+  // arriba) a 375×667, el viewport más ajustado de la suite. 44 ids (no 46: de los 46 con
+  // `visual.tipo` en {barras, comparacion, linea-tiempo}, 2 -- art-048 y art-077 -- tienen imagen
+  // real y por tanto nunca pintan el visual, spec v0.1e §2 prioridad fija). Contexto NUEVO por id
+  // (browser.newContext, no reusar `page`): reusar el mismo `page`/localStorage entre preguntas
+  // arrastra racha/nivel/XP de una a la siguiente y puede disparar un "cambio de nivel" que no es
+  // un rasgo de la pregunta sino del orden en que este test las jugó -- un jugador real llegando
+  // fresco a esa pregunta no lo vería siempre así (hallazgo real de la Ronda de corrección 1: con
+  // contexto compartido, algunos ids medían hasta 30px de desborde; en contexto fresco, los mismos
+  // ids miden exactamente 9px, igual que el resto -- ver task-6-report.md). ~39s en vivo, por debajo
+  // del límite de 60s que fija el propio ruling para dejarlo como e2e en vez de script aparte.
+  test('barrido de los ids reales del banco con visual de datos a 375×667: ninguno desborda y la zona sigue en [50,60] %', async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(90000);
+    // `page` de este test solo se usa para leer los JSON del banco (fetch necesita un origen ya
+    // navegado); las 44 partidas del barrido, cada una en su propio contexto, más abajo.
+    await page.goto('/?test=1');
+    const [banco, imagenes] = await Promise.all([
+      page.evaluate(() => fetch('datos/banco.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.json').then((r) => r.json())),
+    ]);
+    const tipos = ['barras', 'comparacion', 'linea-tiempo'];
+    const ids = banco
+      .filter((p) => p.visual && tipos.includes(p.visual.tipo) && !imagenes[p.id])
+      .map((p) => ({ id: p.id, tipo: p.tipo }));
+    expect(ids.length).toBeGreaterThanOrEqual(40); // red de seguridad: que el banco no se haya vaciado
+
+    const fallos = [];
+    for (const { id, tipo } of ids) {
+      const contexto = await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true });
+      const p2 = await contexto.newPage();
+      await p2.emulateMedia({ reducedMotion: 'reduce' });
+      await p2.goto('/?test=1');
+      await p2.locator('[data-test="cerebro"]').click();
+      await p2.evaluate((idPregunta) => window.__one.empezarPartida({ ids: [idPregunta], etiqueta: 'barrido' }), id);
+      await responderPreguntaActual(p2);
+      await esperarAsentamientoMazo(p2);
+
+      const medidas = await p2.evaluate(() => {
+        const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+        const contenido = tarjeta.querySelector('.tarjeta-contenido');
         const zona = tarjeta.querySelector('.zona-imagen');
-        const svg = zona.querySelector('svg');
-        const pie = zona.querySelector('.visual-pie');
-        const rZona = zona.getBoundingClientRect();
-        const rSvg = svg.getBoundingClientRect();
-        // `preserveAspectRatio="xMidYMid meet"` escala el DIBUJO dentro del elemento <svg>: medir
-        // el elemento daría siempre el 100 % y no probaría nada. Lo que se mide es el dibujo real.
-        const vb = svg.viewBox.baseVal;
-        const escala = Math.min(rSvg.width / vb.width, rSvg.height / vb.height);
         return {
-          cobertura: (vb.height * escala) / rZona.height,
-          pieDentro: pie ? pie.getBoundingClientRect().bottom <= rZona.bottom + 1 : null,
-          piePosicion: pie ? getComputedStyle(pie).position : null,
+          overflow: contenido.scrollHeight - contenido.clientHeight,
+          ratio: zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height,
         };
       });
-      expect(
-        medidas.cobertura,
-        `el dibujo cubre el ${(medidas.cobertura * 100).toFixed(1)}% del alto de la zona`
-      ).toBeGreaterThanOrEqual(0.85);
-      if (medidas.piePosicion !== null) {
-        expect(medidas.piePosicion).toBe('absolute');
-        expect(medidas.pieDentro).toBe(true);
+      if (medidas.overflow > 2 || medidas.ratio < 0.5 - 0.01 || medidas.ratio > 0.6 + 0.01) {
+        fallos.push({ id, tipo, ...medidas });
       }
-      // NO `assertTarjetaSinScroll` aquí (a diferencia del resto de tests de este fichero): un
-      // barrido de los 46 ids reales de barras/comparacion/linea-tiempo sin imagen a 375×667 (el
-      // viewport más ajustado que usa esta suite) muestra que `.tarjeta-contenido` ya desborda entre
-      // 9 y 30px en 42 de esos 46 -- SOLO los de tipo "error" (fila+feedback más corto) caben, y por
-      // eso `cie-094`/`his-062` de arriba son justo esos. Confirmado con `git stash` que el desborde
-      // es IDÉNTICO byte a byte antes y después de esta tarea (cie-008 y art-006 antes de esta tarea:
-      // mismo contenidoScrollHeight/contenidoClientHeight, 431/422, con el viewBox NATURAL de la
-      // plantilla, sin `altoObjetivo`) -- la cobertura del dibujo (arriba) ya sale 100 % en los tres
-      // casos, así que la Tarea 6 hace lo que tiene que hacer; el desborde es de la cascada de
-      // encaje de `ajustarEncaje` (mazo.js, fuera del alcance de esta tarea: no está en la lista de
-      // ficheros del brief) quedándose corta en el peor caso de una pregunta test4/vf/ordenar a este
-      // viewport, con o sin visual. Queda anotado para quien revise si hace falta abrir una tarea
-      // aparte sobre mazo.js.
-    });
-  }
+      await contexto.close();
+    }
+
+    expect(fallos, `ids que desbordan o salen de [50,60] %: ${JSON.stringify(fallos, null, 2)}`).toEqual([]);
+  });
 });
 
 // ============================================================================

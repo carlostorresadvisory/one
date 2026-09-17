@@ -1328,6 +1328,14 @@ main#app {
   gap: 6px;
 }
 
+/* Ronda de corrección 1 (Tarea 6, Ruling R13): el comentario de arriba ("sin hueco cuando no hay
+   ninguno visible") no se cumplía -- con `display:flex` fijo, `.feedback-chips` seguía siendo un
+   flex item VISIBLE de `.feedback` (consumía un `gap` entero) aunque sus cuatro chips estuvieran
+   `hidden` (el caso más común: la mayoría de respuestas no tienen ni "Recuperada" ni "Frágil" ni
+   nada que mostrar aquí). `pintarFeedback` (app.js) ya pone `hidden` en el propio contenedor
+   cuando ninguno de los cuatro aplica; mismo patrón que `.feedback-chip[hidden]` de abajo. */
+.feedback-chips[hidden] { display: none; }
+
 .feedback-chip {
   display: inline-flex;
   padding: 4px 9px;
@@ -1585,6 +1593,23 @@ main#app {
 .tarjeta--feedback-minimo .cambio-nivel,
 .tarjeta--feedback-minimo .cambio-nivel-area {
   display: none;
+}
+
+/* Paso (h), último recurso de verdad de verdad (Ronda de corrección 1, Ruling R13 del
+   coordinador, 18-sep): con la visual de datos fija en su suelo del 50 % (spec §1.1.3) a
+   375×667, medido en vivo sobre 46 preguntas reales del banco -- una tarjeta revelada normal
+   (sin tipo "error" ni cambio de nivel) le faltan 9px EXACTOS a `.tarjeta-contenido` para caber
+   incluso después de (a)-(g), porque a esas alturas todo el texto variable ya está clampado a un
+   número fijo de líneas: lo único que queda por ceder es el aire ENTRE los 5 bloques de
+   `.tarjeta-contenido` (cabecera/visual/enunciado/respuesta/feedback), no más texto. 8px -> 4px
+   de gap entre esos 5 hijos son 16px reales (4 huecos) -- de sobra para los 9px que faltaban, con
+   el mismo aire que ya usan otros pasos de esta cascada (tarjeta--compacta-1 .zona-respuesta y
+   tarjeta--feedback-menor .feedback, ambos por debajo de los 8px por defecto). Necesita la misma
+   especificidad que `.tarjeta[data-respondida="true"] .tarjeta-contenido` (3 selectores de clase)
+   para ganarle: dos clases + `.tarjeta-contenido` bastan porque esta clase SOLO se añade sobre el
+   propio `.tarjeta` (nunca hace falta repetir `[data-respondida="true"]`). */
+.tarjeta.tarjeta--espaciado-minimo .tarjeta-contenido {
+  gap: 4px;
 }
 
 /* --- visual generado (spec v0.1e §2/§4): un SVG dibujado por la propia app

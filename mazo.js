@@ -596,6 +596,22 @@ export function ajustarEncaje(tarjetaNodo) {
     //      tampoco hace falta para leer esa línea, y el cambio de nivel es una notificación, no
     //      información sobre ESTA pregunta -- perderla en este caso extremo es mejor que el scroll.
     //      Se ocultan los cuatro (tarjeta--feedback-minimo, ver estilos.css).
+    //  (h) último recurso de verdad de verdad (Ronda de corrección 1, Ruling R13 del coordinador,
+    //      18-sep): con un visual de datos en su suelo del 50 % fijo (spec §1.1.3, nunca cede), a
+    //      375×667 una tarjeta revelada normal (test4/vf/ordenar, sin tipo "error" ni cambio de
+    //      nivel) desborda `.tarjeta-contenido` en 9px EXACTOS incluso después de (a)-(g) -- medido
+    //      en vivo sobre los 46 ids reales del banco con visual de barras/comparación/línea
+    //      temporal (script ad hoc, ver task-6-report.md, "Informe de corrección"): el desborde es
+    //      CONSTANTE (9px, no depende del contenido real de cada pregunta) porque para cuando se
+    //      llega aquí todo el texto variable ya está clampado a un número fijo de líneas -- lo único
+    //      que queda por ceder es el aire ENTRE los bloques, no más texto. Antes de (h), la cascada
+    //      simplemente se rendía aquí sin haber agotado ese aire: `tarjeta--espaciado-minimo` aprieta
+    //      el `gap` de `.tarjeta-contenido` (8px -> 4px entre sus 5 hijos, 16px reales con los 4
+    //      huecos) y deja a la explicación recalcular su recorte con el hueco que eso libera (mismo
+    //      patrón que (f)). No es "esconder" el desborde (criterio explícito del coordinador): es
+    //      real espacio de más que sobraba entre bloques, con el mismo aire ya usado en otros sitios
+    //      de esta misma tarjeta (tarjeta--compacta-1 .zona-respuesta y tarjeta--feedback-menor
+    //      .feedback ya usan 4-6px de gap en vez de 8).
     tarjetaNodo.classList.add('tarjeta--compacta-1');
     if (cabe()) return;
 
@@ -624,6 +640,10 @@ export function ajustarEncaje(tarjetaNodo) {
     if (cabe()) return;
 
     tarjetaNodo.classList.add('tarjeta--feedback-minimo');
+    if (cabe()) return;
+
+    tarjetaNodo.classList.add('tarjeta--espaciado-minimo');
+    if (explicacionEl && contenidoEl) calcularLineasClamp(explicacionEl, contenidoEl, 1);
   }
 }
 
