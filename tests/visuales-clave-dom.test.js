@@ -9,7 +9,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { construirVisualClave, textoVisualClave, recortarALinea, medirAncho } from '../visuales.js';
+import { construirVisualClave, modeloVisualClave, recortarALinea, medirAncho } from '../visuales.js';
 
 // Mismo diccionario que NOMBRES_AREA en app.js (app.js:317-320) -- duplicado a propósito porque
 // app.js no exporta nada (igual que ya reconoce el propio construirVisualClave en su JSDoc).
@@ -81,8 +81,26 @@ async function cargarPorId(id) {
   return pregunta;
 }
 
-test('construirVisualClave: estructura básica -- role, aria-label, textos de área/principal/secundario presentes', async () => {
-  const pregunta = await cargarPorId('art-009'); // test4, tiene principal + secundario + área
+/** Reconstruye aquí (Tarea 1 de v0.2a.2.1) el mismo adaptador temporal que
+ * `construirVisualClave` usa por dentro para pasar de `modeloVisualClave` (por tipo) al
+ * `{ area, principal, secundario }` del SVG de v0.2a.2 -- `construirVisualClave` no expone
+ * `datos`, así que este helper deja que el test compare contra el mismo dato que ve el SVG.
+ * La Tarea 2 sustituye el adaptador entero por HTML por tipo, y con él este helper. */
+function datosClaveAdaptados(pregunta) {
+  const modelo = modeloVisualClave(pregunta) || { tipo: 'desconocido', area: '' };
+  return {
+    area: modelo.area,
+    principal: modelo.tipo === 'ordenar' ? modelo.items.join(' → ')
+      : modelo.tipo === 'error' ? modelo.etiqueta
+      : modelo.tipo === 'test4' ? modelo.correcta
+      : modelo.tipo === 'vf' ? modelo.veredicto
+      : '',
+    secundario: modelo.tipo === 'vf' ? modelo.frase : undefined,
+  };
+}
+
+test('construirVisualClave: estructura básica -- role, aria-label, textos de área/principal presentes', async () => {
+  const pregunta = await cargarPorId('art-009'); // test4, tiene principal + área
   const restaurar = instalarDomFalso();
   try {
     const svg = construirVisualClave(pregunta, { nombreArea });
@@ -92,8 +110,11 @@ test('construirVisualClave: estructura básica -- role, aria-label, textos de á
     assert.deepEqual(svg.clases.sort(), ['visual-svg', 'visual-svg--clave']);
     assert.equal(svg.dataset.test, 'visual-clave');
 
-    const datos = textoVisualClave(pregunta);
-    assert.equal(svg.attrs['aria-label'], `${datos.principal} — ${datos.secundario}`);
+    const datos = datosClaveAdaptados(pregunta);
+    // Tarea 1: el adaptador temporal solo da `secundario` para tipo 'vf' -- `test4` ya no lo aporta,
+    // así que el aria-label es solo el principal (ver `construirVisualClave`: `secundario ? … : principal`).
+    assert.equal(datos.secundario, undefined);
+    assert.equal(svg.attrs['aria-label'], datos.principal);
 
     const textos = recolectarTextos(svg);
     const area = textos.find((t) => t.attrs['font-size'] === '11');
@@ -104,20 +125,21 @@ test('construirVisualClave: estructura básica -- role, aria-label, textos de á
     assert.equal(area.textContent, 'ARTE');
     assert.ok(principal, 'falta el texto del principal');
     assert.equal(principal.textContent, 'La última cena');
-    assert.ok(secundario, 'falta el texto del secundario');
-    // C1: el secundario que se pinta es el ORIGINAL pasado por recortarALinea(secundario, 296, 13),
-    // no el original sin recortar (que se salía del viewBox).
-    assert.equal(secundario.textContent, recortarALinea(datos.secundario, 296, 13));
+    assert.equal(secundario, undefined, 'test4 ya no pinta secundario en el adaptador temporal de la Tarea 1');
   } finally {
     restaurar();
   }
 });
 
 test('construirVisualClave: C1 -- un secundario real de 89 caracteres se recorta a una línea que cabe en el viewBox (no se sale)', async () => {
-  const pregunta = await cargarPorId('art-010'); // enunciado de 118 car., secundario puro = 89 car.
+  // Tarea 1: el adaptador temporal solo da `secundario` para tipo 'vf' (antes esta regresión (C1) se
+  // probaba con el test4 real art-010; se reusa su mismo enunciado real de 118 caracteres forzando
+  // `tipo: 'vf'` para seguir ejercitando la ruta que hoy SÍ pinta secundario).
+  const original = await cargarPorId('art-010');
+  const pregunta = { ...original, tipo: 'vf', respuesta: true };
   const restaurar = instalarDomFalso();
   try {
-    const datos = textoVisualClave(pregunta);
+    const datos = datosClaveAdaptados(pregunta);
     assert.equal(datos.secundario.length, 89); // confirma que el caso de partida SIGUE siendo largo
 
     const svg = construirVisualClave(pregunta, { nombreArea });

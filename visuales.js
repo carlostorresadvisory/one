@@ -654,9 +654,9 @@ export function construirVisual(visual) {
 // preguntas tengan visual: la clave de la respuesta correcta en grande sobre un fondo radial cian
 // oscuro, con el nombre del área. Sirve también para toda pregunta `srv-` que llegue sin visual.
 //
-// `textoVisualClave` es la parte PURA (solo texto, sin DOM) para poder probarla con node:test sin
-// necesitar el navegador; `construirVisualClave` la convierte en SVG con el mismo estilo de
-// creación (`createElementNS`) que las plantillas de arriba.
+// `modeloVisualClave` es la parte PURA (solo modelo, sin DOM) para poder probarla con node:test sin
+// necesitar el navegador; `construirVisualClave` la convierte en HTML con el mismo estilo de
+// creación (`createElementNS`/DOM) que las plantillas de arriba.
 
 /** Primera frase de `enunciado`: hasta el primer terminador ('.', '?' o '!') inclusive; sin
  * terminador (o si la frase resultante supera los 90 caracteres) se recorta a 90 caracteres como
@@ -678,68 +678,88 @@ function primeraFrase(enunciado) {
 }
 
 /**
- * Texto de la tercera capa (spec v0.2 §8), puro -- sin DOM. Nunca lanza: cualquier forma rota de
- * `pregunta` (tipo desconocido, faltan opciones/tarjeta/items, índices fuera de rango...) devuelve
- * `principal` vacío en vez de lanzar; `construirVisualClave` pinta entonces un SVG con solo el área.
+ * Modelo de la tarjeta tipográfica (spec v0.2a.2.1 §1.3), PURO -- sin DOM, testeable con node:test.
+ * Sustituye a `textoVisualClave` de v0.2a.2 (principal/secundario): aquella forma única servía para
+ * un SVG de una sola línea grande y era justo lo que Carlos calificó de "muy mala" en `ordenar`
+ * (mostraba "primero → último" en vez del orden entero). Ahora cada tipo tiene su propio modelo,
+ * y `construirVisualClave` decide el layout HTML a partir de `tipo`.
  *
- * - `test4` -> `principal` = texto de la opción correcta (`opciones[correcta]`); `secundario` =
- *   primera frase del enunciado.
- * - `error` -> `principal` = etiqueta de la fila marcada como sospechosa
- *   (`tarjeta.filas[sospechoso].etiqueta` -- ver motor.js#evaluar y tools/validar-banco.js, el motor
- *   compara `respuesta === pregunta.sospechoso`); `secundario` = primera frase del enunciado.
- * - `ordenar` -> `principal` = `"<primero> → <último>"` del orden correcto: `items` YA viene en el
- *   orden correcto (motor.js#evaluar usa `items.map((_, i) => i)` como objetivo), así que son
- *   sencillamente el primer y el último elemento del array. Sin `secundario` (no hace falta: el
- *   propio principal ya da el contexto de inicio/fin).
- * - `vf` -> `principal` = `"Cierto"` o `"Falso"` según `respuesta`; `secundario` = primera frase.
+ * NUNCA lanza: cualquier forma rota (tipo desconocido, faltan opciones/tarjeta/items, índices fuera
+ * de rango, `null`…) devuelve `{ tipo: 'desconocido', area }` y la capa de dibujo pinta solo el área.
  *
  * @param {any} pregunta
- * @returns {{ principal: string, secundario?: string, area?: string }}
+ * @returns {{tipo: string, area: string, titulo?: string, [clave: string]: any}}
  */
-export function textoVisualClave(pregunta) {
-  if (!pregunta || typeof pregunta !== 'object') return { principal: '' };
+export function modeloVisualClave(pregunta) {
+  if (!pregunta || typeof pregunta !== 'object') return { tipo: 'desconocido', area: '' };
+  const area = esTextoValido(pregunta.area) ? pregunta.area.trim() : '';
+  const desconocido = { tipo: 'desconocido', area };
 
-  const area = esTextoValido(pregunta.area) ? pregunta.area : undefined;
-  let principal = '';
-  let secundario;
-
-  switch (pregunta.tipo) {
-    case 'test4': {
-      const opciones = Array.isArray(pregunta.opciones) ? pregunta.opciones : null;
-      const idx = pregunta.correcta;
-      if (opciones && Number.isInteger(idx) && idx >= 0 && idx < opciones.length && esTextoValido(opciones[idx])) {
-        principal = opciones[idx].trim();
+  try {
+    switch (pregunta.tipo) {
+      case 'ordenar': {
+        // `items` YA viene en el orden correcto (motor.js#evaluar compara contra
+        // items.map((_, i) => i)): la lista se pinta tal cual, entera.
+        const items = Array.isArray(pregunta.items)
+          ? pregunta.items.filter(esTextoValido).map((t) => t.trim())
+          : [];
+        if (!items.length) return desconocido;
+        return { tipo: 'ordenar', area, titulo: 'Orden correcto', items };
       }
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    case 'error': {
-      const filas = pregunta.tarjeta && Array.isArray(pregunta.tarjeta.filas) ? pregunta.tarjeta.filas : null;
-      const idx = pregunta.sospechoso;
-      if (filas && Number.isInteger(idx) && idx >= 0 && idx < filas.length && filas[idx] && esTextoValido(filas[idx].etiqueta)) {
-        principal = filas[idx].etiqueta.trim();
+      case 'error': {
+        const filas = pregunta.tarjeta && Array.isArray(pregunta.tarjeta.filas) ? pregunta.tarjeta.filas : null;
+        const idx = pregunta.sospechoso;
+        const fila = filas && Number.isInteger(idx) && idx >= 0 && idx < filas.length ? filas[idx] : null;
+        if (!fila || !esTextoValido(fila.etiqueta)) return desconocido;
+        // Hoy NINGUNA de las 40 preguntas `error` del banco trae el valor correcto aparte
+        // (comprobado el 17-sep-2026 sobre datos/banco.json): `valorCorrecto` queda vacío y la
+        // capa de dibujo enseña la fila tal cual, sin tachar nada (spec §1.3, rama "si la
+        // tarjeta de datos no tiene valor correcto separado"). Los dos campos opcionales se
+        // leen igualmente para que el pipeline pueda empezar a rellenarlos sin tocar esto.
+        const correccion = esTextoValido(fila.correcto)
+          ? fila.correcto.trim()
+          : esTextoValido(pregunta.correccion)
+            ? pregunta.correccion.trim()
+            : '';
+        return {
+          tipo: 'error',
+          area,
+          titulo: 'Dato erróneo',
+          etiqueta: fila.etiqueta.trim(),
+          valorErroneo: esTextoValido(fila.valor) ? fila.valor.trim() : '',
+          valorCorrecto: correccion,
+        };
       }
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    case 'ordenar': {
-      const items = Array.isArray(pregunta.items) ? pregunta.items : [];
-      if (items.length > 0 && esTextoValido(items[0]) && esTextoValido(items[items.length - 1])) {
-        principal = `${items[0].trim()} → ${items[items.length - 1].trim()}`;
+      case 'test4': {
+        const opciones = Array.isArray(pregunta.opciones) ? pregunta.opciones : null;
+        const idx = pregunta.correcta;
+        if (!opciones || !Number.isInteger(idx) || idx < 0 || idx >= opciones.length || !esTextoValido(opciones[idx])) {
+          return desconocido;
+        }
+        return {
+          tipo: 'test4',
+          area,
+          titulo: '',
+          correcta: opciones[idx].trim(),
+          descartadas: opciones.filter((_, i) => i !== idx).filter(esTextoValido).map((t) => t.trim()),
+        };
       }
-      break;
+      case 'vf': {
+        if (pregunta.respuesta !== true && pregunta.respuesta !== false) return desconocido;
+        return {
+          tipo: 'vf',
+          area,
+          titulo: '',
+          veredicto: pregunta.respuesta ? 'Cierto' : 'Falso',
+          frase: primeraFrase(pregunta.enunciado),
+        };
+      }
+      default:
+        return desconocido;
     }
-    case 'vf': {
-      if (pregunta.respuesta === true) principal = 'Cierto';
-      else if (pregunta.respuesta === false) principal = 'Falso';
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    default:
-      break; // tipo desconocido: principal se queda vacío, nunca lanza.
+  } catch (err) {
+    return desconocido; // contrato de la capa: nunca lanza, ni con datos del servidor mal formados
   }
-
-  return { principal, secundario, area };
 }
 
 /** Primera letra en mayúscula -- mismo fallback que `nombreArea` en app.js (NOMBRES_AREA no está
@@ -808,8 +828,9 @@ let contadorGradienteClave = 0;
  * 22 si necesita dos), `secundario` en 13 debajo cuando existe, nombre del área en 11 arriba a la
  * izquierda. `role="img"`, `aria-label` = `principal` (+ " — " + `secundario` si existe).
  *
- * Nunca lanza: si `textoVisualClave` no puede sacar `principal` (pregunta rota), devuelve un SVG con
- * solo el área (o completamente vacío si ni el área hay). Ronda de corrección 1 (C2): TODO el cuerpo
+ * Nunca lanza: si el adaptador temporal (basado en `modeloVisualClave`) no puede sacar `principal`
+ * (pregunta rota), devuelve un SVG con solo el área (o completamente vacío si ni el área hay).
+ * Ronda de corrección 1 (C2): TODO el cuerpo
  * que construye el SVG -- incluida la llamada a `nombreArea`, que puede venir de fuera (app.js) y no
  * tiene por qué ser defensiva -- vive dentro de un único `try/catch`; el `catch` reconstruye el SVG
  * de "solo área" usando siempre `capitalizarArea` (nunca la `nombreArea` externa, que es justo la
@@ -828,7 +849,18 @@ let contadorGradienteClave = 0;
 export function construirVisualClave(pregunta, { nombreArea } = {}) {
   let datos;
   try {
-    datos = textoVisualClave(pregunta) || {};
+    // Adaptador temporal (Tarea 1): la Tarea 2 sustituye esta función entera por el bloque HTML
+    // por tipo. Se mantiene el SVG de v0.2a.2 vivo mientras tanto para que la app siga funcionando.
+    const modelo = modeloVisualClave(pregunta) || { tipo: 'desconocido', area: '' };
+    datos = {
+      area: modelo.area,
+      principal: modelo.tipo === 'ordenar' ? modelo.items.join(' → ')
+        : modelo.tipo === 'error' ? modelo.etiqueta
+        : modelo.tipo === 'test4' ? modelo.correcta
+        : modelo.tipo === 'vf' ? modelo.veredicto
+        : '',
+      secundario: modelo.tipo === 'vf' ? modelo.frase : undefined,
+    };
   } catch (err) {
     datos = {};
   }
