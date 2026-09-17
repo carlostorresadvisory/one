@@ -16,6 +16,7 @@ import {
   MAX_VISUALES_EN_VUELO,
   completarVisual,
   TIMEOUT_LLAMADA_URGENTE_MS,
+  intercalarPagoBarato,
   conLimite,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis, llamar as llamarReal } from '../tools/openrouter.js';
@@ -951,21 +952,32 @@ test('producirTanda: con permitirPago=false, nunca pasa un modelo de pago a llam
 // comprobaba `c.length === 1` -- es decir, que la cascada de pago barato SUSTITUÍA a la normal.
 // Corregido tras el ruling del controlador: debe ir DELANTE de la normal, nunca sustituirla (si el
 // único modelo de pago barato falla, un urgente no debe quedarse sin nada más que probar).
-test('producirTanda: con urgente + permitirPago=true, antepone las cascadas de pago barato a las normales, sin sustituirlas (I2)', async () => {
+test('producirTanda: con urgente + permitirPago=true, intercala el pago barato tras los gratis rápidos y antes de los lentos, sin sustituir nada (I2, revisado 17-sep)', async () => {
   const { llamar, registro } = crearLlamarPipeline({});
 
   await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, permitirPago: true, topeEur: 5, urgente: true });
 
   const cascadasVistas = registro.map((r) => r.modelos);
-  assert.ok(
-    cascadasVistas.some((c) => c[0] === GENERADOR_PREGUNTAS_SOLO_PAGO[0] && c.length > GENERADOR_PREGUNTAS_SOLO_PAGO.length),
-    'la cascada de generación de preguntas debe seguir con la normal detrás del modelo de pago barato',
-  );
-  assert.ok(
-    cascadasVistas.some((c) => c[0] === VERIFICADOR_PREGUNTAS_SOLO_PAGO[0] && c.length > VERIFICADOR_PREGUNTAS_SOLO_PAGO.length),
-  );
-  assert.ok(cascadasVistas.some((c) => c[0] === GENERADOR_SOLO_PAGO[0] && c.length > GENERADOR_SOLO_PAGO.length));
-  assert.ok(cascadasVistas.some((c) => c[0] === VERIFICADOR_SOLO_PAGO[0] && c.length > VERIFICADOR_SOLO_PAGO.length));
+  const esLento = (m) => m.startsWith('nvidia:') || m.endsWith(':free');
+  const bienIntercalada = (c, pago) => {
+    const i = c.indexOf(pago[0]);
+    if (i < 0) return false;
+    const primerLento = c.findIndex(esLento);
+    const lentosDetras = primerLento < 0 || primerLento > i; // el pago va ANTES del primer lento
+    const gratisRapidoDelante = i === 0 || !esLento(c[0]); // y DETRÁS de los gratis rápidos, si los hay
+    return lentosDetras && gratisRapidoDelante && c.length > pago.length;
+  };
+  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, GENERADOR_PREGUNTAS_SOLO_PAGO)), 'generación de preguntas');
+  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, VERIFICADOR_PREGUNTAS_SOLO_PAGO)), 'verificación de preguntas');
+  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, GENERADOR_SOLO_PAGO)), 'generación del visual');
+  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, VERIFICADOR_SOLO_PAGO)), 'verificación del visual');
+});
+
+test('intercalarPagoBarato: el pago va tras los gratis rápidos y antes del primer lento; sin lentos, al final', () => {
+  assert.deepEqual(intercalarPagoBarato(['gemini:a', 'groq:b', 'nvidia:c', 'x:free'], ['pago']), ['gemini:a', 'groq:b', 'pago', 'nvidia:c', 'x:free']);
+  assert.deepEqual(intercalarPagoBarato(['gemini:a', 'groq:b'], ['pago']), ['gemini:a', 'groq:b', 'pago']);
+  assert.deepEqual(intercalarPagoBarato(['nvidia:c'], ['pago']), ['pago', 'nvidia:c']);
+  assert.deepEqual(intercalarPagoBarato([], ['pago']), ['pago']);
 });
 
 test('v0.2b4.1 §3: una tanda urgente usa las cascadas rápidas y una de fondo las suyas', async () => {

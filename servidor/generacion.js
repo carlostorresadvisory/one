@@ -138,6 +138,24 @@ export const TIMEOUT_LLAMADA_URGENTE_MS = 60000;
 export const MS_MAX_REPOSICION = 90000;
 
 /**
+ * 17-sep-2026 (Carlos: "permito escalón ultrabarato, tope diario 10 céntimos"): el pago barato ya
+ * NO va delante de toda la cascada urgente (así cada tanda costaba ~0,015 € aunque los gratis
+ * rápidos estuvieran vivos, y el tope se agotaba en 6-7 tandas). Va DESPUÉS de los eslabones
+ * gratis rápidos (Gemini/Groq/Cerebras, 1-2 s, que con cuota agotada se saltan en el acto por 429)
+ * y ANTES de los lentos de último recurso (NVIDIA 30-100 s, ':free' de OpenRouter): 0 € un día
+ * normal, y en un día degradado se paga en vez de esperar minutos. Sin eslabón lento, al final.
+ * @param {string[]} gratis cascada normal
+ * @param {string[]} pago cascada de pago barato
+ * @returns {string[]}
+ */
+export function intercalarPagoBarato(gratis, pago) {
+  const esLento = (m) => typeof m === 'string' && (m.startsWith('nvidia:') || m.endsWith(':free'));
+  const corte = gratis.findIndex(esLento);
+  if (corte < 0) return [...gratis, ...pago];
+  return [...gratis.slice(0, corte), ...pago, ...gratis.slice(corte)];
+}
+
+/**
  * Ejecuta `fn` sobre `items` con como mucho `tope` en vuelo a la vez, devolviendo los resultados
  * EN EL ORDEN DE ENTRADA (no en el de terminación) y sin que un fallo cancele a los demás: cada
  * posición trae `{ok: true, valor}` o `{ok: false, error}`. Es el `Promise.all` con tope de la
@@ -818,7 +836,7 @@ export async function producirTanda(params, opciones = {}) {
           rutaLog,
           acumulador,
           timeoutMs: timeoutLlamadaMs,
-          modelos: usaPagoBarato ? [...GENERADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.generador] : cascadas.generador,
+          modelos: usaPagoBarato ? intercalarPagoBarato(cascadas.generador, GENERADOR_PREGUNTAS_SOLO_PAGO) : cascadas.generador,
         },
       ),
     );
@@ -846,7 +864,7 @@ export async function producirTanda(params, opciones = {}) {
       rutaLog,
       acumulador,
       timeoutMs: timeoutLlamadaMs,
-      modelos: usaPagoBarato ? [...VERIFICADOR_PREGUNTAS_SOLO_PAGO, ...cascadas.verificador] : cascadas.verificador,
+      modelos: usaPagoBarato ? intercalarPagoBarato(cascadas.verificador, VERIFICADOR_PREGUNTAS_SOLO_PAGO) : cascadas.verificador,
     });
     const veredictoPorId = new Map(veredictos.map((v) => [v.id, v]));
 
@@ -897,9 +915,9 @@ export async function producirTanda(params, opciones = {}) {
             signal: senal,
             necesitaVisual: true,
             saltarAcortado: true,
-            modelosGenerador: usaPagoBarato ? [...GENERADOR_SOLO_PAGO, ...cascadas.visualGenerador] : cascadas.visualGenerador,
+            modelosGenerador: usaPagoBarato ? intercalarPagoBarato(cascadas.visualGenerador, GENERADOR_SOLO_PAGO) : cascadas.visualGenerador,
             modelosVerificador: usaPagoBarato
-              ? [...VERIFICADOR_SOLO_PAGO, ...cascadas.visualVerificador]
+              ? intercalarPagoBarato(cascadas.visualVerificador, VERIFICADOR_SOLO_PAGO)
               : cascadas.visualVerificador,
           }),
           limiteVisual,
