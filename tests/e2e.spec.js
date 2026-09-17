@@ -6376,6 +6376,53 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await expect(overlay).toBeHidden();
   });
 
+  // Ronda de corrección 2 (Important): la tarjeta NEUTRA del repaso (una pregunta nunca
+  // respondida, `construirTarjetaRespondida` con `tarjeta--revelada`/`tarjeta--neutra` pero SIN
+  // `dataset.respondida` -- app.js) cae en la cascada REVELADA de `ajustarEncaje` (que decide por
+  // `dataset.respondida === 'false'`, no por `'true'`), así que su enunciado SÍ puede recortarse
+  // (paso (d)) y SÍ debe poder tocarse igual que en una tarjeta respondida de verdad -- la guarda
+  // del Critical de la Ronda 1 usaba `=== 'true'` y la dejaba fuera por error, truncando el
+  // enunciado sin forma de leerlo entero justo en el repaso. `nivel: 0` (por debajo de cualquier
+  // nivel real del banco de ejemplo, que empieza en 1) la deja de PRIMERA en el repaso sin
+  // necesitar navegar ni filtrar: nada se ha respondido todavía, así que el tramo 1 (respondidas)
+  // está vacío y esta es la primera tarjeta del tramo 2 (sin responder) sin ambigüedad de orden.
+  test('Ronda de corrección 2: en el repaso, una tarjeta NEUTRA (nunca respondida) con enunciado larguísimo SÍ deja tocarlo', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const enunciadoLargo = 'Enunciado sintético deliberadamente absurdo, mucho más largo de lo que cabría nunca en una tarjeta neutra del repaso, pensado para forzar el recorte calculado del paso (d) de la cascada revelada. '.repeat(6);
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'sintetico-repaso-neutra-enunciado', area: 'ciencia', tipo: 'vf', nivel: 0, respuesta: true,
+      enunciado: enunciadoLargo, explicacion: 'Explicación cualquiera: no es lo que se prueba aquí.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveClass(/tarjeta--neutra/);
+    expect(await t.getAttribute('data-respondida')).toBeNull(); // sin dataset.respondida, a propósito (app.js)
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).toHaveClass(/enunciado--recortado/);
+    await expect(enunciado).toHaveAttribute('role', 'button');
+    await expect(enunciado).toHaveAttribute('tabindex', '0');
+
+    await enunciado.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Pregunta');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('cascada revelada');
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
   test('un deslizamiento que arranca en la explicación recortada (>10px) NO abre la superposición', async ({ page }) => {
     const t = await partidaConExplicacion(page, EXPLICACION_60, 'txt-desliz');
     const caja = await t.locator('[data-test="explicacion"]').boundingBox();

@@ -536,7 +536,15 @@ export function ajustarEncaje(tarjetaNodo) {
   // desplegar/plegar nada" sigue rigiendo ahí; la excepción de la Tarea 5 es solo para la tarjeta
   // YA REVELADA). Por eso `marcarRecorte` ni se llama fuera de la tarjeta revelada: si el nodo se
   // reutilizara alguna vez sin pasar por una reconstrucción completa, se limpia cualquier resto.
-  if (tarjetaNodo.dataset.respondida === 'true') {
+  // Ronda de corrección 2 (Important): la guarda tiene que ser el MISMO criterio que usa
+  // `aplicarCascada` para decidir la rama, `dataset.respondida === 'false'` (negado aquí), no
+  // `=== 'true'` -- la tarjeta NEUTRA del repaso (una pregunta nunca respondida, construida por
+  // `construirTarjetaRespondida` con `tarjeta--revelada`/`tarjeta--neutra` pero SIN
+  // `dataset.respondida`, app.js) cae en la cascada REVELADA (ve más abajo) y con `=== 'true'` se
+  // quedaba fuera igual que la tarjeta ACTIVA, perdiendo la posibilidad de leer un enunciado largo
+  // entero justo en el repaso -- dos criterios distintos para la misma decisión, y el segundo
+  // (este) estaba mal. Con `!== 'false'` los dos vuelven a mirar exactamente lo mismo.
+  if (tarjetaNodo.dataset.respondida !== 'false') {
     marcarRecorte(enunciadoEl, 'enunciado--recortado', 'Ver la pregunta entera');
   } else if (enunciadoEl) {
     enunciadoEl.classList.remove('enunciado--recortado');
