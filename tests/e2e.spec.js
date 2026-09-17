@@ -5217,7 +5217,7 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
 
     // error
     let t = tarjetaActual(page);
-    await t.locator('[data-test="fila-1"]').click().catch(async () => { await responderPreguntaActual(page); });
+    await t.locator('[data-test="fila-1"]').click();
     await esperarAsentamientoMazo(page);
     await expect(t.locator('.visual-clave-etiqueta')).toHaveText('Venus');
     await expect(t.locator('.visual-clave-valor')).toHaveText('Octavo planeta');

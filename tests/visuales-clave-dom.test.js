@@ -103,3 +103,37 @@ test('construirVisualClave: entradas rotas y `nombreArea` que lanza -- devuelve 
     });
   });
 });
+
+// Ronda de corrección 1 (IMPORTANT): la suite de v0.2a.2 barría las 295 preguntas reales del banco
+// comprobando que construirVisualClave nunca lanza; al reescribir este fichero contra el HTML nuevo
+// ese barrido se perdió sin sustituto. Lo repone: recorre TODO datos/banco.json (nunca lanza) y,
+// además, para las preguntas de un tipo CONOCIDO (ordenar/error/test4/vf) comprueba que el cuerpo
+// tiene contenido real -- las cuatro ramas de construirVisualClave siempre añaden al menos un hijo a
+// `.visual-clave-cuerpo` cuando el modelo resuelve a su tipo, así que un cuerpo vacío ahí solo puede
+// significar que modeloVisualClave degradó en silencio a "desconocido" (datos del banco que no
+// encajan con la forma que su propio `tipo` promete) -- justo lo que este test quiere pillar.
+test('construirVisualClave: barrido de las 295 preguntas reales del banco -- nunca lanza, y las de tipo conocido nunca degradan a "solo área"', async () => {
+  const banco = JSON.parse(await readFile(new URL('../datos/banco.json', import.meta.url), 'utf8'));
+  const preguntas = Array.isArray(banco) ? banco : banco.preguntas;
+  assert.ok(preguntas.length >= 200, 'sanity: debería haber cargado el banco real, no un stub vacío');
+
+  const TIPOS_CONOCIDOS = ['ordenar', 'error', 'test4', 'vf'];
+  const degradadas = [];
+  conDom(() => {
+    for (const pregunta of preguntas) {
+      let caja;
+      assert.doesNotThrow(() => {
+        caja = construirVisualClave(pregunta, { nombreArea });
+      }, `construirVisualClave lanzó con ${pregunta.id}`);
+      assert.equal(caja.dataset.test, 'visual-clave', `sin data-test="visual-clave" en ${pregunta.id}`);
+      if (TIPOS_CONOCIDOS.includes(pregunta.tipo)) {
+        const cuerpo = caja.buscarPorClase('visual-clave-cuerpo');
+        if (!cuerpo || cuerpo.children.length === 0) degradadas.push(pregunta.id);
+      }
+    }
+  });
+  assert.deepEqual(
+    degradadas, [],
+    `${degradadas.length} pregunta(s) de tipo conocido degradaron a "solo área": ${degradadas.join(', ')}`
+  );
+});
