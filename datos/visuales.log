@@ -2476,3 +2476,134 @@ Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.0
 === revisión humana 2 de barras/dato (controlador, 2026-09-13 17:10) ===
   eco-096 [barras]: retirado — índice OMC no cuadra con las series publicadas (2020 ≈ 95, 2023 ≈ 106; el visual decía 92 y 115)
   geo-059 [barras]: retirado — Nigeria 400 M en 2050 es la revisión ONU 2019; la de 2024 estima ≈ 359 M, por debajo de EE. UU.
+--solo-pendientes: 262 ya resueltas, 33 pendientes.
+
+=== visualizar 2026-09-17T06:53:13.007Z — 33 preguntas candidatas (solo modelos gratis) ===
+
+-- lote 1/5 (8 preguntas) --
+  art-089: explicación actualizada; visual flujo OK (groq:openai/gpt-oss-20b)
+    explicación antes: Cada paso institucional (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.
+    explicación después: El proceso institucional legitima la obra: primer exhibición despierta debate, la polémica se convierte en crítica, luego museos la incorporan, y finalmente la academia la fija en el canon.
+    visual: {"tipo":"flujo","pasos":["Exhibición","Polémica","Colección","Canon"],"leyenda":"Etapas de canonización de una obra polémica"}
+  cie-068: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Modelo teórico descartado frente al mecanismo real demostrado.")
+    explicación antes: Es semiconservativa: cada nueva hélice tiene una hebra original y una nueva, no la original intacta. Este mecanismo, demostrado por Meselson y Stahl en 1958, es clave para la fidelidad genética.
+    explicación después: Es semiconservativa: cada nueva molécula conserva una hebra original y sintetiza otra nueva. Este elegante mecanismo, demostrado por Meselson y Stahl en 1958, garantiza la fidelidad en la transmisión de la información genética durante la división celular.
+  cie-073: explicación actualizada; sin visual (esquema inválido: flujo.pasos[2] inválido (1-18 caracteres))
+    explicación antes: Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.
+    explicación después: Durante el sueño profundo, el sistema glinfático bombea líquido cefalorraquídeo para limpiar toxinas cerebrales. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide en el cerebro.
+  cie-075: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  cie-081: explicación actualizada; visual flujo OK (gemini:gemini-flash-lite-latest)
+    explicación antes: El hipotálamo sube el termostato interno: las enzimas inmunitarias trabajan mejor a más temperatura y los patógenos se replican peor. Por eso la fiebre moderada es una defensa, no un error del cuerpo.
+    explicación después: El hipotálamo eleva el termostato corporal porque las enzimas inmunitarias multiplican su eficacia con calor, mientras que la mayoría de patógenos reducen su replicación, frenando la infección de forma natural.
+    visual: {"tipo":"flujo","pasos":["Infección","Hipotálamo","Fiebre","Defensa"],"leyenda":"Mecanismo defensivo de la fiebre ante agentes patógenos"}
+  cie-082: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-077: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  eco-078: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: El arancel encarece el producto importado para que el local compita en precio, protegiendo empleo e industria. En 2025 la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.
+    explicación después: El arancel encarece el producto importado para que la industria local compita mejor, protegiendo empleo estratégico. La UE aplicó medidas similares en 2024 para frenar la sobrecapacidad de acero chino que inundaba el mercado europeo.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Sin arancel","puntos":["Precio importado menor","Menor margen local"]},{"titulo":"Con arancel","puntos":["Precio igualado","Protege empleo nacional"]}],"leyenda":"Impacto del arancel en el mercado siderúrgico local."}
+
+-- lote 2/5 (8 preguntas) --
+  eco-086: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos)
+    explicación antes: El apalancamiento amplifica las caídas: 2008 fue la más contenida por la intervención de los bancos centrales, mientras que 1929 careció de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.
+    explicación después: El apalancamiento magnifica las caídas. En 2008 la intervención de los bancos centrales limitó la pérdida, mientras en 1929 faltó protección. El colapso cripto de 2022 mostró la fragilidad de activos digitales.
+  eco-087: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-089: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  eco-091: explicación conservada (La explicación propuesta supera las 40 palabras permitidas; debe ser más concisa (25‑40 palabras).); visual comparacion OK (gemini:gemini-flash-lite-latest)
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Margen bajo","puntos":["Aerolineas","Supermercados minoristas"]},{"titulo":"Margen alto","puntos":["Bancos comerciales","Software SaaS"]}],"leyenda":"Estructura de costes y su impacto en el margen operativo"}
+  eco-096: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-097: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  fil-023: explicación actualizada; visual flujo OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Wittgenstein no rechazó el análisis lógico, sino que evolucionó: pasó de buscar una estructura ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.
+    explicación después: Wittgenstein no rechazó el análisis lógico, sino que evolucionó: pasó de buscar una estructura ideal en el Tractatus a estudiar el lenguaje como juegos de uso cotidiano en sus Investigaciones filosóficas.
+    visual: {"tipo":"flujo","pasos":["Estructura ideal","Juegos de lenguaje"],"leyenda":"Evolución del pensamiento de Wittgenstein desde el Tractatus"}
+  fil-024: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Distinción clave de Kripke entre necesidad metafísica y epistemológica."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres))
+    explicación antes: Kripke separó necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.
+    explicación después: Kripke distingue la necesidad metafísica de la epistemológica: una proposición puede ser necesaria en todos los mundos posibles y aun así descubrirse empíricamente, como "el agua es H2O". No son equivalentes.
+
+-- lote 3/5 (8 preguntas) --
+  fil-035: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  fil-048: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  fil-056: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: El sesgo algorítmico no requiere malicia: aparece cuando los datos de entrenamiento reflejan prejuicios históricos. Por eso corregir datos y objetivos es más eficaz que buscar intenciones ocultas.
+    explicación después: El sesgo algorítmico no requiere malicia: surge cuando los datos históricos de entrenamiento perpetúan prejuicios previos. Por ello, en debates sobre la ética de la inteligencia artificial, se prioriza auditar datos antes que buscar culpables.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Sesgo Real","puntos":["Datos históricos sesgados","Sin intención maliciosa"]},{"titulo":"Mito Común","puntos":["Discriminación consciente","Búsqueda de culpables"]}],"leyenda":"Mitos y realidades sobre el sesgo algorítmico."}
+  geo-043: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  geo-059: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  log-008: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Negar un 'todos' no exige que ninguno cumpla, solo que exista al menos una excepción. Un solo contraejemplo derriba cualquier afirmación universal, como en un debate donde un caso invalida una generalización apresurada.
+    explicación después: Negar un cuantificador universal no exige que ninguno cumpla, sino que exista al menos una excepción. Un único contraejemplo derriba la regla general, demostrando que basta un caso para invalidar cualquier afirmación absoluta.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Afirmación","puntos":["Todos aprobaron","Cero suspensos","Regla universal"]},{"titulo":"Negación","puntos":["Al menos uno falló","Existe excepción","Basta un contraejemplo"]}],"leyenda":"Equivalencia lógica entre universal y existencial negada"}
+  log-036: explicación actualizada; sin visual (esquema inválido: flujo.pasos[1] inválido (1-18 caracteres))
+    explicación antes: No, porque las flores que se marchitan rápido podrían no incluir ninguna rosa. Es la falacia del silogismo inválido: la característica del grupo general no se hereda automáticamente en un subgrupo.
+    explicación después: El silogismo falla porque la característica de "se marchitan rápido" no se transfiere automáticamente al subgrupo; la flor que se marchita rápido puede no ser rosa. Así, no se puede concluir nada sobre las rosas.
+  log-037: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+
+-- lote 4/5 (8 preguntas) --
+  log-040: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  log-047: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  log-050: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  tec-040: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  tec-043: explicación actualizada; visual comparacion OK (groq:openai/gpt-oss-20b)
+    explicación antes: Requiere precisión atómica y solo ASML la fabrica con componentes de EE. UU., Japón y Alemania. Los controles de exportación de 2023 la convierten en palanca geopolítica.
+    explicación después: La litografía EUV exige precisión atómica; solo ASML la produce y sus máquinas dependen de piezas críticas de EE. UU., Japón y Alemania, lo que la convierte en un recurso estratégico clave para chips de alta gama.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Componente","puntos":["ASML","Litografía EUV"]},{"titulo":"País","puntos":["EE. UU.","Japón","Alemania"]}],"leyenda":"Origen de los componentes críticos"}
+  tec-046: explicación actualizada; visual dato OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Los cables submarinos concentran la capacidad de transmisión intercontinental porque la luz viaja más rápido que las ondas de radio por satélite. Menos del 1 % del tráfico usa satélites, y Starlink solo cubre zonas sin cable.
+    explicación después: Los cables submarinos concentran la capacidad intercontinental porque la fibra óptica ofrece mayor velocidad y menor latencia que los satélites. Hoy transportan más del 99 % del tráfico mundial, siendo la verdadera columna vertebral de internet.
+    visual: {"tipo":"dato","cifra":">99%","texto":"del tráfico mundial de internet","leyenda":"Proporción transportada por cables submarinos","fuente":"TeleGeography 2024"}
+  tec-047: FALLO — Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  tec-048: FALLO — Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+
+-- lote 5/5 (1 preguntas) --
+  tec-052: explicación conservada (La explicación propuesta cambia la magnitud exacta: dice “millones de veces” en lugar de 2^192, lo que es incorrecto y pierde el dato clave.); visual flujo OK (gemini:gemini-flash-lite-latest)
+    visual: {"tipo":"flujo","pasos":["64 bits","128 bits","192 bits","256 bits"],"leyenda":"Escalado de longitud de clave frente a la fuerza bruta."}
+
+=== Resumen ===
+  economia: 8 procesadas, 2 explicación actualizada, 2 visual generado (comparacion:2)
+  ciencia: 5 procesadas, 3 explicación actualizada, 1 visual generado (flujo:1)
+  tecnologia: 6 procesadas, 2 explicación actualizada, 3 visual generado (comparacion:1, dato:1, flujo:1)
+  geografia: 2 procesadas, 0 explicación actualizada, 0 visual generado (ninguno)
+  filosofia: 5 procesadas, 3 explicación actualizada, 2 visual generado (flujo:1, comparacion:1)
+  arte: 1 procesadas, 1 explicación actualizada, 1 visual generado (flujo:1)
+  logica: 6 procesadas, 2 explicación actualizada, 1 visual generado (comparacion:1)
+
+Total candidatas: 33
+Resueltas: 15
+Fallos de cascada (red/todos los modelos): 18
+Rechazadas por verificación (explicación): 2
+Rechazadas por verificación (visual, tras reintento): 5
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 22
+
+Detalle rechazos de visual (motivo):
+  cie-068: esquema inválido: leyenda inválida (1-60 caracteres): "Modelo teórico descartado frente al mecanismo real demostrado."
+  cie-073: esquema inválido: flujo.pasos[2] inválido (1-18 caracteres)
+  eco-086: esquema inválido: comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos
+  fil-024: esquema inválido: leyenda inválida (1-60 caracteres): "Distinción clave de Kripke entre necesidad metafísica y epistemológica."; comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[0].puntos[0] inválido (1-28 caracteres); comparacion.columnas[0].puntos[1] inválido (1-28 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres); comparacion.columnas[1].puntos[0] inválido (1-28 caracteres); comparacion.columnas[1].puntos[1] inválido (1-28 caracteres)
+  log-036: esquema inválido: flujo.pasos[1] inválido (1-18 caracteres)
+
+Detalle rechazos de explicación (motivo):
+  eco-091: La explicación propuesta supera las 40 palabras permitidas; debe ser más concisa (25‑40 palabras).
+  tec-052: La explicación propuesta cambia la magnitud exacta: dice “millones de veces” en lugar de 2^192, lo que es incorrecto y pierde el dato clave.
+
+Detalle fallos de cascada:
+  cie-075: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  cie-082: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-077: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  eco-087: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-089: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  eco-096: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  eco-097: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  fil-035: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  fil-048: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  geo-043: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  geo-059: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  log-037: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  log-040: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  log-047: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  log-050: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  tec-040: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+  tec-047: Ningún modelo respondió. Detalle: google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429
+  tec-048: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.000000 $
