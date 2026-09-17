@@ -942,7 +942,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el camino típico por el que una obra polémica pasa hasta convertirse en parte del canon artístico.",
-    "explicacion": "Cada paso institucional (exposición, polémica, colección, academia) añade legitimidad que borra la controversia inicial. El urinario de Duchamp, rechazado en 1917, hoy se estudia en toda facultad: la polémica se volvió consenso.",
+    "explicacion": "El proceso institucional legitima la obra: primer exhibición despierta debate, la polémica se convierte en crítica, luego museos la incorporan, y finalmente la academia la fija en el canon.",
     "nivel": 2,
     "criterio": "de menor a mayor: fase en el proceso de controversia a canonización",
     "items": [
@@ -958,7 +958,17 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Exhibición",
+        "Polémica",
+        "Colección",
+        "Canon"
+      ],
+      "leyenda": "Etapas de canonización de una obra polémica"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor según su aparición histórica entre estos movimientos artísticos y el tipo de ruptura que representaron.",
@@ -1534,7 +1544,7 @@
   },
   {
     "enunciado": "El ADN se replica de forma conservativa, es decir, la doble hélice original permanece intacta.",
-    "explicacion": "Es semiconservativa: cada nueva hélice tiene una hebra original y una nueva, no la original intacta. Este mecanismo, demostrado por Meselson y Stahl en 1958, es clave para la fidelidad genética.",
+    "explicacion": "Es semiconservativa: cada nueva molécula conserva una hebra original y sintetiza otra nueva. Este elegante mecanismo, demostrado por Meselson y Stahl en 1958, garantiza la fidelidad en la transmisión de la información genética durante la división celular.",
     "nivel": 2,
     "respuesta": false,
     "id": "cie-068",
@@ -1547,7 +1557,7 @@
   },
   {
     "enunciado": "El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la mayor cantidad de proteínas beta-amiloides asociadas al Alzheimer.",
-    "explicacion": "Durante el sueño profundo, el sistema glinfático se activa y bombea líquido cefalorraquídeo para arrastrar desechos como la beta-amiloide. Un estudio de 2023 mostró que perder una noche de ondas lentas eleva esta proteína un 30%.",
+    "explicacion": "Durante el sueño profundo, el sistema glinfático bombea líquido cefalorraquídeo para limpiar toxinas cerebrales. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide en el cerebro.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1620,14 +1630,24 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El hipotálamo sube el termostato interno: las enzimas inmunitarias trabajan mejor a más temperatura y los patógenos se replican peor. Por eso la fiebre moderada es una defensa, no un error del cuerpo.",
+    "explicacion": "El hipotálamo eleva el termostato corporal porque las enzimas inmunitarias multiplican su eficacia con calor, mientras que la mayoría de patógenos reducen su replicación, frenando la infección de forma natural.",
     "id": "cie-081",
     "area": "ciencia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Infección",
+        "Hipotálamo",
+        "Fiebre",
+        "Defensa"
+      ],
+      "leyenda": "Mecanismo defensivo de la fiebre ante agentes patógenos"
+    }
   },
   {
     "enunciado": "¿Qué mecanismo principal explica que los gases de efecto invernadero calienten la superficie terrestre?",
@@ -2611,7 +2631,7 @@
     "correcta": 1,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "El arancel encarece el producto importado para que el local compita en precio, protegiendo empleo e industria. En 2025 la UE estudió aranceles al acero chino para frenar la sobrecapacidad que inundaba el mercado europeo.",
+    "explicacion": "El arancel encarece el producto importado para que la industria local compita mejor, protegiendo empleo estratégico. La UE aplicó medidas similares en 2024 para frenar la sobrecapacidad de acero chino que inundaba el mercado europeo.",
     "id": "eco-078",
     "area": "economia",
     "tipo": "test4",
@@ -2619,7 +2639,26 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Sin arancel",
+          "puntos": [
+            "Precio importado menor",
+            "Menor margen local"
+          ]
+        },
+        {
+          "titulo": "Con arancel",
+          "puntos": [
+            "Precio igualado",
+            "Protege empleo nacional"
+          ]
+        }
+      ],
+      "leyenda": "Impacto del arancel en el mercado siderúrgico local."
+    }
   },
   {
     "enunciado": "¿Qué economista postuló que la desigualdad tiende a aumentar cuando la rentabilidad del capital (r) supera la tasa de crecimiento de la economía (g)?",
@@ -2821,7 +2860,7 @@
       "Burbuja puntocom 2000 (NASDAQ)",
       "Gran Crash 1929 (Dow Jones)"
     ],
-    "explicacion": "El apalancamiento amplifica las caídas: 2008 fue la más contenida por la intervención de los bancos centrales, mientras que 1929 careció de redes de seguridad. El colapso cripto de 2022 reavivó el debate regulatorio.",
+    "explicacion": "El apalancamiento magnifica las caídas. En 2008 la intervención de los bancos centrales limitó la pérdida, mientras en 1929 faltó protección. El colapso cripto de 2022 mostró la fragilidad de activos digitales.",
     "nivel": 2,
     "hilo": 2,
     "id": "eco-086",
@@ -2923,7 +2962,26 @@
     "confianza": 0.85,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Margen bajo",
+          "puntos": [
+            "Aerolineas",
+            "Supermercados minoristas"
+          ]
+        },
+        {
+          "titulo": "Margen alto",
+          "puntos": [
+            "Bancos comerciales",
+            "Software SaaS"
+          ]
+        }
+      ],
+      "leyenda": "Estructura de costes y su impacto en el margen operativo"
+    }
   },
   {
     "enunciado": "Ordena de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministro.",
@@ -3477,7 +3535,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Wittgenstein no rechazó el análisis lógico, sino que evolucionó: pasó de buscar una estructura ideal a estudiar el lenguaje como juegos de uso cotidiano. Este giro corrige al primer Wittgenstein sin abandonar la lógica.",
+    "explicacion": "Wittgenstein no rechazó el análisis lógico, sino que evolucionó: pasó de buscar una estructura ideal en el Tractatus a estudiar el lenguaje como juegos de uso cotidiano en sus Investigaciones filosóficas.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Etapas de Wittgenstein",
@@ -3503,11 +3561,19 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Estructura ideal",
+        "Juegos de lenguaje"
+      ],
+      "leyenda": "Evolución del pensamiento de Wittgenstein desde el Tractatus"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke separó necesidad metafísica de epistémica: una verdad puede ser necesaria en todo mundo posible pero descubrirse empíricamente, como 'el agua es H2O'. No son equivalentes.",
+    "explicacion": "Kripke distingue la necesidad metafísica de la epistemológica: una proposición puede ser necesaria en todos los mundos posibles y aun así descubrirse empíricamente, como \"el agua es H2O\". No son equivalentes.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -3965,7 +4031,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El sesgo algorítmico no requiere malicia: aparece cuando los datos de entrenamiento reflejan prejuicios históricos. Por eso corregir datos y objetivos es más eficaz que buscar intenciones ocultas.",
+    "explicacion": "El sesgo algorítmico no requiere malicia: surge cuando los datos históricos de entrenamiento perpetúan prejuicios previos. Por ello, en debates sobre la ética de la inteligencia artificial, se prioriza auditar datos antes que buscar culpables.",
     "nivel": 2,
     "tarjeta": {
       "titulo": "Términos en ética de IA",
@@ -3992,7 +4058,27 @@
     "generador": "openai/gpt-5-mini",
     "confianza": 0.96,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Sesgo Real",
+          "puntos": [
+            "Datos históricos sesgados",
+            "Sin intención maliciosa"
+          ]
+        },
+        {
+          "titulo": "Mito Común",
+          "puntos": [
+            "Discriminación consciente",
+            "Búsqueda de culpables"
+          ]
+        }
+      ],
+      "leyenda": "Mitos y realidades sobre el sesgo algorítmico."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -5728,7 +5814,7 @@
   },
   {
     "enunciado": "¿Cuál es la negación de la proposición 'Todos los estudiantes aprobaron el examen'?",
-    "explicacion": "Negar un 'todos' no exige que ninguno cumpla, solo que exista al menos una excepción. Un solo contraejemplo derriba cualquier afirmación universal, como en un debate donde un caso invalida una generalización apresurada.",
+    "explicacion": "Negar un cuantificador universal no exige que ninguno cumpla, sino que exista al menos una excepción. Un único contraejemplo derriba la regla general, demostrando que basta un caso para invalidar cualquier afirmación absoluta.",
     "nivel": 1,
     "opciones": [
       "Ningún estudiante aprobó el examen",
@@ -5743,7 +5829,29 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Afirmación",
+          "puntos": [
+            "Todos aprobaron",
+            "Cero suspensos",
+            "Regla universal"
+          ]
+        },
+        {
+          "titulo": "Negación",
+          "puntos": [
+            "Al menos uno falló",
+            "Existe excepción",
+            "Basta un contraejemplo"
+          ]
+        }
+      ],
+      "leyenda": "Equivalencia lógica entre universal y existencial negada"
+    }
   },
   {
     "enunciado": "Si la implicación p → q es falsa, ¿qué valores de verdad tienen p y q?",
@@ -6042,7 +6150,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "No, porque las flores que se marchitan rápido podrían no incluir ninguna rosa. Es la falacia del silogismo inválido: la característica del grupo general no se hereda automáticamente en un subgrupo.",
+    "explicacion": "El silogismo falla porque la característica de \"se marchitan rápido\" no se transfiere automáticamente al subgrupo; la flor que se marchita rápido puede no ser rosa. Así, no se puede concluir nada sobre las rosas.",
     "id": "log-036",
     "area": "logica",
     "tipo": "test4",
@@ -6752,7 +6860,7 @@
       "Solo funciona en condiciones de microgravedad, lo que obliga a fabricar en órbita"
     ],
     "correcta": 0,
-    "explicacion": "Requiere precisión atómica y solo ASML la fabrica con componentes de EE. UU., Japón y Alemania. Los controles de exportación de 2023 la convierten en palanca geopolítica.",
+    "explicacion": "La litografía EUV exige precisión atómica; solo ASML la produce y sus máquinas dependen de piezas críticas de EE. UU., Japón y Alemania, lo que la convierte en un recurso estratégico clave para chips de alta gama.",
     "nivel": 4,
     "hilo": 3,
     "id": "tec-043",
@@ -6762,7 +6870,27 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Componente",
+          "puntos": [
+            "ASML",
+            "Litografía EUV"
+          ]
+        },
+        {
+          "titulo": "País",
+          "puntos": [
+            "EE. UU.",
+            "Japón",
+            "Alemania"
+          ]
+        }
+      ],
+      "leyenda": "Origen de los componentes críticos"
+    }
   },
   {
     "enunciado": "¿Cuál es el obstáculo físico-químico fundamental que impide usar ánodos de litio metálico en baterías comerciales y alcanzar densidades energéticas muy superiores a las de iones de litio actuales?",
@@ -6835,14 +6963,21 @@
     "correcta": 3,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los cables submarinos concentran la capacidad de transmisión intercontinental porque la luz viaja más rápido que las ondas de radio por satélite. Menos del 1 % del tráfico usa satélites, y Starlink solo cubre zonas sin cable.",
+    "explicacion": "Los cables submarinos concentran la capacidad intercontinental porque la fibra óptica ofrece mayor velocidad y menor latencia que los satélites. Hoy transportan más del 99 % del tráfico mundial, siendo la verdadera columna vertebral de internet.",
     "id": "tec-046",
     "area": "tecnologia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "dato",
+      "cifra": ">99%",
+      "texto": "del tráfico mundial de internet",
+      "leyenda": "Proporción transportada por cables submarinos",
+      "fuente": "TeleGeography 2024"
+    }
   },
   {
     "enunciado": "¿Por qué la litografía de ultravioleta extremo (EUV) es un cuello de botella estratégico para la producción de chips avanzados?",
@@ -6965,7 +7100,16 @@
     "confianza": 1,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "64 bits",
+        "128 bits",
+        "192 bits",
+        "256 bits"
+      ],
+      "leyenda": "Escalado de longitud de clave frente a la fuerza bruta."
+    }
   },
   {
     "enunciado": "Ordena los siguientes tipos de baterías de vehículo eléctrico de menor a mayor densidad de energía específica (Wh/kg).",

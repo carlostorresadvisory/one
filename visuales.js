@@ -121,12 +121,12 @@ function esTextoValido(t) {
   return typeof t === 'string' && t.trim().length > 0;
 }
 
-/** `alto` es el YA CALCULADO por cada plantilla según su contenido (V1): no
- * hay un alto de viewBox compartido. `aspect-ratio` en línea (mismo valor que
- * el viewBox) es lo que permite a `.visual-svg` (estilos.css) usar
- * `height:auto` — el dibujo ocupa solo lo que necesita, nunca más. */
-function crearSvg(altoContenido) {
-  const alto = Math.max(ALTO_MINIMO, altoContenido);
+/** `alto` es el YA CALCULADO por cada plantilla según su contenido; `altoObjetivo` (spec
+ * v0.2a.2.1 §1.5) es el que pide la ZONA de la tarjeta revelada, para que el dibujo la llene en
+ * vez de quedarse centrado con bandas vacías arriba y abajo. Un objetivo menor que el natural se
+ * ignora: antes se encoge la caja que el contenido. */
+function crearSvg(altoContenido, altoObjetivo = 0) {
+  const alto = Math.max(ALTO_MINIMO, altoContenido, altoObjetivo > 0 ? altoObjetivo : 0);
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${alto}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -134,6 +134,18 @@ function crearSvg(altoContenido) {
   svg.classList.add('visual-svg');
   svg.dataset.test = 'visual';
   return svg;
+}
+
+/** Reparte `n` filas en el alto objetivo (spec §1.5): la fila crece desde su alto natural
+ * (ALTO_FILA) hasta lo que quepa, y la tipografía sube con ella dentro de los límites de la spec
+ * (mínimo 13, máximo 18 unidades de viewBox ≈ px reales, porque el ancho del viewBox, 320, se
+ * estira a los ~309px reales de la zona). Sin objetivo, devuelve exactamente lo de siempre. */
+function repartirFilas(n, alturaFija, altoObjetivo) {
+  const base = ALTO_FILA;
+  if (!Number.isFinite(altoObjetivo) || altoObjetivo <= 0 || n <= 0) return { altoFila: base, tamano: 13 };
+  const altoFila = Math.max(base, (altoObjetivo - alturaFija) / n);
+  const tamano = Math.round(Math.min(18, Math.max(13, altoFila * 0.4)));
+  return { altoFila, tamano };
 }
 
 function crearTexto(x, y, texto, { tamano = 13, color = 'var(--texto)', ancla = 'start', peso } = {}) {
@@ -219,7 +231,7 @@ function partirFormula(texto) {
  * primero en una sola línea con el mayor tamaño posible (16-30); solo si ni
  * al tamaño mínimo cabe se parte por el "=" en dos líneas, cada una con su
  * propio tamaño (el mayor que quepan las dos, para que se lean parejas). */
-function plantillaFormula(visual) {
+function plantillaFormula(visual, altoObjetivo = 0) {
   if (!esTextoValido(visual.texto)) return null;
   const original = visual.texto.trim();
   const ANCHO_LINEA = 300;
@@ -242,8 +254,9 @@ function plantillaFormula(visual) {
   }
 
   const dosLineas = lineas.length === 2;
-  const alto = dosLineas ? 150 : 100;
-  const svg = crearSvg(alto);
+  const altoNatural = dosLineas ? 150 : 100;
+  const alto = Math.max(altoNatural, altoObjetivo > 0 ? altoObjetivo : 0);
+  const svg = crearSvg(alto, altoObjetivo);
 
   if (!dosLineas) {
     const y = alto * 0.46;
@@ -264,7 +277,7 @@ function plantillaFormula(visual) {
   return svg;
 }
 
-function plantillaLineaTiempo(visual) {
+function plantillaLineaTiempo(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.hitos)) return null;
   const hitos = visual.hitos
     .filter((h) => h && esTextoValido(h.ano) && esTextoValido(h.texto))
@@ -273,29 +286,30 @@ function plantillaLineaTiempo(visual) {
 
   const n = hitos.length;
   const margen = 16; // 8 arriba + 8 abajo
-  const alto = margen + n * ALTO_FILA; // V1: alto = filas reales, sin sobrante
-  const svg = crearSvg(alto);
+  const { altoFila, tamano } = repartirFilas(n, margen, altoObjetivo);
+  const alto = margen + n * altoFila; // V1: alto = filas reales, sin sobrante
+  const svg = crearSvg(alto, altoObjetivo);
   const xLinea = 26;
 
   svg.appendChild(crearLinea(xLinea, margen / 2, xLinea, alto - margen / 2, 'var(--texto-suave)', 2, 0.4));
 
   hitos.forEach((h, i) => {
-    const y = margen / 2 + i * ALTO_FILA + ALTO_FILA / 2;
+    const y = margen / 2 + i * altoFila + altoFila / 2;
     const circulo = document.createElementNS(NS, 'circle');
     circulo.setAttribute('cx', String(xLinea));
     circulo.setAttribute('cy', String(y));
-    circulo.setAttribute('r', '5');
+    circulo.setAttribute('r', String(Math.max(5, Math.min(8, altoFila * 0.1))));
     circulo.setAttribute('fill', 'var(--acento)');
     svg.appendChild(circulo);
 
     const xAno = xLinea + 14;
-    const anoTexto = recortarALinea(h.ano.trim(), 70, 13);
-    svg.appendChild(crearTexto(xAno, y, anoTexto, { tamano: 13, color: 'var(--acento)', peso: 700 }));
+    const anoTexto = recortarALinea(h.ano.trim(), 70, tamano);
+    svg.appendChild(crearTexto(xAno, y, anoTexto, { tamano, color: 'var(--acento)', peso: 700 }));
 
     const xTexto = xLinea + 88;
     const maxAnchoTexto = ANCHO - xTexto - 10;
-    const textoTexto = recortarALinea(h.texto.trim(), maxAnchoTexto, 13);
-    svg.appendChild(crearTexto(xTexto, y, textoTexto, { tamano: 13, color: 'var(--texto)' }));
+    const textoTexto = recortarALinea(h.texto.trim(), maxAnchoTexto, tamano);
+    svg.appendChild(crearTexto(xTexto, y, textoTexto, { tamano, color: 'var(--texto)' }));
   });
 
   return svg;
@@ -306,7 +320,7 @@ function formatearValor(v) {
   return String(Math.round(v * 100) / 100);
 }
 
-function plantillaBarras(visual) {
+function plantillaBarras(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.items)) return null;
   const items = visual.items
     .filter((it) => it && esTextoValido(it.etiqueta) && typeof it.valor === 'number' && Number.isFinite(it.valor) && it.valor > 0) // magnitudes comparables: ceros y negativos no se dibujan (adversarial v0.1e #4)
@@ -317,12 +331,14 @@ function plantillaBarras(visual) {
   const tieneTitulo = esTextoValido(visual.titulo);
   const cabecera = tieneTitulo ? 26 : 6; // V1: alto = cabecera real + filas reales
   const margenInferior = 6;
-  const alto = cabecera + n * ALTO_FILA + margenInferior;
-  const svg = crearSvg(alto);
+  const { altoFila, tamano } = repartirFilas(n, cabecera + margenInferior, altoObjetivo);
+  const alto = cabecera + n * altoFila + margenInferior;
+  const svg = crearSvg(alto, altoObjetivo);
 
   if (tieneTitulo) {
-    const tituloTexto = recortarALinea(visual.titulo.trim(), ANCHO - 20, 15);
-    svg.appendChild(crearTexto(10, 14, tituloTexto, { tamano: 15, color: 'var(--texto-suave)', peso: 600 }));
+    const tamanoTitulo = Math.min(18, tamano + 2);
+    const tituloTexto = recortarALinea(visual.titulo.trim(), ANCHO - 20, tamanoTitulo);
+    svg.appendChild(crearTexto(10, 14, tituloTexto, { tamano: tamanoTitulo, color: 'var(--texto-suave)', peso: 600 }));
   }
 
   // V4 (letra mínima 13px reales): etiqueta y valor suben de 11 a 13, con más
@@ -338,25 +354,26 @@ function plantillaBarras(visual) {
   const maxValor = Math.max(...items.map((it) => it.valor));
 
   items.forEach((it, i) => {
-    const y = cabecera + i * ALTO_FILA + ALTO_FILA / 2;
-    const altoBarra = 14;
+    const y = cabecera + i * altoFila + altoFila / 2;
+    // La barra engorda con la fila (hasta 26) para que no quede un hilo en medio de una fila alta.
+    const altoBarra = Math.max(14, Math.min(26, altoFila * 0.34));
 
-    const etiquetaTexto = recortarALinea(it.etiqueta.trim(), anchoEtiqueta, 13);
-    svg.appendChild(crearTexto(xEtiqueta, y, etiquetaTexto, { tamano: 13, color: 'var(--texto)' }));
+    const etiquetaTexto = recortarALinea(it.etiqueta.trim(), anchoEtiqueta, tamano);
+    svg.appendChild(crearTexto(xEtiqueta, y, etiquetaTexto, { tamano, color: 'var(--texto)' }));
 
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarraMax, altoBarra, 'var(--texto-suave)', 0.2));
     const anchoBarra = Math.max(3, (it.valor / maxValor) * anchoBarraMax);
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarra, altoBarra, 'var(--acento)', 1));
 
     const unidad = esTextoValido(it.unidad) ? ` ${it.unidad.trim()}` : '';
-    const valorTexto = recortarALinea(`${formatearValor(it.valor)}${unidad}`, anchoValor, 13);
-    svg.appendChild(crearTexto(xValor, y, valorTexto, { tamano: 13, color: 'var(--texto)' }));
+    const valorTexto = recortarALinea(`${formatearValor(it.valor)}${unidad}`, anchoValor, tamano);
+    svg.appendChild(crearTexto(xValor, y, valorTexto, { tamano, color: 'var(--texto)' }));
   });
 
   return svg;
 }
 
-function plantillaComparacion(visual) {
+function plantillaComparacion(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.columnas) || visual.columnas.length !== 2) return null;
   const columnas = visual.columnas.map((c) => ({
     titulo: c && esTextoValido(c.titulo) ? c.titulo.trim() : '',
@@ -365,10 +382,6 @@ function plantillaComparacion(visual) {
   if (columnas.some((c) => !c.titulo || !c.puntos.length)) return null;
 
   const anchoColumna = ANCHO / 2 - 20;
-  const TAMANO_TITULO = 15; // V4: títulos a 15px reales
-  const TAMANO_PUNTO = 13; // V4: texto normal, mínimo 13px reales
-  const LINE_HEIGHT = 17;
-  const GAP_PUNTO = 8;
   const Y_TITULO = 18;
   const Y_INICIO_PUNTOS = 42;
   const MARGEN_INFERIOR = 10;
@@ -376,55 +389,103 @@ function plantillaComparacion(visual) {
   // V1: el alto del viewBox se calcula a partir de las líneas REALES que
   // necesita la columna más alta (envolverLineas ya decide cuántas líneas
   // hace falta cada punto) — nunca un 180 fijo con hueco de sobra si el
-  // contenido pide menos.
-  const columnasLayout = columnas.map((col) => {
-    const puntosLineas = col.puntos.map((p) => envolverLineas(`• ${p}`, anchoColumna, TAMANO_PUNTO, 2));
-    const alturaPuntos = puntosLineas.reduce((acc, lineas) => acc + lineas.length * LINE_HEIGHT + GAP_PUNTO, 0);
+  // contenido pide menos. Con `altoObjetivo` (spec §1.5), el reparto va por
+  // tamaño de letra, en dos pasadas: envolver depende del tamaño, así que
+  // subir la letra puede cambiar cuántas líneas hace falta cada punto.
+  let tamanoPunto = 13;
+  let lineHeight = 17;
+  let gapPunto = 8;
+
+  // C2 (ola final): antes `envolverLineas` trataba "• " como una palabra más del propio texto —
+  // al subir la letra (spec §1.5, hasta 18) la primera palabra dejaba de caber junto a la viñeta,
+  // esta se quedaba sola en la línea 1 y el texto bajaba a la línea 2, agotando ahí el presupuesto
+  // de 2 líneas y recortándose a media palabra (14/33 `comparacion` del banco real). Arreglo: la
+  // viñeta se dibuja aparte (ver el `forEach` de más abajo) y el texto envuelve por su cuenta en un
+  // ancho ya descontado el hueco que ocupa "• " a este tamaño — con indentación colgante, nunca es
+  // la propia palabra de la viñeta la que decide dónde parte la línea 1.
+  const medirColumnas = (tamano, lh, gap) => columnas.map((col) => {
+    const anchoTexto = anchoColumna - medirAncho('• ', tamano);
+    const puntosLineas = col.puntos.map((p) => envolverLineas(p, anchoTexto, tamano, 2));
+    const alturaPuntos = puntosLineas.reduce((acc, lineas) => acc + lineas.length * lh + gap, 0);
     return { titulo: col.titulo, puntosLineas, alturaPuntos };
   });
-  const alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
-  const alto = Y_INICIO_PUNTOS + alturaMaxPuntos + MARGEN_INFERIOR;
 
-  const svg = crearSvg(alto);
+  let columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+  let alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+  const disponible = Number.isFinite(altoObjetivo) && altoObjetivo > 0 ? altoObjetivo - Y_INICIO_PUNTOS - MARGEN_INFERIOR : 0;
+  if (disponible > alturaMaxPuntos) {
+    // Segunda pasada: sube la letra proporcionalmente (tope 18, spec §1.5) y vuelve a envolver,
+    // porque con más tamaño caben menos palabras por línea.
+    tamanoPunto = Math.round(Math.min(18, Math.max(13, 13 * (disponible / alturaMaxPuntos))));
+    lineHeight = Math.round(tamanoPunto * 1.3);
+    columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+    alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+    // Lo que aún sobre se reparte como aire entre los puntos, no como hueco muerto al final.
+    const puntosMax = Math.max(1, Math.max(...columnasLayout.map((c) => c.puntosLineas.length)));
+    const sobra = disponible - alturaMaxPuntos;
+    if (sobra > 0) {
+      gapPunto += sobra / puntosMax;
+      columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+      alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+    }
+  }
+  const tamanoTitulo = Math.min(18, tamanoPunto + 2);
+  const alto = Math.max(Y_INICIO_PUNTOS + alturaMaxPuntos + MARGEN_INFERIOR, altoObjetivo > 0 ? altoObjetivo : 0);
+
+  const svg = crearSvg(alto, altoObjetivo);
   const xDivisor = ANCHO / 2;
   svg.appendChild(crearLinea(xDivisor, 8, xDivisor, alto - 8, 'var(--texto-suave)', 1, 0.35));
 
+  // Mismo ancho de indentación que usó `medirColumnas` para el tamaño final (misma fórmula, mismo
+  // `tamanoPunto`): la viñeta se pinta una sola vez por punto, en la línea 1, y el texto entero
+  // -- todas sus líneas, no solo la primera -- se desplaza ese hueco a la derecha (indentación
+  // colgante), así la línea 2 queda alineada bajo el texto, no bajo la viñeta.
+  const indentePunto = medirAncho('• ', tamanoPunto);
   const centros = [ANCHO * 0.27, ANCHO * 0.73];
   columnasLayout.forEach((col, ci) => {
     const cx = centros[ci];
     const xIzquierda = cx - anchoColumna / 2;
-    const tituloTexto = recortarALinea(col.titulo, anchoColumna, TAMANO_TITULO);
+    const tituloTexto = recortarALinea(col.titulo, anchoColumna, tamanoTitulo);
     svg.appendChild(
-      crearTexto(cx, Y_TITULO, tituloTexto, { tamano: TAMANO_TITULO, ancla: 'middle', color: 'var(--acento)', peso: 700 })
+      crearTexto(cx, Y_TITULO, tituloTexto, { tamano: tamanoTitulo, ancla: 'middle', color: 'var(--acento)', peso: 700 })
     );
 
     let y = Y_INICIO_PUNTOS;
     col.puntosLineas.forEach((lineas) => {
+      svg.appendChild(
+        crearTexto(xIzquierda, y, '•', { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
+      );
       lineas.forEach((linea, li) => {
         svg.appendChild(
-          crearTexto(xIzquierda, y + li * LINE_HEIGHT, linea, { tamano: TAMANO_PUNTO, ancla: 'start', color: 'var(--texto)' })
+          crearTexto(xIzquierda + indentePunto, y + li * lineHeight, linea, { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
         );
       });
-      y += lineas.length * LINE_HEIGHT + GAP_PUNTO;
+      y += lineas.length * lineHeight + gapPunto;
     });
   });
 
   return svg;
 }
 
-function plantillaFlujo(visual) {
+function plantillaFlujo(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.pasos)) return null;
   const pasos = visual.pasos.filter(esTextoValido).map((p) => p.trim()).slice(0, 4);
   if (!pasos.length) return null;
 
   const n = pasos.length;
   const margen = 8;
-  const filaFlujo = 50; // caja (36) + hueco para la flecha (14)
-  const alto = margen * 2 + n * filaFlujo - 14; // sin flecha colgando tras la última caja
-  const svg = crearSvg(alto);
+  const FLECHA = 14;
+  // El alto natural es margen*2 + n*50 - 14 (la última caja no arrastra flecha): al repartir, la
+  // "fila" sigue siendo caja + hueco de flecha.
+  const filaNatural = 50;
+  const disponible = Number.isFinite(altoObjetivo) && altoObjetivo > 0 ? altoObjetivo - margen * 2 + FLECHA : 0;
+  const filaFlujo = disponible > 0 ? Math.max(filaNatural, disponible / n) : filaNatural;
+  const altoCaja = Math.max(36, filaFlujo - FLECHA);
+  const tamano = Math.round(Math.min(18, Math.max(13, altoCaja * 0.36)));
+  const alto = margen * 2 + n * filaFlujo - FLECHA; // sin flecha colgando tras la última caja
+  const svg = crearSvg(alto, altoObjetivo);
   const anchoCaja = 220;
   const xCaja = (ANCHO - anchoCaja) / 2;
-  const altoCaja = 36;
 
   pasos.forEach((texto, i) => {
     const yFila = margen + i * filaFlujo;
@@ -436,9 +497,9 @@ function plantillaFlujo(visual) {
     rect.setAttribute('rx', '8');
     svg.appendChild(rect);
 
-    const textoRecortado = recortarALinea(texto, anchoCaja - 20, 13);
+    const textoRecortado = recortarALinea(texto, anchoCaja - 20, tamano);
     svg.appendChild(
-      crearTexto(ANCHO / 2, yCaja + altoCaja / 2, textoRecortado, { tamano: 13, ancla: 'middle', color: 'var(--texto)', peso: 600 })
+      crearTexto(ANCHO / 2, yCaja + altoCaja / 2, textoRecortado, { tamano, ancla: 'middle', color: 'var(--texto)', peso: 600 })
     );
 
     if (i < n - 1) {
@@ -450,7 +511,7 @@ function plantillaFlujo(visual) {
   return svg;
 }
 
-function plantillaDato(visual) {
+function plantillaDato(visual, altoObjetivo = 0) {
   if (!esTextoValido(visual.cifra) || !esTextoValido(visual.texto)) return null;
 
   const cifra = visual.cifra.trim();
@@ -468,15 +529,19 @@ function plantillaDato(visual) {
   const gapCifraTexto = 14;
   const lineHeightTexto = 19;
   const margenInferior = 14;
-  const alto = margenTop + alturaCifra + gapCifraTexto + lineas.length * lineHeightTexto + margenInferior;
+  const altoNatural = margenTop + alturaCifra + gapCifraTexto + lineas.length * lineHeightTexto + margenInferior;
+  const alto = Math.max(altoNatural, altoObjetivo > 0 ? altoObjetivo : 0);
 
-  const svg = crearSvg(alto);
-  const yCifra = margenTop + alturaCifra / 2;
+  const svg = crearSvg(alto, altoObjetivo);
+  // Con un viewBox más alto que el natural, el bloque cifra+texto se centra en vez de quedarse
+  // pegado arriba con el hueco debajo.
+  const dy = (alto - altoNatural) / 2;
+  const yCifra = dy + margenTop + alturaCifra / 2;
   svg.appendChild(
     crearTexto(ANCHO / 2, yCifra, cifraRecortada, { tamano: tamanoCifra, ancla: 'middle', color: 'var(--acento)', peso: 700 })
   );
 
-  const yTextoBase = margenTop + alturaCifra + gapCifraTexto + lineHeightTexto / 2;
+  const yTextoBase = dy + margenTop + alturaCifra + gapCifraTexto + lineHeightTexto / 2;
   lineas.forEach((linea, i) => {
     svg.appendChild(
       crearTexto(ANCHO / 2, yTextoBase + i * lineHeightTexto, linea, { tamano: 15, ancla: 'middle', color: 'var(--texto)' })
@@ -624,20 +689,21 @@ const PLANTILLAS = {
   dato: plantillaDato,
 };
 
-/** Dibuja `visual` (spec v0.1e §2) como SVG, o devuelve `null` si no hay nada
- * pintable: sin objeto, tipo desconocido, o datos que no pasan la
- * comprobación mínima de forma de su plantilla. `role="img"` +
- * `aria-label` = leyenda (spec v0.1e §4); el propio dibujo NUNCA pinta la
- * leyenda (eso lo hace construirBloqueVisual en app.js, en un <p> aparte,
- * igual que el pie de la imagen de Commons). */
-export function construirVisual(visual) {
+/** Dibuja `visual` (spec v0.1e §2) como SVG, o `null` si no hay nada pintable. `alto` (spec
+ * v0.2a.2.1 §1.5) es el alto de viewBox OBJETIVO que pide la zona de la tarjeta revelada: cada
+ * plantilla reparte sus filas y sube su tipografía para llenarlo. Sin `alto`, todo se comporta
+ * como hasta ahora (lo usan el resumen y cualquier llamada que no mida la zona). `role="img"` +
+ * `aria-label` = leyenda (spec v0.1e §4); el propio dibujo NUNCA pinta la leyenda (eso lo hace
+ * construirBloqueVisual en app.js, en un <p> aparte, igual que el pie de la imagen de Commons). */
+export function construirVisual(visual, { alto } = {}) {
   if (!visual || typeof visual !== 'object') return null;
   const plantilla = PLANTILLAS[visual.tipo];
   if (!plantilla) return null;
+  const altoObjetivo = Number.isFinite(alto) && alto > 0 ? Math.round(alto) : 0;
 
   let svg = null;
   try {
-    svg = plantilla(visual);
+    svg = plantilla(visual, altoObjetivo);
   } catch (err) {
     return null;
   }
@@ -654,9 +720,9 @@ export function construirVisual(visual) {
 // preguntas tengan visual: la clave de la respuesta correcta en grande sobre un fondo radial cian
 // oscuro, con el nombre del área. Sirve también para toda pregunta `srv-` que llegue sin visual.
 //
-// `textoVisualClave` es la parte PURA (solo texto, sin DOM) para poder probarla con node:test sin
-// necesitar el navegador; `construirVisualClave` la convierte en SVG con el mismo estilo de
-// creación (`createElementNS`) que las plantillas de arriba.
+// `modeloVisualClave` es la parte PURA (solo modelo, sin DOM) para poder probarla con node:test sin
+// necesitar el navegador; `construirVisualClave` la convierte en HTML con el mismo estilo de
+// creación (`createElementNS`/DOM) que las plantillas de arriba.
 
 /** Primera frase de `enunciado`: hasta el primer terminador ('.', '?' o '!') inclusive; sin
  * terminador (o si la frase resultante supera los 90 caracteres) se recorta a 90 caracteres como
@@ -678,68 +744,88 @@ function primeraFrase(enunciado) {
 }
 
 /**
- * Texto de la tercera capa (spec v0.2 §8), puro -- sin DOM. Nunca lanza: cualquier forma rota de
- * `pregunta` (tipo desconocido, faltan opciones/tarjeta/items, índices fuera de rango...) devuelve
- * `principal` vacío en vez de lanzar; `construirVisualClave` pinta entonces un SVG con solo el área.
+ * Modelo de la tarjeta tipográfica (spec v0.2a.2.1 §1.3), PURO -- sin DOM, testeable con node:test.
+ * Sustituye a `textoVisualClave` de v0.2a.2 (principal/secundario): aquella forma única servía para
+ * un SVG de una sola línea grande y era justo lo que Carlos calificó de "muy mala" en `ordenar`
+ * (mostraba "primero → último" en vez del orden entero). Ahora cada tipo tiene su propio modelo,
+ * y `construirVisualClave` decide el layout HTML a partir de `tipo`.
  *
- * - `test4` -> `principal` = texto de la opción correcta (`opciones[correcta]`); `secundario` =
- *   primera frase del enunciado.
- * - `error` -> `principal` = etiqueta de la fila marcada como sospechosa
- *   (`tarjeta.filas[sospechoso].etiqueta` -- ver motor.js#evaluar y tools/validar-banco.js, el motor
- *   compara `respuesta === pregunta.sospechoso`); `secundario` = primera frase del enunciado.
- * - `ordenar` -> `principal` = `"<primero> → <último>"` del orden correcto: `items` YA viene en el
- *   orden correcto (motor.js#evaluar usa `items.map((_, i) => i)` como objetivo), así que son
- *   sencillamente el primer y el último elemento del array. Sin `secundario` (no hace falta: el
- *   propio principal ya da el contexto de inicio/fin).
- * - `vf` -> `principal` = `"Cierto"` o `"Falso"` según `respuesta`; `secundario` = primera frase.
+ * NUNCA lanza: cualquier forma rota (tipo desconocido, faltan opciones/tarjeta/items, índices fuera
+ * de rango, `null`…) devuelve `{ tipo: 'desconocido', area }` y la capa de dibujo pinta solo el área.
  *
  * @param {any} pregunta
- * @returns {{ principal: string, secundario?: string, area?: string }}
+ * @returns {{tipo: string, area: string, titulo?: string, [clave: string]: any}}
  */
-export function textoVisualClave(pregunta) {
-  if (!pregunta || typeof pregunta !== 'object') return { principal: '' };
+export function modeloVisualClave(pregunta) {
+  if (!pregunta || typeof pregunta !== 'object') return { tipo: 'desconocido', area: '' };
+  const area = esTextoValido(pregunta.area) ? pregunta.area.trim() : '';
+  const desconocido = { tipo: 'desconocido', area };
 
-  const area = esTextoValido(pregunta.area) ? pregunta.area : undefined;
-  let principal = '';
-  let secundario;
-
-  switch (pregunta.tipo) {
-    case 'test4': {
-      const opciones = Array.isArray(pregunta.opciones) ? pregunta.opciones : null;
-      const idx = pregunta.correcta;
-      if (opciones && Number.isInteger(idx) && idx >= 0 && idx < opciones.length && esTextoValido(opciones[idx])) {
-        principal = opciones[idx].trim();
+  try {
+    switch (pregunta.tipo) {
+      case 'ordenar': {
+        // `items` YA viene en el orden correcto (motor.js#evaluar compara contra
+        // items.map((_, i) => i)): la lista se pinta tal cual, entera.
+        const items = Array.isArray(pregunta.items)
+          ? pregunta.items.filter(esTextoValido).map((t) => t.trim())
+          : [];
+        if (!items.length) return desconocido;
+        return { tipo: 'ordenar', area, titulo: 'Orden correcto', items };
       }
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    case 'error': {
-      const filas = pregunta.tarjeta && Array.isArray(pregunta.tarjeta.filas) ? pregunta.tarjeta.filas : null;
-      const idx = pregunta.sospechoso;
-      if (filas && Number.isInteger(idx) && idx >= 0 && idx < filas.length && filas[idx] && esTextoValido(filas[idx].etiqueta)) {
-        principal = filas[idx].etiqueta.trim();
+      case 'error': {
+        const filas = pregunta.tarjeta && Array.isArray(pregunta.tarjeta.filas) ? pregunta.tarjeta.filas : null;
+        const idx = pregunta.sospechoso;
+        const fila = filas && Number.isInteger(idx) && idx >= 0 && idx < filas.length ? filas[idx] : null;
+        if (!fila || !esTextoValido(fila.etiqueta)) return desconocido;
+        // Hoy NINGUNA de las 40 preguntas `error` del banco trae el valor correcto aparte
+        // (comprobado el 17-sep-2026 sobre datos/banco.json): `valorCorrecto` queda vacío y la
+        // capa de dibujo enseña la fila tal cual, sin tachar nada (spec §1.3, rama "si la
+        // tarjeta de datos no tiene valor correcto separado"). Los dos campos opcionales se
+        // leen igualmente para que el pipeline pueda empezar a rellenarlos sin tocar esto.
+        const correccion = esTextoValido(fila.correcto)
+          ? fila.correcto.trim()
+          : esTextoValido(pregunta.correccion)
+            ? pregunta.correccion.trim()
+            : '';
+        return {
+          tipo: 'error',
+          area,
+          titulo: 'Dato erróneo',
+          etiqueta: fila.etiqueta.trim(),
+          valorErroneo: esTextoValido(fila.valor) ? fila.valor.trim() : '',
+          valorCorrecto: correccion,
+        };
       }
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    case 'ordenar': {
-      const items = Array.isArray(pregunta.items) ? pregunta.items : [];
-      if (items.length > 0 && esTextoValido(items[0]) && esTextoValido(items[items.length - 1])) {
-        principal = `${items[0].trim()} → ${items[items.length - 1].trim()}`;
+      case 'test4': {
+        const opciones = Array.isArray(pregunta.opciones) ? pregunta.opciones : null;
+        const idx = pregunta.correcta;
+        if (!opciones || !Number.isInteger(idx) || idx < 0 || idx >= opciones.length || !esTextoValido(opciones[idx])) {
+          return desconocido;
+        }
+        return {
+          tipo: 'test4',
+          area,
+          titulo: '',
+          correcta: opciones[idx].trim(),
+          descartadas: opciones.filter((_, i) => i !== idx).filter(esTextoValido).map((t) => t.trim()),
+        };
       }
-      break;
+      case 'vf': {
+        if (pregunta.respuesta !== true && pregunta.respuesta !== false) return desconocido;
+        return {
+          tipo: 'vf',
+          area,
+          titulo: '',
+          veredicto: pregunta.respuesta ? 'Cierto' : 'Falso',
+          frase: primeraFrase(pregunta.enunciado),
+        };
+      }
+      default:
+        return desconocido;
     }
-    case 'vf': {
-      if (pregunta.respuesta === true) principal = 'Cierto';
-      else if (pregunta.respuesta === false) principal = 'Falso';
-      secundario = primeraFrase(pregunta.enunciado) || undefined;
-      break;
-    }
-    default:
-      break; // tipo desconocido: principal se queda vacío, nunca lanza.
+  } catch (err) {
+    return desconocido; // contrato de la capa: nunca lanza, ni con datos del servidor mal formados
   }
-
-  return { principal, secundario, area };
 }
 
 /** Primera letra en mayúscula -- mismo fallback que `nombreArea` en app.js (NOMBRES_AREA no está
@@ -749,185 +835,121 @@ function capitalizarArea(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Recorta `texto` a `maxCaracteres` (conteo real de caracteres, no estimación de ancho en pixeles
- * como `recortarALinea`): la tarjeta tipográfica fija su línea a <=22 caracteres por spec, no a un
- * ancho medido. */
-function recortarPorCaracteres(texto, maxCaracteres) {
-  if (!texto) return '';
-  if (texto.length <= maxCaracteres) return texto;
-  if (maxCaracteres <= 1) return '…';
-  return `${texto.slice(0, maxCaracteres - 1).trimEnd()}…`;
+/** Un `<p>` del bloque tipográfico, con su clase y su texto. Envolver esto evita repetir cuatro
+ * líneas idénticas por cada pieza de los cinco layouts de abajo. */
+function crearParrafoClave(clase, texto, etiquetaHtml = 'p') {
+  const el = document.createElement(etiquetaHtml);
+  el.className = clase;
+  el.textContent = texto;
+  return el;
 }
-
-/** Reparte `texto` en como mucho `maxLineas` líneas de <=`maxCaracteres` cada una, partiendo por
- * espacios (mismo algoritmo que `envolverLineas` de arriba, pero por conteo de caracteres en vez de
- * ancho estimado en pixeles -- la spec de la tarjeta tipográfica fija el límite en caracteres). */
-function envolverPorCaracteres(texto, maxCaracteres, maxLineas) {
-  const normalizado = (texto || '').replace(/\s+/g, ' ').trim();
-  if (!normalizado) return [''];
-  const palabras = normalizado.split(' ');
-  const lineas = [];
-  let actual = '';
-  let indice = 0;
-  let cortado = false;
-  while (indice < palabras.length) {
-    const palabra = palabras[indice];
-    const candidata = actual ? `${actual} ${palabra}` : palabra;
-    if (!actual || candidata.length <= maxCaracteres) {
-      actual = candidata;
-      indice += 1;
-      continue;
-    }
-    lineas.push(actual);
-    actual = '';
-    if (lineas.length === maxLineas) {
-      cortado = true;
-      break;
-    }
-  }
-  if (!cortado) {
-    if (actual) lineas.push(actual);
-    if (indice < palabras.length) cortado = true;
-  }
-  if (cortado) {
-    if (lineas.length) {
-      lineas[lineas.length - 1] = recortarPorCaracteres(`${lineas[lineas.length - 1]}…`, maxCaracteres);
-    } else {
-      lineas.push(recortarPorCaracteres(normalizado, maxCaracteres));
-    }
-  }
-  return lineas.length ? lineas.slice(0, maxLineas) : [''];
-}
-
-let contadorGradienteClave = 0;
 
 /**
- * Dibuja la tercera capa (spec v0.2 §8) como SVG: `viewBox 0 0 320 180` fijo (a diferencia de las
- * plantillas de arriba, aquí no hay contenido variable que calcule su propio alto), fondo radial
- * cian oscuro (`#0b2a33` -> `#07161b`), `principal` centrado en 1-2 líneas (tamaño 26 si cabe en una,
- * 22 si necesita dos), `secundario` en 13 debajo cuando existe, nombre del área en 11 arriba a la
- * izquierda. `role="img"`, `aria-label` = `principal` (+ " — " + `secundario` si existe).
+ * Tercera capa (spec v0.2a.2.1 §1.3): tarjeta tipográfica en HTML, ya no en SVG. El motivo del
+ * cambio es que el texto tiene que ENVOLVER y el alto es variable (una lista de 4 ítems ocupa más
+ * que un "Cierto"), y un `viewBox` fijo obliga a recortar por caracteres y a dejar hueco muerto.
+ * En HTML el layout lo resuelve el navegador y el bloque llena la zona de borde a borde.
  *
- * Nunca lanza: si `textoVisualClave` no puede sacar `principal` (pregunta rota), devuelve un SVG con
- * solo el área (o completamente vacío si ni el área hay). Ronda de corrección 1 (C2): TODO el cuerpo
- * que construye el SVG -- incluida la llamada a `nombreArea`, que puede venir de fuera (app.js) y no
- * tiene por qué ser defensiva -- vive dentro de un único `try/catch`; el `catch` reconstruye el SVG
- * de "solo área" usando siempre `capitalizarArea` (nunca la `nombreArea` externa, que es justo la
- * que pudo fallar). El área también se guarda con `typeof === 'string' && area` ANTES de intentar
- * capitalizarla, en los dos caminos (normal y catch), así que un `area` roto ni siquiera llega a
- * `nombreArea`/`capitalizarArea`.
+ * Un layout por tipo, todos dentro de `.visual-clave-cuerpo`:
+ *  - `ordenar`: lista numerada COMPLETA en el orden correcto (la de v0.2a.2 enseñaba solo
+ *    "primero → último": Carlos, 17-sep, "muy mala").
+ *  - `error`: la fila sospechosa; el valor erróneo SIEMPRE tachado (`<s>`, I1 ola final) y, si hay
+ *    corrección aparte, el correcto al lado en verde.
+ *  - `test4`: la opción correcta grande y las tres descartadas apagadas.
+ *  - `vf`: "Cierto"/"Falso" grande y la primera frase del enunciado debajo.
+ *  - desconocido: solo el área.
  *
- * `nombreArea`: NOMBRES_AREA vive en app.js sin exportar (app.js no exporta nada). Quien llama desde
- * ahí puede pasar su propia función `nombreArea` (mismo nombre, por comodidad de `{ nombreArea }` al
- * llamar) para mostrar "Economía" en vez de "economia"; sin ella, se capitaliza el id tal cual.
+ * NUNCA lanza (contrato de la capa, garantiza el 100 % de tarjetas con visual): todo el cuerpo va
+ * en un `try/catch` -- incluida la llamada a `nombreArea`, que viene de app.js y no tiene por qué
+ * ser defensiva -- y el `catch` reconstruye un bloque mínimo usando solo `capitalizarArea`.
  *
  * @param {any} pregunta
  * @param {{ nombreArea?: (area: string) => string }} [opciones]
- * @returns {SVGElement}
+ * @returns {HTMLElement}
  */
 export function construirVisualClave(pregunta, { nombreArea } = {}) {
-  let datos;
+  let modelo;
   try {
-    datos = textoVisualClave(pregunta) || {};
+    modelo = modeloVisualClave(pregunta) || { tipo: 'desconocido', area: '' };
   } catch (err) {
-    datos = {};
+    modelo = { tipo: 'desconocido', area: '' };
   }
-  // Guarda (C2): un `area` roto (undefined, no-string, '') nunca llega a `nombreArea`/`capitalizarArea`.
-  const areaId = typeof datos.area === 'string' && datos.area ? datos.area : '';
+  const areaId = typeof modelo.area === 'string' && modelo.area ? modelo.area : '';
 
   try {
-    const principal = esTextoValido(datos.principal) ? datos.principal.trim() : '';
-    const secundario = esTextoValido(datos.secundario) ? datos.secundario.trim() : '';
     const areaTexto = areaId ? (typeof nombreArea === 'function' ? nombreArea(areaId) || '' : capitalizarArea(areaId)) : '';
+    const caja = document.createElement('div');
+    caja.className = `visual-clave visual-clave--${modelo.tipo}`;
+    caja.dataset.test = 'visual-clave';
 
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 320 180');
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    svg.style.aspectRatio = '320 / 180';
-    svg.classList.add('visual-svg', 'visual-svg--clave');
-    svg.dataset.test = 'visual-clave';
+    if (esTextoValido(areaTexto)) caja.appendChild(crearParrafoClave('visual-clave-area', areaTexto.trim().toUpperCase()));
+    if (esTextoValido(modelo.titulo)) caja.appendChild(crearParrafoClave('visual-clave-titulo', modelo.titulo));
 
-    contadorGradienteClave += 1;
-    const idGradiente = `visual-clave-gradiente-${contadorGradienteClave}`;
-    const defs = document.createElementNS(NS, 'defs');
-    const gradiente = document.createElementNS(NS, 'radialGradient');
-    gradiente.setAttribute('id', idGradiente);
-    gradiente.setAttribute('cx', '50%');
-    gradiente.setAttribute('cy', '40%');
-    gradiente.setAttribute('r', '75%');
-    const stopInicio = document.createElementNS(NS, 'stop');
-    stopInicio.setAttribute('offset', '0%');
-    stopInicio.setAttribute('stop-color', '#0b2a33');
-    const stopFin = document.createElementNS(NS, 'stop');
-    stopFin.setAttribute('offset', '100%');
-    stopFin.setAttribute('stop-color', '#07161b');
-    gradiente.appendChild(stopInicio);
-    gradiente.appendChild(stopFin);
-    defs.appendChild(gradiente);
-    svg.appendChild(defs);
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'visual-clave-cuerpo';
 
-    // clase `visual-clave-fondo` (Ronda 1 de revisión de la Tarea 2, I1):
-    // permite a estilos.css OCULTAR este rect solo dentro de `.zona-imagen--clave`
-    // (donde el degradado ya vive en la propia zona, para llenarla de borde a
-    // borde) sin tocarlo cuando el mismo SVG se use en otro sitio (p. ej. la
-    // pantalla completa de la Tarea 3), donde debe conservar su propio fondo.
-    const fondo = crearRect(0, 0, 320, 180, `url(#${idGradiente})`);
-    fondo.classList.add('visual-clave-fondo');
-    svg.appendChild(fondo);
-
-    if (esTextoValido(areaTexto)) {
-      svg.appendChild(
-        crearTexto(14, 20, areaTexto.trim().toUpperCase(), { tamano: 11, color: '#5fd4e8', ancla: 'start', peso: 600 })
-      );
+    if (modelo.tipo === 'ordenar') {
+      const lista = document.createElement('ol');
+      lista.className = 'visual-clave-lista';
+      for (const texto of modelo.items) {
+        const li = crearParrafoClave('visual-clave-item', texto, 'li');
+        lista.appendChild(li);
+      }
+      cuerpo.appendChild(lista);
+    } else if (modelo.tipo === 'error') {
+      cuerpo.appendChild(crearParrafoClave('visual-clave-etiqueta', modelo.etiqueta));
+      // I1 (ola final): la spec §1.3 pide el valor erróneo tachado (`<s>`) SIEMPRE, con o sin
+      // corrección aparte -- hoy ninguna de las 40 preguntas `error` del banco trae `valorCorrecto`
+      // (ver el comentario de modeloVisualClave arriba), así que antes de este arreglo la rama sin
+      // corrección pintaba el dato FALSO en `<p>` normal: el elemento más grande y luminoso de toda
+      // la clave era justo la afirmación incorrecta, con el único aviso "Dato erróneo" ~300px más
+      // arriba. `<s>` ya lleva su propio color atenuado (`s.visual-clave-valor`, estilos.css) que
+      // hoy solo se aplicaba cuando SÍ había corrección al lado -- se aplica igual sin ella.
+      cuerpo.appendChild(crearParrafoClave('visual-clave-valor', modelo.valorErroneo, 's'));
+      if (modelo.valorCorrecto) cuerpo.appendChild(crearParrafoClave('visual-clave-correccion', modelo.valorCorrecto));
+    } else if (modelo.tipo === 'test4') {
+      cuerpo.appendChild(crearParrafoClave('visual-clave-correcta', modelo.correcta));
+      for (const texto of modelo.descartadas) cuerpo.appendChild(crearParrafoClave('visual-clave-descartada', texto));
+    } else if (modelo.tipo === 'vf') {
+      const veredicto = crearParrafoClave('visual-clave-veredicto', modelo.veredicto);
+      veredicto.classList.add(modelo.veredicto === 'Cierto' ? 'visual-clave-veredicto--cierto' : 'visual-clave-veredicto--falso');
+      cuerpo.appendChild(veredicto);
+      if (esTextoValido(modelo.frase)) cuerpo.appendChild(crearParrafoClave('visual-clave-frase', modelo.frase));
     }
 
-    if (!principal) {
-      svg.setAttribute('role', 'img');
-      svg.setAttribute('aria-label', esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual');
-      return svg;
-    }
-
-    const lineas = envolverPorCaracteres(principal, 22, 2);
-    const tamanoPrincipal = lineas.length > 1 ? 22 : 26;
-    const lineHeight = tamanoPrincipal * 1.2;
-    const bloqueAlto = lineas.length * lineHeight;
-    const yCentro = secundario ? 86 : 96;
-    const ySecundario = secundario ? 144 : 0;
-    const yInicio = yCentro - bloqueAlto / 2 + lineHeight / 2;
-
-    lineas.forEach((linea, i) => {
-      svg.appendChild(
-        crearTexto(160, yInicio + i * lineHeight, linea, { tamano: tamanoPrincipal, ancla: 'middle', color: '#eafbff', peso: 700 })
-      );
-    });
-
-    if (secundario) {
-      // C1 (ronda de corrección 1): sin recorte, un `secundario` real (hasta 90 caracteres por
-      // `primeraFrase`) se salía del `viewBox` por ambos lados -- confirmado en el 85% del banco real
-      // y en la captura de la Tarea 2. Misma convención "ningún texto desborda su línea" que el resto
-      // del fichero (`recortarALinea`/`medirAncho`, ver cabecera). 296 = 320 - 2*12 de margen lateral;
-      // una sola línea (el brief dice "secundario en 13 debajo", en singular, y `ySecundario` es una
-      // única posición fija).
-      const secundarioVisual = recortarALinea(secundario, 296, 13);
-      svg.appendChild(crearTexto(160, ySecundario, secundarioVisual, { tamano: 13, ancla: 'middle', color: '#8fd9e8' }));
-    }
-
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', secundario ? `${principal} — ${secundario}` : principal);
-    return svg;
+    caja.appendChild(cuerpo);
+    caja.setAttribute('role', 'img');
+    caja.setAttribute('aria-label', etiquetaAccesibleClave(modelo, areaTexto));
+    return caja;
   } catch (err) {
-    // C2: cualquier fallo inesperado en el bloque de arriba (incluida una `nombreArea` externa que
-    // lance) cae aquí -- el área ya se recalcula SIN volver a llamar a `nombreArea` (la posible
-    // causa del fallo), solo con `capitalizarArea`, que tiene su propia guarda interna.
     const areaSegura = areaId ? capitalizarArea(areaId) : '';
-    const svgVacio = document.createElementNS(NS, 'svg');
-    svgVacio.setAttribute('viewBox', '0 0 320 180');
-    svgVacio.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    svgVacio.style.aspectRatio = '320 / 180';
-    svgVacio.classList.add('visual-svg', 'visual-svg--clave');
-    svgVacio.dataset.test = 'visual-clave';
-    svgVacio.setAttribute('role', 'img');
-    svgVacio.setAttribute('aria-label', esTextoValido(areaSegura) ? areaSegura.trim() : 'Visual');
-    return svgVacio;
+    const caja = document.createElement('div');
+    caja.className = 'visual-clave visual-clave--desconocido';
+    caja.dataset.test = 'visual-clave';
+    if (esTextoValido(areaSegura)) caja.appendChild(crearParrafoClave('visual-clave-area', areaSegura.trim().toUpperCase()));
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'visual-clave-cuerpo';
+    caja.appendChild(cuerpo);
+    caja.setAttribute('role', 'img');
+    caja.setAttribute('aria-label', esTextoValido(areaSegura) ? areaSegura.trim() : 'Visual');
+    return caja;
+  }
+}
+
+/** `aria-label` del bloque: un lector de pantalla tiene que oír la clave, no "imagen". */
+function etiquetaAccesibleClave(modelo, areaTexto) {
+  switch (modelo.tipo) {
+    case 'ordenar':
+      return `Orden correcto: ${modelo.items.join(', ')}`;
+    case 'error':
+      return modelo.valorCorrecto
+        ? `Dato erróneo: ${modelo.etiqueta}, ${modelo.valorErroneo}; lo correcto es ${modelo.valorCorrecto}`
+        : `Dato erróneo: ${modelo.etiqueta}, ${modelo.valorErroneo}`;
+    case 'test4':
+      return `Respuesta correcta: ${modelo.correcta}`;
+    case 'vf':
+      return modelo.frase ? `${modelo.veredicto}: ${modelo.frase}` : modelo.veredicto;
+    default:
+      return esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual';
   }
 }

@@ -1794,6 +1794,15 @@ function irASiguienteHueco() {
   }
 }
 
+/** Avanza el mazo que esté visible (spec v0.2a.2.1 §1.2.3: la flecha también existe en el repaso,
+ * donde `irASiguienteHueco` no sirve — usa `mazoControlador`, que es el de la PARTIDA, y llama a
+ * `finalizarPartida` al llegar al final). `mazosActivos` ya se importa de mazo.js (app.js:20) y
+ * cada controlador sabe si su vista está visible. */
+function avanzarMazoVisible() {
+  const visible = mazosActivos.find((m) => m.estaVisible());
+  if (visible) visible.siguiente();
+}
+
 function finalizarPartida() {
   // La partida ha terminado: se desmonta el mazo (listeners de puntero y de
   // teclado incluidos) para no dejar nada colgado mientras se ve el resumen;
@@ -2303,10 +2312,16 @@ function construirTarjetaSinResponder(hueco) {
  * posición SOLO si al menos una posición acertó (ronda de corrección 1: con
  * TODO mal — p. ej. el orden invertido del todo — marcar cada línea con ✗
  * sobre el propio orden correcto leía como "esto está mal", cuando es
- * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende). */
-function construirRespuestaCompacta(pregunta, hueco) {
+ * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende).
+ *
+ * `soloFallo` (spec v0.2a.2.1 §1.3): con la tarjeta tipográfica la respuesta correcta ya está
+ * escrita en grande en la visual, así que aquí solo sobrevive la línea de LA RESPUESTA DEL
+ * JUGADOR cuando falló ("Tu respuesta: X ✗") — con acierto, o sin haber respondido, no queda
+ * nada que decir y el contenedor vuelve vacío. */
+function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {}) {
   const contenedor = document.createElement('div');
   contenedor.className = 'respuesta-compacta';
+  if (soloFallo && (hueco.correcta === undefined || hueco.correcta || hueco.respuesta === undefined)) return contenedor;
   switch (pregunta.tipo) {
     case 'vf': {
       // Tolerancia a hueco.respuesta === undefined (tarjeta anterior a v0.2,
@@ -2326,7 +2341,11 @@ function construirRespuestaCompacta(pregunta, hueco) {
         linea.textContent = `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✓`;
         linea.classList.add('respuesta-compacta-linea--ok');
       } else {
-        linea.textContent = `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+        // Con `soloFallo` interesa QUÉ marcó el jugador, no cuál era la correcta (eso está en la
+        // visual): "Tu respuesta: Verdadero ✗" en vez de "✗ · Era Falso".
+        linea.textContent = soloFallo
+          ? `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✗`
+          : `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
         linea.classList.add('respuesta-compacta-linea--tachada');
       }
       contenedor.appendChild(linea);
@@ -2344,6 +2363,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
         tuya.textContent = `${pregunta.opciones[hueco.respuesta]} ✗`;
         contenedor.appendChild(tuya);
       }
+      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.opciones[pregunta.correcta]} ✓`;
@@ -2358,6 +2378,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
         tuya.textContent = `${pregunta.tarjeta.filas[hueco.respuesta].etiqueta} ✗`;
         contenedor.appendChild(tuya);
       }
+      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta} ✓`;
@@ -2365,6 +2386,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
       break;
     }
     case 'ordenar': {
+      if (soloFallo) break; // la lista completa ya está en la visual
       const rotulo = document.createElement('p');
       rotulo.className = 'respuesta-compacta-orden-rotulo';
       rotulo.textContent = 'Orden correcto';
@@ -2453,31 +2475,10 @@ function respuestaCorrectaTexto(pregunta) {
 // [data-test="preguntar-a"] de construirTarjetaRespondida (partida y repaso).
 // ============================================================================
 
-// Iconos SVG inline, monocromos (heredan el color cian del botón vía
-// currentColor): ChatGPT una flor de 6 pétalos simplificada, Claude un
-// asterisco de 8 rayos, Gemini una estrella/destello de 4 puntas.
-const SVG_PREGUNTAR_CHATGPT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(0 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(60 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(120 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(180 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(240 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(300 12 12)"/>
-</svg>`;
-const SVG_PREGUNTAR_CLAUDE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
-  <line x1="12" y1="2.5" x2="12" y2="21.5"/>
-  <line x1="2.5" y1="12" x2="21.5" y2="12"/>
-  <line x1="5.4" y1="5.4" x2="18.6" y2="18.6"/>
-  <line x1="18.6" y1="5.4" x2="5.4" y2="18.6"/>
-</svg>`;
-const SVG_PREGUNTAR_GEMINI = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-  <path d="M12 2.5c0.9 5.6 3 7.7 8.6 8.6-5.6 0.9-7.7 3-8.6 8.6-0.9-5.6-3-7.7-8.6-8.6 5.6-0.9 7.7-3 8.6-8.6Z"/>
-</svg>`;
-
 const DESTINOS_PREGUNTAR_A = [
-  { clave: 'chatgpt', nombre: 'ChatGPT', icono: SVG_PREGUNTAR_CHATGPT, url: (q) => `https://chatgpt.com/?q=${q}` },
-  { clave: 'claude', nombre: 'Claude', icono: SVG_PREGUNTAR_CLAUDE, url: (q) => `https://claude.ai/new?q=${q}` },
-  { clave: 'gemini', nombre: 'Gemini', icono: SVG_PREGUNTAR_GEMINI, url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
+  { clave: 'chatgpt', nombre: 'ChatGPT', url: (q) => `https://chatgpt.com/?q=${q}` },
+  { clave: 'claude', nombre: 'Claude', url: (q) => `https://claude.ai/new?q=${q}` },
+  { clave: 'gemini', nombre: 'Gemini', url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
 ];
 
 /** Prompt en español, literal de la spec v0.1d §5 (feedback de Carlos: "el
@@ -2488,12 +2489,11 @@ function construirPromptPreguntarA(pregunta) {
   return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, apóyate en algo visual siempre que ayude (un esquema en texto, una tabla comparativa, una línea de tiempo o una fórmula sencilla), y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
 }
 
-/** Fila "Preguntar a:" (spec v0.1c §5, nombres añadidos en v0.1d §5): etiqueta
- * + tres columnas icono(44×44)+nombre(11px), cada `<a>` con borde cian, icono
- * monocromo, aria-label y el prompt de ESTA pregunta ya codificado en la URL.
- * `target="_blank" rel="noopener"`: abren aparte. El nombre visible es
- * `aria-hidden`: el aria-label del enlace ya lo dice, no hace falta leerlo dos
- * veces con lector de pantalla. */
+/** Fila "Preguntar a:" (spec v0.2a.2.1 §1.2.2): chips pequeños de SOLO TEXTO. Los iconos SVG de
+ * 44×44 con el nombre debajo (v0.1d §5) ocupaban ~64px de alto en una zona de acción que ahora
+ * tiene un tope duro del 25 % de la tarjeta para que la visual pueda llegar a su 50 % real. La
+ * URL, el `data-test` y el `aria-label` de cada destino no cambian: los e2e que los usan siguen
+ * valiendo tal cual. */
 function construirPreguntarA(pregunta) {
   const frag = document.createDocumentFragment();
 
@@ -2504,26 +2504,15 @@ function construirPreguntarA(pregunta) {
 
   const prompt = encodeURIComponent(construirPromptPreguntarA(pregunta));
   for (const destino of DESTINOS_PREGUNTAR_A) {
-    const item = document.createElement('div');
-    item.className = 'preguntar-a-item';
-
     const enlace = document.createElement('a');
-    enlace.className = 'preguntar-a-boton';
+    enlace.className = 'preguntar-a-chip';
     enlace.dataset.test = `preguntar-${destino.clave}`;
     enlace.href = destino.url(prompt);
     enlace.target = '_blank';
     enlace.rel = 'noopener';
     enlace.setAttribute('aria-label', `Preguntar a ${destino.nombre}`);
-    enlace.innerHTML = destino.icono;
-    item.appendChild(enlace);
-
-    const nombre = document.createElement('span');
-    nombre.className = 'preguntar-a-nombre';
-    nombre.textContent = destino.nombre;
-    nombre.setAttribute('aria-hidden', 'true');
-    item.appendChild(nombre);
-
-    frag.appendChild(item);
+    enlace.textContent = destino.nombre;
+    frag.appendChild(enlace);
   }
   return frag;
 }
@@ -2579,9 +2568,24 @@ function pintarFeedback(feedbackNodo, pregunta, correcta, delta) {
   if (hayRecuperada) {
     chipRecuperada.textContent = `Recuperada · la fallaste el ${formatearFechaCorta(delta.recuperada.fechaFallo)}`;
   }
-  feedbackNodo.querySelector('[data-test="confianza-alta-fallo"]').hidden = !(delta.confianza === 'alta' && !correcta);
+  const hayConfianzaAltaFallo = delta.confianza === 'alta' && !correcta;
+  feedbackNodo.querySelector('[data-test="confianza-alta-fallo"]').hidden = !hayConfianzaAltaFallo;
   feedbackNodo.querySelector('[data-test="mision-completada"]').hidden = !delta.misionCompletada;
   feedbackNodo.querySelector('[data-test="fragil"]').hidden = !delta.fragil;
+
+  // Ronda de corrección 1 (Tarea 6, Ruling R13): `.feedback-chips` es el contenedor flex de los
+  // cuatro chips de arriba -- con `display:flex` fijo en estilos.css, se queda como flex item VISIBLE
+  // de `.feedback` (gap:8px/4px) aunque los cuatro estén `hidden`, gastando un hueco de gap entero
+  // por nada (el comentario de la propia regla CSS ya decía "sin hueco cuando no hay ninguno
+  // visible" -- no se cumplía). Medido en vivo: ese hueco fantasma es 4px de los 9px que le faltaban
+  // a `.tarjeta-contenido` para caber en cie-008 a 375×667 (ver `mazo.js#ajustarEncaje`, paso nuevo
+  // (h), para el resto).
+  feedbackNodo.querySelector('.feedback-chips').hidden = !(
+    hayRecuperada ||
+    hayConfianzaAltaFallo ||
+    delta.misionCompletada ||
+    delta.fragil
+  );
 }
 
 /** Esqueleto del bloque de feedback (resultado, chips, explicación): se pinta
@@ -2649,6 +2653,18 @@ function construirBloqueFeedback(pregunta, hueco) {
   explicacion.dataset.test = 'explicacion';
   explicacion.textContent = pregunta.explicacion;
   feedback.appendChild(explicacion);
+
+  // Indicador de que hay más texto (spec §1.4.2). Va como HERMANO en posición absoluta, no dentro
+  // del <p>: cualquier cosa dentro del párrafo la recortaría el propio `line-clamp` junto con el
+  // texto, y un nodo en el flujo sumaría ~16px de alto justo cuando la cascada está peleando por
+  // cada pixel. `pointer-events:none` + `aria-hidden` porque el objetivo táctil y el nombre
+  // accesible son el propio párrafo (mazo.js#marcarRecorte le pone role/aria-label).
+  const verTodo = document.createElement('span');
+  verTodo.className = 'explicacion-ver-todo';
+  verTodo.dataset.test = 'explicacion-ver-todo';
+  verTodo.setAttribute('aria-hidden', 'true');
+  verTodo.textContent = 'ver todo';
+  feedback.appendChild(verTodo);
 
   pintarFeedback(feedback, pregunta, hueco.correcta, hueco.delta);
   return feedback;
@@ -2773,8 +2789,38 @@ function construirBloqueImagen(pregunta) {
  * construirBloqueImagen: null = nada que pintar). La leyenda va en un <p>
  * con el mismo estilo que el pie de la imagen, pero sin atribución (no hay
  * autor/licencia que citar en un dibujo generado por la propia app). */
+/** Alto de viewBox que pide la zona de una tarjeta revelada (spec v0.2a.2.1 §1.5): la zona mide
+ * entre el 50 % y el 60 % del alto de la tarjeta y el ancho de la tarjeta menos sus paddings, así
+ * que `alto = 320 * altoZona / anchoZona` deja el viewBox con la MISMA proporción que la caja y
+ * `preserveAspectRatio` deja de recortar por los lados o por arriba.
+ * Se mide el MAZO, no la zona: la zona todavía no existe cuando se construye la tarjeta, y el
+ * mazo (que ya está en el DOM y tiene el mismo tamaño que la tarjeta) da el dato sin necesidad de
+ * un segundo pase de layout ni de reconstruir el SVG después. Se usa el 55 % (el punto medio del
+ * rango): en el peor de los dos extremos el dibujo sigue cubriendo >91 % del alto de la zona, muy
+ * por encima del 85 % que pide la spec. Si no hay nada medible todavía, el valor por defecto es
+ * el de la spec: la zona al 50 % de una pantalla de 375×667 ≈ 320×290. */
+const ALTO_VISUAL_POR_DEFECTO = 290;
+
+function altoVisualObjetivo() {
+  try {
+    const contenedor = [contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].find((c) => {
+      const vista = c && c.closest('.vista');
+      return vista && !vista.hidden;
+    });
+    if (!contenedor) return ALTO_VISUAL_POR_DEFECTO;
+    const caja = contenedor.getBoundingClientRect();
+    // 14 de padding izquierdo + 28 de padding derecho (la columna de puntos del mazo vive ahí).
+    const anchoZona = caja.width - 42;
+    const altoZona = caja.height * 0.55;
+    if (!(anchoZona > 0) || !(altoZona > 0)) return ALTO_VISUAL_POR_DEFECTO;
+    return Math.round((320 * altoZona) / anchoZona);
+  } catch (err) {
+    return ALTO_VISUAL_POR_DEFECTO; // nunca romper la construcción de una tarjeta por una medida
+  }
+}
+
 function construirBloqueVisual(pregunta) {
-  const svg = construirVisual(pregunta.visual);
+  const svg = construirVisual(pregunta.visual, { alto: altoVisualObjetivo() });
   if (!svg) return null;
 
   const zona = document.createElement('div');
@@ -2792,21 +2838,22 @@ function construirBloqueVisual(pregunta) {
 }
 
 /** Bloque de la TERCERA capa (spec §8, v0.2a.2, Tarea 1: `construirVisualClave`
- * en visuales.js): la tarjeta tipográfica que garantiza el 100% con visual
- * cuando no hay ni imagen de Commons ni visual de datos — también cubre toda
- * pregunta `srv-` del servidor que llegue sin ninguno de los dos (Ruling R3).
- * Misma caja flexible que la imagen/el visual (`.zona-imagen`, con las clases
- * extra `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia
- * de `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
- * devuelve null: `construirVisualClave` no lanza y siempre entrega un SVG
+ * en visuales.js — v0.2a.2.1 §1.3, Tarea 2: HTML por tipo, ya no SVG): la
+ * tarjeta tipográfica que garantiza el 100% con visual cuando no hay ni
+ * imagen de Commons ni visual de datos — también cubre toda pregunta `srv-`
+ * del servidor que llegue sin ninguno de los dos (Ruling R3). Misma caja
+ * flexible que la imagen/el visual (`.zona-imagen`, con las clases extra
+ * `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia de
+ * `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
+ * devuelve null: `construirVisualClave` no lanza y siempre entrega un bloque
  * (con solo el área si la pregunta viene rota) — es el fin de la cascada de
  * tres capas, nunca "sin visual". */
 function construirBloqueVisualClave(pregunta) {
-  const svg = construirVisualClave(pregunta, { nombreArea });
+  const bloque = construirVisualClave(pregunta, { nombreArea });
 
   const zona = document.createElement('div');
   zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
-  zona.appendChild(svg);
+  zona.appendChild(bloque);
 
   marcarZonaImagenAbrible(zona);
   return zona;
@@ -2837,7 +2884,7 @@ function construirBloqueVisualClave(pregunta) {
  * superposición, dejarlo duplicaría ese selector mientras la superposición está abierta.
  * Para un visual de datos, solo su leyenda como texto plano (sin atribución que citar en un dibujo
  * generado por la propia app); la tarjeta tipográfica no tiene pie propio (el texto ya vive dentro
- * del SVG) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
+ * del propio bloque `.visual-clave`) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
 function construirPieVisualCompleta(zona) {
   const pieImagen = zona.querySelector('.imagen-pie');
   if (pieImagen) {
@@ -2862,14 +2909,14 @@ function construirPieVisualCompleta(zona) {
   return p;
 }
 
-/** Ronda final de revisión (Minor #4, `visuales.js#construirVisualClave`): el `<radialGradient>` de
- * la tarjeta tipográfica lleva un `id` fijo por instancia (`visual-clave-gradiente-N`) referenciado
- * por el `fill="url(#...)"` del rect de fondo — clonar el SVG tal cual duplica ese `id` en el
- * documento mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML
- * inválido, inocuo hoy porque las dos definiciones son idénticas, pero una trampa si el degradado
- * llegara a depender de la pregunta). Se renombra el `id` del CLON (nunca el del SVG original, que
- * se queda intacto detrás de la superposición) y se actualiza su propia referencia `fill` en el
- * mismo clon antes de insertarlo. No hace nada si el SVG no lleva ningún `id` (visual de datos). */
+/** Ronda final de revisión (Minor #4): cinturón para cualquier `svg` de un visual de datos
+ * (`visuales.js#construirVisual`) que en el futuro añada un `id` propio (p. ej. un `<radialGradient>`
+ * referenciado por `fill="url(#...)"`) — clonarlo tal cual duplicaría ese `id` en el documento
+ * mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML inválido).
+ * Se renombra el `id` del CLON (nunca el del SVG original, que se queda intacto detrás de la
+ * superposición) y se actualiza su propia referencia `fill` en el mismo clon antes de insertarlo. No
+ * hace nada si el SVG no lleva ningún `id` -- hoy ninguna plantilla de `visuales.js` usa uno (la
+ * tercera capa, que sí lo hacía, pasó a HTML en v0.2a.2.1 §1.3 y ya no pasa por esta función). */
 function evitarIdsDuplicados(clonSvg) {
   clonSvg.querySelectorAll('[id]').forEach((el) => {
     const idViejo = el.id;
@@ -2889,7 +2936,10 @@ function evitarIdsDuplicados(clonSvg) {
  * tiene), el propio contenedor del mazo visible, con `tabindex="-1"` (ver index.html) precisamente
  * para servir de último recurso enfocable — nunca se deja `<body>` en silencio. */
 function enfocarTrasCerrarVisualCompleta(zona) {
-  if (zona && zona.isConnected) {
+  // Ronda de corrección 1 de la Tarea 5 (Minor): `zona` puede ser el párrafo de la explicación/del
+  // enunciado -- si perdió su `tabindex` entre abrir y cerrar (p. ej. un resize de por medio que ya
+  // no lo deja recortado), `.focus()` sobre él es un no-op silencioso y el foco se queda sin sitio.
+  if (zona && zona.isConnected && (zona.tabIndex >= 0 || zona.matches('button, a, [tabindex]'))) {
     zona.focus();
     return;
   }
@@ -2910,12 +2960,11 @@ function enfocarTrasCerrarVisualCompleta(zona) {
 // "Conectar", más arriba en este fichero).
 let zonaImagenAbrio = null;
 
-/** Abre `.visual-completa` con un clon de la `img` o el `svg` de `zona` (spec §8, Tarea 3): imagen
- * primero (misma prioridad fija que la propia tarjeta), si no hay `img` se clona el `svg` COMPLETO
- * (`cloneNode(true)`) SIN quitarle ninguna clase — el rect de fondo de la tarjeta tipográfica
- * (`.visual-clave-fondo`) solo se oculta por CSS dentro de `.zona-imagen--clave` (ver estilos.css),
- * así que fuera de esa caja se pinta solo, tal y como ya documenta visuales.js#construirVisualClave
- * ("si el mismo SVG se reutiliza fuera de esta caja (pantalla completa, Tarea 3)..."). */
+/** Abre `.visual-completa` con un clon de la `img`, el `svg` o el bloque `.visual-clave` de `zona`
+ * (spec §8, Tarea 3; v0.2a.2.1 §1.3, Tarea 2: la tercera capa ya no es SVG): imagen primero (misma
+ * prioridad fija que la propia tarjeta), luego el visual de datos (`svg`), y por último la tarjeta
+ * tipográfica -- su clon lleva su propio degradado de fondo (`.visual-completa-clave`, estilos.css)
+ * porque fuera de `.zona-imagen--clave` no hay quien lo pinte. */
 function abrirVisualCompleta(zona) {
   // Ronda final de revisión (adversarial A1): una doble apertura (p. ej. dos toques rapidísimos que
   // ambos pasan el filtro de distancia de alClicContenedorTarjetas) se ignora — la superposición ya
@@ -2924,6 +2973,7 @@ function abrirVisualCompleta(zona) {
 
   const imgOriginal = zona.querySelector('img');
   const svgOriginal = zona.querySelector('svg');
+  const claveOriginal = zona.querySelector('.visual-clave');
   nodoVisualCompletaMedio.innerHTML = '';
   if (imgOriginal) {
     const clon = document.createElement('img');
@@ -2943,8 +2993,16 @@ function abrirVisualCompleta(zona) {
     clon.classList.add('visual-completa-media');
     evitarIdsDuplicados(clon); // Minor #4
     nodoVisualCompletaMedio.appendChild(clon);
+  } else if (claveOriginal) {
+    // La tercera capa ya no es un SVG (spec v0.2a.2.1 §1.3): se clona el bloque HTML tal cual.
+    // Se le quita el `data-test` al clon por el mismo motivo que al pie clonado: la tarjeta
+    // original sigue en el DOM detrás de la superposición y el selector quedaría duplicado.
+    const clon = claveOriginal.cloneNode(true);
+    clon.classList.add('visual-completa-media', 'visual-completa-clave');
+    clon.removeAttribute('data-test');
+    nodoVisualCompletaMedio.appendChild(clon);
   } else {
-    return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
+    return; // no debería pasar: toda .zona-imagen tiene img, svg o .visual-clave
   }
 
   nodoVisualCompletaPie.innerHTML = '';
@@ -2952,24 +3010,88 @@ function abrirVisualCompleta(zona) {
   if (pie) nodoVisualCompletaPie.appendChild(pie);
   nodoVisualCompletaPie.hidden = !pie;
 
-  zonaImagenAbrio = zona;
+  abrirSuperposicion(zona);
+}
+
+/** Tramo común de las dos aperturas de `.visual-completa` (visual y texto): deja `<main>` inert,
+ * relanza el fundido de 160ms, guarda quién abrió (para devolverle el foco al cerrar) y manda el
+ * foco al botón de cierre, que es el único elemento enfocable del diálogo. Extraído de
+ * `abrirVisualCompleta` sin cambiarle nada: la superposición se comporta igual con una imagen
+ * dentro que con un párrafo. */
+function abrirSuperposicion(origen) {
+  zonaImagenAbrio = origen;
   nodoVisualCompleta.hidden = false;
   // Ronda final de revisión (Important #1): `<main>` queda `inert` mientras la superposición está
   // abierta -- sin foco, sin toques/clics y fuera del árbol de accesibilidad para todo lo de debajo
   // (mazo incluido), de un solo mecanismo nativo. Resuelve de paso el Minor #3 (zonas de tarjetas
   // vecinas fuera de pantalla, que el mazo mantiene montadas, dejaban de ser tabulables).
   if (nodoContenidoApp) nodoContenidoApp.inert = true;
-  // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
-  // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
-  // el fundido de 160ms.
-  nodoVisualCompleta.classList.remove('visual-completa--entra');
-  void nodoVisualCompleta.offsetWidth;
-  nodoVisualCompleta.classList.add('visual-completa--entra');
-  // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
-  // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
-  // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
-  // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
-  if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
+  // Adversarial (ola final, P1-4): todo lo que sigue a `inert = true` puede lanzar (un nodo
+  // estático que faltara, una API del navegador que fallara) y antes se quedaba a medio abrir --
+  // `main` inert para siempre, sin ninguna superposición visible que lo explicara ni forma de
+  // volver a tocar nada de la app. `abierta` solo llega a `true` si el bloque entero termina sin
+  // lanzar; si no, el `finally` deshace exactamente lo que este mismo bloque ya había hecho.
+  let abierta = false;
+  try {
+    // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
+    // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
+    // el fundido de 160ms.
+    nodoVisualCompleta.classList.remove('visual-completa--entra');
+    void nodoVisualCompleta.offsetWidth;
+    nodoVisualCompleta.classList.add('visual-completa--entra');
+    // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
+    // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
+    // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
+    // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
+    if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
+    abierta = true;
+  } finally {
+    if (!abierta) {
+      nodoVisualCompleta.hidden = true;
+      if (nodoContenidoApp) nodoContenidoApp.inert = false;
+      zonaImagenAbrio = null;
+    }
+  }
+}
+
+/** Texto entero a pantalla completa (spec v0.2a.2.1 §1.4.2/§1.4.3): la MISMA superposición que la
+ * visual, en modo texto. Solo se llama desde un elemento ya marcado como recortado por
+ * `mazo.js#marcarRecorte` -- una explicación o un enunciado que caben enteros no llegan aquí. */
+function abrirTextoCompleto(el, titulo) {
+  if (!nodoVisualCompleta.hidden) return; // misma guarda de doble apertura que abrirVisualCompleta
+
+  nodoVisualCompletaMedio.innerHTML = '';
+  const caja = document.createElement('div');
+  caja.className = 'visual-completa-texto';
+  caja.dataset.test = 'visual-completa-texto';
+
+  const rotulo = document.createElement('p');
+  rotulo.className = 'visual-completa-texto-titulo';
+  rotulo.dataset.test = 'visual-completa-titulo';
+  rotulo.textContent = titulo;
+  caja.appendChild(rotulo);
+
+  const cuerpo = document.createElement('p');
+  cuerpo.className = 'visual-completa-texto-cuerpo';
+  // `textContent` del original: el recorte es solo visual (line-clamp), así que el texto entero
+  // ya está en el DOM de la tarjeta -- no hay que volver a buscarlo en la pregunta.
+  cuerpo.textContent = el.textContent;
+  caja.appendChild(cuerpo);
+
+  nodoVisualCompletaMedio.appendChild(caja);
+  nodoVisualCompletaPie.innerHTML = '';
+  nodoVisualCompletaPie.hidden = true;
+  abrirSuperposicion(el);
+
+  // Ronda de corrección 1 de la Tarea 5 (Important): `touch-action:pan-y` SOLO tiene sentido si el
+  // texto de verdad desplaza -- puesto sin condición, el navegador se queda con cualquier arrastre
+  // que empiece aquí para "desplazar" un contenido que no se mueve, y el `pointerup` que cierra por
+  // deslizamiento (más abajo, cableado de `.visual-completa`) nunca llega -- verificado en vivo:
+  // exactamente la misma causa raíz que `touch-action:none` arregló para el resto de la
+  // superposición (Ronda final de revisión, Critical #1). Se mide DESPUÉS de `abrirSuperposicion`
+  // (con `hidden=false` ya aplicado): con la superposición todavía oculta (`display:none` por el
+  // `[hidden]` de estilos.css), `scrollHeight`/`clientHeight` medirían 0/0 y siempre "cabría".
+  caja.style.touchAction = caja.scrollHeight > caja.clientHeight + 1 ? 'pan-y' : 'none';
 }
 
 /** Cierra la superposición y devuelve el foco a un sitio seguro (spec §8 + Ronda final, Important
@@ -2988,17 +3110,22 @@ function cerrarVisualCompleta() {
   enfocarTrasCerrarVisualCompleta(zona);
 }
 
-/** Toque en `.zona-imagen` vs. deslizamiento del mazo (spec §8, decisión del controlador): mismo
- * umbral que el `ARRANQUE` de mazo.js (10px) entre el `pointerdown` y el `click` que abriría la
- * superposición — con más desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se
- * rastrea aparte de mazo.js (que sigue recibiendo el mismo `pointerdown` sin exclusión:
- * `.zona-imagen` no es un `button`/`a`, así que sigue siendo un punto válido desde el que deslizar
- * el mazo — decisión explícita del controlador, no un descuido). */
+/** Toque en un elemento abrible (zona-imagen, explicación o enunciado recortados) vs.
+ * deslizamiento del mazo (spec §8, decisión del controlador): mismo umbral que el `ARRANQUE` de
+ * mazo.js (10px) entre el `pointerdown` y el `click` que abriría la superposición — con más
+ * desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se rastrea aparte de mazo.js
+ * (que sigue recibiendo el mismo `pointerdown` sin exclusión: ninguno de los tres es un
+ * `button`/`a`, así que siguen siendo puntos válidos desde los que deslizar el mazo — decisión
+ * explícita del controlador, no un descuido). */
 let inicioToqueZonaImagen = null;
 
+// Elementos de una tarjeta que abren la superposición al tocarlos: la visual (spec §8) y, desde
+// v0.2a.2.1 §1.4, el texto que la cascada ha tenido que recortar.
+const SELECTOR_ABRIBLE = '.zona-imagen, .explicacion--recortada, .enunciado--recortado';
+
 function alPointerDownContenedorTarjetas(ev) {
-  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
-  inicioToqueZonaImagen = zona ? { x: ev.clientX, y: ev.clientY } : null;
+  const abrible = ev.target.closest && ev.target.closest(SELECTOR_ABRIBLE);
+  inicioToqueZonaImagen = abrible ? { x: ev.clientX, y: ev.clientY } : null;
 }
 
 function alClicContenedorTarjetas(ev) {
@@ -3006,25 +3133,34 @@ function alClicContenedorTarjetas(ev) {
   // (construirAtribucionImagen) y nunca deberían llegar aquí — este `closest('a')` es solo un
   // cinturón extra, por si algún día otro enlace se cuela dentro de `.zona-imagen`.
   if (ev.target.closest && ev.target.closest('a')) return;
-  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  const abrible = ev.target.closest && ev.target.closest(SELECTOR_ABRIBLE);
   const inicio = inicioToqueZonaImagen;
   inicioToqueZonaImagen = null;
-  if (!zona) return;
+  if (!abrible) return;
   if (inicio) {
     const distancia = Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y);
     if (distancia > 10) return; // deslizamiento del mazo, no un toque
   }
-  abrirVisualCompleta(zona);
+  abrirAbrible(abrible);
 }
 
-/** `.zona-imagen` es `role="button"`/`tabindex="0"` (marcarZonaImagenAbrible): a diferencia de un
- * `<button>` real, un `<div>` con rol ARIA no dispara `click` solo con Enter/Espacio — hace falta
- * este listener aparte para que el teclado abra igual que un toque. */
+/** Enter/Espacio sobre cualquiera de los tres: un `<div>`/`<p>` con `role="button"` no dispara
+ * `click` solo con el teclado, a diferencia de un `<button>` real. `matches(SELECTOR_ABRIBLE)` en
+ * vez de repetir las tres clases (Ronda de corrección 1, Important #3: DRY con el propio selector
+ * de arriba, una sola lista). */
 function alKeydownContenedorTarjetas(ev) {
   if (ev.key !== 'Enter' && ev.key !== ' ') return;
-  if (!ev.target.classList || !ev.target.classList.contains('zona-imagen')) return;
+  const el = ev.target;
+  if (!el.matches || !el.matches(SELECTOR_ABRIBLE)) return;
   ev.preventDefault(); // Espacio no debe además desplazar la vista
-  abrirVisualCompleta(ev.target);
+  abrirAbrible(el);
+}
+
+/** Decide qué superposición toca según lo que se ha tocado. */
+function abrirAbrible(el) {
+  if (el.classList.contains('explicacion--recortada')) abrirTextoCompleto(el, 'Explicación');
+  else if (el.classList.contains('enunciado--recortado')) abrirTextoCompleto(el, 'Pregunta');
+  else abrirVisualCompleta(el);
 }
 
 /**
@@ -3034,13 +3170,15 @@ function alKeydownContenedorTarjetas(ev) {
  * misma línea — spec v0.1d §1), **visual protagonista** (imagen de Commons,
  * si no visual de datos, si no la tarjeta tipográfica: SIEMPRE una de las
  * tres, nunca vacío), enunciado compacto, respuesta compacta + resumen a una
- * línea (para tarjeta--compacta-1), feedback (con la explicación) y, salvo
- * soloLectura, la fila de confianza justo encima de la zona de acción. En la
- * zona de acción: "Preguntar a" (construirPreguntarA) y, salvo soloLectura,
- * la fila compacta de 44px "esta pregunta está mal" + Siguiente (spec v0.1d
- * §2). Único toque permitido en esta tarjeta, aparte de esos cuatro
- * controles: ninguno — spec v0.1d §3/§4 (Carlos, 13-sep 10:15) quita toda
- * alternancia de despliegue/plegado, así que ni la explicación, ni la
+ * línea (para tarjeta--compacta-1) y feedback (con la explicación). La zona
+ * de acción (spec v0.2a.2.1 §1.2, tope duro del 25 % de la tarjeta) vive
+ * fuera de `.tarjeta-contenido` y lleva, de arriba abajo: la fila de
+ * confianza (salvo soloLectura), "Preguntar a" en chips de texto con la
+ * flecha ↓ de 36px pegada a la derecha (construirPreguntarA) y, salvo
+ * soloLectura, "esta pregunta está mal" en su propia línea. Único toque
+ * permitido en esta tarjeta, aparte de esos controles: ninguno — spec v0.1d
+ * §3/§4 (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado,
+ * así que ni la explicación, ni la
  * respuesta compacta, ni la imagen tienen listener. `contadorTexto` lo
  * decide cada llamador ("3/10" en partida, "n/N" en repaso): ver
  * manejarRespuesta y construirTarjetaRepaso. `marca` (spec §8) solo la pasa
@@ -3094,6 +3232,12 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // de las tarjetas reveladas tiene visual, garantizado en código.
   const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
   contenido.appendChild(bloqueImagen);
+  // spec v0.2a.2.1 §1.3, último punto: con la tarjeta TIPOGRÁFICA la clave ya está escrita en
+  // grande dentro de la visual, así que repetirla justo debajo ("Respuesta: X ✓") es ruido que
+  // además roba el alto que necesita el 50 %. Con imagen o gráfico, la zona de respuesta sigue
+  // igual que hasta ahora.
+  const esClave = bloqueImagen.classList.contains('zona-imagen--clave');
+  if (esClave) tarjeta.classList.add('tarjeta--clave');
 
   contenido.appendChild(construirBloqueEnunciado(pregunta));
 
@@ -3103,33 +3247,54 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
-  zonaRespuesta.appendChild(construirRespuestaCompacta(pregunta, hueco));
-  zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
-  contenido.appendChild(zonaRespuesta);
+  const bloqueRespuestaCompacta = construirRespuestaCompacta(pregunta, hueco, { soloFallo: esClave });
+  // Con `soloFallo` y acierto (o sin responder), `bloqueRespuestaCompacta` vuelve sin ninguna
+  // línea dentro (ver su guarda al principio) -- no se añade vacío, o el `if` de más abajo (que
+  // mira si zonaRespuesta tiene algo real) nunca se cumpliría "vacío de verdad": un `<div>` sin
+  // hijos SIGUE siendo un hijo de zonaRespuesta aunque no pinte nada.
+  if (bloqueRespuestaCompacta.children.length > 0) zonaRespuesta.appendChild(bloqueRespuestaCompacta);
+  // El resumen a una línea ("Respuesta: X ✓", tarjeta--compacta-1) también sobra con la clave.
+  if (!esClave) zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
+  // Con clave y acierto no queda NADA que enseñar aquí: no se añade la caja vacía, que si no
+  // seguiría sumando sus dos `gap` de 8px al alto del contenido.
+  if (zonaRespuesta.children.length > 0) contenido.appendChild(zonaRespuesta);
 
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
 
-  // La confianza va justo ENCIMA de tarjeta-accion (spec §8, Ruling R4): como
-  // último hijo de tarjeta-contenido queda pegada visualmente justo por
-  // encima de esa zona hermana. Solo en la partida (soloLectura:false): el
-  // repaso no la construye en absoluto (soloLectura:true, ver más abajo).
-  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
-
   tarjeta.appendChild(contenido);
 
+  // Zona de acción (spec v0.2a.2.1 §1.2), de arriba abajo: confianza -> chips + flecha ->
+  // "esta pregunta está mal". La confianza sube aquí desde `.tarjeta-contenido` para que TODO lo
+  // que no es contenido viva en la misma caja medible: el e2e comprueba que esta zona no pasa del
+  // 25 % de la tarjeta, que es lo que deja sitio al 50 % de la visual.
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
+
+  if (!soloLectura) zonaAccion.appendChild(construirFilaConfianza(hueco));
+
   const anclaPreguntarA = document.createElement('div');
   anclaPreguntarA.className = 'preguntar-a';
   anclaPreguntarA.dataset.test = 'preguntar-a';
   anclaPreguntarA.appendChild(construirPreguntarA(pregunta));
+
+  // Flecha ↓ en vez del botón "Siguiente ›" (spec §1.2.3): apunta hacia ABAJO porque ese es el
+  // sentido del desplazamiento del mazo. Conserva `data-test="siguiente"` a propósito, para no
+  // romper los ~30 e2e que lo usan para avanzar. En el repaso avanza el mazo visible; en la
+  // partida sigue siendo `irASiguienteHueco`, que además cierra la partida en la última.
+  const flecha = document.createElement('button');
+  flecha.type = 'button';
+  flecha.className = 'boton-flecha';
+  flecha.dataset.test = 'siguiente';
+  flecha.setAttribute('aria-label', 'Siguiente');
+  flecha.textContent = '↓';
+  flecha.addEventListener('click', soloLectura ? avanzarMazoVisible : irASiguienteHueco);
+  anclaPreguntarA.appendChild(flecha);
+
   zonaAccion.appendChild(anclaPreguntarA);
 
   if (!soloLectura) {
-    // Fila de acción compacta de 44px (spec v0.1d §2): "esta pregunta está
-    // mal" a la izquierda (o "Anotado" en su lugar, tras tocarlo) y
-    // "Siguiente ›" a la derecha, en UNA sola fila — ya no hay fila aparte
-    // para el enlace ni un botón Siguiente a todo el ancho.
+    // "esta pregunta está mal" queda como enlace discreto de 12px en su PROPIA línea bajo los
+    // chips (spec §1.2.4): ya no comparte fila con ningún botón, porque ya no hay ninguno.
     const filaAccion = document.createElement('div');
     filaAccion.className = 'fila-accion';
 
@@ -3146,13 +3311,6 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
     reportadaTexto.textContent = 'Anotado';
     reportadaTexto.hidden = !hueco.reportada;
     filaAccion.appendChild(reportadaTexto);
-
-    const botonSiguiente = document.createElement('button');
-    botonSiguiente.className = 'boton boton-principal boton-siguiente';
-    botonSiguiente.dataset.test = 'siguiente';
-    botonSiguiente.textContent = 'Siguiente ›';
-    botonSiguiente.addEventListener('click', irASiguienteHueco);
-    filaAccion.appendChild(botonSiguiente);
 
     zonaAccion.appendChild(filaAccion);
   }
@@ -4102,6 +4260,19 @@ nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta())
 // enlace vuelve a recibir el clic con normalidad.
 let inicioCierreVisualCompleta = null;
 nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
+  // Ronda de corrección 1 de la Tarea 5 (Important): en modo TEXTO, `.visual-completa-texto` es el
+  // ÚNICO trozo con `touch-action:pan-y` (estilos.css) dentro de una superposición que por lo demás
+  // es `touch-action:none` -- así que un dedo que arranca ahí y con contenido real que desplazar
+  // (`scrollHeight > clientHeight`) se lo queda el propio scroll nativo del navegador, no el gesto
+  // de cierre. Sin esta guarda, `pointerup` seguía viendo cualquier arrastre vertical ≥60px como
+  // "cierra", aunque el usuario solo estuviera leyendo: se perdía la lectura de un texto largo. Con
+  // el texto entero ya visible (sin scroll real), el gesto de cierre se deja intacto -- no hay nada
+  // que perder por desplazar.
+  const textoConScroll = ev.target.closest && ev.target.closest('.visual-completa-texto');
+  if (textoConScroll && textoConScroll.scrollHeight > textoConScroll.clientHeight + 1) {
+    inicioCierreVisualCompleta = null;
+    return;
+  }
   inicioCierreVisualCompleta = { y: ev.clientY };
 });
 nodoVisualCompleta.addEventListener('pointerup', (ev) => {

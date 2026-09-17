@@ -142,6 +142,49 @@ async function assertTarjetaSinScroll(page) {
   }
 }
 
+/** "Sin hueco muerto" para la visual de la tarjeta REVELADA (spec v0.2a.2.1 §1.1, Ruling R9): con
+ * `.zona-imagen` como único `flex-grow` de `.tarjeta-contenido`, si no está en su techo (max-height)
+ * debe absorber EXACTAMENTE todo el sobrante -- lo que le sobra a `.tarjeta` una vez descontados
+ * padding/gap propios, `.tarjeta-accion` y el resto de hijos de `.tarjeta-contenido` (con sus
+ * gaps) tiene que ser su alto real, sin margen sin usar. Devuelve los px de hueco (`idealZona -
+ * zonaReal`): ~0 cuando lo absorbe todo, un valor grande y ESPERADO cuando la zona ya está en su
+ * techo (ahí el hueco no es un bug, es el margen que el techo reserva a propósito). Reutilizable
+ * por la Tarea 7 (barrido del banco real) y por cualquier test de esta zona.
+ * IMPORTANTE para quien la reuse: solo da un `huecoMuerto` fiable con `page.emulateMedia({
+ * reducedMotion: 'reduce' })` activo en la página. Sin él, la entrada de la visual al responder
+ * (`visual-entra`, 220ms, spec §8) puede seguir a mitad de camino cuando se mide -- no cambia el
+ * alto real de nada, pero mientras esa animación corre `getBoundingClientRect()` de
+ * `.tarjeta-contenido`/`.zona-imagen` puede leer varios px por encima de `clientHeight` (que sí es
+ * estable), colando un "hueco muerto" falso que desaparece en cuanto se desactiva el movimiento
+ * (medido en vivo: hasta 20px de diferencia sin `reducedMotion`, 0px con él). */
+async function medirHuecoMuerto(page) {
+  return page.evaluate(() => {
+    const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+    if (!tarjeta) return null;
+    const contenido = tarjeta.querySelector('.tarjeta-contenido');
+    const accion = tarjeta.querySelector('.tarjeta-accion');
+    const zona = contenido ? contenido.querySelector('.zona-imagen') : null;
+    if (!contenido || !zona) return null;
+
+    const estiloTarjeta = getComputedStyle(tarjeta);
+    const paddingVertical = parseFloat(estiloTarjeta.paddingTop) + parseFloat(estiloTarjeta.paddingBottom);
+    const gapTarjeta = parseFloat(estiloTarjeta.rowGap) || 0;
+
+    const gapContenido = parseFloat(getComputedStyle(contenido).rowGap) || 0;
+    const hermanos = Array.from(contenido.children).filter((hijo) => hijo !== zona);
+    const sumaHermanos = hermanos.reduce((total, hijo) => total + hijo.getBoundingClientRect().height, 0);
+    // N hijos directos de `.tarjeta-contenido` (incluida la zona) -> N-1 huecos entre ellos.
+    const huecosContenido = Math.max(0, contenido.children.length - 1) * gapContenido;
+
+    const accionAlto = accion ? accion.getBoundingClientRect().height : 0;
+    const tarjetaAlto = tarjeta.getBoundingClientRect().height;
+    const zonaReal = zona.getBoundingClientRect().height;
+    const zonaIdeal = tarjetaAlto - paddingVertical - gapTarjeta - accionAlto - sumaHermanos - huecosContenido;
+
+    return { huecoMuerto: zonaIdeal - zonaReal, zonaIdeal, zonaReal, tarjetaAlto };
+  });
+}
+
 /** El radar absorbe el espacio libre del HUB (spec "pantalla completa"
  * 12-sep): nada de hueco vacío entre la rejilla de áreas y "Comenzar". */
 async function comprobarHuecoGridComenzar(page) {
@@ -1051,6 +1094,13 @@ test.describe('ONE · integración e2e', () => {
         tarjeta.classList.add(...teniaAntes);
         return { compactado, normal };
       }, CLASES_CASCADA);
+      // v0.2a.2.1 §1.3: sin imagen ni `visual` (p. ej. eco-091, el "ordenar" más largo del banco
+      // real), la tarjeta cae en la tercera capa -- la clave ya está en la visual y
+      // `.respuesta-resumen` ya no se pinta ahí (spec: "la línea Respuesta: deja de duplicarse"),
+      // así que no hay texto de tamaño fijo que medir. Con imagen o visual de datos (p. ej.
+      // art-092, el "error" más largo) `.respuesta-resumen` sigue existiendo y se comprueba igual
+      // que siempre.
+      if (compactado === null && normal === null) return;
       expect(compactado).not.toBeNull();
       expect(compactado).toBe(normal);
     }
@@ -1167,9 +1217,11 @@ test.describe('ONE · integración e2e', () => {
   // responder." Se usa la explicación MÁS LARGA de TODO el banco real (no
   // solo ordenar/error, a diferencia del test de más abajo) con una imagen
   // forzada encima: la imagen debe seguir viéndose (aunque sea a su mínimo de
-  // 90px) y la explicación debe verse ENTERA, sin recorte y sin ningún toque
-  // — son las respuestas y/o el enunciado quienes ceden espacio antes.
-  test('mazo v0.1d §3/§4: peor caso (explicación más larga del banco + imagen) — la imagen se queda, la explicación se ve entera, sin tocar nada', async ({ page }) => {
+  // 90px). Actualizado en la Tarea 5 (v0.2a.2.1 §1.4): con la visual fija al
+  // 50 % (spec §1.1) esta explicación de 60 palabras ya NO cabe entera -- se
+  // recorta y, por eso mismo, se vuelve tocable (excepción explícita de
+  // Carlos, 17-sep) en vez de verse entera sin recorte como antes.
+  test('v0.2a.2.1: peor caso (explicación más larga del banco + imagen) — la imagen se queda al 50 %, la explicación se recorta y se abre tocándola', async ({ page }) => {
     await page.goto('/');
     const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
     const peor = banco.reduce(
@@ -1221,21 +1273,26 @@ test.describe('ONE · integración e2e', () => {
       const cajaImagen = await imagen.boundingBox();
       expect(cajaImagen.height).toBeGreaterThanOrEqual(88);
 
-      // La explicación se ve ENTERA (sin recortar), sin ningún toque: son las
-      // respuestas y/o el enunciado los que han cedido espacio antes.
+      // El texto ENTERO sigue en el DOM (el recorte es solo visual: line-clamp), pero ya no cabe
+      // a la vista con la visual en su 50 % -- y entonces se puede tocar (spec §1.4.2).
       const explicacion = t.locator('[data-test="explicacion"]');
       await expect(explicacion).toBeVisible();
       expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
+      await expect(explicacion).toHaveClass(/explicacion--recortada/);
 
-      // Sin ningún listener de alternancia en la tarjeta respondida (cambio de
-      // contrato de Carlos, 13-sep 10:15: "evitar cantidad de clics"): tocar
-      // la explicación o la respuesta compacta no cambia nada del DOM.
+      const overlay = page.locator('[data-test="visual-completa"]');
+      await explicacion.click();
+      await expect(overlay).toBeVisible();
+      await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText(peor.explicacion.trim().slice(-30));
+      await page.keyboard.press('Escape');
+      await expect(overlay).toBeHidden();
+
+      // La respuesta compacta sigue SIN reaccionar al toque: la excepción del §1.4.2 es solo para
+      // el texto recortado, no una vuelta a las alternancias de v0.1c.
       const claseAntes = await t.getAttribute('class');
-      await explicacion.click({ force: true });
       await t.locator('.zona-respuesta').click({ force: true }).catch(() => {});
       expect(await t.getAttribute('class')).toBe(claseAntes);
-      await expect(explicacion).toBeVisible();
-      expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
+      expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
 
       await page.screenshot({ path: `${CAPTURAS}/v0.1d-peor-caso-imagen-explicacion-${sufijo}.png` });
     }
@@ -1284,7 +1341,7 @@ test.describe('ONE · integración e2e', () => {
   ];
 
   for (const vp of VIEWPORTS_CASCADA) {
-    test(`spec §8 (Tarea 2, Ronda 1 I2, Ronda 2): cascada de encaje paso a paso de la tarjeta revelada a ${vp.nombre}×${vp.height} — respuesta → enunciado 14px → explicación → visual ≥30% real → enunciado clamp, la visual nunca desaparece`, async ({
+    test(`spec §8 (Tarea 2, Ronda 1 I2, Ronda 2): cascada de encaje paso a paso de la tarjeta revelada a ${vp.nombre}×${vp.height} — respuesta → enunciado 14px → explicación → enunciado clamp → feedback menor, la visual nunca baja del 50 %`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -1368,19 +1425,15 @@ test.describe('ONE · integración e2e', () => {
           imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
           zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
           contenidoAlto: contenido ? contenido.clientHeight : null,
+          tarjetaAlto: tarjeta.getBoundingClientRect().height,
         };
       });
 
-      // La visual NUNCA desaparece por falta de espacio (spec §8): con este
-      // desborde a propósito absurdo, sigue ahí, aunque sea a su suelo
-      // reducido -- Ronda 2: la RATIO real frente a `.tarjeta-contenido`,
-      // no un absoluto (ver el porqué en el comentario de cabecera).
+      // La visual NUNCA desaparece por falta de espacio (spec §8), y desde v0.2a.2.1 §1.1.1 nunca
+      // baja del 50 % real de la TARJETA (ver la comprobación de proporción más abajo, junto al
+      // resto de pasos de la cascada).
       expect(estado.imagenAlto).not.toBeNull();
       expect(estado.contenidoAlto).toBeGreaterThan(0);
-      expect(
-        estado.zonaImagenAlto / estado.contenidoAlto,
-        `.zona-imagen mide ${estado.zonaImagenAlto}px de ${estado.contenidoAlto}px de .tarjeta-contenido (< 30%) a ${vp.nombre}px`
-      ).toBeGreaterThanOrEqual(0.29);
 
       // Paso (a): la respuesta pasa a su resumen de una línea
       // (tarjeta--compacta-1) — lo primero en ceder, igual que antes.
@@ -1398,23 +1451,33 @@ test.describe('ONE · integración e2e', () => {
       expect(estado.clases).toContain('tarjeta--explicacion-clamp');
       expect(['1', '2']).toContain(estado.explicacionLineClamp);
 
-      // Paso (d), justo antes del último recurso: la visual baja su suelo del
-      // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
-      // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
-      expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
-
-      // Paso (e), Ronda 1 de revisión (I2): con un enunciado `.repeat(4)` tan
-      // extremo, ni siquiera (a)-(d) bastan — la cascada tiene que llegar a
+      // Paso (d), spec v0.2a.2.1 §1.4.1: con un enunciado `.repeat(4)` tan
+      // extremo, ni siquiera (a)-(c) bastan — la cascada tiene que llegar a
       // recortar también el enunciado (mínimo 2 líneas, mismo mecanismo que la
-      // cascada sin responder). Antes de este paso, este mismo test desbordaba
-      // sin converger con este enunciado (por eso se había reducido a
-      // `.repeat(2)` en la primera versión de la Tarea 2). El enunciado
-      // absorbe el resto del desborde SIN que la visual baje de su 30% real
-      // (ya comprobado arriba con la ratio) -- si algún día no bastara, el
-      // último recurso de la cascada (paso (f), calcularLineasClamp de la
-      // explicación a 1 línea) es quien cede después, nunca la visual.
+      // cascada sin responder). El enunciado absorbe el resto del desborde SIN
+      // que la visual baje nunca de su 50 % real (comprobado abajo) -- si algún
+      // día no bastara, la explicación a 1 línea y, como último recurso,
+      // tarjeta--feedback-menor son quienes ceden después, nunca la visual.
       expect(estado.clases).toContain('tarjeta--enunciado-clamp');
       expect(Number(estado.enunciadoLineClamp)).toBeGreaterThanOrEqual(2);
+
+      // La visual nunca baja del 50 % de la TARJETA (spec v0.2a.2.1 §1.1.1), ni en el peor caso.
+      expect(
+        estado.zonaImagenAlto / estado.tarjetaAlto,
+        `.zona-imagen mide ${estado.zonaImagenAlto}px de ${estado.tarjetaAlto}px de tarjeta a ${vp.nombre}px`
+      ).toBeGreaterThanOrEqual(0.5 - 1 / estado.tarjetaAlto);
+
+      // Paso (d) de v0.2a.2: `zona-imagen--reducida` (bajar la visual al 30 %) YA NO EXISTE.
+      expect(estado.zonaImagenClases).not.toContain('zona-imagen--reducida');
+
+      // Paso (f), nuevo, NO se comprueba aquí (Ronda de corrección de la Tarea 4, medido en vivo):
+      // a estos tres viewports (812-932px de alto) el 50 % de la visual deja de sobra para que la
+      // cascada converja ya en el paso (d) -- `tarjeta--enunciado-clamp` calcula 2-5 líneas según
+      // el viewport, nunca agota su suelo de 2. Ni alargar más el enunciado/explicación sintéticos
+      // cambia eso: una vez clampados, su alto lo decide el espacio libre (calcularLineasClamp),
+      // no la longitud del texto de origen. El paso (f) SÍ está cubierto, con datos reales: la
+      // pregunta art-091 del banco a 375×667 lo alcanza (ver "visual al 50-60 % real de la
+      // tarjeta"), un viewport más bajo que ninguno de los tres de aquí.
     });
   }
 
@@ -1666,7 +1729,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('2/2');
   });
 
-  test('mazo v0.1d §2: fila de acción compacta de 44px tras responder', async ({ page }) => {
+  test('v0.2a.2.1 §1.2.4: "esta pregunta está mal" en su propia línea bajo los chips, y "Anotado" en su sitio', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1679,15 +1742,12 @@ test.describe('ONE · integración e2e', () => {
     const fila = t.locator('.fila-accion');
     await expect(fila).toBeVisible();
     const cajaFila = await fila.boundingBox();
-    expect(cajaFila.height).toBeGreaterThanOrEqual(40);
-    expect(cajaFila.height).toBeLessThanOrEqual(48);
+    expect(cajaFila.height).toBeLessThanOrEqual(28); // 12px de texto, ya no 44
 
-    // "esta pregunta está mal" a la izquierda, "Siguiente ›" a la derecha, EN
-    // LA MISMA fila (no una debajo de otra, como en v0.1c).
+    // La flecha ↓ vive en la fila de los chips, POR ENCIMA: ya no comparte fila con el enlace.
     const cajaEstaMal = await t.locator('[data-test="esta-mal"]').boundingBox();
-    const cajaSiguiente = await t.locator('[data-test="siguiente"]').boundingBox();
-    expect(Math.abs(cajaEstaMal.y - cajaSiguiente.y)).toBeLessThan(12);
-    expect(cajaEstaMal.x).toBeLessThan(cajaSiguiente.x);
+    const cajaFlecha = await t.locator('[data-test="siguiente"]').boundingBox();
+    expect(cajaFlecha.y + cajaFlecha.height).toBeLessThanOrEqual(cajaEstaMal.y + 2);
 
     // "esta pregunta está mal" -> "Anotado" ocupa el mismo sitio, sin fila aparte.
     await t.locator('[data-test="esta-mal"]').click();
@@ -1774,8 +1834,12 @@ test.describe('ONE · integración e2e', () => {
     await expect(indicador).toBeHidden();
   });
 
-  test('mazo v0.1d §3/§4: la imagen absorbe el sobrante, sin hueco muerto (banco de ejemplo)', async ({ page }) => {
+  test('v0.2a.2.1 §1.1: la imagen absorbe el sobrante sin hueco muerto (Ruling R9)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
+    // Geometría determinista (mismo motivo que "estructura fija" más abajo): sin esto, medir justo
+    // tras responder puede pillar la entrada de la visual (visual-entra, spec §8, 220ms) a mitad de
+    // camino y las medidas de .zona-imagen/.tarjeta-contenido salen unos px del sitio.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1792,15 +1856,24 @@ test.describe('ONE · integración e2e', () => {
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
 
-    const medidas = await t.evaluate((tarjeta) => {
-      const contenido = tarjeta.querySelector('.tarjeta-contenido');
-      return { scrollHeight: contenido.scrollHeight, clientHeight: contenido.clientHeight };
-    });
-    // "Sin hueco muerto" (spec v0.1d §3): con la imagen absorbiendo el
-    // sobrante, lo que ocupa el contenido debe quedar muy cerca del alto
-    // disponible — nunca más (assertTarjetaSinScroll ya lo cubre) ni mucho
-    // menos (esto, que assertTarjetaSinScroll NO cubre).
-    expect(medidas.clientHeight - medidas.scrollHeight).toBeLessThan(24);
+    // Ruling R9 (ronda de corrección 1): la spec fija el invariante [50 %, 60 %] y dice que la
+    // visual "crece hasta el 60 % cuando el texto deja sitio" -- no que SIEMPRE llegue al 60 %. A
+    // este viewport, con la explicación real de his-001, el presupuesto fijo no deja sitio hasta
+    // el techo (medido: ~54 %), así que la aserción correcta no es "≥59 %" sino el invariante más
+    // "sin hueco muerto": la visual absorbe TODO lo que le sobra, y si no llega al techo es porque
+    // no había más que absorber, no porque algo se quedó sin usar.
+    const hueco = await medirHuecoMuerto(page);
+    expect(hueco, 'no se pudo medir el hueco muerto (falta .zona-imagen o .tarjeta-contenido)').not.toBeNull();
+    const proporcion = hueco.zonaReal / hueco.tarjetaAlto;
+    expect(
+      proporcion,
+      `la zona mide ${hueco.zonaReal.toFixed(1)}px de ${hueco.tarjetaAlto.toFixed(1)}px de tarjeta = ${(proporcion * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / hueco.tarjetaAlto);
+    expect(proporcion).toBeLessThanOrEqual(0.6 + 1 / hueco.tarjetaAlto);
+    expect(
+      Math.abs(hueco.huecoMuerto) <= 2 || proporcion >= 0.59,
+      `hueco muerto de ${hueco.huecoMuerto.toFixed(1)}px (zona ideal ${hueco.zonaIdeal.toFixed(1)}px, zona real ${hueco.zonaReal.toFixed(1)}px) y la zona está al ${(proporcion * 100).toFixed(1)}% (no llegó a su techo del 59 %)`
+    ).toBe(true);
   });
 
   // Capturas pedidas por el brief (docs/capturas/v0.1d-*.png, revisadas con
@@ -1956,6 +2029,195 @@ test.describe('ONE · visuales v0.1e', () => {
     await assertTarjetaSinScroll(page);
     await expect(t.locator('[data-test="imagen"]')).toBeVisible();
     await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+  });
+});
+
+// ============================================================================
+// Tarea 6 (spec v0.2a.2.1 §1.5): los gráficos de datos se escalan al hueco nuevo
+// (construirVisual(visual, { alto })). Con la zona al 50-60 % de la tarjeta, un gráfico dibujado
+// para su alto "natural" (p. ej. 3 barras = 140 unidades) se quedaba pequeño en medio de la caja,
+// con `preserveAspectRatio="xMidYMid meet"` dejando bandas vacías arriba/abajo. Una pregunta real
+// del banco por cada una de las tres plantillas que el criterio exige (barras/comparación/línea
+// temporal -- formula y dato son deuda menor aceptada por el plan, ver task-6-brief.md).
+//
+// Ronda de corrección 1 (Ruling R13 del coordinador, 18-sep): `assertTarjetaSinScroll` volvió
+// (estaba retirado porque desbordaba 9px a 375×667, un hallazgo real de la cascada de encaje de
+// `ajustarEncaje`, mazo.js -- ver el paso (h) nuevo, "tarjeta--espaciado-minimo", y el "Informe de
+// corrección" de task-6-report.md para el diagnóstico medido). Los tres casos se prueban ahora a
+// los DOS viewports que exige el ruling (375×667 y 390×844, mismo array `VIEWPORTS` que ya usa
+// "ONE · visual al 50-60 % real de la tarjeta" más abajo en este fichero, por consistencia).
+// ============================================================================
+test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', () => {
+  // Una pregunta real del banco por plantilla de las tres que nombra la spec, SIN imagen de Commons
+  // (si la tuviera, la imagen gana por prioridad fija -- spec v0.1e §2 -- y el visual de datos ni se
+  // pinta). Sustituciones sobre los ids sugeridos por el brief, documentadas aquí porque ninguna de
+  // las dos es "el id ya no existe" (la única excepción que el brief prevé explícitamente):
+  //  - comparacion art-048 -> cie-094: art-048 SÍ tiene imagen de Commons en datos/imagenes.json (el
+  //    cuadro de Botticelli), así que con ese id la imagen tapa el visual entero y
+  //    `[data-test="visual"]` nunca aparece -- no es un caso de "elige otro del mismo tipo" por
+  //    gusto, es que ese id no puede probar este test tal como está escrito.
+  //  - linea-tiempo art-006 -> his-062: art-006 desbordaba igual que cie-008/art-048 antes de la
+  //    Ronda de corrección 1 (ver arriba); ya no hacía falta el cambio, pero se deja porque no hay
+  //    motivo para revertirlo y así los tres casos representan los tres tipos de pregunta que puede
+  //    llevar un visual de datos (test4, error, vf).
+  const CASOS = [
+    { id: 'cie-008', tipo: 'barras' },
+    { id: 'cie-094', tipo: 'comparacion' },
+    { id: 'his-062', tipo: 'linea-tiempo' },
+  ];
+
+  const VIEWPORTS_COBERTURA = [
+    { width: 375, height: 667, nombre: '375×667' },
+    { width: 390, height: 844, nombre: '390×844' },
+  ];
+
+  for (const caso of CASOS) {
+    for (const vp of VIEWPORTS_COBERTURA) {
+      test(`${caso.tipo} (${caso.id}) a ${vp.nombre}: el dibujo cubre ≥85 % del alto de la zona, la leyenda va dentro y la tarjeta no desborda`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: vp.width, height: vp.height });
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.goto('/?test=1');
+        await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+        await page.locator('[data-test="cerebro"]').click();
+        await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+        await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
+
+        const t = tarjetaActual(page);
+        // Sin `sospechosoPorTitulo`: no hace falta acertar la fila sospechosa de un "error" para que
+        // el visual se pinte (el visual no depende de si la respuesta fue correcta), así que basta
+        // con la firma de un solo argumento de `responderPreguntaActual`.
+        await responderPreguntaActual(page);
+        await esperarAsentamientoMazo(page);
+        await expect(t.locator('[data-test="visual"]')).toBeVisible();
+
+        const medidas = await t.evaluate((tarjeta) => {
+          const zona = tarjeta.querySelector('.zona-imagen');
+          const svg = zona.querySelector('svg');
+          const pie = zona.querySelector('.visual-pie');
+          const rZona = zona.getBoundingClientRect();
+          const rSvg = svg.getBoundingClientRect();
+          // `preserveAspectRatio="xMidYMid meet"` escala el DIBUJO dentro del elemento <svg>: medir
+          // el elemento daría siempre el 100 % y no probaría nada. Lo que se mide es el dibujo real.
+          const vb = svg.viewBox.baseVal;
+          const escala = Math.min(rSvg.width / vb.width, rSvg.height / vb.height);
+          return {
+            cobertura: (vb.height * escala) / rZona.height,
+            pieDentro: pie ? pie.getBoundingClientRect().bottom <= rZona.bottom + 1 : null,
+            piePosicion: pie ? getComputedStyle(pie).position : null,
+          };
+        });
+        expect(
+          medidas.cobertura,
+          `el dibujo cubre el ${(medidas.cobertura * 100).toFixed(1)}% del alto de la zona`
+        ).toBeGreaterThanOrEqual(0.85);
+        if (medidas.piePosicion !== null) {
+          expect(medidas.piePosicion).toBe('absolute');
+          expect(medidas.pieDentro).toBe(true);
+        }
+        await assertTarjetaSinScroll(page);
+      });
+    }
+  }
+
+  // Criterio (2) del Ruling R13: barrido de los ids reales del banco con visual de datos (sin
+  // imagen de Commons, que taparía el visual -- mismo motivo que la sustitución de art-048 de
+  // arriba) a 375×667, el viewport más ajustado de la suite. 44 ids (no 46: de los 46 con
+  // `visual.tipo` en {barras, comparacion, linea-tiempo}, 2 -- art-048 y art-077 -- tienen imagen
+  // real y por tanto nunca pintan el visual, spec v0.1e §2 prioridad fija). Contexto NUEVO por id
+  // (browser.newContext, no reusar `page`): reusar el mismo `page`/localStorage entre preguntas
+  // arrastra racha/nivel/XP de una a la siguiente y puede disparar un "cambio de nivel" que no es
+  // un rasgo de la pregunta sino del orden en que este test las jugó -- un jugador real llegando
+  // fresco a esa pregunta no lo vería siempre así (hallazgo real de la Ronda de corrección 1: con
+  // contexto compartido, algunos ids medían hasta 30px de desborde; en contexto fresco, los mismos
+  // ids miden exactamente 9px, igual que el resto -- ver task-6-report.md). ~39s en vivo, por debajo
+  // del límite de 60s que fija el propio ruling para dejarlo como e2e en vez de script aparte.
+  test('barrido de los ids reales del banco con visual de datos a 375×667: ninguno desborda y la zona sigue en [50,60] %', async ({
+    browser,
+    page,
+  }) => {
+    test.setTimeout(90000);
+    // `page` de este test solo se usa para leer los JSON del banco (fetch necesita un origen ya
+    // navegado); las 44 partidas del barrido, cada una en su propio contexto, más abajo.
+    await page.goto('/?test=1');
+    const [banco, imagenes] = await Promise.all([
+      page.evaluate(() => fetch('datos/banco.json').then((r) => r.json())),
+      page.evaluate(() => fetch('datos/imagenes.json').then((r) => r.json())),
+    ]);
+    const tipos = ['barras', 'comparacion', 'linea-tiempo'];
+    const ids = banco
+      .filter((p) => p.visual && tipos.includes(p.visual.tipo) && !imagenes[p.id])
+      .map((p) => ({ id: p.id, tipo: p.tipo }));
+    expect(ids.length).toBeGreaterThanOrEqual(40); // red de seguridad: que el banco no se haya vaciado
+
+    const fallos = [];
+    for (const { id, tipo } of ids) {
+      const contexto = await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true });
+      const p2 = await contexto.newPage();
+      await p2.emulateMedia({ reducedMotion: 'reduce' });
+      await p2.goto('/?test=1');
+      await p2.locator('[data-test="cerebro"]').click();
+      await p2.evaluate((idPregunta) => window.__one.empezarPartida({ ids: [idPregunta], etiqueta: 'barrido' }), id);
+      await responderPreguntaActual(p2);
+      await esperarAsentamientoMazo(p2);
+
+      const medidas = await p2.evaluate(() => {
+        const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+        const contenido = tarjeta.querySelector('.tarjeta-contenido');
+        const zona = tarjeta.querySelector('.zona-imagen');
+        return {
+          overflow: contenido.scrollHeight - contenido.clientHeight,
+          ratio: zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height,
+        };
+      });
+      if (medidas.overflow > 2 || medidas.ratio < 0.5 - 0.01 || medidas.ratio > 0.6 + 0.01) {
+        fallos.push({ id, tipo, ...medidas });
+      }
+      await contexto.close();
+    }
+
+    expect(fallos, `ids que desbordan o salen de [50,60] %: ${JSON.stringify(fallos, null, 2)}`).toEqual([]);
+  });
+
+  // Ronda de corrección 2 (Important del coordinador): `tarjeta--espaciado-minimo` (paso h,
+  // mazo.js) no estaba en la lista de limpieza con la que `ajustarEncaje` empieza cada recálculo
+  // -- se quedaba pegada aunque el siguiente recálculo (resize/orientationchange vía
+  // `mazosActivos.forEach(m => m.reajustar())`, o un clic de confianza) ya no la necesitara. cie-008
+  // a 375×667 SÍ necesita el paso (h) (confirmado arriba, en el barrido); a 430×932 no hace falta
+  // ninguno de los pasos de la cascada revelada (medido en vivo: la lista de clases `tarjeta--*` de
+  // la tarjeta queda vacía del todo), así que sirve para demostrar la limpieza sin necesitar un
+  // viewport más alto todavía.
+  test('tarjeta--espaciado-minimo (paso h) se limpia al reajustar: cie-008 la lleva a 375×667 y deja de llevarla al pasar a 430×932, sin desbordar', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), 'cie-008');
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+    await expect(t).toHaveClass(/tarjeta--espaciado-minimo/);
+    await assertTarjetaSinScroll(page);
+
+    await page.setViewportSize({ width: 430, height: 932 });
+    // `expect` reintenta hasta que la clase desaparezca (el resize -> reajustar -> ajustarEncaje es
+    // síncrono una vez que el navegador dispara el evento, pero no hay garantía de que ya haya
+    // corrido en el instante en que `setViewportSize` resuelve).
+    await expect(t).not.toHaveClass(/tarjeta--espaciado-minimo/);
+    await assertTarjetaSinScroll(page);
+
+    const ratio = await t.evaluate((tarjeta) => {
+      const zona = tarjeta.querySelector('.zona-imagen');
+      return zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+    });
+    expect(ratio, `la zona mide ${(ratio * 100).toFixed(1)}% de la tarjeta (fuera de [50,60])`).toBeGreaterThanOrEqual(0.5 - 0.01);
+    expect(ratio).toBeLessThanOrEqual(0.6 + 0.01);
   });
 });
 
@@ -2125,6 +2387,48 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     expect(estado.clases).toContain('tarjeta--enunciado-clamp');
     expect(estado.lineClamp).not.toBe('none');
     expect(Number(estado.lineClamp)).toBeGreaterThanOrEqual(2);
+
+    // CRITICAL (Ronda de corrección 1 de la Tarea 5): este es justo el escenario que rompía --
+    // `tarjeta--enunciado-clamp` de verdad activo (line-clamp con más texto real detrás, así que
+    // `scrollHeight > clientHeight` por construcción) en la tarjeta ACTIVA sin responder. Antes del
+    // fix, `marcarRecorte` se llamaba aquí igual que en la revelada y dejaba el enunciado con
+    // `role="button"`/`tabindex="0"`/la clase `enunciado--recortado`, y un toque abría la
+    // superposición de texto sobre una pregunta que el jugador ni ha visto entera ni ha respondido
+    // -- viola "la tarjeta ACTIVA sin responder no cambia" (v0.1d §3/§4). Nada de eso debe estar.
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).not.toHaveClass(/enunciado--recortado/);
+    expect(await enunciado.getAttribute('role')).toBeNull();
+    expect(await enunciado.getAttribute('tabindex')).toBeNull();
+    await enunciado.click({ force: true });
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  // CRITICAL (Ronda de corrección 1 de la Tarea 5), con una pregunta REAL del banco: log-040 tiene
+  // el enunciado más largo de todo el banco real (265 caracteres, tipo test4) -- el candidato con
+  // más opciones de que la cascada "sin responder" lo recorte. A 375×667 (viewport más estrecho que
+  // el que usan la mayoría de los tests de este fichero, con menos alto disponible) puede no
+  // llegar de verdad a `tarjeta--enunciado-clamp` -- medido en vivo: no llega, y por eso este test
+  // por sí solo pasaría igual sin el fix. Se deja de todas formas, tal como pidió la revisión, como
+  // comprobación directa con datos reales del banco; el test de arriba (enunciado sintético de ~40
+  // líneas, que SÍ fuerza `tarjeta--enunciado-clamp`) es el que de verdad habría fallado sin el fix.
+  test('CRITICAL (Ronda de corrección 1, banco real): log-040 (el enunciado más largo del banco) como tarjeta activa a 375×667 no vuelve tocable el enunciado', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['log-040'], etiqueta: 'critico-enunciado-activo' }));
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-respondida', 'false');
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).not.toHaveClass(/enunciado--recortado/);
+    expect(await enunciado.getAttribute('role')).toBeNull();
+    expect(await enunciado.getAttribute('tabindex')).toBeNull();
+    await enunciado.click({ force: true });
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
   });
 });
 
@@ -2613,11 +2917,11 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(t).toHaveAttribute('data-test', 'repaso-tarjeta');
     await expect(t.locator('.repaso-marca')).toContainText('✗ fallada'); // pendiente -> tramo "fallada"
 
-    // Sin ultimaRespuesta no hay forma de saber qué opción se marcó: se pinta
-    // SOLO la correcta (spec v0.2 §2), sin ninguna línea tachada de "la tuya".
-    const compacta = t.locator('.respuesta-compacta');
-    await expect(compacta).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
-    await expect(compacta.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
+    // v0.2a.2.1 §1.3: sin imagen ni `visual`, la tarjeta cae en la tipográfica, que YA muestra la
+    // correcta en grande -- la línea "Respuesta:" no se repite debajo. Lo que se comprueba sigue
+    // siendo lo mismo: la correcta se ve y no hay ninguna línea tachada de "la tuya".
+    await expect(t.locator('[data-test="visual-clave"]')).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
+    await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
   });
 
   // Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
@@ -4895,8 +5199,8 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   /** Geometría + contenido de la tarjeta ACTUAL para una `capa` dada
    * ('imagen'/'visual'/'clave'): sin scroll (assertTarjetaSinScroll ya cubre
    * el desborde geométrico de `.zona-imagen`, spec §8 hallazgo C1 de v0.1e),
-   * `.zona-imagen` mide >= 30% de `.tarjeta-contenido` (Ruling R8: suelo 40%,
-   * peor caso de la cascada 30% — el margen de 0.5pp cubre redondeo de
+   * `.zona-imagen` mide entre el 50 % y el 60 % de la TARJETA ENTERA (spec
+   * v0.2a.2.1 §1.1.1 -- el margen de 1px cubre redondeo de
    * getBoundingClientRect/clientHeight), su borde superior coincide con el
    * inferior de `.pregunta-cabecera` ± 12px (Ruling R8: el gap real es
    * 8-10px según si la tarjeta lleva dataset.respondida="true" o es la
@@ -4908,7 +5212,8 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     await assertTarjetaSinScroll(page);
 
     const medidas = await page.evaluate(() => {
-      const contenido = document.querySelector('.tarjeta-mazo--actual .tarjeta-contenido');
+      const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+      const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
       const zona = contenido ? contenido.querySelector('.zona-imagen') : null;
       const cabecera = contenido ? contenido.querySelector('.pregunta-cabecera') : null;
       if (!zona || !cabecera) return null;
@@ -4916,16 +5221,17 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
       const rectCabecera = cabecera.getBoundingClientRect();
       return {
         zonaAlto: rectZona.height,
-        contenidoAlto: contenido.clientHeight,
+        tarjetaAlto: tarjeta.getBoundingClientRect().height,
         topZona: rectZona.top,
         bottomCabecera: rectCabecera.bottom,
       };
     });
     expect(medidas, '.zona-imagen o .pregunta-cabecera no están en la tarjeta actual').not.toBeNull();
     expect(
-      medidas.zonaAlto / medidas.contenidoAlto,
-      `.zona-imagen mide ${medidas.zonaAlto}px de ${medidas.contenidoAlto}px de .tarjeta-contenido (< 30%)`
-    ).toBeGreaterThanOrEqual(0.29);
+      medidas.zonaAlto / medidas.tarjetaAlto,
+      `.zona-imagen mide ${medidas.zonaAlto}px de ${medidas.tarjetaAlto}px de tarjeta`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / medidas.tarjetaAlto);
+    expect(medidas.zonaAlto / medidas.tarjetaAlto).toBeLessThanOrEqual(0.6 + 1 / medidas.tarjetaAlto);
     expect(
       Math.abs(medidas.topZona - medidas.bottomCabecera),
       `top de .zona-imagen (${medidas.topZona}) se aleja > 12px del bottom de .pregunta-cabecera (${medidas.bottomCabecera})`
@@ -5059,10 +5365,22 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   // page.evaluate (sin 295 idas y vueltas Playwright<->página): asegurarRepasoConstruidoHasta
   // es idempotente por índice, así que el coste total es el mismo que un solo
   // irA(294) (ver I1 más arriba), solo repartido en 295 pasos.
-  test('spec §8 "Verificación": barrido de las 295 del banco real en el repaso — el 100% tiene .zona-imagen con imagen, SVG o tarjeta tipográfica', async ({
+  // Tarea 7 de v0.2a.2.1: el barrido original (spec §8) solo comprobaba que
+  // cada tarjeta tuviera ALGO en `.zona-imagen`; esta versión añade las dos
+  // garantías nuevas de la rama -- suelo del 50% y cero desborde -- sobre el
+  // banco real completo. Sigue en un único page.evaluate con window.__one.irA
+  // (idéntico al barrido original): a diferencia del barrido de 44 ids con
+  // visual de datos (Tarea 6, más arriba en "gráficos de datos escalados al
+  // hueco"), que SÍ necesita contexto nuevo por id porque juega partidas
+  // reales (empezarPartida) y por tanto acumula racha/nivel entre preguntas,
+  // este barrido solo NAVEGA por el repaso (irA), que no juega ni acumula
+  // progreso -- no hay "cambio de nivel" que colar entre tarjetas. Mismo
+  // patrón que ya usaba con éxito el barrido original antes de esta tarea.
+  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene visual, ninguna sale de [50,60] % y ninguna desborda', async ({
     page,
   }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
+    await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -5076,32 +5394,41 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     expect(total).toBeGreaterThan(0);
 
     const faltantes = await page.evaluate((n) => {
-      const sinVisual = [];
+      const problemas = [];
       for (let i = 0; i < n; i += 1) {
         window.__one.irA(i);
         const tarjeta = document.querySelector('.tarjeta-mazo--actual');
         const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
-        const tieneImagenOSvg = Boolean(zona && zona.querySelector('img, svg'));
-        const esClave = Boolean(zona && zona.classList.contains('zona-imagen--clave'));
-        if (!zona || !(tieneImagenOSvg || esClave)) {
-          sinVisual.push({ indice: i, id: tarjeta ? tarjeta.dataset.indice : null });
+        const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
+        if (!zona || !contenido) { problemas.push({ i, motivo: 'sin zona o sin contenido' }); continue; }
+        const tieneAlgo = Boolean(zona.querySelector('img, svg, .visual-clave'));
+        if (!tieneAlgo) { problemas.push({ i, motivo: 'zona vacía' }); continue; }
+        const ratio = zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+        // Tolerancia de 1px sobre el alto real de la tarjeta, como en el resto de la suite.
+        const suelo = 0.5 - 1 / tarjeta.getBoundingClientRect().height;
+        const techo = 0.6 + 1 / tarjeta.getBoundingClientRect().height;
+        if (ratio < suelo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} %` }); continue; }
+        // Ronda de corrección 1 (Tarea 7, minor): el barrido original solo miraba el suelo del 50 %;
+        // la spec fija un RANGO [50,60], así que también hay que comprobar que nadie supera el techo.
+        if (ratio > techo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} % (supera el techo del 60 %)` }); continue; }
+        if (contenido.scrollHeight > contenido.clientHeight + 2) {
+          problemas.push({ i, motivo: `desborda ${contenido.scrollHeight - contenido.clientHeight}px` });
         }
       }
-      return sinVisual;
+      return problemas;
     }, total);
 
-    expect(faltantes, `${faltantes.length} de ${total} tarjetas sin .zona-imagen con visual`).toEqual([]);
+    expect(faltantes, `${faltantes.length} de ${total} tarjetas con problema: ${JSON.stringify(faltantes.slice(0, 10))}`).toEqual([]);
   });
 
-  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica
-  // solo llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y
-  // abajo), medido en vivo por el revisor con una pregunta sintética sin
-  // imagen ni `visual`. Arreglo en estilos.css (degradado en la zona, SVG a
-  // width/height:100%) + visuales.js (clase `visual-clave-fondo` en el rect
-  // de fondo del SVG, para poder ocultarlo solo aquí sin tocar el DOM). Una
-  // pregunta de lógica sin imagen ni `visual` (cae en la tercera capa),
-  // comprobada en el REPASO (mismo camino que usa Carlos: partida -> resumen).
-  test('spec §8 (Ronda 1 de revisión, I1): en el repaso, la tarjeta tipográfica llena `.zona-imagen` — el SVG mide ≥ 95% del alto y del ancho, y el rect de fondo del propio SVG no es visible', async ({
+  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica de v0.2a.2 solo
+  // llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y abajo), medido en vivo por el
+  // revisor con una pregunta sintética sin imagen ni `visual`. Arreglo original en estilos.css
+  // (degradado en la zona, SVG a width/height:100%); v0.2a.2.1 §1.3 sustituye el SVG por un bloque
+  // HTML (`.visual-clave`, flex:1 1 auto) que llena la zona por su cuenta, sin `viewBox` que medir.
+  // Una pregunta de lógica sin imagen ni `visual` (cae en la tercera capa), comprobada en el REPASO
+  // (mismo camino que usa Carlos: partida -> resumen).
+  test('spec v0.2a.2.1 §1.3: en el repaso, la tarjeta tipográfica (HTML) llena `.zona-imagen` — el bloque mide ≥ 95% del alto y del ancho', async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -5141,21 +5468,219 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
 
     const medidas = await page.evaluate(() => {
       const zona = document.querySelector('.tarjeta-mazo--actual .zona-imagen--clave');
-      const svg = zona ? zona.querySelector('svg') : null;
-      const rectFondo = zona ? zona.querySelector('.visual-clave-fondo') : null;
-      if (!zona || !svg || !rectFondo) return null;
+      const bloque = zona ? zona.querySelector('.visual-clave') : null;
+      if (!zona || !bloque) return null;
       const rectZona = zona.getBoundingClientRect();
-      const rectSvg = svg.getBoundingClientRect();
-      return {
-        altoRatio: rectSvg.height / rectZona.height,
-        anchoRatio: rectSvg.width / rectZona.width,
-        rectFondoDisplay: getComputedStyle(rectFondo).display,
-      };
+      const rectBloque = bloque.getBoundingClientRect();
+      return { altoRatio: rectBloque.height / rectZona.height, anchoRatio: rectBloque.width / rectZona.width };
     });
-    expect(medidas, '.zona-imagen--clave, su svg o el rect de fondo no están en la tarjeta actual').not.toBeNull();
-    expect(medidas.altoRatio, `el SVG mide ${(medidas.altoRatio * 100).toFixed(1)}% del alto de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
-    expect(medidas.anchoRatio, `el SVG mide ${(medidas.anchoRatio * 100).toFixed(1)}% del ancho de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
-    expect(medidas.rectFondoDisplay).toBe('none');
+    expect(medidas, '.zona-imagen--clave o su bloque .visual-clave no están en la tarjeta actual').not.toBeNull();
+    expect(medidas.altoRatio).toBeGreaterThanOrEqual(0.95);
+    expect(medidas.anchoRatio).toBeGreaterThanOrEqual(0.95);
+  });
+});
+
+test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
+  test('ordenar (eco-089, la captura del iPhone) muestra la lista COMPLETA y sin la línea "Respuesta:"', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'clave-ordenar' }));
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+
+    await expect(t).toHaveClass(/tarjeta--clave/);
+    const items = t.locator('[data-test="visual-clave"] .visual-clave-item');
+    await expect(items).toHaveCount(4);
+    await expect(items.nth(0)).toHaveText('Salarios nominales');
+    await expect(items.nth(3)).toHaveText('Expectativas de inflación');
+    await expect(t.locator('.respuesta-compacta-linea--ok')).toHaveCount(0);
+    await expect(t.locator('.respuesta-resumen')).toHaveCount(0);
+    await assertTarjetaSinScroll(page);
+  });
+
+  // Ronda de corrección 1 (Tarea 7): el fix de `list-style-position:inside` (estilos.css) no tenía
+  // ningún test que cubriera el caso que lo motivó -- un ítem largo que necesita recortarse con "…"
+  // A DIFERENCIA de eco-089 (ítems cortos, ninguno se recorta). La revisión pidió log-042 (banco
+  // real, tipo `ordenar`, ítem de 69 caracteres, el más largo del banco para este tipo) -- pero
+  // log-042 tiene imagen real en datos/imagenes.json (comprobado en vivo), así que su tarjeta
+  // revelada usa `construirBloqueImagen`, NUNCA llega a `construirBloqueVisualClave` y por tanto
+  // nunca lleva `.visual-clave-item` que medir (falló con `tarjeta--neutra` pero SIN
+  // `tarjeta--clave` al ejecutarlo). Sustituido por una pregunta SINTÉTICA con los MISMOS enunciado
+  // e ítems reales de log-042 (mismo ítem de 69 caracteres) pero sin imagen ni `visual`, para forzar
+  // la tercera capa. A diferencia de "Ronda de corrección 2: en el repaso, una tarjeta NEUTRA..."
+  // más abajo (donde la pregunta inyectada SÍ cae en el índice 0 del repaso), esta pregunta
+  // `ordenar` no queda primera (comprobado en vivo: banco de ejemplo + inyectada = 13 tarjetas,
+  // la nueva cae en el índice 12) -- `ordenarRepaso` reparte por prioridad/área/nivel, no por orden
+  // de inyección, así que se localiza por el texto del enunciado como en el barrido de la Tarea 7.
+  test('Ronda de corrección 1: ordenar con un ítem de 69 caracteres (contenido real de log-042, sin imagen) en el repaso a 375×667 — cada ítem en UNA línea, el marcador se pinta y el texto largo se recorta con "…"', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'sintetico-ordenar-item-69',
+      area: 'logica',
+      tipo: 'ordenar',
+      nivel: 2,
+      // Enunciado e ítems calcados de log-042 (banco real), incluido su ítem de 69 caracteres.
+      enunciado: 'Ordena los siguientes eventos aleatorios según su probabilidad de ocurrencia.',
+      criterio: 'de menor a mayor probabilidad',
+      items: [
+        'Ganar el premio gordo de la Lotería Primitiva con un boleto',
+        'Sacar un as al robar una carta de una baraja de póker estándar',
+        'Obtener cara en un lanzamiento de moneda justa',
+        'Que en un grupo de 30 personas al menos dos cumplan años el mismo día',
+      ],
+      explicacion: 'Explicación cualquiera: no es lo que prueba este test.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const total = await page.evaluate(() => window.__one.repasoNodosLength());
+    const indice = await page.evaluate((n) => {
+      for (let i = 0; i < n; i += 1) {
+        window.__one.irA(i);
+        const enun = document.querySelector('.tarjeta-mazo--actual .enunciado');
+        if (enun && enun.textContent.includes('probabilidad de ocurrencia')) return i;
+      }
+      return -1;
+    }, total);
+    expect(indice, 'la pregunta sintética no apareció en el repaso').toBeGreaterThanOrEqual(0);
+    await page.evaluate((i) => window.__one.irA(i), indice);
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveClass(/tarjeta--clave/);
+
+    const medidas = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.tarjeta-mazo--actual .visual-clave-item'));
+      return items.map((item) => {
+        const cs = getComputedStyle(item);
+        const marker = getComputedStyle(item, '::marker');
+        return {
+          texto: item.textContent,
+          alto: item.getBoundingClientRect().height,
+          lineHeight: parseFloat(cs.lineHeight),
+          display: cs.display,
+          listStylePosition: cs.listStylePosition,
+          whiteSpace: cs.whiteSpace,
+          textOverflow: cs.textOverflow,
+          scrollWidth: item.scrollWidth,
+          clientWidth: item.clientWidth,
+          markerDisplay: marker.display,
+          markerColor: marker.color,
+        };
+      });
+    });
+
+    expect(medidas).toHaveLength(4);
+    for (const m of medidas) {
+      // Una sola línea: `white-space:nowrap` ya lo impide por CSS, esto es la comprobación
+      // geométrica -- el alto real no debe superar el line-height con margen de redondeo.
+      expect(m.alto, `"${m.texto}" mide ${m.alto}px (line-height ${m.lineHeight}px): ¿ocupa más de una línea?`).toBeLessThanOrEqual(m.lineHeight * 1.4);
+      // El marcador NO está suprimido (la causa 1 de la Ronda 1: display:flex en el <ol> mataba
+      // el ::marker aunque list-style-type siguiera leyendo "decimal") y sigue "inside" (el fix).
+      expect(m.display).toBe('list-item');
+      expect(m.listStylePosition).toBe('inside');
+      // Señal directa de que el navegador SÍ genera la caja del marcador (color propio, no "none").
+      expect(m.markerDisplay).not.toBe('none');
+      expect(m.markerColor).toBe('rgb(95, 212, 232)'); // #5fd4e8, la regla ::marker de estilos.css.
+    }
+
+    // El ítem de 69 caracteres es el único que de verdad prueba el recorte con "…" (la causa 2 de
+    // la Ronda 1: overflow:hidden en .visual-clave-item se comía el marcador con outside; con
+    // inside, el propio texto -incluido el número- es quien se recorta).
+    const masLargo = medidas.reduce((a, b) => (b.texto.length > a.texto.length ? b : a));
+    expect(masLargo.texto.length).toBeGreaterThanOrEqual(69);
+    expect(masLargo.whiteSpace).toBe('nowrap');
+    expect(masLargo.textOverflow).toBe('ellipsis');
+    expect(
+      masLargo.scrollWidth,
+      `"${masLargo.texto}" no se recorta: scrollWidth ${masLargo.scrollWidth} <= clientWidth ${masLargo.clientWidth}`
+    ).toBeGreaterThan(masLargo.clientWidth);
+
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('error, test4 y vf muestran su layout propio (aserciones por clase)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+
+    // Tres preguntas sintéticas SIN imagen ni `visual`: las tres caen en la tercera capa.
+    const preguntas = [
+      {
+        id: 'clave-error', area: 'ciencia', tipo: 'error', nivel: 1, sospechoso: 1,
+        enunciado: 'Encuentra el dato erróneo en la tarjeta.',
+        tarjeta: { titulo: 'Planetas', filas: [{ etiqueta: 'Marte', valor: 'Cuarto planeta' }, { etiqueta: 'Venus', valor: 'Octavo planeta' }] },
+        explicacion: 'Venus es el segundo planeta desde el Sol.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+      {
+        id: 'clave-test4', area: 'arte', tipo: 'test4', nivel: 1, correcta: 0,
+        enunciado: '¿Quién pintó Las Meninas?',
+        opciones: ['Velázquez', 'Goya', 'El Greco', 'Murillo'],
+        explicacion: 'Velázquez la pintó en 1656.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+      {
+        id: 'clave-vf', area: 'logica', tipo: 'vf', nivel: 1, respuesta: false,
+        enunciado: 'Todo cuadrado es un círculo. Es una afirmación básica.',
+        explicacion: 'Un cuadrado tiene lados rectos; un círculo, no.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+    ];
+    for (const p of preguntas) await page.evaluate((q) => window.__one.inyectarPregunta(q), p);
+    await page.evaluate((ids) => window.__one.empezarPartida({ ids, etiqueta: 'clave-tipos' }), preguntas.map((p) => p.id));
+
+    // error
+    let t = tarjetaActual(page);
+    await t.locator('[data-test="fila-1"]').click();
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-etiqueta')).toHaveText('Venus');
+    await expect(t.locator('.visual-clave-valor')).toHaveText('Octavo planeta');
+    await expect(t.locator('.visual-clave-titulo')).toHaveText('Dato erróneo');
+    await avanzarTrasRespuesta(page);
+
+    // test4
+    t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-correcta')).toHaveText('Velázquez');
+    await expect(t.locator('.visual-clave-descartada')).toHaveCount(3);
+    await avanzarTrasRespuesta(page);
+
+    // vf
+    t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-veredicto')).toHaveText('Falso');
+    await expect(t.locator('.visual-clave-veredicto')).toHaveClass(/visual-clave-veredicto--falso/);
+    await expect(t.locator('.visual-clave-frase')).toHaveText('Todo cuadrado es un círculo.');
+    // Falló (respondió Verdadero): SÍ se conserva la línea de su respuesta, y tiene que VERSE de
+    // verdad (I3, ola final): `toHaveText` sola pasa igual con el elemento a `display:none` (lee
+    // `textContent`, no exige visibilidad) -- así fue como C1 se coló sin que este test lo pillara.
+    const lineaRespuestaJugador = t.locator('.respuesta-compacta-linea--tachada');
+    await expect(lineaRespuestaJugador).toHaveText('Tu respuesta: Verdadero ✗');
+    await expect(lineaRespuestaJugador).toBeVisible();
+    const altoLineaRespuesta = await lineaRespuestaJugador.evaluate((el) => el.getBoundingClientRect().height);
+    expect(altoLineaRespuesta).toBeGreaterThan(0);
+    await assertTarjetaSinScroll(page);
   });
 });
 
@@ -5241,7 +5766,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await assertTarjetaSinScroll(page);
   });
 
-  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el rect de fondo del SVG es visible fuera de la tarjeta, cierra con Escape', async ({
+  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el bloque HTML se clona a pantalla completa, cierra con Escape', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -5259,13 +5784,6 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     const { idClave } = await inyectarImagenYClave(page, 'b');
     const t = await jugarYRevelar(page, idClave, 'pc-b');
     await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
-    // Dentro de la tarjeta, el rect de fondo del SVG está oculto (.zona-imagen--clave lo hace vía
-    // CSS): confirma el punto de partida antes de comprobar que fuera de la tarjeta se ve.
-    const rectFondoEnTarjeta = await t.evaluate((tarjeta) => {
-      const rect = tarjeta.querySelector('.visual-clave-fondo');
-      return rect ? getComputedStyle(rect).display : null;
-    });
-    expect(rectFondoEnTarjeta).toBe('none');
 
     await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
@@ -5274,15 +5792,15 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     const tRepaso = tarjetaActual(page);
     await expect(tRepaso.locator('[data-test="visual-clave"]')).toBeVisible();
 
+    // Dentro de la tarjeta el bloque vive en `.zona-imagen--clave` (que le pone el degradado);
+    // en la superposición se clona con su propio fondo y sin `data-test` duplicado.
+    await expect(tRepaso.locator('[data-test="visual-clave"]')).toHaveCount(1);
     await tRepaso.locator('[data-test="visual-abrir"]').click();
     const overlay = page.locator('[data-test="visual-completa"]');
     await expect(overlay).toBeVisible();
-
-    const rectFondoEnSuperposicion = await overlay.evaluate((el) => {
-      const rect = el.querySelector('.visual-clave-fondo');
-      return rect ? getComputedStyle(rect).display : null;
-    });
-    expect(rectFondoEnSuperposicion, 'el rect de fondo del SVG clonado debe verse fuera de .zona-imagen--clave').not.toBe('none');
+    await expect(overlay.locator('.visual-completa-clave')).toBeVisible();
+    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1); // el clon NO duplica el selector
+    await expect(overlay.locator('.visual-completa-clave .visual-clave-item, .visual-completa-clave .visual-clave-veredicto, .visual-completa-clave .visual-clave-correcta')).not.toHaveCount(0);
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
 
@@ -5762,10 +6280,10 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
 
   // Ola final de revisión (Minor #1 + Minor #4): el clon de la imagen debe conservar
   // `referrerPolicy="no-referrer"` (si no, un fallo de caché real filtraría el origen de la app a
-  // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon del SVG de
-  // la tarjeta tipográfica no debe duplicar el `id` del degradado radial del original (HTML inválido,
-  // aunque hoy sea inocuo porque las dos definiciones son idénticas).
-  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon del SVG no duplica el id del degradado (M4)', async ({
+  // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon de la
+  // tarjeta tipográfica no debe duplicar el `data-test="visual-clave"` de la tarjeta que sigue
+  // debajo mientras la superposición está abierta.
+  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon de la tarjeta tipográfica no duplica su data-test', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -5786,26 +6304,579 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     t = await jugarYRevelar(page, idClave, 'pc-o2');
     await t.locator('[data-test="visual-abrir"]').click();
     await expect(overlay).toBeVisible();
-    const fills = await page.evaluate(() => {
-      const original = document.querySelector('.tarjeta-mazo--actual .visual-clave-fondo');
-      const clon = document.querySelector('[data-test="visual-completa-medio"] .visual-clave-fondo');
-      return {
-        original: original ? original.getAttribute('fill') : null,
-        clon: clon ? clon.getAttribute('fill') : null,
-      };
+    // La tercera capa ya no es SVG (v0.2a.2.1 §1.3): no hay id de degradado que renombrar, pero sí
+    // hay que comprobar que el clon no duplica el `data-test` de la tarjeta que sigue debajo.
+    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1);
+    await expect(overlay.locator('.visual-completa-clave')).toHaveCount(1);
+  });
+});
+
+test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
+  test('sin botón "Siguiente ›": la flecha ↓ de 36px pasa de pregunta, la confianza va encima de los chips y la acción ocupa ≤25% de la tarjeta', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+
+    // 1. No existe NINGÚN botón con el texto viejo.
+    await expect(page.getByRole('button', { name: 'Siguiente ›' })).toHaveCount(0);
+    await expect(t.locator('.boton-siguiente')).toHaveCount(0);
+
+    // 2. `data-test="siguiente"` SE CONSERVA, ahora sobre la flecha de 36×36.
+    const flecha = t.locator('[data-test="siguiente"]');
+    await expect(flecha).toBeVisible();
+    await expect(flecha).toHaveAttribute('aria-label', 'Siguiente');
+    const cajaFlecha = await flecha.boundingBox();
+    expect(cajaFlecha.width).toBeGreaterThanOrEqual(34);
+    expect(cajaFlecha.width).toBeLessThanOrEqual(40);
+    expect(cajaFlecha.height).toBeGreaterThanOrEqual(34);
+    expect(cajaFlecha.height).toBeLessThanOrEqual(40);
+
+    // 3. Chips de solo texto, ≤32px de alto, en la MISMA fila que la flecha y a su izquierda.
+    const chip = t.locator('[data-test="preguntar-chatgpt"]');
+    await expect(chip).toHaveText('ChatGPT');
+    await expect(chip).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
+    const cajaChip = await chip.boundingBox();
+    expect(cajaChip.height).toBeLessThanOrEqual(32);
+    expect(Math.abs(cajaChip.y + cajaChip.height / 2 - (cajaFlecha.y + cajaFlecha.height / 2))).toBeLessThan(10);
+    expect(cajaChip.x).toBeLessThan(cajaFlecha.x);
+
+    // 4. La confianza está POR ENCIMA de "Preguntar a" en el eje Y, y dentro de .tarjeta-accion.
+    const cajaConfianza = await t.locator('[data-test="confianza"]').boundingBox();
+    const cajaPreguntar = await t.locator('[data-test="preguntar-a"]').boundingBox();
+    expect(cajaConfianza.y + cajaConfianza.height).toBeLessThanOrEqual(cajaPreguntar.y + 2);
+    const confianzaEnAccion = await t.evaluate((tarjeta) => {
+      const fila = tarjeta.querySelector('.confianza-fila');
+      return Boolean(fila && fila.closest('.tarjeta-accion'));
     });
-    expect(fills.original, 'no se encontró el rect de fondo original').not.toBeNull();
-    expect(fills.clon, 'no se encontró el rect de fondo clonado').not.toBeNull();
-    expect(fills.clon, 'el fill del rect clonado no debería seguir apuntando al mismo id que el original (duplicado)').not.toBe(
-      fills.original
+    expect(confianzaEnAccion, 'la fila de confianza debe vivir dentro de .tarjeta-accion').toBe(true);
+
+    // 5. "esta pregunta está mal" en su propia línea BAJO los chips.
+    const cajaEstaMal = await t.locator('[data-test="esta-mal"]').boundingBox();
+    expect(cajaEstaMal.y).toBeGreaterThanOrEqual(cajaPreguntar.y + cajaPreguntar.height - 2);
+
+    // 6. La zona de acción entera ≤25% de la tarjeta (spec §1.2.5).
+    const proporcion = await t.evaluate((tarjeta) => {
+      const accion = tarjeta.querySelector('.tarjeta-accion');
+      return accion.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+    });
+    expect(proporcion, `la zona de acción ocupa el ${(proporcion * 100).toFixed(1)}% de la tarjeta`).toBeLessThanOrEqual(0.25);
+
+    // 7. La flecha pasa de pregunta de verdad. `mazo-contador` no sirve de señal aquí: refleja
+    // "respondidas/total" (contadorTextoPartida en app.js), así que se repinta igual en TODAS las
+    // tarjetas visibles y no cambia con la mera navegación (confirmado por un e2e ya existente,
+    // "Sigue siendo LA MISMA partida", que depende justo de que NO cambie). `data-indice` (mazo.js)
+    // sí identifica la tarjeta por posición y es la misma señal que usa el test de repaso de abajo.
+    const indiceAntes = await tarjetaActual(page).getAttribute('data-indice');
+    await flecha.click();
+    await esperarAsentamientoMazo(page);
+    expect(await tarjetaActual(page).getAttribute('data-indice')).not.toBe(indiceAntes);
+  });
+
+  test('en el repaso (soloLectura) hay chips y flecha, pero ni confianza ni "está mal"; la flecha avanza el mazo', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t.locator('[data-test="preguntar-chatgpt"]')).toBeVisible();
+    await expect(t.locator('[data-test="confianza"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="esta-mal"]')).toHaveCount(0);
+
+    const flecha = t.locator('[data-test="siguiente"]');
+    await expect(flecha).toBeVisible();
+    const indiceAntes = await tarjetaActual(page).getAttribute('data-indice');
+    await flecha.click();
+    await esperarAsentamientoMazo(page);
+    expect(await tarjetaActual(page).getAttribute('data-indice')).not.toBe(indiceAntes);
+    await assertTarjetaSinScroll(page);
+  });
+});
+
+test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', () => {
+  /** Una imagen REAL con dimensiones intrínsecas exactas y sin red: un SVG en data: URI. Los
+   * fixtures PNG 1×1 de `?ejemplo=1` no sirven aquí, porque lo que se está probando es justo que
+   * el FORMATO de la imagen no cambia el alto de la zona. */
+  function imagenFixture(ancho, alto, color) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ancho}" height="${alto}"><rect width="100%" height="100%" fill="${color}"/></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  async function proporcionZona(page) {
+    return page.evaluate(() => {
+      const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+      const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
+      if (!zona) return null;
+      const rZona = zona.getBoundingClientRect();
+      const rTarjeta = tarjeta.getBoundingClientRect();
+      return { zona: rZona.height, tarjeta: rTarjeta.height, ratio: rZona.height / rTarjeta.height };
+    });
+  }
+
+  const VIEWPORTS = [
+    { width: 375, height: 667, nombre: '375' },
+    { width: 390, height: 844, nombre: '390' },
+  ];
+
+  for (const vp of VIEWPORTS) {
+    test(`Duchamp (art-091, imagen real del banco) a ${vp.width}×${vp.height}: la zona mide entre el 50 % y el 60 % de la tarjeta, con cover y el pie DENTRO`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      // La imagen real de art-091 vive en upload.wikimedia.org: se fuerza un fixture con las
+      // MISMAS dimensiones (900×949) para que el test no dependa de la red, conservando la
+      // pregunta real del banco (tipo `error`, su enunciado, su explicación de 39 palabras).
+      await page.evaluate((url) => window.__one.forzarImagen('art-091', {
+        id: 'art-091', url,
+        pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+        titulo: 'Duchamp Fountaine.jpg', autor: 'Marcel Duchamp', licencia: 'Public domain',
+        leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte',
+        termino: 'Fountain Marcel Duchamp 1917', ancho: 900, alto: 949,
+      }), imagenFixture(900, 949, '#c8c8c8'));
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'duchamp' }));
+
+      const t = tarjetaActual(page);
+      // art-091 es tipo "error" (banco real): cualquier fila revela la tarjeta, la corrección
+      // de la respuesta no afecta a la medida de la zona visual que prueba este test.
+      await responderPreguntaActual(page);
+      await esperarAsentamientoMazo(page);
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+
+      const medidas = await proporcionZona(page);
+      expect(medidas, 'no se encontró .zona-imagen en la tarjeta actual').not.toBeNull();
+      expect(
+        medidas.ratio,
+        `la zona mide ${medidas.zona.toFixed(1)}px de ${medidas.tarjeta.toFixed(1)}px de tarjeta = ${(medidas.ratio * 100).toFixed(1)}%`
+      ).toBeGreaterThanOrEqual(0.5 - 1 / medidas.tarjeta);
+      expect(medidas.ratio).toBeLessThanOrEqual(0.6 + 1 / medidas.tarjeta);
+
+      // La imagen llena la zona y recorta (cover), y el pie está DENTRO de la zona.
+      const detalle = await t.evaluate((tarjeta) => {
+        const zona = tarjeta.querySelector('.zona-imagen');
+        const img = zona.querySelector('img');
+        const pie = zona.querySelector('.imagen-pie');
+        const rZona = zona.getBoundingClientRect();
+        const rImg = img.getBoundingClientRect();
+        const rPie = pie.getBoundingClientRect();
+        return {
+          objectFit: getComputedStyle(img).objectFit,
+          altoImg: rImg.height / rZona.height,
+          anchoImg: rImg.width / rZona.width,
+          pieDentro: rPie.bottom <= rZona.bottom + 1 && rPie.top >= rZona.top - 1,
+          pieSolapa: rPie.top < rZona.bottom,
+          posicionPie: getComputedStyle(pie).position,
+        };
+      });
+      expect(detalle.objectFit).toBe('cover');
+      expect(detalle.altoImg).toBeGreaterThanOrEqual(0.99);
+      expect(detalle.anchoImg).toBeGreaterThanOrEqual(0.99);
+      expect(detalle.posicionPie).toBe('absolute');
+      expect(detalle.pieDentro, 'el pie debe quedar dentro de la zona, superpuesto a la imagen').toBe(true);
+      expect(detalle.pieSolapa).toBe(true);
+
+      // Ruling R11 (encargo del coordinador, cobertura pedida por la revisión de la Tarea 4):
+      // a 375×667, art-091 (tipo "error", banco real) SÍ llega al último recurso de la cascada
+      // -- comprobado en vivo (script de un solo uso contra el servidor local, no un e2e): con
+      // `.titulo-tarjeta`/`.instruccion-error` propios del tipo "error" más un cambio de nivel al
+      // fallar la fila 0, ni (a)-(f) bastan (ver el comentario del paso (g) en ajustarEncaje,
+      // mazo.js). A 390×844 no se ha confirmado que se llegue a este último recurso -- por eso la
+      // aserción va condicionada al viewport donde SÍ se midió, no forzada para los dos.
+      if (vp.width === 375) {
+        const minimo = await t.evaluate((tarjeta) => {
+          const seleccionables = ['.titulo-tarjeta', '.instruccion-error', '.cambio-nivel', '.cambio-nivel-area'];
+          return {
+            aplicado: tarjeta.classList.contains('tarjeta--feedback-minimo'),
+            ocultos: seleccionables
+              .map((sel) => tarjeta.querySelector(sel))
+              .filter(Boolean)
+              .map((el) => getComputedStyle(el).display),
+          };
+        });
+        expect(minimo.aplicado, 'tarjeta--feedback-minimo debería aplicarse a art-091 a 375×667').toBe(true);
+        expect(minimo.ocultos.length, 'no se encontró ninguno de los 4 elementos en la tarjeta de art-091').toBeGreaterThan(0);
+        for (const display of minimo.ocultos) expect(display).toBe('none');
+      }
+
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+    });
+  }
+
+  test('mismo alto para 4 formatos: vertical, apaisada, cuadrada y documento dan la MISMA zona (±1px)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const FORMATOS = [
+      { nombre: 'vertical', ancho: 600, alto: 900 },
+      { nombre: 'apaisada', ancho: 900, alto: 400 },
+      { nombre: 'cuadrada', ancho: 600, alto: 600 },
+      { nombre: 'documento', ancho: 500, alto: 1000 },
+    ];
+    const alturas = [];
+    for (const f of FORMATOS) {
+      await page.evaluate((datos) => window.__one.forzarImagen('art-091', {
+        id: 'art-091', url: datos.url,
+        pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+        titulo: 'formato', autor: 'Autor', licencia: 'Public domain',
+        leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte',
+        termino: 'x', ancho: datos.ancho, alto: datos.alto,
+      }), { url: imagenFixture(f.ancho, f.alto, '#556677'), ancho: f.ancho, alto: f.alto });
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'formatos' }));
+      await responderPreguntaActual(page);
+      await esperarAsentamientoMazo(page);
+      await expect(tarjetaActual(page).locator('[data-test="imagen"]')).toBeVisible();
+      const medidas = await proporcionZona(page);
+      alturas.push({ ...f, altoZona: medidas.zona });
+    }
+    const referencia = alturas[0].altoZona;
+    for (const a of alturas) {
+      expect(
+        Math.abs(a.altoZona - referencia),
+        `la zona con imagen ${a.nombre} (${a.ancho}×${a.alto}) mide ${a.altoZona}px frente a ${referencia}px de la vertical`
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('el alto lo decide el TEXTO: explicación corta sin hueco muerto; explicación de 60 palabras recortada, ambas en [50,60] (Ruling R9)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+
+    const base = {
+      area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: 'El agua hierve a 100 °C al nivel del mar.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    };
+    const corta = { ...base, id: 'alto-corta', explicacion: 'A presión normal, sí.' };
+    // 60 palabras, el peor caso real del banco (eco-091 tiene 60).
+    const larga = { ...base, id: 'alto-larga', explicacion: Array.from({ length: 60 }, (_, i) => `palabra${i}`).join(' ') + '.' };
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), corta);
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['alto-corta'], etiqueta: 'alto-corta' }));
+    await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    const conCorta = await proporcionZona(page);
+    // Ruling R9 (ronda de corrección 1): el invariante es [50,60] y "sin hueco muerto", no "siempre
+    // llega al 59-60 %" -- a este viewport el presupuesto fijo no deja sitio hasta el techo ni con
+    // la explicación más corta posible (medido: ~53 %). Ver medirHuecoMuerto más arriba.
+    expect(
+      conCorta.ratio,
+      `con explicación corta la zona mide ${(conCorta.ratio * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / conCorta.tarjeta);
+    expect(conCorta.ratio).toBeLessThanOrEqual(0.6 + 1 / conCorta.tarjeta);
+    const huecoCorta = await medirHuecoMuerto(page);
+    expect(huecoCorta, 'no se pudo medir el hueco muerto').not.toBeNull();
+    expect(
+      Math.abs(huecoCorta.huecoMuerto) <= 2 || conCorta.ratio >= 0.59,
+      `hueco muerto de ${huecoCorta.huecoMuerto.toFixed(1)}px con explicación corta y la zona está al ${(conCorta.ratio * 100).toFixed(1)}% (no llegó a su techo del 59 %)`
+    ).toBe(true);
+    await assertTarjetaSinScroll(page);
+
+    // Estado limpio antes de la segunda medida (mismo motivo que "Tarea 3b: capturas..." más
+    // arriba): sin esto, el XP de responder 'alto-corta' se arrastra y puede cruzar un nivel justo
+    // al responder 'alto-larga', colando un aviso `.cambio-nivel` que la cascada no contempla y
+    // que no tiene nada que ver con lo que este test mide (el efecto del TEXTO sobre la zona).
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), larga);
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['alto-larga'], etiqueta: 'alto-larga' }));
+    await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    const conLarga = await proporcionZona(page);
+    // Ruling R9: solo el invariante [50,60] -- nada de "≤52 %" (el brief lo daba por hecho sin
+    // medirlo; con el bug de calcularLineasClamp ya corregido, corta y larga quedan casi
+    // indistinguibles a este viewport, ambas ~53 %, y las dos son correctas: el invariante no exige
+    // que el suelo y el techo se distingan mucho, solo que la zona nunca salga de [50,60]).
+    expect(
+      conLarga.ratio,
+      `con explicación de 60 palabras la zona mide ${(conLarga.ratio * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / conLarga.tarjeta);
+    expect(conLarga.ratio).toBeLessThanOrEqual(0.6 + 1 / conLarga.tarjeta);
+    await expect(tarjetaActual(page).locator('.explicacion')).toHaveClass(/explicacion--recortada/);
+    await assertTarjetaSinScroll(page);
+  });
+});
+
+test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
+  const EXPLICACION_60 = Array.from({ length: 60 }, (_, i) => `palabra${i}`).join(' ') + '.';
+
+  async function partidaConExplicacion(page, explicacion, id) {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id, area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: 'El agua hierve a 100 °C al nivel del mar.',
+      explicacion, confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+    await page.evaluate((ids) => window.__one.empezarPartida({ ids: [ids], etiqueta: 'recorte' }), id);
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    return t;
+  }
+
+  test('explicación recortada: es tocable, abre la superposición con el texto ENTERO, Escape la cierra y devuelve el foco', async ({ page }) => {
+    const t = await partidaConExplicacion(page, EXPLICACION_60, 'txt-larga');
+    const explicacion = t.locator('[data-test="explicacion"]');
+    await expect(explicacion).toHaveClass(/explicacion--recortada/);
+    await expect(explicacion).toHaveAttribute('role', 'button');
+    await expect(explicacion).toHaveAttribute('tabindex', '0');
+    await expect(t.locator('.explicacion-ver-todo')).toBeVisible();
+
+    await explicacion.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Explicación');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('palabra59');
+    // El foco arranca en el botón de cierre, igual que con una imagen.
+    expect(await page.evaluate(() => document.activeElement === document.querySelector('[data-test="visual-cerrar"]'))).toBe(true);
+
+    await page.keyboard.press('Escape');
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
+    // El foco vuelve al propio párrafo (tiene tabindex=0 mientras está recortado).
+    expect(await page.evaluate(() => document.activeElement === document.querySelector('.tarjeta-mazo--actual .explicacion'))).toBe(true);
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('explicación entera: NO reacciona al toque ni lleva role/tabindex', async ({ page }) => {
+    const t = await partidaConExplicacion(page, 'A presión normal, sí.', 'txt-corta');
+    const explicacion = t.locator('[data-test="explicacion"]');
+    await expect(explicacion).not.toHaveClass(/explicacion--recortada/);
+    expect(await explicacion.getAttribute('role')).toBeNull();
+    expect(await explicacion.getAttribute('tabindex')).toBeNull();
+    await expect(t.locator('.explicacion-ver-todo')).toBeHidden();
+
+    await explicacion.click();
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  test('enunciado recortado: abre la superposición con el título "Pregunta"', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const enunciadoLargo = `¿Cuál es la respuesta? ${'Contexto muy largo que no cabe de ninguna manera. '.repeat(8)}`;
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'txt-enunciado', area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: enunciadoLargo, explicacion: EXPLICACION_60,
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['txt-enunciado'], etiqueta: 'recorte-enunciado' }));
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).toHaveClass(/enunciado--recortado/);
+    await enunciado.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Pregunta');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('Contexto muy largo');
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
+  // Ronda de corrección 2 (Important): la tarjeta NEUTRA del repaso (una pregunta nunca
+  // respondida, `construirTarjetaRespondida` con `tarjeta--revelada`/`tarjeta--neutra` pero SIN
+  // `dataset.respondida` -- app.js) cae en la cascada REVELADA de `ajustarEncaje` (que decide por
+  // `dataset.respondida === 'false'`, no por `'true'`), así que su enunciado SÍ puede recortarse
+  // (paso (d)) y SÍ debe poder tocarse igual que en una tarjeta respondida de verdad -- la guarda
+  // del Critical de la Ronda 1 usaba `=== 'true'` y la dejaba fuera por error, truncando el
+  // enunciado sin forma de leerlo entero justo en el repaso. `nivel: 0` (por debajo de cualquier
+  // nivel real del banco de ejemplo, que empieza en 1) la deja de PRIMERA en el repaso sin
+  // necesitar navegar ni filtrar: nada se ha respondido todavía, así que el tramo 1 (respondidas)
+  // está vacío y esta es la primera tarjeta del tramo 2 (sin responder) sin ambigüedad de orden.
+  test('Ronda de corrección 2: en el repaso, una tarjeta NEUTRA (nunca respondida) con enunciado larguísimo SÍ deja tocarlo', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const enunciadoLargo = 'Enunciado sintético deliberadamente absurdo, mucho más largo de lo que cabría nunca en una tarjeta neutra del repaso, pensado para forzar el recorte calculado del paso (d) de la cascada revelada. '.repeat(6);
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'sintetico-repaso-neutra-enunciado', area: 'ciencia', tipo: 'vf', nivel: 0, respuesta: true,
+      enunciado: enunciadoLargo, explicacion: 'Explicación cualquiera: no es lo que se prueba aquí.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveClass(/tarjeta--neutra/);
+    expect(await t.getAttribute('data-respondida')).toBeNull(); // sin dataset.respondida, a propósito (app.js)
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).toHaveClass(/enunciado--recortado/);
+    await expect(enunciado).toHaveAttribute('role', 'button');
+    await expect(enunciado).toHaveAttribute('tabindex', '0');
+
+    await enunciado.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Pregunta');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('cascada revelada');
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
+  test('un deslizamiento que arranca en la explicación recortada (>10px) NO abre la superposición', async ({ page }) => {
+    const t = await partidaConExplicacion(page, EXPLICACION_60, 'txt-desliz');
+    const caja = await t.locator('[data-test="explicacion"]').boundingBox();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2 - 60, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  // Important #2 (Ronda de corrección 1): `.visual-completa` es `touch-action:none` entero (Critical
+  // #1 de Tarea 3, imprescindible para que el cierre por deslizamiento reciba `pointerup` con un
+  // gesto táctil real) -- sin distinguir, un dedo que arranca DENTRO del texto largo para leerlo
+  // cerraba la superposición en cuanto se movía ≥60px verticales, aunque solo estuviera
+  // desplazándose. Mismo patrón CDP que "Critical: cierra con un gesto táctil REAL" de la suite de
+  // pantalla completa (Input.dispatchTouchEvent, no pointerdown/pointerup sintéticos).
+  test('Important (Ronda de corrección 1): un arrastre táctil REAL dentro de un texto largo lo desplaza sin cerrar la superposición', async ({ page }) => {
+    const EXPLICACION_600 = Array.from({ length: 600 }, (_, i) => `palabra${i}`).join(' ') + '.';
+    const t = await partidaConExplicacion(page, EXPLICACION_600, 'txt-600-scroll');
+    await t.locator('[data-test="explicacion"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const textoLocator = page.locator('[data-test="visual-completa-texto"]');
+    const caja = await textoLocator.boundingBox();
+    expect(caja).not.toBeNull();
+    const medida = await textoLocator.evaluate((el) => ({ scrollH: el.scrollHeight, clientH: el.clientHeight }));
+    expect(medida.scrollH, 'el texto de 600 palabras debe desplazar de verdad').toBeGreaterThan(medida.clientH + 1);
+
+    const cdp = await page.context().newCDPSession(page);
+    const cx = Math.round(caja.x + caja.width / 2);
+    const y0 = Math.round(caja.y + caja.height / 2);
+    // Arrastre hacia ARRIBA (el contenido sube, como al leer hacia abajo) DENTRO del bloque de texto.
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0 }] });
+    for (let k = 1; k <= 8; k += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 - k * 15 }] }); // 120px totales
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    expect(
+      await textoLocator.evaluate((el) => el.scrollTop),
+      'el arrastre dentro del texto debe desplazarlo de verdad, no quedarse en 0'
+    ).toBeGreaterThan(0);
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'la superposición debe seguir abierta: el gesto era para leer, no para cerrar'
+    ).toBe(false);
+  });
+
+  test('Important (Ronda de corrección 1): un arrastre táctil REAL que arranca FUERA del texto (el margen de la superposición) sigue cerrándola', async ({ page }) => {
+    const EXPLICACION_600 = Array.from({ length: 600 }, (_, i) => `palabra${i}`).join(' ') + '.';
+    const t = await partidaConExplicacion(page, EXPLICACION_600, 'txt-600-cierra');
+    await t.locator('[data-test="explicacion"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    // El margen de `.visual-completa` (padding, fuera de `.visual-completa-texto`) sigue siendo
+    // parte de la superposición: un arrastre que arranca ahí no toca nada de lo que hay que leer.
+    const caja = await page.locator('[data-test="visual-completa-texto"]').boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    const cx = 8;
+    const y0 = Math.round(caja.y + caja.height / 2);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0 }] });
+    for (let k = 1; k <= 8; k += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 + k * 15 }] }); // 120px hacia abajo
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'un arrastre que arranca fuera del texto debe seguir cerrando la superposición'
+    ).toBe(true);
+  });
+
+  // Tarea 7: capturas del banco REAL (no el de ejemplo) para que Carlos las compare a ojo con las
+  // suyas del iPhone -- mismo patrón que "capturas v0.1d" de más arriba. sospechosoPorTitulo se
+  // construye desde datos/banco.json (no el .ejemplo.json de otros tests) porque art-091 es tipo
+  // "error" del banco real: sin el mapa, responderPreguntaActual tocaría la fila 0 por defecto
+  // (Guernica), una respuesta incorrecta para esta pregunta (el sospechoso real es la fila 2,
+  // Fountain) que no es la que Carlos vio en su captura original.
+  test('capturas v0.2a.2.1 para comparar con el iPhone de Carlos', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(
+      banco.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
-    // Cada id referenciado (el del original y el del clon, renombrado) existe UNA sola vez en el documento.
-    const apariciones = await page.evaluate((valoresFill) =>
-      valoresFill.map((f) => {
-        const id = f.match(/url\(#(.+)\)/)[1];
-        return document.querySelectorAll(`#${CSS.escape(id)}`).length;
-      })
-    , [fills.original, fills.clon]);
-    expect(apariciones).toEqual([1, 1]);
+    await page.locator('[data-test="cerebro"]').click();
+
+    // 1. Duchamp (art-091), la captura que Carlos mandó con la imagen al 25 %.
+    await page.evaluate((url) => window.__one.forzarImagen('art-091', {
+      id: 'art-091', url, pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+      titulo: 'Duchamp Fountaine.jpg', autor: 'Marcel Duchamp', licencia: 'Public domain',
+      leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte', termino: 'x', ancho: 900, alto: 949,
+    }), `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="949"><rect width="100%" height="100%" fill="#d8d4cc"/><circle cx="450" cy="480" r="300" fill="#f2efe9"/></svg>')}`);
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'captura-duchamp' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-duchamp-375.png` });
+
+    // 2. economía/ordenar (eco-089), la tarjeta tipográfica que Carlos llamó "muy mala".
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'captura-ordenar' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-ordenar-375.png` });
+
+    // 3. gráfico de datos repartido en el hueco nuevo.
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['cie-008'], etiqueta: 'captura-grafico' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-grafico-375.png` });
+
+    // 4. la explicación recortada, abierta a pantalla completa.
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-091'], etiqueta: 'captura-texto' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await tarjetaActual(page).locator('[data-test="explicacion"]').click();
+    await expect(page.locator('[data-test="visual-completa"]')).toBeVisible();
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-texto-completo-375.png` });
+    await page.keyboard.press('Escape');
   });
 });
