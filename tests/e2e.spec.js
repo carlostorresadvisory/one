@@ -5376,7 +5376,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   // este barrido solo NAVEGA por el repaso (irA), que no juega ni acumula
   // progreso -- no hay "cambio de nivel" que colar entre tarjetas. Mismo
   // patrón que ya usaba con éxito el barrido original antes de esta tarea.
-  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene visual, ninguna baja del 50 % y ninguna desborda', async ({
+  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene visual, ninguna sale de [50,60] % y ninguna desborda', async ({
     page,
   }) => {
     test.setTimeout(120000);
@@ -5406,7 +5406,11 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
         const ratio = zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
         // Tolerancia de 1px sobre el alto real de la tarjeta, como en el resto de la suite.
         const suelo = 0.5 - 1 / tarjeta.getBoundingClientRect().height;
+        const techo = 0.6 + 1 / tarjeta.getBoundingClientRect().height;
         if (ratio < suelo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} %` }); continue; }
+        // Ronda de corrección 1 (Tarea 7, minor): el barrido original solo miraba el suelo del 50 %;
+        // la spec fija un RANGO [50,60], así que también hay que comprobar que nadie supera el techo.
+        if (ratio > techo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} % (supera el techo del 60 %)` }); continue; }
         if (contenido.scrollHeight > contenido.clientHeight + 2) {
           problemas.push({ i, motivo: `desborda ${contenido.scrollHeight - contenido.clientHeight}px` });
         }
@@ -5496,6 +5500,118 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
     await expect(items.nth(3)).toHaveText('Expectativas de inflación');
     await expect(t.locator('.respuesta-compacta-linea--ok')).toHaveCount(0);
     await expect(t.locator('.respuesta-resumen')).toHaveCount(0);
+    await assertTarjetaSinScroll(page);
+  });
+
+  // Ronda de corrección 1 (Tarea 7): el fix de `list-style-position:inside` (estilos.css) no tenía
+  // ningún test que cubriera el caso que lo motivó -- un ítem largo que necesita recortarse con "…"
+  // A DIFERENCIA de eco-089 (ítems cortos, ninguno se recorta). La revisión pidió log-042 (banco
+  // real, tipo `ordenar`, ítem de 69 caracteres, el más largo del banco para este tipo) -- pero
+  // log-042 tiene imagen real en datos/imagenes.json (comprobado en vivo), así que su tarjeta
+  // revelada usa `construirBloqueImagen`, NUNCA llega a `construirBloqueVisualClave` y por tanto
+  // nunca lleva `.visual-clave-item` que medir (falló con `tarjeta--neutra` pero SIN
+  // `tarjeta--clave` al ejecutarlo). Sustituido por una pregunta SINTÉTICA con los MISMOS enunciado
+  // e ítems reales de log-042 (mismo ítem de 69 caracteres) pero sin imagen ni `visual`, para forzar
+  // la tercera capa. A diferencia de "Ronda de corrección 2: en el repaso, una tarjeta NEUTRA..."
+  // más abajo (donde la pregunta inyectada SÍ cae en el índice 0 del repaso), esta pregunta
+  // `ordenar` no queda primera (comprobado en vivo: banco de ejemplo + inyectada = 13 tarjetas,
+  // la nueva cae en el índice 12) -- `ordenarRepaso` reparte por prioridad/área/nivel, no por orden
+  // de inyección, así que se localiza por el texto del enunciado como en el barrido de la Tarea 7.
+  test('Ronda de corrección 1: ordenar con un ítem de 69 caracteres (contenido real de log-042, sin imagen) en el repaso a 375×667 — cada ítem en UNA línea, el marcador se pinta y el texto largo se recorta con "…"', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'sintetico-ordenar-item-69',
+      area: 'logica',
+      tipo: 'ordenar',
+      nivel: 2,
+      // Enunciado e ítems calcados de log-042 (banco real), incluido su ítem de 69 caracteres.
+      enunciado: 'Ordena los siguientes eventos aleatorios según su probabilidad de ocurrencia.',
+      criterio: 'de menor a mayor probabilidad',
+      items: [
+        'Ganar el premio gordo de la Lotería Primitiva con un boleto',
+        'Sacar un as al robar una carta de una baraja de póker estándar',
+        'Obtener cara en un lanzamiento de moneda justa',
+        'Que en un grupo de 30 personas al menos dos cumplan años el mismo día',
+      ],
+      explicacion: 'Explicación cualquiera: no es lo que prueba este test.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const total = await page.evaluate(() => window.__one.repasoNodosLength());
+    const indice = await page.evaluate((n) => {
+      for (let i = 0; i < n; i += 1) {
+        window.__one.irA(i);
+        const enun = document.querySelector('.tarjeta-mazo--actual .enunciado');
+        if (enun && enun.textContent.includes('probabilidad de ocurrencia')) return i;
+      }
+      return -1;
+    }, total);
+    expect(indice, 'la pregunta sintética no apareció en el repaso').toBeGreaterThanOrEqual(0);
+    await page.evaluate((i) => window.__one.irA(i), indice);
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t).toHaveClass(/tarjeta--clave/);
+
+    const medidas = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll('.tarjeta-mazo--actual .visual-clave-item'));
+      return items.map((item) => {
+        const cs = getComputedStyle(item);
+        const marker = getComputedStyle(item, '::marker');
+        return {
+          texto: item.textContent,
+          alto: item.getBoundingClientRect().height,
+          lineHeight: parseFloat(cs.lineHeight),
+          display: cs.display,
+          listStylePosition: cs.listStylePosition,
+          whiteSpace: cs.whiteSpace,
+          textOverflow: cs.textOverflow,
+          scrollWidth: item.scrollWidth,
+          clientWidth: item.clientWidth,
+          markerDisplay: marker.display,
+          markerColor: marker.color,
+        };
+      });
+    });
+
+    expect(medidas).toHaveLength(4);
+    for (const m of medidas) {
+      // Una sola línea: `white-space:nowrap` ya lo impide por CSS, esto es la comprobación
+      // geométrica -- el alto real no debe superar el line-height con margen de redondeo.
+      expect(m.alto, `"${m.texto}" mide ${m.alto}px (line-height ${m.lineHeight}px): ¿ocupa más de una línea?`).toBeLessThanOrEqual(m.lineHeight * 1.4);
+      // El marcador NO está suprimido (la causa 1 de la Ronda 1: display:flex en el <ol> mataba
+      // el ::marker aunque list-style-type siguiera leyendo "decimal") y sigue "inside" (el fix).
+      expect(m.display).toBe('list-item');
+      expect(m.listStylePosition).toBe('inside');
+      // Señal directa de que el navegador SÍ genera la caja del marcador (color propio, no "none").
+      expect(m.markerDisplay).not.toBe('none');
+      expect(m.markerColor).toBe('rgb(95, 212, 232)'); // #5fd4e8, la regla ::marker de estilos.css.
+    }
+
+    // El ítem de 69 caracteres es el único que de verdad prueba el recorte con "…" (la causa 2 de
+    // la Ronda 1: overflow:hidden en .visual-clave-item se comía el marcador con outside; con
+    // inside, el propio texto -incluido el número- es quien se recorta).
+    const masLargo = medidas.reduce((a, b) => (b.texto.length > a.texto.length ? b : a));
+    expect(masLargo.texto.length).toBeGreaterThanOrEqual(69);
+    expect(masLargo.whiteSpace).toBe('nowrap');
+    expect(masLargo.textOverflow).toBe('ellipsis');
+    expect(
+      masLargo.scrollWidth,
+      `"${masLargo.texto}" no se recorta: scrollWidth ${masLargo.scrollWidth} <= clientWidth ${masLargo.clientWidth}`
+    ).toBeGreaterThan(masLargo.clientWidth);
+
     await assertTarjetaSinScroll(page);
   });
 
