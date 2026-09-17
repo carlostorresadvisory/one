@@ -396,8 +396,16 @@ function plantillaComparacion(visual, altoObjetivo = 0) {
   let lineHeight = 17;
   let gapPunto = 8;
 
+  // C2 (ola final): antes `envolverLineas` trataba "• " como una palabra más del propio texto —
+  // al subir la letra (spec §1.5, hasta 18) la primera palabra dejaba de caber junto a la viñeta,
+  // esta se quedaba sola en la línea 1 y el texto bajaba a la línea 2, agotando ahí el presupuesto
+  // de 2 líneas y recortándose a media palabra (14/33 `comparacion` del banco real). Arreglo: la
+  // viñeta se dibuja aparte (ver el `forEach` de más abajo) y el texto envuelve por su cuenta en un
+  // ancho ya descontado el hueco que ocupa "• " a este tamaño — con indentación colgante, nunca es
+  // la propia palabra de la viñeta la que decide dónde parte la línea 1.
   const medirColumnas = (tamano, lh, gap) => columnas.map((col) => {
-    const puntosLineas = col.puntos.map((p) => envolverLineas(`• ${p}`, anchoColumna, tamano, 2));
+    const anchoTexto = anchoColumna - medirAncho('• ', tamano);
+    const puntosLineas = col.puntos.map((p) => envolverLineas(p, anchoTexto, tamano, 2));
     const alturaPuntos = puntosLineas.reduce((acc, lineas) => acc + lineas.length * lh + gap, 0);
     return { titulo: col.titulo, puntosLineas, alturaPuntos };
   });
@@ -428,6 +436,11 @@ function plantillaComparacion(visual, altoObjetivo = 0) {
   const xDivisor = ANCHO / 2;
   svg.appendChild(crearLinea(xDivisor, 8, xDivisor, alto - 8, 'var(--texto-suave)', 1, 0.35));
 
+  // Mismo ancho de indentación que usó `medirColumnas` para el tamaño final (misma fórmula, mismo
+  // `tamanoPunto`): la viñeta se pinta una sola vez por punto, en la línea 1, y el texto entero
+  // -- todas sus líneas, no solo la primera -- se desplaza ese hueco a la derecha (indentación
+  // colgante), así la línea 2 queda alineada bajo el texto, no bajo la viñeta.
+  const indentePunto = medirAncho('• ', tamanoPunto);
   const centros = [ANCHO * 0.27, ANCHO * 0.73];
   columnasLayout.forEach((col, ci) => {
     const cx = centros[ci];
@@ -439,9 +452,12 @@ function plantillaComparacion(visual, altoObjetivo = 0) {
 
     let y = Y_INICIO_PUNTOS;
     col.puntosLineas.forEach((lineas) => {
+      svg.appendChild(
+        crearTexto(xIzquierda, y, '•', { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
+      );
       lineas.forEach((linea, li) => {
         svg.appendChild(
-          crearTexto(xIzquierda, y + li * lineHeight, linea, { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
+          crearTexto(xIzquierda + indentePunto, y + li * lineHeight, linea, { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
         );
       });
       y += lineas.length * lineHeight + gapPunto;
@@ -837,7 +853,8 @@ function crearParrafoClave(clase, texto, etiquetaHtml = 'p') {
  * Un layout por tipo, todos dentro de `.visual-clave-cuerpo`:
  *  - `ordenar`: lista numerada COMPLETA en el orden correcto (la de v0.2a.2 enseñaba solo
  *    "primero → último": Carlos, 17-sep, "muy mala").
- *  - `error`: la fila sospechosa; con corrección, valor erróneo en `<s>` y el correcto al lado.
+ *  - `error`: la fila sospechosa; el valor erróneo SIEMPRE tachado (`<s>`, I1 ola final) y, si hay
+ *    corrección aparte, el correcto al lado en verde.
  *  - `test4`: la opción correcta grande y las tres descartadas apagadas.
  *  - `vf`: "Cierto"/"Falso" grande y la primera frase del enunciado debajo.
  *  - desconocido: solo el área.
@@ -881,9 +898,14 @@ export function construirVisualClave(pregunta, { nombreArea } = {}) {
       cuerpo.appendChild(lista);
     } else if (modelo.tipo === 'error') {
       cuerpo.appendChild(crearParrafoClave('visual-clave-etiqueta', modelo.etiqueta));
-      // Sin valor correcto que poner al lado, tachar el erróneo dejaría la tarjeta diciendo solo
-      // "esto está mal" sin decir qué es lo bueno: se muestra la fila tal cual (spec §1.3).
-      cuerpo.appendChild(crearParrafoClave('visual-clave-valor', modelo.valorErroneo, modelo.valorCorrecto ? 's' : 'p'));
+      // I1 (ola final): la spec §1.3 pide el valor erróneo tachado (`<s>`) SIEMPRE, con o sin
+      // corrección aparte -- hoy ninguna de las 40 preguntas `error` del banco trae `valorCorrecto`
+      // (ver el comentario de modeloVisualClave arriba), así que antes de este arreglo la rama sin
+      // corrección pintaba el dato FALSO en `<p>` normal: el elemento más grande y luminoso de toda
+      // la clave era justo la afirmación incorrecta, con el único aviso "Dato erróneo" ~300px más
+      // arriba. `<s>` ya lleva su propio color atenuado (`s.visual-clave-valor`, estilos.css) que
+      // hoy solo se aplicaba cuando SÍ había corrección al lado -- se aplica igual sin ella.
+      cuerpo.appendChild(crearParrafoClave('visual-clave-valor', modelo.valorErroneo, 's'));
       if (modelo.valorCorrecto) cuerpo.appendChild(crearParrafoClave('visual-clave-correccion', modelo.valorCorrecto));
     } else if (modelo.tipo === 'test4') {
       cuerpo.appendChild(crearParrafoClave('visual-clave-correcta', modelo.correcta));

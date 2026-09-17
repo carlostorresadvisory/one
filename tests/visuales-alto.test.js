@@ -4,6 +4,7 @@
 // filas y la tipografía crezcan con él.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { instalarDomFalso } from './dom-falso.js';
 import { construirVisual } from '../visuales.js';
 
@@ -96,6 +97,62 @@ test('construirVisual con `alto` inválido o ausente no lanza y sigue devolviend
       assert.equal(construirVisual(null, { alto: 330 }), null);
     });
   });
+});
+
+// C2 (ola final, regresión de la Tarea 6): al repartir el tamaño de letra por `alto` (hasta 18
+// unidades, spec §1.5), `envolverLineas` trataba "• " como una palabra más del propio punto -- la
+// primera palabra dejaba de caber junto a la viñeta, esta se quedaba sola en la línea 1 y el
+// texto bajaba entero a la línea 2, cortándose a media palabra al agotar el presupuesto de 2
+// líneas. Arreglo: la viñeta se dibuja aparte del texto (indentación colgante). Barrido de TODAS
+// las `comparacion` reales del banco a los dos altos límite que mide la revisión final (290 =
+// zona a 375×667 con vf/error sin imagen; 384 = zona a 390×844 con la mayoría de casos con
+// imagen), comprobando el síntoma exacto del hallazgo: ninguna viñeta sin texto detrás, ninguna
+// primera línea que sea solo "•", y ningún punto por encima de las 2 líneas que pide la spec.
+test('construirVisual comparacion: TODAS las del banco real a alto 290 y 384 -- sin viñeta huérfana, máximo 2 líneas por punto (C2)', async () => {
+  const banco = JSON.parse(await readFile(new URL('../datos/banco.json', import.meta.url), 'utf8'));
+  const preguntas = Array.isArray(banco) ? banco : banco.preguntas;
+  const comparaciones = preguntas.filter((p) => p.visual && p.visual.tipo === 'comparacion');
+  assert.ok(comparaciones.length >= 30, `sanity: se esperaban ~33 "comparacion" reales, hubo ${comparaciones.length}`);
+
+  const fallos = [];
+  conDom(() => {
+    for (const alto of [290, 384]) {
+      for (const pregunta of comparaciones) {
+        const svg = construirVisual(pregunta.visual, { alto });
+        if (!svg) {
+          fallos.push(`${pregunta.id} alto=${alto}: construirVisual devolvió null`);
+          continue;
+        }
+        // Los textos de los PUNTOS (viñeta + líneas) van con `ancla: 'start'`; los títulos de
+        // columna, centrados (`ancla: 'middle'`) -- así se excluyen sin tener que reproducir el
+        // resto del layout interno de plantillaComparacion.
+        const textosPunto = svg.children.filter((h) => h.tagName === 'text' && h.getAttribute('text-anchor') === 'start');
+        // Cada punto empieza con su viñeta "•" (un único carácter, nodo propio); lo que sigue hasta
+        // la próxima viñeta son sus 1-2 líneas de texto.
+        const grupos = [];
+        let grupoActual = null;
+        for (const nodo of textosPunto) {
+          if (nodo.textContent === '•') {
+            grupoActual = { lineas: [] };
+            grupos.push(grupoActual);
+          } else if (grupoActual) {
+            grupoActual.lineas.push(nodo.textContent);
+          }
+        }
+        for (const [i, grupo] of grupos.entries()) {
+          if (grupo.lineas.length === 0) {
+            fallos.push(`${pregunta.id} alto=${alto} punto ${i}: viñeta sin ninguna línea de texto detrás`);
+          } else if (grupo.lineas[0].trim() === '•') {
+            fallos.push(`${pregunta.id} alto=${alto} punto ${i}: la primera línea es solo "•"`);
+          }
+          if (grupo.lineas.length > 2) {
+            fallos.push(`${pregunta.id} alto=${alto} punto ${i}: ${grupo.lineas.length} líneas (máximo 2, spec §1.3/§1.5)`);
+          }
+        }
+      }
+    }
+  });
+  assert.deepEqual(fallos, [], `${fallos.length} incidencia(s):\n${fallos.join('\n')}`);
 });
 
 test('formula y dato con `alto`: estiran el viewBox y se recentran, sin cambiar su tipografía', () => {
