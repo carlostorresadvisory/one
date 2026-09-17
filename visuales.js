@@ -769,197 +769,115 @@ function capitalizarArea(texto) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-/** Recorta `texto` a `maxCaracteres` (conteo real de caracteres, no estimación de ancho en pixeles
- * como `recortarALinea`): la tarjeta tipográfica fija su línea a <=22 caracteres por spec, no a un
- * ancho medido. */
-function recortarPorCaracteres(texto, maxCaracteres) {
-  if (!texto) return '';
-  if (texto.length <= maxCaracteres) return texto;
-  if (maxCaracteres <= 1) return '…';
-  return `${texto.slice(0, maxCaracteres - 1).trimEnd()}…`;
+/** Un `<p>` del bloque tipográfico, con su clase y su texto. Envolver esto evita repetir cuatro
+ * líneas idénticas por cada pieza de los cinco layouts de abajo. */
+function crearParrafoClave(clase, texto, etiquetaHtml = 'p') {
+  const el = document.createElement(etiquetaHtml);
+  el.className = clase;
+  el.textContent = texto;
+  return el;
 }
-
-/** Reparte `texto` en como mucho `maxLineas` líneas de <=`maxCaracteres` cada una, partiendo por
- * espacios (mismo algoritmo que `envolverLineas` de arriba, pero por conteo de caracteres en vez de
- * ancho estimado en pixeles -- la spec de la tarjeta tipográfica fija el límite en caracteres). */
-function envolverPorCaracteres(texto, maxCaracteres, maxLineas) {
-  const normalizado = (texto || '').replace(/\s+/g, ' ').trim();
-  if (!normalizado) return [''];
-  const palabras = normalizado.split(' ');
-  const lineas = [];
-  let actual = '';
-  let indice = 0;
-  let cortado = false;
-  while (indice < palabras.length) {
-    const palabra = palabras[indice];
-    const candidata = actual ? `${actual} ${palabra}` : palabra;
-    if (!actual || candidata.length <= maxCaracteres) {
-      actual = candidata;
-      indice += 1;
-      continue;
-    }
-    lineas.push(actual);
-    actual = '';
-    if (lineas.length === maxLineas) {
-      cortado = true;
-      break;
-    }
-  }
-  if (!cortado) {
-    if (actual) lineas.push(actual);
-    if (indice < palabras.length) cortado = true;
-  }
-  if (cortado) {
-    if (lineas.length) {
-      lineas[lineas.length - 1] = recortarPorCaracteres(`${lineas[lineas.length - 1]}…`, maxCaracteres);
-    } else {
-      lineas.push(recortarPorCaracteres(normalizado, maxCaracteres));
-    }
-  }
-  return lineas.length ? lineas.slice(0, maxLineas) : [''];
-}
-
-let contadorGradienteClave = 0;
 
 /**
- * Dibuja la tercera capa (spec v0.2 §8) como SVG: `viewBox 0 0 320 180` fijo (a diferencia de las
- * plantillas de arriba, aquí no hay contenido variable que calcule su propio alto), fondo radial
- * cian oscuro (`#0b2a33` -> `#07161b`), `principal` centrado en 1-2 líneas (tamaño 26 si cabe en una,
- * 22 si necesita dos), `secundario` en 13 debajo cuando existe, nombre del área en 11 arriba a la
- * izquierda. `role="img"`, `aria-label` = `principal` (+ " — " + `secundario` si existe).
+ * Tercera capa (spec v0.2a.2.1 §1.3): tarjeta tipográfica en HTML, ya no en SVG. El motivo del
+ * cambio es que el texto tiene que ENVOLVER y el alto es variable (una lista de 4 ítems ocupa más
+ * que un "Cierto"), y un `viewBox` fijo obliga a recortar por caracteres y a dejar hueco muerto.
+ * En HTML el layout lo resuelve el navegador y el bloque llena la zona de borde a borde.
  *
- * Nunca lanza: si el adaptador temporal (basado en `modeloVisualClave`) no puede sacar `principal`
- * (pregunta rota), devuelve un SVG con solo el área (o completamente vacío si ni el área hay).
- * Ronda de corrección 1 (C2): TODO el cuerpo
- * que construye el SVG -- incluida la llamada a `nombreArea`, que puede venir de fuera (app.js) y no
- * tiene por qué ser defensiva -- vive dentro de un único `try/catch`; el `catch` reconstruye el SVG
- * de "solo área" usando siempre `capitalizarArea` (nunca la `nombreArea` externa, que es justo la
- * que pudo fallar). El área también se guarda con `typeof === 'string' && area` ANTES de intentar
- * capitalizarla, en los dos caminos (normal y catch), así que un `area` roto ni siquiera llega a
- * `nombreArea`/`capitalizarArea`.
+ * Un layout por tipo, todos dentro de `.visual-clave-cuerpo`:
+ *  - `ordenar`: lista numerada COMPLETA en el orden correcto (la de v0.2a.2 enseñaba solo
+ *    "primero → último": Carlos, 17-sep, "muy mala").
+ *  - `error`: la fila sospechosa; con corrección, valor erróneo en `<s>` y el correcto al lado.
+ *  - `test4`: la opción correcta grande y las tres descartadas apagadas.
+ *  - `vf`: "Cierto"/"Falso" grande y la primera frase del enunciado debajo.
+ *  - desconocido: solo el área.
  *
- * `nombreArea`: NOMBRES_AREA vive en app.js sin exportar (app.js no exporta nada). Quien llama desde
- * ahí puede pasar su propia función `nombreArea` (mismo nombre, por comodidad de `{ nombreArea }` al
- * llamar) para mostrar "Economía" en vez de "economia"; sin ella, se capitaliza el id tal cual.
+ * NUNCA lanza (contrato de la capa, garantiza el 100 % de tarjetas con visual): todo el cuerpo va
+ * en un `try/catch` -- incluida la llamada a `nombreArea`, que viene de app.js y no tiene por qué
+ * ser defensiva -- y el `catch` reconstruye un bloque mínimo usando solo `capitalizarArea`.
  *
  * @param {any} pregunta
  * @param {{ nombreArea?: (area: string) => string }} [opciones]
- * @returns {SVGElement}
+ * @returns {HTMLElement}
  */
 export function construirVisualClave(pregunta, { nombreArea } = {}) {
-  let datos;
+  let modelo;
   try {
-    // Adaptador temporal (Tarea 1): la Tarea 2 sustituye esta función entera por el bloque HTML
-    // por tipo. Se mantiene el SVG de v0.2a.2 vivo mientras tanto para que la app siga funcionando.
-    const modelo = modeloVisualClave(pregunta) || { tipo: 'desconocido', area: '' };
-    datos = {
-      area: modelo.area,
-      principal: modelo.tipo === 'ordenar' ? modelo.items.join(' → ')
-        : modelo.tipo === 'error' ? modelo.etiqueta
-        : modelo.tipo === 'test4' ? modelo.correcta
-        : modelo.tipo === 'vf' ? modelo.veredicto
-        : '',
-      secundario: modelo.tipo === 'vf' ? modelo.frase : undefined,
-    };
+    modelo = modeloVisualClave(pregunta) || { tipo: 'desconocido', area: '' };
   } catch (err) {
-    datos = {};
+    modelo = { tipo: 'desconocido', area: '' };
   }
-  // Guarda (C2): un `area` roto (undefined, no-string, '') nunca llega a `nombreArea`/`capitalizarArea`.
-  const areaId = typeof datos.area === 'string' && datos.area ? datos.area : '';
+  const areaId = typeof modelo.area === 'string' && modelo.area ? modelo.area : '';
 
   try {
-    const principal = esTextoValido(datos.principal) ? datos.principal.trim() : '';
-    const secundario = esTextoValido(datos.secundario) ? datos.secundario.trim() : '';
     const areaTexto = areaId ? (typeof nombreArea === 'function' ? nombreArea(areaId) || '' : capitalizarArea(areaId)) : '';
+    const caja = document.createElement('div');
+    caja.className = `visual-clave visual-clave--${modelo.tipo}`;
+    caja.dataset.test = 'visual-clave';
 
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 320 180');
-    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    svg.style.aspectRatio = '320 / 180';
-    svg.classList.add('visual-svg', 'visual-svg--clave');
-    svg.dataset.test = 'visual-clave';
+    if (esTextoValido(areaTexto)) caja.appendChild(crearParrafoClave('visual-clave-area', areaTexto.trim().toUpperCase()));
+    if (esTextoValido(modelo.titulo)) caja.appendChild(crearParrafoClave('visual-clave-titulo', modelo.titulo));
 
-    contadorGradienteClave += 1;
-    const idGradiente = `visual-clave-gradiente-${contadorGradienteClave}`;
-    const defs = document.createElementNS(NS, 'defs');
-    const gradiente = document.createElementNS(NS, 'radialGradient');
-    gradiente.setAttribute('id', idGradiente);
-    gradiente.setAttribute('cx', '50%');
-    gradiente.setAttribute('cy', '40%');
-    gradiente.setAttribute('r', '75%');
-    const stopInicio = document.createElementNS(NS, 'stop');
-    stopInicio.setAttribute('offset', '0%');
-    stopInicio.setAttribute('stop-color', '#0b2a33');
-    const stopFin = document.createElementNS(NS, 'stop');
-    stopFin.setAttribute('offset', '100%');
-    stopFin.setAttribute('stop-color', '#07161b');
-    gradiente.appendChild(stopInicio);
-    gradiente.appendChild(stopFin);
-    defs.appendChild(gradiente);
-    svg.appendChild(defs);
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'visual-clave-cuerpo';
 
-    // clase `visual-clave-fondo` (Ronda 1 de revisión de la Tarea 2, I1):
-    // permite a estilos.css OCULTAR este rect solo dentro de `.zona-imagen--clave`
-    // (donde el degradado ya vive en la propia zona, para llenarla de borde a
-    // borde) sin tocarlo cuando el mismo SVG se use en otro sitio (p. ej. la
-    // pantalla completa de la Tarea 3), donde debe conservar su propio fondo.
-    const fondo = crearRect(0, 0, 320, 180, `url(#${idGradiente})`);
-    fondo.classList.add('visual-clave-fondo');
-    svg.appendChild(fondo);
-
-    if (esTextoValido(areaTexto)) {
-      svg.appendChild(
-        crearTexto(14, 20, areaTexto.trim().toUpperCase(), { tamano: 11, color: '#5fd4e8', ancla: 'start', peso: 600 })
-      );
+    if (modelo.tipo === 'ordenar') {
+      const lista = document.createElement('ol');
+      lista.className = 'visual-clave-lista';
+      for (const texto of modelo.items) {
+        const li = crearParrafoClave('visual-clave-item', texto, 'li');
+        lista.appendChild(li);
+      }
+      cuerpo.appendChild(lista);
+    } else if (modelo.tipo === 'error') {
+      cuerpo.appendChild(crearParrafoClave('visual-clave-etiqueta', modelo.etiqueta));
+      // Sin valor correcto que poner al lado, tachar el erróneo dejaría la tarjeta diciendo solo
+      // "esto está mal" sin decir qué es lo bueno: se muestra la fila tal cual (spec §1.3).
+      cuerpo.appendChild(crearParrafoClave('visual-clave-valor', modelo.valorErroneo, modelo.valorCorrecto ? 's' : 'p'));
+      if (modelo.valorCorrecto) cuerpo.appendChild(crearParrafoClave('visual-clave-correccion', modelo.valorCorrecto));
+    } else if (modelo.tipo === 'test4') {
+      cuerpo.appendChild(crearParrafoClave('visual-clave-correcta', modelo.correcta));
+      for (const texto of modelo.descartadas) cuerpo.appendChild(crearParrafoClave('visual-clave-descartada', texto));
+    } else if (modelo.tipo === 'vf') {
+      const veredicto = crearParrafoClave('visual-clave-veredicto', modelo.veredicto);
+      veredicto.classList.add(modelo.veredicto === 'Cierto' ? 'visual-clave-veredicto--cierto' : 'visual-clave-veredicto--falso');
+      cuerpo.appendChild(veredicto);
+      if (esTextoValido(modelo.frase)) cuerpo.appendChild(crearParrafoClave('visual-clave-frase', modelo.frase));
     }
 
-    if (!principal) {
-      svg.setAttribute('role', 'img');
-      svg.setAttribute('aria-label', esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual');
-      return svg;
-    }
-
-    const lineas = envolverPorCaracteres(principal, 22, 2);
-    const tamanoPrincipal = lineas.length > 1 ? 22 : 26;
-    const lineHeight = tamanoPrincipal * 1.2;
-    const bloqueAlto = lineas.length * lineHeight;
-    const yCentro = secundario ? 86 : 96;
-    const ySecundario = secundario ? 144 : 0;
-    const yInicio = yCentro - bloqueAlto / 2 + lineHeight / 2;
-
-    lineas.forEach((linea, i) => {
-      svg.appendChild(
-        crearTexto(160, yInicio + i * lineHeight, linea, { tamano: tamanoPrincipal, ancla: 'middle', color: '#eafbff', peso: 700 })
-      );
-    });
-
-    if (secundario) {
-      // C1 (ronda de corrección 1): sin recorte, un `secundario` real (hasta 90 caracteres por
-      // `primeraFrase`) se salía del `viewBox` por ambos lados -- confirmado en el 85% del banco real
-      // y en la captura de la Tarea 2. Misma convención "ningún texto desborda su línea" que el resto
-      // del fichero (`recortarALinea`/`medirAncho`, ver cabecera). 296 = 320 - 2*12 de margen lateral;
-      // una sola línea (el brief dice "secundario en 13 debajo", en singular, y `ySecundario` es una
-      // única posición fija).
-      const secundarioVisual = recortarALinea(secundario, 296, 13);
-      svg.appendChild(crearTexto(160, ySecundario, secundarioVisual, { tamano: 13, ancla: 'middle', color: '#8fd9e8' }));
-    }
-
-    svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', secundario ? `${principal} — ${secundario}` : principal);
-    return svg;
+    caja.appendChild(cuerpo);
+    caja.setAttribute('role', 'img');
+    caja.setAttribute('aria-label', etiquetaAccesibleClave(modelo, areaTexto));
+    return caja;
   } catch (err) {
-    // C2: cualquier fallo inesperado en el bloque de arriba (incluida una `nombreArea` externa que
-    // lance) cae aquí -- el área ya se recalcula SIN volver a llamar a `nombreArea` (la posible
-    // causa del fallo), solo con `capitalizarArea`, que tiene su propia guarda interna.
     const areaSegura = areaId ? capitalizarArea(areaId) : '';
-    const svgVacio = document.createElementNS(NS, 'svg');
-    svgVacio.setAttribute('viewBox', '0 0 320 180');
-    svgVacio.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    svgVacio.style.aspectRatio = '320 / 180';
-    svgVacio.classList.add('visual-svg', 'visual-svg--clave');
-    svgVacio.dataset.test = 'visual-clave';
-    svgVacio.setAttribute('role', 'img');
-    svgVacio.setAttribute('aria-label', esTextoValido(areaSegura) ? areaSegura.trim() : 'Visual');
-    return svgVacio;
+    const caja = document.createElement('div');
+    caja.className = 'visual-clave visual-clave--desconocido';
+    caja.dataset.test = 'visual-clave';
+    if (esTextoValido(areaSegura)) caja.appendChild(crearParrafoClave('visual-clave-area', areaSegura.trim().toUpperCase()));
+    const cuerpo = document.createElement('div');
+    cuerpo.className = 'visual-clave-cuerpo';
+    caja.appendChild(cuerpo);
+    caja.setAttribute('role', 'img');
+    caja.setAttribute('aria-label', esTextoValido(areaSegura) ? areaSegura.trim() : 'Visual');
+    return caja;
+  }
+}
+
+/** `aria-label` del bloque: un lector de pantalla tiene que oír la clave, no "imagen". */
+function etiquetaAccesibleClave(modelo, areaTexto) {
+  switch (modelo.tipo) {
+    case 'ordenar':
+      return `Orden correcto: ${modelo.items.join(', ')}`;
+    case 'error':
+      return modelo.valorCorrecto
+        ? `Dato erróneo: ${modelo.etiqueta}, ${modelo.valorErroneo}; lo correcto es ${modelo.valorCorrecto}`
+        : `Dato erróneo: ${modelo.etiqueta}, ${modelo.valorErroneo}`;
+    case 'test4':
+      return `Respuesta correcta: ${modelo.correcta}`;
+    case 'vf':
+      return modelo.frase ? `${modelo.veredicto}: ${modelo.frase}` : modelo.veredicto;
+    default:
+      return esTextoValido(areaTexto) ? areaTexto.trim() : 'Visual';
   }
 }

@@ -2303,10 +2303,16 @@ function construirTarjetaSinResponder(hueco) {
  * posición SOLO si al menos una posición acertó (ronda de corrección 1: con
  * TODO mal — p. ej. el orden invertido del todo — marcar cada línea con ✗
  * sobre el propio orden correcto leía como "esto está mal", cuando es
- * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende). */
-function construirRespuestaCompacta(pregunta, hueco) {
+ * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende).
+ *
+ * `soloFallo` (spec v0.2a.2.1 §1.3): con la tarjeta tipográfica la respuesta correcta ya está
+ * escrita en grande en la visual, así que aquí solo sobrevive la línea de LA RESPUESTA DEL
+ * JUGADOR cuando falló ("Tu respuesta: X ✗") — con acierto, o sin haber respondido, no queda
+ * nada que decir y el contenedor vuelve vacío. */
+function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {}) {
   const contenedor = document.createElement('div');
   contenedor.className = 'respuesta-compacta';
+  if (soloFallo && (hueco.correcta === undefined || hueco.correcta || hueco.respuesta === undefined)) return contenedor;
   switch (pregunta.tipo) {
     case 'vf': {
       // Tolerancia a hueco.respuesta === undefined (tarjeta anterior a v0.2,
@@ -2326,7 +2332,11 @@ function construirRespuestaCompacta(pregunta, hueco) {
         linea.textContent = `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✓`;
         linea.classList.add('respuesta-compacta-linea--ok');
       } else {
-        linea.textContent = `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+        // Con `soloFallo` interesa QUÉ marcó el jugador, no cuál era la correcta (eso está en la
+        // visual): "Tu respuesta: Verdadero ✗" en vez de "✗ · Era Falso".
+        linea.textContent = soloFallo
+          ? `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✗`
+          : `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
         linea.classList.add('respuesta-compacta-linea--tachada');
       }
       contenedor.appendChild(linea);
@@ -2344,6 +2354,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
         tuya.textContent = `${pregunta.opciones[hueco.respuesta]} ✗`;
         contenedor.appendChild(tuya);
       }
+      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.opciones[pregunta.correcta]} ✓`;
@@ -2358,6 +2369,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
         tuya.textContent = `${pregunta.tarjeta.filas[hueco.respuesta].etiqueta} ✗`;
         contenedor.appendChild(tuya);
       }
+      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta} ✓`;
@@ -2365,6 +2377,7 @@ function construirRespuestaCompacta(pregunta, hueco) {
       break;
     }
     case 'ordenar': {
+      if (soloFallo) break; // la lista completa ya está en la visual
       const rotulo = document.createElement('p');
       rotulo.className = 'respuesta-compacta-orden-rotulo';
       rotulo.textContent = 'Orden correcto';
@@ -2792,21 +2805,22 @@ function construirBloqueVisual(pregunta) {
 }
 
 /** Bloque de la TERCERA capa (spec §8, v0.2a.2, Tarea 1: `construirVisualClave`
- * en visuales.js): la tarjeta tipográfica que garantiza el 100% con visual
- * cuando no hay ni imagen de Commons ni visual de datos — también cubre toda
- * pregunta `srv-` del servidor que llegue sin ninguno de los dos (Ruling R3).
- * Misma caja flexible que la imagen/el visual (`.zona-imagen`, con las clases
- * extra `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia
- * de `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
- * devuelve null: `construirVisualClave` no lanza y siempre entrega un SVG
+ * en visuales.js — v0.2a.2.1 §1.3, Tarea 2: HTML por tipo, ya no SVG): la
+ * tarjeta tipográfica que garantiza el 100% con visual cuando no hay ni
+ * imagen de Commons ni visual de datos — también cubre toda pregunta `srv-`
+ * del servidor que llegue sin ninguno de los dos (Ruling R3). Misma caja
+ * flexible que la imagen/el visual (`.zona-imagen`, con las clases extra
+ * `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia de
+ * `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
+ * devuelve null: `construirVisualClave` no lanza y siempre entrega un bloque
  * (con solo el área si la pregunta viene rota) — es el fin de la cascada de
  * tres capas, nunca "sin visual". */
 function construirBloqueVisualClave(pregunta) {
-  const svg = construirVisualClave(pregunta, { nombreArea });
+  const bloque = construirVisualClave(pregunta, { nombreArea });
 
   const zona = document.createElement('div');
   zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
-  zona.appendChild(svg);
+  zona.appendChild(bloque);
 
   marcarZonaImagenAbrible(zona);
   return zona;
@@ -2837,7 +2851,7 @@ function construirBloqueVisualClave(pregunta) {
  * superposición, dejarlo duplicaría ese selector mientras la superposición está abierta.
  * Para un visual de datos, solo su leyenda como texto plano (sin atribución que citar en un dibujo
  * generado por la propia app); la tarjeta tipográfica no tiene pie propio (el texto ya vive dentro
- * del SVG) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
+ * del propio bloque `.visual-clave`) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
 function construirPieVisualCompleta(zona) {
   const pieImagen = zona.querySelector('.imagen-pie');
   if (pieImagen) {
@@ -2862,14 +2876,14 @@ function construirPieVisualCompleta(zona) {
   return p;
 }
 
-/** Ronda final de revisión (Minor #4, `visuales.js#construirVisualClave`): el `<radialGradient>` de
- * la tarjeta tipográfica lleva un `id` fijo por instancia (`visual-clave-gradiente-N`) referenciado
- * por el `fill="url(#...)"` del rect de fondo — clonar el SVG tal cual duplica ese `id` en el
- * documento mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML
- * inválido, inocuo hoy porque las dos definiciones son idénticas, pero una trampa si el degradado
- * llegara a depender de la pregunta). Se renombra el `id` del CLON (nunca el del SVG original, que
- * se queda intacto detrás de la superposición) y se actualiza su propia referencia `fill` en el
- * mismo clon antes de insertarlo. No hace nada si el SVG no lleva ningún `id` (visual de datos). */
+/** Ronda final de revisión (Minor #4): cinturón para cualquier `svg` de un visual de datos
+ * (`visuales.js#construirVisual`) que en el futuro añada un `id` propio (p. ej. un `<radialGradient>`
+ * referenciado por `fill="url(#...)"`) — clonarlo tal cual duplicaría ese `id` en el documento
+ * mientras la superposición está abierta (dos elementos con el mismo `id` a la vez: HTML inválido).
+ * Se renombra el `id` del CLON (nunca el del SVG original, que se queda intacto detrás de la
+ * superposición) y se actualiza su propia referencia `fill` en el mismo clon antes de insertarlo. No
+ * hace nada si el SVG no lleva ningún `id` -- hoy ninguna plantilla de `visuales.js` usa uno (la
+ * tercera capa, que sí lo hacía, pasó a HTML en v0.2a.2.1 §1.3 y ya no pasa por esta función). */
 function evitarIdsDuplicados(clonSvg) {
   clonSvg.querySelectorAll('[id]').forEach((el) => {
     const idViejo = el.id;
@@ -2910,12 +2924,11 @@ function enfocarTrasCerrarVisualCompleta(zona) {
 // "Conectar", más arriba en este fichero).
 let zonaImagenAbrio = null;
 
-/** Abre `.visual-completa` con un clon de la `img` o el `svg` de `zona` (spec §8, Tarea 3): imagen
- * primero (misma prioridad fija que la propia tarjeta), si no hay `img` se clona el `svg` COMPLETO
- * (`cloneNode(true)`) SIN quitarle ninguna clase — el rect de fondo de la tarjeta tipográfica
- * (`.visual-clave-fondo`) solo se oculta por CSS dentro de `.zona-imagen--clave` (ver estilos.css),
- * así que fuera de esa caja se pinta solo, tal y como ya documenta visuales.js#construirVisualClave
- * ("si el mismo SVG se reutiliza fuera de esta caja (pantalla completa, Tarea 3)..."). */
+/** Abre `.visual-completa` con un clon de la `img`, el `svg` o el bloque `.visual-clave` de `zona`
+ * (spec §8, Tarea 3; v0.2a.2.1 §1.3, Tarea 2: la tercera capa ya no es SVG): imagen primero (misma
+ * prioridad fija que la propia tarjeta), luego el visual de datos (`svg`), y por último la tarjeta
+ * tipográfica -- su clon lleva su propio degradado de fondo (`.visual-completa-clave`, estilos.css)
+ * porque fuera de `.zona-imagen--clave` no hay quien lo pinte. */
 function abrirVisualCompleta(zona) {
   // Ronda final de revisión (adversarial A1): una doble apertura (p. ej. dos toques rapidísimos que
   // ambos pasan el filtro de distancia de alClicContenedorTarjetas) se ignora — la superposición ya
@@ -2924,6 +2937,7 @@ function abrirVisualCompleta(zona) {
 
   const imgOriginal = zona.querySelector('img');
   const svgOriginal = zona.querySelector('svg');
+  const claveOriginal = zona.querySelector('.visual-clave');
   nodoVisualCompletaMedio.innerHTML = '';
   if (imgOriginal) {
     const clon = document.createElement('img');
@@ -2943,8 +2957,16 @@ function abrirVisualCompleta(zona) {
     clon.classList.add('visual-completa-media');
     evitarIdsDuplicados(clon); // Minor #4
     nodoVisualCompletaMedio.appendChild(clon);
+  } else if (claveOriginal) {
+    // La tercera capa ya no es un SVG (spec v0.2a.2.1 §1.3): se clona el bloque HTML tal cual.
+    // Se le quita el `data-test` al clon por el mismo motivo que al pie clonado: la tarjeta
+    // original sigue en el DOM detrás de la superposición y el selector quedaría duplicado.
+    const clon = claveOriginal.cloneNode(true);
+    clon.classList.add('visual-completa-media', 'visual-completa-clave');
+    clon.removeAttribute('data-test');
+    nodoVisualCompletaMedio.appendChild(clon);
   } else {
-    return; // no debería pasar nunca: toda .zona-imagen tiene una img o un svg (spec §8 punto 3)
+    return; // no debería pasar: toda .zona-imagen tiene img, svg o .visual-clave
   }
 
   nodoVisualCompletaPie.innerHTML = '';
@@ -3094,6 +3116,12 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // de las tarjetas reveladas tiene visual, garantizado en código.
   const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
   contenido.appendChild(bloqueImagen);
+  // spec v0.2a.2.1 §1.3, último punto: con la tarjeta TIPOGRÁFICA la clave ya está escrita en
+  // grande dentro de la visual, así que repetirla justo debajo ("Respuesta: X ✓") es ruido que
+  // además roba el alto que necesita el 50 %. Con imagen o gráfico, la zona de respuesta sigue
+  // igual que hasta ahora.
+  const esClave = bloqueImagen.classList.contains('zona-imagen--clave');
+  if (esClave) tarjeta.classList.add('tarjeta--clave');
 
   contenido.appendChild(construirBloqueEnunciado(pregunta));
 
@@ -3103,9 +3131,17 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
-  zonaRespuesta.appendChild(construirRespuestaCompacta(pregunta, hueco));
-  zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
-  contenido.appendChild(zonaRespuesta);
+  const bloqueRespuestaCompacta = construirRespuestaCompacta(pregunta, hueco, { soloFallo: esClave });
+  // Con `soloFallo` y acierto (o sin responder), `bloqueRespuestaCompacta` vuelve sin ninguna
+  // línea dentro (ver su guarda al principio) -- no se añade vacío, o el `if` de más abajo (que
+  // mira si zonaRespuesta tiene algo real) nunca se cumpliría "vacío de verdad": un `<div>` sin
+  // hijos SIGUE siendo un hijo de zonaRespuesta aunque no pinte nada.
+  if (bloqueRespuestaCompacta.children.length > 0) zonaRespuesta.appendChild(bloqueRespuestaCompacta);
+  // El resumen a una línea ("Respuesta: X ✓", tarjeta--compacta-1) también sobra con la clave.
+  if (!esClave) zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
+  // Con clave y acierto no queda NADA que enseñar aquí: no se añade la caja vacía, que si no
+  // seguiría sumando sus dos `gap` de 8px al alto del contenido.
+  if (zonaRespuesta.children.length > 0) contenido.appendChild(zonaRespuesta);
 
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
 

@@ -1051,6 +1051,13 @@ test.describe('ONE · integración e2e', () => {
         tarjeta.classList.add(...teniaAntes);
         return { compactado, normal };
       }, CLASES_CASCADA);
+      // v0.2a.2.1 §1.3: sin imagen ni `visual` (p. ej. eco-091, el "ordenar" más largo del banco
+      // real), la tarjeta cae en la tercera capa -- la clave ya está en la visual y
+      // `.respuesta-resumen` ya no se pinta ahí (spec: "la línea Respuesta: deja de duplicarse"),
+      // así que no hay texto de tamaño fijo que medir. Con imagen o visual de datos (p. ej.
+      // art-092, el "error" más largo) `.respuesta-resumen` sigue existiendo y se comprueba igual
+      // que siempre.
+      if (compactado === null && normal === null) return;
       expect(compactado).not.toBeNull();
       expect(compactado).toBe(normal);
     }
@@ -2613,11 +2620,11 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(t).toHaveAttribute('data-test', 'repaso-tarjeta');
     await expect(t.locator('.repaso-marca')).toContainText('✗ fallada'); // pendiente -> tramo "fallada"
 
-    // Sin ultimaRespuesta no hay forma de saber qué opción se marcó: se pinta
-    // SOLO la correcta (spec v0.2 §2), sin ninguna línea tachada de "la tuya".
-    const compacta = t.locator('.respuesta-compacta');
-    await expect(compacta).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
-    await expect(compacta.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
+    // v0.2a.2.1 §1.3: sin imagen ni `visual`, la tarjeta cae en la tipográfica, que YA muestra la
+    // correcta en grande -- la línea "Respuesta:" no se repite debajo. Lo que se comprueba sigue
+    // siendo lo mismo: la correcta se ve y no hay ninguna línea tachada de "la tuya".
+    await expect(t.locator('[data-test="visual-clave"]')).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
+    await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
   });
 
   // Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
@@ -5093,15 +5100,14 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     expect(faltantes, `${faltantes.length} de ${total} tarjetas sin .zona-imagen con visual`).toEqual([]);
   });
 
-  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica
-  // solo llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y
-  // abajo), medido en vivo por el revisor con una pregunta sintética sin
-  // imagen ni `visual`. Arreglo en estilos.css (degradado en la zona, SVG a
-  // width/height:100%) + visuales.js (clase `visual-clave-fondo` en el rect
-  // de fondo del SVG, para poder ocultarlo solo aquí sin tocar el DOM). Una
-  // pregunta de lógica sin imagen ni `visual` (cae en la tercera capa),
-  // comprobada en el REPASO (mismo camino que usa Carlos: partida -> resumen).
-  test('spec §8 (Ronda 1 de revisión, I1): en el repaso, la tarjeta tipográfica llena `.zona-imagen` — el SVG mide ≥ 95% del alto y del ancho, y el rect de fondo del propio SVG no es visible', async ({
+  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica de v0.2a.2 solo
+  // llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y abajo), medido en vivo por el
+  // revisor con una pregunta sintética sin imagen ni `visual`. Arreglo original en estilos.css
+  // (degradado en la zona, SVG a width/height:100%); v0.2a.2.1 §1.3 sustituye el SVG por un bloque
+  // HTML (`.visual-clave`, flex:1 1 auto) que llena la zona por su cuenta, sin `viewBox` que medir.
+  // Una pregunta de lógica sin imagen ni `visual` (cae en la tercera capa), comprobada en el REPASO
+  // (mismo camino que usa Carlos: partida -> resumen).
+  test('spec v0.2a.2.1 §1.3: en el repaso, la tarjeta tipográfica (HTML) llena `.zona-imagen` — el bloque mide ≥ 95% del alto y del ancho', async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -5141,21 +5147,101 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
 
     const medidas = await page.evaluate(() => {
       const zona = document.querySelector('.tarjeta-mazo--actual .zona-imagen--clave');
-      const svg = zona ? zona.querySelector('svg') : null;
-      const rectFondo = zona ? zona.querySelector('.visual-clave-fondo') : null;
-      if (!zona || !svg || !rectFondo) return null;
+      const bloque = zona ? zona.querySelector('.visual-clave') : null;
+      if (!zona || !bloque) return null;
       const rectZona = zona.getBoundingClientRect();
-      const rectSvg = svg.getBoundingClientRect();
-      return {
-        altoRatio: rectSvg.height / rectZona.height,
-        anchoRatio: rectSvg.width / rectZona.width,
-        rectFondoDisplay: getComputedStyle(rectFondo).display,
-      };
+      const rectBloque = bloque.getBoundingClientRect();
+      return { altoRatio: rectBloque.height / rectZona.height, anchoRatio: rectBloque.width / rectZona.width };
     });
-    expect(medidas, '.zona-imagen--clave, su svg o el rect de fondo no están en la tarjeta actual').not.toBeNull();
-    expect(medidas.altoRatio, `el SVG mide ${(medidas.altoRatio * 100).toFixed(1)}% del alto de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
-    expect(medidas.anchoRatio, `el SVG mide ${(medidas.anchoRatio * 100).toFixed(1)}% del ancho de .zona-imagen`).toBeGreaterThanOrEqual(0.95);
-    expect(medidas.rectFondoDisplay).toBe('none');
+    expect(medidas, '.zona-imagen--clave o su bloque .visual-clave no están en la tarjeta actual').not.toBeNull();
+    expect(medidas.altoRatio).toBeGreaterThanOrEqual(0.95);
+    expect(medidas.anchoRatio).toBeGreaterThanOrEqual(0.95);
+  });
+});
+
+test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
+  test('ordenar (eco-089, la captura del iPhone) muestra la lista COMPLETA y sin la línea "Respuesta:"', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'clave-ordenar' }));
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+
+    await expect(t).toHaveClass(/tarjeta--clave/);
+    const items = t.locator('[data-test="visual-clave"] .visual-clave-item');
+    await expect(items).toHaveCount(4);
+    await expect(items.nth(0)).toHaveText('Salarios nominales');
+    await expect(items.nth(3)).toHaveText('Expectativas de inflación');
+    await expect(t.locator('.respuesta-compacta-linea--ok')).toHaveCount(0);
+    await expect(t.locator('.respuesta-resumen')).toHaveCount(0);
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('error, test4 y vf muestran su layout propio (aserciones por clase)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+
+    // Tres preguntas sintéticas SIN imagen ni `visual`: las tres caen en la tercera capa.
+    const preguntas = [
+      {
+        id: 'clave-error', area: 'ciencia', tipo: 'error', nivel: 1, sospechoso: 1,
+        enunciado: 'Encuentra el dato erróneo en la tarjeta.',
+        tarjeta: { titulo: 'Planetas', filas: [{ etiqueta: 'Marte', valor: 'Cuarto planeta' }, { etiqueta: 'Venus', valor: 'Octavo planeta' }] },
+        explicacion: 'Venus es el segundo planeta desde el Sol.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+      {
+        id: 'clave-test4', area: 'arte', tipo: 'test4', nivel: 1, correcta: 0,
+        enunciado: '¿Quién pintó Las Meninas?',
+        opciones: ['Velázquez', 'Goya', 'El Greco', 'Murillo'],
+        explicacion: 'Velázquez la pintó en 1656.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+      {
+        id: 'clave-vf', area: 'logica', tipo: 'vf', nivel: 1, respuesta: false,
+        enunciado: 'Todo cuadrado es un círculo. Es una afirmación básica.',
+        explicacion: 'Un cuadrado tiene lados rectos; un círculo, no.',
+        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+      },
+    ];
+    for (const p of preguntas) await page.evaluate((q) => window.__one.inyectarPregunta(q), p);
+    await page.evaluate((ids) => window.__one.empezarPartida({ ids, etiqueta: 'clave-tipos' }), preguntas.map((p) => p.id));
+
+    // error
+    let t = tarjetaActual(page);
+    await t.locator('[data-test="fila-1"]').click().catch(async () => { await responderPreguntaActual(page); });
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-etiqueta')).toHaveText('Venus');
+    await expect(t.locator('.visual-clave-valor')).toHaveText('Octavo planeta');
+    await expect(t.locator('.visual-clave-titulo')).toHaveText('Dato erróneo');
+    await avanzarTrasRespuesta(page);
+
+    // test4
+    t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-correcta')).toHaveText('Velázquez');
+    await expect(t.locator('.visual-clave-descartada')).toHaveCount(3);
+    await avanzarTrasRespuesta(page);
+
+    // vf
+    t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('.visual-clave-veredicto')).toHaveText('Falso');
+    await expect(t.locator('.visual-clave-veredicto')).toHaveClass(/visual-clave-veredicto--falso/);
+    await expect(t.locator('.visual-clave-frase')).toHaveText('Todo cuadrado es un círculo.');
+    // Falló (respondió Verdadero): SÍ se conserva la línea de su respuesta.
+    await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveText('Tu respuesta: Verdadero ✗');
+    await assertTarjetaSinScroll(page);
   });
 });
 
@@ -5241,7 +5327,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await assertTarjetaSinScroll(page);
   });
 
-  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el rect de fondo del SVG es visible fuera de la tarjeta, cierra con Escape', async ({
+  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el bloque HTML se clona a pantalla completa, cierra con Escape', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -5259,13 +5345,6 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     const { idClave } = await inyectarImagenYClave(page, 'b');
     const t = await jugarYRevelar(page, idClave, 'pc-b');
     await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
-    // Dentro de la tarjeta, el rect de fondo del SVG está oculto (.zona-imagen--clave lo hace vía
-    // CSS): confirma el punto de partida antes de comprobar que fuera de la tarjeta se ve.
-    const rectFondoEnTarjeta = await t.evaluate((tarjeta) => {
-      const rect = tarjeta.querySelector('.visual-clave-fondo');
-      return rect ? getComputedStyle(rect).display : null;
-    });
-    expect(rectFondoEnTarjeta).toBe('none');
 
     await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
@@ -5274,15 +5353,15 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     const tRepaso = tarjetaActual(page);
     await expect(tRepaso.locator('[data-test="visual-clave"]')).toBeVisible();
 
+    // Dentro de la tarjeta el bloque vive en `.zona-imagen--clave` (que le pone el degradado);
+    // en la superposición se clona con su propio fondo y sin `data-test` duplicado.
+    await expect(tRepaso.locator('[data-test="visual-clave"]')).toHaveCount(1);
     await tRepaso.locator('[data-test="visual-abrir"]').click();
     const overlay = page.locator('[data-test="visual-completa"]');
     await expect(overlay).toBeVisible();
-
-    const rectFondoEnSuperposicion = await overlay.evaluate((el) => {
-      const rect = el.querySelector('.visual-clave-fondo');
-      return rect ? getComputedStyle(rect).display : null;
-    });
-    expect(rectFondoEnSuperposicion, 'el rect de fondo del SVG clonado debe verse fuera de .zona-imagen--clave').not.toBe('none');
+    await expect(overlay.locator('.visual-completa-clave')).toBeVisible();
+    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1); // el clon NO duplica el selector
+    await expect(overlay.locator('.visual-completa-clave .visual-clave-item, .visual-completa-clave .visual-clave-veredicto, .visual-completa-clave .visual-clave-correcta')).not.toHaveCount(0);
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
 
@@ -5762,10 +5841,10 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
 
   // Ola final de revisión (Minor #1 + Minor #4): el clon de la imagen debe conservar
   // `referrerPolicy="no-referrer"` (si no, un fallo de caché real filtraría el origen de la app a
-  // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon del SVG de
-  // la tarjeta tipográfica no debe duplicar el `id` del degradado radial del original (HTML inválido,
-  // aunque hoy sea inocuo porque las dos definiciones son idénticas).
-  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon del SVG no duplica el id del degradado (M4)', async ({
+  // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon de la
+  // tarjeta tipográfica no debe duplicar el `data-test="visual-clave"` de la tarjeta que sigue
+  // debajo mientras la superposición está abierta.
+  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon de la tarjeta tipográfica no duplica su data-test', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -5786,26 +5865,9 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     t = await jugarYRevelar(page, idClave, 'pc-o2');
     await t.locator('[data-test="visual-abrir"]').click();
     await expect(overlay).toBeVisible();
-    const fills = await page.evaluate(() => {
-      const original = document.querySelector('.tarjeta-mazo--actual .visual-clave-fondo');
-      const clon = document.querySelector('[data-test="visual-completa-medio"] .visual-clave-fondo');
-      return {
-        original: original ? original.getAttribute('fill') : null,
-        clon: clon ? clon.getAttribute('fill') : null,
-      };
-    });
-    expect(fills.original, 'no se encontró el rect de fondo original').not.toBeNull();
-    expect(fills.clon, 'no se encontró el rect de fondo clonado').not.toBeNull();
-    expect(fills.clon, 'el fill del rect clonado no debería seguir apuntando al mismo id que el original (duplicado)').not.toBe(
-      fills.original
-    );
-    // Cada id referenciado (el del original y el del clon, renombrado) existe UNA sola vez en el documento.
-    const apariciones = await page.evaluate((valoresFill) =>
-      valoresFill.map((f) => {
-        const id = f.match(/url\(#(.+)\)/)[1];
-        return document.querySelectorAll(`#${CSS.escape(id)}`).length;
-      })
-    , [fills.original, fills.clon]);
-    expect(apariciones).toEqual([1, 1]);
+    // La tercera capa ya no es SVG (v0.2a.2.1 §1.3): no hay id de degradado que renombrar, pero sí
+    // hay que comprobar que el clon no duplica el `data-test` de la tarjeta que sigue debajo.
+    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1);
+    await expect(overlay.locator('.visual-completa-clave')).toHaveCount(1);
   });
 });
