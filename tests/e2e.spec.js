@@ -142,6 +142,49 @@ async function assertTarjetaSinScroll(page) {
   }
 }
 
+/** "Sin hueco muerto" para la visual de la tarjeta REVELADA (spec v0.2a.2.1 §1.1, Ruling R9): con
+ * `.zona-imagen` como único `flex-grow` de `.tarjeta-contenido`, si no está en su techo (max-height)
+ * debe absorber EXACTAMENTE todo el sobrante -- lo que le sobra a `.tarjeta` una vez descontados
+ * padding/gap propios, `.tarjeta-accion` y el resto de hijos de `.tarjeta-contenido` (con sus
+ * gaps) tiene que ser su alto real, sin margen sin usar. Devuelve los px de hueco (`idealZona -
+ * zonaReal`): ~0 cuando lo absorbe todo, un valor grande y ESPERADO cuando la zona ya está en su
+ * techo (ahí el hueco no es un bug, es el margen que el techo reserva a propósito). Reutilizable
+ * por la Tarea 7 (barrido del banco real) y por cualquier test de esta zona.
+ * IMPORTANTE para quien la reuse: solo da un `huecoMuerto` fiable con `page.emulateMedia({
+ * reducedMotion: 'reduce' })` activo en la página. Sin él, la entrada de la visual al responder
+ * (`visual-entra`, 220ms, spec §8) puede seguir a mitad de camino cuando se mide -- no cambia el
+ * alto real de nada, pero mientras esa animación corre `getBoundingClientRect()` de
+ * `.tarjeta-contenido`/`.zona-imagen` puede leer varios px por encima de `clientHeight` (que sí es
+ * estable), colando un "hueco muerto" falso que desaparece en cuanto se desactiva el movimiento
+ * (medido en vivo: hasta 20px de diferencia sin `reducedMotion`, 0px con él). */
+async function medirHuecoMuerto(page) {
+  return page.evaluate(() => {
+    const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+    if (!tarjeta) return null;
+    const contenido = tarjeta.querySelector('.tarjeta-contenido');
+    const accion = tarjeta.querySelector('.tarjeta-accion');
+    const zona = contenido ? contenido.querySelector('.zona-imagen') : null;
+    if (!contenido || !zona) return null;
+
+    const estiloTarjeta = getComputedStyle(tarjeta);
+    const paddingVertical = parseFloat(estiloTarjeta.paddingTop) + parseFloat(estiloTarjeta.paddingBottom);
+    const gapTarjeta = parseFloat(estiloTarjeta.rowGap) || 0;
+
+    const gapContenido = parseFloat(getComputedStyle(contenido).rowGap) || 0;
+    const hermanos = Array.from(contenido.children).filter((hijo) => hijo !== zona);
+    const sumaHermanos = hermanos.reduce((total, hijo) => total + hijo.getBoundingClientRect().height, 0);
+    // N hijos directos de `.tarjeta-contenido` (incluida la zona) -> N-1 huecos entre ellos.
+    const huecosContenido = Math.max(0, contenido.children.length - 1) * gapContenido;
+
+    const accionAlto = accion ? accion.getBoundingClientRect().height : 0;
+    const tarjetaAlto = tarjeta.getBoundingClientRect().height;
+    const zonaReal = zona.getBoundingClientRect().height;
+    const zonaIdeal = tarjetaAlto - paddingVertical - gapTarjeta - accionAlto - sumaHermanos - huecosContenido;
+
+    return { huecoMuerto: zonaIdeal - zonaReal, zonaIdeal, zonaReal, tarjetaAlto };
+  });
+}
+
 /** El radar absorbe el espacio libre del HUB (spec "pantalla completa"
  * 12-sep): nada de hueco vacío entre la rejilla de áreas y "Comenzar". */
 async function comprobarHuecoGridComenzar(page) {
@@ -1784,8 +1827,12 @@ test.describe('ONE · integración e2e', () => {
     await expect(indicador).toBeHidden();
   });
 
-  test('v0.2a.2.1 §1.1: la imagen absorbe el sobrante hasta su techo del 60 %', async ({ page }) => {
+  test('v0.2a.2.1 §1.1: la imagen absorbe el sobrante sin hueco muerto (Ruling R9)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
+    // Geometría determinista (mismo motivo que "estructura fija" más abajo): sin esto, medir justo
+    // tras responder puede pillar la entrada de la visual (visual-entra, spec §8, 220ms) a mitad de
+    // camino y las medidas de .zona-imagen/.tarjeta-contenido salen unos px del sitio.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1802,14 +1849,24 @@ test.describe('ONE · integración e2e', () => {
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
 
-    // Con techo del 60 % (spec v0.2a.2.1 §1.1.1), "sin hueco muerto" ya no significa "el
-    // contenido llena el alto disponible", sino "la visual ha crecido todo lo que se le permite":
-    // el resto es el margen que el techo reserva a propósito para que la tarjeta no sea una foto.
-    const proporcion = await t.evaluate((tarjeta) => {
-      const zona = tarjeta.querySelector('.zona-imagen');
-      return zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
-    });
-    expect(proporcion, `la visual debería estar en su techo y está al ${(proporcion * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.59);
+    // Ruling R9 (ronda de corrección 1): la spec fija el invariante [50 %, 60 %] y dice que la
+    // visual "crece hasta el 60 % cuando el texto deja sitio" -- no que SIEMPRE llegue al 60 %. A
+    // este viewport, con la explicación real de his-001, el presupuesto fijo no deja sitio hasta
+    // el techo (medido: ~54 %), así que la aserción correcta no es "≥59 %" sino el invariante más
+    // "sin hueco muerto": la visual absorbe TODO lo que le sobra, y si no llega al techo es porque
+    // no había más que absorber, no porque algo se quedó sin usar.
+    const hueco = await medirHuecoMuerto(page);
+    expect(hueco, 'no se pudo medir el hueco muerto (falta .zona-imagen o .tarjeta-contenido)').not.toBeNull();
+    const proporcion = hueco.zonaReal / hueco.tarjetaAlto;
+    expect(
+      proporcion,
+      `la zona mide ${hueco.zonaReal.toFixed(1)}px de ${hueco.tarjetaAlto.toFixed(1)}px de tarjeta = ${(proporcion * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / hueco.tarjetaAlto);
+    expect(proporcion).toBeLessThanOrEqual(0.6 + 1 / hueco.tarjetaAlto);
+    expect(
+      Math.abs(hueco.huecoMuerto) <= 2 || proporcion >= 0.59,
+      `hueco muerto de ${hueco.huecoMuerto.toFixed(1)}px (zona ideal ${hueco.zonaIdeal.toFixed(1)}px, zona real ${hueco.zonaReal.toFixed(1)}px) y la zona está al ${(proporcion * 100).toFixed(1)}% (no llegó a su techo del 59 %)`
+    ).toBe(true);
   });
 
   // Capturas pedidas por el brief (docs/capturas/v0.1d-*.png, revisadas con
@@ -6098,7 +6155,7 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     }
   });
 
-  test('el alto lo decide el TEXTO: explicación de 1 frase -> zona al techo (60 %); explicación de 60 palabras -> zona al suelo (50 %)', async ({ page }) => {
+  test('el alto lo decide el TEXTO: explicación corta sin hueco muerto; explicación de 60 palabras recortada, ambas en [50,60] (Ruling R9)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
@@ -6119,8 +6176,20 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
     await esperarAsentamientoMazo(page);
     const conCorta = await proporcionZona(page);
-    expect(conCorta.ratio, `con explicación corta la zona debería llegar al techo, y mide ${(conCorta.ratio * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.59);
+    // Ruling R9 (ronda de corrección 1): el invariante es [50,60] y "sin hueco muerto", no "siempre
+    // llega al 59-60 %" -- a este viewport el presupuesto fijo no deja sitio hasta el techo ni con
+    // la explicación más corta posible (medido: ~53 %). Ver medirHuecoMuerto más arriba.
+    expect(
+      conCorta.ratio,
+      `con explicación corta la zona mide ${(conCorta.ratio * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / conCorta.tarjeta);
     expect(conCorta.ratio).toBeLessThanOrEqual(0.6 + 1 / conCorta.tarjeta);
+    const huecoCorta = await medirHuecoMuerto(page);
+    expect(huecoCorta, 'no se pudo medir el hueco muerto').not.toBeNull();
+    expect(
+      Math.abs(huecoCorta.huecoMuerto) <= 2 || conCorta.ratio >= 0.59,
+      `hueco muerto de ${huecoCorta.huecoMuerto.toFixed(1)}px con explicación corta y la zona está al ${(conCorta.ratio * 100).toFixed(1)}% (no llegó a su techo del 59 %)`
+    ).toBe(true);
     await assertTarjetaSinScroll(page);
 
     // Estado limpio antes de la segunda medida (mismo motivo que "Tarea 3b: capturas..." más
@@ -6137,8 +6206,15 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
     await esperarAsentamientoMazo(page);
     const conLarga = await proporcionZona(page);
-    expect(conLarga.ratio, `con explicación de 60 palabras la zona debe quedarse en el suelo, y mide ${(conLarga.ratio * 100).toFixed(1)}%`).toBeLessThanOrEqual(0.52);
-    expect(conLarga.ratio).toBeGreaterThanOrEqual(0.5 - 1 / conLarga.tarjeta);
+    // Ruling R9: solo el invariante [50,60] -- nada de "≤52 %" (el brief lo daba por hecho sin
+    // medirlo; con el bug de calcularLineasClamp ya corregido, corta y larga quedan casi
+    // indistinguibles a este viewport, ambas ~53 %, y las dos son correctas: el invariante no exige
+    // que el suelo y el techo se distingan mucho, solo que la zona nunca salga de [50,60]).
+    expect(
+      conLarga.ratio,
+      `con explicación de 60 palabras la zona mide ${(conLarga.ratio * 100).toFixed(1)}% (fuera de [50,60])`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / conLarga.tarjeta);
+    expect(conLarga.ratio).toBeLessThanOrEqual(0.6 + 1 / conLarga.tarjeta);
     await expect(tarjetaActual(page).locator('.explicacion')).toHaveClass(/explicacion--recortada/);
     await assertTarjetaSinScroll(page);
   });
