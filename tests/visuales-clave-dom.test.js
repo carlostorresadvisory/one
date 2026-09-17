@@ -55,14 +55,17 @@ test('construirVisualClave: test4 -- la correcta grande y las tres descartadas a
   assert.equal(caja.buscarTodosPorClase('visual-clave-descartada').length, 3);
 });
 
-test('construirVisualClave: error -- etiqueta + valor; sin corrección no se tacha nada', async () => {
+test('construirVisualClave: error -- etiqueta + valor tachado SIEMPRE, aunque no haya corrección (I1, ola final)', async () => {
   const p = await cargarPorId('art-030');
   const caja = conDom(() => construirVisualClave(p, { nombreArea }));
   assert.equal(caja.buscarPorClase('visual-clave-titulo').textContent, 'Dato erróneo');
   assert.equal(caja.buscarPorClase('visual-clave-etiqueta').textContent, 'La Noche Estrellada');
   assert.equal(caja.buscarPorClase('visual-clave-valor').textContent, 'Pablo Picasso');
-  assert.equal(caja.buscarPorClase('visual-clave-valor').tagName, 'p'); // no <s>: no hay valor correcto que poner al lado
-  assert.equal(caja.buscarPorClase('visual-clave-correccion'), null);
+  // I1: antes se pintaba el dato FALSO en <p> normal, grande y sin tachar, cuando el banco no
+  // traía valor correcto separado -- el jugador memorizaba el error de un vistazo. Ahora se tacha
+  // siempre, tenga o no corrección al lado.
+  assert.equal(caja.buscarPorClase('visual-clave-valor').tagName, 's');
+  assert.equal(caja.buscarPorClase('visual-clave-correccion'), null); // sigue sin haber corrección que mostrar al lado
 });
 
 test('construirVisualClave: error CON corrección -- valor erróneo en <s> y el correcto al lado', () => {
