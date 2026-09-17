@@ -117,16 +117,25 @@ export const TIMEOUT_VISUAL_MS = 20000;
  * `tools/openrouter.js` son 120 s, pensados para el fondo; con un jugador mirando el indicador,
  * esperar dos minutos a un eslabón que va a fallar igual es lo peor que se puede hacer (medido en
  * vivo el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free DENTRO de una tanda urgente).
- * Pasados estos 30 s la cascada salta al siguiente eslabón, que normalmente responde en 1-2 s.
+ * Pasados estos 60 s la cascada salta al siguiente eslabón, que normalmente responde en 1-2 s.
  */
-export const TIMEOUT_LLAMADA_URGENTE_MS = 30000;
+// 17-sep-2026 (Carlos: "dejamos ONE funcionando"): 30 s -> 60 s. Con la cuota gratis del día
+// agotada en los eslabones rápidos, los únicos que respondían eran nemotron de NVIDIA (28-100 s) y
+// nex-n2.5 (~20 s): a 30 s la cascada urgente los abortaba uno tras otro y la tanda terminaba en
+// "0 de 10" (visto en /opt/one-datos/llamadas.log). Con los rápidos vivos no cambia nada (siguen
+// respondiendo en 1-2 s); solo cuando ya se está en el último recurso se espera lo que ese recurso
+// tarda de verdad. Un jugador prefiere 10 preguntas en 3 minutos a 0 preguntas en 1.
+export const TIMEOUT_LLAMADA_URGENTE_MS = 60000;
 /**
  * Ola final v0.2b4.1 (I3): a partir de aqui, una tanda urgente ya NO intenta reponer lo que el
  * verificador rechazo. El objetivo es "10 verificadas en menos de 60 s": con 45 s ya gastados, una
  * ronda extra (generar + verificar + visual) se comeria el minuto entero, y el jugador prefiere 8
  * preguntas ya que 10 dentro de tres minutos.
  */
-export const MS_MAX_REPOSICION = 45000;
+// 17-sep-2026: 45 s -> 90 s, en proporción al timeout urgente (30 -> 60 s): en un día de cuota
+// degradada la primera pasada ya tarda más de 45 s y la reposición se apagaba justo cuando más
+// rechazos había que reponer (hallazgo de la revisión de estos arreglos).
+export const MS_MAX_REPOSICION = 90000;
 
 /**
  * Ejecuta `fn` sobre `items` con como mucho `tope` en vuelo a la vez, devolviendo los resultados
@@ -728,7 +737,7 @@ export async function producirTanda(params, opciones = {}) {
   // golpe contra NVIDIA y los ':free', justo los eslabones con menos margen y sin nadie esperando.
   const topeLotes = urgente ? MAX_LOTES_EN_VUELO : 1;
   const topeVisuales = urgente ? MAX_VISUALES_EN_VUELO : 1;
-  // I1/I2: en una tanda urgente, ninguna llamada de ningún paso puede llevarse más de 30 s (ver
+  // I1/I2: en una tanda urgente, ninguna llamada de ningún paso puede llevarse más de 60 s (ver
   // TIMEOUT_LLAMADA_URGENTE_MS). `undefined` deja el plazo por defecto de `llamar` (120 s), que es
   // el que quiere el fondo: ahí nadie espera y un eslabón lento sigue siendo mejor que ninguno.
   const timeoutLlamadaMs = urgente ? TIMEOUT_LLAMADA_URGENTE_MS : undefined;

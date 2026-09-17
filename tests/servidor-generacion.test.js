@@ -1416,7 +1416,7 @@ test('v0.2b4.1 (I3): una tanda urgente repone lo rechazado en UNA ronda extra (3
   assert.match(extra.sistema, /Pregunta (vf|test4|ordenar|error) 0/, 'los enunciados de la 1.ª pasada entran en `evitar`');
 });
 
-test('v0.2b4.1 (I3): si el lote ya lleva más de 45 s, NO se repone (el jugador espera menos, no más)', async () => {
+test('v0.2b4.1 (I3): si el lote ya lleva más de 90 s, NO se repone (el jugador espera menos, no más)', async () => {
   let rechazados = 0;
   const { llamar } = crearLlamarPipeline({
     veredictoPorEnunciado: () =>
@@ -1428,7 +1428,7 @@ test('v0.2b4.1 (I3): si el lote ya lleva más de 45 s, NO se repone (el jugador 
   let lecturas = 0;
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 5 },
-    { llamar, urgente: true, reloj: () => (lecturas++ === 0 ? 0 : 60000) },
+    { llamar, urgente: true, reloj: () => (lecturas++ === 0 ? 0 : 120000) },
   );
 
   assert.equal(resultado.aprobadas.length, 3, 'sin tiempo para reponer, se entrega lo que hay');
@@ -1456,7 +1456,7 @@ test('v0.2b4.1 (I3): la reposición es SOLO urgente y SOLO una ronda extra', asy
 });
 
 // --- Ola final v0.2b4.1 (I1/I2): plazo corto por llamada en una tanda urgente --------------------
-test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 30 s a los cuatro pasos; la de fondo no lo toca', async () => {
+test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 60 s a los cuatro pasos; la de fondo no lo toca', async () => {
   const { llamar: base } = crearLlamarPipeline({});
   const plazos = [];
   const llamar = async (opciones) => {
@@ -1468,7 +1468,7 @@ test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 30 s a los cuatro pasos
   assert.ok(plazos.length >= 4, 'generación, verificación, visual y verificación de visual');
   assert.equal(new Set(plazos).size, 1, 'el mismo plazo en los cuatro pasos');
   assert.equal(plazos[0], TIMEOUT_LLAMADA_URGENTE_MS);
-  assert.equal(TIMEOUT_LLAMADA_URGENTE_MS, 30000);
+  assert.equal(TIMEOUT_LLAMADA_URGENTE_MS, 60000);
 
   plazos.length = 0;
   await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: false });

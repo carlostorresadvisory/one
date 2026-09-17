@@ -2431,20 +2431,30 @@ button.punto-servidor::before {
    ningún número mágico de alto de cabecera. */
 .indicador-tanda {
   position: fixed;
-  top: 54px;
+  top: 12px; /* valor de reposo; app.js#posicionarIndicadorTanda lo centra en la cabecera real */
   right: 16px;
   z-index: 15;
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 4px 12px 4px 5px;
+  gap: 5px;
+  /* 17-sep-2026 (Carlos: "la tarjeta es más pequeña"): el indicador pasa de la segunda fila (44px +
+     hueco reservado en <main>, ~90px robados a la tarjeta) al hueco de racha/nivel DENTRO de la
+     cabecera, compacto: 30px de alto, anillo de 18px y letra de 11px. `.cabecera-estado` se esconde
+     mientras dure (`.cabecera--con-tanda`, puesta por app.js#reservarHuecoIndicadorTanda). */
+  min-height: 30px;
+  padding: 2px 10px 2px 4px;
   border: 1px solid var(--acento);
-  border-radius: 22px;
+  border-radius: 16px;
   background: rgba(76, 201, 240, 0.14);
   color: var(--acento);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.cabecera--con-tanda .cabecera-estado {
+  /* visibility, no display: conserva su sitio para que el logo siga centrado (space-between). */
+  visibility: hidden;
 }
 
 /* Mismo motivo que .hub-chip-nuevas[hidden] más arriba: con `display:flex` declarado, el [hidden]
@@ -2454,8 +2464,8 @@ button.punto-servidor::before {
 }
 
 .indicador-tanda-anillo {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   transform: rotate(-90deg); /* el avance empieza arriba, no a las 3 en punto */
 }
 

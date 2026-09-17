@@ -42,6 +42,11 @@ export const MODELOS = {
     // el 15-sep, un parón de 118,9 s en ese eslabón DENTRO de una tanda urgente. Sigue en
     // `generadorFondo`, que es donde un eslabón de minuto y medio no le cuesta nada a nadie.
     'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+    // 17-sep-2026 (Carlos: "dejamos ONE funcionando"): con la cuota gratis del día agotada en
+    // Gemini, Groq y gemma (429/503 en cadena, visto en /opt/one-datos/llamadas.log), los únicos
+    // eslabones vivos eran nemotron de NVIDIA (28-100 s) y nex-n2.5 (gratis, ~20 s). Sin este
+    // último recurso la tanda urgente se quedaba en "0 de 10" para siempre.
+    'nex-agi/nex-n2.5-pro:free',
   ],
   // Nunca el mismo primer eslabón que `generador`: producirTanda excluye al modelo que generó el
   // lote, y si coincidieran, el verificador se quedaría empezando por su segundo eslabón siempre.
@@ -53,6 +58,10 @@ export const MODELOS = {
     'gemini:gemini-flash-lite-latest',
     'google/gemma-4-31b-it:free',
     'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
+    // Mismo motivo que en `generador` (17-sep-2026): último recurso gratis DISTINTO de nemotron,
+    // porque producirTanda excluye al modelo que generó el lote y, agotado todo lo demás, nemotron
+    // era a la vez el único generador y el único verificador posible -> lote sin verificar.
+    'nex-agi/nex-n2.5-pro:free',
   ],
   // Los subtemas del átomo son una lista corta de texto: no hace falta más cascada que dos
   // eslabones rápidos (v0.2b3 los pedía a MODELOS.generador entera, con su cola de pago detrás).
@@ -363,7 +372,7 @@ export async function llamar({
   extra = {},
   reintentoMs = REINTENTO_MS,
   // Ola final v0.2b4.1 (I1/I2): plazo máximo de ESTA llamada. Por defecto los 120 s de siempre (el
-  // fondo no tiene prisa); las cascadas urgentes pasan 30 s, porque ahí hay un jugador mirando el
+  // fondo no tiene prisa); las cascadas urgentes pasan 60 s, porque ahí hay un jugador mirando el
   // indicador y esperar dos minutos a un eslabón que va a fallar igual es peor que saltar al
   // siguiente (medido el 15-sep: 118,9 s parado en nvidia/nemotron-3-ultra:free dentro de una
   // tanda urgente). Un valor no finito o <= 0 cae al defecto: "sin plazo" nunca es una opción.

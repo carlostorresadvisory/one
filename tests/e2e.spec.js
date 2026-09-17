@@ -39,7 +39,7 @@ async function assertSinSolapeCabecera(page) {
       Boolean
     );
     return candidatos
-      .filter((hijo) => !hijo.hidden)
+      .filter((hijo) => !hijo.hidden && getComputedStyle(hijo).visibility !== 'hidden') // racha/nivel ceden su sitio al indicador (17-sep)
       .map((hijo) => ({
         testId: hijo.dataset.test || hijo.className || hijo.tagName,
         caja: hijo.getBoundingClientRect(),

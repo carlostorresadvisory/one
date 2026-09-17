@@ -1117,7 +1117,6 @@ function finalizarTrabajoAtomo() {
 
 const PERIMETRO_ANILLO_TANDA = 2 * Math.PI * 15; // r=15 del viewBox 36x36 de index.html
 const MS_AVISO_FALLO_TANDA = 6000; // spec §2: el aviso de fallo dura 6 s y desaparece
-const SEPARACION_INDICADOR_TANDA = 8; // hueco vertical hasta el borde inferior de .cabecera
 
 /** Ronda de corrección 1 (Important, hallazgo del revisor, verificado en vivo con Playwright a
  * 375x812 en `pregunta`): en la misma fila que la cabecera no cabía sin solapar -- a 375px de
@@ -1130,10 +1129,22 @@ const SEPARACION_INDICADOR_TANDA = 8; // hueco vertical hasta el borde inferior 
  * cada vez que el indicador se muestra/actualiza, y también desde `actualizarCabecera`/`resize` por
  * si la cabecera cambia de alto mientras el indicador ya está visible (p. ej. tipografía dinámica
  * del sistema). Sin número mágico de posición: el único valor fijo es el hueco deliberado de 8px. */
+const ALTO_REPOSO_INDICADOR_TANDA = 30; // = min-height de .indicador-tanda en estilos.css
 function posicionarIndicadorTanda() {
   if (!nodoCabecera) return;
-  const bordeCabecera = nodoCabecera.getBoundingClientRect().bottom;
-  nodoIndicadorTanda.style.top = `${Math.round(bordeCabecera + SEPARACION_INDICADOR_TANDA)}px`;
+  // 17-sep-2026 (Carlos, tras probar v0.2a.2.1 en el iPhone: "la tarjeta es más pequeña"): el
+  // indicador ya NO vive en una segunda fila bajo la cabecera (Plan B de v0.2b4), que con su hueco
+  // reservado empujaba la tarjeta ~90px hacia abajo mientras durase la tanda. Ahora ocupa el sitio
+  // de racha/nivel (`.cabecera-estado`, que se esconde mientras el indicador está visible, ver
+  // `reservarHuecoIndicadorTanda`) centrado en vertical dentro de la propia cabecera: cero píxeles
+  // robados a la tarjeta. Se mide la cabecera real (incluye env(safe-area-inset-top) en su
+  // padding-top), no un número mágico.
+  // Nunca cambia `hidden` (un reposicionamiento por resize con el indicador oculto lo resucitaba):
+  // oculto no tiene alto medible, así que se usa su alto de reposo (min-height:30px del CSS) y, en
+  // cuanto se muestra, reservarHuecoIndicadorTanda vuelve a llamar aquí con el alto real.
+  const caja = nodoCabecera.getBoundingClientRect();
+  const altoIndicador = nodoIndicadorTanda.hidden ? ALTO_REPOSO_INDICADOR_TANDA : nodoIndicadorTanda.getBoundingClientRect().height;
+  nodoIndicadorTanda.style.top = `${Math.round(caja.top + (caja.height - altoIndicador) / 2)}px`;
 }
 
 /** Ronda de corrección 1 (Plan B): con el indicador en una segunda fila, el contenido de la vista
@@ -1146,13 +1157,16 @@ function posicionarIndicadorTanda() {
  * especiales por vista que mantener sincronizados, a cambio de un margen de sobra en HUB mientras
  * genera -- coste aceptable frente a la complejidad de decidir vista por vista. */
 function reservarHuecoIndicadorTanda() {
-  if (!nodoContenidoApp) return;
-  if (nodoIndicadorTanda.hidden) {
-    nodoContenidoApp.style.paddingTop = '';
-    return;
-  }
-  const altoIndicador = nodoIndicadorTanda.getBoundingClientRect().height;
-  nodoContenidoApp.style.paddingTop = `${Math.round(altoIndicador + SEPARACION_INDICADOR_TANDA * 2)}px`;
+  // 17-sep-2026: ya no se reserva hueco en <main> (el indicador vive DENTRO de la cabecera, ver
+  // posicionarIndicadorTanda). Lo único que cede sitio es `.cabecera-estado` (racha/nivel), que se
+  // esconde con esta clase mientras el indicador esté visible -- así el e2e de "sin solape con
+  // ningún hijo de la cabecera" sigue midiendo lo que importa (el "←" y el logo) y la tarjeta
+  // recupera sus ~90px. El nombre de la función se conserva: sigue siendo "el sitio que cede la
+  // interfaz al indicador", solo que ahora es cero en <main>.
+  if (nodoContenidoApp) nodoContenidoApp.style.paddingTop = '';
+  if (nodoCabecera) nodoCabecera.classList.toggle('cabecera--con-tanda', !nodoIndicadorTanda.hidden);
+  // Ya visible: se recentra con su alto REAL (el primer posicionado, antes de mostrarlo, usó el de reposo).
+  if (!nodoIndicadorTanda.hidden) posicionarIndicadorTanda();
 }
 
 /** Anillo de progreso: fracción 0..1 sobre `stroke-dashoffset` (la transición y su apagado con

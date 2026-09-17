@@ -64,6 +64,11 @@ export const VERIFICADOR_VISUAL = [
   'gemini:gemini-flash-lite-latest',
   'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
+  // 17-sep-2026: con los cuatro de arriba agotados (429/503 todo el día), el visual de la tanda
+  // urgente se quedaba sin verificador y la pregunta se servía sin visual. Dos últimos recursos
+  // gratis que sí respondían ese día (llamadas.log del VPS): nex-n2.5 (~20 s) y nemotron (28-100 s).
+  'nex-agi/nex-n2.5-pro:free',
+  'nvidia:nvidia/nemotron-3.5-lightning-30b-a3b',
 ];
 
 // Cascadas del colchón nocturno y del trabajo de fondo que completa visuales pendientes (Tarea 4):
@@ -516,7 +521,7 @@ export async function generarVisualYExplicacion(pregunta, opciones = {}) {
     modelos = GENERADOR_VISUAL,
     rutaLog,
     // Ola final v0.2b4.1 (I1/I2): plazo por llamada. `undefined` = el de siempre (120 s, ver
-    // tools/openrouter.js); servidor/generacion.js pasa 30 s en las tandas urgentes.
+    // tools/openrouter.js); servidor/generacion.js pasa 60 s en las tandas urgentes.
     timeoutMs,
     // Ola final v0.2b4.1 (#3): señal para abortar la llamada si quien espera ya se rindió (el
     // plazo del visual de una tanda urgente, ver servidor/generacion.js#conLimite).
