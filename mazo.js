@@ -452,10 +452,22 @@ export { mazosActivos };
  * enunciado por separado); ahora vive en un solo sitio, con el margen de
  * seguridad de 4px también en un solo sitio (el redondeo del alto de línea
  * real frente al lineHeight calculado aquí puede dejar unos pocos px de
- * sobra que sin este margen se cuelan por encima de la tolerancia). */
+ * sobra que sin este margen se cuelan por encima de la tolerancia).
+ * Ronda de corrección de la Tarea 4 (v0.2a.2.1): `restoAltura` resta la
+ * contribución ACTUAL de `el` (`getBoundingClientRect().height`, ya recortada
+ * si esta no es la primera llamada), nunca `el.scrollHeight` -- con
+ * `-webkit-line-clamp` activo, `scrollHeight` sigue devolviendo el alto SIN
+ * recortar del texto completo, no el alto realmente ocupado. Con la visual ya
+ * a un suelo fijo (spec §1.1.3, sin margen extra que absorba el error), esta
+ * función se llama dos veces seguidas sobre la misma `.explicacion` (mínimo 2
+ * y, si no basta, mínimo 1) y la métrica vieja restaba un valor demasiado
+ * grande la segunda vez, subestimando cuánto ocupaba ya el propio elemento y
+ * calculando de más líneas de las que en realidad cabían (hallazgo real: 3
+ * líneas calculadas cuando solo cabía 1, banco `eco-091`-equivalente
+ * desbordando 4-6px pese al mínimo pedido). */
 export function calcularLineasClamp(el, contenedor, minimo) {
   const lineHeight = parseFloat(window.getComputedStyle(el).lineHeight) || 18;
-  const restoAltura = contenedor.scrollHeight - el.scrollHeight;
+  const restoAltura = contenedor.scrollHeight - el.getBoundingClientRect().height;
   const alturaLibre = contenedor.clientHeight - restoAltura - 4;
   const lineas = Math.max(minimo, Math.floor(alturaLibre / lineHeight));
   el.style.webkitLineClamp = String(lineas);
@@ -464,156 +476,136 @@ export function calcularLineasClamp(el, contenedor, minimo) {
 
 /**
  * Regla de encaje sin scroll (spec v0.1c §4.2, cascada de la tarjeta revelada
- * reescrita en spec §8/v0.2a.2 — "protagonismo visual", con un último recorte
- * de enunciado añadido en la Ronda 1 de revisión de la Tarea 2, I2). Ninguna
- * tarjeta hace scroll: lo que cede espacio primero es la respuesta ya fija,
- * luego el tamaño del enunciado, luego la explicación (recortada con
- * line-clamp calculado) y, en la tarjeta revelada, la propia visual (mínimo
- * 30% de `.tarjeta-contenido`, nunca se quita); si con todo eso no basta, el
- * enunciado se recorta también con line-clamp calculado (mínimo 2 líneas)
- * antes del último recurso, que vuelve a recortar la explicación a 1 línea.
- * Se llama tras cada render del mazo y en resize/orientationchange.
+ * reescrita en spec §8/v0.2a.2 — "protagonismo visual" — y en spec v0.2a.2.1
+ * §1.1/§1.4: la visual pasa a un suelo/techo REAL del 50-60% de la TARJETA
+ * ENTERA, fijo, que ya no participa en la cascada como paso de recorte —
+ * `zona-imagen--reducida` queda derogada). Ninguna tarjeta hace scroll: en la
+ * tarjeta revelada lo que cede espacio es solo el texto (respuesta, enunciado,
+ * explicación) y, como último recurso, el tamaño del bloque de feedback
+ * (tarjeta--feedback-menor); la visual se queda fija en su 50% mínimo y es el
+ * texto el que absorbe todo el sobrante o todo el déficit. Se llama tras cada
+ * render del mazo y en resize/orientationchange.
  */
 export function ajustarEncaje(tarjetaNodo) {
   if (!tarjetaNodo) return;
-  // Ronda 1 de revisión de la Tarea 2 (M3): se retiran de este reset
-  // 'tarjeta--sin-respuestas'/'--sin-enunciado'/'--explicacion-menor'/
-  // '--explicacion-minima' -- ninguna rama de esta función las añade ya
-  // (grep lo confirma), y su CSS también se retiró (ver estilos.css). Las
-  // que quedan SÍ las usa alguna de las dos ramas de abajo.
+
+  // spec v0.2a.2.1 §1.1: el suelo (50 %) y el techo (60 %) de la visual se miden sobre la TARJETA
+  // ENTERA con getBoundingClientRect -- exactamente la misma medida que hace el e2e que lo juzga.
+  // `.tarjeta-mazo` tiene alto propio (position:absolute; inset:0 dentro de `.mazo`), así que este
+  // valor NO depende del contenido: fijarlo aquí no puede realimentar el layout ni oscilar.
+  const altoTarjeta = tarjetaNodo.getBoundingClientRect().height;
+  if (altoTarjeta > 0) tarjetaNodo.style.setProperty('--alto-tarjeta', `${Math.round(altoTarjeta)}px`);
+
   tarjetaNodo.classList.remove(
     'tarjeta--compacta-1',
     'tarjeta--enunciado-menor',
     'tarjeta--opciones-compactas',
     'tarjeta--enunciado-clamp',
     'tarjeta--explicacion-clamp',
-    // spec §8 / v0.2a.2 (Tarea 2): paso nuevo de la cascada revelada — 14px
-    // de enunciado, un paso más compacto que tarjeta--enunciado-menor (15px,
-    // que sigue siendo el paso (a) de la cascada SIN responder de más abajo).
-    'tarjeta--enunciado-14'
+    'tarjeta--enunciado-14',
+    // spec v0.2a.2.1 §1.4: último recurso nuevo, ver el paso (f) de la cascada revelada.
+    'tarjeta--feedback-menor',
+    // paso (g), nuevo (Ronda de corrección de la Tarea 4: art-091 y un cambio de nivel a la vez
+    // que una explicación larga, ambos del banco/app real, no convergían con (a)-(f)): ver más abajo.
+    'tarjeta--feedback-minimo'
   );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
   const enunciadoEl = tarjetaNodo.querySelector('.enunciado');
   if (enunciadoEl) enunciadoEl.style.webkitLineClamp = '';
-  // zona-imagen--reducida (spec §8) vive en `.zona-imagen`, no en la tarjeta
-  // (el CSS `.tarjeta--revelada .zona-imagen--reducida` la apunta ahí): se
-  // resetea aparte, en las dos ramas de la cascada de abajo por igual.
-  const zonaImagenEl = tarjetaNodo.querySelector('.zona-imagen');
-  if (zonaImagenEl) zonaImagenEl.classList.remove('zona-imagen--reducida');
+  // `zona-imagen--reducida` (el paso del 30 % de v0.2a.2) desaparece: la visual ya nunca baja del
+  // 50 % (spec v0.2a.2.1 §1.1.3), lo que sobra por abajo lo absorbe el texto.
 
-  // Se mide `.tarjeta-contenido`, NO la tarjeta entera (hallazgo de la Tarea
-  // 3b probando con art-003 + su imagen real a 430×932): la tarjeta es una
-  // caja de tamaño FIJO (posicionada en absoluto sobre #mazo, spec v0.1c
-  // §4.1), así que su propio scrollHeight nunca puede superar su clientHeight
-  // salvo que algo escape de su borde — y `.tarjeta-contenido` (flex:1 auto,
-  // min-height:0, sin overflow:hidden propio) puede desbordar SU hueco
-  // asignado sin que eso llegue nunca a notarse en la tarjeta: ese desborde
-  // queda invisible para tarjeta.scrollHeight y en su lugar se solapa en
-  // silencio con la zona de acción (Preguntar a/Siguiente), o recorta el
-  // enunciado por debajo de sus propias 5 líneas sin puntos suspensivos. La
-  // caja que de verdad compite por espacio, y la única que hay que medir, es
-  // .tarjeta-contenido frente a lo que le queda tras reservar la zona de
-  // acción (ver también flex-shrink:0 en estilos.css, que evita que flexbox
-  // encoja esos hijos en silencio antes de que la cascada de aquí actúe).
   const contenidoEl = tarjetaNodo.querySelector('.tarjeta-contenido');
   const cabe = () => !contenidoEl || contenidoEl.scrollHeight <= contenidoEl.clientHeight + 2;
-  if (cabe()) return;
 
-  // Cascada de la tarjeta SIN RESPONDER (Añadido A, 13-sep tarde: feedback de
-  // Carlos desde el iPhone — una captura mostraba el enunciado recortado a 5
-  // líneas fijas con "…" mientras sobraba media tarjeta vacía arriba y abajo:
-  // "No podemos tener preguntas que no caben"). Automática y sin ningún
-  // toque, parando en el primer paso en que ya cabe. Con el banco actual (a)
-  // y (b) no deberían hacer falta casi nunca; lo importante es que un
-  // enunciado de 5-7 líneas se vea ENTERO cuando hay sitio, que es el caso de
-  // la captura:
-  //  (a) el enunciado baja un paso de tamaño (15px, tarjeta--enunciado-menor,
-  //      ya existía para la tarjeta respondida).
-  //  (b) las opciones/botones se compactan (tarjeta--opciones-compactas): más
-  //      apretadas, mismo tamaño de letra.
-  //  (c) último recurso: recorte con line-clamp CALCULADO sobre el enunciado
-  //      (mismo método que la explicación de la tarjeta respondida — líneas =
-  //      floor(alturaLibre / lineHeight), mínimo 2), con "…", sin ningún
-  //      toque para desplegarlo.
-  // `=== 'false'`, no `!== 'true'` (Minor 1, ronda final de revisión): la
-  // tarjeta "sin responder" del repaso infinito (v0.2a.1 §7) tiene la MISMA
-  // forma que una respondida (zona de respuesta + feedback, construida por
-  // construirTarjetaRespondida) pero, a propósito, no lleva `dataset.respondida`
-  // en absoluto (nunca se ha respondido de verdad). Solo la pregunta ACTIVA
-  // de una partida sin responder (construirTarjetaSinResponder, distinta
-  // forma: opciones tocables, sin zona de respuesta ni feedback) marca
-  // `dataset.respondida = 'false'` explícitamente — es la única que debe
-  // caer en esta cascada.
-  if (tarjetaNodo.dataset.respondida === 'false') {
-    tarjetaNodo.classList.add('tarjeta--enunciado-menor');
+  aplicarCascada();
+  // Marcar DESPUÉS de la cascada, una sola vez y pase lo que pase dentro de ella (por eso la
+  // cascada vive en su propia función con sus `return`): lo que se mide aquí es el resultado
+  // final. La Tarea 5 convierte estas dos clases en "tocable para ver el texto entero".
+  marcarRecorte(explicacionEl, 'explicacion--recortada');
+  marcarRecorte(enunciadoEl, 'enunciado--recortado');
+
+  function aplicarCascada() {
     if (cabe()) return;
 
-    tarjetaNodo.classList.add('tarjeta--opciones-compactas');
+    if (tarjetaNodo.dataset.respondida === 'false') {
+      // Cascada de la tarjeta SIN RESPONDER: intacta (Añadido A, 13-sep). Ver el comentario
+      // largo de la versión anterior de esta función, que se conserva tal cual.
+      tarjetaNodo.classList.add('tarjeta--enunciado-menor');
+      if (cabe()) return;
+      tarjetaNodo.classList.add('tarjeta--opciones-compactas');
+      if (cabe()) return;
+      if (!enunciadoEl || !contenidoEl) return;
+      tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
+      calcularLineasClamp(enunciadoEl, contenidoEl, 2);
+      return;
+    }
+
+    // Cascada de la tarjeta REVELADA (spec v0.2a.2.1 §1.4.1). La visual NO participa: se queda
+    // fija en su 50 % y es el texto el que cede, en este orden, parando en cuanto cabe:
+    //  (a) la respuesta pasa a una sola línea (tarjeta--compacta-1).
+    //  (b) el enunciado baja a 14px (tarjeta--enunciado-14).
+    //  (c) la explicación se recorta con line-clamp calculado, mínimo 2 líneas.
+    //  (d) el enunciado se recorta con line-clamp calculado, mínimo 2 líneas.
+    //  (e) la explicación se recorta a 1 línea.
+    //  (f) último recurso, NUEVO en v0.2a.2.1: el "✓ +N XP"/"✗ Incorrecto" baja de 22px a 15px
+    //      (tarjeta--feedback-menor) y la explicación recalcula su recorte con el hueco que eso
+    //      libera. Hace falta porque el suelo del 50 % deja a 375×667 un presupuesto de texto de
+    //      ~110px, y el mínimo de la tarjeta con esa línea a 22px (cabecera 17 + enunciado 2
+    //      líneas 37 + respuesta 21 + feedback 26+8 + explicación 1 línea 21 + huecos) se pasa
+    //      de ahí: sin este paso, el peor caso real del banco (eco-091, explicación de 60
+    //      palabras) desbordaría sin converger y `assertTarjetaSinScroll` fallaría.
+    //      El paso del 30 % de la visual (zona-imagen--reducida) queda derogado por la spec.
+    //  (g) último recurso de verdad (Ronda de corrección de la Tarea 4, dos hallazgos reales que
+    //      ni (a)-(f) bastaban para resolver): (1) el tipo "error" añade su propio "enunciado" como
+    //      `.titulo-tarjeta` + `.instruccion-error` (nunca `.enunciado`, ver construirBloqueEnunciado
+    //      en app.js), así que (b)/(d) no los tocan -- con una explicación real larga esos ~37px
+    //      bastan para desbordar (banco real, art-091); (2) un cambio de nivel justo al responder
+    //      añade `.cambio-nivel`/`.cambio-nivel-area` al bloque de feedback, ~17-30px que tampoco
+    //      cubre ningún paso anterior. Los cuatro son prescindibles con la tarjeta ya revelada:
+    //      `.instruccion-error` ("Toca la fila que está mal") no dice nada útil ya respondida
+    //      (soloFallo/la respuesta compacta repiten qué fila era), el título de la mini-tarjeta
+    //      tampoco hace falta para leer esa línea, y el cambio de nivel es una notificación, no
+    //      información sobre ESTA pregunta -- perderla en este caso extremo es mejor que el scroll.
+    //      Se ocultan los cuatro (tarjeta--feedback-minimo, ver estilos.css).
+    tarjetaNodo.classList.add('tarjeta--compacta-1');
     if (cabe()) return;
 
-    if (!enunciadoEl || !contenidoEl) return;
-    tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
-    calcularLineasClamp(enunciadoEl, contenidoEl, 2);
-    return;
-  }
-
-  // Cascada de la tarjeta REVELADA (spec §8, enmienda 16-sep-2026, v0.2a.2
-  // "protagonismo visual" — SUSTITUYE la cascada anterior de v0.1d §3/§4
-  // entera: ya no hay tarjeta--sin-respuestas/--sin-enunciado/
-  // --explicacion-menor/--explicacion-minima en esta rama — su CSS, muerto
-  // desde entonces (grep confirmó que la cascada SIN responder de arriba
-  // tampoco las usa nunca), se retiró en la Ronda 1 de revisión de la Tarea 2
-  // (M3). La visual NUNCA se pliega por debajo del 30% ni se quita. Se para
-  // en el primer paso en el que ya cabe:
-  //  (a) la respuesta pasa a una sola línea ("Respuesta: X ✓" / "Orden: A ›
-  //      B › C › D…", tarjeta--compacta-1, ya existía).
-  //  (b) el enunciado baja a 14px (tarjeta--enunciado-14) — un paso más que
-  //      los 15px fijos de la tarjeta revelada (ver .tarjeta--revelada
-  //      .enunciado en estilos.css), no los 15px de tarjeta--enunciado-menor
-  //      (paso (a) de la cascada SIN responder de arriba, que sigue partiendo
-  //      del tamaño grande con clamp()).
-  //  (c) la explicación se recorta con line-clamp CALCULADO, mínimo 2 líneas
-  //      (mismo cálculo que calcularLineasClamp ya usaba, ver abajo).
-  //  (d) la visual (imagen/visual de datos/tarjeta tipográfica, todas
-  //      `.zona-imagen`) baja su suelo del 40% al 30% (zona-imagen--reducida).
-  //  (e) Ronda 1 de revisión de la Tarea 2 (I2): último recurso antes de la
-  //      explicación, el ENUNCIADO se recorta también con line-clamp
-  //      CALCULADO, mínimo 2 líneas (reutiliza tarjeta--enunciado-clamp, el
-  //      mismo mecanismo que ya usa la cascada SIN responder de arriba) — sin
-  //      este paso, un enunciado largo en una tarjeta ya revelada no tenía
-  //      ninguna red de seguridad más allá del tamaño de letra fijo (hallazgo
-  //      de la revisión: el e2e de esta misma cascada, con un enunciado
-  //      sintético `.repeat(4)`, desbordaba sin converger). Acotar la
-  //      longitud real del enunciado en el pipeline de generación/validación
-  //      sigue siendo deuda para v0.2c — Carlos decide si hace falta además
-  //      de esta red de seguridad, ver nota en task-2-report.md.
-  //  (f) último recurso (no debería hacer falta con el banco actual): la
-  //      explicación se recorta aún más, a 1 línea mínima.
-  tarjetaNodo.classList.add('tarjeta--compacta-1');
-  if (cabe()) return;
-
-  tarjetaNodo.classList.add('tarjeta--enunciado-14');
-  if (cabe()) return;
-
-  if (explicacionEl && contenidoEl) {
-    tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
-    calcularLineasClamp(explicacionEl, contenidoEl, 2);
+    tarjetaNodo.classList.add('tarjeta--enunciado-14');
     if (cabe()) return;
-  }
 
-  if (zonaImagenEl) {
-    zonaImagenEl.classList.add('zona-imagen--reducida');
+    if (explicacionEl && contenidoEl) {
+      tarjetaNodo.classList.add('tarjeta--explicacion-clamp');
+      calcularLineasClamp(explicacionEl, contenidoEl, 2);
+      if (cabe()) return;
+    }
+
+    if (enunciadoEl && contenidoEl) {
+      tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
+      calcularLineasClamp(enunciadoEl, contenidoEl, 2);
+      if (cabe()) return;
+    }
+
+    if (explicacionEl && contenidoEl) {
+      calcularLineasClamp(explicacionEl, contenidoEl, 1);
+      if (cabe()) return;
+    }
+
+    tarjetaNodo.classList.add('tarjeta--feedback-menor');
+    if (explicacionEl && contenidoEl) calcularLineasClamp(explicacionEl, contenidoEl, 1);
     if (cabe()) return;
-  }
 
-  if (enunciadoEl && contenidoEl) {
-    tarjetaNodo.classList.add('tarjeta--enunciado-clamp');
-    calcularLineasClamp(enunciadoEl, contenidoEl, 2);
-    if (cabe()) return;
+    tarjetaNodo.classList.add('tarjeta--feedback-minimo');
   }
+}
 
-  if (explicacionEl && contenidoEl) {
-    calcularLineasClamp(explicacionEl, contenidoEl, 1);
-  }
+/** Marca un texto que ha quedado RECORTADO por la cascada (spec v0.2a.2.1 §1.4.2): se compara el
+ * alto real del contenido con el visible, no el nombre de la clase que se aplicó -- así un
+ * `line-clamp` que al final no recortó nada (porque cabían todas las líneas) no marca el párrafo.
+ * La clase es la única fuente de verdad para app.js, que es quien lo hace tocable. */
+function marcarRecorte(el, clase) {
+  if (!el) return;
+  const recortado = el.scrollHeight > el.clientHeight + 1;
+  el.classList.toggle(clase, recortado);
 }

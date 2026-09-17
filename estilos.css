@@ -1379,39 +1379,27 @@ main#app {
   max-height: 55vh; /* Carlos 13-sep 12:17: la imagen protagoniza la explicación */
 }
 
-/* Suelo/techo de la tarjeta REVELADA (spec §8, enmienda 16-sep-2026): un
-   mínimo del 40% de `.tarjeta-contenido` (nunca menos de 160px, para
-   pantallas muy bajas) que crece hasta un máximo de 55vh cuando el enunciado
-   de esa tarjeta deja sitio. Más específica que `.zona-imagen` de arriba
-   (2 clases > 1), gana sin depender del orden en la hoja -- efectivamente
-   sustituye al mínimo genérico de 90px en TODA tarjeta revelada, que hoy son
-   todas las que llegan a tener `.zona-imagen` (spec §8 punto 3: 100% de las
-   tarjetas reveladas tiene visual).
-   Doble declaración de `min-height` (respaldo, no @supports): si el
-   navegador no entiende `max()`, descarta esa línea entera y se queda con el
-   valor anterior (160px fijo) en vez de con un `min-height` roto. */
-.tarjeta--revelada .zona-imagen {
-  flex: 1 1 auto;
-  min-height: 160px;
-  min-height: max(160px, 40%);
-  max-height: 55vh;
+/* Suelo y techo de la visual REVELADA (spec v0.2a.2.1 §1.1): 50 % mínimo y 60 % máximo de la
+   TARJETA ENTERA, no de `.tarjeta-contenido` (ahí estaba el error de v0.2a.2: el "40 %" se
+   aplicaba al contenido y con el pie fuera la imagen real acababa en el 25 %, la captura de
+   Duchamp del iPhone).
+   `--alto-tarjeta` la fija `ajustarEncaje` (mazo.js) con getBoundingClientRect().height -- la
+   MISMA medida que usa el e2e que juzga esto. No se usa `container-type:size` + `cqh` porque las
+   unidades de contenedor se resuelven contra el *content box* (28px menos de padding vertical) y
+   50cqh daría un 47,5 % real. El valor de respaldo de aquí abajo (80vh ≈ el alto real de la
+   tarjeta en el mazo) solo se usa en el instante anterior a la primera medida. */
+.tarjeta--revelada {
+  --alto-tarjeta: 80vh;
 }
 
-/* Paso (d) de la cascada de la tarjeta revelada (spec §8, ver ajustarEncaje
-   en mazo.js): último recorte antes de tocar la explicación otra vez -- el
-   suelo baja del 40% al 30%, la visual sigue sin quitarse nunca.
-   Ronda 2 de revisión de la Tarea 2 (I2 parcial): `flex-basis:30%` por sí
-   solo NO es un suelo real -- `.zona-imagen` sigue con `flex-shrink:1`
-   (heredado de la regla de arriba), así que con un enunciado muy largo el
-   30% de partida se seguía encogiendo por debajo de sí mismo (medido en
-   vivo: 124px de 554px, 22.4%, con un `min-height:120px` fijo que ya no
-   representaba el 30% real de una tarjeta más alta). Mismo arreglo que el
-   suelo del 40% de arriba: `min-height:max(120px, 30%)`, con la misma doble
-   declaración de respaldo si el navegador no entiende `max()`. */
-.tarjeta--revelada .zona-imagen--reducida {
-  flex-basis: 30%;
-  min-height: 120px;
-  min-height: max(120px, 30%);
+.tarjeta--revelada .zona-imagen {
+  position: relative; /* ancla del pie superpuesto */
+  flex: 1 1 auto;
+  min-height: calc(var(--alto-tarjeta) * 0.5);
+  max-height: calc(var(--alto-tarjeta) * 0.6);
+  gap: 0; /* el pie ya no ocupa flujo: va superpuesto */
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 /* Entrada de la visual al responder (spec §8): fundido + 8px de desplazamiento
@@ -1478,6 +1466,90 @@ main#app {
 
 .imagen-pie-atribucion a {
   color: var(--acento);
+}
+
+/* La imagen llena la zona y recorta (spec §1.1.5): se amplía y recorta también la apaisada. El
+   toque sigue abriendo la pantalla completa con la imagen ENTERA (`contain`), que es donde se ve
+   lo que el `cover` deja fuera. */
+.tarjeta--revelada .imagen {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 0;
+}
+
+.tarjeta--revelada .imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0; /* el redondeo lo pone ya la zona, que recorta */
+}
+
+/* Pie DENTRO de la imagen (spec §1.1.6): franja translúcida pegada al borde inferior de la zona,
+   superpuesta -- no resta altura a la imagen, que era justo lo que hacía antes (dos líneas de
+   leyenda + atribución se comían ~40px de los 25 % que quedaban). Los enlaces siguen siendo
+   tocables sin abrir la pantalla completa: su `stopPropagation` vive en construirAtribucionImagen
+   (app.js) y no cambia. */
+.tarjeta--revelada .imagen-pie,
+.tarjeta--revelada .visual-pie {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 16px 10px 6px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0) 100%);
+  color: #fff;
+}
+
+.tarjeta--revelada .imagen-pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Leyenda: 12px, máximo 2 líneas con recorte (spec §1.1.6). */
+.tarjeta--revelada .imagen-pie-leyenda,
+.tarjeta--revelada .visual-pie {
+  font-size: 12px;
+  line-height: 1.25;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.tarjeta--revelada .imagen-pie-atribucion {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tarjeta--revelada .imagen-pie-atribucion a { color: #7fe3f5; }
+
+/* Último paso de la cascada (paso (f), ver ajustarEncaje): el "✓ +N XP" / "✗ Incorrecto" baja de
+   22px a 15px. Solo se activa cuando ni recortando el texto cabe la tarjeta con la visual en su
+   suelo del 50 % -- con 22px esa línea se come 34px (texto + hueco) de un presupuesto de texto
+   que a 375×667 es de ~110px. */
+.tarjeta--feedback-menor .feedback-texto { font-size: 15px; }
+.tarjeta--feedback-menor .feedback { gap: 4px; }
+
+/* Paso (g), último recurso de verdad (Ronda de corrección de la Tarea 4, dos hallazgos reales que
+   ni (a)-(f) resolvían -- ver el comentario largo en ajustarEncaje, mazo.js): el tipo "error" mete
+   su propio "enunciado" como `.titulo-tarjeta` + `.instruccion-error` (art-091, banco real) y un
+   cambio de nivel al responder añade `.cambio-nivel`/`.cambio-nivel-area` al feedback -- ninguno
+   de los pasos anteriores toca ninguno de los cuatro. Con la tarjeta ya revelada, "Toca la fila
+   que está mal" no dice nada útil (ya se tocó), el título de la mini-tarjeta no hace falta para
+   leer la línea de `.zona-respuesta` ("Renacimiento ✓"/"✗"), y el cambio de nivel es una
+   notificación aparte, no información de ESTA pregunta: los cuatro se ocultan del todo en vez de
+   recortarse. */
+.tarjeta--feedback-minimo .titulo-tarjeta,
+.tarjeta--feedback-minimo .instruccion-error,
+.tarjeta--feedback-minimo .cambio-nivel,
+.tarjeta--feedback-minimo .cambio-nivel-area {
+  display: none;
 }
 
 /* --- visual generado (spec v0.1e §2/§4): un SVG dibujado por la propia app

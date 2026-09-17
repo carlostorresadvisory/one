@@ -1291,7 +1291,7 @@ test.describe('ONE · integración e2e', () => {
   ];
 
   for (const vp of VIEWPORTS_CASCADA) {
-    test(`spec §8 (Tarea 2, Ronda 1 I2, Ronda 2): cascada de encaje paso a paso de la tarjeta revelada a ${vp.nombre}×${vp.height} — respuesta → enunciado 14px → explicación → visual ≥30% real → enunciado clamp, la visual nunca desaparece`, async ({
+    test(`spec §8 (Tarea 2, Ronda 1 I2, Ronda 2): cascada de encaje paso a paso de la tarjeta revelada a ${vp.nombre}×${vp.height} — respuesta → enunciado 14px → explicación → enunciado clamp → feedback menor, la visual nunca baja del 50 %`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -1375,19 +1375,15 @@ test.describe('ONE · integración e2e', () => {
           imagenAlto: imagen ? imagen.getBoundingClientRect().height : null,
           zonaImagenAlto: zonaImagen ? zonaImagen.getBoundingClientRect().height : null,
           contenidoAlto: contenido ? contenido.clientHeight : null,
+          tarjetaAlto: tarjeta.getBoundingClientRect().height,
         };
       });
 
-      // La visual NUNCA desaparece por falta de espacio (spec §8): con este
-      // desborde a propósito absurdo, sigue ahí, aunque sea a su suelo
-      // reducido -- Ronda 2: la RATIO real frente a `.tarjeta-contenido`,
-      // no un absoluto (ver el porqué en el comentario de cabecera).
+      // La visual NUNCA desaparece por falta de espacio (spec §8), y desde v0.2a.2.1 §1.1.1 nunca
+      // baja del 50 % real de la TARJETA (ver la comprobación de proporción más abajo, junto al
+      // resto de pasos de la cascada).
       expect(estado.imagenAlto).not.toBeNull();
       expect(estado.contenidoAlto).toBeGreaterThan(0);
-      expect(
-        estado.zonaImagenAlto / estado.contenidoAlto,
-        `.zona-imagen mide ${estado.zonaImagenAlto}px de ${estado.contenidoAlto}px de .tarjeta-contenido (< 30%) a ${vp.nombre}px`
-      ).toBeGreaterThanOrEqual(0.29);
 
       // Paso (a): la respuesta pasa a su resumen de una línea
       // (tarjeta--compacta-1) — lo primero en ceder, igual que antes.
@@ -1405,23 +1401,33 @@ test.describe('ONE · integración e2e', () => {
       expect(estado.clases).toContain('tarjeta--explicacion-clamp');
       expect(['1', '2']).toContain(estado.explicacionLineClamp);
 
-      // Paso (d), justo antes del último recurso: la visual baja su suelo del
-      // 40% al 30% (zona-imagen--reducida) — con un desborde tan extremo, tiene
-      // que haberse alcanzado. Orden: nunca antes que (a)/(b)/(c).
-      expect(estado.zonaImagenClases).toContain('zona-imagen--reducida');
-
-      // Paso (e), Ronda 1 de revisión (I2): con un enunciado `.repeat(4)` tan
-      // extremo, ni siquiera (a)-(d) bastan — la cascada tiene que llegar a
+      // Paso (d), spec v0.2a.2.1 §1.4.1: con un enunciado `.repeat(4)` tan
+      // extremo, ni siquiera (a)-(c) bastan — la cascada tiene que llegar a
       // recortar también el enunciado (mínimo 2 líneas, mismo mecanismo que la
-      // cascada sin responder). Antes de este paso, este mismo test desbordaba
-      // sin converger con este enunciado (por eso se había reducido a
-      // `.repeat(2)` en la primera versión de la Tarea 2). El enunciado
-      // absorbe el resto del desborde SIN que la visual baje de su 30% real
-      // (ya comprobado arriba con la ratio) -- si algún día no bastara, el
-      // último recurso de la cascada (paso (f), calcularLineasClamp de la
-      // explicación a 1 línea) es quien cede después, nunca la visual.
+      // cascada sin responder). El enunciado absorbe el resto del desborde SIN
+      // que la visual baje nunca de su 50 % real (comprobado abajo) -- si algún
+      // día no bastara, la explicación a 1 línea y, como último recurso,
+      // tarjeta--feedback-menor son quienes ceden después, nunca la visual.
       expect(estado.clases).toContain('tarjeta--enunciado-clamp');
       expect(Number(estado.enunciadoLineClamp)).toBeGreaterThanOrEqual(2);
+
+      // La visual nunca baja del 50 % de la TARJETA (spec v0.2a.2.1 §1.1.1), ni en el peor caso.
+      expect(
+        estado.zonaImagenAlto / estado.tarjetaAlto,
+        `.zona-imagen mide ${estado.zonaImagenAlto}px de ${estado.tarjetaAlto}px de tarjeta a ${vp.nombre}px`
+      ).toBeGreaterThanOrEqual(0.5 - 1 / estado.tarjetaAlto);
+
+      // Paso (d) de v0.2a.2: `zona-imagen--reducida` (bajar la visual al 30 %) YA NO EXISTE.
+      expect(estado.zonaImagenClases).not.toContain('zona-imagen--reducida');
+
+      // Paso (f), nuevo, NO se comprueba aquí (Ronda de corrección de la Tarea 4, medido en vivo):
+      // a estos tres viewports (812-932px de alto) el 50 % de la visual deja de sobra para que la
+      // cascada converja ya en el paso (d) -- `tarjeta--enunciado-clamp` calcula 2-5 líneas según
+      // el viewport, nunca agota su suelo de 2. Ni alargar más el enunciado/explicación sintéticos
+      // cambia eso: una vez clampados, su alto lo decide el espacio libre (calcularLineasClamp),
+      // no la longitud del texto de origen. El paso (f) SÍ está cubierto, con datos reales: la
+      // pregunta art-091 del banco a 375×667 lo alcanza (ver "visual al 50-60 % real de la
+      // tarjeta"), un viewport más bajo que ninguno de los tres de aquí.
     });
   }
 
@@ -1778,7 +1784,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(indicador).toBeHidden();
   });
 
-  test('mazo v0.1d §3/§4: la imagen absorbe el sobrante, sin hueco muerto (banco de ejemplo)', async ({ page }) => {
+  test('v0.2a.2.1 §1.1: la imagen absorbe el sobrante hasta su techo del 60 %', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
@@ -1796,15 +1802,14 @@ test.describe('ONE · integración e2e', () => {
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
 
-    const medidas = await t.evaluate((tarjeta) => {
-      const contenido = tarjeta.querySelector('.tarjeta-contenido');
-      return { scrollHeight: contenido.scrollHeight, clientHeight: contenido.clientHeight };
+    // Con techo del 60 % (spec v0.2a.2.1 §1.1.1), "sin hueco muerto" ya no significa "el
+    // contenido llena el alto disponible", sino "la visual ha crecido todo lo que se le permite":
+    // el resto es el margen que el techo reserva a propósito para que la tarjeta no sea una foto.
+    const proporcion = await t.evaluate((tarjeta) => {
+      const zona = tarjeta.querySelector('.zona-imagen');
+      return zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
     });
-    // "Sin hueco muerto" (spec v0.1d §3): con la imagen absorbiendo el
-    // sobrante, lo que ocupa el contenido debe quedar muy cerca del alto
-    // disponible — nunca más (assertTarjetaSinScroll ya lo cubre) ni mucho
-    // menos (esto, que assertTarjetaSinScroll NO cubre).
-    expect(medidas.clientHeight - medidas.scrollHeight).toBeLessThan(24);
+    expect(proporcion, `la visual debería estar en su techo y está al ${(proporcion * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.59);
   });
 
   // Capturas pedidas por el brief (docs/capturas/v0.1d-*.png, revisadas con
@@ -4899,8 +4904,8 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   /** Geometría + contenido de la tarjeta ACTUAL para una `capa` dada
    * ('imagen'/'visual'/'clave'): sin scroll (assertTarjetaSinScroll ya cubre
    * el desborde geométrico de `.zona-imagen`, spec §8 hallazgo C1 de v0.1e),
-   * `.zona-imagen` mide >= 30% de `.tarjeta-contenido` (Ruling R8: suelo 40%,
-   * peor caso de la cascada 30% — el margen de 0.5pp cubre redondeo de
+   * `.zona-imagen` mide entre el 50 % y el 60 % de la TARJETA ENTERA (spec
+   * v0.2a.2.1 §1.1.1 -- el margen de 1px cubre redondeo de
    * getBoundingClientRect/clientHeight), su borde superior coincide con el
    * inferior de `.pregunta-cabecera` ± 12px (Ruling R8: el gap real es
    * 8-10px según si la tarjeta lleva dataset.respondida="true" o es la
@@ -4912,7 +4917,8 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     await assertTarjetaSinScroll(page);
 
     const medidas = await page.evaluate(() => {
-      const contenido = document.querySelector('.tarjeta-mazo--actual .tarjeta-contenido');
+      const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+      const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
       const zona = contenido ? contenido.querySelector('.zona-imagen') : null;
       const cabecera = contenido ? contenido.querySelector('.pregunta-cabecera') : null;
       if (!zona || !cabecera) return null;
@@ -4920,16 +4926,17 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
       const rectCabecera = cabecera.getBoundingClientRect();
       return {
         zonaAlto: rectZona.height,
-        contenidoAlto: contenido.clientHeight,
+        tarjetaAlto: tarjeta.getBoundingClientRect().height,
         topZona: rectZona.top,
         bottomCabecera: rectCabecera.bottom,
       };
     });
     expect(medidas, '.zona-imagen o .pregunta-cabecera no están en la tarjeta actual').not.toBeNull();
     expect(
-      medidas.zonaAlto / medidas.contenidoAlto,
-      `.zona-imagen mide ${medidas.zonaAlto}px de ${medidas.contenidoAlto}px de .tarjeta-contenido (< 30%)`
-    ).toBeGreaterThanOrEqual(0.29);
+      medidas.zonaAlto / medidas.tarjetaAlto,
+      `.zona-imagen mide ${medidas.zonaAlto}px de ${medidas.tarjetaAlto}px de tarjeta`
+    ).toBeGreaterThanOrEqual(0.5 - 1 / medidas.tarjetaAlto);
+    expect(medidas.zonaAlto / medidas.tarjetaAlto).toBeLessThanOrEqual(0.6 + 1 / medidas.tarjetaAlto);
     expect(
       Math.abs(medidas.topZona - medidas.bottomCabecera),
       `top de .zona-imagen (${medidas.topZona}) se aleja > 12px del bottom de .pregunta-cabecera (${medidas.bottomCabecera})`
@@ -5958,6 +5965,181 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     await flecha.click();
     await esperarAsentamientoMazo(page);
     expect(await tarjetaActual(page).getAttribute('data-indice')).not.toBe(indiceAntes);
+    await assertTarjetaSinScroll(page);
+  });
+});
+
+test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', () => {
+  /** Una imagen REAL con dimensiones intrínsecas exactas y sin red: un SVG en data: URI. Los
+   * fixtures PNG 1×1 de `?ejemplo=1` no sirven aquí, porque lo que se está probando es justo que
+   * el FORMATO de la imagen no cambia el alto de la zona. */
+  function imagenFixture(ancho, alto, color) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ancho}" height="${alto}"><rect width="100%" height="100%" fill="${color}"/></svg>`;
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  }
+
+  async function proporcionZona(page) {
+    return page.evaluate(() => {
+      const tarjeta = document.querySelector('.tarjeta-mazo--actual');
+      const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
+      if (!zona) return null;
+      const rZona = zona.getBoundingClientRect();
+      const rTarjeta = tarjeta.getBoundingClientRect();
+      return { zona: rZona.height, tarjeta: rTarjeta.height, ratio: rZona.height / rTarjeta.height };
+    });
+  }
+
+  const VIEWPORTS = [
+    { width: 375, height: 667, nombre: '375' },
+    { width: 390, height: 844, nombre: '390' },
+  ];
+
+  for (const vp of VIEWPORTS) {
+    test(`Duchamp (art-091, imagen real del banco) a ${vp.width}×${vp.height}: la zona mide entre el 50 % y el 60 % de la tarjeta, con cover y el pie DENTRO`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+      // La imagen real de art-091 vive en upload.wikimedia.org: se fuerza un fixture con las
+      // MISMAS dimensiones (900×949) para que el test no dependa de la red, conservando la
+      // pregunta real del banco (tipo `error`, su enunciado, su explicación de 39 palabras).
+      await page.evaluate((url) => window.__one.forzarImagen('art-091', {
+        id: 'art-091', url,
+        pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+        titulo: 'Duchamp Fountaine.jpg', autor: 'Marcel Duchamp', licencia: 'Public domain',
+        leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte',
+        termino: 'Fountain Marcel Duchamp 1917', ancho: 900, alto: 949,
+      }), imagenFixture(900, 949, '#c8c8c8'));
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'duchamp' }));
+
+      const t = tarjetaActual(page);
+      // art-091 es tipo "error" (banco real): cualquier fila revela la tarjeta, la corrección
+      // de la respuesta no afecta a la medida de la zona visual que prueba este test.
+      await responderPreguntaActual(page);
+      await esperarAsentamientoMazo(page);
+      await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+
+      const medidas = await proporcionZona(page);
+      expect(medidas, 'no se encontró .zona-imagen en la tarjeta actual').not.toBeNull();
+      expect(
+        medidas.ratio,
+        `la zona mide ${medidas.zona.toFixed(1)}px de ${medidas.tarjeta.toFixed(1)}px de tarjeta = ${(medidas.ratio * 100).toFixed(1)}%`
+      ).toBeGreaterThanOrEqual(0.5 - 1 / medidas.tarjeta);
+      expect(medidas.ratio).toBeLessThanOrEqual(0.6 + 1 / medidas.tarjeta);
+
+      // La imagen llena la zona y recorta (cover), y el pie está DENTRO de la zona.
+      const detalle = await t.evaluate((tarjeta) => {
+        const zona = tarjeta.querySelector('.zona-imagen');
+        const img = zona.querySelector('img');
+        const pie = zona.querySelector('.imagen-pie');
+        const rZona = zona.getBoundingClientRect();
+        const rImg = img.getBoundingClientRect();
+        const rPie = pie.getBoundingClientRect();
+        return {
+          objectFit: getComputedStyle(img).objectFit,
+          altoImg: rImg.height / rZona.height,
+          anchoImg: rImg.width / rZona.width,
+          pieDentro: rPie.bottom <= rZona.bottom + 1 && rPie.top >= rZona.top - 1,
+          pieSolapa: rPie.top < rZona.bottom,
+          posicionPie: getComputedStyle(pie).position,
+        };
+      });
+      expect(detalle.objectFit).toBe('cover');
+      expect(detalle.altoImg).toBeGreaterThanOrEqual(0.99);
+      expect(detalle.anchoImg).toBeGreaterThanOrEqual(0.99);
+      expect(detalle.posicionPie).toBe('absolute');
+      expect(detalle.pieDentro, 'el pie debe quedar dentro de la zona, superpuesto a la imagen').toBe(true);
+      expect(detalle.pieSolapa).toBe(true);
+
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+    });
+  }
+
+  test('mismo alto para 4 formatos: vertical, apaisada, cuadrada y documento dan la MISMA zona (±1px)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const FORMATOS = [
+      { nombre: 'vertical', ancho: 600, alto: 900 },
+      { nombre: 'apaisada', ancho: 900, alto: 400 },
+      { nombre: 'cuadrada', ancho: 600, alto: 600 },
+      { nombre: 'documento', ancho: 500, alto: 1000 },
+    ];
+    const alturas = [];
+    for (const f of FORMATOS) {
+      await page.evaluate((datos) => window.__one.forzarImagen('art-091', {
+        id: 'art-091', url: datos.url,
+        pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+        titulo: 'formato', autor: 'Autor', licencia: 'Public domain',
+        leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte',
+        termino: 'x', ancho: datos.ancho, alto: datos.alto,
+      }), { url: imagenFixture(f.ancho, f.alto, '#556677'), ancho: f.ancho, alto: f.alto });
+      await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'formatos' }));
+      await responderPreguntaActual(page);
+      await esperarAsentamientoMazo(page);
+      await expect(tarjetaActual(page).locator('[data-test="imagen"]')).toBeVisible();
+      const medidas = await proporcionZona(page);
+      alturas.push({ ...f, altoZona: medidas.zona });
+    }
+    const referencia = alturas[0].altoZona;
+    for (const a of alturas) {
+      expect(
+        Math.abs(a.altoZona - referencia),
+        `la zona con imagen ${a.nombre} (${a.ancho}×${a.alto}) mide ${a.altoZona}px frente a ${referencia}px de la vertical`
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test('el alto lo decide el TEXTO: explicación de 1 frase -> zona al techo (60 %); explicación de 60 palabras -> zona al suelo (50 %)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+
+    const base = {
+      area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: 'El agua hierve a 100 °C al nivel del mar.',
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    };
+    const corta = { ...base, id: 'alto-corta', explicacion: 'A presión normal, sí.' };
+    // 60 palabras, el peor caso real del banco (eco-091 tiene 60).
+    const larga = { ...base, id: 'alto-larga', explicacion: Array.from({ length: 60 }, (_, i) => `palabra${i}`).join(' ') + '.' };
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), corta);
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['alto-corta'], etiqueta: 'alto-corta' }));
+    await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    const conCorta = await proporcionZona(page);
+    expect(conCorta.ratio, `con explicación corta la zona debería llegar al techo, y mide ${(conCorta.ratio * 100).toFixed(1)}%`).toBeGreaterThanOrEqual(0.59);
+    expect(conCorta.ratio).toBeLessThanOrEqual(0.6 + 1 / conCorta.tarjeta);
+    await assertTarjetaSinScroll(page);
+
+    // Estado limpio antes de la segunda medida (mismo motivo que "Tarea 3b: capturas..." más
+    // arriba): sin esto, el XP de responder 'alto-corta' se arrastra y puede cruzar un nivel justo
+    // al responder 'alto-larga', colando un aviso `.cambio-nivel` que la cascada no contempla y
+    // que no tiene nada que ver con lo que este test mide (el efecto del TEXTO sobre la zona).
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), larga);
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['alto-larga'], etiqueta: 'alto-larga' }));
+    await tarjetaActual(page).locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    const conLarga = await proporcionZona(page);
+    expect(conLarga.ratio, `con explicación de 60 palabras la zona debe quedarse en el suelo, y mide ${(conLarga.ratio * 100).toFixed(1)}%`).toBeLessThanOrEqual(0.52);
+    expect(conLarga.ratio).toBeGreaterThanOrEqual(0.5 - 1 / conLarga.tarjeta);
+    await expect(tarjetaActual(page).locator('.explicacion')).toHaveClass(/explicacion--recortada/);
     await assertTarjetaSinScroll(page);
   });
 });
