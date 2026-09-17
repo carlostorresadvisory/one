@@ -330,37 +330,14 @@ main#app {
   justify-content: center;
 }
 
-/* Fila de acción compacta de 44px tras responder (spec v0.1d §2, sustituye a
-   la vieja pareja "fila-esta-mal" + botón Siguiente a todo el ancho): "esta
-   pregunta está mal" (o "Anotado" en su lugar) a la izquierda, "Siguiente ›"
-   a la derecha, en una sola fila. env(safe-area-inset-bottom) lo sigue dando
-   el padding de .tarjeta-mazo, sin tocar aquí. */
+/* La fila de acción ya solo lleva "esta pregunta está mal" / "Anotado" (spec v0.2a.2.1 §1.2.4):
+   sin el botón "Siguiente ›" al otro extremo, ni reparte espacio ni necesita 44px de alto. */
 .fila-accion {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
-  min-height: 44px;
-}
-
-/* Dentro de esta fila el enlace va pegado a la izquierda: justify-content ya
-   reparte el espacio entre los dos extremos, así que el margin-left:auto de
-   la regla base (pensado para cuando iba solo en su propia fila) sobra aquí. */
-.fila-accion .enlace-discreto {
-  margin-left: 0;
-}
-
-/* "Siguiente ›" compacto (spec v0.1d §2: "ancho al contenido + 20px de
-   padding, alto 44px"), no ya a todo el ancho de la tarjeta: en una fila
-   flex-direction:row los botones no se estiran por defecto (a diferencia de
-   la columna de antes), así que basta con ajustar el padding. */
-.boton-siguiente {
-  height: 44px;
-  padding: 0 20px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
+  min-height: 0;
 }
 
 /* Fila de confianza (spec v0.1c §2.3): vive DENTRO de cada tarjeta del mazo
@@ -437,12 +414,12 @@ main#app {
   color: #04121a;
 }
 
-/* "esta pregunta está mal": texto pequeño y discreto (es solo para depurar el
-   banco, no es la acción principal). */
+/* "esta pregunta está mal": 12px, discreto y sin área táctil de 44px -- es una herramienta para
+   depurar el banco, no una acción del juego, y esos 24px de más salían del alto de la visual. */
 .enlace-discreto {
-  margin-left: auto;
-  min-height: 44px;
-  padding: 0 4px;
+  margin-left: 0;
+  min-height: 20px;
+  padding: 0 2px;
   display: inline-flex;
   align-items: center;
   background: none;
@@ -454,8 +431,7 @@ main#app {
 
 /* Con display:inline-flex declarado arriba, el atributo hidden del navegador
    queda sin efecto (mismo patrón ya conocido en esta hoja: .items .numero,
-   .feedback, .vista...): "esta pregunta está mal" se oculta cuando ya está
-   Anotado (spec v0.1d §2, misma fila que "Siguiente"). */
+   .feedback, .vista...): "esta pregunta está mal" se oculta cuando ya está Anotado. */
 .enlace-discreto[hidden] { display: none; }
 
 /* --- pregunta --- */
@@ -831,80 +807,86 @@ main#app {
   gap: 8px;
 }
 
-/* Zona de acción de CADA tarjeta, anclada a su borde inferior (spec v0.1c
-   §4.1 punto 6): antes de responder, FALSO/VERDADERO en vf; después, "Preguntar
-   a" (§5) + "esta pregunta está mal" + Siguiente (esta última pareja, salvo
-   soloLectura: en el repaso solo queda "Preguntar a"). */
+/* Zona de acción de CADA tarjeta, anclada a su borde inferior (spec v0.2a.2.1 §1.2): antes de
+   responder, FALSO/VERDADERO en vf; después, de arriba abajo, confianza (salvo soloLectura) ->
+   "Preguntar a" + flecha -> "esta pregunta está mal" (esta última, salvo soloLectura). Gap de 6px
+   (bajado desde 8) para apretar las tres filas: la zona entera tiene un tope duro del 25 % de la
+   tarjeta (spec §1.2.5). */
 .tarjeta-accion {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .tarjeta-accion:empty { display: none; }
 
-/* "Preguntar a" (spec v0.1c §5, nombres bajo cada botón en v0.1d §5): fila con
-   la etiqueta y tres columnas icono(44×44, borde cian)+nombre(11px), cada una
-   abre ChatGPT/Claude/Gemini con el prompt de esta pregunta precargado en la
-   URL. Viven en la zona de acción de cada tarjeta respondida (partida y
-   repaso, construirTarjetaRespondida en app.js). La fila crece a ~64px
-   (botón 44 + gap + nombre) por el nombre añadido debajo. */
+/* "Preguntar a" en chips de solo texto (spec v0.2a.2.1 §1.2.2): una sola fila con la etiqueta,
+   los tres chips y la flecha ↓ pegada a la derecha. Sin `flex-wrap`: si algún día no cupieran,
+   preferimos que los chips se aprieten (tienen `min-width:0` y `text-overflow`) a que la fila se
+   parta en dos y coma el alto que necesita la visual. */
 .preguntar-a {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .preguntar-a-etiqueta {
-  font-size: 13px;
-  color: var(--texto-suave);
-  margin-right: 2px;
-  align-self: center;
-}
-
-.preguntar-a-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.preguntar-a-boton {
   flex: none;
-  width: 44px;
-  height: 44px;
-  display: flex;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+
+.preguntar-a-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--acento);
-  border-radius: 10px;
+  border: 1px solid var(--acento);
+  border-radius: 14px;
   color: var(--acento);
   text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: opacity 0.1s ease;
 }
 
-.preguntar-a-boton svg {
-  width: 20px;
-  height: 20px;
-}
-
-.preguntar-a-nombre {
-  font-size: 11px;
-  color: var(--texto-suave);
-}
-
-/* Los <a> no cogen la regla general "button:focus-visible": mismo tratamiento
-   (borde cian, separado del botón) para que el foco de teclado se note igual. */
-.preguntar-a-boton:focus-visible {
+/* Los <a> no cogen la regla general "button:focus-visible": mismo tratamiento que tenían los
+   botones de 44px, para que el foco de teclado se siga notando igual. */
+.preguntar-a-chip:focus-visible {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
 }
 
-.preguntar-a-boton:active {
-  opacity: 0.6;
+.preguntar-a-chip:active { opacity: 0.6; }
+
+/* Flecha ↓ (spec §1.2.3), 36×36 y pegada al borde derecho de la misma fila. Sustituye al botón
+   "Siguiente ›" (44px de alto en su propia fila): apunta hacia abajo porque ese es el sentido del
+   desplazamiento del mazo, el gesto que ya existía y que la flecha solo hace descubrible. */
+.boton-flecha {
+  flex: none;
+  margin-left: auto;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #04121a;
+  font-size: 18px;
+  line-height: 1;
 }
+
+.boton-flecha:active { transform: scale(0.95); }
 
 /* Respuesta ya fija, vista compacta (spec v0.1c §4.1 punto 4: máximo 2 líneas
    en test4/error, 4 en ordenar, 1 en vf). */

@@ -1673,7 +1673,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('2/2');
   });
 
-  test('mazo v0.1d §2: fila de acción compacta de 44px tras responder', async ({ page }) => {
+  test('v0.2a.2.1 §1.2.4: "esta pregunta está mal" en su propia línea bajo los chips, y "Anotado" en su sitio', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -1686,15 +1686,12 @@ test.describe('ONE · integración e2e', () => {
     const fila = t.locator('.fila-accion');
     await expect(fila).toBeVisible();
     const cajaFila = await fila.boundingBox();
-    expect(cajaFila.height).toBeGreaterThanOrEqual(40);
-    expect(cajaFila.height).toBeLessThanOrEqual(48);
+    expect(cajaFila.height).toBeLessThanOrEqual(28); // 12px de texto, ya no 44
 
-    // "esta pregunta está mal" a la izquierda, "Siguiente ›" a la derecha, EN
-    // LA MISMA fila (no una debajo de otra, como en v0.1c).
+    // La flecha ↓ vive en la fila de los chips, POR ENCIMA: ya no comparte fila con el enlace.
     const cajaEstaMal = await t.locator('[data-test="esta-mal"]').boundingBox();
-    const cajaSiguiente = await t.locator('[data-test="siguiente"]').boundingBox();
-    expect(Math.abs(cajaEstaMal.y - cajaSiguiente.y)).toBeLessThan(12);
-    expect(cajaEstaMal.x).toBeLessThan(cajaSiguiente.x);
+    const cajaFlecha = await t.locator('[data-test="siguiente"]').boundingBox();
+    expect(cajaFlecha.y + cajaFlecha.height).toBeLessThanOrEqual(cajaEstaMal.y + 2);
 
     // "esta pregunta está mal" -> "Anotado" ocupa el mismo sitio, sin fila aparte.
     await t.locator('[data-test="esta-mal"]').click();
@@ -5869,5 +5866,98 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     // hay que comprobar que el clon no duplica el `data-test` de la tarjeta que sigue debajo.
     await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1);
     await expect(overlay.locator('.visual-completa-clave')).toHaveCount(1);
+  });
+});
+
+test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
+  test('sin botón "Siguiente ›": la flecha ↓ de 36px pasa de pregunta, la confianza va encima de los chips y la acción ocupa ≤25% de la tarjeta', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+
+    // 1. No existe NINGÚN botón con el texto viejo.
+    await expect(page.getByRole('button', { name: 'Siguiente ›' })).toHaveCount(0);
+    await expect(t.locator('.boton-siguiente')).toHaveCount(0);
+
+    // 2. `data-test="siguiente"` SE CONSERVA, ahora sobre la flecha de 36×36.
+    const flecha = t.locator('[data-test="siguiente"]');
+    await expect(flecha).toBeVisible();
+    await expect(flecha).toHaveAttribute('aria-label', 'Siguiente');
+    const cajaFlecha = await flecha.boundingBox();
+    expect(cajaFlecha.width).toBeGreaterThanOrEqual(34);
+    expect(cajaFlecha.width).toBeLessThanOrEqual(40);
+    expect(cajaFlecha.height).toBeGreaterThanOrEqual(34);
+    expect(cajaFlecha.height).toBeLessThanOrEqual(40);
+
+    // 3. Chips de solo texto, ≤32px de alto, en la MISMA fila que la flecha y a su izquierda.
+    const chip = t.locator('[data-test="preguntar-chatgpt"]');
+    await expect(chip).toHaveText('ChatGPT');
+    await expect(chip).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
+    const cajaChip = await chip.boundingBox();
+    expect(cajaChip.height).toBeLessThanOrEqual(32);
+    expect(Math.abs(cajaChip.y + cajaChip.height / 2 - (cajaFlecha.y + cajaFlecha.height / 2))).toBeLessThan(10);
+    expect(cajaChip.x).toBeLessThan(cajaFlecha.x);
+
+    // 4. La confianza está POR ENCIMA de "Preguntar a" en el eje Y, y dentro de .tarjeta-accion.
+    const cajaConfianza = await t.locator('[data-test="confianza"]').boundingBox();
+    const cajaPreguntar = await t.locator('[data-test="preguntar-a"]').boundingBox();
+    expect(cajaConfianza.y + cajaConfianza.height).toBeLessThanOrEqual(cajaPreguntar.y + 2);
+    const confianzaEnAccion = await t.evaluate((tarjeta) => {
+      const fila = tarjeta.querySelector('.confianza-fila');
+      return Boolean(fila && fila.closest('.tarjeta-accion'));
+    });
+    expect(confianzaEnAccion, 'la fila de confianza debe vivir dentro de .tarjeta-accion').toBe(true);
+
+    // 5. "esta pregunta está mal" en su propia línea BAJO los chips.
+    const cajaEstaMal = await t.locator('[data-test="esta-mal"]').boundingBox();
+    expect(cajaEstaMal.y).toBeGreaterThanOrEqual(cajaPreguntar.y + cajaPreguntar.height - 2);
+
+    // 6. La zona de acción entera ≤25% de la tarjeta (spec §1.2.5).
+    const proporcion = await t.evaluate((tarjeta) => {
+      const accion = tarjeta.querySelector('.tarjeta-accion');
+      return accion.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+    });
+    expect(proporcion, `la zona de acción ocupa el ${(proporcion * 100).toFixed(1)}% de la tarjeta`).toBeLessThanOrEqual(0.25);
+
+    // 7. La flecha pasa de pregunta de verdad. `mazo-contador` no sirve de señal aquí: refleja
+    // "respondidas/total" (contadorTextoPartida en app.js), así que se repinta igual en TODAS las
+    // tarjetas visibles y no cambia con la mera navegación (confirmado por un e2e ya existente,
+    // "Sigue siendo LA MISMA partida", que depende justo de que NO cambie). `data-indice` (mazo.js)
+    // sí identifica la tarjeta por posición y es la misma señal que usa el test de repaso de abajo.
+    const indiceAntes = await tarjetaActual(page).getAttribute('data-indice');
+    await flecha.click();
+    await esperarAsentamientoMazo(page);
+    expect(await tarjetaActual(page).getAttribute('data-indice')).not.toBe(indiceAntes);
+  });
+
+  test('en el repaso (soloLectura) hay chips y flecha, pero ni confianza ni "está mal"; la flecha avanza el mazo', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="repaso-hub"]').click();
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    const t = tarjetaActual(page);
+    await expect(t.locator('[data-test="preguntar-chatgpt"]')).toBeVisible();
+    await expect(t.locator('[data-test="confianza"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="esta-mal"]')).toHaveCount(0);
+
+    const flecha = t.locator('[data-test="siguiente"]');
+    await expect(flecha).toBeVisible();
+    const indiceAntes = await tarjetaActual(page).getAttribute('data-indice');
+    await flecha.click();
+    await esperarAsentamientoMazo(page);
+    expect(await tarjetaActual(page).getAttribute('data-indice')).not.toBe(indiceAntes);
+    await assertTarjetaSinScroll(page);
   });
 });

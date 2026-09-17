@@ -1794,6 +1794,15 @@ function irASiguienteHueco() {
   }
 }
 
+/** Avanza el mazo que esté visible (spec v0.2a.2.1 §1.2.3: la flecha también existe en el repaso,
+ * donde `irASiguienteHueco` no sirve — usa `mazoControlador`, que es el de la PARTIDA, y llama a
+ * `finalizarPartida` al llegar al final). `mazosActivos` ya se importa de mazo.js (app.js:20) y
+ * cada controlador sabe si su vista está visible. */
+function avanzarMazoVisible() {
+  const visible = mazosActivos.find((m) => m.estaVisible());
+  if (visible) visible.siguiente();
+}
+
 function finalizarPartida() {
   // La partida ha terminado: se desmonta el mazo (listeners de puntero y de
   // teclado incluidos) para no dejar nada colgado mientras se ve el resumen;
@@ -2466,31 +2475,10 @@ function respuestaCorrectaTexto(pregunta) {
 // [data-test="preguntar-a"] de construirTarjetaRespondida (partida y repaso).
 // ============================================================================
 
-// Iconos SVG inline, monocromos (heredan el color cian del botón vía
-// currentColor): ChatGPT una flor de 6 pétalos simplificada, Claude un
-// asterisco de 8 rayos, Gemini una estrella/destello de 4 puntas.
-const SVG_PREGUNTAR_CHATGPT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(0 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(60 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(120 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(180 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(240 12 12)"/>
-  <ellipse cx="12" cy="7.3" rx="2.1" ry="3.8" transform="rotate(300 12 12)"/>
-</svg>`;
-const SVG_PREGUNTAR_CLAUDE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
-  <line x1="12" y1="2.5" x2="12" y2="21.5"/>
-  <line x1="2.5" y1="12" x2="21.5" y2="12"/>
-  <line x1="5.4" y1="5.4" x2="18.6" y2="18.6"/>
-  <line x1="18.6" y1="5.4" x2="5.4" y2="18.6"/>
-</svg>`;
-const SVG_PREGUNTAR_GEMINI = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-  <path d="M12 2.5c0.9 5.6 3 7.7 8.6 8.6-5.6 0.9-7.7 3-8.6 8.6-0.9-5.6-3-7.7-8.6-8.6 5.6-0.9 7.7-3 8.6-8.6Z"/>
-</svg>`;
-
 const DESTINOS_PREGUNTAR_A = [
-  { clave: 'chatgpt', nombre: 'ChatGPT', icono: SVG_PREGUNTAR_CHATGPT, url: (q) => `https://chatgpt.com/?q=${q}` },
-  { clave: 'claude', nombre: 'Claude', icono: SVG_PREGUNTAR_CLAUDE, url: (q) => `https://claude.ai/new?q=${q}` },
-  { clave: 'gemini', nombre: 'Gemini', icono: SVG_PREGUNTAR_GEMINI, url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
+  { clave: 'chatgpt', nombre: 'ChatGPT', url: (q) => `https://chatgpt.com/?q=${q}` },
+  { clave: 'claude', nombre: 'Claude', url: (q) => `https://claude.ai/new?q=${q}` },
+  { clave: 'gemini', nombre: 'Gemini', url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
 ];
 
 /** Prompt en español, literal de la spec v0.1d §5 (feedback de Carlos: "el
@@ -2501,12 +2489,11 @@ function construirPromptPreguntarA(pregunta) {
   return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, apóyate en algo visual siempre que ayude (un esquema en texto, una tabla comparativa, una línea de tiempo o una fórmula sencilla), y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
 }
 
-/** Fila "Preguntar a:" (spec v0.1c §5, nombres añadidos en v0.1d §5): etiqueta
- * + tres columnas icono(44×44)+nombre(11px), cada `<a>` con borde cian, icono
- * monocromo, aria-label y el prompt de ESTA pregunta ya codificado en la URL.
- * `target="_blank" rel="noopener"`: abren aparte. El nombre visible es
- * `aria-hidden`: el aria-label del enlace ya lo dice, no hace falta leerlo dos
- * veces con lector de pantalla. */
+/** Fila "Preguntar a:" (spec v0.2a.2.1 §1.2.2): chips pequeños de SOLO TEXTO. Los iconos SVG de
+ * 44×44 con el nombre debajo (v0.1d §5) ocupaban ~64px de alto en una zona de acción que ahora
+ * tiene un tope duro del 25 % de la tarjeta para que la visual pueda llegar a su 50 % real. La
+ * URL, el `data-test` y el `aria-label` de cada destino no cambian: los e2e que los usan siguen
+ * valiendo tal cual. */
 function construirPreguntarA(pregunta) {
   const frag = document.createDocumentFragment();
 
@@ -2517,26 +2504,15 @@ function construirPreguntarA(pregunta) {
 
   const prompt = encodeURIComponent(construirPromptPreguntarA(pregunta));
   for (const destino of DESTINOS_PREGUNTAR_A) {
-    const item = document.createElement('div');
-    item.className = 'preguntar-a-item';
-
     const enlace = document.createElement('a');
-    enlace.className = 'preguntar-a-boton';
+    enlace.className = 'preguntar-a-chip';
     enlace.dataset.test = `preguntar-${destino.clave}`;
     enlace.href = destino.url(prompt);
     enlace.target = '_blank';
     enlace.rel = 'noopener';
     enlace.setAttribute('aria-label', `Preguntar a ${destino.nombre}`);
-    enlace.innerHTML = destino.icono;
-    item.appendChild(enlace);
-
-    const nombre = document.createElement('span');
-    nombre.className = 'preguntar-a-nombre';
-    nombre.textContent = destino.nombre;
-    nombre.setAttribute('aria-hidden', 'true');
-    item.appendChild(nombre);
-
-    frag.appendChild(item);
+    enlace.textContent = destino.nombre;
+    frag.appendChild(enlace);
   }
   return frag;
 }
@@ -3056,13 +3032,15 @@ function alKeydownContenedorTarjetas(ev) {
  * misma línea — spec v0.1d §1), **visual protagonista** (imagen de Commons,
  * si no visual de datos, si no la tarjeta tipográfica: SIEMPRE una de las
  * tres, nunca vacío), enunciado compacto, respuesta compacta + resumen a una
- * línea (para tarjeta--compacta-1), feedback (con la explicación) y, salvo
- * soloLectura, la fila de confianza justo encima de la zona de acción. En la
- * zona de acción: "Preguntar a" (construirPreguntarA) y, salvo soloLectura,
- * la fila compacta de 44px "esta pregunta está mal" + Siguiente (spec v0.1d
- * §2). Único toque permitido en esta tarjeta, aparte de esos cuatro
- * controles: ninguno — spec v0.1d §3/§4 (Carlos, 13-sep 10:15) quita toda
- * alternancia de despliegue/plegado, así que ni la explicación, ni la
+ * línea (para tarjeta--compacta-1) y feedback (con la explicación). La zona
+ * de acción (spec v0.2a.2.1 §1.2, tope duro del 25 % de la tarjeta) vive
+ * fuera de `.tarjeta-contenido` y lleva, de arriba abajo: la fila de
+ * confianza (salvo soloLectura), "Preguntar a" en chips de texto con la
+ * flecha ↓ de 36px pegada a la derecha (construirPreguntarA) y, salvo
+ * soloLectura, "esta pregunta está mal" en su propia línea. Único toque
+ * permitido en esta tarjeta, aparte de esos controles: ninguno — spec v0.1d
+ * §3/§4 (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado,
+ * así que ni la explicación, ni la
  * respuesta compacta, ni la imagen tienen listener. `contadorTexto` lo
  * decide cada llamador ("3/10" en partida, "n/N" en repaso): ver
  * manejarRespuesta y construirTarjetaRepaso. `marca` (spec §8) solo la pasa
@@ -3145,27 +3123,40 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
 
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
 
-  // La confianza va justo ENCIMA de tarjeta-accion (spec §8, Ruling R4): como
-  // último hijo de tarjeta-contenido queda pegada visualmente justo por
-  // encima de esa zona hermana. Solo en la partida (soloLectura:false): el
-  // repaso no la construye en absoluto (soloLectura:true, ver más abajo).
-  if (!soloLectura) contenido.appendChild(construirFilaConfianza(hueco));
-
   tarjeta.appendChild(contenido);
 
+  // Zona de acción (spec v0.2a.2.1 §1.2), de arriba abajo: confianza -> chips + flecha ->
+  // "esta pregunta está mal". La confianza sube aquí desde `.tarjeta-contenido` para que TODO lo
+  // que no es contenido viva en la misma caja medible: el e2e comprueba que esta zona no pasa del
+  // 25 % de la tarjeta, que es lo que deja sitio al 50 % de la visual.
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
+
+  if (!soloLectura) zonaAccion.appendChild(construirFilaConfianza(hueco));
+
   const anclaPreguntarA = document.createElement('div');
   anclaPreguntarA.className = 'preguntar-a';
   anclaPreguntarA.dataset.test = 'preguntar-a';
   anclaPreguntarA.appendChild(construirPreguntarA(pregunta));
+
+  // Flecha ↓ en vez del botón "Siguiente ›" (spec §1.2.3): apunta hacia ABAJO porque ese es el
+  // sentido del desplazamiento del mazo. Conserva `data-test="siguiente"` a propósito, para no
+  // romper los ~30 e2e que lo usan para avanzar. En el repaso avanza el mazo visible; en la
+  // partida sigue siendo `irASiguienteHueco`, que además cierra la partida en la última.
+  const flecha = document.createElement('button');
+  flecha.type = 'button';
+  flecha.className = 'boton-flecha';
+  flecha.dataset.test = 'siguiente';
+  flecha.setAttribute('aria-label', 'Siguiente');
+  flecha.textContent = '↓';
+  flecha.addEventListener('click', soloLectura ? avanzarMazoVisible : irASiguienteHueco);
+  anclaPreguntarA.appendChild(flecha);
+
   zonaAccion.appendChild(anclaPreguntarA);
 
   if (!soloLectura) {
-    // Fila de acción compacta de 44px (spec v0.1d §2): "esta pregunta está
-    // mal" a la izquierda (o "Anotado" en su lugar, tras tocarlo) y
-    // "Siguiente ›" a la derecha, en UNA sola fila — ya no hay fila aparte
-    // para el enlace ni un botón Siguiente a todo el ancho.
+    // "esta pregunta está mal" queda como enlace discreto de 12px en su PROPIA línea bajo los
+    // chips (spec §1.2.4): ya no comparte fila con ningún botón, porque ya no hay ninguno.
     const filaAccion = document.createElement('div');
     filaAccion.className = 'fila-accion';
 
@@ -3182,13 +3173,6 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
     reportadaTexto.textContent = 'Anotado';
     reportadaTexto.hidden = !hueco.reportada;
     filaAccion.appendChild(reportadaTexto);
-
-    const botonSiguiente = document.createElement('button');
-    botonSiguiente.className = 'boton boton-principal boton-siguiente';
-    botonSiguiente.dataset.test = 'siguiente';
-    botonSiguiente.textContent = 'Siguiente ›';
-    botonSiguiente.addEventListener('click', irASiguienteHueco);
-    filaAccion.appendChild(botonSiguiente);
 
     zonaAccion.appendChild(filaAccion);
   }
