@@ -1217,9 +1217,11 @@ test.describe('ONE · integración e2e', () => {
   // responder." Se usa la explicación MÁS LARGA de TODO el banco real (no
   // solo ordenar/error, a diferencia del test de más abajo) con una imagen
   // forzada encima: la imagen debe seguir viéndose (aunque sea a su mínimo de
-  // 90px) y la explicación debe verse ENTERA, sin recorte y sin ningún toque
-  // — son las respuestas y/o el enunciado quienes ceden espacio antes.
-  test('mazo v0.1d §3/§4: peor caso (explicación más larga del banco + imagen) — la imagen se queda, la explicación se ve entera, sin tocar nada', async ({ page }) => {
+  // 90px). Actualizado en la Tarea 5 (v0.2a.2.1 §1.4): con la visual fija al
+  // 50 % (spec §1.1) esta explicación de 60 palabras ya NO cabe entera -- se
+  // recorta y, por eso mismo, se vuelve tocable (excepción explícita de
+  // Carlos, 17-sep) en vez de verse entera sin recorte como antes.
+  test('v0.2a.2.1: peor caso (explicación más larga del banco + imagen) — la imagen se queda al 50 %, la explicación se recorta y se abre tocándola', async ({ page }) => {
     await page.goto('/');
     const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
     const peor = banco.reduce(
@@ -1271,21 +1273,26 @@ test.describe('ONE · integración e2e', () => {
       const cajaImagen = await imagen.boundingBox();
       expect(cajaImagen.height).toBeGreaterThanOrEqual(88);
 
-      // La explicación se ve ENTERA (sin recortar), sin ningún toque: son las
-      // respuestas y/o el enunciado los que han cedido espacio antes.
+      // El texto ENTERO sigue en el DOM (el recorte es solo visual: line-clamp), pero ya no cabe
+      // a la vista con la visual en su 50 % -- y entonces se puede tocar (spec §1.4.2).
       const explicacion = t.locator('[data-test="explicacion"]');
       await expect(explicacion).toBeVisible();
       expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
+      await expect(explicacion).toHaveClass(/explicacion--recortada/);
 
-      // Sin ningún listener de alternancia en la tarjeta respondida (cambio de
-      // contrato de Carlos, 13-sep 10:15: "evitar cantidad de clics"): tocar
-      // la explicación o la respuesta compacta no cambia nada del DOM.
+      const overlay = page.locator('[data-test="visual-completa"]');
+      await explicacion.click();
+      await expect(overlay).toBeVisible();
+      await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText(peor.explicacion.trim().slice(-30));
+      await page.keyboard.press('Escape');
+      await expect(overlay).toBeHidden();
+
+      // La respuesta compacta sigue SIN reaccionar al toque: la excepción del §1.4.2 es solo para
+      // el texto recortado, no una vuelta a las alternancias de v0.1c.
       const claseAntes = await t.getAttribute('class');
-      await explicacion.click({ force: true });
       await t.locator('.zona-respuesta').click({ force: true }).catch(() => {});
       expect(await t.getAttribute('class')).toBe(claseAntes);
-      await expect(explicacion).toBeVisible();
-      expect((await explicacion.textContent()).trim()).toBe(peor.explicacion.trim());
+      expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
 
       await page.screenshot({ path: `${CAPTURAS}/v0.1d-peor-caso-imagen-explicacion-${sufijo}.png` });
     }
@@ -6111,6 +6118,29 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
       expect(detalle.pieDentro, 'el pie debe quedar dentro de la zona, superpuesto a la imagen').toBe(true);
       expect(detalle.pieSolapa).toBe(true);
 
+      // Ruling R11 (encargo del coordinador, cobertura pedida por la revisión de la Tarea 4):
+      // a 375×667, art-091 (tipo "error", banco real) SÍ llega al último recurso de la cascada
+      // -- comprobado en vivo (script de un solo uso contra el servidor local, no un e2e): con
+      // `.titulo-tarjeta`/`.instruccion-error` propios del tipo "error" más un cambio de nivel al
+      // fallar la fila 0, ni (a)-(f) bastan (ver el comentario del paso (g) en ajustarEncaje,
+      // mazo.js). A 390×844 no se ha confirmado que se llegue a este último recurso -- por eso la
+      // aserción va condicionada al viewport donde SÍ se midió, no forzada para los dos.
+      if (vp.width === 375) {
+        const minimo = await t.evaluate((tarjeta) => {
+          const seleccionables = ['.titulo-tarjeta', '.instruccion-error', '.cambio-nivel', '.cambio-nivel-area'];
+          return {
+            aplicado: tarjeta.classList.contains('tarjeta--feedback-minimo'),
+            ocultos: seleccionables
+              .map((sel) => tarjeta.querySelector(sel))
+              .filter(Boolean)
+              .map((el) => getComputedStyle(el).display),
+          };
+        });
+        expect(minimo.aplicado, 'tarjeta--feedback-minimo debería aplicarse a art-091 a 375×667').toBe(true);
+        expect(minimo.ocultos.length, 'no se encontró ninguno de los 4 elementos en la tarjeta de art-091').toBeGreaterThan(0);
+        for (const display of minimo.ocultos) expect(display).toBe('none');
+      }
+
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
     });
@@ -6217,5 +6247,100 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     expect(conLarga.ratio).toBeLessThanOrEqual(0.6 + 1 / conLarga.tarjeta);
     await expect(tarjetaActual(page).locator('.explicacion')).toHaveClass(/explicacion--recortada/);
     await assertTarjetaSinScroll(page);
+  });
+});
+
+test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
+  const EXPLICACION_60 = Array.from({ length: 60 }, (_, i) => `palabra${i}`).join(' ') + '.';
+
+  async function partidaConExplicacion(page, explicacion, id) {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id, area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: 'El agua hierve a 100 °C al nivel del mar.',
+      explicacion, confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+    await page.evaluate((ids) => window.__one.empezarPartida({ ids: [ids], etiqueta: 'recorte' }), id);
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+    return t;
+  }
+
+  test('explicación recortada: es tocable, abre la superposición con el texto ENTERO, Escape la cierra y devuelve el foco', async ({ page }) => {
+    const t = await partidaConExplicacion(page, EXPLICACION_60, 'txt-larga');
+    const explicacion = t.locator('[data-test="explicacion"]');
+    await expect(explicacion).toHaveClass(/explicacion--recortada/);
+    await expect(explicacion).toHaveAttribute('role', 'button');
+    await expect(explicacion).toHaveAttribute('tabindex', '0');
+    await expect(t.locator('.explicacion-ver-todo')).toBeVisible();
+
+    await explicacion.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Explicación');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('palabra59');
+    // El foco arranca en el botón de cierre, igual que con una imagen.
+    expect(await page.evaluate(() => document.activeElement === document.querySelector('[data-test="visual-cerrar"]'))).toBe(true);
+
+    await page.keyboard.press('Escape');
+    expect(await overlay.evaluate((el) => el.hidden)).toBe(true);
+    // El foco vuelve al propio párrafo (tiene tabindex=0 mientras está recortado).
+    expect(await page.evaluate(() => document.activeElement === document.querySelector('.tarjeta-mazo--actual .explicacion'))).toBe(true);
+    await assertTarjetaSinScroll(page);
+  });
+
+  test('explicación entera: NO reacciona al toque ni lleva role/tabindex', async ({ page }) => {
+    const t = await partidaConExplicacion(page, 'A presión normal, sí.', 'txt-corta');
+    const explicacion = t.locator('[data-test="explicacion"]');
+    await expect(explicacion).not.toHaveClass(/explicacion--recortada/);
+    expect(await explicacion.getAttribute('role')).toBeNull();
+    expect(await explicacion.getAttribute('tabindex')).toBeNull();
+    await expect(t.locator('.explicacion-ver-todo')).toBeHidden();
+
+    await explicacion.click();
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  test('enunciado recortado: abre la superposición con el título "Pregunta"', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    const enunciadoLargo = `¿Cuál es la respuesta? ${'Contexto muy largo que no cabe de ninguna manera. '.repeat(8)}`;
+    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
+      id: 'txt-enunciado', area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
+      enunciado: enunciadoLargo, explicacion: EXPLICACION_60,
+      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+    });
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['txt-enunciado'], etiqueta: 'recorte-enunciado' }));
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await esperarAsentamientoMazo(page);
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).toHaveClass(/enunciado--recortado/);
+    await enunciado.click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+    await expect(overlay.locator('[data-test="visual-completa-titulo"]')).toHaveText('Pregunta');
+    await expect(overlay.locator('[data-test="visual-completa-texto"]')).toContainText('Contexto muy largo');
+    await page.keyboard.press('Escape');
+    await expect(overlay).toBeHidden();
+  });
+
+  test('un deslizamiento que arranca en la explicación recortada (>10px) NO abre la superposición', async ({ page }) => {
+    const t = await partidaConExplicacion(page, EXPLICACION_60, 'txt-desliz');
+    const caja = await t.locator('[data-test="explicacion"]').boundingBox();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2 - 60, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
   });
 });

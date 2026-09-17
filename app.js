@@ -2639,6 +2639,18 @@ function construirBloqueFeedback(pregunta, hueco) {
   explicacion.textContent = pregunta.explicacion;
   feedback.appendChild(explicacion);
 
+  // Indicador de que hay más texto (spec §1.4.2). Va como HERMANO en posición absoluta, no dentro
+  // del <p>: cualquier cosa dentro del párrafo la recortaría el propio `line-clamp` junto con el
+  // texto, y un nodo en el flujo sumaría ~16px de alto justo cuando la cascada está peleando por
+  // cada pixel. `pointer-events:none` + `aria-hidden` porque el objetivo táctil y el nombre
+  // accesible son el propio párrafo (mazo.js#marcarRecorte le pone role/aria-label).
+  const verTodo = document.createElement('span');
+  verTodo.className = 'explicacion-ver-todo';
+  verTodo.dataset.test = 'explicacion-ver-todo';
+  verTodo.setAttribute('aria-hidden', 'true');
+  verTodo.textContent = 'ver todo';
+  feedback.appendChild(verTodo);
+
   pintarFeedback(feedback, pregunta, hueco.correcta, hueco.delta);
   return feedback;
 }
@@ -2950,7 +2962,16 @@ function abrirVisualCompleta(zona) {
   if (pie) nodoVisualCompletaPie.appendChild(pie);
   nodoVisualCompletaPie.hidden = !pie;
 
-  zonaImagenAbrio = zona;
+  abrirSuperposicion(zona);
+}
+
+/** Tramo común de las dos aperturas de `.visual-completa` (visual y texto): deja `<main>` inert,
+ * relanza el fundido de 160ms, guarda quién abrió (para devolverle el foco al cerrar) y manda el
+ * foco al botón de cierre, que es el único elemento enfocable del diálogo. Extraído de
+ * `abrirVisualCompleta` sin cambiarle nada: la superposición se comporta igual con una imagen
+ * dentro que con un párrafo. */
+function abrirSuperposicion(origen) {
+  zonaImagenAbrio = origen;
   nodoVisualCompleta.hidden = false;
   // Ronda final de revisión (Important #1): `<main>` queda `inert` mientras la superposición está
   // abierta -- sin foco, sin toques/clics y fuera del árbol de accesibilidad para todo lo de debajo
@@ -2970,6 +2991,36 @@ function abrirVisualCompleta(zona) {
   if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
 }
 
+/** Texto entero a pantalla completa (spec v0.2a.2.1 §1.4.2/§1.4.3): la MISMA superposición que la
+ * visual, en modo texto. Solo se llama desde un elemento ya marcado como recortado por
+ * `mazo.js#marcarRecorte` -- una explicación o un enunciado que caben enteros no llegan aquí. */
+function abrirTextoCompleto(el, titulo) {
+  if (!nodoVisualCompleta.hidden) return; // misma guarda de doble apertura que abrirVisualCompleta
+
+  nodoVisualCompletaMedio.innerHTML = '';
+  const caja = document.createElement('div');
+  caja.className = 'visual-completa-texto';
+  caja.dataset.test = 'visual-completa-texto';
+
+  const rotulo = document.createElement('p');
+  rotulo.className = 'visual-completa-texto-titulo';
+  rotulo.dataset.test = 'visual-completa-titulo';
+  rotulo.textContent = titulo;
+  caja.appendChild(rotulo);
+
+  const cuerpo = document.createElement('p');
+  cuerpo.className = 'visual-completa-texto-cuerpo';
+  // `textContent` del original: el recorte es solo visual (line-clamp), así que el texto entero
+  // ya está en el DOM de la tarjeta -- no hay que volver a buscarlo en la pregunta.
+  cuerpo.textContent = el.textContent;
+  caja.appendChild(cuerpo);
+
+  nodoVisualCompletaMedio.appendChild(caja);
+  nodoVisualCompletaPie.innerHTML = '';
+  nodoVisualCompletaPie.hidden = true;
+  abrirSuperposicion(el);
+}
+
 /** Cierra la superposición y devuelve el foco a un sitio seguro (spec §8 + Ronda final, Important
  * #1: ver enfocarTrasCerrarVisualCompleta). Vacía el "medio" y el pie al cerrar: sin esto, el clon
  * de una imagen grande (o su pie, con el enlace a Commons) se quedaría colgado del DOM oculto hasta
@@ -2986,17 +3037,22 @@ function cerrarVisualCompleta() {
   enfocarTrasCerrarVisualCompleta(zona);
 }
 
-/** Toque en `.zona-imagen` vs. deslizamiento del mazo (spec §8, decisión del controlador): mismo
- * umbral que el `ARRANQUE` de mazo.js (10px) entre el `pointerdown` y el `click` que abriría la
- * superposición — con más desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se
- * rastrea aparte de mazo.js (que sigue recibiendo el mismo `pointerdown` sin exclusión:
- * `.zona-imagen` no es un `button`/`a`, así que sigue siendo un punto válido desde el que deslizar
- * el mazo — decisión explícita del controlador, no un descuido). */
+/** Toque en un elemento abrible (zona-imagen, explicación o enunciado recortados) vs.
+ * deslizamiento del mazo (spec §8, decisión del controlador): mismo umbral que el `ARRANQUE` de
+ * mazo.js (10px) entre el `pointerdown` y el `click` que abriría la superposición — con más
+ * desplazamiento, fue un gesto de arrastrar la tarjeta, no un toque. Se rastrea aparte de mazo.js
+ * (que sigue recibiendo el mismo `pointerdown` sin exclusión: ninguno de los tres es un
+ * `button`/`a`, así que siguen siendo puntos válidos desde los que deslizar el mazo — decisión
+ * explícita del controlador, no un descuido). */
 let inicioToqueZonaImagen = null;
 
+// Elementos de una tarjeta que abren la superposición al tocarlos: la visual (spec §8) y, desde
+// v0.2a.2.1 §1.4, el texto que la cascada ha tenido que recortar.
+const SELECTOR_ABRIBLE = '.zona-imagen, .explicacion--recortada, .enunciado--recortado';
+
 function alPointerDownContenedorTarjetas(ev) {
-  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
-  inicioToqueZonaImagen = zona ? { x: ev.clientX, y: ev.clientY } : null;
+  const abrible = ev.target.closest && ev.target.closest(SELECTOR_ABRIBLE);
+  inicioToqueZonaImagen = abrible ? { x: ev.clientX, y: ev.clientY } : null;
 }
 
 function alClicContenedorTarjetas(ev) {
@@ -3004,25 +3060,33 @@ function alClicContenedorTarjetas(ev) {
   // (construirAtribucionImagen) y nunca deberían llegar aquí — este `closest('a')` es solo un
   // cinturón extra, por si algún día otro enlace se cuela dentro de `.zona-imagen`.
   if (ev.target.closest && ev.target.closest('a')) return;
-  const zona = ev.target.closest && ev.target.closest('.zona-imagen');
+  const abrible = ev.target.closest && ev.target.closest(SELECTOR_ABRIBLE);
   const inicio = inicioToqueZonaImagen;
   inicioToqueZonaImagen = null;
-  if (!zona) return;
+  if (!abrible) return;
   if (inicio) {
     const distancia = Math.hypot(ev.clientX - inicio.x, ev.clientY - inicio.y);
     if (distancia > 10) return; // deslizamiento del mazo, no un toque
   }
-  abrirVisualCompleta(zona);
+  abrirAbrible(abrible);
 }
 
-/** `.zona-imagen` es `role="button"`/`tabindex="0"` (marcarZonaImagenAbrible): a diferencia de un
- * `<button>` real, un `<div>` con rol ARIA no dispara `click` solo con Enter/Espacio — hace falta
- * este listener aparte para que el teclado abra igual que un toque. */
+/** Enter/Espacio sobre cualquiera de los tres: un `<div>`/`<p>` con `role="button"` no dispara
+ * `click` solo con el teclado, a diferencia de un `<button>` real. */
 function alKeydownContenedorTarjetas(ev) {
   if (ev.key !== 'Enter' && ev.key !== ' ') return;
-  if (!ev.target.classList || !ev.target.classList.contains('zona-imagen')) return;
+  const el = ev.target;
+  if (!el.classList) return;
+  if (!el.classList.contains('zona-imagen') && !el.classList.contains('explicacion--recortada') && !el.classList.contains('enunciado--recortado')) return;
   ev.preventDefault(); // Espacio no debe además desplazar la vista
-  abrirVisualCompleta(ev.target);
+  abrirAbrible(el);
+}
+
+/** Decide qué superposición toca según lo que se ha tocado. */
+function abrirAbrible(el) {
+  if (el.classList.contains('explicacion--recortada')) abrirTextoCompleto(el, 'Explicación');
+  else if (el.classList.contains('enunciado--recortado')) abrirTextoCompleto(el, 'Pregunta');
+  else abrirVisualCompleta(el);
 }
 
 /**

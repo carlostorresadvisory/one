@@ -522,9 +522,9 @@ export function ajustarEncaje(tarjetaNodo) {
   aplicarCascada();
   // Marcar DESPUÉS de la cascada, una sola vez y pase lo que pase dentro de ella (por eso la
   // cascada vive en su propia función con sus `return`): lo que se mide aquí es el resultado
-  // final. La Tarea 5 convierte estas dos clases en "tocable para ver el texto entero".
-  marcarRecorte(explicacionEl, 'explicacion--recortada');
-  marcarRecorte(enunciadoEl, 'enunciado--recortado');
+  // final.
+  marcarRecorte(explicacionEl, 'explicacion--recortada', 'Ver la explicación entera');
+  marcarRecorte(enunciadoEl, 'enunciado--recortado', 'Ver la pregunta entera');
 
   function aplicarCascada() {
     if (cabe()) return;
@@ -600,12 +600,24 @@ export function ajustarEncaje(tarjetaNodo) {
   }
 }
 
-/** Marca un texto que ha quedado RECORTADO por la cascada (spec v0.2a.2.1 §1.4.2): se compara el
- * alto real del contenido con el visible, no el nombre de la clase que se aplicó -- así un
- * `line-clamp` que al final no recortó nada (porque cabían todas las líneas) no marca el párrafo.
- * La clase es la única fuente de verdad para app.js, que es quien lo hace tocable. */
-function marcarRecorte(el, clase) {
+/** Marca un texto que ha quedado RECORTADO por la cascada (spec v0.2a.2.1 §1.4.2/§1.4.3): se
+ * compara el alto real del contenido con el visible, no el nombre de la clase que se aplicó -- así
+ * un `line-clamp` que al final no recortó nada no marca el párrafo. Un texto recortado pasa a ser
+ * tocable (excepción explícita al "sin toques para desplegar" de v0.1d §3/§4: Carlos, 17-sep,
+ * "las explicaciones muy largas se pueden hacer clicables también como las imágenes"); uno entero
+ * pierde `role` y `tabindex`, para que no quede nunca un párrafo que anuncia ser un botón y no
+ * hace nada. Quien abre la superposición es el listener delegado de app.js, no este módulo. */
+function marcarRecorte(el, clase, etiqueta) {
   if (!el) return;
   const recortado = el.scrollHeight > el.clientHeight + 1;
   el.classList.toggle(clase, recortado);
+  if (recortado) {
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    el.setAttribute('aria-label', etiqueta);
+  } else {
+    el.removeAttribute('role');
+    el.removeAttribute('tabindex');
+    el.removeAttribute('aria-label');
+  }
 }

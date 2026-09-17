@@ -1251,6 +1251,9 @@ main#app {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Ancla del indicador "ver todo" (spec v0.2a.2.1 §1.4.2, Tarea 5): se superpone a la última
+     línea de la explicación en vez de ocupar una línea propia. */
+  position: relative;
 }
 
 /* El bloque de feedback ahora se construye ya poblado dentro de cada tarjeta
@@ -1357,6 +1360,38 @@ main#app {
 }
 
 .explicacion[hidden] { display: none; }
+
+/* Texto recortado tocable (spec v0.2a.2.1 §1.4.2/§1.4.3, Tarea 5): excepción explícita al "sin
+   toques para desplegar" de v0.1d §3/§4 (Carlos, 17-sep) -- solo el texto que la cascada ha tenido
+   que recortar se puede tocar, nunca uno entero. */
+.explicacion--recortada,
+.enunciado--recortado {
+  cursor: pointer;
+}
+
+.explicacion--recortada:focus-visible,
+.enunciado--recortado:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Solo visible cuando la explicación de arriba está recortada (selector de hermano: el <span> va
+   justo después del <p> dentro de `.feedback`). El degradado tapa el final de la línea recortada
+   para que "ver todo" no se pise con el texto. */
+.explicacion-ver-todo {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding-left: 24px;
+  font-size: 11px;
+  color: var(--acento);
+  pointer-events: none;
+  background: linear-gradient(to right, transparent 0, var(--tarjeta) 22px);
+}
+
+.explicacion--recortada ~ .explicacion-ver-todo { display: block; }
 
 /* --- imagen de Wikimedia Commons (Tarea 3b, spec v0.1c §4; flexible y sin
    plegado en v0.1d §4) ---
@@ -2869,6 +2904,35 @@ button.punto-servidor::before {
 .visual-completa-pie-texto {
   margin: 0;
   font-size: 13px;
+}
+
+/* Modo TEXTO de la superposición (spec §1.4.2): misma caja, mismo botón ←, mismo Escape y mismo
+   gesto de cierre que la imagen; lo único distinto es lo que se pinta dentro. `touch-action:pan-y`
+   solo en el bloque de texto: dentro se desplaza, y el cierre por deslizamiento sigue funcionando
+   en todo lo que lo rodea (`.visual-completa` mantiene su `touch-action:none`). */
+.visual-completa-texto {
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  text-align: left;
+  color: var(--texto);
+}
+
+.visual-completa-texto-titulo {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--acento);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.visual-completa-texto-cuerpo {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.5;
 }
 
 /* Entrada con fundido de 160ms (spec §8/brief Tarea 3), anulada bajo "reducir movimiento" por la
