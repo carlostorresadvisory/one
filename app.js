@@ -2774,8 +2774,38 @@ function construirBloqueImagen(pregunta) {
  * construirBloqueImagen: null = nada que pintar). La leyenda va en un <p>
  * con el mismo estilo que el pie de la imagen, pero sin atribución (no hay
  * autor/licencia que citar en un dibujo generado por la propia app). */
+/** Alto de viewBox que pide la zona de una tarjeta revelada (spec v0.2a.2.1 §1.5): la zona mide
+ * entre el 50 % y el 60 % del alto de la tarjeta y el ancho de la tarjeta menos sus paddings, así
+ * que `alto = 320 * altoZona / anchoZona` deja el viewBox con la MISMA proporción que la caja y
+ * `preserveAspectRatio` deja de recortar por los lados o por arriba.
+ * Se mide el MAZO, no la zona: la zona todavía no existe cuando se construye la tarjeta, y el
+ * mazo (que ya está en el DOM y tiene el mismo tamaño que la tarjeta) da el dato sin necesidad de
+ * un segundo pase de layout ni de reconstruir el SVG después. Se usa el 55 % (el punto medio del
+ * rango): en el peor de los dos extremos el dibujo sigue cubriendo >91 % del alto de la zona, muy
+ * por encima del 85 % que pide la spec. Si no hay nada medible todavía, el valor por defecto es
+ * el de la spec: la zona al 50 % de una pantalla de 375×667 ≈ 320×290. */
+const ALTO_VISUAL_POR_DEFECTO = 290;
+
+function altoVisualObjetivo() {
+  try {
+    const contenedor = [contenedorMazo, contenedorMazoResumen, contenedorMazoRepaso].find((c) => {
+      const vista = c && c.closest('.vista');
+      return vista && !vista.hidden;
+    });
+    if (!contenedor) return ALTO_VISUAL_POR_DEFECTO;
+    const caja = contenedor.getBoundingClientRect();
+    // 14 de padding izquierdo + 28 de padding derecho (la columna de puntos del mazo vive ahí).
+    const anchoZona = caja.width - 42;
+    const altoZona = caja.height * 0.55;
+    if (!(anchoZona > 0) || !(altoZona > 0)) return ALTO_VISUAL_POR_DEFECTO;
+    return Math.round((320 * altoZona) / anchoZona);
+  } catch (err) {
+    return ALTO_VISUAL_POR_DEFECTO; // nunca romper la construcción de una tarjeta por una medida
+  }
+}
+
 function construirBloqueVisual(pregunta) {
-  const svg = construirVisual(pregunta.visual);
+  const svg = construirVisual(pregunta.visual, { alto: altoVisualObjetivo() });
   if (!svg) return null;
 
   const zona = document.createElement('div');

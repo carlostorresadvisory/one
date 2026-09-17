@@ -121,12 +121,12 @@ function esTextoValido(t) {
   return typeof t === 'string' && t.trim().length > 0;
 }
 
-/** `alto` es el YA CALCULADO por cada plantilla según su contenido (V1): no
- * hay un alto de viewBox compartido. `aspect-ratio` en línea (mismo valor que
- * el viewBox) es lo que permite a `.visual-svg` (estilos.css) usar
- * `height:auto` — el dibujo ocupa solo lo que necesita, nunca más. */
-function crearSvg(altoContenido) {
-  const alto = Math.max(ALTO_MINIMO, altoContenido);
+/** `alto` es el YA CALCULADO por cada plantilla según su contenido; `altoObjetivo` (spec
+ * v0.2a.2.1 §1.5) es el que pide la ZONA de la tarjeta revelada, para que el dibujo la llene en
+ * vez de quedarse centrado con bandas vacías arriba y abajo. Un objetivo menor que el natural se
+ * ignora: antes se encoge la caja que el contenido. */
+function crearSvg(altoContenido, altoObjetivo = 0) {
+  const alto = Math.max(ALTO_MINIMO, altoContenido, altoObjetivo > 0 ? altoObjetivo : 0);
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${ANCHO} ${alto}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
@@ -134,6 +134,18 @@ function crearSvg(altoContenido) {
   svg.classList.add('visual-svg');
   svg.dataset.test = 'visual';
   return svg;
+}
+
+/** Reparte `n` filas en el alto objetivo (spec §1.5): la fila crece desde su alto natural
+ * (ALTO_FILA) hasta lo que quepa, y la tipografía sube con ella dentro de los límites de la spec
+ * (mínimo 13, máximo 18 unidades de viewBox ≈ px reales, porque el ancho del viewBox, 320, se
+ * estira a los ~309px reales de la zona). Sin objetivo, devuelve exactamente lo de siempre. */
+function repartirFilas(n, alturaFija, altoObjetivo) {
+  const base = ALTO_FILA;
+  if (!Number.isFinite(altoObjetivo) || altoObjetivo <= 0 || n <= 0) return { altoFila: base, tamano: 13 };
+  const altoFila = Math.max(base, (altoObjetivo - alturaFija) / n);
+  const tamano = Math.round(Math.min(18, Math.max(13, altoFila * 0.4)));
+  return { altoFila, tamano };
 }
 
 function crearTexto(x, y, texto, { tamano = 13, color = 'var(--texto)', ancla = 'start', peso } = {}) {
@@ -219,7 +231,7 @@ function partirFormula(texto) {
  * primero en una sola línea con el mayor tamaño posible (16-30); solo si ni
  * al tamaño mínimo cabe se parte por el "=" en dos líneas, cada una con su
  * propio tamaño (el mayor que quepan las dos, para que se lean parejas). */
-function plantillaFormula(visual) {
+function plantillaFormula(visual, altoObjetivo = 0) {
   if (!esTextoValido(visual.texto)) return null;
   const original = visual.texto.trim();
   const ANCHO_LINEA = 300;
@@ -242,8 +254,9 @@ function plantillaFormula(visual) {
   }
 
   const dosLineas = lineas.length === 2;
-  const alto = dosLineas ? 150 : 100;
-  const svg = crearSvg(alto);
+  const altoNatural = dosLineas ? 150 : 100;
+  const alto = Math.max(altoNatural, altoObjetivo > 0 ? altoObjetivo : 0);
+  const svg = crearSvg(alto, altoObjetivo);
 
   if (!dosLineas) {
     const y = alto * 0.46;
@@ -264,7 +277,7 @@ function plantillaFormula(visual) {
   return svg;
 }
 
-function plantillaLineaTiempo(visual) {
+function plantillaLineaTiempo(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.hitos)) return null;
   const hitos = visual.hitos
     .filter((h) => h && esTextoValido(h.ano) && esTextoValido(h.texto))
@@ -273,29 +286,30 @@ function plantillaLineaTiempo(visual) {
 
   const n = hitos.length;
   const margen = 16; // 8 arriba + 8 abajo
-  const alto = margen + n * ALTO_FILA; // V1: alto = filas reales, sin sobrante
-  const svg = crearSvg(alto);
+  const { altoFila, tamano } = repartirFilas(n, margen, altoObjetivo);
+  const alto = margen + n * altoFila; // V1: alto = filas reales, sin sobrante
+  const svg = crearSvg(alto, altoObjetivo);
   const xLinea = 26;
 
   svg.appendChild(crearLinea(xLinea, margen / 2, xLinea, alto - margen / 2, 'var(--texto-suave)', 2, 0.4));
 
   hitos.forEach((h, i) => {
-    const y = margen / 2 + i * ALTO_FILA + ALTO_FILA / 2;
+    const y = margen / 2 + i * altoFila + altoFila / 2;
     const circulo = document.createElementNS(NS, 'circle');
     circulo.setAttribute('cx', String(xLinea));
     circulo.setAttribute('cy', String(y));
-    circulo.setAttribute('r', '5');
+    circulo.setAttribute('r', String(Math.max(5, Math.min(8, altoFila * 0.1))));
     circulo.setAttribute('fill', 'var(--acento)');
     svg.appendChild(circulo);
 
     const xAno = xLinea + 14;
-    const anoTexto = recortarALinea(h.ano.trim(), 70, 13);
-    svg.appendChild(crearTexto(xAno, y, anoTexto, { tamano: 13, color: 'var(--acento)', peso: 700 }));
+    const anoTexto = recortarALinea(h.ano.trim(), 70, tamano);
+    svg.appendChild(crearTexto(xAno, y, anoTexto, { tamano, color: 'var(--acento)', peso: 700 }));
 
     const xTexto = xLinea + 88;
     const maxAnchoTexto = ANCHO - xTexto - 10;
-    const textoTexto = recortarALinea(h.texto.trim(), maxAnchoTexto, 13);
-    svg.appendChild(crearTexto(xTexto, y, textoTexto, { tamano: 13, color: 'var(--texto)' }));
+    const textoTexto = recortarALinea(h.texto.trim(), maxAnchoTexto, tamano);
+    svg.appendChild(crearTexto(xTexto, y, textoTexto, { tamano, color: 'var(--texto)' }));
   });
 
   return svg;
@@ -306,7 +320,7 @@ function formatearValor(v) {
   return String(Math.round(v * 100) / 100);
 }
 
-function plantillaBarras(visual) {
+function plantillaBarras(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.items)) return null;
   const items = visual.items
     .filter((it) => it && esTextoValido(it.etiqueta) && typeof it.valor === 'number' && Number.isFinite(it.valor) && it.valor > 0) // magnitudes comparables: ceros y negativos no se dibujan (adversarial v0.1e #4)
@@ -317,12 +331,14 @@ function plantillaBarras(visual) {
   const tieneTitulo = esTextoValido(visual.titulo);
   const cabecera = tieneTitulo ? 26 : 6; // V1: alto = cabecera real + filas reales
   const margenInferior = 6;
-  const alto = cabecera + n * ALTO_FILA + margenInferior;
-  const svg = crearSvg(alto);
+  const { altoFila, tamano } = repartirFilas(n, cabecera + margenInferior, altoObjetivo);
+  const alto = cabecera + n * altoFila + margenInferior;
+  const svg = crearSvg(alto, altoObjetivo);
 
   if (tieneTitulo) {
-    const tituloTexto = recortarALinea(visual.titulo.trim(), ANCHO - 20, 15);
-    svg.appendChild(crearTexto(10, 14, tituloTexto, { tamano: 15, color: 'var(--texto-suave)', peso: 600 }));
+    const tamanoTitulo = Math.min(18, tamano + 2);
+    const tituloTexto = recortarALinea(visual.titulo.trim(), ANCHO - 20, tamanoTitulo);
+    svg.appendChild(crearTexto(10, 14, tituloTexto, { tamano: tamanoTitulo, color: 'var(--texto-suave)', peso: 600 }));
   }
 
   // V4 (letra mínima 13px reales): etiqueta y valor suben de 11 a 13, con más
@@ -338,25 +354,26 @@ function plantillaBarras(visual) {
   const maxValor = Math.max(...items.map((it) => it.valor));
 
   items.forEach((it, i) => {
-    const y = cabecera + i * ALTO_FILA + ALTO_FILA / 2;
-    const altoBarra = 14;
+    const y = cabecera + i * altoFila + altoFila / 2;
+    // La barra engorda con la fila (hasta 26) para que no quede un hilo en medio de una fila alta.
+    const altoBarra = Math.max(14, Math.min(26, altoFila * 0.34));
 
-    const etiquetaTexto = recortarALinea(it.etiqueta.trim(), anchoEtiqueta, 13);
-    svg.appendChild(crearTexto(xEtiqueta, y, etiquetaTexto, { tamano: 13, color: 'var(--texto)' }));
+    const etiquetaTexto = recortarALinea(it.etiqueta.trim(), anchoEtiqueta, tamano);
+    svg.appendChild(crearTexto(xEtiqueta, y, etiquetaTexto, { tamano, color: 'var(--texto)' }));
 
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarraMax, altoBarra, 'var(--texto-suave)', 0.2));
     const anchoBarra = Math.max(3, (it.valor / maxValor) * anchoBarraMax);
     svg.appendChild(crearRect(xBarra, y - altoBarra / 2, anchoBarra, altoBarra, 'var(--acento)', 1));
 
     const unidad = esTextoValido(it.unidad) ? ` ${it.unidad.trim()}` : '';
-    const valorTexto = recortarALinea(`${formatearValor(it.valor)}${unidad}`, anchoValor, 13);
-    svg.appendChild(crearTexto(xValor, y, valorTexto, { tamano: 13, color: 'var(--texto)' }));
+    const valorTexto = recortarALinea(`${formatearValor(it.valor)}${unidad}`, anchoValor, tamano);
+    svg.appendChild(crearTexto(xValor, y, valorTexto, { tamano, color: 'var(--texto)' }));
   });
 
   return svg;
 }
 
-function plantillaComparacion(visual) {
+function plantillaComparacion(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.columnas) || visual.columnas.length !== 2) return null;
   const columnas = visual.columnas.map((c) => ({
     titulo: c && esTextoValido(c.titulo) ? c.titulo.trim() : '',
@@ -365,10 +382,6 @@ function plantillaComparacion(visual) {
   if (columnas.some((c) => !c.titulo || !c.puntos.length)) return null;
 
   const anchoColumna = ANCHO / 2 - 20;
-  const TAMANO_TITULO = 15; // V4: títulos a 15px reales
-  const TAMANO_PUNTO = 13; // V4: texto normal, mínimo 13px reales
-  const LINE_HEIGHT = 17;
-  const GAP_PUNTO = 8;
   const Y_TITULO = 18;
   const Y_INICIO_PUNTOS = 42;
   const MARGEN_INFERIOR = 10;
@@ -376,16 +389,42 @@ function plantillaComparacion(visual) {
   // V1: el alto del viewBox se calcula a partir de las líneas REALES que
   // necesita la columna más alta (envolverLineas ya decide cuántas líneas
   // hace falta cada punto) — nunca un 180 fijo con hueco de sobra si el
-  // contenido pide menos.
-  const columnasLayout = columnas.map((col) => {
-    const puntosLineas = col.puntos.map((p) => envolverLineas(`• ${p}`, anchoColumna, TAMANO_PUNTO, 2));
-    const alturaPuntos = puntosLineas.reduce((acc, lineas) => acc + lineas.length * LINE_HEIGHT + GAP_PUNTO, 0);
+  // contenido pide menos. Con `altoObjetivo` (spec §1.5), el reparto va por
+  // tamaño de letra, en dos pasadas: envolver depende del tamaño, así que
+  // subir la letra puede cambiar cuántas líneas hace falta cada punto.
+  let tamanoPunto = 13;
+  let lineHeight = 17;
+  let gapPunto = 8;
+
+  const medirColumnas = (tamano, lh, gap) => columnas.map((col) => {
+    const puntosLineas = col.puntos.map((p) => envolverLineas(`• ${p}`, anchoColumna, tamano, 2));
+    const alturaPuntos = puntosLineas.reduce((acc, lineas) => acc + lineas.length * lh + gap, 0);
     return { titulo: col.titulo, puntosLineas, alturaPuntos };
   });
-  const alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
-  const alto = Y_INICIO_PUNTOS + alturaMaxPuntos + MARGEN_INFERIOR;
 
-  const svg = crearSvg(alto);
+  let columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+  let alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+  const disponible = Number.isFinite(altoObjetivo) && altoObjetivo > 0 ? altoObjetivo - Y_INICIO_PUNTOS - MARGEN_INFERIOR : 0;
+  if (disponible > alturaMaxPuntos) {
+    // Segunda pasada: sube la letra proporcionalmente (tope 18, spec §1.5) y vuelve a envolver,
+    // porque con más tamaño caben menos palabras por línea.
+    tamanoPunto = Math.round(Math.min(18, Math.max(13, 13 * (disponible / alturaMaxPuntos))));
+    lineHeight = Math.round(tamanoPunto * 1.3);
+    columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+    alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+    // Lo que aún sobre se reparte como aire entre los puntos, no como hueco muerto al final.
+    const puntosMax = Math.max(1, Math.max(...columnasLayout.map((c) => c.puntosLineas.length)));
+    const sobra = disponible - alturaMaxPuntos;
+    if (sobra > 0) {
+      gapPunto += sobra / puntosMax;
+      columnasLayout = medirColumnas(tamanoPunto, lineHeight, gapPunto);
+      alturaMaxPuntos = Math.max(...columnasLayout.map((c) => c.alturaPuntos));
+    }
+  }
+  const tamanoTitulo = Math.min(18, tamanoPunto + 2);
+  const alto = Math.max(Y_INICIO_PUNTOS + alturaMaxPuntos + MARGEN_INFERIOR, altoObjetivo > 0 ? altoObjetivo : 0);
+
+  const svg = crearSvg(alto, altoObjetivo);
   const xDivisor = ANCHO / 2;
   svg.appendChild(crearLinea(xDivisor, 8, xDivisor, alto - 8, 'var(--texto-suave)', 1, 0.35));
 
@@ -393,38 +432,44 @@ function plantillaComparacion(visual) {
   columnasLayout.forEach((col, ci) => {
     const cx = centros[ci];
     const xIzquierda = cx - anchoColumna / 2;
-    const tituloTexto = recortarALinea(col.titulo, anchoColumna, TAMANO_TITULO);
+    const tituloTexto = recortarALinea(col.titulo, anchoColumna, tamanoTitulo);
     svg.appendChild(
-      crearTexto(cx, Y_TITULO, tituloTexto, { tamano: TAMANO_TITULO, ancla: 'middle', color: 'var(--acento)', peso: 700 })
+      crearTexto(cx, Y_TITULO, tituloTexto, { tamano: tamanoTitulo, ancla: 'middle', color: 'var(--acento)', peso: 700 })
     );
 
     let y = Y_INICIO_PUNTOS;
     col.puntosLineas.forEach((lineas) => {
       lineas.forEach((linea, li) => {
         svg.appendChild(
-          crearTexto(xIzquierda, y + li * LINE_HEIGHT, linea, { tamano: TAMANO_PUNTO, ancla: 'start', color: 'var(--texto)' })
+          crearTexto(xIzquierda, y + li * lineHeight, linea, { tamano: tamanoPunto, ancla: 'start', color: 'var(--texto)' })
         );
       });
-      y += lineas.length * LINE_HEIGHT + GAP_PUNTO;
+      y += lineas.length * lineHeight + gapPunto;
     });
   });
 
   return svg;
 }
 
-function plantillaFlujo(visual) {
+function plantillaFlujo(visual, altoObjetivo = 0) {
   if (!Array.isArray(visual.pasos)) return null;
   const pasos = visual.pasos.filter(esTextoValido).map((p) => p.trim()).slice(0, 4);
   if (!pasos.length) return null;
 
   const n = pasos.length;
   const margen = 8;
-  const filaFlujo = 50; // caja (36) + hueco para la flecha (14)
-  const alto = margen * 2 + n * filaFlujo - 14; // sin flecha colgando tras la última caja
-  const svg = crearSvg(alto);
+  const FLECHA = 14;
+  // El alto natural es margen*2 + n*50 - 14 (la última caja no arrastra flecha): al repartir, la
+  // "fila" sigue siendo caja + hueco de flecha.
+  const filaNatural = 50;
+  const disponible = Number.isFinite(altoObjetivo) && altoObjetivo > 0 ? altoObjetivo - margen * 2 + FLECHA : 0;
+  const filaFlujo = disponible > 0 ? Math.max(filaNatural, disponible / n) : filaNatural;
+  const altoCaja = Math.max(36, filaFlujo - FLECHA);
+  const tamano = Math.round(Math.min(18, Math.max(13, altoCaja * 0.36)));
+  const alto = margen * 2 + n * filaFlujo - FLECHA; // sin flecha colgando tras la última caja
+  const svg = crearSvg(alto, altoObjetivo);
   const anchoCaja = 220;
   const xCaja = (ANCHO - anchoCaja) / 2;
-  const altoCaja = 36;
 
   pasos.forEach((texto, i) => {
     const yFila = margen + i * filaFlujo;
@@ -436,9 +481,9 @@ function plantillaFlujo(visual) {
     rect.setAttribute('rx', '8');
     svg.appendChild(rect);
 
-    const textoRecortado = recortarALinea(texto, anchoCaja - 20, 13);
+    const textoRecortado = recortarALinea(texto, anchoCaja - 20, tamano);
     svg.appendChild(
-      crearTexto(ANCHO / 2, yCaja + altoCaja / 2, textoRecortado, { tamano: 13, ancla: 'middle', color: 'var(--texto)', peso: 600 })
+      crearTexto(ANCHO / 2, yCaja + altoCaja / 2, textoRecortado, { tamano, ancla: 'middle', color: 'var(--texto)', peso: 600 })
     );
 
     if (i < n - 1) {
@@ -450,7 +495,7 @@ function plantillaFlujo(visual) {
   return svg;
 }
 
-function plantillaDato(visual) {
+function plantillaDato(visual, altoObjetivo = 0) {
   if (!esTextoValido(visual.cifra) || !esTextoValido(visual.texto)) return null;
 
   const cifra = visual.cifra.trim();
@@ -468,15 +513,19 @@ function plantillaDato(visual) {
   const gapCifraTexto = 14;
   const lineHeightTexto = 19;
   const margenInferior = 14;
-  const alto = margenTop + alturaCifra + gapCifraTexto + lineas.length * lineHeightTexto + margenInferior;
+  const altoNatural = margenTop + alturaCifra + gapCifraTexto + lineas.length * lineHeightTexto + margenInferior;
+  const alto = Math.max(altoNatural, altoObjetivo > 0 ? altoObjetivo : 0);
 
-  const svg = crearSvg(alto);
-  const yCifra = margenTop + alturaCifra / 2;
+  const svg = crearSvg(alto, altoObjetivo);
+  // Con un viewBox más alto que el natural, el bloque cifra+texto se centra en vez de quedarse
+  // pegado arriba con el hueco debajo.
+  const dy = (alto - altoNatural) / 2;
+  const yCifra = dy + margenTop + alturaCifra / 2;
   svg.appendChild(
     crearTexto(ANCHO / 2, yCifra, cifraRecortada, { tamano: tamanoCifra, ancla: 'middle', color: 'var(--acento)', peso: 700 })
   );
 
-  const yTextoBase = margenTop + alturaCifra + gapCifraTexto + lineHeightTexto / 2;
+  const yTextoBase = dy + margenTop + alturaCifra + gapCifraTexto + lineHeightTexto / 2;
   lineas.forEach((linea, i) => {
     svg.appendChild(
       crearTexto(ANCHO / 2, yTextoBase + i * lineHeightTexto, linea, { tamano: 15, ancla: 'middle', color: 'var(--texto)' })
@@ -624,20 +673,21 @@ const PLANTILLAS = {
   dato: plantillaDato,
 };
 
-/** Dibuja `visual` (spec v0.1e §2) como SVG, o devuelve `null` si no hay nada
- * pintable: sin objeto, tipo desconocido, o datos que no pasan la
- * comprobación mínima de forma de su plantilla. `role="img"` +
- * `aria-label` = leyenda (spec v0.1e §4); el propio dibujo NUNCA pinta la
- * leyenda (eso lo hace construirBloqueVisual en app.js, en un <p> aparte,
- * igual que el pie de la imagen de Commons). */
-export function construirVisual(visual) {
+/** Dibuja `visual` (spec v0.1e §2) como SVG, o `null` si no hay nada pintable. `alto` (spec
+ * v0.2a.2.1 §1.5) es el alto de viewBox OBJETIVO que pide la zona de la tarjeta revelada: cada
+ * plantilla reparte sus filas y sube su tipografía para llenarlo. Sin `alto`, todo se comporta
+ * como hasta ahora (lo usan el resumen y cualquier llamada que no mida la zona). `role="img"` +
+ * `aria-label` = leyenda (spec v0.1e §4); el propio dibujo NUNCA pinta la leyenda (eso lo hace
+ * construirBloqueVisual en app.js, en un <p> aparte, igual que el pie de la imagen de Commons). */
+export function construirVisual(visual, { alto } = {}) {
   if (!visual || typeof visual !== 'object') return null;
   const plantilla = PLANTILLAS[visual.tipo];
   if (!plantilla) return null;
+  const altoObjetivo = Number.isFinite(alto) && alto > 0 ? Math.round(alto) : 0;
 
   let svg = null;
   try {
-    svg = plantilla(visual);
+    svg = plantilla(visual, altoObjetivo);
   } catch (err) {
     return null;
   }

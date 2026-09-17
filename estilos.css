@@ -1662,13 +1662,11 @@ main#app {
    de ella `preserveAspectRatio="xMidYMid meet"` (fijado en visuales.js) sigue
    escalando el dibujo SIN deformarlo, solo que ahora el posible sobrante
    (letterboxing) lo tapa el fondo de la zona de arriba, no un hueco vacío.
-   En la tarjeta tipográfica (un único hijo, sin leyenda) esto la llena del
-   todo; en un visual de datos (SVG + `.visual-pie` como hermanos en la misma
-   columna flex) `flex:0 1 auto` sigue dejando sitio a la leyenda -- el SVG
-   ocupa el resto, que con `height:100%` como base es "toda la zona menos la
-   leyenda", el hueco mínimo posible sin recortar el texto. */
+   Con el pie ya superpuesto (spec §1.1.6 y §1.5), el SVG es el ÚNICO hijo en
+   el flujo de la zona: puede llenarla del todo sin dejarle sitio a la
+   leyenda, que ahora flota encima de él (Tarea 6, v0.2a.2.1 §1.5). */
 .zona-imagen--visual .visual-svg {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   height: 100%;
@@ -1810,10 +1808,6 @@ s.visual-clave-valor {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-}
-
-.zona-imagen--visual .visual-pie {
-  flex: none;
 }
 
 /* --- resumen / repaso vertical (spec v0.1c §6) ---

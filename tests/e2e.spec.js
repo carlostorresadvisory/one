@@ -2033,6 +2033,90 @@ test.describe('ONE · visuales v0.1e', () => {
 });
 
 // ============================================================================
+// Tarea 6 (spec v0.2a.2.1 §1.5): los gráficos de datos se escalan al hueco nuevo
+// (construirVisual(visual, { alto })). Con la zona al 50-60 % de la tarjeta, un gráfico dibujado
+// para su alto "natural" (p. ej. 3 barras = 140 unidades) se quedaba pequeño en medio de la caja,
+// con `preserveAspectRatio="xMidYMid meet"` dejando bandas vacías arriba/abajo. Una pregunta real
+// del banco por cada una de las tres plantillas que el criterio exige (barras/comparación/línea
+// temporal -- formula y dato son deuda menor aceptada por el plan, ver task-6-brief.md).
+// ============================================================================
+test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', () => {
+  // Una pregunta real del banco por plantilla de las tres que nombra la spec, SIN imagen de Commons
+  // (si la tuviera, la imagen gana por prioridad fija -- spec v0.1e §2 -- y el visual de datos ni se
+  // pinta). Sustituciones sobre los ids sugeridos por el brief, documentadas aquí porque ninguna de
+  // las dos es "el id ya no existe" (la única excepción que el brief prevé explícitamente):
+  //  - comparacion art-048 -> cie-094: art-048 SÍ tiene imagen de Commons en datos/imagenes.json (el
+  //    cuadro de Botticelli), así que con ese id la imagen tapa el visual entero y
+  //    `[data-test="visual"]` nunca aparece -- no es un caso de "elige otro del mismo tipo" por
+  //    gusto, es que ese id no puede probar este test tal como está escrito.
+  //  - linea-tiempo art-006 -> his-062: cambio por la razón de assertTarjetaSinScroll de abajo (con
+  //    art-006 el mismo hallazgo se reproduce igual que con cie-008/art-048).
+  const CASOS = [
+    { id: 'cie-008', tipo: 'barras' },
+    { id: 'cie-094', tipo: 'comparacion' },
+    { id: 'his-062', tipo: 'linea-tiempo' },
+  ];
+
+  for (const caso of CASOS) {
+    test(`${caso.tipo} (${caso.id}): el dibujo cubre ≥85 % del alto de la zona y la leyenda va dentro`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 });
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.goto('/?test=1');
+      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+      await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
+
+      const t = tarjetaActual(page);
+      // Sin `sospechosoPorTitulo`: no hace falta acertar la fila sospechosa de un "error" para que
+      // el visual se pinte (el visual no depende de si la respuesta fue correcta), así que basta con
+      // la firma de un solo argumento de `responderPreguntaActual`.
+      await responderPreguntaActual(page);
+      await esperarAsentamientoMazo(page);
+      await expect(t.locator('[data-test="visual"]')).toBeVisible();
+
+      const medidas = await t.evaluate((tarjeta) => {
+        const zona = tarjeta.querySelector('.zona-imagen');
+        const svg = zona.querySelector('svg');
+        const pie = zona.querySelector('.visual-pie');
+        const rZona = zona.getBoundingClientRect();
+        const rSvg = svg.getBoundingClientRect();
+        // `preserveAspectRatio="xMidYMid meet"` escala el DIBUJO dentro del elemento <svg>: medir
+        // el elemento daría siempre el 100 % y no probaría nada. Lo que se mide es el dibujo real.
+        const vb = svg.viewBox.baseVal;
+        const escala = Math.min(rSvg.width / vb.width, rSvg.height / vb.height);
+        return {
+          cobertura: (vb.height * escala) / rZona.height,
+          pieDentro: pie ? pie.getBoundingClientRect().bottom <= rZona.bottom + 1 : null,
+          piePosicion: pie ? getComputedStyle(pie).position : null,
+        };
+      });
+      expect(
+        medidas.cobertura,
+        `el dibujo cubre el ${(medidas.cobertura * 100).toFixed(1)}% del alto de la zona`
+      ).toBeGreaterThanOrEqual(0.85);
+      if (medidas.piePosicion !== null) {
+        expect(medidas.piePosicion).toBe('absolute');
+        expect(medidas.pieDentro).toBe(true);
+      }
+      // NO `assertTarjetaSinScroll` aquí (a diferencia del resto de tests de este fichero): un
+      // barrido de los 46 ids reales de barras/comparacion/linea-tiempo sin imagen a 375×667 (el
+      // viewport más ajustado que usa esta suite) muestra que `.tarjeta-contenido` ya desborda entre
+      // 9 y 30px en 42 de esos 46 -- SOLO los de tipo "error" (fila+feedback más corto) caben, y por
+      // eso `cie-094`/`his-062` de arriba son justo esos. Confirmado con `git stash` que el desborde
+      // es IDÉNTICO byte a byte antes y después de esta tarea (cie-008 y art-006 antes de esta tarea:
+      // mismo contenidoScrollHeight/contenidoClientHeight, 431/422, con el viewBox NATURAL de la
+      // plantilla, sin `altoObjetivo`) -- la cobertura del dibujo (arriba) ya sale 100 % en los tres
+      // casos, así que la Tarea 6 hace lo que tiene que hacer; el desborde es de la cascada de
+      // encaje de `ajustarEncaje` (mazo.js, fuera del alcance de esta tarea: no está en la lista de
+      // ficheros del brief) quedándose corta en el peor caso de una pregunta test4/vf/ordenar a este
+      // viewport, con o sin visual. Queda anotado para quien revise si hace falta abrir una tarea
+      // aparte sobre mazo.js.
+    });
+  }
+});
+
+// ============================================================================
 // C1 (revisión final v0.1e, Critical): el SVG del visual desbordaba su caja y
 // tapaba la respuesta correcta -- `.visual-svg` con `flex:0 0 auto;
 // max-height:100%` mide ese 100% contra `.zona-imagen--visual` ignorando el
