@@ -968,6 +968,15 @@ main#app {
    ~20px, que la cascada absorbe con un paso más de recorte de explicación): más específica que la
    regla de arriba (3 clases vs. 2), así gana tanto si (a) está activo como si no. */
 .tarjeta--clave.tarjeta--compacta-1 .respuesta-compacta { display: flex; }
+/* I4 (re-verificación de la ola final): esa línea recuperada envolvía a DOS líneas (36px) cuando
+   la opción marcada era larga y a 375×667 desbordaba 7px en tec-047/tec-048 -- la cascada ya había
+   agotado sus pasos. Una sola línea con "…": el texto entero sigue en el DOM y la clave ya enseña
+   la respuesta correcta, así que recortar la del jugador no pierde información. */
+.tarjeta--clave .respuesta-compacta-linea {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .tarjeta--compacta-1 .zona-respuesta { gap: 6px; }
 
 /* Paso (a) de la cascada SIN responder (mazo.js, dataset.respondida==='false'):
