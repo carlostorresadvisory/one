@@ -3026,17 +3026,32 @@ function abrirSuperposicion(origen) {
   // (mazo incluido), de un solo mecanismo nativo. Resuelve de paso el Minor #3 (zonas de tarjetas
   // vecinas fuera de pantalla, que el mazo mantiene montadas, dejaban de ser tabulables).
   if (nodoContenidoApp) nodoContenidoApp.inert = true;
-  // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
-  // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
-  // el fundido de 160ms.
-  nodoVisualCompleta.classList.remove('visual-completa--entra');
-  void nodoVisualCompleta.offsetWidth;
-  nodoVisualCompleta.classList.add('visual-completa--entra');
-  // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
-  // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
-  // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
-  // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
-  if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
+  // Adversarial (ola final, P1-4): todo lo que sigue a `inert = true` puede lanzar (un nodo
+  // estático que faltara, una API del navegador que fallara) y antes se quedaba a medio abrir --
+  // `main` inert para siempre, sin ninguna superposición visible que lo explicara ni forma de
+  // volver a tocar nada de la app. `abierta` solo llega a `true` si el bloque entero termina sin
+  // lanzar; si no, el `finally` deshace exactamente lo que este mismo bloque ya había hecho.
+  let abierta = false;
+  try {
+    // Reinicia la animación de entrada (mismo patrón que mostrarVista con vista-entra): quitar,
+    // forzar reflow, volver a poner — si no, abrir una segunda vez sin recargar no retriggerearía
+    // el fundido de 160ms.
+    nodoVisualCompleta.classList.remove('visual-completa--entra');
+    void nodoVisualCompleta.offsetWidth;
+    nodoVisualCompleta.classList.add('visual-completa--entra');
+    // Ronda 1 de revisión (Important #2/#3): el foco va al botón de cierre, no al contenedor del
+    // diálogo — es el ÚNICO elemento enfocable dentro (el keydown de Tab, más abajo, lo mantiene ahí).
+    // Ronda final (adversarial A4): guarda -- nodoVisualCompletaCerrar es un nodo estático de
+    // index.html y nunca debería faltar, pero un `.focus()` sin comprobar no cuesta nada de más.
+    if (nodoVisualCompletaCerrar) nodoVisualCompletaCerrar.focus();
+    abierta = true;
+  } finally {
+    if (!abierta) {
+      nodoVisualCompleta.hidden = true;
+      if (nodoContenidoApp) nodoContenidoApp.inert = false;
+      zonaImagenAbrio = null;
+    }
+  }
 }
 
 /** Texto entero a pantalla completa (spec v0.2a.2.1 §1.4.2/§1.4.3): la MISMA superposición que la

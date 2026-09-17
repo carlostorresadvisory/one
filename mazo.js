@@ -493,8 +493,19 @@ export function ajustarEncaje(tarjetaNodo) {
   // ENTERA con getBoundingClientRect -- exactamente la misma medida que hace el e2e que lo juzga.
   // `.tarjeta-mazo` tiene alto propio (position:absolute; inset:0 dentro de `.mazo`), así que este
   // valor NO depende del contenido: fijarlo aquí no puede realimentar el layout ni oscilar.
+  // Adversarial (ola final, P1-1): `ajustarEncaje` se llama en cada render del mazo Y en cada
+  // resize/orientationchange/confianza -- escribir la custom property SIEMPRE, aunque el alto
+  // medido sea (por redondeo de subpíxel) igual que la última vez, dispara un recálculo de estilo
+  // de toda la cascada que depende de `--alto-tarjeta` sin necesidad. Se guarda el último valor
+  // escrito en `dataset` y solo se vuelve a escribir si cambia más de 1px.
   const altoTarjeta = tarjetaNodo.getBoundingClientRect().height;
-  if (altoTarjeta > 0) tarjetaNodo.style.setProperty('--alto-tarjeta', `${Math.round(altoTarjeta)}px`);
+  if (altoTarjeta > 0) {
+    const ultimoAltoTarjeta = Number(tarjetaNodo.dataset.ultimoAltoTarjeta) || 0;
+    if (Math.abs(altoTarjeta - ultimoAltoTarjeta) > 1) {
+      tarjetaNodo.style.setProperty('--alto-tarjeta', `${Math.round(altoTarjeta)}px`);
+      tarjetaNodo.dataset.ultimoAltoTarjeta = String(altoTarjeta);
+    }
+  }
 
   tarjetaNodo.classList.remove(
     'tarjeta--compacta-1',
