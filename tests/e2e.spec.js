@@ -5365,10 +5365,22 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   // page.evaluate (sin 295 idas y vueltas Playwright<->página): asegurarRepasoConstruidoHasta
   // es idempotente por índice, así que el coste total es el mismo que un solo
   // irA(294) (ver I1 más arriba), solo repartido en 295 pasos.
-  test('spec §8 "Verificación": barrido de las 295 del banco real en el repaso — el 100% tiene .zona-imagen con imagen, SVG o tarjeta tipográfica', async ({
+  // Tarea 7 de v0.2a.2.1: el barrido original (spec §8) solo comprobaba que
+  // cada tarjeta tuviera ALGO en `.zona-imagen`; esta versión añade las dos
+  // garantías nuevas de la rama -- suelo del 50% y cero desborde -- sobre el
+  // banco real completo. Sigue en un único page.evaluate con window.__one.irA
+  // (idéntico al barrido original): a diferencia del barrido de 44 ids con
+  // visual de datos (Tarea 6, más arriba en "gráficos de datos escalados al
+  // hueco"), que SÍ necesita contexto nuevo por id porque juega partidas
+  // reales (empezarPartida) y por tanto acumula racha/nivel entre preguntas,
+  // este barrido solo NAVEGA por el repaso (irA), que no juega ni acumula
+  // progreso -- no hay "cambio de nivel" que colar entre tarjetas. Mismo
+  // patrón que ya usaba con éxito el barrido original antes de esta tarea.
+  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene visual, ninguna baja del 50 % y ninguna desborda', async ({
     page,
   }) => {
-    test.setTimeout(60000);
+    test.setTimeout(120000);
+    await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
@@ -5382,21 +5394,27 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     expect(total).toBeGreaterThan(0);
 
     const faltantes = await page.evaluate((n) => {
-      const sinVisual = [];
+      const problemas = [];
       for (let i = 0; i < n; i += 1) {
         window.__one.irA(i);
         const tarjeta = document.querySelector('.tarjeta-mazo--actual');
         const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
-        const tieneImagenOSvg = Boolean(zona && zona.querySelector('img, svg'));
-        const esClave = Boolean(zona && zona.classList.contains('zona-imagen--clave'));
-        if (!zona || !(tieneImagenOSvg || esClave)) {
-          sinVisual.push({ indice: i, id: tarjeta ? tarjeta.dataset.indice : null });
+        const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
+        if (!zona || !contenido) { problemas.push({ i, motivo: 'sin zona o sin contenido' }); continue; }
+        const tieneAlgo = Boolean(zona.querySelector('img, svg, .visual-clave'));
+        if (!tieneAlgo) { problemas.push({ i, motivo: 'zona vacía' }); continue; }
+        const ratio = zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+        // Tolerancia de 1px sobre el alto real de la tarjeta, como en el resto de la suite.
+        const suelo = 0.5 - 1 / tarjeta.getBoundingClientRect().height;
+        if (ratio < suelo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} %` }); continue; }
+        if (contenido.scrollHeight > contenido.clientHeight + 2) {
+          problemas.push({ i, motivo: `desborda ${contenido.scrollHeight - contenido.clientHeight}px` });
         }
       }
-      return sinVisual;
+      return problemas;
     }, total);
 
-    expect(faltantes, `${faltantes.length} de ${total} tarjetas sin .zona-imagen con visual`).toEqual([]);
+    expect(faltantes, `${faltantes.length} de ${total} tarjetas con problema: ${JSON.stringify(faltantes.slice(0, 10))}`).toEqual([]);
   });
 
   // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica de v0.2a.2 solo
@@ -6688,5 +6706,55 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
       await overlay.evaluate((el) => el.hidden),
       'un arrastre que arranca fuera del texto debe seguir cerrando la superposición'
     ).toBe(true);
+  });
+
+  // Tarea 7: capturas del banco REAL (no el de ejemplo) para que Carlos las compare a ojo con las
+  // suyas del iPhone -- mismo patrón que "capturas v0.1d" de más arriba. sospechosoPorTitulo se
+  // construye desde datos/banco.json (no el .ejemplo.json de otros tests) porque art-091 es tipo
+  // "error" del banco real: sin el mapa, responderPreguntaActual tocaría la fila 0 por defecto
+  // (Guernica), una respuesta incorrecta para esta pregunta (el sospechoso real es la fila 2,
+  // Fountain) que no es la que Carlos vio en su captura original.
+  test('capturas v0.2a.2.1 para comparar con el iPhone de Carlos', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(
+      banco.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
+    );
+    await page.locator('[data-test="cerebro"]').click();
+
+    // 1. Duchamp (art-091), la captura que Carlos mandó con la imagen al 25 %.
+    await page.evaluate((url) => window.__one.forzarImagen('art-091', {
+      id: 'art-091', url, pagina: 'https://commons.wikimedia.org/wiki/File:Duchamp_Fountaine.jpg',
+      titulo: 'Duchamp Fountaine.jpg', autor: 'Marcel Duchamp', licencia: 'Public domain',
+      leyenda: 'Fuente de Duchamp, readymade que cuestiona qué es arte', termino: 'x', ancho: 900, alto: 949,
+    }), `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="900" height="949"><rect width="100%" height="100%" fill="#d8d4cc"/><circle cx="450" cy="480" r="300" fill="#f2efe9"/></svg>')}`);
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-091'], etiqueta: 'captura-duchamp' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-duchamp-375.png` });
+
+    // 2. economía/ordenar (eco-089), la tarjeta tipográfica que Carlos llamó "muy mala".
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'captura-ordenar' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-ordenar-375.png` });
+
+    // 3. gráfico de datos repartido en el hueco nuevo.
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['cie-008'], etiqueta: 'captura-grafico' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-grafico-375.png` });
+
+    // 4. la explicación recortada, abierta a pantalla completa.
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-091'], etiqueta: 'captura-texto' }));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await esperarAsentamientoMazo(page);
+    await tarjetaActual(page).locator('[data-test="explicacion"]').click();
+    await expect(page.locator('[data-test="visual-completa"]')).toBeVisible();
+    await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-texto-completo-375.png` });
+    await page.keyboard.press('Escape');
   });
 });

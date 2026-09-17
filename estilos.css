@@ -1745,13 +1745,23 @@ main#app {
 }
 
 /* `ordenar`: lista numerada completa, un ítem por línea, con "…" si una línea no cabe (spec §1.3:
-   "cada ítem en una línea (recorte con … si no cabe)"). */
+   "cada ítem en una línea (recorte con … si no cabe)"). Tarea 7 (defecto evidente y pequeño, dos
+   causas independientes -- comprobadas en vivo comentando cada una por separado -- que se sumaban
+   para dejar la lista SIN NUMERAR pese a ser un <ol> con list-style-type:decimal correcto):
+   1) esto era `display:flex;flex-direction:column`, y un `<li>` que pasa a ser flex item deja de
+      generar caja de `::marker` en todos los navegadores basados en Chromium/Blink y en Firefox.
+   2) con `display:flex` ya quitado, el marcador SEGUÍA sin pintar: `list-style-position:outside`
+      (el valor por defecto, nunca fijado aquí explícitamente) coloca el marcador FUERA de la caja
+      del propio `<li>`, y `overflow:hidden` en `.visual-clave-item` (imprescindible para el recorte
+      con "…" de una línea) se lo comía por estar fuera de esa caja.
+   Con `list-style-position:inside` el número pasa a ser parte del contenido de la línea (mismo
+   `overflow:hidden`+"…" del ítem, ahora truncando DESPUÉS del número si hace falta, nunca antes) y
+   el resultado visible por fin es el que pedía el comentario de arriba: la lista numerada completa
+   que sustituye a la que Carlos llamó "muy mala" el 17-sep -- no solo "primero → último". */
 .visual-clave-lista {
   margin: 0;
-  padding-left: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  padding-left: 2px;
+  list-style-position: inside;
 }
 
 .visual-clave-item {
@@ -1761,6 +1771,10 @@ main#app {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.visual-clave-item + .visual-clave-item {
+  margin-top: 6px;
 }
 
 .visual-clave-lista::marker,
