@@ -522,9 +522,28 @@ export function ajustarEncaje(tarjetaNodo) {
   aplicarCascada();
   // Marcar DESPUÉS de la cascada, una sola vez y pase lo que pase dentro de ella (por eso la
   // cascada vive en su propia función con sus `return`): lo que se mide aquí es el resultado
-  // final.
+  // final. `explicacionEl` no necesita la misma guarda que el enunciado: `.explicacion` solo
+  // existe en la tarjeta REVELADA (construirBloqueFeedback, app.js) -- en la tarjeta activa sin
+  // responder `explicacionEl` es `null` y `marcarRecorte` no hace nada.
   marcarRecorte(explicacionEl, 'explicacion--recortada', 'Ver la explicación entera');
-  marcarRecorte(enunciadoEl, 'enunciado--recortado', 'Ver la pregunta entera');
+  // Ronda de corrección 1 de la Tarea 5 (Critical): el enunciado, a diferencia de la explicación,
+  // SÍ existe en las dos tarjetas (construirBloqueEnunciado lo comparte). Su propia cascada "sin
+  // responder" (paso (c) más abajo) puede acabar en un `-webkit-line-clamp` calculado sin volver a
+  // comprobar `cabe()` después -- y, por construcción, un `line-clamp` que de verdad recorta deja
+  // `scrollHeight > clientHeight` SIEMPRE, exactamente lo que `marcarRecorte` interpreta como
+  // "tocable". Marcarlo así en la tarjeta ACTIVA sin responder volvería tocable la PREGUNTA antes
+  // de responder, que v0.1d §3/§4 prohíbe explícitamente ("ningún toque en ninguna tarjeta para
+  // desplegar/plegar nada" sigue rigiendo ahí; la excepción de la Tarea 5 es solo para la tarjeta
+  // YA REVELADA). Por eso `marcarRecorte` ni se llama fuera de la tarjeta revelada: si el nodo se
+  // reutilizara alguna vez sin pasar por una reconstrucción completa, se limpia cualquier resto.
+  if (tarjetaNodo.dataset.respondida === 'true') {
+    marcarRecorte(enunciadoEl, 'enunciado--recortado', 'Ver la pregunta entera');
+  } else if (enunciadoEl) {
+    enunciadoEl.classList.remove('enunciado--recortado');
+    enunciadoEl.removeAttribute('role');
+    enunciadoEl.removeAttribute('tabindex');
+    enunciadoEl.removeAttribute('aria-label');
+  }
 
   function aplicarCascada() {
     if (cabe()) return;

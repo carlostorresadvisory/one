@@ -2891,7 +2891,10 @@ function evitarIdsDuplicados(clonSvg) {
  * tiene), el propio contenedor del mazo visible, con `tabindex="-1"` (ver index.html) precisamente
  * para servir de último recurso enfocable — nunca se deja `<body>` en silencio. */
 function enfocarTrasCerrarVisualCompleta(zona) {
-  if (zona && zona.isConnected) {
+  // Ronda de corrección 1 de la Tarea 5 (Minor): `zona` puede ser el párrafo de la explicación/del
+  // enunciado -- si perdió su `tabindex` entre abrir y cerrar (p. ej. un resize de por medio que ya
+  // no lo deja recortado), `.focus()` sobre él es un no-op silencioso y el foco se queda sin sitio.
+  if (zona && zona.isConnected && (zona.tabIndex >= 0 || zona.matches('button, a, [tabindex]'))) {
     zona.focus();
     return;
   }
@@ -3019,6 +3022,16 @@ function abrirTextoCompleto(el, titulo) {
   nodoVisualCompletaPie.innerHTML = '';
   nodoVisualCompletaPie.hidden = true;
   abrirSuperposicion(el);
+
+  // Ronda de corrección 1 de la Tarea 5 (Important): `touch-action:pan-y` SOLO tiene sentido si el
+  // texto de verdad desplaza -- puesto sin condición, el navegador se queda con cualquier arrastre
+  // que empiece aquí para "desplazar" un contenido que no se mueve, y el `pointerup` que cierra por
+  // deslizamiento (más abajo, cableado de `.visual-completa`) nunca llega -- verificado en vivo:
+  // exactamente la misma causa raíz que `touch-action:none` arregló para el resto de la
+  // superposición (Ronda final de revisión, Critical #1). Se mide DESPUÉS de `abrirSuperposicion`
+  // (con `hidden=false` ya aplicado): con la superposición todavía oculta (`display:none` por el
+  // `[hidden]` de estilos.css), `scrollHeight`/`clientHeight` medirían 0/0 y siempre "cabría".
+  caja.style.touchAction = caja.scrollHeight > caja.clientHeight + 1 ? 'pan-y' : 'none';
 }
 
 /** Cierra la superposición y devuelve el foco a un sitio seguro (spec §8 + Ronda final, Important
@@ -3072,12 +3085,13 @@ function alClicContenedorTarjetas(ev) {
 }
 
 /** Enter/Espacio sobre cualquiera de los tres: un `<div>`/`<p>` con `role="button"` no dispara
- * `click` solo con el teclado, a diferencia de un `<button>` real. */
+ * `click` solo con el teclado, a diferencia de un `<button>` real. `matches(SELECTOR_ABRIBLE)` en
+ * vez de repetir las tres clases (Ronda de corrección 1, Important #3: DRY con el propio selector
+ * de arriba, una sola lista). */
 function alKeydownContenedorTarjetas(ev) {
   if (ev.key !== 'Enter' && ev.key !== ' ') return;
   const el = ev.target;
-  if (!el.classList) return;
-  if (!el.classList.contains('zona-imagen') && !el.classList.contains('explicacion--recortada') && !el.classList.contains('enunciado--recortado')) return;
+  if (!el.matches || !el.matches(SELECTOR_ABRIBLE)) return;
   ev.preventDefault(); // Espacio no debe además desplazar la vista
   abrirAbrible(el);
 }
@@ -4186,6 +4200,19 @@ nodoVisualCompletaCerrar.addEventListener('click', () => cerrarVisualCompleta())
 // enlace vuelve a recibir el clic con normalidad.
 let inicioCierreVisualCompleta = null;
 nodoVisualCompleta.addEventListener('pointerdown', (ev) => {
+  // Ronda de corrección 1 de la Tarea 5 (Important): en modo TEXTO, `.visual-completa-texto` es el
+  // ÚNICO trozo con `touch-action:pan-y` (estilos.css) dentro de una superposición que por lo demás
+  // es `touch-action:none` -- así que un dedo que arranca ahí y con contenido real que desplazar
+  // (`scrollHeight > clientHeight`) se lo queda el propio scroll nativo del navegador, no el gesto
+  // de cierre. Sin esta guarda, `pointerup` seguía viendo cualquier arrastre vertical ≥60px como
+  // "cierra", aunque el usuario solo estuviera leyendo: se perdía la lectura de un texto largo. Con
+  // el texto entero ya visible (sin scroll real), el gesto de cierre se deja intacto -- no hay nada
+  // que perder por desplazar.
+  const textoConScroll = ev.target.closest && ev.target.closest('.visual-completa-texto');
+  if (textoConScroll && textoConScroll.scrollHeight > textoConScroll.clientHeight + 1) {
+    inicioCierreVisualCompleta = null;
+    return;
+  }
   inicioCierreVisualCompleta = { y: ev.clientY };
 });
 nodoVisualCompleta.addEventListener('pointerup', (ev) => {

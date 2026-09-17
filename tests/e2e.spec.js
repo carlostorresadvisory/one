@@ -2198,6 +2198,48 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     expect(estado.clases).toContain('tarjeta--enunciado-clamp');
     expect(estado.lineClamp).not.toBe('none');
     expect(Number(estado.lineClamp)).toBeGreaterThanOrEqual(2);
+
+    // CRITICAL (Ronda de corrección 1 de la Tarea 5): este es justo el escenario que rompía --
+    // `tarjeta--enunciado-clamp` de verdad activo (line-clamp con más texto real detrás, así que
+    // `scrollHeight > clientHeight` por construcción) en la tarjeta ACTIVA sin responder. Antes del
+    // fix, `marcarRecorte` se llamaba aquí igual que en la revelada y dejaba el enunciado con
+    // `role="button"`/`tabindex="0"`/la clase `enunciado--recortado`, y un toque abría la
+    // superposición de texto sobre una pregunta que el jugador ni ha visto entera ni ha respondido
+    // -- viola "la tarjeta ACTIVA sin responder no cambia" (v0.1d §3/§4). Nada de eso debe estar.
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).not.toHaveClass(/enunciado--recortado/);
+    expect(await enunciado.getAttribute('role')).toBeNull();
+    expect(await enunciado.getAttribute('tabindex')).toBeNull();
+    await enunciado.click({ force: true });
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  // CRITICAL (Ronda de corrección 1 de la Tarea 5), con una pregunta REAL del banco: log-040 tiene
+  // el enunciado más largo de todo el banco real (265 caracteres, tipo test4) -- el candidato con
+  // más opciones de que la cascada "sin responder" lo recorte. A 375×667 (viewport más estrecho que
+  // el que usan la mayoría de los tests de este fichero, con menos alto disponible) puede no
+  // llegar de verdad a `tarjeta--enunciado-clamp` -- medido en vivo: no llega, y por eso este test
+  // por sí solo pasaría igual sin el fix. Se deja de todas formas, tal como pidió la revisión, como
+  // comprobación directa con datos reales del banco; el test de arriba (enunciado sintético de ~40
+  // líneas, que SÍ fuerza `tarjeta--enunciado-clamp`) es el que de verdad habría fallado sin el fix.
+  test('CRITICAL (Ronda de corrección 1, banco real): log-040 (el enunciado más largo del banco) como tarjeta activa a 375×667 no vuelve tocable el enunciado', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['log-040'], etiqueta: 'critico-enunciado-activo' }));
+    const t = tarjetaActual(page);
+    await expect(t).toHaveAttribute('data-respondida', 'false');
+
+    const enunciado = t.locator('.enunciado');
+    await expect(enunciado).not.toHaveClass(/enunciado--recortado/);
+    expect(await enunciado.getAttribute('role')).toBeNull();
+    expect(await enunciado.getAttribute('tabindex')).toBeNull();
+    await enunciado.click({ force: true });
+    expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
   });
 });
 
@@ -6342,5 +6384,73 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2 - 60, { steps: 6 });
     await page.mouse.up();
     expect(await page.locator('[data-test="visual-completa"]').evaluate((el) => el.hidden)).toBe(true);
+  });
+
+  // Important #2 (Ronda de corrección 1): `.visual-completa` es `touch-action:none` entero (Critical
+  // #1 de Tarea 3, imprescindible para que el cierre por deslizamiento reciba `pointerup` con un
+  // gesto táctil real) -- sin distinguir, un dedo que arranca DENTRO del texto largo para leerlo
+  // cerraba la superposición en cuanto se movía ≥60px verticales, aunque solo estuviera
+  // desplazándose. Mismo patrón CDP que "Critical: cierra con un gesto táctil REAL" de la suite de
+  // pantalla completa (Input.dispatchTouchEvent, no pointerdown/pointerup sintéticos).
+  test('Important (Ronda de corrección 1): un arrastre táctil REAL dentro de un texto largo lo desplaza sin cerrar la superposición', async ({ page }) => {
+    const EXPLICACION_600 = Array.from({ length: 600 }, (_, i) => `palabra${i}`).join(' ') + '.';
+    const t = await partidaConExplicacion(page, EXPLICACION_600, 'txt-600-scroll');
+    await t.locator('[data-test="explicacion"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    const textoLocator = page.locator('[data-test="visual-completa-texto"]');
+    const caja = await textoLocator.boundingBox();
+    expect(caja).not.toBeNull();
+    const medida = await textoLocator.evaluate((el) => ({ scrollH: el.scrollHeight, clientH: el.clientHeight }));
+    expect(medida.scrollH, 'el texto de 600 palabras debe desplazar de verdad').toBeGreaterThan(medida.clientH + 1);
+
+    const cdp = await page.context().newCDPSession(page);
+    const cx = Math.round(caja.x + caja.width / 2);
+    const y0 = Math.round(caja.y + caja.height / 2);
+    // Arrastre hacia ARRIBA (el contenido sube, como al leer hacia abajo) DENTRO del bloque de texto.
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0 }] });
+    for (let k = 1; k <= 8; k += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 - k * 15 }] }); // 120px totales
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    expect(
+      await textoLocator.evaluate((el) => el.scrollTop),
+      'el arrastre dentro del texto debe desplazarlo de verdad, no quedarse en 0'
+    ).toBeGreaterThan(0);
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'la superposición debe seguir abierta: el gesto era para leer, no para cerrar'
+    ).toBe(false);
+  });
+
+  test('Important (Ronda de corrección 1): un arrastre táctil REAL que arranca FUERA del texto (el margen de la superposición) sigue cerrándola', async ({ page }) => {
+    const EXPLICACION_600 = Array.from({ length: 600 }, (_, i) => `palabra${i}`).join(' ') + '.';
+    const t = await partidaConExplicacion(page, EXPLICACION_600, 'txt-600-cierra');
+    await t.locator('[data-test="explicacion"]').click();
+    const overlay = page.locator('[data-test="visual-completa"]');
+    await expect(overlay).toBeVisible();
+
+    // El margen de `.visual-completa` (padding, fuera de `.visual-completa-texto`) sigue siendo
+    // parte de la superposición: un arrastre que arranca ahí no toca nada de lo que hay que leer.
+    const caja = await page.locator('[data-test="visual-completa-texto"]').boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    const cx = 8;
+    const y0 = Math.round(caja.y + caja.height / 2);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: y0 }] });
+    for (let k = 1; k <= 8; k += 1) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx, y: y0 + k * 15 }] }); // 120px hacia abajo
+      await page.waitForTimeout(20);
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+
+    expect(
+      await overlay.evaluate((el) => el.hidden),
+      'un arrastre que arranca fuera del texto debe seguir cerrando la superposición'
+    ).toBe(true);
   });
 });

@@ -2907,15 +2907,19 @@ button.punto-servidor::before {
 }
 
 /* Modo TEXTO de la superposición (spec §1.4.2): misma caja, mismo botón ←, mismo Escape y mismo
-   gesto de cierre que la imagen; lo único distinto es lo que se pinta dentro. `touch-action:pan-y`
-   solo en el bloque de texto: dentro se desplaza, y el cierre por deslizamiento sigue funcionando
-   en todo lo que lo rodea (`.visual-completa` mantiene su `touch-action:none`). */
+   gesto de cierre que la imagen; lo único distinto es lo que se pinta dentro. Sin `touch-action`
+   aquí a propósito (Ronda de corrección 1 de la Tarea 5, Important): app.js#abrirTextoCompleto lo
+   pone inline, `pan-y` o `none`, según si ESTE texto en concreto desplaza de verdad
+   (`scrollHeight > clientHeight`) -- puesto siempre a `pan-y` sin condición, el navegador se
+   quedaba con cualquier arrastre que empezara aquí (aunque no hubiera nada que desplazar) y el
+   `pointerup` que cierra por deslizamiento no llegaba nunca, verificado en vivo. Con `none` (texto
+   que cabe entero) el cierre por deslizamiento funciona en todo el bloque, igual que en el resto
+   de la superposición (`.visual-completa` mantiene su `touch-action:none`). */
 .visual-completa-texto {
   width: 100%;
   max-width: 560px;
   max-height: 100%;
   overflow-y: auto;
-  touch-action: pan-y;
   text-align: left;
   color: var(--texto);
 }
