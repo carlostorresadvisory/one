@@ -2179,6 +2179,46 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
 
     expect(fallos, `ids que desbordan o salen de [50,60] %: ${JSON.stringify(fallos, null, 2)}`).toEqual([]);
   });
+
+  // Ronda de corrección 2 (Important del coordinador): `tarjeta--espaciado-minimo` (paso h,
+  // mazo.js) no estaba en la lista de limpieza con la que `ajustarEncaje` empieza cada recálculo
+  // -- se quedaba pegada aunque el siguiente recálculo (resize/orientationchange vía
+  // `mazosActivos.forEach(m => m.reajustar())`, o un clic de confianza) ya no la necesitara. cie-008
+  // a 375×667 SÍ necesita el paso (h) (confirmado arriba, en el barrido); a 430×932 no hace falta
+  // ninguno de los pasos de la cascada revelada (medido en vivo: la lista de clases `tarjeta--*` de
+  // la tarjeta queda vacía del todo), así que sirve para demostrar la limpieza sin necesitar un
+  // viewport más alto todavía.
+  test('tarjeta--espaciado-minimo (paso h) se limpia al reajustar: cie-008 la lleva a 375×667 y deja de llevarla al pasar a 430×932, sin desbordar', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), 'cie-008');
+
+    const t = tarjetaActual(page);
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+    await expect(t).toHaveClass(/tarjeta--espaciado-minimo/);
+    await assertTarjetaSinScroll(page);
+
+    await page.setViewportSize({ width: 430, height: 932 });
+    // `expect` reintenta hasta que la clase desaparezca (el resize -> reajustar -> ajustarEncaje es
+    // síncrono una vez que el navegador dispara el evento, pero no hay garantía de que ya haya
+    // corrido en el instante en que `setViewportSize` resuelve).
+    await expect(t).not.toHaveClass(/tarjeta--espaciado-minimo/);
+    await assertTarjetaSinScroll(page);
+
+    const ratio = await t.evaluate((tarjeta) => {
+      const zona = tarjeta.querySelector('.zona-imagen');
+      return zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
+    });
+    expect(ratio, `la zona mide ${(ratio * 100).toFixed(1)}% de la tarjeta (fuera de [50,60])`).toBeGreaterThanOrEqual(0.5 - 0.01);
+    expect(ratio).toBeLessThanOrEqual(0.6 + 0.01);
+  });
 });
 
 // ============================================================================

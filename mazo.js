@@ -507,7 +507,14 @@ export function ajustarEncaje(tarjetaNodo) {
     'tarjeta--feedback-menor',
     // paso (g), nuevo (Ronda de corrección de la Tarea 4: art-091 y un cambio de nivel a la vez
     // que una explicación larga, ambos del banco/app real, no convergían con (a)-(f)): ver más abajo.
-    'tarjeta--feedback-minimo'
+    'tarjeta--feedback-minimo',
+    // paso (h) (Ronda de corrección 1 de la Tarea 6, Ruling R13): igual que los siete anteriores,
+    // tiene que limpiarse aquí -- ajustarEncaje se vuelve a llamar sobre el MISMO nodo en
+    // resize/orientationchange (reajustar -> render(true)) y en manejarClicConfianza, y sin esto
+    // el gap de 4px de "tarjeta--espaciado-minimo" se quedaba pegado aunque el recálculo con más
+    // alto (p. ej. al girar a un viewport más generoso) ya no lo necesitara (Ronda de corrección 2,
+    // Important).
+    'tarjeta--espaciado-minimo'
   );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
