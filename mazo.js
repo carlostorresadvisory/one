@@ -66,7 +66,14 @@ function marcarGestoAprendido() {
   }
 }
 
-export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPista = true, puntosNeutros = false } = {}) {
+// `alPasarDelFinal` (18-sep-2026, Carlos: "quiero poder scrollear al final de la tanda para ir al
+// repaso"): si se pasa, deslizar (o ↑/PageUp) estando ya en la ÚLTIMA tarjeta la llama en vez de
+// rebotar. Lo usa el mazo del resumen para encadenar con el repaso del HUB sin botón.
+export function montarMazo(
+  contenedor,
+  tarjetasIniciales,
+  { alCambiar, contarPista = true, puntosNeutros = false, alPasarDelFinal = null } = {},
+) {
   let lista = tarjetasIniciales.slice();
   let indice = 0;
   let pistaVisibleActual = true;
@@ -273,6 +280,12 @@ export function montarMazo(contenedor, tarjetasIniciales, { alCambiar, contarPis
       return;
     }
     if (nuevo >= lista.length) {
+      // Ya en la última tarjeta y el jugador sigue empujando hacia arriba: si el dueño del mazo
+      // dio un "después del final" (el resumen encadena con el repaso), se le cede el paso.
+      if (typeof alPasarDelFinal === 'function' && lista.length > 0 && indice === lista.length - 1) {
+        alPasarDelFinal();
+        return;
+      }
       animarRebote('arriba');
       return;
     }

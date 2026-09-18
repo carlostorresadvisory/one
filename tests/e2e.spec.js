@@ -672,6 +672,13 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjetaFinal.locator('[data-test="otra-partida"]')).toBeVisible();
     await expect(tarjetaFinal.locator('[data-test="ir-inicio"]')).toBeVisible();
 
+    // 11b (18-sep-2026, Carlos): desde la última tarjeta del resumen, un empujón más hacia arriba
+    // encadena con el repaso del HUB, sin botón. La pista lo anuncia en la propia tarjeta.
+    await expect(tarjetaFinal.locator('[data-test="resumen-seguir-repaso"]')).toBeVisible();
+    await page.keyboard.press('ArrowUp');
+    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
+    await expect(page.locator('[data-vista="resumen"]')).toBeHidden();
+
     // 12. Recargar: siempre se cae en el inicio de los emojis (no hay "última
     // vista" que recordar); la racha persiste. Volver al HUB: el radar ya no
     // está vacío, hay relleno de solidez y al menos una barra de área tiene progreso.

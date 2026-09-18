@@ -1872,7 +1872,20 @@ function finalizarPartida() {
     // 5 vistas de la pista vertical, que es de la PARTIDA. puntosNeutros: true
     // (B3) — la semántica respondida/sin responder no aplica a la tarjeta de
     // cifras ni a la final; los puntos del resumen son neutros salvo el actual.
-    { contarPista: false, puntosNeutros: true }
+    {
+      contarPista: false,
+      puntosNeutros: true,
+      // 18-sep-2026 (Carlos): al pasar de la última tarjeta del resumen deslizando (o con ↑) se
+      // encadena con el repaso del HUB, sin tener que ir a Inicio y tocar "Repaso". Se difiere un
+      // tick: `limpiarResumenMazo` destruye este mismo mazo y no conviene hacerlo desde dentro de
+      // su propio gesto.
+      alPasarDelFinal: () => {
+        setTimeout(() => {
+          limpiarResumenMazo();
+          abrirRepaso();
+        }, 0);
+      },
+    }
   );
 }
 
@@ -3483,6 +3496,17 @@ document.addEventListener('visibilitychange', () => {
  * cifras cuando no hay nada que repasar (botones directos, sin deslizar) y
  * por la tarjeta final cuando sí lo hay. "Otra partida" respeta el filtro de
  * área vigente (igual que hacía el antiguo botón "Otra"). */
+/** Pista de la última tarjeta del resumen (18-sep-2026, Carlos): deslizar hacia arriba una vez
+ * más encadena con el repaso del HUB (ver `alPasarDelFinal` en finalizarPartida). Solo texto: el
+ * gesto lo gestiona el mazo, aquí no hay listener. */
+function construirPistaSeguirRepaso() {
+  const pista = document.createElement('p');
+  pista.className = 'mazo-cierre-pista';
+  pista.dataset.test = 'resumen-seguir-repaso';
+  pista.textContent = 'Desliza hacia arriba para seguir con el repaso ↑';
+  return pista;
+}
+
 function construirAccionesResumen() {
   const acciones = document.createElement('div');
   acciones.className = 'resumen-acciones';
@@ -3555,6 +3579,7 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
   if (pieN === 0) {
     const zonaAccion = document.createElement('div');
     zonaAccion.className = 'tarjeta-accion';
+    zonaAccion.appendChild(construirPistaSeguirRepaso());
     zonaAccion.appendChild(construirAccionesResumen());
     tarjeta.appendChild(zonaAccion);
   }
@@ -3697,6 +3722,7 @@ function construirTarjetaFinalResumen() {
   titulo.textContent = 'Repaso terminado';
 
   tarjeta.appendChild(titulo);
+  tarjeta.appendChild(construirPistaSeguirRepaso());
   tarjeta.appendChild(construirAccionesResumen());
   return tarjeta;
 }

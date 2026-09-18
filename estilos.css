@@ -650,6 +650,14 @@ main#app {
   font-weight: 600;
 }
 
+/* Pista de la última tarjeta del resumen (18-sep-2026): un deslizamiento más lleva al repaso. */
+.mazo-cierre-pista {
+  margin: 0;
+  font-size: 13px;
+  text-align: center;
+  opacity: 0.7;
+}
+
 /* Recuento bajo la pregunta de confirmación (Añadido B, 13-sep tarde): mismo
    texto literal de siempre ("Quedan N sin responder"), ahora como subtítulo
    secundario en vez de único título. */
