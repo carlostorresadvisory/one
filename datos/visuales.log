@@ -2607,3 +2607,124 @@ Detalle fallos de cascada:
   tec-048: Ningún modelo respondió. Detalle: gemini:gemini-3.6-flash: HTTP 429 | groq:openai/gpt-oss-120b: HTTP 429 | google/gemma-4-31b-it:free: HTTP 429 | gemini:gemini-3.6-flash: HTTP 429
 
 Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.000000 $
+--solo-pendientes: 271 ya resueltas, 24 pendientes.
+
+=== visualizar 2026-09-18T17:00:11.085Z — 24 preguntas candidatas (solo modelos gratis) ===
+
+-- lote 1/3 (8 preguntas) --
+  cie-068: explicación actualizada; visual comparacion OK (groq:openai/gpt-oss-20b)
+    explicación antes: Es semiconservativa: cada nueva molécula conserva una hebra original y sintetiza otra nueva. Este elegante mecanismo, demostrado por Meselson y Stahl en 1958, garantiza la fidelidad en la transmisión de la información genética durante la división celular.
+    explicación después: La replicación es semiconservativa: cada hebra original sirve de molde para una nueva, por lo que cada molécula resultante contiene una hebra vieja y una recién sintetizada. Así se mantiene la precisión genética.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Antes","puntos":["Hebra original A","Hebra original B"]},{"titulo":"Después","puntos":["Hebra original A","Hebra nueva B"]}],"leyenda":"Distribución de hebras en la replicación semiconservativa."}
+  cie-073: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo cerebral de limpieza de toxinas durante el descanso."; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres))
+    explicación antes: Durante el sueño profundo, el sistema glinfático bombea líquido cefalorraquídeo para limpiar toxinas cerebrales. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide en el cerebro.
+    explicación después: Durante el sueño profundo, el sistema glinfático activa un flujo de líquido cefalorraquídeo que elimina toxinas. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide.
+  cie-075: explicación actualizada; visual flujo OK (gemini:gemini-flash-lite-latest)
+    explicación antes: El ala empuja aire hacia abajo; por reacción, el aire empuja el ala hacia arriba (tercera ley de Newton). La NASA desaconsejó en 2024 la explicación del efecto Venturi, aún común en libros.
+    explicación después: El ala desvía aire hacia abajo generando una reacción opuesta que eleva la aeronave. La NASA aclaró recientemente que la teoría del efecto Venturi en perfiles alares es un error común pero falso.
+    visual: {"tipo":"flujo","pasos":["Ala desvía aire","Reacción de Newton","Sustentación"],"leyenda":"Mecanismo físico real de la sustentación aérea."}
+  cie-082: explicación actualizada; ya tiene imagen
+    explicación antes: Los gases de efecto invernadero son transparentes a la luz visible pero absorben la radiación infrarroja de onda larga que emite el planeta, reemitándola también hacia la superficie y atrapando calor. El sexto informe del IPCC (2023) destacó el papel desproporcionado del metano en el calentamiento a corto plazo.
+    explicación después: Los gases de efecto invernadero son transparentes a la luz solar pero absorben la radiación infrarroja terrestre, reemitándola hacia el suelo. El sexto informe del IPCC (2023) subraya cómo esta retención acelera el calentamiento global actual.
+  eco-077: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Los compradores adquieren un activo sobrevalorado no por su valor real, sino esperando venderlo más caro a otro. En 2021, Bitcoin superó 60.000 dólares sin respaldo intrínseco.
+    explicación después: Los inversores compran activos muy sobrevalorados confiando ciegamente en revenderlos más caros a un especulador futuro. Esta dinámica explica episodios como la burbuja de las criptomonedas, donde el precio ignora por completo el valor intrínseco fundamental.
+  eco-086: explicación conservada (Incluye afirmaciones inexactas y omite la crisis cripto de 2021-2022, que aparece en la explicación actual.); visual linea-tiempo OK (gemini:gemini-flash-lite-latest)
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"1929","texto":"Gran Crash bursátil"},{"ano":"2000","texto":"Burbuja puntocom"},{"ano":"2008","texto":"Crisis financiera"},{"ano":"2022","texto":"Colapso cripto"}],"leyenda":"Evolución cronológica de las grandes crisis financieras"}
+  eco-087: explicación actualizada; sin visual (El flujo reproduce el orden, pero la leyenda afirma una regla de múltiplos EV/EBITDA que no es universal ni reproducible: los marketplaces pueden cotizar con EBITDA bajo o negativo y su prima suele reflejarse mejor en EV/ventas.)
+    explicación antes: Los inversores pagan más por negocios escalables: la manufactura requiere alta inversión fija, mientras que los marketplaces crecen casi sin coste marginal, lo que dispara su múltiplo.
+    explicación después: Los inversores premian la escalabilidad: la manufactura requiere alta inversión fija y ofrece bajos márgenes, mientras las plataformas digitales crecen sin coste marginal disparando su valoración en bolsa.
+  eco-089: explicación conservada (La explicación omite el orden de la respuesta y atribuye la rigidez salarial a contratos colectivos, no siempre aplicables. El visual invierte el orden correcto, que es Salarios → Tipos → Precios → Expectativas.); sin visual (El flujo está orientado de mayor a menor velocidad, mientras que la respuesta correcta exige de menor a mayor: Salarios nominales → Tipos de interés oficiales → Precios de consumo → Expectativas de inflación.)
+
+-- lote 2/3 (8 preguntas) --
+  eco-091: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Sectores intensivos en capital y con competencia de precio tienen márgenes bajos; empresas con activos físicos y altos costes variables (ej. aerolíneas) pierden margen; bancos generan ingresos por margen financiero pero con costes regulatorios; plataformas SaaS son asset-light y escalan con costes marginales bajos, generando márgenes elevados. Esta estructura explica por qué los inversores valoran fuertemente modelos de negocio escalables.
+    explicación después: Los sectores con alta intensidad de capital y costes fijos, como las aerolíneas, sufren márgenes estrechos. En cambio, las plataformas de software escalan sin añadir costes proporcionales, logrando rentabilidades operativas muy superiores.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Margen bajo","puntos":["Aerolíneas","Supermercados minoristas"]},{"titulo":"Margen alto","puntos":["Bancos comerciales","Software (SaaS)"]}],"leyenda":"Evolución típica del margen operativo por sector industrial"}
+  eco-096: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Comparación de volúmenes de comercio internacional 2020 vs 2023.")
+    explicación antes: El comercio mundial no se contrajo un 30 % desde 2020; tras el shock inicial de la pandemia, los volúmenes se recuperaron y superaron los niveles prepandemia en 2022‑2023 según la OMC.
+    explicación después: El comercio mundial no cayó un 30 % desde 2020; tras el shock inicial, los volúmenes se recuperaron y superaron los niveles prepandemia en 2022‑2023, según la OMC, demostrando la resiliencia de las cadenas de suministro.
+  eco-097: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres))
+    explicación antes: Buscamos información que confirma nuestras creencias, no la que las contradice, para evitar la disonancia cognitiva. Este mecanismo explica la polarización actual, donde cada bando refuerza su narrativa ignorando evidencias contrarias.
+    explicación después: Buscamos información que confirma nuestras creencias, no la que las contradice, para evitar la desagradable disonancia cognitiva. Este mecanismo explica la polarización política actual, donde cada bando refuerza su narrativa ignorando evidencias contrarias y datos oficiales.
+  fil-024: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Distinción modal clave en la filosofía analítica contemporánea.")
+    explicación antes: Kripke distingue la necesidad metafísica de la epistemológica: una proposición puede ser necesaria en todos los mundos posibles y aun así descubrirse empíricamente, como "el agua es H2O". No son equivalentes.
+    explicación después: Kripke demuestra que la necesidad metafísica y la epistemológica no coinciden, pues afirmaciones sobre la realidad pueden ser estrictamente necesarias en todos los mundos posibles sin dejar por ello de requerir un descubrimiento empírico.
+  fil-035: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Prioriza la explicación con menos suposiciones porque cada supuesto extra añade riesgo de error. Einstein lo expresó: «Tan simple como sea posible, pero no más».
+    explicación después: Prioriza la explicación con menos suposiciones porque cada supuesto extra añade riesgo de error. Einstein lo expresó: «Tan simple como sea posible, pero no más», guiando la ciencia moderna hacia modelos más eficientes.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Complejo","puntos":["Múltiples variables","Supuestos innecesarios","Mayor riesgo de error"]},{"titulo":"Ockham","puntos":["Mínimas hipótesis","Explicación más simple","Mayor probabilidad"]}],"leyenda":"Criterio de selección entre explicaciones equivalentes"}
+  fil-048: explicación actualizada; visual linea-tiempo OK (gemini:gemini-flash-lite-latest)
+    explicación antes: La navaja de Ockham (s. XIV) es la más antigua; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.
+    explicación después: La navaja de Ockham medieval precede al dilema del tranvía y al velo de ignorancia del siglo XX, cerrando con el principio de precaución ambiental de 1992, hoy clave en la regulación europea de IA.
+    visual: {"tipo":"linea-tiempo","hitos":[{"ano":"S. XIV","texto":"Navaja Ockham"},{"ano":"1967","texto":"Dilema tranvía"},{"ano":"1971","texto":"Velo ignorancia"},{"ano":"1992","texto":"Princ. precaución"}],"leyenda":"Evolución histórica de conceptos clave en filosofía y ética."}
+  geo-043: explicación actualizada; sin visual (El tipo de visual no es adecuado: es una línea temporal y las latitudes no son hitos cronológicos.)
+    explicación antes: Bogotá (4,7° N) está más al norte, Quito (0,2° S) cerca del ecuador, Lima (12° S) y Buenos Aires (34,6° S) la más austral.
+    explicación después: La disposición norte-sur de estas capitales responde directamente a su latitud geográfica. Bogotá se sitúa casi sobre el ecuador al norte, seguida por Quito, Lima y, finalmente, Buenos Aires en las latitudes templadas australes.
+  geo-059: explicación conservada (La explicación omite el hecho clave: cuándo Nigeria superará a EE. UU. Las cifras no son reproducibles con confianza razonable y no consta su desglose; la fuente indicada no basta para verificarlas.); sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Diferencias demográficas clave entre Nigeria y Estados Unidos")
+
+-- lote 3/3 (8 preguntas) --
+  log-036: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Las premisas no obligan a que las rosas y el marchitamiento coincidan.")
+    explicación antes: El silogismo falla porque la característica de "se marchitan rápido" no se transfiere automáticamente al subgrupo; la flor que se marchita rápido puede no ser rosa. Así, no se puede concluir nada sobre las rosas.
+    explicación después: El silogismo falla porque la propiedad de marchitarse rápido puede pertenecer exclusivamente a flores que no son rosas. Al no haber intersección obligatoria, no podemos deducir lógicamente esa conclusión sobre el subgrupo de las rosas.
+  log-037: explicación actualizada; visual formula OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Cambiar concentra la probabilidad de 2/3 en la otra puerta, ya que el presentador siempre revela una cabra. Es un ejemplo clásico de actualización bayesiana que se usa en finanzas para revisar hipótesis con nueva información.
+    explicación después: Cambiar duplica tus opciones de ganar al pasar del tercio inicial a los dos tercios restantes. Es un contraintuitivo principio de actualización bayesiana aplicado hoy en modelos de riesgo financiero y gestión de incertidumbres.
+    visual: {"tipo":"formula","texto":"P(Ganar | Cambiar) = 2/3","leyenda":"Probabilidad de éxito al cambiar de puerta"}
+  log-040: explicación conservada (Explicación: omite el dato clave de la explicación actual (1.098 positivos, 99 enfermos, 9 %) y excede 40 palabras. Visual: la categoría “verdaderos” no queda identificada como verdaderos negativos.); sin visual (esquema inválido: comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos)
+  log-047: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: Cuanto menos competidores, más poder para fijar precios. Monopolio (uno), oligopolio (pocos), competencia monopolística (muchos con poder de marca) y competencia perfecta (infinitos). La UE multó a Google en 2024 por abusos de oligopolio en publicidad.
+    explicación después: El número de competidores determina el poder de fijación de precios: monopolio (1) → oligopolio (pocos) → competencia monopolística (varios con marca) → competencia perfecta (infinitos). En 2024 la UE multó a Google por abuso de oligopolio.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Baja competencia","puntos":["Monopolio (uno)","Oligopolio (pocos)"]},{"titulo":"Alta competencia","puntos":["Competencia monopolística","Competencia perfecta"]}],"leyenda":"Estructuras de mercado ordenadas según el número de rivales"}
+  log-050: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: La falacia ad hominem ataca a la persona, no al argumento. La tarjeta la invierte: confundir ambas es un error común en tertulias y columnas de opinión.
+    explicación después: La falacia ad hominem ataca directamente a la persona en lugar de rebatir su argumento. Confundir ambas direcciones es un error muy común en tertulias y columnas de opinión actuales.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Ad Hominem Real","puntos":["Ataca al emisor","Ignora el argumento"]},{"titulo":"Error Común","puntos":["Ataca la idea","Confunde el foco"]}],"leyenda":"Diferencia clave entre el ataque personal y la refutación"}
+  tec-040: explicación actualizada; sin visual (esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres))
+    explicación antes: El electrolito sólido no es inflamable y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.
+    explicación después: El electrolito sólido no es inflamable y permite usar litio metálico como ánodo, almacenando más energía que el grafito. Toyota mostró prototipos avanzados buscando revolucionar la autonomía del vehículo eléctrico en esta década.
+  tec-047: explicación actualizada; visual comparacion OK (gemini:gemini-flash-lite-latest)
+    explicación antes: La luz EUV es absorbida por casi todo, incluso por el aire, por eso las máquinas operan en vacío. ASML los fabrica en exclusiva, y cada una tarda meses en montarse, limitando la producción global de chips avanzados.
+    explicación después: La luz ultravioleta extrema es absorbida por el aire, obligando a operar en vacío total. Su monopolio por ASML y una compleja cadena de suministro global limitan la producción mundial de semiconductores.
+    visual: {"tipo":"comparacion","columnas":[{"titulo":"Fabricación EUV","puntos":["Monopolio de ASML","Óptica de espejos","Cámara de vacío"]},{"titulo":"Retos Globales","puntos":["Cadena muy frágil","Alta intensidad de capital","Meses por unidad"]}],"leyenda":"Dependencia crítica de la industria de semiconductores"}
+  tec-048: explicación actualizada; sin visual (esquema inválido: leyenda inválida (1-60 caracteres): "Diferencia clave entre almacenamiento en servidor y cifrado total"; comparacion.columnas[1].titulo inválido (1-16 caracteres))
+    explicación antes: Solo el destinatario tiene la clave privada que descifra el mensaje, así ni el proveedor ni un atacante pueden leerlo. Es como una cerradura que solo abre la llave que nunca sale de tu bolsillo.
+    explicación después: Solo el destinatario posee la clave privada que descifra la información. Este mecanismo matemático impide que cualquier intermediario, incluidos los gigantes tecnológicos, acceda a tus conversaciones cotidianas garantizando total privacidad.
+
+=== Resumen ===
+  economia: 7 procesadas, 5 explicación actualizada, 2 visual generado (linea-tiempo:1, comparacion:1)
+  ciencia: 4 procesadas, 4 explicación actualizada, 2 visual generado (comparacion:1, flujo:1)
+  tecnologia: 3 procesadas, 3 explicación actualizada, 1 visual generado (comparacion:1)
+  geografia: 2 procesadas, 1 explicación actualizada, 0 visual generado (ninguno)
+  filosofia: 3 procesadas, 3 explicación actualizada, 2 visual generado (comparacion:1, linea-tiempo:1)
+  logica: 5 procesadas, 4 explicación actualizada, 3 visual generado (formula:1, comparacion:2)
+
+Total candidatas: 24
+Resueltas: 24
+Fallos de cascada (red/todos los modelos): 0
+Rechazadas por verificación (explicación): 4
+Rechazadas por verificación (visual, tras reintento): 13
+Preguntas del banco COMPLETO sin visual ni imagen ahora mismo: 13
+
+Detalle rechazos de visual (motivo):
+  cie-073: esquema inválido: leyenda inválida (1-60 caracteres): "Mecanismo cerebral de limpieza de toxinas durante el descanso."; flujo.pasos[2] inválido (1-18 caracteres); flujo.pasos[3] inválido (1-18 caracteres)
+  eco-077: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres); comparacion.columnas[1].titulo inválido (1-16 caracteres)
+  eco-087: El flujo reproduce el orden, pero la leyenda afirma una regla de múltiplos EV/EBITDA que no es universal ni reproducible: los marketplaces pueden cotizar con EBITDA bajo o negativo y su prima suele reflejarse mejor en EV/ventas.
+  eco-089: El flujo está orientado de mayor a menor velocidad, mientras que la respuesta correcta exige de menor a mayor: Salarios nominales → Tipos de interés oficiales → Precios de consumo → Expectativas de inflación.
+  eco-096: esquema inválido: leyenda inválida (1-60 caracteres): "Comparación de volúmenes de comercio internacional 2020 vs 2023."
+  eco-097: esquema inválido: comparacion.columnas[0].titulo inválido (1-16 caracteres)
+  fil-024: esquema inválido: leyenda inválida (1-60 caracteres): "Distinción modal clave en la filosofía analítica contemporánea."
+  geo-043: El tipo de visual no es adecuado: es una línea temporal y las latitudes no son hitos cronológicos.
+  geo-059: esquema inválido: leyenda inválida (1-60 caracteres): "Diferencias demográficas clave entre Nigeria y Estados Unidos"
+  log-036: esquema inválido: leyenda inválida (1-60 caracteres): "Las premisas no obligan a que las rosas y el marchitamiento coincidan."
+  log-040: esquema inválido: comparacion.columnas[0].puntos debe tener 2-3 elementos; comparacion.columnas[1].puntos debe tener 2-3 elementos
+  tec-040: esquema inválido: comparacion.columnas[0].puntos[0] inválido (1-28 caracteres)
+  tec-048: esquema inválido: leyenda inválida (1-60 caracteres): "Diferencia clave entre almacenamiento en servidor y cifrado total"; comparacion.columnas[1].titulo inválido (1-16 caracteres)
+
+Detalle rechazos de explicación (motivo):
+  eco-086: Incluye afirmaciones inexactas y omite la crisis cripto de 2021-2022, que aparece en la explicación actual.
+  eco-089: La explicación omite el orden de la respuesta y atribuye la rigidez salarial a contratos colectivos, no siempre aplicables. El visual invierte el orden correcto, que es Salarios → Tipos → Precios → Expectativas.
+  geo-059: La explicación omite el hecho clave: cuándo Nigeria superará a EE. UU. Las cifras no son reproducibles con confianza razonable y no consta su desglose; la fuente indicada no basta para verificarlas.
+  log-040: Explicación: omite el dato clave de la explicación actual (1.098 positivos, 99 enfermos, 9 %) y excede 40 palabras. Visual: la categoría “verdaderos” no queda identificada como verdaderos negativos.
+
+Coste real de esta ejecución (suma de 'coste' de las respuestas de la API): 0.000000 $

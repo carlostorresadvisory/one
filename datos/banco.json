@@ -1544,7 +1544,7 @@
   },
   {
     "enunciado": "El ADN se replica de forma conservativa, es decir, la doble hélice original permanece intacta.",
-    "explicacion": "Es semiconservativa: cada nueva molécula conserva una hebra original y sintetiza otra nueva. Este elegante mecanismo, demostrado por Meselson y Stahl en 1958, garantiza la fidelidad en la transmisión de la información genética durante la división celular.",
+    "explicacion": "La replicación es semiconservativa: cada hebra original sirve de molde para una nueva, por lo que cada molécula resultante contiene una hebra vieja y una recién sintetizada. Así se mantiene la precisión genética.",
     "nivel": 2,
     "respuesta": false,
     "id": "cie-068",
@@ -1553,11 +1553,31 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Antes",
+          "puntos": [
+            "Hebra original A",
+            "Hebra original B"
+          ]
+        },
+        {
+          "titulo": "Después",
+          "puntos": [
+            "Hebra original A",
+            "Hebra nueva B"
+          ]
+        }
+      ],
+      "leyenda": "Distribución de hebras en la replicación semiconservativa."
+    }
   },
   {
     "enunciado": "El sueño profundo (ondas lentas) es la fase en la que el cerebro elimina la mayor cantidad de proteínas beta-amiloides asociadas al Alzheimer.",
-    "explicacion": "Durante el sueño profundo, el sistema glinfático bombea líquido cefalorraquídeo para limpiar toxinas cerebrales. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide en el cerebro.",
+    "explicacion": "Durante el sueño profundo, el sistema glinfático activa un flujo de líquido cefalorraquídeo que elimina toxinas. Un estudio de 2023 demostró que perder solo una noche de estas ondas lentas eleva la proteína beta-amiloide.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -1571,7 +1591,7 @@
   },
   {
     "enunciado": "Un avión se sustenta principalmente por la diferencia de presión creada al desviar el aire hacia abajo, no por el efecto Venturi sobre el ala.",
-    "explicacion": "El ala empuja aire hacia abajo; por reacción, el aire empuja el ala hacia arriba (tercera ley de Newton). La NASA desaconsejó en 2024 la explicación del efecto Venturi, aún común en libros.",
+    "explicacion": "El ala desvía aire hacia abajo generando una reacción opuesta que eleva la aeronave. La NASA aclaró recientemente que la teoría del efecto Venturi en perfiles alares es un error común pero falso.",
     "nivel": 3,
     "respuesta": true,
     "hilo": 3,
@@ -1581,7 +1601,16 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.99,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "flujo",
+      "pasos": [
+        "Ala desvía aire",
+        "Reacción de Newton",
+        "Sustentación"
+      ],
+      "leyenda": "Mecanismo físico real de la sustentación aérea."
+    }
   },
   {
     "enunciado": "El cuerpo humano sintetiza la mayor parte de su vitamina D a partir de la radiación UVB del sol, no de la dieta.",
@@ -1660,7 +1689,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los gases de efecto invernadero son transparentes a la luz visible pero absorben la radiación infrarroja de onda larga que emite el planeta, reemitándola también hacia la superficie y atrapando calor. El sexto informe del IPCC (2023) destacó el papel desproporcionado del metano en el calentamiento a corto plazo.",
+    "explicacion": "Los gases de efecto invernadero son transparentes a la luz solar pero absorben la radiación infrarroja terrestre, reemitándola hacia el suelo. El sexto informe del IPCC (2023) subraya cómo esta retención acelera el calentamiento global actual.",
     "id": "cie-082",
     "area": "ciencia",
     "tipo": "test4",
@@ -2611,7 +2640,7 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Los compradores adquieren un activo sobrevalorado no por su valor real, sino esperando venderlo más caro a otro. En 2021, Bitcoin superó 60.000 dólares sin respaldo intrínseco.",
+    "explicacion": "Los inversores compran activos muy sobrevalorados confiando ciegamente en revenderlos más caros a un especulador futuro. Esta dinámica explica episodios como la burbuja de las criptomonedas, donde el precio ignora por completo el valor intrínseco fundamental.",
     "id": "eco-077",
     "area": "economia",
     "tipo": "test4",
@@ -2870,7 +2899,28 @@
     "confianza": 0.95,
     "verificado": true,
     "verificador": "deepseek/deepseek-v4-flash",
-    "visual": null
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "1929",
+          "texto": "Gran Crash bursátil"
+        },
+        {
+          "ano": "2000",
+          "texto": "Burbuja puntocom"
+        },
+        {
+          "ano": "2008",
+          "texto": "Crisis financiera"
+        },
+        {
+          "ano": "2022",
+          "texto": "Colapso cripto"
+        }
+      ],
+      "leyenda": "Evolución cronológica de las grandes crisis financieras"
+    }
   },
   {
     "enunciado": "Ordena los modelos de negocio típicos por el múltiplo medio EV/EBITDA que suelen recibir en bolsa, de menor a mayor.",
@@ -2881,7 +2931,7 @@
       "Software como servicio (SaaS)",
       "Plataformas de marketplace / red"
     ],
-    "explicacion": "Los inversores pagan más por negocios escalables: la manufactura requiere alta inversión fija, mientras que los marketplaces crecen casi sin coste marginal, lo que dispara su múltiplo.",
+    "explicacion": "Los inversores premian la escalabilidad: la manufactura requiere alta inversión fija y ofrece bajos márgenes, mientras las plataformas digitales crecen sin coste marginal disparando su valoración en bolsa.",
     "nivel": 3,
     "hilo": 3,
     "id": "eco-087",
@@ -2945,7 +2995,7 @@
   },
   {
     "enunciado": "Ordena de menor a mayor según el margen operativo típico de la industria.",
-    "explicacion": "Sectores intensivos en capital y con competencia de precio tienen márgenes bajos; empresas con activos físicos y altos costes variables (ej. aerolíneas) pierden margen; bancos generan ingresos por margen financiero pero con costes regulatorios; plataformas SaaS son asset-light y escalan con costes marginales bajos, generando márgenes elevados. Esta estructura explica por qué los inversores valoran fuertemente modelos de negocio escalables.",
+    "explicacion": "Los sectores con alta intensidad de capital y costes fijos, como las aerolíneas, sufren márgenes estrechos. En cambio, las plataformas de software escalan sin añadir costes proporcionales, logrando rentabilidades operativas muy superiores.",
     "nivel": 3,
     "criterio": "de menor a mayor margen operativo típico",
     "items": [
@@ -2968,7 +3018,7 @@
         {
           "titulo": "Margen bajo",
           "puntos": [
-            "Aerolineas",
+            "Aerolíneas",
             "Supermercados minoristas"
           ]
         },
@@ -2976,11 +3026,11 @@
           "titulo": "Margen alto",
           "puntos": [
             "Bancos comerciales",
-            "Software SaaS"
+            "Software (SaaS)"
           ]
         }
       ],
-      "leyenda": "Estructura de costes y su impacto en el margen operativo"
+      "leyenda": "Evolución típica del margen operativo por sector industrial"
     }
   },
   {
@@ -3134,7 +3184,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "El comercio mundial no se contrajo un 30 % desde 2020; tras el shock inicial de la pandemia, los volúmenes se recuperaron y superaron los niveles prepandemia en 2022‑2023 según la OMC.",
+    "explicacion": "El comercio mundial no cayó un 30 % desde 2020; tras el shock inicial, los volúmenes se recuperaron y superaron los niveles prepandemia en 2022‑2023, según la OMC, demostrando la resiliencia de las cadenas de suministro.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Tendencias en cadenas de suministro",
@@ -3170,7 +3220,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Buscamos información que confirma nuestras creencias, no la que las contradice, para evitar la disonancia cognitiva. Este mecanismo explica la polarización actual, donde cada bando refuerza su narrativa ignorando evidencias contrarias.",
+    "explicacion": "Buscamos información que confirma nuestras creencias, no la que las contradice, para evitar la desagradable disonancia cognitiva. Este mecanismo explica la polarización política actual, donde cada bando refuerza su narrativa ignorando evidencias contrarias y datos oficiales.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Sesgos cognitivos clásicos",
@@ -3573,7 +3623,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "Kripke distingue la necesidad metafísica de la epistemológica: una proposición puede ser necesaria en todos los mundos posibles y aun así descubrirse empíricamente, como \"el agua es H2O\". No son equivalentes.",
+    "explicacion": "Kripke demuestra que la necesidad metafísica y la epistemológica no coinciden, pues afirmaciones sobre la realidad pueden ser estrictamente necesarias en todos los mundos posibles sin dejar por ello de requerir un descubrimiento empírico.",
     "nivel": 5,
     "tarjeta": {
       "titulo": "Teoría de la referencia",
@@ -3718,7 +3768,7 @@
   },
   {
     "enunciado": "La navaja de Ockham sugiere que, entre explicaciones equivalentes, la más simple suele ser la preferida.",
-    "explicacion": "Prioriza la explicación con menos suposiciones porque cada supuesto extra añade riesgo de error. Einstein lo expresó: «Tan simple como sea posible, pero no más».",
+    "explicacion": "Prioriza la explicación con menos suposiciones porque cada supuesto extra añade riesgo de error. Einstein lo expresó: «Tan simple como sea posible, pero no más», guiando la ciencia moderna hacia modelos más eficientes.",
     "nivel": 1,
     "respuesta": true,
     "hilo": 1,
@@ -3728,7 +3778,29 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.97,
     "verificado": true,
-    "verificador": "nex-agi/nex-n2.5-pro:free"
+    "verificador": "nex-agi/nex-n2.5-pro:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Complejo",
+          "puntos": [
+            "Múltiples variables",
+            "Supuestos innecesarios",
+            "Mayor riesgo de error"
+          ]
+        },
+        {
+          "titulo": "Ockham",
+          "puntos": [
+            "Mínimas hipótesis",
+            "Explicación más simple",
+            "Mayor probabilidad"
+          ]
+        }
+      ],
+      "leyenda": "Criterio de selección entre explicaciones equivalentes"
+    }
   },
   {
     "enunciado": "Aristóteles definió la felicidad como el cumplimiento de los deseos inmediatos.",
@@ -3965,7 +4037,7 @@
       "Velo de ignorancia",
       "Principio de precaución"
     ],
-    "explicacion": "La navaja de Ockham (s. XIV) es la más antigua; el dilema del tranvía (1967) y el velo de ignorancia (1971) son del s. XX; el principio de precaución se consolida en 1992, influyendo en la regulación europea de IA.",
+    "explicacion": "La navaja de Ockham medieval precede al dilema del tranvía y al velo de ignorancia del siglo XX, cerrando con el principio de precaución ambiental de 1992, hoy clave en la regulación europea de IA.",
     "nivel": 1,
     "hilo": 1,
     "id": "fil-048",
@@ -3974,7 +4046,29 @@
     "generador": "nvidia/nemotron-3-super-120b-a12b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "linea-tiempo",
+      "hitos": [
+        {
+          "ano": "S. XIV",
+          "texto": "Navaja Ockham"
+        },
+        {
+          "ano": "1967",
+          "texto": "Dilema tranvía"
+        },
+        {
+          "ano": "1971",
+          "texto": "Velo ignorancia"
+        },
+        {
+          "ano": "1992",
+          "texto": "Princ. precaución"
+        }
+      ],
+      "leyenda": "Evolución histórica de conceptos clave en filosofía y ética."
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -4643,7 +4737,7 @@
   },
   {
     "enunciado": "Ordena las siguientes capitales sudamericanas de norte a sur según su latitud.",
-    "explicacion": "Bogotá (4,7° N) está más al norte, Quito (0,2° S) cerca del ecuador, Lima (12° S) y Buenos Aires (34,6° S) la más austral.",
+    "explicacion": "La disposición norte-sur de estas capitales responde directamente a su latitud geográfica. Bogotá se sitúa casi sobre el ecuador al norte, seguida por Quito, Lima y, finalmente, Buenos Aires en las latitudes templadas australes.",
     "nivel": 2,
     "criterio": "de norte a sur (latitud)",
     "items": [
@@ -6150,7 +6244,7 @@
     "correcta": 1,
     "nivel": 1,
     "hilo": 1,
-    "explicacion": "El silogismo falla porque la característica de \"se marchitan rápido\" no se transfiere automáticamente al subgrupo; la flor que se marchita rápido puede no ser rosa. Así, no se puede concluir nada sobre las rosas.",
+    "explicacion": "El silogismo falla porque la propiedad de marchitarse rápido puede pertenecer exclusivamente a flores que no son rosas. Al no haber intersección obligatoria, no podemos deducir lógicamente esa conclusión sobre el subgrupo de las rosas.",
     "id": "log-036",
     "area": "logica",
     "tipo": "test4",
@@ -6170,14 +6264,19 @@
     "correcta": 1,
     "nivel": 2,
     "hilo": 2,
-    "explicacion": "Cambiar concentra la probabilidad de 2/3 en la otra puerta, ya que el presentador siempre revela una cabra. Es un ejemplo clásico de actualización bayesiana que se usa en finanzas para revisar hipótesis con nueva información.",
+    "explicacion": "Cambiar duplica tus opciones de ganar al pasar del tercio inicial a los dos tercios restantes. Es un contraintuitivo principio de actualización bayesiana aplicado hoy en modelos de riesgo financiero y gestión de incertidumbres.",
     "id": "log-037",
     "area": "logica",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.95,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "formula",
+      "texto": "P(Ganar | Cambiar) = 2/3",
+      "leyenda": "Probabilidad de éxito al cambiar de puerta"
+    }
   },
   {
     "enunciado": "«Si permitimos el teletrabajo, luego querrán trabajar desde la playa y al final desde el espacio». ¿Qué falacia retórica se está usando?",
@@ -6361,7 +6460,7 @@
   },
   {
     "enunciado": "Ordena los tipos de estructura de mercado por el número de competidores (de menos a más).",
-    "explicacion": "Cuanto menos competidores, más poder para fijar precios. Monopolio (uno), oligopolio (pocos), competencia monopolística (muchos con poder de marca) y competencia perfecta (infinitos). La UE multó a Google en 2024 por abusos de oligopolio en publicidad.",
+    "explicacion": "El número de competidores determina el poder de fijación de precios: monopolio (1) → oligopolio (pocos) → competencia monopolística (varios con marca) → competencia perfecta (infinitos). En 2024 la UE multó a Google por abuso de oligopolio.",
     "nivel": 4,
     "criterio": "de menos a más",
     "items": [
@@ -6377,7 +6476,27 @@
     "generador": "z-ai/glm-4.7-flash",
     "confianza": 1,
     "verificado": true,
-    "verificador": "google/gemma-4-31b-it:free"
+    "verificador": "google/gemma-4-31b-it:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Baja competencia",
+          "puntos": [
+            "Monopolio (uno)",
+            "Oligopolio (pocos)"
+          ]
+        },
+        {
+          "titulo": "Alta competencia",
+          "puntos": [
+            "Competencia monopolística",
+            "Competencia perfecta"
+          ]
+        }
+      ],
+      "leyenda": "Estructuras de mercado ordenadas según el número de rivales"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -6412,7 +6531,7 @@
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
-    "explicacion": "La falacia ad hominem ataca a la persona, no al argumento. La tarjeta la invierte: confundir ambas es un error común en tertulias y columnas de opinión.",
+    "explicacion": "La falacia ad hominem ataca directamente a la persona en lugar de rebatir su argumento. Confundir ambas direcciones es un error muy común en tertulias y columnas de opinión actuales.",
     "nivel": 3,
     "tarjeta": {
       "titulo": "Falacias comunes",
@@ -6439,7 +6558,27 @@
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 1,
     "verificado": true,
-    "verificador": "google/gemma-4-31b-it:free"
+    "verificador": "google/gemma-4-31b-it:free",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Ad Hominem Real",
+          "puntos": [
+            "Ataca al emisor",
+            "Ignora el argumento"
+          ]
+        },
+        {
+          "titulo": "Error Común",
+          "puntos": [
+            "Ataca la idea",
+            "Confunde el foco"
+          ]
+        }
+      ],
+      "leyenda": "Diferencia clave entre el ataque personal y la refutación"
+    }
   },
   {
     "enunciado": "Encuentra el dato erróneo en la tarjeta.",
@@ -6788,7 +6927,7 @@
   },
   {
     "enunciado": "Las baterías de estado sólido prometen mayor densidad energética y mayor seguridad que las de iones de litio actuales.",
-    "explicacion": "El electrolito sólido no es inflamable y permite usar litio metálico como ánodo, que almacena más energía que el grafito. Toyota mostró en 2024 un prototipo que carga 500 km en 10 minutos.",
+    "explicacion": "El electrolito sólido no es inflamable y permite usar litio metálico como ánodo, almacenando más energía que el grafito. Toyota mostró prototipos avanzados buscando revolucionar la autonomía del vehículo eléctrico en esta década.",
     "nivel": 4,
     "respuesta": true,
     "hilo": 5,
@@ -6990,14 +7129,36 @@
     "correcta": 0,
     "nivel": 3,
     "hilo": 3,
-    "explicacion": "La luz EUV es absorbida por casi todo, incluso por el aire, por eso las máquinas operan en vacío. ASML los fabrica en exclusiva, y cada una tarda meses en montarse, limitando la producción global de chips avanzados.",
+    "explicacion": "La luz ultravioleta extrema es absorbida por el aire, obligando a operar en vacío total. Su monopolio por ASML y una compleja cadena de suministro global limitan la producción mundial de semiconductores.",
     "id": "tec-047",
     "area": "tecnologia",
     "tipo": "test4",
     "generador": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "confianza": 0.9,
     "verificado": true,
-    "verificador": "deepseek/deepseek-v4-flash"
+    "verificador": "deepseek/deepseek-v4-flash",
+    "visual": {
+      "tipo": "comparacion",
+      "columnas": [
+        {
+          "titulo": "Fabricación EUV",
+          "puntos": [
+            "Monopolio de ASML",
+            "Óptica de espejos",
+            "Cámara de vacío"
+          ]
+        },
+        {
+          "titulo": "Retos Globales",
+          "puntos": [
+            "Cadena muy frágil",
+            "Alta intensidad de capital",
+            "Meses por unidad"
+          ]
+        }
+      ],
+      "leyenda": "Dependencia crítica de la industria de semiconductores"
+    }
   },
   {
     "enunciado": "¿Qué propiedad del cifrado de extremo a extremo garantiza que ni el proveedor del servicio ni un atacante que intercepte el tráfico puedan leer los mensajes?",
@@ -7010,7 +7171,7 @@
     "correcta": 2,
     "nivel": 4,
     "hilo": 4,
-    "explicacion": "Solo el destinatario tiene la clave privada que descifra el mensaje, así ni el proveedor ni un atacante pueden leerlo. Es como una cerradura que solo abre la llave que nunca sale de tu bolsillo.",
+    "explicacion": "Solo el destinatario posee la clave privada que descifra la información. Este mecanismo matemático impide que cualquier intermediario, incluidos los gigantes tecnológicos, acceda a tus conversaciones cotidianas garantizando total privacidad.",
     "id": "tec-048",
     "area": "tecnologia",
     "tipo": "test4",
