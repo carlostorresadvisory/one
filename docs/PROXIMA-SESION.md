@@ -18,14 +18,16 @@ Prototipos: https://carlostorresadvisory.github.io/one/prototipos/ (código en `
 ## Qué hay que construir (los tres modos dentro de ONE)
 1. **Apuesta**: fondo de 1.000 puntos con curva tipo cartera; antes de responder eliges fichas 10 % / 25 % / 50 % / Todo; paga ×1 a ×2 según nivel; pregunta dorada ×3 (1 de cada 7); racha de 3 = ×1,5; quiebra → fondo nuevo, se guarda el máximo. Usa preguntas V/F y test4 del banco y de la generación infinita.
 2. **Más o menos**: dos cifras, la de abajo oculta; «más/menos» (en historia «antes/después»); la cifra se revela contando; nota curiosa en algunas; racha y récord; temas rotan (población, altura, historia, dinero). **Necesita un banco de cifras verificadas con fuente** (hoy son 72 escritas a mano en el prototipo): generarlas y verificarlas con la cascada gratis, igual que las preguntas.
-3. **Contrarreloj** (nuevo, sustituye a Madriguera; inspiración Crossy Road): preguntas rápidas con tiempo; **si fallas o no contestas a tiempo, empiezas de nuevo**; la marca es hasta dónde llegas. Propuesta del 5-oct pendiente de confirmar: la pantalla de «has caído» enseña la explicación de la pregunta que te tumbó (el momento de aprender) y las acertadas por los pelos van al repaso. Necesita enunciados cortos (una línea): filtrar el banco o generar V/F cortas.
+3. **Contrarreloj de la Esfinge** (sustituye a Madriguera; ideas de Carlos del 5-oct, 20:14, «brainstorming a lo loco», a afinar con él): diseño **simple de avance** (nada de gráficos tipo Crossy Road); una **esfinge** te hace preguntas con tiempo; **si fallas o no contestas a tiempo, empiezas de nuevo**; al llegar a **10 preguntas te da un premio** y te ofrece **doble o nada** para seguir (riesgo tipo «¿quieres continuar?»). Propuesta pendiente de confirmar: la pantalla de «has caído» enseña la explicación de la pregunta que te tumbó (el momento de aprender). Necesita enunciados cortos: filtrar el banco o generar V/F cortas. (Esto sustituye al «boss estilo esfinge DESCARTADO» del 16-sep.)
 4. **Imágenes y efectos en los tres**: imágenes de Wikimedia Commons (regla vigente: licencia libre y atribución) también para los elementos de Más o menos (países, edificios, montañas, hechos); efectos de acierto/fallo, cifras que cuentan, confeti en récords, sacudida al fallar, etc.
+5. **Sonido (Carlos lo quiere)**: dinero/«success» al acertar, sonido de fallo al fallar. En iOS el audio solo arranca tras el primer toque; botón de silencio.
+6. **Avatar permanente en una esquina** (idea de Carlos): se pone contento al acertar y triste al fallar. Propuesta a confirmar: que el avatar SEA la esfinge en los tres modos (un solo personaje, identidad de ONE), con pocas expresiones (neutral, contenta, triste, eufórica en récord/doble o nada).
 
 ## Preguntas para Carlos ANTES de diseñar (brainstorming → spec → plan)
 1. ¿Cómo encajan los 3 modos en ONE? ¿Sustituyen a la tanda actual como pantalla de entrada (abrir = elegir modo o entrar directo al último), y qué pasa con el hub, el radar, el repaso y el átomo?
-2. Contrarreloj: ¿cuánto tiempo por pregunta (fijo o que se acorta al avanzar)? ¿solo V/F deslizando o también test4? ¿con carretera y personaje al estilo Crossy Road o más sobrio?
-3. ¿El fondo de Apuesta y los récords son un marcador único o uno por modo? ¿Algo que coleccionar (monedas, personajes) o se aparca?
-4. ¿Sonido? (opcional; en el iPhone la web no puede vibrar).
+2. Esfinge: ¿cuánto tiempo por pregunta (fijo o que se acorta)? ¿qué es el premio a las 10 (puntos para el fondo de Apuesta, una medalla, una imagen de colección)? ¿el doble o nada es otras 10?
+3. ¿El fondo de Apuesta y los récords son un marcador único o uno por modo? ¿El premio de la esfinge alimenta el fondo?
+4. Avatar: ¿la esfinge para todo o un personaje distinto? ¿Dibujado en SVG propio (gratis, coherente con la paleta)?
 
 ## Dónde está todo
 - Repo público `carlostorresadvisory/one`, rama `main`, GitHub Pages en https://carlostorresadvisory.github.io/one/ (caché del SW `one-v20`). Tras cada push comprobar `gh run list` y que `…/one/sw.js` responde (memoria: Pages necesita `.nojekyll`).
