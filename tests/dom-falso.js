@@ -12,6 +12,22 @@ export class ElementoFalso {
     this.dataset = {};
     this.textContent = '';
     this._clases = new Set();
+    this._oyentes = {};
+  }
+  removeChild(hijo) {
+    const i = this.children.indexOf(hijo);
+    if (i >= 0) this.children.splice(i, 1);
+    return hijo;
+  }
+  addEventListener(tipo, fn) {
+    (this._oyentes[tipo] = this._oyentes[tipo] || []).push(fn);
+  }
+  removeEventListener(tipo, fn) {
+    this._oyentes[tipo] = (this._oyentes[tipo] || []).filter((f) => f !== fn);
+  }
+  /** Dispara a mano los oyentes de `tipo` (los tests no tienen eventos reales). */
+  disparar(tipo, evento = {}) {
+    (this._oyentes[tipo] || []).forEach((fn) => fn({ preventDefault() {}, stopPropagation() {}, ...evento }));
   }
   setAttribute(nombre, valor) { this.attrs[nombre] = String(valor); }
   getAttribute(nombre) { return Object.prototype.hasOwnProperty.call(this.attrs, nombre) ? this.attrs[nombre] : null; }
@@ -23,6 +39,12 @@ export class ElementoFalso {
       add: (...c) => c.forEach((x) => clases.add(x)),
       remove: (...c) => c.forEach((x) => clases.delete(x)),
       contains: (c) => clases.has(c),
+      toggle: (c, forzar) => {
+        const poner = forzar === undefined ? !clases.has(c) : Boolean(forzar);
+        if (poner) clases.add(c);
+        else clases.delete(c);
+        return poner;
+      },
     };
   }
   get className() { return [...this._clases].join(' '); }

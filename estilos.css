@@ -7,6 +7,7 @@
   --ok: #3ddc84;
   --ko: #ff5d5d;
   --texto-suave: #8a97a6;
+  --dorado: #f2c14e;
 
   --tam-1: 16px;
   --tam-2: 20px;
@@ -3080,4 +3081,79 @@ button.punto-servidor::before {
   .tarjeta-contenido {
     overflow-y: auto;
   }
+}
+
+/* ===== v0.3 efectos (efectos.js) — todo superpuesto: nada cambia de tamaño ni hace scroll ===== */
+.destello {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+  opacity: 0;
+}
+.destello[data-tipo="ok"] { background: radial-gradient(circle at 50% 55%, rgba(61, 220, 132, 0.28), transparent 65%); }
+.destello[data-tipo="ko"] { background: radial-gradient(circle at 50% 55%, rgba(255, 93, 93, 0.24), transparent 65%); }
+.destello--activo { animation: destello 0.6s ease-out; }
+@keyframes destello { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Sobre `.tarjeta-contenido` (nunca sobre `.tarjeta`, que lleva el translateY del mazo): misma
+   especificidad que `.tarjeta.correcto > .tarjeta-contenido` y declarada después, así que gana. */
+.efecto-acierto,
+.tarjeta > .tarjeta-contenido.efecto-acierto { animation: efecto-salto 0.5s var(--ease-suave); }
+.efecto-fallo,
+.tarjeta > .tarjeta-contenido.efecto-fallo { animation: efecto-sacudida 0.45s ease; }
+@keyframes efecto-salto {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-10px) scale(1.015); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes efecto-sacudida {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+
+.lienzo-confeti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.tarjeta--dorada {
+  box-shadow: 0 0 0 2px var(--dorado), 0 0 18px rgba(242, 193, 78, 0.45);
+  animation: dorada-brillo 1.6s ease-in-out infinite;
+}
+@keyframes dorada-brillo { 50% { box-shadow: 0 0 0 2px var(--dorado), 0 0 28px rgba(242, 193, 78, 0.7); } }
+
+.llama { display: inline-block; transform-origin: 50% 100%; }
+.llama[hidden] { display: none; }
+.llama[data-nivel="2"] { transform: scale(1.15); }
+.llama[data-nivel="3"] { transform: scale(1.3); animation: llama-late 0.9s ease-in-out infinite alternate; }
+@keyframes llama-late { to { transform: scale(1.4); } }
+
+.barra-tiempo {
+  height: 6px;
+  border-radius: 3px;
+  transform-origin: left center;
+  background: color-mix(in srgb, var(--acento) calc(var(--fraccion, 1) * 100%), var(--ko));
+}
+.barra-tiempo--critica { animation: barra-late 0.5s ease-in-out infinite alternate; }
+@keyframes barra-late { to { filter: brightness(1.5); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .destello--activo,
+  .efecto-acierto,
+  .efecto-fallo,
+  .tarjeta > .tarjeta-contenido.efecto-acierto,
+  .tarjeta > .tarjeta-contenido.efecto-fallo,
+  .tarjeta--dorada,
+  .llama,
+  .barra-tiempo--critica { animation: none !important; }
+  /* Solo cambio de color: el destello se queda en un tinte fijo breve (lo quita la clase). */
+  .destello--activo { opacity: 0.6; }
 }
