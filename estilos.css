@@ -3157,3 +3157,32 @@ button.punto-servidor::before {
   /* Solo cambio de color: el destello se queda en un tinte fijo breve (lo quita la clase). */
   .destello--activo { opacity: 0.6; }
 }
+
+/* ===== v0.3 esfinge (esfinge.js): cian + dorado; animaciones fuera con reducir movimiento ===== */
+.esfinge { display: block; overflow: visible; }
+.esfinge--pequena { width: 32px; height: 32px; }
+.esfinge--grande { width: 72px; height: 72px; }
+.esfinge-relleno { fill: #0f2a33; stroke: var(--acento); stroke-width: 2; stroke-linejoin: round; }
+.esfinge-trazo { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linecap: round; }
+.esfinge-franjas { fill: none; stroke: var(--fondo); stroke-width: 1.5; stroke-linecap: round; }
+.esfinge-oro { fill: var(--dorado); stroke: #b8892a; stroke-width: 1.2; stroke-linejoin: round; }
+.esfinge-ojo { fill: var(--acento); }
+.esfinge-ojos { transform-box: fill-box; transform-origin: center; transition: transform 90ms; }
+.esfinge-ojos--cerrados { transform: scaleY(0.1); }
+.esfinge-boca { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.esfinge--euforica .esfinge-boca { fill: var(--acento); }
+.esfinge-oreja { transform-box: fill-box; transition: transform 200ms var(--ease-suave); }
+.esfinge-oreja--izq { transform-origin: top right; }
+.esfinge-oreja--der { transform-origin: top left; }
+.esfinge--triste .esfinge-oreja--izq { transform: rotate(18deg); }
+.esfinge--triste .esfinge-oreja--der { transform: rotate(-18deg); }
+.esfinge-brillos { opacity: 0; }
+.esfinge-brillo { fill: var(--dorado); }
+.esfinge--euforica .esfinge-brillos { opacity: 1; animation: esfinge-brillos 0.7s ease-in-out infinite alternate; }
+.esfinge--contenta, .esfinge--euforica { animation: esfinge-salta 0.5s var(--ease-suave); }
+@keyframes esfinge-salta { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14%); } }
+@keyframes esfinge-brillos { from { opacity: 0.4; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .esfinge--contenta, .esfinge--euforica, .esfinge--euforica .esfinge-brillos { animation: none; }
+  .esfinge-oreja, .esfinge-ojos { transition: none; }
+}
