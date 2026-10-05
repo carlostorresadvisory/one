@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0b0f14">
+<title>ONE · Prototipos</title>
+<style>
+/* Prototipos desechables (5-oct-2026). Paleta de ONE: fondo oscuro + cian. Una pantalla, sin scroll. */
+:root {
+  --fondo: #0b0f14; --tarjeta: #151b23; --tarjeta-2: #1c2430; --texto: #e8edf2; --suave: #8a97a6;
+  --acento: #4cc9f0; --ok: #3ddc84; --ko: #ff5d5d; --oro: #f5c451;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--fondo); color: var(--texto);
+  font: 16px/1.4 -apple-system, system-ui, sans-serif;
+  display: flex; flex-direction: column; overflow: hidden;
+  padding: env(safe-area-inset-top, 0px) 0 0;
+  user-select: none; -webkit-user-select: none;
+}
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+main { flex: 1; min-height: 0; position: relative; }
+.vista { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 12px 16px; gap: 12px; }
+.vista[hidden] { display: none !important; }
+
+/* Barra inferior */
+nav { display: flex; border-top: 1px solid var(--tarjeta-2); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--fondo); }
+nav button { flex: 1; padding: 10px 4px 12px; font-size: 13px; color: var(--suave); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+nav button b { font-size: 20px; line-height: 1; font-weight: 400; }
+nav button[aria-selected="true"] { color: var(--acento); }
+
+/* Comunes */
+.cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.etiqueta { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+.tarjeta { background: var(--tarjeta); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; overflow: hidden; position: relative; }
+.enunciado { font-size: 20px; line-height: 1.3; font-weight: 600; text-wrap: balance; }
+.opciones { display: grid; gap: 8px; margin-top: auto; }
+.opciones.vf { grid-template-columns: 1fr 1fr; }
+.op { background: var(--tarjeta-2); border-radius: 12px; padding: 13px 14px; text-align: left; font-size: 16px; transition: background .2s, opacity .2s, transform .1s; }
+.op:active { transform: scale(.98); }
+.opciones.vf .op { text-align: center; font-weight: 600; }
+.op.bien { background: color-mix(in srgb, var(--ok) 28%, var(--tarjeta-2)); }
+.op.mal { background: color-mix(in srgb, var(--ko) 30%, var(--tarjeta-2)); }
+.op.apagada { opacity: .35; }
+.opciones.cerrada .op { pointer-events: none; }
+.explicacion { font-size: 15px; color: #c7d0da; line-height: 1.4; }
+.img { width: 100%; flex: 1 1 0; min-height: 0; object-fit: cover; border-radius: 12px; background: var(--tarjeta-2); }
+.pista { text-align: center; font-size: 13px; color: var(--suave); }
+.boton { background: var(--acento); color: #04202b; font-weight: 700; border-radius: 14px; padding: 14px; font-size: 17px; }
+.boton.sec { background: var(--tarjeta-2); color: var(--texto); }
+.pop { animation: pop .45s var(--ease); }
+@keyframes pop { 0% { transform: scale(.8); opacity: 0 } 100% { transform: none; opacity: 1 } }
+.entra { animation: entra .35s var(--ease); }
+@keyframes entra { from { transform: translateY(40px); opacity: 0 } to { transform: none; opacity: 1 } }
+.tiembla { animation: tiembla .4s; }
+@keyframes tiembla { 20%,60% { transform: translateX(-6px) } 40%,80% { transform: translateX(6px) } }
+@media (prefers-reduced-motion: reduce) { .pop, .entra, .tiembla { animation: none; } }
+
+/* 1 · Apuesta */
+.capital { font-size: 34px; font-weight: 800; letter-spacing: -.02em; transition: color .3s; }
+.capital.sube { color: var(--ok); } .capital.baja { color: var(--ko); }
+.delta { font-size: 15px; font-weight: 700; }
+#curva { width: 100%; height: 48px; display: block; }
+.fichas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ficha { background: var(--tarjeta-2); border-radius: 10px; padding: 9px 0; font-size: 14px; font-weight: 600; text-align: center; border: 1.5px solid transparent; }
+.ficha[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+.fichas.bloqueadas { opacity: .4; pointer-events: none; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 3px 8px; border-radius: 99px; background: var(--tarjeta-2); color: var(--suave); }
+.chip.oro { background: color-mix(in srgb, var(--oro) 22%, var(--tarjeta-2)); color: var(--oro); font-weight: 700; }
+.chip.fuego { color: #ffb36b; }
+.tarjeta.dorada { box-shadow: inset 0 0 0 1.5px var(--oro); }
+.resultado-ap { font-size: 22px; font-weight: 800; }
+
+/* 2 · Más o menos */
+.duelo { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr auto 1fr; gap: 8px; }
+.lado { background: var(--tarjeta); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 6px; overflow: hidden; }
+.lado .quien { font-size: 21px; font-weight: 700; text-wrap: balance; }
+.lado .cifra { font-size: 38px; font-weight: 800; letter-spacing: -.02em; color: var(--acento); }
+.lado .unidad { font-size: 13px; color: var(--suave); }
+.lado .nota { font-size: 14px; color: #c7d0da; max-width: 32ch; }
+.vs { text-align: center; font-size: 12px; color: var(--suave); letter-spacing: .1em; }
+.botones-mm { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin-top: 4px; }
+.botones-mm .op { text-align: center; font-weight: 700; font-size: 17px; }
+.lado.acierta { box-shadow: inset 0 0 0 2px var(--ok); }
+.lado.falla { box-shadow: inset 0 0 0 2px var(--ko); }
+.wow { font-size: 26px; font-weight: 800; color: var(--oro); }
+
+/* 3 · Madriguera */
+.rastro { display: flex; gap: 4px; align-items: center; height: 16px; padding: 0 3px; overflow: hidden; }
+.rastro i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.rastro i:last-child { outline: 2px solid var(--texto); outline-offset: 1px; }
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.profundidad { font-size: 28px; font-weight: 800; }
+
+/* Uso */
+.uso { position: absolute; top: 12px; right: 16px; }
+#panel-uso { position: absolute; inset: 0; background: color-mix(in srgb, var(--fondo) 94%, transparent); z-index: 5; padding: 24px 16px; display: flex; flex-direction: column; gap: 14px; }
+#panel-uso[hidden] { display: none; }
+#panel-uso table { width: 100%; border-collapse: collapse; font-size: 15px; }
+#panel-uso td, #panel-uso th { padding: 8px 4px; border-bottom: 1px solid var(--tarjeta-2); text-align: right; }
+#panel-uso td:first-child, #panel-uso th:first-child { text-align: left; }
+</style>
+</head>
+<body>
+<main>
+  <!-- 1 · APUESTA -->
+  <section class="vista" id="v-apuesta" aria-label="Apuesta">
+    <div class="cabeza">
+      <div>
+        <div class="etiqueta">Tu fondo</div>
+        <div class="capital num" id="ap-capital">1.000</div>
+      </div>
+      <div style="text-align:right">
+        <div class="etiqueta">Máximo</div>
+        <div class="num" id="ap-max">1.000</div>
+        <div class="delta num" id="ap-delta">&nbsp;</div>
+      </div>
+    </div>
+    <canvas id="curva" aria-label="Curva de tu fondo"></canvas>
+    <div class="tarjeta" id="ap-tarjeta"></div>
+  </section>
+
+  <!-- 2 · MÁS O MENOS -->
+  <section class="vista" id="v-mm" aria-label="Más o menos" hidden>
+    <div class="cabeza">
+      <div><div class="etiqueta" id="mm-tema">Tema</div><div class="num" style="font-size:22px;font-weight:800" id="mm-racha">Racha 0</div></div>
+      <div style="text-align:right"><div class="etiqueta">Récord</div><div class="num" id="mm-record">0</div></div>
+    </div>
+    <div class="duelo" id="mm-duelo"></div>
+  </section>
+
+  <!-- 3 · MADRIGUERA -->
+  <section class="vista" id="v-mad" aria-label="Madriguera" hidden>
+    <div class="cabeza">
+      <div><div class="etiqueta">Profundidad</div><div class="profundidad num" id="md-prof">1</div></div>
+      <div style="text-align:right"><div class="etiqueta">Récord</div><div class="num" id="md-record">1</div></div>
+    </div>
+    <div class="rastro" id="md-rastro"></div>
+    <div class="tarjeta" id="md-tarjeta"></div>
+  </section>
+
+  <div id="panel-uso" hidden></div>
+</main>
+<nav role="tablist">
+  <button role="tab" data-v="apuesta" aria-selected="true"><b>◈</b>Apuesta</button>
+  <button role="tab" data-v="mm" aria-selected="false"><b>⇅</b>Más o menos</button>
+  <button role="tab" data-v="mad" aria-selected="false"><b>↧</b>Madriguera</button>
+  <button data-uso><b>≡</b>Uso</button>
+</nav>
+
+<script src="datos.js"></script>
+<script>
+'use strict';
+const P = window.PREGUNTAS;
+const POR_ID = Object.fromEntries(P.map((p) => [p.id, p]));
+const AREAS = { arte: ['Arte', '#f28fad'], ciencia: ['Ciencia', '#7bd88f'], economia: ['Economía', '#4cc9f0'], filosofia: ['Filosofía', '#b39ddb'], geografia: ['Geografía', '#ffb36b'], historia: ['Historia', '#e6c07b'], logica: ['Lógica', '#80cbc4'], tecnologia: ['Tecnología', '#90a4ff'] };
+const $ = (s) => document.querySelector(s);
+const azar = (a) => a[Math.floor(Math.random() * a.length)];
+const fmt = (n) => Math.round(n).toLocaleString('es-ES');
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const leer = (k, d) => { try { const v = localStorage.getItem('proto-' + k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const guardar = (k, v) => { try { localStorage.setItem('proto-' + k, JSON.stringify(v)); } catch {} };
+const vibrar = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch {} };
+
+/* ---------- Registro de uso (para comparar los tres) ---------- */
+const hoy = () => new Date().toISOString().slice(0, 10);
+function anotar(modo, campo, segundos) {
+  const u = leer('uso', {});
+  const d = (u[hoy()] ||= {});
+  const m = (d[modo] ||= { aperturas: 0, tarjetas: 0, segundos: 0 });
+  if (campo) m[campo] += 1;
+  if (segundos) m.segundos += segundos;
+  guardar('uso', u);
+}
+let modoActivo = null, desde = Date.now();
+function cerrarTiempo() { if (modoActivo) anotar(modoActivo, null, Math.round((Date.now() - desde) / 1000)); desde = Date.now(); }
+document.addEventListener('visibilitychange', () => { if (document.hidden) cerrarTiempo(); else { desde = Date.now(); if (modoActivo) anotar(modoActivo, 'aperturas'); } });
+
+/* ---------- Pestañas ---------- */
+function mostrar(v) {
+  cerrarTiempo();
+  modoActivo = v;
+  anotar(v, 'aperturas');
+  document.querySelectorAll('.vista').forEach((s) => (s.hidden = s.id !== 'v-' + v));
+  document.querySelectorAll('nav [role=tab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.v === v));
+  $('#panel-uso').hidden = true;
+  guardar('vista', v);
+  if (v === 'apuesta') dibujarCurva();
+}
+document.querySelectorAll('nav [role=tab]').forEach((b) => b.addEventListener('click', () => mostrar(b.dataset.v)));
+document.querySelector('[data-uso]').addEventListener('click', () => {
+  cerrarTiempo();
+  const u = leer('uso', {});
+  const nombres = { apuesta: 'Apuesta', mm: 'Más o menos', mad: 'Madriguera' };
+  const tot = {};
+  Object.values(u).forEach((d) => Object.entries(d).forEach(([k, m]) => { const t = (tot[k] ||= { aperturas: 0, tarjetas: 0, segundos: 0 }); t.aperturas += m.aperturas; t.tarjetas += m.tarjetas; t.segundos += m.segundos; }));
+  const filas = Object.keys(nombres).map((k) => { const t = tot[k] || { aperturas: 0, tarjetas: 0, segundos: 0 }; return `<tr><td>${nombres[k]}</td><td class="num">${t.aperturas}</td><td class="num">${t.tarjetas}</td><td class="num">${Math.round(t.segundos / 60)}</td></tr>`; }).join('');
+  const p = $('#panel-uso');
+  p.innerHTML = `<div class="etiqueta">Tu uso desde el primer día</div><table><tr><th>Modo</th><th>Entradas</th><th>Tarjetas</th><th>Min</th></tr>${filas}</table><p class="pista" style="text-align:left">Haz una captura de esta pantalla dentro de un par de días: con ella decidimos qué se construye en ONE.</p><button class="boton sec" id="cerrar-uso">Volver</button>`;
+  p.hidden = false;
+  $('#cerrar-uso').onclick = () => { p.hidden = true; desde = Date.now(); };
+});
+
+/* =========================================================
+   1 · APUESTA — capital, fichas, pregunta dorada, racha
+   ========================================================= */
+const FICHAS = [[0.1, '10 %'], [0.25, '25 %'], [0.5, '50 %'], [1, 'Todo']];
+const ap = leer('ap', { capital: 1000, max: 1000, curva: [1000], racha: 0, quiebras: 0 });
+let apFicha = 0.25, apActual = null, apRespondida = false, apVistas = leer('ap-vistas', []);
+const multNivel = (n) => 1 + ((n || 1) - 1) * 0.25; // nivel 1 paga ×1, nivel 5 paga ×2
+
+function apPintarCabeza(delta) {
+  const c = $('#ap-capital');
+  c.textContent = fmt(ap.capital);
+  $('#ap-max').textContent = fmt(ap.max);
+  c.classList.remove('sube', 'baja');
+  if (delta) { c.classList.add(delta > 0 ? 'sube' : 'baja'); setTimeout(() => c.classList.remove('sube', 'baja'), 900); }
+  const d = $('#ap-delta');
+  d.textContent = delta ? (delta > 0 ? '+' : '−') + fmt(Math.abs(delta)) : ' ';
+  d.style.color = delta > 0 ? 'var(--ok)' : 'var(--ko)';
+}
+function animarCapital(desdeV, hastaV) {
+  const t0 = performance.now(), c = $('#ap-capital');
+  const paso = (t) => { const k = Math.min(1, (t - t0) / 600); c.textContent = fmt(desdeV + (hastaV - desdeV) * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
+}
+function dibujarCurva() {
+  const cv = $('#curva'), r = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (!w) return;
+  cv.width = w * r; cv.height = h * r;
+  const x = cv.getContext('2d'); x.scale(r, r); x.clearRect(0, 0, w, h);
+  const datos = ap.curva.slice(-60);
+  if (datos.length < 2) datos.unshift(datos[0]);
+  const min = Math.min(...datos, 0), max = Math.max(...datos) * 1.05 || 1;
+  const px = (i) => (i / (datos.length - 1)) * (w - 6) + 3, py = (v) => h - 4 - ((v - min) / (max - min)) * (h - 8);
+  const acc = getComputedStyle(document.documentElement).getPropertyValue('--acento').trim();
+  // línea de partida 1.000
+  x.strokeStyle = '#2a3442'; x.setLineDash([3, 4]); x.beginPath(); x.moveTo(0, py(1000)); x.lineTo(w, py(1000)); x.stroke(); x.setLineDash([]);
+  x.beginPath(); datos.forEach((v, i) => (i ? x.lineTo(px(i), py(v)) : x.moveTo(px(i), py(v))));
+  x.strokeStyle = acc; x.lineWidth = 2; x.stroke();
+  x.lineTo(px(datos.length - 1), h); x.lineTo(px(0), h); x.closePath();
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(76,201,240,.25)'); g.addColorStop(1, 'rgba(76,201,240,0)');
+  x.fillStyle = g; x.fill();
+  x.fillStyle = acc; x.beginPath(); x.arc(px(datos.length - 1), py(datos.at(-1)), 3.5, 0, 7); x.fill();
+}
+function apNueva() {
+  if (ap.capital < 10) return apQuiebra();
+  let pool = P.filter((p) => !apVistas.includes(p.id));
+  if (pool.length < 10) { apVistas = []; pool = P; }
+  apActual = azar(pool);
+  apActual.dorada = Math.random() < 1 / 7;
+  apRespondida = false;
+  const p = apActual, [area] = AREAS[p.area];
+  const mult = multNivel(p.nivel) * (p.dorada ? 3 : 1) * (ap.racha >= 3 ? 1.5 : 1);
+  const opciones = p.tipo === 'vf'
+    ? `<div class="opciones vf"><button class="op" data-r="true">Verdadero</button><button class="op" data-r="false">Falso</button></div>`
+    : `<div class="opciones">${p.opciones.map((o, i) => `<button class="op" data-r="${i}">${esc(o)}</button>`).join('')}</div>`;
+  const t = $('#ap-tarjeta');
+  t.className = 'tarjeta entra' + (p.dorada ? ' dorada' : '');
+  t.innerHTML = `
+    <div class="chips">
+      <span class="chip">${area} · nivel ${p.nivel}</span>
+      <span class="chip">paga ×${mult.toFixed(2).replace('.', ',').replace(/,?0+$/, '')}</span>
+      ${p.dorada ? '<span class="chip oro">★ Dorada ×3</span>' : ''}
+      ${ap.racha >= 3 ? `<span class="chip fuego">🔥 Racha ${ap.racha} · ×1,5</span>` : ''}
+    </div>
+    <div class="enunciado">${esc(p.enunciado)}</div>
+    <div style="margin-top:auto;display:grid;gap:8px">
+      <div class="etiqueta">Cuánto te juegas · <span class="num" id="ap-importe"></span></div>
+      <div class="fichas">${FICHAS.map(([f, l]) => `<button class="ficha" data-f="${f}" aria-pressed="${f === apFicha}">${l}</button>`).join('')}</div>
+    </div>
+    ${opciones}`;
+  const importe = () => ($('#ap-importe').textContent = fmt(Math.max(1, ap.capital * apFicha)) + ' puntos');
+  importe();
+  t.querySelectorAll('.ficha').forEach((b) => b.addEventListener('click', () => { apFicha = +b.dataset.f; t.querySelectorAll('.ficha').forEach((x) => x.setAttribute('aria-pressed', x === b)); importe(); }));
+  t.querySelectorAll('.op').forEach((b) => b.addEventListener('click', () => apResponder(b, mult)));
+}
+function apResponder(boton, mult) {
+  if (apRespondida) return;
+  apRespondida = true;
+  const p = apActual, t = $('#ap-tarjeta');
+  const elegida = boton.dataset.r;
+  const correcta = p.tipo === 'vf' ? String(p.respuesta) : String(p.correcta);
+  const acierto = elegida === correcta;
+  const apuesta = Math.max(1, Math.round(ap.capital * apFicha));
+  const delta = acierto ? Math.round(apuesta * mult) : -apuesta;
+  const antes = ap.capital;
+  ap.capital = Math.max(0, ap.capital + delta);
+  ap.max = Math.max(ap.max, ap.capital);
+  ap.racha = acierto ? ap.racha + 1 : 0;
+  ap.curva.push(ap.capital); if (ap.curva.length > 300) ap.curva.shift();
+  apVistas.push(p.id); guardar('ap-vistas', apVistas); guardar('ap', ap);
+  anotar('apuesta', 'tarjetas');
+  t.querySelector('.fichas').classList.add('bloqueadas');
+  const ops = t.querySelector('.opciones'); ops.classList.add('cerrada');
+  ops.querySelectorAll('.op').forEach((b) => { if (b.dataset.r === correcta) b.classList.add('bien'); else if (b === boton) b.classList.add('mal'); else b.classList.add('apagada'); });
+  apPintarCabeza(delta); animarCapital(antes, ap.capital); dibujarCurva();
+  vibrar(acierto ? 15 : [30, 40, 30]);
+  if (!acierto) t.classList.add('tiembla');
+  const nuevoMax = acierto && ap.capital === ap.max && antes < ap.max;
+  // Sustituye fichas por el resultado y la explicación
+  const zona = t.querySelector('.fichas').parentElement;
+  zona.innerHTML = `<div class="resultado-ap pop" style="color:${acierto ? 'var(--ok)' : 'var(--ko)'}">${acierto ? '+' + fmt(delta) : '−' + fmt(-delta)}${nuevoMax ? ' · <span style="color:var(--oro)">nuevo máximo</span>' : ''}</div><div class="explicacion">${esc(p.explicacion)}</div>`;
+  const pista = document.createElement('div'); pista.className = 'pista'; pista.textContent = 'Toca para la siguiente'; t.appendChild(pista);
+  apListoDesde = Date.now() + 350;
+}
+// Un único listener: tocar la tarjeta ya respondida pasa a la siguiente (evita listeners
+// pendientes que saltaban la tarjeta nueva tras deslizar).
+let apListoDesde = Infinity;
+document.getElementById('ap-tarjeta').addEventListener('click', () => { if (apRespondida && Date.now() >= apListoDesde) { apListoDesde = Infinity; apNueva(); } });
+function apQuiebra() {
+  ap.quiebras++; guardar('ap', ap);
+  const t = $('#ap-tarjeta'); t.className = 'tarjeta entra';
+  t.innerHTML = `<div class="etiqueta">Quiebra nº ${ap.quiebras}</div><div class="enunciado" style="font-size:28px">Te has quedado sin fondo.</div><div class="explicacion">Llegaste a un máximo de <b class="num">${fmt(ap.max)}</b> puntos. Arriesgar «Todo» con dudas sale caro.</div><button class="boton" id="ap-reinicio" style="margin-top:auto">Abrir un fondo nuevo con 1.000</button>`;
+  $('#ap-reinicio').onclick = () => { Object.assign(ap, { capital: 1000, curva: [1000], racha: 0 }); guardar('ap', ap); apPintarCabeza(0); dibujarCurva(); apNueva(); };
+}
+
+/* =========================================================
+   2 · MÁS O MENOS — cifras redondeadas de fuentes públicas
+   ========================================================= */
+const TEMAS = [
+  { nombre: 'Población', unidad: 'millones de habitantes (ONU, 2024)', mas: 'Más', menos: 'Menos', pregunta: '¿tiene más o menos habitantes?', dec: 1, items: [
+    ['India', 1451], ['China', 1419], ['Estados Unidos', 345], ['Indonesia', 284], ['Pakistán', 251], ['Nigeria', 233], ['Brasil', 212], ['Bangladés', 174, 'Unos 174 millones en un país más pequeño que Andalucía y Castilla-La Mancha juntas.'], ['Rusia', 145, 'El país más grande del mundo tiene menos gente que Bangladés.'], ['México', 131], ['Etiopía', 132], ['Japón', 124], ['Egipto', 117], ['Filipinas', 116], ['Turquía', 87], ['Alemania', 85], ['Reino Unido', 69], ['Francia', 66], ['Italia', 59], ['España', 48], ['Argentina', 46], ['Canadá', 40], ['Australia', 27, 'Un continente entero con algo más de la mitad de la población de España.'], ['Suecia', 10.6], ['Portugal', 10.4], ['Nueva Zelanda', 5.2], ['Islandia', 0.39, 'Islandia entera cabe en un barrio grande de Madrid: unas 390.000 personas.'],
+  ] },
+  { nombre: 'Altura', unidad: 'metros', mas: 'Más alto', menos: 'Más bajo', pregunta: '¿es más alto o más bajo?', dec: 0, items: [
+    ['Everest', 8849], ['K2', 8611], ['Kilimanjaro', 5895], ['Mont Blanc', 4806], ['Teide (desde el nivel del mar)', 3715, 'Medido desde el fondo del océano supera los 7.500 m.'], ['Aneto', 3404], ['Salto Ángel (Venezuela)', 979, 'La cascada más alta del mundo: casi un kilómetro de caída libre.'], ['Burj Khalifa', 828], ['Tokyo Skytree', 634], ['Shanghai Tower', 632], ['Empire State (con antena)', 443], ['Torre Eiffel', 330, 'En verano crece unos 15 cm por la dilatación del hierro.'], ['Torre de Cristal (Madrid)', 249], ['Gran Pirámide de Guiza (hoy)', 139, 'Fue el edificio más alto del mundo durante unos 3.800 años.'], ['Big Ben (torre Isabel)', 96], ['Estatua de la Libertad (con pedestal)', 93],
+  ] },
+  { nombre: 'Historia', unidad: 'año', mas: 'Después', menos: 'Antes', pregunta: '¿pasó antes o después?', dec: 0, anio: true, items: [
+    ['Construcción de la Gran Pirámide', -2560, 'Cleopatra vivió más cerca de la llegada a la Luna que de la construcción de la Gran Pirámide.'], ['Mueren los últimos mamuts (isla de Wrangel)', -2000, 'Seguía habiendo mamuts cuando ya se levantaban las pirámides.'], ['Muerte de Cleopatra', -30], ['Oxford empieza a enseñar', 1096, 'Oxford ya daba clases antes de que se fundara Tenochtitlan.'], ['Fundación de Tenochtitlan', 1325], ['Imprenta de Gutenberg', 1450], ['Colón llega a América', 1492], ['Fundación de Harvard', 1636], ['Independencia de EE. UU.', 1776], ['Revolución francesa', 1789], ['Patente del fax (Alexander Bain)', 1843, 'El fax es anterior al teléfono y a la Guerra de Secesión.'], ['Empieza la Guerra de Secesión', 1861], ['Brasil abole la esclavitud', 1888], ['Fundación de Nintendo', 1889, 'Nintendo nació vendiendo naipes el mismo año que se inauguró la Torre Eiffel.'], ['Inauguración de la Torre Eiffel', 1889], ['Fundación de Coca-Cola', 1886], ['Primera Guerra Mundial', 1914], ['Llegada a la Luna', 1969], ['Caída del Muro de Berlín', 1989], ['Quiebra de Lehman Brothers', 2008],
+  ] },
+  { nombre: 'Dinero', unidad: 'millones de dólares de su época', mas: 'Más', menos: 'Menos', pregunta: '¿costó más o menos?', dec: 1, items: [
+    ['Compra de Alaska a Rusia (1867)', 7.2, 'EE. UU. pagó por Alaska una décima parte de lo que costó un NFT en 2021.'], ['Compra de Luisiana a Francia (1803)', 15], ['NFT «Everydays» de Beeple (2021)', 69.3], ['Salvator Mundi, Leonardo (2017)', 450.3, 'El cuadro más caro jamás subastado.'], ['Facebook compra Instagram (2012)', 1000, 'Instagram tenía 13 empleados cuando se vendió por 1.000 millones.'], ['Google compra YouTube (2006)', 1650], ['Construcción del Burj Khalifa', 1500], ['Facebook compra WhatsApp (2014)', 19000, 'Unos 345 millones de dólares por cada uno de sus 55 empleados.'], ['Musk compra Twitter (2022)', 44000],
+  ] },
+];
+const mm = leer('mm', { record: 0 });
+let mmTema, mmA, mmB, mmRacha = 0, mmUsados = [], mmTemaIdx = Math.floor(Math.random() * TEMAS.length);
+const mmValor = (v) => (mmTema.anio ? (v < 0 ? `${-v} a. C.` : String(v)) : v.toLocaleString('es-ES', { maximumFractionDigits: mmTema.dec }));
+function mmSacar() {
+  const libres = mmTema.items.filter((i) => !mmUsados.includes(i) && i[1] !== mmA[1]);
+  if (!libres.length) { mmUsados = [mmA]; return mmSacar(); }
+  const b = azar(libres); mmUsados.push(b); return b;
+}
+function mmEmpezar() {
+  mmTemaIdx = (mmTemaIdx + 1) % TEMAS.length; mmTema = TEMAS[mmTemaIdx];
+  mmRacha = 0; mmA = azar(mmTema.items); mmUsados = [mmA]; mmB = mmSacar();
+  $('#mm-tema').textContent = mmTema.nombre; mmPintar();
+}
+function lado(item, visible, clase = '') {
+  return `<div class="lado ${clase}"><div class="quien">${esc(item[0])}</div>${visible ? `<div class="cifra num">${mmValor(item[1])}</div><div class="unidad">${mmTema.anio ? '' : esc(mmTema.unidad)}</div>` : ''}</div>`;
+}
+function mmPintar() {
+  $('#mm-racha').textContent = 'Racha ' + mmRacha; $('#mm-record').textContent = mm.record;
+  const d = $('#mm-duelo');
+  d.innerHTML = lado(mmA, true) + `<div class="vs">${esc(mmTema.pregunta.toUpperCase())}</div>` +
+    `<div class="lado entra"><div class="quien">${esc(mmB[0])}</div><div class="botones-mm"><button class="op" data-d="1">${mmTema.mas} ${mmTema.anio ? '→' : '↑'}</button><button class="op" data-d="-1">${mmTema.menos} ${mmTema.anio ? '←' : '↓'}</button></div></div>`;
+  d.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => mmResponder(+b.dataset.d)));
+}
+function mmResponder(dir) {
+  const acierto = Math.sign(mmB[1] - mmA[1]) === dir;
+  anotar('mm', 'tarjetas');
+  const d = $('#mm-duelo'), ladoB = d.children[2];
+  ladoB.innerHTML = `<div class="quien">${esc(mmB[0])}</div><div class="cifra num" id="mm-cifra">${mmValor(mmTema.anio ? mmB[1] : 0)}</div><div class="unidad">${mmTema.anio ? '' : esc(mmTema.unidad)}</div>${mmB[2] ? `<div class="nota pop">${esc(mmB[2])}</div>` : ''}`;
+  if (!mmTema.anio) { // la cifra sube contando: el momento «¡¿tanto?!»
+    const t0 = performance.now(), el = $('#mm-cifra'), fin = mmB[1];
+    const paso = (t) => { const k = Math.min(1, (t - t0) / 700); el.textContent = mmValor(fin * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(paso); };
+    requestAnimationFrame(paso);
+  }
+  ladoB.classList.add(acierto ? 'acierta' : 'falla');
+  vibrar(acierto ? 15 : [30, 40, 30]);
+  if (acierto) {
+    mmRacha++; if (mmRacha > mm.record) { mm.record = mmRacha; guardar('mm', mm); }
+    $('#mm-racha').textContent = 'Racha ' + mmRacha; $('#mm-record').textContent = mm.record;
+    setTimeout(() => { mmA = mmB; mmB = mmSacar(); mmPintar(); }, mmB[2] ? 2600 : 1300);
+  } else {
+    ladoB.classList.add('tiembla');
+    setTimeout(() => {
+      const pie = document.createElement('div');
+      pie.className = 'pop'; pie.style.cssText = 'display:grid;gap:8px';
+      pie.innerHTML = `<div class="pista">${mmRacha >= mm.record && mmRacha > 0 ? '¡Récord igualado o batido!' : `Racha de ${mmRacha}. Tu récord: ${mm.record}.`}</div><button class="boton">Otra ronda · ${esc(TEMAS[(mmTemaIdx + 1) % TEMAS.length].nombre)}</button>`;
+      d.appendChild(pie);
+      d.style.gridTemplateRows = '1fr auto 1fr auto';
+      pie.querySelector('button').onclick = () => { d.style.gridTemplateRows = ''; mmEmpezar(); };
+    }, 700);
+  }
+}
+
+/* =========================================================
+   3 · MADRIGUERA — cada respuesta abre la puerta a la siguiente
+   ========================================================= */
+const md = leer('md', { record: 1 });
+let mdRuta = [], mdActual = null, mdVisitadas = new Set();
+function mdIr(p) {
+  mdActual = p; mdRuta.push(p); mdVisitadas.add(p.id);
+  if (mdRuta.length > md.record) { md.record = mdRuta.length; guardar('md', md); }
+  $('#md-prof').textContent = mdRuta.length; $('#md-record').textContent = md.record;
+  $('#md-rastro').innerHTML = mdRuta.slice(-30).map((x) => `<i style="background:${AREAS[x.area][1]}"></i>`).join('');
+  const t = $('#md-tarjeta'); t.className = 'tarjeta entra';
+  const [area, color] = AREAS[p.area];
+  const opciones = p.tipo === 'vf'
+    ? `<div class="opciones vf"><button class="op" data-r="true">Verdadero</button><button class="op" data-r="false">Falso</button></div>`
+    : `<div class="opciones">${p.opciones.map((o, i) => `<button class="op" data-r="${i}">${esc(o)}</button>`).join('')}</div>`;
+  t.innerHTML = `<div class="chips"><span class="chip" style="color:${color}">${area} · nivel ${p.nivel}</span></div><div class="enunciado">${esc(p.enunciado)}</div>${opciones}`;
+  t.querySelectorAll('.op').forEach((b) => b.addEventListener('click', () => mdResponder(b)));
+}
+function mdResponder(boton) {
+  const p = mdActual, t = $('#md-tarjeta');
+  const correcta = p.tipo === 'vf' ? String(p.respuesta) : String(p.correcta);
+  const acierto = boton.dataset.r === correcta;
+  anotar('mad', 'tarjetas'); vibrar(acierto ? 15 : [30, 40, 30]);
+  const siguiente = p.vecinos.map((id) => POR_ID[id]).find((x) => x && !mdVisitadas.has(x.id));
+  const respuestaTxt = p.tipo === 'vf' ? (p.respuesta ? 'Verdadero' : 'Falso') : p.opciones[p.correcta];
+  t.className = 'tarjeta';
+  t.innerHTML = `
+    <div class="chips"><span class="chip" style="color:${acierto ? 'var(--ok)' : 'var(--ko)'}">${acierto ? '✓ Bien' : '✗ Era: ' + esc(respuestaTxt)}</span></div>
+    ${p.img ? `<img class="img pop" src="${esc(p.img)}" alt="" onerror="this.remove()">` : ''}
+    <div class="enunciado" style="font-size:17px">${esc(p.enunciado)}</div>
+    <div class="explicacion">${esc(p.explicacion)}</div>
+    ${siguiente ? `<div class="etiqueta" style="margin-top:auto">Sigue el hilo</div><div class="pista" style="text-align:left;color:var(--texto)">${esc(siguiente.enunciado.length > 90 ? siguiente.enunciado.slice(0, 88) + '…' : siguiente.enunciado)}</div>` : ''}
+    <div class="acciones" ${siguiente ? '' : 'style="margin-top:auto"'}>
+      <button class="boton sec" id="md-otro">Otro tema</button>
+      <button class="boton" id="md-mas" ${siguiente ? '' : 'disabled style="opacity:.4"'}>Más hondo ↓</button>
+    </div>`;
+  $('#md-mas').onclick = () => siguiente && mdIr(siguiente);
+  $('#md-otro').onclick = () => { mdRuta = []; let libres = P.filter((x) => x.area !== p.area && !mdVisitadas.has(x.id)); if (!libres.length) { mdVisitadas.clear(); libres = P.filter((x) => x.area !== p.area); } mdIr(azar(libres)); };
+}
+
+/* ---------- Gesto: deslizar hacia arriba = siguiente ---------- */
+let y0 = null;
+document.addEventListener('touchstart', (e) => (y0 = e.touches[0].clientY), { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (y0 === null) return;
+  const dy = y0 - e.changedTouches[0].clientY; y0 = null;
+  if (dy < 60) return;
+  if (modoActivo === 'apuesta' && apRespondida) { apListoDesde = Infinity; apNueva(); }
+  if (modoActivo === 'mad') { const b = $('#md-mas'); if (b && !b.disabled) b.click(); }
+}, { passive: true });
+
+/* ---------- Arranque ---------- */
+apPintarCabeza(0); apNueva();
+mmEmpezar();
+mdIr(azar(P));
+const inicial = ['apuesta', 'mm', 'mad'].includes(location.hash.slice(1)) ? location.hash.slice(1) : leer('vista', 'apuesta');
+mostrar(inicial);
+addEventListener('resize', dibujarCurva);
+</script>
+</body>
+</html>
