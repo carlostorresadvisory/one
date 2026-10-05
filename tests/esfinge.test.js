@@ -100,3 +100,24 @@ test('siguienteParpadeoMs entre 2,5 y 6 s', () => {
   assert.equal(siguienteParpadeoMs(() => 0), 2500);
   assert.ok(siguienteParpadeoMs(() => 0.999) < 6000);
 });
+
+test('destruir dos veces no lanza', (t) => {
+  const { desinstalar, esfinge, temporizador } = montar();
+  t.after(desinstalar);
+  esfinge.destruir();
+  esfinge.destruir();
+  assert.equal(temporizador.pendientes(), 0);
+});
+
+test('destruir tras vaciar el contenedor (re-render) no lanza', (t) => {
+  const { desinstalar, contenedor, esfinge, temporizador } = montar();
+  t.after(desinstalar);
+  // Como el DOM real: removeChild de un nodo que ya no es hijo lanza NotFoundError.
+  contenedor.removeChild = (hijo) => {
+    if (!contenedor.children.includes(hijo)) throw new Error('NotFoundError');
+    contenedor.children.splice(contenedor.children.indexOf(hijo), 1);
+  };
+  contenedor.children.length = 0;
+  assert.doesNotThrow(() => esfinge.destruir());
+  assert.equal(temporizador.pendientes(), 0);
+});

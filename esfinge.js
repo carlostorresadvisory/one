@@ -124,9 +124,14 @@ export function crearEsfinge(contenedor, { tamano = 'pequena', temporizador = te
       }
     },
     destruir() {
+      if (destruida) return;
       destruida = true;
       [idVuelta, idParpadeo, idFinParpadeo].forEach((id) => temporizador.clearTimeout(id));
-      contenedor.removeChild(svg);
+      // Si un re-render (innerHTML) ya vació el contenedor, removeChild lanzaría NotFoundError.
+      try {
+        if (svg.parentNode) svg.parentNode.removeChild(svg);
+        else contenedor.removeChild(svg);
+      } catch { /* ya no estaba: nada que quitar */ }
     },
   };
 }
