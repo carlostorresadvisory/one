@@ -119,3 +119,22 @@ test('valor basura en one.silencio cuenta como no silenciado', () => {
   const sonido = crearSonido({ almacen: almacenFalso({ [CLAVE_SILENCIO]: 'tal vez' }), cargarMotor: async () => motorFalso().modulo });
   assert.equal(sonido.estaSilenciado(), false);
 });
+
+test('Review Focus 2: el getter de globalThis.localStorage lanza (almacenamiento bloqueado) -- crearSonido() no lanza y el silencio va en memoria', () => {
+  const previo = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() {
+      throw new Error('SecurityError: almacenamiento bloqueado');
+    },
+  });
+  try {
+    const sonido = crearSonido({ cargarMotor: async () => motorFalso().modulo });
+    assert.equal(sonido.estaSilenciado(), false);
+    assert.equal(sonido.alternarSilencio(), true);
+    assert.equal(sonido.estaSilenciado(), true);
+  } finally {
+    if (previo) Object.defineProperty(globalThis, 'localStorage', previo);
+    else delete globalThis.localStorage;
+  }
+});

@@ -31,8 +31,17 @@ function leerSilencio(almacen) {
   }
 }
 
+/** `globalThis.localStorage` puede lanzar SecurityError con el almacenamiento bloqueado: null en ese caso. */
+function almacenPorDefecto() {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function crearSonido({
-  almacen = globalThis.localStorage,
+  almacen = almacenPorDefecto(),
   cargarMotor = () => import('./vendor/zzfx.js'),
   registro = null,
 } = {}) {
