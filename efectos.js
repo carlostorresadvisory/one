@@ -20,13 +20,27 @@ export function prefiereMenosMovimiento(ventana = globalThis.window) {
   }
 }
 
+const temporizadoresActivos = new WeakMap(); // nodo -> Map(clase -> {id, temporizador})
+
 /** Pone `clase` (reiniciando su animación si ya estaba) y la quita a los `ms`. */
 export function pulsarClase(nodo, clase, { ms = MS_EFECTO, temporizador = temporizadorReal } = {}) {
   if (!nodo) return null;
+  const previos = temporizadoresActivos.get(nodo) || new Map();
+  if (previos.has(clase)) {
+    // El timeout anterior no debe quitar la clase de la pulsación nueva.
+    (previos.get(clase).temporizador || temporizador).clearTimeout(previos.get(clase).id);
+    previos.delete(clase);
+  }
   nodo.classList.remove(clase);
   void nodo.offsetWidth; // fuerza reflow: la misma animación dos veces seguidas vuelve a correr
   nodo.classList.add(clase);
-  return temporizador.setTimeout(() => nodo.classList.remove(clase), ms);
+  const id = temporizador.setTimeout(() => {
+    nodo.classList.remove(clase);
+    previos.delete(clase);
+  }, ms);
+  previos.set(clase, { id, temporizador });
+  temporizadoresActivos.set(nodo, previos);
+  return id;
 }
 
 export function efectoAcierto(nodo, opciones) {

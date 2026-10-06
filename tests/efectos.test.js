@@ -154,3 +154,16 @@ test('lanzarConfeti con la librería rota devuelve false sin lanzar', async () =
   const documento = { body: new ElementoFalso('body'), createElement: (t) => new ElementoFalso(t) };
   assert.equal(await lanzarConfeti({ documento, ventana: ventanaNormal, cargar: async () => { throw new Error('404'); } }), false);
 });
+
+test('pulsarClase dos veces seguidas: el temporizador previo se cancela y no quita la clase de la segunda pulsación', () => {
+  const t = temporizadorFalso();
+  const nodo = new ElementoFalso('div');
+  pulsarClase(nodo, 'efecto-acierto', { ms: 500, temporizador: t });
+  t.avanzar(300);
+  pulsarClase(nodo, 'efecto-acierto', { ms: 500, temporizador: t });
+  assert.equal(t.pendientes(), 1);
+  t.avanzar(300); // t=600: el primer timeout (500) ya habría quitado la clase
+  assert.ok(nodo.classList.contains('efecto-acierto'));
+  t.avanzar(200);
+  assert.ok(!nodo.classList.contains('efecto-acierto'));
+});

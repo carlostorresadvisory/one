@@ -169,3 +169,13 @@ test('v0.3: área o ruta inválidas no se guardan (la tanda sí)', (t) => {
   guardarTanda({ id: 't3', corto: 'X', inicio: 1, pedidas: 10, area: 'historia', ruta: [42] });
   assert.deepEqual(leerTanda(), { id: 't3', corto: 'X', inicio: 1, pedidas: 10 });
 });
+
+test('v0.3: un área que no está en AREAS se descarta al leer y al guardar (la tanda sí se conserva)', (t) => {
+  const anterior = globalThis.localStorage;
+  const datos = new Map([[CLAVE_TANDA, JSON.stringify({ id: 't4', corto: 'X', inicio: 1, pedidas: 10, area: 'cocina', ruta: ['a'] })]]);
+  globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
+  t.after(() => { globalThis.localStorage = anterior; });
+  assert.deepEqual(leerTanda(), { id: 't4', corto: 'X', inicio: 1, pedidas: 10 });
+  assert.equal(guardarTanda({ id: 't5', corto: 'X', inicio: 1, pedidas: 10, area: 'cocina', ruta: ['a'] }), true);
+  assert.deepEqual(leerTanda(), { id: 't5', corto: 'X', inicio: 1, pedidas: 10 });
+});

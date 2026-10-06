@@ -6,6 +6,8 @@
 // cambiar de app o bloquear el móvil, así que la app olvidaba la tanda, dejaba de sondear y el
 // aviso "Tanda lista" no llegaba nunca (diagnóstico de la spec §0, visto por Carlos el 15-sep 09:52).
 
+import { AREAS } from './motor.js';
+
 export const CLAVE_TANDA = 'one.atomoTrabajo';
 
 // Estimación mientras el servidor no ha hecho ni una pregunta de esta tanda y todavía no ha
@@ -37,7 +39,7 @@ export function leerTanda() {
     const datos = JSON.parse(crudo);
     if (!esTandaValida(datos)) return null;
     const tanda = { id: datos.id, corto: datos.corto, inicio: datos.inicio, pedidas: datos.pedidas };
-    if (esTextoNoVacio(datos.area) && esRutaValida(datos.ruta)) {
+    if (AREAS.includes(datos.area) && esRutaValida(datos.ruta)) {
       tanda.area = datos.area;
       tanda.ruta = [...datos.ruta];
     }
@@ -52,7 +54,7 @@ export function leerTanda() {
 export function guardarTanda({ id, corto, inicio, pedidas, area, ruta } = {}) {
   if (!esTandaValida({ id, corto, inicio, pedidas })) return false;
   const datos = { id, corto, inicio, pedidas };
-  if (esTextoNoVacio(area) && esRutaValida(ruta)) {
+  if (AREAS.includes(area) && esRutaValida(ruta)) {
     datos.area = area;
     datos.ruta = [...ruta];
   }
