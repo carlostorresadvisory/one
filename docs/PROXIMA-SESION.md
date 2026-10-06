@@ -1,18 +1,28 @@
-# Próxima sesión — ONE v0.3 fase 3 (Apuesta)
+# Próxima sesión — ONE v0.3: plan con todo (feedback de Carlos del 6-oct)
 
 ## Dónde estamos
-- **v0.3 fases 1-2 publicadas** el 6-oct-2026: `main` en `ddc49f6`, caché `one-v21` servida en GitHub Pages. Incluye sonido (zzfx), efectos (confeti, destello, contador), esfinge SVG, mochila + respaldo v3, modos + filtro de área/ruta con «Generar preguntas», hub nuevo (radar + 6 tarjetas + Comenzar), silencio persistente en la cabecera.
-- **Decisión de Carlos (6-oct)**: el premio (1 objeto a la mochila) solo se da en **Clásico con 10/10**; Repaso nunca da premio.
-- Spec: `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md` (7 fases). Plan de fases 1-2 ya ejecutado: `docs/superpowers/plans/2026-10-05-one-v0.3-fases-1-2.md`.
+- **v0.3 fases 1-2 publicadas** el 6-oct-2026 (`main`, caché `one-v21`): sonido (zzfx), efectos, esfinge SVG, mochila + respaldo v3, modos + filtro de área/ruta con «Generar preguntas», hub nuevo (radar + 6 tarjetas + Comenzar), silencio persistente en la cabecera. Premio: solo Clásico con 10/10; Repaso nunca.
+- Spec: `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md` (7 fases; las 3-7 —Apuesta, Más o menos/Afinar, Contrarreloj, Esfinge-tienda— sin hacer). Hay que **reescribir en su sitio** lo que el feedback de abajo cambia (regla LEAN).
 
-## Siguiente
-1. Esperar lo que diga Carlos tras probar en el iPhone (sobre todo: que suene al primer toque y que el premio de 10/10 aparezca en la mochila).
-2. Plan de la **fase 3 (Apuesta)** con superpowers:writing-plans, desde la spec. Luego ejecutarlo con subagent-driven-development (implementador y revisor Sonnet, re-revisión Haiku, revisión final Opus ejecutando la app + adversarial OpenRouter gratis).
+## Feedback de Carlos tras probar en el iPhone (6-oct) — todo entra en el plan
+1. **Faltan los modos de juego nuevos**: el hub enseña tarjetas que no llevan a ningún juego nuevo.
+2. **Cada tarjeta, al tocarla, lleva directamente a su modo. Se quita el botón Comenzar.**
+3. La sección de la esfinge se llama **«Tienda»**.
+4. **Apuesta pasa a llamarse «Órdago».**
+5. **El sonido no funciona** en el iPhone. Pista: desbloqueo de `AudioContext` asíncrono en iOS (`sonido.js#desbloquear` devuelve false antes de que `resume()` resuelva; carga perezosa de zzfx). Diagnosticar con systematic-debugging antes de arreglar.
+6. **Generar preguntas = funcionalidad premium de pago real en el futuro**: NO se bloquea ahora (solo la usa Carlos). Basta con dejarla marcada como premium (insignia), sin candado ni cobro.
+7. **Al terminar de generarse, aviso grande «Preguntas generadas», clicable**, que lleva a jugarlas.
+8. **Visuales**: todas las tarjetas, incluidas las recién generadas, tienen que intentar traer visual, sobre todo **más imágenes** (Wikimedia Commons). Las visuales que generamos nosotros llevan texto y nadie lo lee: tienen que **enganchar al ojo** (forma, color, imagen; casi sin texto).
+9. **La esfinge se ve fatal; el avatar tiene que ser más grande.** Buscar en GitHub diseños de avatar/personaje con licencia libre y **enseñarle a Carlos 3-4 opciones con un prototipo de cada una para que elija**.
 
-## Aparcado de fases 1-2 (para valorar en fases siguientes)
-- Desbloqueo de audio asíncrono en iOS (el primer toque podría no sonar).
-- Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar; confeti concurrente puede crear dos lienzos; `esfinge.js` usa el `document` global.
-- Preexistentes: importar el mismo fichero dos veces no hace nada y no hay aviso de éxito; flakes de tests de servidor en Windows (`servidor-cola.test.js:888` EPERM de rename, `servidor-generacion.test.js:1150` temporizadores bajo carga).
+## Cómo hacerlo (decisión de Carlos: «un plan con todo, y lo visual por subagentes para no quemar cuota»)
+- Primero, ajustar la spec a este feedback y que Carlos la vea. Después, un plan único con writing-plans que cubra los arreglos (puntos 2-7), los visuales (punto 8), el avatar (punto 9) y los 4 modos (Órdago, Más o menos/Afinar, Contrarreloj, Tienda), con fases que se puedan publicar por separado.
+- Delegar la búsqueda del avatar en GitHub y los barridos de visuales/imágenes a subagentes baratos (Haiku) o a `delegar.mjs` (OpenRouter gratis; es información pública). Prototipos de avatar desechables para que Carlos elija en el iPhone.
+- Ejecución con subagent-driven-development: implementador y revisor Sonnet, re-revisión Haiku, revisión final con Opus ejecutando la app + adversarial OpenRouter gratis.
+
+## Aparcado de fases 1-2
+- Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar; confeti concurrente puede crear dos lienzos; `esfinge.js` usa el `document` global (queda obsoleto si cambia el avatar).
+- Preexistentes: importar el mismo fichero dos veces no hace nada y no da aviso de éxito; flakes de tests de servidor en Windows (`servidor-cola.test.js:888` EPERM de rename, `servidor-generacion.test.js:1150` temporizadores bajo carga).
 
 ## Cómo trabajar
 - Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (725) y `npx playwright test` (155). La suite e2e regenera `docs/capturas/*.png`: no se commitean.
