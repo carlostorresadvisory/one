@@ -34,7 +34,8 @@ import {
 import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
 import {
   FILTRO_TODOS, filtroDeModo, guardarFiltroDeModo, etiquetaFiltro, esTodos, filtroParaPartida,
-  filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas,
+  filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
+  avisoFiltroCorto,
 } from './filtro.js';
 import { modoPorId } from './modos.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
@@ -163,7 +164,7 @@ let atomoEstado = null; // {area, ruta, etiquetas} (atomo.js#crearEstadoAtomo); 
 let atomoInstancia = null; // devuelto por crearAtomo(): {actualizar, destruir}.
 let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas ya obsoletas.
 let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
-let atomoTrabajoInfo = null; // {corto} de la ruta que se pidió, para el texto de espera/chip.
+let atomoTrabajoInfo = null; // {corto, rutaTexto, area, ruta} de lo que se pidió: texto de espera/chip e índice de rutas.
 let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
 let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin chip que mostrar.
 // Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
@@ -224,6 +225,12 @@ const nodoHojaFiltro = document.querySelector('[data-test="hoja-filtro"]');
 const nodoFiltroAreas = document.querySelector('[data-test="filtro-areas"]');
 const nodoFiltroAtomo = document.querySelector('[data-test="atomo"]');
 const nodoFiltroElegir = document.querySelector('[data-test="filtro-elegir"]');
+// v0.3 §4: aviso de "menos de 5" (la vista `filtro-corto`).
+const nodoFiltroCortoTexto = document.querySelector('[data-test="filtro-corto-texto"]');
+const nodoFiltroCortoGenerar = document.querySelector('[data-test="filtro-corto-generar"]');
+const nodoFiltroCortoJugar = document.querySelector('[data-test="filtro-corto-jugar"]');
+const nodoFiltroCortoTodos = document.querySelector('[data-test="filtro-corto-todos"]');
+const nodoFiltroCortoPista = document.querySelector('[data-test="filtro-corto-pista"]');
 // v0.3: modo en juego ('clasico' | 'repaso'; las fases 3-7 añaden los suyos). Decide qué filtro
 // guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
 let modoActual = 'clasico';
@@ -1116,22 +1123,82 @@ function aplicarFiltro(filtro) {
   arrancarModo(modoActual);
 }
 
-/** Punto único de arranque de un modo con su filtro guardado (la Tarea 7 añade el aviso de < 5).
- * Repaso = partida de las falladas sin recuperar (decisión de Carlos, 5-oct): qué entra lo decide
- * `filtro.js#filtroParaRepaso` (puro, con test); aquí solo se enruta. */
+let filtroCortoContexto = null; // {modo, filtro} del aviso visible
+
+/** Qué se jugaría ahora en el modo `id` con su filtro guardado: `{filtro, partida, n}` (las reglas
+ * viven en filtro.js; aquí solo se elige cuál). `partida` es lo que entiende `empezarPartida` (null =
+ * todo, o `{area}` / `{ids, etiqueta}`); en Repaso es `null` cuando no queda ninguna pendiente. `n`
+ * es el número de elementos jugables. Se calcula UNA sola vez por arranque. */
+function prepararModo(id) {
+  const filtro = filtroDeModo(id);
+  const indice = leerIndiceRutas();
+  if (id === 'repaso') {
+    const partida = filtroParaRepaso(pendientes(estado, banco), filtro, indice, estado.reportadas, nombreArea);
+    return { filtro, partida, n: partida ? partida.ids.length : 0 };
+  }
+  return {
+    filtro,
+    partida: filtroParaPartida(filtro, banco, indice, estado, nombreArea),
+    n: contarJugables(banco, filtro, indice, estado.reportadas),
+  };
+}
+
+/** Punto único de arranque de un modo con su filtro guardado. Con filtro y menos de 5 jugables
+ * (`filtro.js#avisoFiltroCorto`) no se juega: se muestra el aviso (nunca una partida vacía, ni un
+ * resumen "0/0", ni racha). Repaso = partida de las falladas sin recuperar (decisión de Carlos,
+ * 5-oct). */
 function arrancarModo(id) {
   modoActual = id;
+  const preparado = prepararModo(id);
+  const aviso = avisoFiltroCorto({ modo: id, filtro: preparado.filtro, n: preparado.n, nombreArea });
+  if (aviso) {
+    mostrarFiltroCorto(id, preparado.filtro, aviso);
+    return;
+  }
+  arrancarModoSinComprobar(id, preparado);
+}
+
+/** Arranca el modo sin mirar el mínimo ("Jugar las N" del aviso, o filtro con 5 o más). */
+function arrancarModoSinComprobar(id, preparado = prepararModo(id)) {
+  modoActual = id;
   if (id === 'repaso') {
-    const partida = filtroParaRepaso(pendientes(estado, banco), filtroDeModo('repaso'), leerIndiceRutas(), estado.reportadas, nombreArea);
-    if (!partida) {
+    if (!preparado.partida) {
       irAlHub();
       mostrarAvisoHub('Nada por repasar');
       return;
     }
-    empezarPartida(partida, 'repaso');
+    empezarPartida(preparado.partida, 'repaso');
     return;
   }
-  empezarPartida(filtroParaPartida(filtroDeModo('clasico'), banco, leerIndiceRutas(), estado, nombreArea), 'clasico');
+  empezarPartida(preparado.partida, 'clasico');
+}
+
+function mostrarFiltroCorto(modo, filtro, aviso) {
+  limpiarPartidaEnCurso(); // el aviso no es una partida: nada del mazo anterior queda montado debajo.
+  filtroCortoContexto = { modo, filtro };
+  nodoFiltroCortoTexto.textContent = aviso.texto;
+  nodoFiltroCortoGenerar.hidden = !aviso.generar;
+  nodoFiltroCortoJugar.hidden = aviso.jugar === null;
+  nodoFiltroCortoJugar.textContent = aviso.jugar || '';
+  actualizarGenerarFiltroCorto();
+  mostrarVista('filtro-corto');
+}
+
+function actualizarGenerarFiltroCorto() {
+  if (!filtroCortoContexto || filtroCortoContexto.modo === 'repaso') {
+    nodoFiltroCortoPista.hidden = true;
+    return;
+  }
+  const conServidor = Boolean(leerConfiguracion());
+  const ocupado = Boolean(atomoTrabajoId) || atomoGenerarEnVuelo;
+  nodoFiltroCortoGenerar.disabled = !conServidor || ocupado;
+  const pista = !conServidor
+    ? 'Conecta el servidor para generar (punto junto a Comenzar)'
+    : ocupado
+      ? 'Ya se está generando una tanda; te aviso arriba'
+      : '';
+  nodoFiltroCortoPista.textContent = pista;
+  nodoFiltroCortoPista.hidden = pista === '';
 }
 
 /** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
@@ -1189,6 +1256,7 @@ function finalizarTrabajoAtomo() {
   atomoTandaPedidas = 0;
   atomoTandaSegPorPregunta = null;
   actualizarBotonGenerarAtomo();
+  if (vistaActual() === 'filtro-corto') actualizarGenerarFiltroCorto();
 }
 
 const PERIMETRO_ANILLO_TANDA = 2 * Math.PI * 15; // r=15 del viewBox 36x36 de index.html
@@ -1379,6 +1447,14 @@ function actualizarEsperaAtomoConResultado({ ok, ids, corto, mensaje }) {
  * si `atomoTrabajoId` cambió mientras la petición estaba en vuelo, esta respuesta ya no pinta nada.
  * `atomoSondeoEnVuelo` evita que dos llamadas se solapen.
  */
+/** Anota en el índice local de rutas (filtro.js) los ids que acaban de llegar para el nodo pedido:
+ * así el filtro por subtema encuentra esas preguntas aunque el servidor no mande la ruta. Debe ir
+ * ANTES de `finalizarTrabajoAtomo`, que borra `atomoTrabajoInfo`. */
+function registrarTandaEnIndice(ids) {
+  if (!atomoTrabajoInfo || !atomoTrabajoInfo.area || ids.length === 0) return;
+  registrarIdsRuta(atomoTrabajoInfo.area, atomoTrabajoInfo.ruta || [], ids);
+}
+
 async function sondearTrabajoAtomo() {
   const idEnCurso = atomoTrabajoId;
   if (!idEnCurso || atomoSondeoEnVuelo) return;
@@ -1436,6 +1512,7 @@ async function sondearTrabajoAtomo() {
     // sondeos y hay que ofrecer algo jugable de todas formas.
     if (Array.isArray(trabajo.preguntas) && trabajo.preguntas.length >= UMBRAL_ANTICIPADO_ATOMO) {
       const ids = idsUtilizablesDeTanda(trabajo);
+      registrarTandaEnIndice(ids);
       if (ids.length > 0) atomoTandaLista = { ids, corto: atomoTrabajoInfo.corto };
     }
     atomoConsultas += 1;
@@ -1459,6 +1536,7 @@ async function sondearTrabajoAtomo() {
   detenerSondeoAtomo();
   const corto = atomoTrabajoInfo ? atomoTrabajoInfo.corto : '';
   const ids = idsUtilizablesDeTanda(trabajo);
+  registrarTandaEnIndice(ids);
   finalizarTrabajoAtomo();
   borrarTanda(); // spec §1: se borra en estado terminal, tras decidir qué mostrar
   if (ids.length > 0) {
@@ -1499,8 +1577,9 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
   mostrarVista('atomo-espera');
 }
 
-/** Botón Generar (spec §4): pide la tanda con la ruta YA confirmada (no depende del anillo que se
- * esté mirando ahora mismo) y pasa a la tarjeta de espera. Un solo trabajo activo a la vez: si ya
+/** Pide una tanda para un nodo del árbol (spec §4; botón Generar del Átomo o del aviso de menos
+ * de 5) con la ruta YA confirmada (no depende del anillo que se
+ * esté mirando ahora mismo) y pasa a la tarjeta de espera. `origen` solo cambia cómo se avisa de un fallo. Un solo trabajo activo a la vez: si ya
  * hay uno, no hace nada (el botón ya debería estar apagado, ver actualizarBotonGenerarAtomo --
  * esta comprobación es solo defensiva).
  *
@@ -1508,25 +1587,33 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
  * de forma SÍNCRONA, ANTES del `await pedirTanda(...)` -- antes, `atomoTrabajoId` (la única guarda)
  * no se fijaba hasta que la promesa resolvía, así que dos toques rápidos en Generar corrían la
  * función dos veces con la guarda todavía en `null` las dos, y salían dos `POST /generar`. */
-async function manejarGenerarAtomo() {
-  if (atomoGenerarEnVuelo || atomoTrabajoId || !leerConfiguracion() || !atomoEstado) return;
-  const { area, ruta, etiquetas } = atomoEstado;
+async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'atomo' } = {}) {
+  if (atomoGenerarEnVuelo || atomoTrabajoId || !leerConfiguracion() || !area) return;
   const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
   const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
   guardarRutaAtomo(area, ruta);
+  // El modo pasa a mirar ese tema al volver. Repaso es la partida de pendientes: lo generado es nuevo,
+  // no pendiente, así que su filtro no se toca.
+  if (modoActual !== 'repaso') guardarFiltroDeModo(modoActual, { area, ruta, etiquetas });
 
   atomoGenerarEnVuelo = true;
   actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
+  if (origen === 'filtro-corto') actualizarGenerarFiltroCorto();
   const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
   if (!resultado) {
-    mostrarAvisoAtomo('No se pudo generar, prueba otra vez');
     actualizarBotonGenerarAtomo(); // reactiva Generar: sin trabajo en curso, puede volver a intentarlo.
+    if (origen === 'filtro-corto') {
+      actualizarGenerarFiltroCorto();
+      mostrarIndicadorTandaFallida();
+    } else {
+      mostrarAvisoAtomo('No se pudo generar, prueba otra vez');
+    }
     return;
   }
   atomoTrabajoId = resultado.trabajoId;
-  atomoTrabajoInfo = { corto, rutaTexto };
+  atomoTrabajoInfo = { corto, rutaTexto, area, ruta: [...ruta] };
   atomoTandaInicio = Date.now();
   atomoTandaPedidas = N_TANDA_ATOMO;
   // Estimación inicial por pregunta a partir de lo que dijo /generar, hasta que /trabajo/:id mande
@@ -1535,13 +1622,18 @@ async function manejarGenerarAtomo() {
     Number.isInteger(resultado.estimadoSeg) && resultado.estimadoSeg > 0
       ? resultado.estimadoSeg / N_TANDA_ATOMO
       : null;
-  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO });
+  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO, area, ruta });
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
   actualizarIndicadorTanda({ hechas: 0, pedidas: N_TANDA_ATOMO });
   cerrarHojaFiltro();
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
+}
+
+async function manejarGenerarAtomo() {
+  if (!atomoEstado) return;
+  await generarTanda({ area: atomoEstado.area, ruta: atomoEstado.ruta, etiquetas: atomoEstado.etiquetas });
 }
 
 // Spec §1: una tanda guardada de hace más de 2 h no se reanuda (el servidor conserva los terminados
@@ -1570,7 +1662,7 @@ function reanudarTandaGuardada() {
   atomoTrabajoId = guardada.id;
   // Tras una recarga no queda la ruta completa, solo el `corto` guardado: sirve igual para el
   // indicador, para el chip de la partida y para el texto de la vista de espera.
-  atomoTrabajoInfo = { corto: guardada.corto, rutaTexto: guardada.corto };
+  atomoTrabajoInfo = { corto: guardada.corto, rutaTexto: guardada.corto, area: guardada.area || null, ruta: guardada.ruta || [] };
   atomoTandaInicio = guardada.inicio;
   atomoTandaPedidas = guardada.pedidas;
   atomoTandaSegPorPregunta = null;
@@ -1654,6 +1746,10 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     // de qué le toque al azar.
     empezarPartida(filtro) {
       empezarPartida(filtro);
+    },
+    // v0.3: arranca un modo por su id pasando por el filtro (y el aviso de menos de 5).
+    arrancarModo(id) {
+      arrancarModo(id);
     },
     // Inyecta/quita una imagen para un id concreto del banco (Tarea 3b): para
     // que el e2e pueda forzar el peor caso "explicación larga + imagen" sobre
@@ -4203,7 +4299,8 @@ function importarEstadoDesdeArchivo(archivo) {
 // "Comenzar" (en el HUB) siempre arranca sin filtro (aunque quedara uno de una
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
-document.querySelector('[data-test="comenzar"]').addEventListener('click', () => empezarPartida(null));
+// La Tarea 8 lo cambia por `comenzarModoElegido`.
+document.querySelector('[data-test="comenzar"]').addEventListener('click', () => arrancarModo('clasico'));
 // Chip "N preguntas nuevas · Jugar" (v0.2b4 §3): arranca la partida con ellas. Sin ids utilizables
 // (todas descartadas al fusionar) solo se cierra, sin fingir una partida vacía -- mismo criterio
 // que "Misión de hoy"/"Pendientes" más abajo.
@@ -4413,6 +4510,17 @@ nodoRepasoHub.addEventListener('click', () => {
   abrirRepaso();
 });
 nodoChipFiltro.addEventListener('click', abrirHojaFiltro);
+nodoFiltroCortoJugar.addEventListener('click', () => {
+  if (filtroCortoContexto) arrancarModoSinComprobar(filtroCortoContexto.modo);
+});
+nodoFiltroCortoTodos.addEventListener('click', () => {
+  if (!filtroCortoContexto) return;
+  guardarFiltroDeModo(filtroCortoContexto.modo, FILTRO_TODOS);
+  arrancarModo(filtroCortoContexto.modo);
+});
+nodoFiltroCortoGenerar.addEventListener('click', () => {
+  if (filtroCortoContexto) generarTanda(filtroCortoContexto.filtro, { origen: 'filtro-corto' });
+});
 document.querySelector('[data-test="filtro-cerrar"]').addEventListener('click', cerrarHojaFiltro);
 nodoFiltroElegir.addEventListener('click', manejarElegirFiltro);
 // Fase de captura: corre ANTES que el Escape de la hoja "Conectar" (que cuelga encima, z 20) y así

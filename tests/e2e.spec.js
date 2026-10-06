@@ -4375,6 +4375,53 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.screenshot({ path: `${CAPTURAS}/v0.2b4-atomo-regenerar-375.png` });
     await assertHojaSinScroll(page);
   });
+
+  test('v0.3: «Generar preguntas» desde el aviso pide la tanda de ESA ruta; al llegar, el índice la apunta y Clásico la juega con el filtro', async ({ page }) => {
+    const peticiones = [];
+    const servidor = servidorAtomoFalso(); // UNA instancia: su contador de sondeos debe avanzar (generando → lista)
+    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
+      if (route.request().method() === 'POST' && new URL(route.request().url()).pathname === '/generar') peticiones.push(route.request().postDataJSON());
+      await servidor(route);
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ clasico: { area: 'economia', ruta: ['Mercados y crisis financieras'], etiquetas: ['Mercados y crisis'] } }));
+    });
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeEnabled();
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+    expect(peticiones[0]).toMatchObject({ area: 'economia', ruta: ['Mercados y crisis financieras'] });
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    const indice = await page.evaluate(() => JSON.parse(localStorage.getItem('one.indiceRutas')));
+    expect(indice['["economia",["Mercados y crisis financieras"]]']).toHaveLength(10);
+    await page.locator('[data-test="volver"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía · Mercados y crisis');
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
+  test('v0.3: chip → Economía → nodo del anillo → Elegir: hoja cerrada y chip con el nodo (listeners vivos en la superposición)', async ({ page }) => {
+    await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await page.locator('[data-test="comenzar"]').click();
+    await abrirHojaFiltro(page);
+    await elegirAreaEnFiltro(page, 'economia');
+    await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
+    await page.locator('[data-test="atomo-nodo"]').first().click();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados y crisis');
+    await page.locator('[data-test="filtro-elegir"]').click();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía · Mercados y crisis');
+    await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible(); // subtema nunca generado: 0 preguntas
+    // Reabrir: la hoja vuelve al nivel de áreas y sus botones siguen respondiendo.
+    await abrirHojaFiltro(page);
+    await page.locator('[data-test="filtro-todos"]').click();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
 });
 
 // Tarea 3 del plan v0.2b3-atomo-amplio-gemini: nodo "Más…" con paginación (excluir), 6 anillos, y
@@ -6762,5 +6809,67 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     expect(medidas.recortado).toBe(true);
     expect(medidas.derecha).toBeLessThanOrEqual(375);
     await assertSinScroll(page);
+  });
+
+  test('pocos elementos: Economía (2 en el banco de ejemplo) → aviso; «Jugar las 2» juega solo esas; «Volver a TODOS» quita el filtro', async ({ page }) => {
+    await page.goto('/?ejemplo=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await abrirHojaFiltro(page);
+    await elegirAreaEnFiltro(page, 'economia');
+    await page.locator('[data-test="filtro-elegir"]').click();
+    await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeDisabled(); // sin servidor
+    await expect(page.locator('[data-test="filtro-corto-pista"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía');
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await assertSinScroll(page);
+
+    await page.locator('[data-test="filtro-corto-jugar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+
+    await page.locator('[data-test="volver"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="filtro-corto-todos"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('Review Focus 3: un subtema guardado sin preguntas locales → aviso con 0, nunca partida vacía ni racha', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ clasico: { area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma'] } }));
+    });
+    await page.goto('/?ejemplo=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Aún no hay preguntas de Historia · Roma');
+    await expect(page.locator('[data-test="filtro-corto-jugar"]')).toBeHidden();
+    await expect(page.locator('[data-test="resumen"]')).toBeHidden();
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
+    await assertSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await assertSinScroll(page);
+  });
+
+  test('Repaso filtrado a Ciencia con 1 pendiente: aviso con «Repasar la 1», sin Generar; jugarla la recupera', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    const idCiencia = bancoEjemplo.find((p) => p.area === 'ciencia').id;
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'Prueba' }), idCiencia);
+    await fallarPreguntaActual(page, sospechosoPorTitulo);
+    await page.locator('[data-test="volver"]').click();
+    await page.evaluate(() => localStorage.setItem('one.filtros', JSON.stringify({ repaso: { area: 'ciencia', ruta: [], etiquetas: [] } })));
+    await page.evaluate(() => window.__one.arrancarModo('repaso'));
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 1 pendiente de Ciencia');
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeHidden();
+    await page.locator('[data-test="filtro-corto-jugar"]').click(); // «Repasar la 1»
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Repaso · Ciencia');
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await expect(tarjetaActual(page).locator('[data-test="recuperada"]')).toBeVisible();
   });
 });

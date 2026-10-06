@@ -175,6 +175,25 @@ export function filtroParaRepaso(pendientesLista, filtro, indice, reportadas = [
   return { ids, etiqueta: f.area ? `Repaso · ${etiquetaFiltro(f, nombreArea)}` : 'Repaso' };
 }
 
+/**
+ * Aviso de "menos de 5" (spec §4/§11), regla y textos en un solo sitio (puro, con test).
+ * `null` si no hay aviso: filtro TODOS o `n >= MIN_JUGABLES`. Si no: `{texto, generar, jugar}` donde
+ * `jugar` es el texto del botón ("Jugar las 2", "Repasar la 1") o `null` con 0 elementos, y `generar`
+ * dice si se ofrece "Generar preguntas" (nunca en Repaso: lo generado es nuevo, no pendiente).
+ */
+export function avisoFiltroCorto({ modo, filtro, n, nombreArea = (a) => a }) {
+  const f = normalizarFiltro(filtro);
+  if (!f.area || n >= MIN_JUGABLES) return null;
+  const etiqueta = etiquetaFiltro(f, nombreArea);
+  const esRepaso = modo === 'repaso';
+  const cosa = esRepaso ? (n === 1 ? 'pendiente' : 'pendientes') : n === 1 ? 'pregunta' : 'preguntas';
+  const texto = n === 0
+    ? (esRepaso ? `Nada por repasar de ${etiqueta}` : `Aún no hay preguntas de ${etiqueta}`)
+    : `Solo hay ${n} ${cosa} de ${etiqueta}`;
+  const jugar = n === 0 ? null : `${esRepaso ? 'Repasar' : 'Jugar'} ${n === 1 ? 'la' : 'las'} ${n}`;
+  return { texto, generar: !esRepaso, jugar };
+}
+
 // --- DOM (lo mínimo; la orquestación de la hoja y del átomo vive en app.js) -------------------
 
 export function pintarChip(boton, texto) {

@@ -149,6 +149,17 @@
       </div>
     </section>
 
+    <!-- v0.3 §4/§11: el filtro del modo deja menos de 5 elementos jugables. -->
+    <section class="vista vista-filtro-corto" data-vista="filtro-corto" data-test="filtro-corto" hidden>
+      <p class="filtro-corto-texto" data-test="filtro-corto-texto" aria-live="polite"></p>
+      <div class="filtro-corto-acciones">
+        <button type="button" class="boton boton-principal" data-test="filtro-corto-generar">Generar preguntas</button>
+        <button type="button" class="boton" data-test="filtro-corto-jugar"></button>
+        <button type="button" class="boton" data-test="filtro-corto-todos">Volver a TODOS</button>
+      </div>
+      <p class="filtro-corto-pista" data-test="filtro-corto-pista" hidden></p>
+    </section>
+
     <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->

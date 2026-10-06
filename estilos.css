@@ -3147,3 +3147,10 @@ button.punto-servidor::before {
 .filtro-nivel-atomo { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 .filtro-nivel-atomo .atomo-acciones { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; }
 .filtro-nivel-atomo .atomo-acciones .boton { padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+
+/* ===== v0.3 aviso de "menos de 5" ===== */
+.vista-filtro-corto { justify-content: center; align-items: stretch; gap: 16px; text-align: center; }
+.filtro-corto-texto { margin: 0; font-size: var(--tam-2); }
+.filtro-corto-acciones { display: flex; flex-direction: column; gap: 10px; }
+.filtro-corto-acciones .boton[hidden] { display: none; }
+.filtro-corto-pista { margin: 0; color: var(--texto-suave); font-size: 14px; }

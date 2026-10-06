@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 import {
   FILTRO_TODOS, MIN_JUGABLES, CLAVE_FILTROS, CLAVE_INDICE_RUTAS, normalizarFiltro, esTodos, etiquetaFiltro,
   claveRuta, filtroDeModo, guardarFiltroDeModo, leerIndiceRutas, registrarIdsRuta, idsDeRuta, crearPredicado,
-  preguntasDelFiltro, contarJugables, filtroParaPartida, filtroParaRepaso, pintarChip, construirListaAreas,
+  preguntasDelFiltro, contarJugables, filtroParaPartida, filtroParaRepaso, avisoFiltroCorto, pintarChip, construirListaAreas,
 } from '../filtro.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 import { ElementoFalso, instalarDomFalso } from './dom-falso.js';
 
-const NOMBRES = { historia: 'Historia', ciencia: 'Ciencia' };
+const NOMBRES = { historia: 'Historia', ciencia: 'Ciencia', economia: 'Economía' };
 const nombreArea = (a) => NOMBRES[a] || a;
 const ROMA = { area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma'] };
 const banco = [
@@ -182,4 +182,27 @@ test('construirListaAreas: TODOS + un botón por área, marca el actual y avisa 
   botones[0].disparar('click');
   botones[1].disparar('click');
   assert.deepEqual(elegidas, [null, 'historia']);
+});
+
+test('avisoFiltroCorto: null con TODOS o con 5 o más; textos y botones por modo y número', () => {
+  const ECO = { area: 'economia', ruta: [], etiquetas: [] };
+  assert.equal(avisoFiltroCorto({ modo: 'clasico', filtro: FILTRO_TODOS, n: 0 }), null);
+  assert.equal(avisoFiltroCorto({ modo: 'clasico', filtro: ECO, n: MIN_JUGABLES, nombreArea }), null);
+  assert.deepEqual(avisoFiltroCorto({ modo: 'clasico', filtro: ECO, n: 2, nombreArea }),
+    { texto: 'Solo hay 2 preguntas de Economía', generar: true, jugar: 'Jugar las 2' });
+  assert.deepEqual(avisoFiltroCorto({ modo: 'clasico', filtro: ECO, n: 1, nombreArea }),
+    { texto: 'Solo hay 1 pregunta de Economía', generar: true, jugar: 'Jugar la 1' });
+  assert.deepEqual(avisoFiltroCorto({ modo: 'clasico', filtro: ROMA, n: 0, nombreArea }),
+    { texto: 'Aún no hay preguntas de Historia · Roma', generar: true, jugar: null });
+  assert.deepEqual(avisoFiltroCorto({ modo: 'repaso', filtro: { area: 'ciencia' }, n: 1, nombreArea }),
+    { texto: 'Solo hay 1 pendiente de Ciencia', generar: false, jugar: 'Repasar la 1' });
+  assert.deepEqual(avisoFiltroCorto({ modo: 'repaso', filtro: { area: 'ciencia' }, n: 3, nombreArea }),
+    { texto: 'Solo hay 3 pendientes de Ciencia', generar: false, jugar: 'Repasar las 3' });
+  assert.deepEqual(avisoFiltroCorto({ modo: 'repaso', filtro: { area: 'ciencia' }, n: 0, nombreArea }),
+    { texto: 'Nada por repasar de Ciencia', generar: false, jugar: null });
+});
+
+test('filtroParaPartida con ruta y 0 candidatas devuelve {ids: [], etiqueta}, no null', () => {
+  const r = filtroParaPartida(ROMA, banco, {}, { reportadas: [], tarjetas: {} }, nombreArea);
+  assert.deepEqual(r, { ids: [], etiqueta: 'Historia · Roma' });
 });
