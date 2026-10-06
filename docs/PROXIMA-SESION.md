@@ -13,6 +13,10 @@
 - Extras opcionales cuando Carlos tenga cuota de Wan (Space `Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom`): vídeos «saludo / pensando / sorpresa» (desde la neutral) y «triste / hundida» (desde la triste); prompts en el historial de la sesión del 6-oct, 10 s con tramos por segundos.
 
 ## Siguiente paso
+0. **Esfinge animada, solución definitiva** (Carlos, 6-oct: los WebP «han perdido mucha calidad» y la transición reposo→triste «está fatal»; tras 3 intentos de parche se cambia de enfoque):
+   - Formato: **MP4 H.264 «stacked alpha»** (color arriba, máscara alfa abajo) a 480 px y 24 fps, pintado en `<canvas>`; calidad de vídeo, transparencia real, ~150-300 KB por clip, funciona en iOS. Sustituye a los WebP de `prototipos/avatares/esfinge-video/`. Fuente: `original.mp4` (los tramos se recortan por contenido: ver `C:/Users/torre/.claude/jobs/782e4209/tmp/build2.py` y `lib.py` si siguen ahí; el recorte de croma trata como fondo todo verde puro, conectado o no, más despill global).
+   - Triste: **interpolación con FILM** (google-research/frame-interpolation, Apache 2.0; CPU o Space de Hugging Face) entre el último fotograma de reposo y `i-esfinge/triste.png` (alineados), en vez del fundido. Plan B: vídeo triste de Wan desde la imagen neutral cuando Carlos tenga cuota.
+   - Prototipo en GitHub Pages (opción J) para que Carlos lo valide en el iPhone antes de seguir con el plan.
 1. Enseñar a Carlos la spec final y pedir su OK (y que mire la opción J del prototipo en el iPhone).
 2. Adversarial gratis (delegar.mjs, escalera `revisar`) sobre los cambios de imágenes y avatar.
 3. `superpowers:writing-plans`: plan único de las fases 3-10, publicables por separado. El sonido roto del iPhone se diagnostica con `systematic-debugging` antes de tocarlo (pista: desbloqueo asíncrono de `AudioContext` y carga perezosa de zzfx fuera del gesto; interruptor de silencio).
