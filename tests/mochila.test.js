@@ -76,3 +76,15 @@ test('ganaPremioTanda: tanda de 10 con 8 o más aciertos', () => {
   assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 7 }), false);
   assert.equal(ganaPremioTanda({ respondidas: 9, aciertos: 9 }), false);
 });
+
+test('localStorage bloqueado (getter que lanza): cargar y guardar no lanzan', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('SecurityError'); } });
+  try {
+    assert.deepEqual(cargarMochila(), crearMochila());
+    assert.equal(guardarMochila(crearMochila()), false);
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'localStorage', original);
+    else delete globalThis.localStorage;
+  }
+});

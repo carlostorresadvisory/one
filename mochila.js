@@ -61,18 +61,18 @@ export function contarObjetos(mochila) {
   return Object.values(normalizarMochila(mochila).objetos).reduce((suma, n) => suma + n, 0);
 }
 
-export function cargarMochila(almacen = globalThis.localStorage) {
+export function cargarMochila(almacen) {
   try {
-    const crudo = almacen.getItem(CLAVE_MOCHILA);
+    const crudo = (almacen ?? globalThis.localStorage).getItem(CLAVE_MOCHILA);
     return crudo ? normalizarMochila(JSON.parse(crudo)) : crearMochila();
   } catch {
     return crearMochila();
   }
 }
 
-export function guardarMochila(mochila, almacen = globalThis.localStorage) {
+export function guardarMochila(mochila, almacen) {
   try {
-    almacen.setItem(CLAVE_MOCHILA, JSON.stringify(normalizarMochila(mochila)));
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_MOCHILA, JSON.stringify(normalizarMochila(mochila)));
     return true;
   } catch {
     return false;

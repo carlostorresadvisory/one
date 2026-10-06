@@ -9,11 +9,11 @@ export const VERSION_RESPALDO = 3;
 export const CLAVES_RESPALDO = Object.freeze(['one.mochila', 'one.ultimoModo', 'one.filtros', 'one.silencio', 'one.indiceRutas']);
 const MAX_LONGITUD_VALOR = 500000;
 
-export function exportarRespaldo(estado, almacen = globalThis.localStorage) {
+export function exportarRespaldo(estado, almacen) {
   const modos = {};
   for (const clave of CLAVES_RESPALDO) {
     try {
-      const valor = almacen.getItem(clave);
+      const valor = (almacen ?? globalThis.localStorage).getItem(clave);
       if (typeof valor === 'string') modos[clave] = valor;
     } catch {
       // Almacén no disponible: se exporta el estado sin modos.
@@ -44,12 +44,12 @@ export function importarRespaldo(json) {
   return { estado: importar(json), modos: {} };
 }
 
-export function aplicarModos(modos, almacen = globalThis.localStorage) {
+export function aplicarModos(modos, almacen) {
   let escritas = 0;
   for (const [clave, valor] of Object.entries(modos || {})) {
     if (!CLAVES_RESPALDO.includes(clave) || typeof valor !== 'string') continue;
     try {
-      almacen.setItem(clave, valor);
+      (almacen ?? globalThis.localStorage).setItem(clave, valor);
       escritas += 1;
     } catch {
       // Sin almacén: lo que no se pueda escribir se queda con su valor por defecto.

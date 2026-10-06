@@ -72,3 +72,15 @@ test('aplicarModos escribe solo claves de la lista blanca y aguanta un almacén 
   assert.equal(almacen.getItem('one.estado'), null);
   assert.equal(aplicarModos({ 'one.silencio': '1' }, almacenRoto()), 0);
 });
+
+test('localStorage bloqueado (getter que lanza): exportar y aplicar no lanzan', () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('SecurityError'); } });
+  try {
+    assert.deepEqual(JSON.parse(exportarRespaldo(crearEstado(HOY))).modos, {});
+    assert.equal(aplicarModos({ 'one.silencio': '1' }), 0);
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'localStorage', original);
+    else delete globalThis.localStorage;
+  }
+});
