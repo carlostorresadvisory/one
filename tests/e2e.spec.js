@@ -7027,3 +7027,59 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await expect(page.locator('[data-test="tarjeta-esfinge"] svg')).toHaveAttribute('data-expresion', 'contenta');
   });
 });
+
+test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
+  test('acierto: ding + esfinge contenta + salto; fallo: golpe + esfinge triste', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    await page.locator('body').click({ position: { x: 5, y: 5 } }); // primer gesto: desbloquea el audio
+    await expect.poll(() => page.evaluate(() => window.__one.estadoAudio())).toBe('running');
+    await responderPreguntaActual(page, sospechosoPorTitulo);
+    await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveAttribute('data-expresion', 'contenta');
+    await expect(tarjetaActual(page).locator('.tarjeta-contenido')).toHaveClass(/efecto-acierto/);
+    expect(await page.evaluate(() => window.__one.sonidos())).toContain('ding');
+    await avanzarTrasRespuesta(page);
+    await fallarPreguntaActual(page, sospechosoPorTitulo);
+    await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveAttribute('data-expresion', 'triste');
+    expect(await page.evaluate(() => window.__one.sonidos())).toContain('golpe');
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+  });
+
+  for (const alto of [812, 667]) {
+    test(`tanda de 10 con 10 aciertos (375×${alto}): premio de 1 objeto en el resumen, confeti, fanfarria y 🎒 1 en el hub`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: alto });
+      await page.goto('/?ejemplo=1&test=1');
+      await page.locator('[data-test="cerebro"]').click();
+      await page.locator('[data-test="comenzar"]').click();
+      await page.locator('body').click({ position: { x: 5, y: 5 } });
+      const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+      const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+      await jugarPartida(page, { sospechosoPorTitulo });
+      await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+      await expect(page.locator('[data-test="premio"]')).toContainText('¡Premio! +1');
+      await expect(page.locator('[data-test="confeti"]')).toHaveCount(1);
+      expect(await page.evaluate(() => window.__one.sonidos())).toContain('fanfarria');
+      await assertSinScroll(page);
+      await assertTarjetaSinScroll(page);
+      expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('one.mochila')).objetos).reduce((a, b) => a + b, 0))).toBe(1);
+      await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
+      await expect(page.locator('[data-test="marcador-esfinge"]')).toHaveText('🎒 1');
+    });
+  }
+
+  test('con reducir movimiento: premio sí, confeti no', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    await jugarPartida(page, { sospechosoPorTitulo });
+    await expect(page.locator('[data-test="premio"]')).toBeVisible();
+    await expect(page.locator('[data-test="confeti"]')).toHaveCount(0);
+  });
+});

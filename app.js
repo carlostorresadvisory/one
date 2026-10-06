@@ -37,7 +37,8 @@ import {
   avisoFiltroCorto,
 } from './filtro.js';
 import { MODOS, modoPorId, cargarUltimoModo, guardarUltimoModo, marcadorModo } from './modos.js';
-import { cargarMochila, contarObjetos } from './mochila.js';
+import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
+import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
 import { crearEsfinge } from './esfinge.js';
@@ -2050,11 +2051,19 @@ function finalizarPartida() {
   // hasta un resize). Todo esto sigue pasando de forma síncrona antes de que
   // el navegador pinte nada, así que no hay parpadeo de una vista a medio
   // construir.
+  // Spec §5.1: en Clásico y en Repaso, una tanda de 10 con ≥ 8 aciertos da 1 objeto (sorteado como
+  // un cofre normal). La regla vive en mochila.js#ganaPremioTanda; aquí solo se aplica.
+  let premio = null;
+  if (['clasico', 'repaso'].includes(modoActual) && ganaPremioTanda({ respondidas: totalPreguntas, aciertos })) {
+    const id = sortearObjeto();
+    guardarMochila(anadirObjeto(cargarMochila(), id));
+    premio = OBJETOS[id];
+  }
   mostrarVista('resumen');
   contenedorMazoResumen.innerHTML = '';
   mazoResumenControlador = montarMazo(
     contenedorMazoResumen,
-    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas }),
+    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas, premio }),
     // contarPista: false (B4) — navegar el repaso no gasta del presupuesto de
     // 5 vistas de la pista vertical, que es de la PARTIDA. puntosNeutros: true
     // (B3) — la semántica respondida/sin responder no aplica a la tarjeta de
@@ -2074,6 +2083,7 @@ function finalizarPartida() {
       },
     }
   );
+  if (premio) celebrarPremio();
 }
 
 // ============================================================================
@@ -3643,24 +3653,37 @@ function manejarRespuesta(hueco, respuesta) {
   actualizarEstadoMazo();
   mazoControlador.actualizarTarjetas(listaActual());
   actualizarBarraProgreso();
+  if (correcta) celebrarAcierto(hueco.nodo);
+  else lamentarFallo(hueco.nodo);
+}
+
+/** v0.3 §7: acierto en cualquier modo de preguntas del banco. `sonidoAcierto`: 'ding' o 'monedas'. */
+function celebrarAcierto(nodoTarjeta, sonidoAcierto = 'ding') {
+  efectoAcierto(nodoTarjeta && (nodoTarjeta.querySelector('.tarjeta-contenido') || nodoTarjeta));
+  destelloPantalla('ok');
+  sonido.reproducir(sonidoAcierto);
+  esfingeCabecera.reaccionar('contenta');
+}
+
+function lamentarFallo(nodoTarjeta) {
+  efectoFallo(nodoTarjeta && (nodoTarjeta.querySelector('.tarjeta-contenido') || nodoTarjeta));
+  destelloPantalla('ko');
+  sonido.reproducir('golpe');
+  esfingeCabecera.reaccionar('triste');
+}
+
+/** Récords, cofres, premios (spec §7): confeti + fanfarria + esfinge eufórica (la del hub también). */
+function celebrarPremio() {
+  lanzarConfeti();
+  sonido.reproducir('fanfarria');
+  esfingeCabecera.reaccionar('euforica');
+  if (esfingeHub) esfingeHub.reaccionar('euforica');
 }
 
 /** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
- * movimiento" activo pinta el valor final directamente, sin animar. */
+ * movimiento" activo pinta el valor final directamente (lo resuelve efectos.js). */
 function animarConteo(nodo, prefijo, valorFinal, sufijo = '') {
-  const prefiereMenosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (prefiereMenosMovimiento || valorFinal === 0) {
-    nodo.textContent = `${prefijo}${valorFinal}${sufijo}`;
-    return;
-  }
-  const duracion = 600;
-  const inicio = performance.now();
-  function paso(ahora) {
-    const t = Math.min(1, (ahora - inicio) / duracion);
-    nodo.textContent = `${prefijo}${Math.round(valorFinal * t)}${sufijo}`;
-    if (t < 1) requestAnimationFrame(paso);
-  }
-  requestAnimationFrame(paso);
+  contarCifra(nodo, { desde: 0, hasta: valorFinal, duracionMs: 600, formato: (n) => `${prefijo}${n}${sufijo}` });
 }
 
 // El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
@@ -3736,7 +3759,7 @@ function construirCifraDestacada(etiquetaTexto) {
  * en ese caso esta es también la última tarjeta del mazo). Todo centrado como
  * un solo bloque (ronda de corrección 1: antes eran dos líneas de texto
  * planas, sin jerarquía, y las áreas salían con su id sin traducir). */
-function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
+function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas, premio }) {
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta';
   tarjeta.dataset.test = 'resumen-cifras';
@@ -3760,7 +3783,16 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas }) {
   pie.className = 'resumen-cifras-pie';
   pie.textContent = pieN > 0 ? `Desliza ↑ para repasar ${pieN}` : 'Sin fallos. Nada que repasar.';
 
-  contenido.append(resultado, areasNodo, pie);
+  const nodos = [resultado, areasNodo];
+  if (premio) {
+    const lineaPremio = document.createElement('p');
+    lineaPremio.className = 'resumen-premio';
+    lineaPremio.dataset.test = 'premio';
+    lineaPremio.textContent = `¡Premio! +1 ${premio.icono} ${premio.nombre}`;
+    nodos.push(lineaPremio);
+  }
+  nodos.push(pie);
+  contenido.append(...nodos);
   tarjeta.appendChild(contenido);
 
   if (pieN === 0) {

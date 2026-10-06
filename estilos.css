@@ -3041,3 +3041,14 @@ button.punto-servidor::before {
 .hoja-creditos[hidden] { display: none; }
 .hoja-creditos-titulo { margin: 0; font-weight: 600; }
 .hoja-creditos-lista { margin: 0; padding-left: 18px; font-size: 13px; color: var(--texto-suave); display: flex; flex-direction: column; gap: 6px; }
+
+/* v0.3 §5.1: línea de premio del resumen (una sola línea, sin cambiar la letra). */
+.resumen-premio {
+  margin: 0;
+  text-align: center;
+  color: var(--dorado);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
