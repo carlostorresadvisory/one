@@ -1,0 +1,6 @@
+"Professor Owl" - animacion Lottie de Bashir Ahmad en LottieFiles.
+https://lottiefiles.com/free-animation/professor-owl-kvkfB6kyEu
+Licencia: Lottie Simple License (https://lottiefiles.com/page/license), "Free to use under the Lottie Simple License".
+Permite descargar, reproducir, modificar, publicar, distribuir y mostrar, tambien con fines comerciales; la atribucion es recomendada, no obligatoria;
+cualquier distribucion debe llevar los mismos terminos. No permite recopilar archivos de LottieFiles para montar un servicio competidor.
+Verificado el 6-oct-2026. Fichero profesor.json = el JSON del .lottie original (sin modificar). Reproduce con lottie-web (MIT) ../b-noto/lottie_light.min.js.

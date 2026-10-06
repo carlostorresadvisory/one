@@ -1,0 +1,3 @@
+Fun Emoji Set by Davis Uche (https://www.figma.com/community/file/968125295144990435), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+Remixed by DiceBear (https://github.com/dicebear/styles, src/fun-emoji.json). Colours/mouth/eyes variants chosen by ONE prototype; SVGs generated with @dicebear/core 9.4.3.
+Attribution required if used: "Fun Emoji Set" by Davis Uche, CC BY 4.0, via DiceBear.

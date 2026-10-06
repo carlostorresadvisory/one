@@ -1,0 +1,3 @@
+Noto Emoji animated (Lottie) by Google, https://googlefonts.github.io/noto-emoji-animation/ ; files from fonts.gstatic.com/s/e/notoemoji/latest/<codepoint>/lottie.json.
+Licence declared by Google: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/) -- NOT verified in a repository LICENSE file (googlefonts/noto-emoji-animation repo is not public); confirm before shipping.
+lottie_light.min.js: lottie-web 5.13.0 by Airbnb, MIT (https://github.com/airbnb/lottie-web).

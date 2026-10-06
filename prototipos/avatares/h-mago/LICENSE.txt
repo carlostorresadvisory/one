@@ -1,0 +1,4 @@
+Wizard.glb - "Ultimate Animated Character Pack" de Quaternius, CC0 1.0.
+Licencia verificada en https://quaternius.com/packs/ultimatedanimatedcharacter.html ("CC0", dominio publico, uso personal y comercial).
+Copia obtenida del espejo https://github.com/smileynet/teach-me (test-scene/assets/quaternius-characters, convertido de .gltf a .glb con gltf-transform, sin cambios de contenido).
+Visor: ../g-robot/viewer3d.min.js (three.js, MIT).
