@@ -2031,87 +2031,20 @@ s.visual-clave-valor {
   text-align: center;
 }
 
-/* Línea única "Hoy 11/20 · Recuperadas 0 · Confianza 82 %" (spec "pantalla
-   completa" 12-sep): sin pastillas, cada segmento separado por "·" salvo el
-   primero; "Confianza" se une solo cuando hay dato (queda oculto si no). */
-.hub-kpis {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  color: var(--texto-suave);
-  font-size: 12.5px;
-}
-
-.hub-chip {
-  padding: 0;
-  background: none;
-  color: inherit;
-  font-size: inherit;
-}
-
-.hub-chip + .hub-chip::before {
-  content: '· ';
-}
-
-/* Aviso breve del HUB (M1, ola final): mismo estilo que .inicio-aviso.
-   `[hidden]` (regla general de la hoja) evita que ocupe hueco cuando no se
-   muestra: no debe alterar "sin hueco vacío entre la rejilla y Comenzar". */
-.hub-aviso {
-  min-height: 20px;
-  margin: 0;
-  color: var(--acento);
-  font-size: var(--tam-1);
-  text-align: center;
-}
-
-/* Misión de hoy / Pendientes: fila de dos tarjetas tocables (o atenuadas +
-   aria-disabled cuando no aplican, ver actualizarDestacados en app.js). */
-.hub-destacados {
-  display: flex;
-  gap: 8px;
-}
-
-.hub-destacado {
-  flex: 1;
-  min-height: 44px;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 12px;
-  background: var(--tarjeta);
-  color: var(--texto);
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
-  transition: transform 0.1s ease;
-}
-
-.hub-destacado:not(.hub-destacado--inactivo):active {
-  transform: scale(0.97);
-}
-
-.hub-destacado--inactivo {
-  color: var(--texto-suave);
-  opacity: 0.5;
-}
-
-/* Chip "N preguntas nuevas" (v0.2b2 §4, banco extendido): mismo lenguaje visual que
-   .hub-destacado (tocable, 44px de alto) pero con acento cian para distinguirlo de Misión/
-   Pendientes/Repaso -- es una notificación, no un modo de partida. */
+/* Chip "N preguntas nuevas" (v0.2b2 §4, banco extendido): una notificación, no un modo de partida.
+   v0.3: superpuesto (ver `.hub-chip-nuevas` en el bloque "v0.3 HUB de modos" más abajo). */
 .hub-chip-nuevas {
   display: block;
-  width: 100%;
-  min-height: 36px;
-  margin: 0 0 4px;
-  padding: 6px 12px;
+  min-height: 32px;
+  padding: 4px 12px;
   border: 1px solid var(--acento);
   border-radius: 10px;
-  background: rgba(76, 201, 240, 0.12);
+  background: var(--tarjeta);
   color: var(--acento);
   font-size: 12.5px;
   font-weight: 600;
   text-align: center;
+  white-space: nowrap;
 }
 
 /* Mismo motivo que .vista[hidden]/.confianza-fila[hidden] más abajo en esta hoja: con
@@ -2189,7 +2122,7 @@ button.punto-servidor::before {
    final del texto de la ruta, sin ningún control debajo) y sigue con el `::before` de arriba, sin
    tocar.
    Arreglo, solo aquí: en vez de centrar el área táctil en el punto, se ancla a la DERECHA de él --
-   `.hub-comenzar-fila`, `.boton-comenzar` y `#progreso-areas` comparten el mismo borde derecho (son
+   `.hub-comenzar-fila`, `.boton-comenzar` y `.hub-modos` comparten el mismo borde derecho (son
    los tres al 100% de ancho de su contenedor), así que un área táctil que empiece exactamente en
    ese borde (left: 10px respecto del punto de 12px de ancho -- 2px de margen de seguridad sobre el
    borde real, ver el test de geometría en tests/e2e.spec.js) no solapa ni "Comenzar" ni la rejilla
@@ -2204,141 +2137,6 @@ button.punto-servidor::before {
   width: 34px;
   height: 44px;
   transform: translateY(-50%);
-}
-
-/* Los 8 niveles del videojuego: cuadrícula compacta de 4 columnas × 2 filas
-   (hub "que se note"), tarjetas pequeñas y tocables (tap target >= 64px de alto). */
-.hub-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.tarjeta-area {
-  position: relative; /* ancla el botón "+" (v0.2b2 §4, glyph cambiado en v0.2b4 §4), ver .tarjeta-area-atomo */
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-height: 64px;
-  padding: 8px 8px 7px;
-  border: none;
-  border-radius: 12px;
-  background: var(--tarjeta);
-  color: var(--texto);
-  text-align: left;
-  transition: transform 0.12s ease;
-  /* Adversarial A3: en iOS, mantener pulsada la tarjeta el medio segundo del gesto de pulsación
-     larga (app.js#renderHub) puede disparar el callout nativo (copiar/compartir) o seleccionar
-     texto antes de que le dé tiempo a abrir el Átomo -- explícito aquí encima de lo que ya cubren
-     las reglas genéricas de `body`/`button` (redundante a propósito, para que esta tarjeta nunca
-     dependa de que esas reglas de arriba no cambien). */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: manipulation;
-}
-
-.tarjeta-area:active {
-  transform: scale(0.97);
-}
-
-.tarjeta-area:disabled {
-  opacity: 0.4;
-}
-
-.tarjeta-area-cabecera {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.tarjeta-area-emoji {
-  font-size: 18px;
-}
-
-.tarjeta-area-nombre {
-  width: 100%;
-  font-size: 10.5px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Nota tipo videojuego (S+/S/A/B/C/D). Paleta ya existente: nada de colores nuevos. */
-.tarjeta-area-nota {
-  flex: none;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.tarjeta-area-nota--alta { color: var(--acento); }
-.tarjeta-area-nota--media { color: var(--texto); }
-.tarjeta-area-nota--baja { color: var(--texto-suave); }
-.tarjeta-area-nota--vacia { color: var(--texto-suave); opacity: 0.5; }
-
-/* Barra de progreso FINA con la puntuación 0..1 del área (antes era el acierto
-   reciente; ahora es la misma métrica que alimenta el radar y la nota). */
-.tarjeta-area-track {
-  width: 100%;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--fondo);
-  overflow: hidden;
-}
-
-.tarjeta-area-relleno {
-  height: 100%;
-  min-width: 2px;
-  background: var(--acento);
-}
-
-/* Botón "+" (v0.2b2 §4, glyph cambiado en v0.2b4 §4): abre el Átomo del área, alternativa
-   descubrible a mantener pulsada la tarjeta. El glyph visible es pequeño a propósito (24px) para
-   no tapar el resto de una tarjeta ya muy compacta (4 columnas a 375px) -- pero el ::before amplía
-   el área de TOQUE real a >= 44px (un pseudo-elemento cuenta como parte de la caja de su elemento
-   a efectos de clic/puntero, así que el listener sigue en el span real). Asomado por fuera de la
-   esquina superior derecha de la tarjeta (como una insignia de notificación), lejos del texto
-   "S · R" de abajo. */
-.tarjeta-area-atomo {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  z-index: 1;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;   /* v0.2b4 §4: el "+" necesita más cuerpo que el "⚛" para leerse a 24px */
-  font-weight: 600;
-  line-height: 1;
-  border-radius: 50%;
-  background: var(--tarjeta);
-  border: 1.5px solid var(--acento);
-  color: var(--acento);
-}
-
-.tarjeta-area-atomo::before {
-  content: '';
-  position: absolute;
-  inset: -10px; /* 24px + 10px*2 = 44px de toque real */
-}
-
-/* Ronda 1 de revisión (Minor #6): mismo anillo de foco que button:focus-visible (arriba), pero
-   `.tarjeta-area-atomo` es un <span role="button"> (no un <button>, ver comentario de renderHub en
-   app.js sobre por qué), así que no lo hereda de la regla genérica. */
-.tarjeta-area-atomo:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 2px;
-}
-
-/* "S N · R M": sólidas (caja >= 3) y recientes (respondidas hoy o ayer). */
-.tarjeta-area-solido {
-  color: var(--texto-suave);
-  font-size: 9.5px;
 }
 
 /* Exportar/Importar: pie discreto, ya no son la acción principal del HUB. */
@@ -2387,8 +2185,11 @@ button.punto-servidor::before {
   white-space: nowrap;
 }
 
-.cabecera--con-tanda .cabecera-estado {
-  /* visibility, no display: conserva su sitio para que el logo siga centrado (space-between). */
+.cabecera--con-tanda .cabecera-estado,
+.cabecera--con-tanda .boton-silencio,
+.cabecera--con-tanda .cabecera-esfinge {
+  /* visibility, no display: conserva su sitio para que el logo siga centrado (space-between).
+     v0.3: el silencio y la esfinge de la cabecera ceden también su sitio al indicador. */
   visibility: hidden;
 }
 
@@ -3154,3 +2955,85 @@ button.punto-servidor::before {
 .filtro-corto-acciones { display: flex; flex-direction: column; gap: 10px; }
 .filtro-corto-acciones .boton[hidden] { display: none; }
 .filtro-corto-pista { margin: 0; color: var(--texto-suave); font-size: 14px; }
+
+/* ===== v0.3 HUB de modos ===== */
+.vista-hub { gap: 8px; position: relative; }
+.hub-radar-envoltorio { min-height: 96px; max-height: 200px; }
+.hub-aviso {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: var(--tarjeta);
+  border: 1px solid var(--acento);
+  color: var(--acento);
+  font-size: var(--tam-1);
+  white-space: nowrap;
+}
+.hub-aviso[hidden] { display: none; }
+.hub-chip-nuevas { position: absolute; top: 40px; right: 0; z-index: 3; }
+.hub-modos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(84px, 1fr);
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: calc(3 * 84px + 2 * 8px);
+  max-height: calc(3 * 124px + 2 * 8px);
+}
+.hub-modo {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #22303d;
+  background: var(--color-modo, var(--tarjeta));
+  color: var(--texto);
+  text-align: left;
+}
+.hub-modo[data-modo="clasico"] { --color-modo: #12303a; }
+.hub-modo[data-modo="repaso"] { --color-modo: #172a3c; }
+.hub-modo[data-modo="apuesta"] { --color-modo: #2e2914; }
+.hub-modo[data-modo="masomenos"] { --color-modo: #14302a; }
+.hub-modo[data-modo="contrarreloj"] { --color-modo: #2a2218; }
+.hub-modo-imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.32; pointer-events: none; }
+.hub-modo::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 15, 20, 0.15), rgba(11, 15, 20, 0.85)); pointer-events: none; }
+.hub-modo > :not(.hub-modo-imagen) { position: relative; z-index: 1; }
+.hub-modo-icono { font-size: 20px; line-height: 1; }
+.hub-modo-nombre { font-size: var(--tam-1); font-weight: 600; white-space: nowrap; }
+.hub-modo-marcador { font-size: 13px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.hub-modo--pronto .hub-modo-marcador { color: var(--dorado, #f2c14e); }
+.hub-modo--elegido { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento), 0 0 16px rgba(76, 201, 240, 0.35); }
+.hub-modo--esfinge { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
+.hub-modo--esfinge .esfinge--grande { width: 60px; height: 60px; }
+.hub-esfinge-textos { display: flex; flex-direction: column; gap: 2px; }
+.boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
+.boton-silencio[hidden] { display: none; }
+.cabecera-esfinge { display: flex; align-items: center; }
+.hub-pie { gap: 14px; }
+.hoja-creditos {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 20;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--tarjeta);
+  border: 1px solid #22303d;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hoja-creditos[hidden] { display: none; }
+.hoja-creditos-titulo { margin: 0; font-weight: 600; }
+.hoja-creditos-lista { margin: 0; padding-left: 18px; font-size: 13px; color: var(--texto-suave); display: flex; flex-direction: column; gap: 6px; }

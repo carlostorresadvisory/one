@@ -21,6 +21,8 @@
       <span class="cabecera-racha" data-test="racha">🔥 0</span>
       <span class="cabecera-nivel" data-test="nivel-partida">Nivel 1</span>
     </div>
+    <button type="button" class="boton-silencio" data-test="silencio" aria-pressed="false" aria-label="Silenciar sonidos">🔊</button>
+    <span class="cabecera-esfinge" data-test="esfinge-cabecera" aria-hidden="true"></span>
   </header>
 
   <main id="app">
@@ -92,46 +94,20 @@
          tarjeta de área = un nivel). Orden de arriba abajo: radar, KPIs, misión +
          pendientes, áreas (4×2), Comenzar (anclado abajo) y el pie. -->
     <section class="vista vista-hub" data-vista="progreso" data-test="progreso" hidden>
-      <!-- Radar de las 8 áreas (150px, estilo panel de stats de videojuego): un eje
-           por área, contorno = puntuación, relleno más opaco = solidez. -->
       <div class="hub-radar-envoltorio">
         <svg class="hub-radar" data-test="radar" viewBox="0 0 220 220" aria-hidden="true"></svg>
         <p class="radar-vacio" id="radar-vacio" hidden>Juega para dibujar tu perfil</p>
       </div>
-      <div class="hub-kpis">
-        <span class="hub-chip" data-test="kpi-aciertos-hoy">Hoy: 0/0</span>
-        <span class="hub-chip" data-test="recuperadas">Recuperadas 0</span>
-        <span class="hub-chip" data-test="calibracion" hidden></span>
-      </div>
-      <!-- Aviso breve (M1, ola final): "Nada que jugar con este filtro" cuando
-           Misión de hoy/Pendientes resultan sin ninguna pregunta elegible. Oculto
-           por defecto: no ocupa hueco (mostrarAvisoHub en app.js lo muestra ~1,6s). -->
-      <p class="hub-aviso" id="aviso-hub" data-test="aviso-hub" hidden></p>
-      <!-- Banco extendido (v0.2b2 §4): "N preguntas nuevas" tras una sincronización con el
-           servidor que trajo preguntas todavía no vistas; desaparece al tocarlo (no hace falta
-           más acción -- ya están mezcladas en el banco en memoria, ver app.js). -->
+      <!-- Superpuestos (v0.3: no cambian la maquetación ni provocan scroll). -->
+      <p class="hub-aviso" id="aviso-hub" data-test="aviso-hub" hidden aria-live="polite"></p>
       <button type="button" class="hub-chip-nuevas" data-test="nuevas-servidor" hidden></button>
-      <div class="hub-destacados">
-        <button type="button" class="hub-destacado" data-test="mision" aria-disabled="true"></button>
-        <button type="button" class="hub-destacado" data-test="pendientes" aria-disabled="true"></button>
-        <button type="button" class="hub-destacado" data-test="repaso-hub" aria-disabled="true"></button>
-      </div>
-      <div id="progreso-areas" class="hub-grid"></div>
-      <!-- Punto de estado del servidor de generación (v0.2b2 §4), junto a "Comenzar":
-           gris = sin servidor configurado, verde = sincronizado hoy, ámbar = con servidor
-           configurado pero el último intento falló. Silencioso a propósito -- sin servidor la
-           app funciona exactamente igual, este punto es la única señal visible. -->
+      <!-- HUB v0.3 (spec §3): radar + 5 modos + tarjeta de la esfinge (las monta app.js#montarTarjetasHub)
+           + Comenzar (lanza el modo elegido) + pie (Exportar / Importar / Créditos). -->
+      <div class="hub-modos" data-test="hub-modos" role="group" aria-label="Modos de juego"></div>
       <div class="hub-comenzar-fila">
         <button class="boton boton-principal boton-comenzar" data-test="comenzar">Comenzar</button>
-        <!-- Tarea 4 ("Conectar desde la app instalada") + revisión combinada: antes un <span>
-             decorativo -- ahora también el disparador para abrir la hoja "Conectar" (mismo
-             manejador que su gemelo del Átomo, ver app.js), con área táctil ampliada a 44px sin
-             agrandar el punto visible (estilos.css). Carlos aterriza en el HUB al abrir la app
-             instalada, así que este es el punto que de verdad ve primero. `aria-label` estático
-             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (mismo
-             texto que el gris por defecto, tercera ronda de revisión combinada: el aria-label
-             fijo "Estado del servidor" de la ronda anterior era un error, corregido -- debe seguir
-             llevando el estado). -->
+        <!-- Punto de estado del servidor (v0.2b2 §4) y disparador de la hoja "Conectar": gris = sin
+             servidor, verde = sincronizado hoy, ámbar = con servidor pero el último intento falló. -->
         <button
           type="button"
           class="punto-servidor"
@@ -146,6 +122,7 @@
           Importar
           <input type="file" id="importar-archivo" accept="application/json" hidden>
         </label>
+        <button class="hub-pie-enlace" data-test="abrir-creditos">Créditos</button>
       </div>
     </section>
 
@@ -245,6 +222,13 @@
        abierto en Safari no llega a la app instalada -- esta hoja deja pegar el enlace (o
        "servidor token") a mano, sin salir de la app. Se abre al tocar el punto de estado de la
        cabecera del Átomo o su aviso "Conecta el servidor..." (ver app.js). -->
+  <div class="hoja-creditos" data-test="creditos" hidden role="dialog" aria-modal="true" aria-label="Créditos de las imágenes">
+    <p class="hoja-creditos-titulo">Imágenes de Wikimedia Commons</p>
+    <ul class="hoja-creditos-lista" data-test="creditos-lista"></ul>
+    <button type="button" class="boton" data-test="creditos-cerrar">Cerrar</button>
+  </div>
+  <div class="destello" data-test="destello" aria-hidden="true"></div>
+
   <div class="hoja-conectar" data-test="conectar" hidden role="dialog" aria-label="Conectar servidor">
     <label class="hoja-conectar-etiqueta" for="conectar-texto">Pega aquí el enlace de conexión</label>
     <input

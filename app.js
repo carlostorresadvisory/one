@@ -8,7 +8,6 @@ import {
   actualizarRacha,
   resumenProgreso,
   pendientes,
-  misionDelDia,
   exportar,
   importar,
   evaluar,
@@ -37,7 +36,11 @@ import {
   filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
   avisoFiltroCorto,
 } from './filtro.js';
-import { modoPorId } from './modos.js';
+import { MODOS, modoPorId, cargarUltimoModo, guardarUltimoModo, marcadorModo } from './modos.js';
+import { cargarMochila, contarObjetos } from './mochila.js';
+import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
+import { crearSonido } from './sonido.js';
+import { crearEsfinge } from './esfinge.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -245,6 +248,18 @@ const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Aviso breve del HUB (M1): "Nada que jugar con este filtro" cuando un filtro
 // (Misión de hoy, Pendientes...) resulta sin ninguna pregunta elegible.
 const avisoHub = document.getElementById('aviso-hub');
+
+// --- HUB v0.3: sonido, esfinge, tarjetas de modo ---
+const registroSonidos = new URLSearchParams(location.search).get('test') === '1' ? [] : null;
+const sonido = crearSonido({ registro: registroSonidos });
+const nodoSilencio = document.querySelector('[data-test="silencio"]');
+const nodoHubModos = document.querySelector('[data-test="hub-modos"]');
+const nodoCreditos = document.querySelector('[data-test="creditos"]');
+const esfingeCabecera = crearEsfinge(document.querySelector('[data-test="esfinge-cabecera"]'), { tamano: 'pequena' });
+let esfingeHub = null;
+let modoElegido = null; // tarjeta seleccionada en el hub; null = leer el último modo jugado
+const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
+let nodoMarcadorEsfinge = null;
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
 // grande" y visibles sin tener que fijarse en la esquina.
 const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
@@ -252,12 +267,6 @@ const nodoNivelInicio = document.querySelector('[data-test="nivel-inicio"]');
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
-const nodoKpiAciertosHoy = document.querySelector('[data-test="kpi-aciertos-hoy"]');
-const nodoRecuperadas = document.querySelector('[data-test="recuperadas"]');
-const nodoCalibracion = document.querySelector('[data-test="calibracion"]');
-const nodoMision = document.querySelector('[data-test="mision"]');
-const nodoPendientes = document.querySelector('[data-test="pendientes"]');
-const nodoRepasoHub = document.querySelector('[data-test="repaso-hub"]');
 // Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
@@ -296,7 +305,6 @@ const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
 const contenedorMazoResumen = document.getElementById('mazo-resumen');
 const contenedorMazoRepaso = document.getElementById('mazo-repaso');
-const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 const plantillaConfianza = document.getElementById('plantilla-confianza');
 
@@ -332,15 +340,6 @@ const EMOJI_AREA = {
   economia: '📈', historia: '🏛️', ciencia: '🔬', tecnologia: '💻',
   geografia: '🌍', filosofia: '🤔', arte: '🎨', logica: '🧩',
 };
-
-/** Clase de color de la nota (S+/S/A/B/C/D/—), según la paleta ya existente:
- * S+/S en el acento, A/B en el texto normal, C/D atenuados, sin datos ('—') aparte. */
-function claseNota(nota) {
-  if (nota === '—') return 'tarjeta-area-nota--vacia';
-  if (nota === 'S+' || nota === 'S') return 'tarjeta-area-nota--alta';
-  if (nota === 'A' || nota === 'B') return 'tarjeta-area-nota--media';
-  return 'tarjeta-area-nota--baja';
-}
 
 // --- radar del HUB (8 ejes, uno por área, en el orden de resumenProgreso().porArea) ---
 const RADAR_CENTRO = 110;
@@ -438,6 +437,7 @@ function actualizarCabecera() {
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
   nodoLogo.hidden = enModo;
   nodoChipFiltro.hidden = !enModo;
+  nodoSilencio.hidden = enModo; // el silencio vive en la cabecera del hub (spec §3)
   if (enModo) pintarChip(nodoChipFiltro, textoChipFiltro());
   // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
   // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
@@ -1675,6 +1675,7 @@ function reanudarTandaGuardada() {
 
 // --- carga del banco y arranque ---
 async function iniciar() {
+  sonido.precargar(); // sin await: el AudioContext de ZzFX existe ya cuando llega el primer toque (iOS)
   const params = new URLSearchParams(location.search);
   const esEjemplo = params.get('ejemplo') === '1';
   const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
@@ -1687,6 +1688,7 @@ async function iniciar() {
   idsBancoLocal = new Set(bancoLocal.map((p) => p.id));
   reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
+  montarTarjetasHub(); // antes de cualquier renderHub/actualizarCabecera (p. ej. `?servidor=&token=`)
   actualizarCabecera();
   actualizarPuntoServidor();
   reanudarTandaGuardada(); // spec §1: la tanda a medias sobrevive a la recarga de iOS
@@ -1751,6 +1753,17 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     arrancarModo(id) {
       arrancarModo(id);
     },
+    // v0.3: abre el átomo de un área desde el HUB, sin partida debajo (sustituye al "+" retirado de
+    // las tarjetas de área). El filtro que se elija es el de Clásico.
+    abrirAtomo(area) {
+      modoActual = 'clasico';
+      abrirAtomo(area);
+    },
+    mostrarIndicadorLista(ids, corto) { mostrarIndicadorTandaLista(ids, corto); },
+    mostrarChipNuevas(n, ids) { mostrarChipNuevas(n, ids); },
+    sonidos() { return registroSonidos ? [...registroSonidos] : []; },
+    estadoAudio() { return sonido.estadoContexto(); },
+    abrirRepaso() { abrirRepaso(); },
     // Inyecta/quita una imagen para un id concreto del banco (Tarea 3b): para
     // que el e2e pueda forzar el peor caso "explicación larga + imagen" sobre
     // una pregunta real sin depender de qué ids tenga datos/imagenes.json en
@@ -4065,211 +4078,132 @@ function abrirRepaso() {
   renderRepaso();
 }
 
-/** El HUB: radar de las 8 áreas, KPIs, Misión de hoy + Pendientes, "Comenzar" y
- * la cuadrícula 4×2 de áreas (una tarjeta tocable por área, con emoji, nota,
- * barra fina de puntuación y "S · R"). Al entrar se genera (o recupera) la
- * misión de hoy: `misionDelDia` es idempotente el mismo día. */
-function renderHub() {
-  const resultadoMision = misionDelDia(estado, banco, hoy());
-  estado = resultadoMision.estado;
-  guardarEstado(estado);
+/** Tarjetas del hub (spec §3): se montan UNA vez; `renderHub` solo las actualiza. */
+function montarTarjetasHub() {
+  nodoHubModos.innerHTML = '';
+  nodosTarjetaModo.clear();
+  for (const modo of MODOS) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = `hub-modo${modo.disponible ? '' : ' hub-modo--pronto'}`;
+    boton.dataset.test = `modo-${modo.id}`;
+    boton.dataset.modo = modo.id;
+    const imagen = document.createElement('img');
+    imagen.className = 'hub-modo-imagen';
+    imagen.alt = '';
+    imagen.decoding = 'async';
+    imagen.referrerPolicy = 'no-referrer';
+    imagen.src = modo.imagen.url;
+    imagen.addEventListener('error', () => imagen.remove()); // sin imagen: queda el color del modo
+    const icono = document.createElement('span');
+    icono.className = 'hub-modo-icono';
+    icono.setAttribute('aria-hidden', 'true');
+    icono.textContent = modo.icono;
+    const nombre = document.createElement('span');
+    nombre.className = 'hub-modo-nombre';
+    nombre.textContent = modo.nombre;
+    const marcador = document.createElement('span');
+    marcador.className = 'hub-modo-marcador';
+    marcador.dataset.test = `marcador-${modo.id}`;
+    boton.append(imagen, icono, nombre, marcador);
+    boton.addEventListener('click', () => elegirModoHub(modo.id));
+    nodoHubModos.appendChild(boton);
+    nodosTarjetaModo.set(modo.id, { boton, marcador });
+  }
+  const esfinge = document.createElement('button');
+  esfinge.type = 'button';
+  esfinge.className = 'hub-modo hub-modo--esfinge';
+  esfinge.dataset.test = 'tarjeta-esfinge';
+  const lienzo = document.createElement('span');
+  lienzo.className = 'hub-esfinge-lienzo';
+  const textos = document.createElement('span');
+  textos.className = 'hub-esfinge-textos';
+  const nombre = document.createElement('span');
+  nombre.className = 'hub-modo-nombre';
+  nombre.textContent = 'Esfinge';
+  nodoMarcadorEsfinge = document.createElement('span');
+  nodoMarcadorEsfinge.className = 'hub-modo-marcador';
+  nodoMarcadorEsfinge.dataset.test = 'marcador-esfinge';
+  textos.append(nombre, nodoMarcadorEsfinge);
+  esfinge.append(lienzo, textos);
+  esfinge.addEventListener('click', () => {
+    if (esfingeHub) esfingeHub.reaccionar('contenta');
+    mostrarAvisoHub('La tienda llega pronto');
+  });
+  nodoHubModos.appendChild(esfinge);
+  if (esfingeHub) esfingeHub.destruir();
+  esfingeHub = crearEsfinge(lienzo, { tamano: 'grande' });
+}
 
+function elegirModoHub(id) {
+  modoElegido = id;
+  for (const [idModo, { boton }] of nodosTarjetaModo) {
+    const elegido = idModo === id;
+    boton.classList.toggle('hub-modo--elegido', elegido);
+    boton.setAttribute('aria-pressed', String(elegido));
+  }
+}
+
+function actualizarTarjetasHub(datos) {
+  for (const [id, { marcador }] of nodosTarjetaModo) marcador.textContent = marcadorModo(id, datos);
+  if (nodoMarcadorEsfinge) nodoMarcadorEsfinge.textContent = `🎒 ${datos.objetos}`;
+  elegirModoHub(modoElegido || cargarUltimoModo());
+}
+
+function comenzarModoElegido() {
+  const modo = modoPorId(modoElegido || cargarUltimoModo());
+  if (!modo || !modo.disponible) {
+    mostrarAvisoHub('Próximamente');
+    return;
+  }
+  guardarUltimoModo(modo.id);
+  arrancarModo(modo.id);
+}
+
+/** El HUB de v0.3 (spec §3): radar + 6 tarjetas + Comenzar. Ya no genera la misión del día. */
+function renderHub() {
   const resumen = resumenProgreso(estado, banco, hoy());
   actualizarCabecera();
-
   renderRadar(resumen.porArea);
-
-  // El 🔥 ya está en la cabecera: la fila KPI no lo repite (spec "pantalla
-  // completa" 12-sep).
-  nodoKpiAciertosHoy.textContent = `Hoy: ${resumen.hoy.aciertos}/${resumen.hoy.respondidas}`;
-  nodoRecuperadas.textContent = `Recuperadas ${resumen.recuperadas}`;
-  if (resumen.confianza.calibracion === null) {
-    nodoCalibracion.hidden = true;
-  } else {
-    nodoCalibracion.hidden = false;
-    nodoCalibracion.textContent = `Confianza ${Math.round(resumen.confianza.calibracion * 100)}%`;
-  }
-
-  actualizarDestacados(resumen);
-
-  progresoAreas.innerHTML = '';
-  resumen.porArea.forEach((fila) => {
-    const tarjeta = document.createElement('button');
-    tarjeta.className = 'tarjeta-area';
-    tarjeta.dataset.test = `practicar-${fila.area}`;
-    tarjeta.disabled = fila.total === 0;
-
-    const cabeceraTarjeta = document.createElement('div');
-    cabeceraTarjeta.className = 'tarjeta-area-cabecera';
-
-    const emoji = document.createElement('span');
-    emoji.className = 'tarjeta-area-emoji';
-    emoji.textContent = EMOJI_AREA[fila.area] || '❔';
-
-    const nota = document.createElement('span');
-    nota.className = `tarjeta-area-nota ${claseNota(fila.nota)}`;
-    nota.dataset.test = `nota-${fila.area}`;
-    nota.textContent = fila.nota;
-
-    cabeceraTarjeta.appendChild(emoji);
-    cabeceraTarjeta.appendChild(nota);
-
-    const nombre = document.createElement('span');
-    nombre.className = 'tarjeta-area-nombre';
-    nombre.textContent = nombreArea(fila.area);
-
-    const track = document.createElement('div');
-    track.className = 'tarjeta-area-track';
-    const relleno = document.createElement('div');
-    relleno.className = 'tarjeta-area-relleno';
-    relleno.dataset.test = `barra-${fila.area}`;
-    relleno.style.width = `${fila.puntuacion * 100}%`;
-    track.appendChild(relleno);
-
-    const solido = document.createElement('span');
-    solido.className = 'tarjeta-area-solido';
-    solido.dataset.test = `solido-${fila.area}`;
-    solido.textContent = `S ${fila.solidas} · R ${fila.recientes}`;
-
-    // Tocar la tarjeta entera arranca una partida SOLO de esa área (como un nivel
-    // de videojuego); mantenerla pulsada, o el botón "⚛", abre el Átomo (v0.2b2 §4)
-    // para elegir un subtema y pedir una tanda nueva.
-    let idPulsacionLarga = null;
-    let origenPulsacion = null;
-    let pulsacionYaAbrioAtomo = false; // el click que sigue a una pulsación larga no lanza la partida.
-    const PULSACION_LARGA_MS = 500;
-    const MOVIMIENTO_MAX_PX = 10;
-
-    function cancelarPulsacionLarga() {
-      if (idPulsacionLarga !== null) {
-        clearTimeout(idPulsacionLarga);
-        idPulsacionLarga = null;
-      }
-      origenPulsacion = null;
-    }
-
-    tarjeta.addEventListener('pointerdown', (ev) => {
-      if (tarjeta.disabled) return;
-      origenPulsacion = { x: ev.clientX, y: ev.clientY };
-      idPulsacionLarga = setTimeout(() => {
-        idPulsacionLarga = null;
-        pulsacionYaAbrioAtomo = true;
-        abrirAtomo(fila.area);
-      }, PULSACION_LARGA_MS);
-    });
-    tarjeta.addEventListener('pointermove', (ev) => {
-      if (!origenPulsacion) return;
-      const dx = ev.clientX - origenPulsacion.x;
-      const dy = ev.clientY - origenPulsacion.y;
-      if (Math.hypot(dx, dy) > MOVIMIENTO_MAX_PX) cancelarPulsacionLarga();
-    });
-    tarjeta.addEventListener('pointerup', cancelarPulsacionLarga);
-    tarjeta.addEventListener('pointerleave', cancelarPulsacionLarga);
-    tarjeta.addEventListener('pointercancel', cancelarPulsacionLarga);
-    // Adversarial A3: en iOS, mantener pulsado un elemento dispara el callout nativo (copiar/
-    // compartir) y selecciona texto salvo que se lo digamos explícitamente -- eso mataría el
-    // gesto de pulsación larga a medio camino. `-webkit-touch-callout`/`user-select` ya lo cubren
-    // en estilos.css; `contextmenu` es el evento que dispara ESE callout, así que se descarta aquí
-    // también por si acaso (defensa en profundidad, no todos los navegadores respetan el CSS igual).
-    tarjeta.addEventListener('contextmenu', (ev) => ev.preventDefault());
-
-    tarjeta.addEventListener('click', () => {
-      if (pulsacionYaAbrioAtomo) {
-        pulsacionYaAbrioAtomo = false; // se descarta UNA sola vez, ver brief de la tarea.
-        return;
-      }
-      empezarPartida({ area: fila.area });
-    });
-
-    const botonAtomo = document.createElement('span');
-    botonAtomo.className = 'tarjeta-area-atomo';
-    botonAtomo.dataset.test = 'atomo-abrir';
-    botonAtomo.setAttribute('role', 'button');
-    botonAtomo.setAttribute('tabindex', '0');
-    // v0.2b4 §4: "+" en vez de "⚛" (Carlos, 15-sep: el símbolo del átomo no decía nada). El
-    // `aria-label` dice la acción completa, que es lo que anuncia un lector de pantalla.
-    botonAtomo.setAttribute('aria-label', `Explorar subtemas de ${nombreArea(fila.area)}`);
-    botonAtomo.textContent = '+';
-    botonAtomo.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      abrirAtomo(fila.area);
-    });
-    botonAtomo.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' || ev.key === ' ') {
-        ev.preventDefault();
-        ev.stopPropagation();
-        abrirAtomo(fila.area);
-      }
-    });
-    botonAtomo.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-
-    tarjeta.appendChild(cabeceraTarjeta);
-    tarjeta.appendChild(nombre);
-    tarjeta.appendChild(track);
-    tarjeta.appendChild(solido);
-    tarjeta.appendChild(botonAtomo);
-    progresoAreas.appendChild(tarjeta);
+  actualizarTarjetasHub({
+    aciertosHoy: resumen.hoy.aciertos,
+    respondidasHoy: resumen.hoy.respondidas,
+    porRepasar: resumen.pendientes,
+    objetos: contarObjetos(cargarMochila()),
   });
+  pintarSilencio();
 }
 
-/** Pinta las tres tarjetas destacadas del hub (Misión de hoy, Pendientes y
- * Repaso): texto, y si son tocables (aria-disabled + dataset.tocable cuando
- * no). Repaso (spec v0.2a.1 §7) YA NO se apaga con "Juega primero": con todo
- * el banco como contenido (respondido + sin responder), con banco no vacío
- * siempre hay feed, aunque no se haya respondido nada — a diferencia de
- * Pendientes, que sí depende de cuántas haya AHORA MISMO pendientes. */
-function actualizarDestacados(resumen) {
-  const mision = estado.mision;
-  if (!mision || mision.ids.length === 0) {
-    nodoMision.textContent = 'Misión de hoy · —';
-    marcarNoTocable(nodoMision);
-  } else if (mision.completada) {
-    nodoMision.textContent = 'Misión de hoy ✓';
-    marcarNoTocable(nodoMision);
-  } else {
-    const areasUnicas = [];
-    for (const id of mision.ids) {
-      const pregunta = bancoPorId.get(id);
-      const nombre = pregunta ? nombreArea(pregunta.area) : null;
-      if (nombre && !areasUnicas.includes(nombre)) areasUnicas.push(nombre);
-    }
-    nodoMision.textContent = `Misión de hoy · ${areasUnicas.join(' y ')} · ${mision.hechas.length}/${mision.ids.length}`;
-    marcarTocable(nodoMision);
+function pintarSilencio() {
+  const silenciado = sonido.estaSilenciado();
+  nodoSilencio.textContent = silenciado ? '🔇' : '🔊';
+  nodoSilencio.setAttribute('aria-pressed', String(silenciado));
+  nodoSilencio.setAttribute('aria-label', silenciado ? 'Activar sonidos' : 'Silenciar sonidos');
+}
+
+let nodoCreditosDisparador = null;
+function abrirCreditos() {
+  const lista = nodoCreditos.querySelector('[data-test="creditos-lista"]');
+  lista.innerHTML = '';
+  for (const modo of MODOS) {
+    const item = document.createElement('li');
+    item.textContent = `${modo.nombre}: ${modo.imagen.titulo} — `;
+    item.appendChild(construirAtribucionImagen({ autor: modo.imagen.autor, licencia: modo.imagen.licencia, pagina: modo.imagen.pagina }));
+    lista.appendChild(item);
   }
-
-  const nPendientes = resumen.pendientes;
-  nodoPendientes.textContent = `Pendientes · ${nPendientes}`;
-  if (nPendientes === 0) marcarNoTocable(nodoPendientes);
-  else marcarTocable(nodoPendientes);
-
-  // v0.2a.1 §7: "el botón Repaso del HUB deja de apagarse" — con todas las
-  // preguntas del banco como contenido (no solo las respondidas) siempre hay
-  // algo que mostrar salvo con el banco entero vacío, algo que no debería
-  // darse nunca en producción (ver también el guarda defensivo del mismo
-  // caso en mantenerVueltasRepaso).
-  if (banco.length === 0) {
-    nodoRepasoHub.textContent = 'Sin preguntas';
-    marcarNoTocable(nodoRepasoHub);
-  } else {
-    nodoRepasoHub.textContent = 'Repaso';
-    marcarTocable(nodoRepasoHub);
-  }
+  nodoCreditosDisparador = document.activeElement;
+  nodoCreditos.hidden = false;
+  nodoCreditos.querySelector('[data-test="creditos-cerrar"]').focus();
 }
-
-function marcarTocable(nodo) {
-  nodo.classList.remove('hub-destacado--inactivo');
-  nodo.setAttribute('aria-disabled', 'false');
-  nodo.dataset.tocable = 'true';
-}
-
-function marcarNoTocable(nodo) {
-  nodo.classList.add('hub-destacado--inactivo');
-  nodo.setAttribute('aria-disabled', 'true');
-  nodo.dataset.tocable = 'false';
+function cerrarCreditos() {
+  if (nodoCreditos.hidden) return;
+  nodoCreditos.hidden = true;
+  if (nodoCreditosDisparador) nodoCreditosDisparador.focus();
+  nodoCreditosDisparador = null;
 }
 
 function exportarEstado() {
-  const json = exportar(estado);
+  const json = exportarRespaldo(estado);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -4285,11 +4219,15 @@ function importarEstadoDesdeArchivo(archivo) {
   const lector = new FileReader();
   lector.onload = () => {
     try {
-      estado = importar(String(lector.result));
+      const { estado: importado, modos } = importarRespaldo(String(lector.result));
+      estado = importado;
       guardarEstado(estado);
+      aplicarModos(modos);
+      modoElegido = null; // vuelve a leer el último modo del respaldo
       renderHub();
     } catch (err) {
       console.error('No se pudo importar el estado:', err.message);
+      mostrarAvisoHub('No se pudo importar ese archivo');
     }
   };
   lector.readAsText(archivo);
@@ -4299,8 +4237,25 @@ function importarEstadoDesdeArchivo(archivo) {
 // "Comenzar" (en el HUB) siempre arranca sin filtro (aunque quedara uno de una
 // práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
 // vigente, para poder repetir la misma área varias veces seguidas.
-// La Tarea 8 lo cambia por `comenzarModoElegido`.
-document.querySelector('[data-test="comenzar"]').addEventListener('click', () => arrancarModo('clasico'));
+// v0.3: Comenzar lanza el modo elegido en el hub (o el último jugado).
+document.querySelector('[data-test="comenzar"]').addEventListener('click', comenzarModoElegido);
+nodoSilencio.addEventListener('click', () => {
+  sonido.alternarSilencio();
+  pintarSilencio();
+});
+document.querySelector('[data-test="abrir-creditos"]').addEventListener('click', abrirCreditos);
+document.querySelector('[data-test="creditos-cerrar"]').addEventListener('click', cerrarCreditos);
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape') cerrarCreditos();
+});
+// iOS: el AudioContext solo arranca si su resume() se inicia dentro de un gesto. Se reintenta en
+// cada gesto hasta que corre; después los oyentes se quitan solos.
+function alPrimerGesto() {
+  if (sonido.desbloquear()) {
+    ['pointerdown', 'keydown', 'touchend'].forEach((tipo) => document.removeEventListener(tipo, alPrimerGesto, true));
+  }
+}
+['pointerdown', 'keydown', 'touchend'].forEach((tipo) => document.addEventListener(tipo, alPrimerGesto, true));
 // Chip "N preguntas nuevas · Jugar" (v0.2b4 §3): arranca la partida con ellas. Sin ids utilizables
 // (todas descartadas al fusionar) solo se cierra, sin fingir una partida vacía -- mismo criterio
 // que "Misión de hoy"/"Pendientes" más abajo.
@@ -4492,23 +4447,6 @@ window.addEventListener('resize', () => {
 // 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
 document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
 botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
-// Misión de hoy / Pendientes: tocables solo cuando dataset.tocable === 'true'
-// (ver actualizarDestacados). Partida cerrada a esos ids concretos, sin relleno.
-nodoMision.addEventListener('click', () => {
-  if (nodoMision.dataset.tocable !== 'true') return;
-  const ids = estado.mision.ids.filter((id) => !estado.mision.hechas.includes(id));
-  if (ids.length === 0) return; // nada que jugar: no arrancar una partida vacía (adversarial 12-sep)
-  empezarPartida({ ids, etiqueta: 'Misión de hoy' });
-});
-nodoPendientes.addEventListener('click', () => {
-  if (nodoPendientes.dataset.tocable !== 'true') return;
-  arrancarModo('repaso');
-});
-// Repaso (spec v0.2 §2): feed "sin fin" de todo lo jugado, filtrable por área.
-nodoRepasoHub.addEventListener('click', () => {
-  if (nodoRepasoHub.dataset.tocable !== 'true') return;
-  abrirRepaso();
-});
 nodoChipFiltro.addEventListener('click', abrirHojaFiltro);
 nodoFiltroCortoJugar.addEventListener('click', () => {
   if (filtroCortoContexto) arrancarModoSinComprobar(filtroCortoContexto.modo);
