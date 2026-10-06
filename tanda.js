@@ -22,6 +22,12 @@ function esTandaValida(datos) {
   return Number.isFinite(datos.inicio) && Number.isInteger(datos.pedidas) && datos.pedidas > 0;
 }
 
+// v0.3 (filtro por subtema): la tanda recuerda de qué nodo del árbol es, para apuntar sus ids en el
+// índice local de rutas aunque iOS recargue la app a mitad (filtro.js#registrarIdsRuta).
+function esRutaValida(ruta) {
+  return Array.isArray(ruta) && ruta.length <= 6 && ruta.every(esTextoNoVacio);
+}
+
 /** Tanda guardada, o null si no hay ninguna. Una clave corrupta (JSON roto, campos ausentes) se
  * trata como "no hay tanda": nunca lanza, misma política que cargarEstado en app.js. */
 export function leerTanda() {
@@ -30,7 +36,12 @@ export function leerTanda() {
     if (!crudo) return null;
     const datos = JSON.parse(crudo);
     if (!esTandaValida(datos)) return null;
-    return { id: datos.id, corto: datos.corto, inicio: datos.inicio, pedidas: datos.pedidas };
+    const tanda = { id: datos.id, corto: datos.corto, inicio: datos.inicio, pedidas: datos.pedidas };
+    if (esTextoNoVacio(datos.area) && esRutaValida(datos.ruta)) {
+      tanda.area = datos.area;
+      tanda.ruta = [...datos.ruta];
+    }
+    return tanda;
   } catch {
     return null;
   }
@@ -38,10 +49,15 @@ export function leerTanda() {
 
 /** Guarda la tanda en curso. `false` si los datos no valen o si localStorage no admite escritura
  * (llena, modo privado): la sesión sigue funcionando en memoria, igual que guardarEstado. */
-export function guardarTanda({ id, corto, inicio, pedidas } = {}) {
+export function guardarTanda({ id, corto, inicio, pedidas, area, ruta } = {}) {
   if (!esTandaValida({ id, corto, inicio, pedidas })) return false;
+  const datos = { id, corto, inicio, pedidas };
+  if (esTextoNoVacio(area) && esRutaValida(ruta)) {
+    datos.area = area;
+    datos.ruta = [...ruta];
+  }
   try {
-    localStorage.setItem(CLAVE_TANDA, JSON.stringify({ id, corto, inicio, pedidas }));
+    localStorage.setItem(CLAVE_TANDA, JSON.stringify(datos));
     return true;
   } catch {
     return false;

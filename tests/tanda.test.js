@@ -143,3 +143,29 @@ test('guardarTanda: con localStorage lleno devuelve false y no lanza (la sesión
   };
   assert.equal(guardarTanda(TANDA), false);
 });
+
+test('v0.3: guardarTanda/leerTanda conservan área y ruta cuando vienen y son válidas', (t) => {
+  const anterior = globalThis.localStorage;
+  const datos = new Map();
+  globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
+  t.after(() => { globalThis.localStorage = anterior; });
+  assert.equal(guardarTanda({ id: 't1', corto: 'Roma', inicio: 1, pedidas: 10, area: 'historia', ruta: ['Roma antigua'] }), true);
+  assert.deepEqual(leerTanda(), { id: 't1', corto: 'Roma', inicio: 1, pedidas: 10, area: 'historia', ruta: ['Roma antigua'] });
+});
+
+test('v0.3: una tanda guardada por v0.2 (sin área ni ruta) se sigue leyendo igual', (t) => {
+  const anterior = globalThis.localStorage;
+  const datos = new Map([[CLAVE_TANDA, JSON.stringify({ id: 't2', corto: 'Economía', inicio: 5, pedidas: 10 })]]);
+  globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
+  t.after(() => { globalThis.localStorage = anterior; });
+  assert.deepEqual(leerTanda(), { id: 't2', corto: 'Economía', inicio: 5, pedidas: 10 });
+});
+
+test('v0.3: área o ruta inválidas no se guardan (la tanda sí)', (t) => {
+  const anterior = globalThis.localStorage;
+  const datos = new Map();
+  globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
+  t.after(() => { globalThis.localStorage = anterior; });
+  guardarTanda({ id: 't3', corto: 'X', inicio: 1, pedidas: 10, area: 'historia', ruta: [42] });
+  assert.deepEqual(leerTanda(), { id: 't3', corto: 'X', inicio: 1, pedidas: 10 });
+});
