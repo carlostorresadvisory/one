@@ -70,9 +70,9 @@ H:{n:'Mago · 3D low-poly',d:'Mago glTF 3D (sabio/enigma) con clips nativos: Idl
 I:{n:'Esfinge ONE · diseño propio',d:'Diseñada por Carlos con Gemini: cuatro expresiones nativas, fondo recortado. Movimiento con CSS.',
  auth:'Carlos Torres (Gemini)',lic:'propia',url:'#',kind:'img',
  src:function(e){return 'i-esfinge/'+e+'.png'}},
-J:{n:'Esfinge ONE · animada',d:'Animada con IA (Wan 2.2): reposo en bucle, acierto y eufórica en vídeo; triste con la imagen de Gemini.',
+J:{n:'Esfinge ONE · animada',d:'Animada con IA (Wan 2.2): reposo en bucle, acierto y eufórica en vídeo; triste animada derivada de la imagen de Gemini.',
  auth:'Carlos Torres (Gemini + Wan 2.2)',lic:'propia',url:'#',kind:'img',
- src:function(e){return e==='triste'?'i-esfinge/triste.png':'esfinge-video/'+({neutral:'reposo',contenta:'acierto',euforica:'euforica'}[e])+'.webp?'+Date.now()}}
+ src:function(e){return 'esfinge-video/'+({neutral:'reposo',contenta:'acierto',euforica:'euforica',triste:'triste'}[e])+'.webp?'+Date.now()}}
 };
 var B64={};function bin(path){return B64[path]||(B64[path]=fetch(path+'.txt').then(function(r){return r.text()}).then(function(t){var b=atob(t.trim()),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return URL.createObjectURL(new Blob([u]))}))}
 var cur='J',ex='neutral',anims=[],dis=[],tok=0,rivePromise;
@@ -126,7 +126,7 @@ function render(){
  var big=document.getElementById('big'),mini=document.getElementById('mini');
  big.className='big';mini.className='mini';
  tok++;mount(big,o,ex,true,false);mount(mini,o,ex,true,true);
- if(!o.native&&!(cur==='J'&&ex!=='triste')){anim(big,ex);anim(mini,ex)}
+ if(!o.native&&cur!=='J'){anim(big,ex);anim(mini,ex)}
  document.getElementById('nm').textContent=o.n;
  document.getElementById('ds').textContent=o.d;
  document.getElementById('meta').innerHTML='<b>'+o.n+'</b> · '+o.auth+' · '+o.lic+' · <a href="'+o.url+'" target="_blank" rel="noopener">repo</a>';
