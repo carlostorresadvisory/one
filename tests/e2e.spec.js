@@ -6734,6 +6734,20 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
   });
 
+  test('Atrás en el anillo 1 del átomo vuelve a la lista de áreas dentro de la hoja', async ({ page }) => {
+    await page.goto('/?ejemplo=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await abrirHojaFiltro(page);
+    await elegirAreaEnFiltro(page, 'ciencia');
+    const atras = page.locator('[data-test="atomo-atras"]');
+    await expect(atras).toBeEnabled();
+    await atras.click();
+    await expect(page.locator('[data-test="atomo"]')).toBeHidden();
+    await expect(page.locator('[data-test="filtro-areas"]')).toBeVisible();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeVisible();
+  });
+
   test('chip con etiqueta larga: se recorta con … sin encoger la letra ni salirse de la pantalla', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();

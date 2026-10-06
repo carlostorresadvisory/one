@@ -932,7 +932,8 @@ async function cargarAnilloAtomo() {
   if (!atomoEstado) return; // adversarial A7: la vista pudo cerrarse justo antes de esta llamada.
   actualizarCabeceraAtomo();
   actualizarBotonGenerarAtomo();
-  nodoAtomoAtras.disabled = atomoEstado.ruta.length === 0;
+  // Dentro de la hoja del filtro, Atrás en el anillo 1 vuelve a la lista de áreas.
+  nodoAtomoAtras.disabled = atomoEstado.ruta.length === 0 && nodoHojaFiltro.hidden;
 
   const configuracion = leerConfiguracion();
   if (!configuracion) {
