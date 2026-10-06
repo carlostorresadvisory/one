@@ -1,15 +1,15 @@
 # Próxima sesión — ONE v0.3: plan único de las fases 3-10 (spec aprobada)
 
-## Dónde estamos (6-oct-2026, tarde)
+## Dónde estamos (6-oct-2026, noche)
 - **Publicado**: v0.3 fases 1-2 (caché `one-v21`) + prototipo de avatares en `https://carlostorresadvisory.github.io/one/prototipos/avatares/` (fuera de la app y del sw).
-- **Spec reescrita con todo el feedback de Carlos** y lista para su OK final: `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md`. Fases 3-10 en su §13; §14 sin decisiones abiertas.
+- **Spec aprobada por Carlos** (6-oct, noche): `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md`. Fases 3-10 en su §13; §14 sin decisiones abiertas.
 - Pasada adversarial de la spec hecha dos veces (Nemotron gratis): 6 de 10 objeciones la primera; la segunda, sobre imágenes y avatar MP4, 7 de 12 aplicadas en §7.
 
 ## Decisiones de Carlos del 6-oct (ya en la spec)
 - Tarjeta = modo, sin Comenzar; modos sin hacer → tarjeta apagada «Pronto». Sección «Tienda». Apuesta → «Órdago». Generar = insignia PREMIUM sin bloquear. Aviso grande «Preguntas generadas» clicable.
 - **Imágenes con impacto, nunca esquemas**: los visuales dibujados de `visuales.js` dejan de enseñarse (salvo imprescindibles). Orden: Commons → otros bancos libres (Openverse, Met, Rijksmuseum, NASA…) → IA solo como último recurso → color del área. Nota de calidad 1-5 con modelo gratis con visión; < 4 se sustituye.
 - **IA de imágenes**: Cloudflare Workers AI `@cf/black-forest-labs/flux-1-schnell` (gratis, ~230/día; probado: 9,8 s, buena calidad; no admite `seed`). Claves `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` ya en `.env` local; **falta ponerlas en el `.env` del VPS** (Carlos, en la fase 7). Respaldo Runware (~0,0006 $/img) dentro del tope 0,10 €/día. Pollinations descartado.
-- **Avatar = la esfinge de ONE**, diseño propio de Carlos con Gemini: `prototipos/avatares/i-esfinge/*.png` (4 expresiones, fondo recortado) y animaciones de Wan 2.2 en `prototipos/avatares/esfinge-video/` (`reposo`, `acierto`, `euforica` WebP animados 320 px; `triste` = imagen fija + CSS; `original.mp4` para re-recortar). Tamaño orientativo ≈ ⅓ del ancho y ⅙ del alto, en inicio y cabecera de modos. Las WebP pesan 0,4-0,6 MB cada una: optimizar en el plan (menos fps/colores) sin perder calidad visible.
+- **Avatar = la esfinge de ONE**, diseño propio de Carlos con Gemini: `prototipos/avatares/i-esfinge/*.png` (4 expresiones fijas, fondo recortado, también de respaldo) y los clips `prototipos/avatares/esfinge-mp4/` (reposo, acierto, eufórica, triste) con `player.js`; fuente `esfinge-video/original.mp4`. Tamaño orientativo ≈ ⅓ del ancho y ⅙ del alto, en inicio y cabecera de modos.
 - Extras opcionales cuando Carlos tenga cuota de Wan (Space `Saravutw/WAN2.2_I2V_LIGHTNING_4-8step_custom`): vídeos «saludo / pensando / sorpresa» (desde la neutral) y «triste / hundida» (desde la triste); prompts en el historial de la sesión del 6-oct, 10 s con tramos por segundos.
 
 ## Siguiente paso
