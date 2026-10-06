@@ -105,11 +105,6 @@ button:focus-visible {
   font-weight: 600;
 }
 
-.cabecera-modo-area {
-  font-size: 13px;
-  color: var(--acento);
-}
-
 .cabecera-estado {
   display: flex;
   flex-direction: column;
@@ -1971,75 +1966,6 @@ s.visual-clave-valor {
    nunca se ha respondido de verdad. */
 .repaso-marca--neutra { color: var(--texto-suave); }
 
-/* --- Repaso del HUB (spec v0.2 §2): fila de chips + mazo "sin fin" --- */
-/* Fila horizontal de chips ("Todas" + las 8 áreas): scroll horizontal SOLO
-   aquí si las 9 no caben a 375px, nunca en la vista entera (spec v0.2 §2).
-   scroll-snap-type (ronda 1, UX) hace que soltar el dedo a medio chip
-   "encaje" en el más cercano, sin animación propia que respetar bajo
-   "reducir movimiento" (el navegador decide el ajuste, no hay transition).
-   mask-image (ronda final, I1: corrige el degradado de la ronda 1, que
-   viajaba con el scroll -- ver comentario más abajo) difumina los últimos
-   32px de la propia fila como efecto de pintado sobre la caja YA
-   desplazada, no como un hijo posicionado dentro de ella. */
-.repaso-filtro {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 2px 2px 8px;
-  scroll-snap-type: x proximity;
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
-  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
-}
-
-.repaso-chip {
-  flex: none;
-  scroll-snap-align: start;
-  min-height: 44px;
-  padding: 0 16px;
-  display: inline-flex;
-  align-items: center;
-  border: none;
-  border-radius: 999px;
-  background: var(--tarjeta);
-  color: var(--texto);
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  transition: transform 0.1s ease, background-color 0.1s ease, color 0.1s ease;
-}
-
-.repaso-chip:active { transform: scale(0.97); }
-
-/* El chip activo, en cian (spec v0.2 §2: "el activo en cian"), mismo patrón
-   de contraste que .confianza-opcion--activa. */
-.repaso-chip--activa {
-  background: var(--acento);
-  color: #04121a;
-}
-
-/* Área sin ninguna tarjeta que mostrar: apagado, sin poder tocarlo (spec v0.2
-   §2: "un área sin tarjetas se muestra apagada"). */
-.repaso-chip:disabled {
-  color: var(--texto-suave);
-  opacity: 0.4;
-}
-
-/* Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
-   DENTRO del propio .repaso-filtro (overflow-x:auto) para el aviso de "hay
-   más a la derecha" -- pero un hijo posicionado relativo a la MISMA caja que
-   scrollea forma parte de su contenido desplazable: al deslizar, viajaba con
-   los chips en vez de quedarse fijo sobre el borde. mask-image (declarado
-   arriba, en .repaso-filtro) es un efecto de PINTADO sobre la caja entera,
-   aplicado DESPUÉS de resolver su propio scroll interno -- por eso sí queda
-   fijo. Desplazada hasta el final (o si ni hace falta scroll: todo cabe) --
-   ver actualizarFiltroRepasoFinal en app.js -- se quita del todo: ya no hay
-   "más a la derecha" que avisar. */
-.repaso-filtro--final {
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
 /* --- HUB (antes "Progreso"): siempre se empieza a jugar desde aquí --- */
 .vista-hub {
   gap: 10px;
@@ -2708,25 +2634,6 @@ button.punto-servidor::before {
   align-self: center;
 }
 
-/* Fila "mientras" (v0.2b3 Tarea 3): bajo la ayuda, dos botones secundarios que ofrecen algo que
-   hacer mientras el anillo carga, falla, o se genera una tanda en segundo plano (ver
-   app.js#actualizarFilaMientras). Mismo patrón de `[hidden]` que .atomo-espera-acciones -- con
-   `display:flex` ya declarado, hace falta el override explícito. */
-.atomo-mientras {
-  width: 100%;
-  display: flex;
-  gap: 8px;
-}
-
-.atomo-mientras[hidden] {
-  display: none;
-}
-
-.atomo-mientras .boton {
-  flex: 1;
-  font-size: 13px;
-}
-
 /* Botones fijos abajo (decisión #5): sigue a .atomo-cuerpo (flex:1), así que quedan pegados al
    fondo real de la vista sin importar cuánto (o poco) espacio ocupe el lienzo. */
 .atomo-acciones {
@@ -3186,3 +3093,57 @@ button.punto-servidor::before {
   .esfinge--contenta, .esfinge--euforica, .esfinge--euforica .esfinge-brillos { animation: none; }
   .esfinge-oreja, .esfinge-ojos { transition: none; }
 }
+
+/* ===== v0.3 cabecera de modo + chip + hoja del filtro ===== */
+.cabecera { justify-content: flex-start; gap: 8px; }
+.cabecera-estado { margin-left: auto; }
+.cabecera-logo[hidden] { display: none; }
+.chip-filtro {
+  position: relative;
+  max-width: 42vw;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--acento);
+  background: rgba(76, 201, 240, 0.12);
+  color: var(--acento);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chip-filtro::before { content: ''; position: absolute; inset: -6px 0; } /* toque de 44px */
+.chip-filtro[hidden] { display: none; }
+
+.hoja-filtro {
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: max(8px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom));
+  background: var(--fondo);
+  overflow: hidden;
+}
+.hoja-filtro[hidden] { display: none; }
+.hoja-filtro-cabecera { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.hoja-filtro-cerrar { min-width: 44px; min-height: 44px; background: none; border: none; color: var(--texto); font-size: 22px; }
+.hoja-filtro-titulo { font-size: var(--tam-2); font-weight: 600; }
+.filtro-nivel-areas { flex: 1 1 auto; min-height: 0; }
+.filtro-nivel-areas[hidden], .filtro-nivel-atomo[hidden] { display: none; }
+.filtro-areas-lista { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.filtro-areas-lista .filtro-area:first-child { grid-column: 1 / -1; }
+.filtro-area {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid #22303d;
+  background: var(--tarjeta);
+  text-align: left;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+.filtro-area--activa { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento); }
+.filtro-nivel-atomo { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.filtro-nivel-atomo .atomo-acciones { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; }
+.filtro-nivel-atomo .atomo-acciones .boton { padding-left: 10px; padding-right: 10px; white-space: nowrap; }

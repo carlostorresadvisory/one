@@ -16,8 +16,8 @@
   <header class="cabecera">
     <button class="boton-volver" data-test="volver" aria-label="Volver" hidden>←</button>
     <span class="cabecera-logo">🧠 ONE</span>
+    <button type="button" class="chip-filtro" data-test="chip-filtro" hidden>TODOS</button>
     <div class="cabecera-estado">
-      <span class="cabecera-modo-area" data-test="modo-area" hidden></span>
       <span class="cabecera-racha" data-test="racha">🔥 0</span>
       <span class="cabecera-nivel" data-test="nivel-partida">Nivel 1</span>
     </div>
@@ -81,7 +81,6 @@
          + mazo de solo lectura, montado con montarMazo() igual que el resto
          (app.js/renderRepaso). Se entra desde el botón "Repaso" del HUB. -->
     <section class="vista" data-vista="repaso" data-test="repaso-vista" hidden>
-      <div class="repaso-filtro" data-test="repaso-filtro" role="group" aria-label="Filtrar por área"></div>
       <!-- `tabindex="-1"`: mismo motivo que `#mazo` de arriba. -->
       <div id="mazo-repaso" class="mazo" tabindex="-1"></div>
     </section>
@@ -150,60 +149,6 @@
       </div>
     </section>
 
-    <!-- ÁTOMO (spec v0.2b2 §4): se abre manteniendo pulsada una tarjeta de área del HUB (o con su
-         botón "⚛", ver renderHub en app.js). Núcleo = área/subtema elegido en el centro del SVG,
-         anillo de nodos alrededor con los subtemas del servidor; tocar un nodo avanza un anillo,
-         tocar el núcleo retrocede uno. "←" de la cabecera (ya existente, manejarVolver) lleva
-         siempre al HUB desde aquí -- ver ese mismo manejador en app.js, no hace falta otro. -->
-    <section class="vista vista-atomo" data-vista="atomo" data-test="atomo" hidden>
-      <!-- Ronda 1 de revisión (Important #4): la cabecera vive FUERA de .atomo-cuerpo, pegada
-           arriba (flex-shrink:0 de .vista > *) -- antes estaba dentro y flotaba a media altura,
-           porque .atomo-cuerpo centra su contenido en el espacio libre. -->
-      <div class="atomo-cabecera">
-        <span class="atomo-ruta" data-test="atomo-ruta"></span>
-        <!-- Tarea 4 ("Conectar desde la app instalada"): antes un <span> decorativo -- ahora
-             también el disparador para abrir la hoja "Conectar" (ver app.js), con área táctil
-             ampliada a 44px sin agrandar el punto visible (estilos.css). `aria-label` estático
-             solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (ver el
-             comentario del punto gemelo del HUB, arriba en esta hoja). -->
-        <button
-          type="button"
-          class="punto-servidor"
-          data-test="atomo-estado-servidor"
-          data-estado="gris"
-          aria-label="Servidor sin conectar, toca para conectar"
-        ></button>
-      </div>
-      <!-- .atomo-cuerpo absorbe el espacio libre; el lienzo se queda arriba, pegado a la cabecera
-           (Ronda final, Disposición) y el hueco que deja debajo se aprovecha para la ruta completa
-           (legible, sin recortar) y una ayuda fija -- ya no queda un hueco muerto y vacío. -->
-      <div class="atomo-cuerpo">
-        <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
-        <p class="atomo-ruta-completa" data-test="atomo-ruta-completa"></p>
-        <!-- Texto fijo por defecto; sin servidor configurado, app.js#actualizarAyudaAtomo lo
-             cambia a la pista de conexión (Tarea 4). -->
-        <p class="atomo-ayuda" data-test="atomo-ayuda">Mantén pulsada un área del HUB para abrir su átomo</p>
-        <!-- Fila "mientras" (v0.2b3 Tarea 3, "Ampliación"): visible mientras el anillo carga,
-             mientras falla, o mientras se genera una tanda en segundo plano -- ver
-             app.js#actualizarFilaMientras. "Jugar el área" reutiliza empezarPartida({area}), la
-             misma función que usa el HUB al tocar una tarjeta de área; "Repasar" abre la pantalla
-             de repaso existente (abrirRepaso). -->
-        <div class="atomo-mientras" data-test="atomo-mientras" hidden>
-          <button type="button" class="boton" data-test="atomo-mientras-jugar">Jugar el área</button>
-          <button type="button" class="boton" data-test="atomo-mientras-repasar">Repasar</button>
-        </div>
-        <!-- Adversarial A15: aria-live="polite" -- el texto cambia (conectar servidor / fallo al
-             cargar subtemas) sin que el foco se mueva, así que un lector de pantalla no se
-             enteraría sin esto. -->
-        <p class="atomo-aviso" data-test="atomo-aviso" hidden aria-live="polite"></p>
-        <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>
-      </div>
-      <div class="atomo-acciones">
-        <button type="button" class="boton" data-test="atomo-atras">Atrás</button>
-        <button type="button" class="boton boton-principal" data-test="atomo-generar" disabled>Generar</button>
-      </div>
-    </section>
-
     <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->
@@ -221,6 +166,55 @@
       <button type="button" class="boton boton-principal atomo-espera-resultado" data-test="atomo-espera-resultado" hidden></button>
     </section>
   </main>
+
+  <!-- Hoja del filtro (v0.3 §4): el árbol de átomos existente como hoja superpuesta. Nivel 1 = TODOS +
+       8 áreas (filtro.js#construirListaAreas); elegir un área abre su átomo aquí dentro (la
+       orquestación del átomo sigue en app.js, mismos data-test de siempre). z-index 18: por encima
+       del indicador de tanda (15), por debajo de la hoja "Conectar" (20). -->
+  <div class="hoja-filtro" data-test="hoja-filtro" hidden role="dialog" aria-modal="true" aria-label="Elegir tema">
+    <div class="hoja-filtro-cabecera">
+      <button type="button" class="hoja-filtro-cerrar" data-test="filtro-cerrar" aria-label="Cerrar">✕</button>
+      <span class="hoja-filtro-titulo">Elige tema</span>
+    </div>
+    <div class="filtro-nivel-areas" data-test="filtro-areas"></div>
+    <div class="filtro-nivel-atomo vista-atomo" data-test="atomo" hidden>
+    <div class="atomo-cabecera">
+      <span class="atomo-ruta" data-test="atomo-ruta"></span>
+      <!-- Tarea 4 ("Conectar desde la app instalada"): antes un <span> decorativo -- ahora
+           también el disparador para abrir la hoja "Conectar" (ver app.js), con área táctil
+           ampliada a 44px sin agrandar el punto visible (estilos.css). `aria-label` estático
+           solo hasta que `actualizarPuntoServidor()` lo sobrescriba con el estado real (ver el
+           comentario del punto gemelo del HUB, arriba en esta hoja). -->
+      <button
+        type="button"
+        class="punto-servidor"
+        data-test="atomo-estado-servidor"
+        data-estado="gris"
+        aria-label="Servidor sin conectar, toca para conectar"
+      ></button>
+    </div>
+    <!-- .atomo-cuerpo absorbe el espacio libre; el lienzo se queda arriba, pegado a la cabecera
+         (Ronda final, Disposición) y el hueco que deja debajo se aprovecha para la ruta completa
+         (legible, sin recortar) y una ayuda fija -- ya no queda un hueco muerto y vacío. -->
+    <div class="atomo-cuerpo">
+      <div class="atomo-lienzo" data-test="atomo-lienzo"></div>
+      <p class="atomo-ruta-completa" data-test="atomo-ruta-completa"></p>
+      <!-- Texto fijo por defecto; sin servidor configurado, app.js#actualizarAyudaAtomo lo
+           cambia a la pista de conexión (Tarea 4). -->
+      <p class="atomo-ayuda" data-test="atomo-ayuda">Toca un tema para concretar; «Elegir» fija el filtro</p>
+      <!-- Adversarial A15: aria-live="polite" -- el texto cambia (conectar servidor / fallo al
+           cargar subtemas) sin que el foco se mueva, así que un lector de pantalla no se
+           enteraría sin esto. -->
+      <p class="atomo-aviso" data-test="atomo-aviso" hidden aria-live="polite"></p>
+      <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>
+    </div>
+      <div class="atomo-acciones">
+        <button type="button" class="boton" data-test="atomo-atras">Atrás</button>
+        <button type="button" class="boton" data-test="filtro-elegir">Elegir</button>
+        <button type="button" class="boton boton-principal" data-test="atomo-generar" disabled>Generar preguntas</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Indicador de tanda (spec v0.2b4 §2): FUERA de <main>, fijo arriba a la derecha, así se ve en
        TODAS las vistas (inicio, HUB, partida, repaso, átomo, espera) mientras hay una tanda en

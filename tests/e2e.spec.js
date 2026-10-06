@@ -196,6 +196,24 @@ async function comprobarHuecoGridComenzar(page) {
   expect(hueco).toBeLessThanOrEqual(48);
 }
 
+/** v0.3: abre la hoja del filtro con el chip de la cabecera (cualquier pantalla de modo). */
+async function abrirHojaFiltro(page) {
+  await page.locator('[data-test="chip-filtro"]').click();
+  await expect(page.locator('[data-test="hoja-filtro"]')).toBeVisible();
+}
+
+/** v0.3: con la hoja abierta, elige un área (en Clásico/Repaso abre su átomo dentro de la hoja). */
+async function elegirAreaEnFiltro(page, area) {
+  await page.locator(`[data-test="filtro-area-${area}"]`).click();
+  await expect(page.locator('[data-test="atomo"]')).toBeVisible();
+}
+
+/** La hoja del filtro es una superposición: assertSinScroll mira la vista de DEBAJO, esto mira la hoja. */
+async function assertHojaSinScroll(page) {
+  const medidas = await page.locator('[data-test="hoja-filtro"]').evaluate((h) => ({ alto: h.scrollHeight, visible: h.clientHeight }));
+  expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
+}
+
 /** La tarjeta visible del mazo ahora mismo (spec v0.1c: solo la actual/-
  * -actual- puede tocarse; anterior y siguiente están fuera de vista aunque
  * sigan en el DOM). Único punto de entrada para localizar controles: con el
@@ -478,8 +496,8 @@ test.describe('ONE · integración e2e', () => {
     await expect(practicarEconomia).toBeVisible();
     await practicarEconomia.click();
 
-    await expect(page.locator('[data-test="modo-area"]')).toBeVisible();
-    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía');
     await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
 
     // 5. Primera pregunta de economía: confianza (con su etiqueta) visible antes
@@ -524,7 +542,7 @@ test.describe('ONE · integración e2e', () => {
     const finalEconomia = await recorrerRepasoHastaFinal(page);
     await finalEconomia.locator('[data-test="ir-inicio"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(page.locator('[data-test="modo-area"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeHidden();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
     await expect(page.locator('[data-test="nota-economia"]')).not.toHaveText('—');
     await expect(page.locator('[data-test="pendientes"]')).toHaveText('Pendientes · 1');
@@ -536,7 +554,7 @@ test.describe('ONE · integración e2e', () => {
     // fallos ("Para repasar" vacío) y Pendientes de vuelta a 0.
     const chipPendientes = page.locator('[data-test="pendientes"]');
     await chipPendientes.click();
-    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Pendientes');
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Repaso');
     const tarjeta3 = tarjetaActual(page);
     await expect(tarjeta3.locator('[data-test="confianza"]')).toBeVisible();
     await responderPreguntaActual(page, sospechosoPorTitulo);
@@ -1042,7 +1060,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-vista="pregunta"]')).toBeHidden();
     await expect(page.locator('[data-test="aviso-hub"]')).toBeVisible();
     await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Nada que jugar con este filtro');
-    await expect(page.locator('[data-test="modo-area"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeHidden();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
     await assertSinScroll(page);
   });
@@ -2194,11 +2212,12 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
   // a 375×667 SÍ necesita el paso (h) (confirmado arriba, en el barrido); a 430×932 no hace falta
   // ninguno de los pasos de la cascada revelada (medido en vivo: la lista de clases `tarjeta--*` de
   // la tarjeta queda vacía del todo), así que sirve para demostrar la limpieza sin necesitar un
-  // viewport más alto todavía.
-  test('tarjeta--espaciado-minimo (paso h) se limpia al reajustar: cie-008 la lleva a 375×667 y deja de llevarla al pasar a 430×932, sin desbordar', async ({
+  // viewport más alto todavía. v0.3: 655 de alto en vez de 667 -- la cabecera de modo (chip, sin la
+  // tercera línea "Solo ...") es ~16px más baja y a 667 cie-008 ya no necesita el paso (h).
+  test('tarjeta--espaciado-minimo (paso h) se limpia al reajustar: cie-008 la lleva a 375×655 y deja de llevarla al pasar a 430×932, sin desbordar', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
+    await page.setViewportSize({ width: 375, height: 655 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
@@ -2635,7 +2654,7 @@ test.describe('ONE · repaso v0.2a', () => {
     await comprobarSinSolape();
   });
 
-  test('HUB → Repaso infinito (v0.2a.1 §7): respondidas primero, luego sin responder, filtro por área en ambos tramos, sin tarjeta de cierre', async ({
+  test('HUB → Repaso infinito (v0.2a.1 §7): respondidas primero, luego sin responder, sin tarjeta de cierre', async ({
     page,
   }) => {
     // `?ejemplo=1` (banco de 12 preguntas, contenido conocido) en vez del real
@@ -2676,15 +2695,11 @@ test.describe('ONE · repaso v0.2a', () => {
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
 
-    // I2 (revisión final, accesibilidad): la fila es un grupo con etiqueta, y
-    // el chip activo ("Todas" por defecto) lo anuncia con aria-pressed.
-    const filtroRepaso = page.locator('[data-test="repaso-filtro"]');
-    await expect(filtroRepaso).toHaveAttribute('role', 'group');
-    await expect(filtroRepaso).toHaveAttribute('aria-label', 'Filtrar por área');
-    const chipTodas = filtroRepaso.locator('[data-area="todas"]');
-    await expect(chipTodas).toHaveAttribute('aria-pressed', 'true');
 
-    // Tramo 1, sin filtrar: fallada, frágil, acertada -- mismo orden que
+    // El feed de lectura no es un modo: sin chip de filtro.
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeHidden();
+
+    // Tramo 1: fallada, frágil, acertada -- mismo orden que
     // siempre (ordenarRepaso no cambia).
     let actual = tarjetaActual(page);
     await expect(actual).toHaveAttribute('data-test', 'repaso-tarjeta');
@@ -2732,84 +2747,6 @@ test.describe('ONE · repaso v0.2a', () => {
 
     // Ninguna tarjeta de cierre en toda la vista: el mazo es "sin fin" de verdad.
     await expect(page.locator('[data-test="repaso-cierre"]')).toHaveCount(0);
-
-    // Filtro por "ciencia" (área de la fallada): tramo 1 = solo ella; tramo 2
-    // = cie-001 (nivel 1), cie-002 (nivel 2) y la sintética con visual (nivel
-    // 3) -- 4 tarjetas por vuelta. "filtro por área respeta ambos tramos".
-    const chipCiencia = filtroRepaso.locator('[data-area="ciencia"]');
-    await chipCiencia.click();
-    await esperarAsentamientoMazo(page);
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-    await expect(chipCiencia).toHaveClass(/repaso-chip--activa/);
-    await expect(chipCiencia).toHaveAttribute('aria-pressed', 'true');
-    await expect(chipTodas).toHaveAttribute('aria-pressed', 'false');
-
-    actual = tarjetaActual(page);
-    await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
-    await expect(actual.locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
-
-    // El número de nodos que respaldan el mazo (`repasoNodos` en app.js) no
-    // crece sin límite: mazo.js ya limita a máximo 3 los ADJUNTOS al DOM en
-    // cada momento pase lo que pase (ver render() en mazo.js), así que contar
-    // ".tarjeta" en el documento no distinguiría un recorte de vueltas
-    // correcto de uno roto -- lo que sí puede crecer sin límite es este array
-    // (window.__one.repasoNodosLength(), expuesto solo con ?test=1), acotado
-    // a ~2 vueltas (spec: "no supera 2×N+1", N = 4 con este filtro).
-    const N = 4;
-    for (let i = 0; i < N; i += 1) {
-      const longitud = await page.evaluate(() => window.__one.repasoNodosLength());
-      expect(longitud, `paso ${i} del filtro ciencia`).toBeLessThanOrEqual(2 * N + 1);
-      await page.keyboard.press('ArrowUp');
-      await esperarAsentamientoMazo(page);
-      await assertSinScroll(page);
-      await assertTarjetaSinScroll(page);
-    }
-    // Tras exactamente N (4) ArrowUp desde la fallada -- cie-001, cie-002, la
-    // sintética con visual y de vuelta a la fallada --: "la vuelta 2 empieza
-    // por la primera respondida". En este mismo paso se retiró la vuelta 1
-    // entera (el colchón bajó a ≤ 3 justo aquí, ver mantenerVueltasRepaso):
-    // el array sigue acotado.
-    expect(await page.evaluate(() => window.__one.repasoNodosLength())).toBeLessThanOrEqual(2 * N + 1);
-    await expect(tarjetaActual(page).locator('.repaso-marca')).toHaveText('✗ fallada · hoy');
-
-    // La vuelta 1 (con los nodos que se acaban de recorrer) ya se retiró: se
-    // recorre la vuelta 2 -- mismo contenido, nodos nuevos -- hasta la
-    // sintética con visual, para comprobar también su encaje sin scroll.
-    await page.keyboard.press('ArrowUp'); // cie-001 (vuelta 2)
-    await esperarAsentamientoMazo(page);
-    await page.keyboard.press('ArrowUp'); // cie-002 (vuelta 2)
-    await esperarAsentamientoMazo(page);
-    await page.keyboard.press('ArrowUp'); // sintética con visual (vuelta 2)
-    await esperarAsentamientoMazo(page);
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-    actual = tarjetaActual(page);
-    await expect(actual.locator('[data-test="visual"]')).toBeVisible();
-    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
-
-    // Filtro por "historia" (área de la frágil): tramo 2 incluye his-001, que
-    // trae imagen REAL del banco de ejemplo (datos/imagenes.ejemplo.json) --
-    // la comprobación de "no respondida con imagen" pedida por la spec.
-    const chipHistoria = filtroRepaso.locator('[data-area="historia"]');
-    await chipHistoria.click();
-    await esperarAsentamientoMazo(page);
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-    await expect(chipHistoria).toHaveClass(/repaso-chip--activa/);
-    actual = tarjetaActual(page);
-    await expect(actual.locator('.repaso-marca')).toHaveText('✓ frágil · hoy');
-
-    await page.keyboard.press('ArrowUp'); // his-001: sin responder, con imagen real de ejemplo.
-    await esperarAsentamientoMazo(page);
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-    actual = tarjetaActual(page);
-    await expect(actual).toHaveClass(/tarjeta--neutra/);
-    await expect(actual.locator('[data-test="repaso-marca-nueva"]')).toHaveText('· sin responder');
-    await expect(actual.locator('[data-test="imagen"]')).toBeVisible();
-
-    await page.screenshot({ path: `${CAPTURAS}/v0.2a-repaso-filtro-375.png` });
 
     // Salir: solo con "←" (cabecera), directo al HUB.
     await page.locator('[data-test="volver"]').click();
@@ -2931,45 +2868,6 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
   });
 
-  // Ronda final de revisión (I1): la ronda 1 usaba un ::after position:absolute
-  // DENTRO del propio contenedor con scroll, que viajaba con los chips en vez
-  // de quedarse fijo sobre el borde. Sustituido por mask-image sobre la
-  // propia fila (estilos.css, .repaso-filtro), que se quita con la clase
-  // repaso-filtro--final -- este test comprueba la máscara, no un ::after.
-  test('Repaso: el degradado (mask-image) de la fila de chips avisa de que hay más a la derecha, y se apaga al llegar al final', async ({
-    page,
-  }) => {
-    await page.goto('/?test=1');
-    await prepararYJugar(page);
-
-    await page.locator('[data-test="repaso-hub"]').click();
-    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
-    await esperarAsentamientoMazo(page);
-
-    /** mask-image / -webkit-mask-image, lo que el navegador exponga (Chromium
-     * soporta ambas formas; se lee cualquiera de las dos por robustez). */
-    const leerMask = (el) => {
-      const estilo = getComputedStyle(el);
-      const prefijada = estilo.getPropertyValue('-webkit-mask-image');
-      const estandar = estilo.getPropertyValue('mask-image');
-      return prefijada && prefijada !== 'none' ? prefijada : estandar;
-    };
-
-    const filtro = page.locator('[data-test="repaso-filtro"]');
-    // Al cargar (9 chips no caben a 375px): sin la clase que quita la
-    // máscara, y la propia máscara realmente aplicada (no 'none').
-    await expect(filtro).not.toHaveClass(/repaso-filtro--final/);
-    expect(await filtro.evaluate(leerMask)).not.toBe('none');
-
-    // Desplazada hasta el final -> aparece repaso-filtro--final y la máscara
-    // se quita (ya no hay "más a la derecha" que avisar).
-    await filtro.evaluate((el) => {
-      el.scrollLeft = el.scrollWidth;
-      el.dispatchEvent(new Event('scroll'));
-    });
-    await expect(filtro).toHaveClass(/repaso-filtro--final/);
-    expect(await filtro.evaluate(leerMask)).toBe('none');
-  });
 
   // Adaptado de v0.2a (Carlos, 14-sep 16:00: "quiero que me permita todas y
   // construir hacia que sea infinito igual que las preguntas"): antes, sin
@@ -3605,7 +3503,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.waitForTimeout(650); // > 500ms del umbral de pulsación larga
     await page.mouse.up();
 
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
     // El click que el navegador dispara tras soltar NO debe haber lanzado la partida del área.
     await expect(page.locator('[data-vista="pregunta"]')).toBeHidden();
     await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía');
@@ -3615,9 +3513,9 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-test="atomo-generar"]')).toBeDisabled();
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(0);
 
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
   });
 
   test('v0.2b4 §4: el botón del área muestra "+" con su aria-label, y el toque sigue siendo de 44 px', async ({ page }) => {
@@ -3634,9 +3532,9 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     });
     expect(toque).toBeGreaterThanOrEqual(44);
     await boton.click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
     // Extra (hallazgo Minor diferido): sin-scroll también aquí, como en el resto de la suite.
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
   });
 
   test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
@@ -3655,16 +3553,16 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Botón "⚛" (descubrible, sin depender del temporizador de la pulsación larga): stopPropagation
     // evita que también se lance la partida del área (ver app.js#renderHub).
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
     await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2b2-atomo-375.png` });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
 
     // Ronda 1 de revisión (Minor #7): sin-scroll también a 393x852, no solo a 375x812.
     await page.setViewportSize({ width: 393, height: 852 });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 375, height: 812 });
 
     await page.locator('[data-test="atomo-nodo"]').first().click();
@@ -3711,7 +3609,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
     await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
 
     // Dos toques "a la vez" DE VERDAD: dos `.click()` nativos en el MISMO tick de JS. Dos
@@ -4295,7 +4193,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // que se lee, sobre todo aquí: el texto visible va partido en <tspan>, y el nombre accesible es
     // lo único que suena entero.
     await expect(mas).toHaveAttribute('aria-label', 'Regenerar temas');
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
   });
 
   /** Servidor falso para el caso "iOS recarga la PWA a mitad de tanda" (spec v0.2b4 §1): el mismo
@@ -4475,7 +4373,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
     await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
     await page.screenshot({ path: `${CAPTURAS}/v0.2b4-atomo-regenerar-375.png` });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
   });
 });
 
@@ -4587,14 +4485,14 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4); // página 1 del anillo 1
     await expect(page.locator('[data-test="atomo-mas"]')).toBeVisible();
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2b3-atomo-mas-375.png` });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 375, height: 812 });
 
     // "Más…" en el anillo 1: pide la página 2 (finanzas) con excluir = los 4 completos de la página 1.
@@ -4635,9 +4533,9 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText(rutaAntesDelTope);
     await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled(); // "Generar sigue disponible"
 
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
   });
 
   test('"Más…" agotado: "No hay más por ahora" 2s y vuelve a "Más…"', async ({ page }) => {
@@ -4731,7 +4629,7 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await expect(page.locator('[data-test="atomo-mas-error"]')).toBeHidden({ timeout: 3000 });
   });
 
-  test('anillo cargando: nodos de espera, fila "atomo-mientras" y un toque durante la carga no cambia la ruta', async ({
+  test('anillo cargando: nodos de espera y un toque durante la carga no cambia la ruta', async ({
     page,
   }) => {
     // Determinismo de la captura de más abajo (mismo motivo que el test anterior): sin esto, el
@@ -4786,7 +4684,6 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
-    await expect(page.locator('[data-test="atomo-mientras"]')).toBeHidden(); // anillo 1 ya listo
 
     await page.locator('[data-test="atomo-nodo"]').first().click(); // dispara la carga retrasada 3s
 
@@ -4794,117 +4691,23 @@ test.describe('ONE · Átomo v0.2b3 Tarea 3 (nodo "Más…", 6 anillos, dinámic
     await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados', { timeout: 500 });
     await expect(page.locator('[data-test="atomo-esperando"]')).toHaveCount(6, { timeout: 500 });
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(0, { timeout: 500 });
-    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible({ timeout: 500 });
 
     await page.screenshot({ path: `${CAPTURAS}/v0.2b3-atomo-esperando-375.png` });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
-    await assertSinScroll(page);
+    await assertHojaSinScroll(page);
     await page.setViewportSize({ width: 375, height: 812 });
 
     // Un toque sobre un nodo de espera no hace nada: la ruta sigue igual.
     await page.locator('[data-test="atomo-esperando"]').first().click({ force: true });
     await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Economía › Mercados');
 
-    // Resuelve el retraso: llegan los subtemas reales y la fila "mientras" desaparece.
+    // Resuelve el retraso: llegan los subtemas reales.
     resolverRetraso();
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(2);
     await expect(page.locator('[data-test="atomo-esperando"]')).toHaveCount(0);
-    await expect(page.locator('[data-test="atomo-mientras"]')).toBeHidden();
   });
 
-  test('"Jugar el área" de la fila "atomo-mientras" arranca una partida del área mientras el anillo carga', async ({
-    page,
-  }) => {
-    let resolverRetraso;
-    const retraso = new Promise((resolve) => {
-      resolverRetraso = resolve;
-    });
-    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
-      const req = route.request();
-      if (req.method() === 'OPTIONS') {
-        await route.fulfill({ status: 204, headers: CORS });
-        return;
-      }
-      const url = new URL(req.url());
-      if (url.pathname === '/estado') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: CORS,
-          body: '{"preguntas":[],"enCola":0}',
-        });
-        return;
-      }
-      if (url.pathname === '/subtemas') {
-        await retraso; // el anillo 1 mismo llega retrasado: basta para probar "mientras carga".
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: CORS,
-          body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
-        });
-        return;
-      }
-      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
-    });
-
-    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
-    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible();
-
-    await page.locator('[data-test="atomo-mientras-jugar"]').click();
-    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
-    await expect(page.locator('[data-test="modo-area"]')).toHaveText('Solo Economía');
-
-    resolverRetraso(); // deja la petición pendiente resolver para no dejar un handle colgado
-  });
-
-  test('"Repasar" de la fila "atomo-mientras" abre la pantalla de repaso mientras el anillo carga', async ({
-    page,
-  }) => {
-    let resolverRetraso;
-    const retraso = new Promise((resolve) => {
-      resolverRetraso = resolve;
-    });
-    await page.route(`${URL_SERVIDOR}/**`, async (route) => {
-      const req = route.request();
-      if (req.method() === 'OPTIONS') {
-        await route.fulfill({ status: 204, headers: CORS });
-        return;
-      }
-      const url = new URL(req.url());
-      if (url.pathname === '/estado') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: CORS,
-          body: '{"preguntas":[],"enCola":0}',
-        });
-        return;
-      }
-      if (url.pathname === '/subtemas') {
-        await retraso;
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          headers: CORS,
-          body: JSON.stringify({ subtemas: PAGINA1_ANILLO1 }),
-        });
-        return;
-      }
-      await route.fulfill({ status: 404, headers: CORS, body: '{}' });
-    });
-
-    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
-    await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-test="atomo-mientras"]')).toBeVisible();
-
-    await page.locator('[data-test="atomo-mientras-repasar"]').click();
-    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
-
-    resolverRetraso(); // deja la petición pendiente resolver para no dejar un handle colgado
-  });
 });
 
 // Tarea 4 del plan v0.2b3-atomo-amplio-gemini ("Conectar desde la app instalada"): en iOS la app
@@ -4984,7 +4787,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
 
     // Sin servidor: punto gris, aviso y ayuda de conectar (Tarea 4).
     await expect(page.locator('[data-test="atomo-estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
@@ -5019,7 +4822,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     // El anillo se recarga con la configuración recién guardada: ya no "sin servidor".
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(1);
     await expect(page.locator('[data-test="atomo-ayuda"]')).toHaveText(
-      'Mantén pulsada un área del HUB para abrir su átomo'
+      'Toca un tema para concretar; «Elegir» fija el filtro'
     );
 
     // El "Conectado" desaparece solo, a los 2s (mismo mecanismo que mostrarAvisoHub/mostrarAvisoCuerpo).
@@ -5096,7 +4899,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await page.goto('/?test=1');
     await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
 
     const punto = page.locator('[data-test="atomo-estado-servidor"]');
     await expect(punto).toHaveAttribute('aria-label', /sin conectar/i);
@@ -5125,7 +4928,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await page.goto('/?test=1');
     await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="practicar-economia"] [data-test="atomo-abrir"]').click();
-    await expect(page.locator('[data-vista="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
 
     // Segundo disparador: tocar el propio aviso "Conecta el servidor..." (no solo el punto).
     await expect(page.locator('[data-test="conectar"]')).toBeHidden();
@@ -6885,5 +6688,65 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await expect(page.locator('[data-test="visual-completa"]')).toBeVisible();
     await page.screenshot({ path: `${CAPTURAS}/v0.2a2.1-texto-completo-375.png` });
     await page.keyboard.press('Escape');
+  });
+});
+
+test.describe('ONE · v0.3 hoja del filtro', () => {
+  test('el chip abre la hoja, Ciencia → átomo (sin servidor) → Elegir: la partida es solo de Ciencia; sin scroll a 375×812 y 375×667', async ({ page }) => {
+    // Banco real (35 de ciencia): con el de ejemplo (2) la Tarea 7 mandaría al aviso de "menos de 5".
+    await page.goto('/?test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    const chip = page.locator('[data-test="chip-filtro"]');
+    await expect(chip).toHaveText('TODOS');
+
+    await abrirHojaFiltro(page);
+    await expect(page.locator('[data-test="filtro-todos"]')).toHaveAttribute('aria-pressed', 'true');
+    await assertHojaSinScroll(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await assertHojaSinScroll(page);
+
+    await page.locator('[data-test="filtro-area-ciencia"]').click();
+    await expect(page.locator('[data-test="atomo"]')).toBeVisible();
+    await expect(page.locator('[data-test="atomo-ruta"]')).toHaveText('Ciencia');
+    await assertHojaSinScroll(page);
+    await page.locator('[data-test="filtro-elegir"]').click();
+
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(chip).toHaveText('Ciencia');
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Ciencia');
+    await assertSinScroll(page);
+  });
+
+  test('cerrar (✕ o Escape) no cambia el filtro ni abandona la partida; el foco vuelve al chip', async ({ page }) => {
+    await page.goto('/?ejemplo=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await abrirHojaFiltro(page);
+    await page.locator('[data-test="filtro-cerrar"]').click();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeFocused();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await abrirHojaFiltro(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('chip con etiqueta larga: se recorta con … sin encoger la letra ni salirse de la pantalla', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    const ids = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()).then((b) => b.slice(0, 2).map((p) => p.id)));
+    await page.evaluate((lista) => window.__one.empezarPartida({ ids: lista, etiqueta: 'Civilizaciones mesoamericanas precolombinas y su legado' }), ids);
+    const chip = page.locator('[data-test="chip-filtro"]');
+    await expect(chip).toHaveText('Civilizaciones mesoamericanas precolombinas y su legado');
+    const medidas = await chip.evaluate((n) => ({
+      fuente: getComputedStyle(n).fontSize, recortado: n.scrollWidth > n.clientWidth, derecha: n.getBoundingClientRect().right,
+    }));
+    expect(medidas.fuente).toBe('14px');
+    expect(medidas.recortado).toBe(true);
+    expect(medidas.derecha).toBeLessThanOrEqual(375);
+    await assertSinScroll(page);
   });
 });

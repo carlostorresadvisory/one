@@ -32,6 +32,11 @@ import {
   consultarTrabajo,
 } from './sincronizacion.js';
 import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
+import {
+  FILTRO_TODOS, filtroDeModo, guardarFiltroDeModo, etiquetaFiltro, esTodos, filtroParaPartida,
+  filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas,
+} from './filtro.js';
+import { modoPorId } from './modos.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -142,27 +147,6 @@ let mazoRepasoControlador = null;
 // retiran las más antiguas ya recorridas del todo, máximo ~2 vueltas).
 let repasoHuecos = [];
 let repasoVueltaTamanos = [];
-// Filtro de área activo del repaso del HUB: 'todas' o una de AREAS. Se
-// recuerda en sessionStorage (spec v0.2 §2: "se recuerda en sessionStorage",
-// no localStorage — vuelve dentro de la sesión, no entre sesiones).
-const CLAVE_FILTRO_REPASO = 'one.repasoFiltro';
-function cargarFiltroRepaso() {
-  try {
-    const guardado = sessionStorage.getItem(CLAVE_FILTRO_REPASO);
-    if (guardado === 'todas' || AREAS.includes(guardado)) return guardado;
-  } catch (err) {
-    // sessionStorage no disponible (modo privado, cuota...): por defecto "todas".
-  }
-  return 'todas';
-}
-function guardarFiltroRepaso(valor) {
-  try {
-    sessionStorage.setItem(CLAVE_FILTRO_REPASO, valor);
-  } catch (err) {
-    // No persiste entre pantallas de la sesión, pero la app sigue funcionando.
-  }
-}
-let filtroRepaso = cargarFiltroRepaso();
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
 // desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
@@ -234,11 +218,21 @@ const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 // Ronda de corrección 1 del indicador de tanda (Plan B, segunda fila bajo la cabecera): su borde
 // inferior real es lo que mide `posicionarIndicadorTanda` para no solaparla.
 const nodoCabecera = document.querySelector('.cabecera');
+const nodoLogo = document.querySelector('.cabecera-logo');
+const nodoChipFiltro = document.querySelector('[data-test="chip-filtro"]');
+const nodoHojaFiltro = document.querySelector('[data-test="hoja-filtro"]');
+const nodoFiltroAreas = document.querySelector('[data-test="filtro-areas"]');
+const nodoFiltroAtomo = document.querySelector('[data-test="atomo"]');
+const nodoFiltroElegir = document.querySelector('[data-test="filtro-elegir"]');
+// v0.3: modo en juego ('clasico' | 'repaso'; las fases 3-7 añaden los suyos). Decide qué filtro
+// guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
+let modoActual = 'clasico';
+// El feed de lectura (vista `repaso`) NO es un modo: es la continuación del resumen, sin chip.
+const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto'];
 // `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
 const nodoContenidoApp = document.querySelector('main#app');
 const nodoVolver = document.querySelector('[data-test="volver"]');
-const nodoModoArea = document.querySelector('[data-test="modo-area"]');
 const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
 const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Aviso breve del HUB (M1): "Nada que jugar con este filtro" cuando un filtro
@@ -273,9 +267,6 @@ const nodoAtomoAtras = document.querySelector('[data-test="atomo-atras"]');
 const nodoAtomoGenerar = document.querySelector('[data-test="atomo-generar"]');
 const nodoAtomoRutaCompleta = document.querySelector('[data-test="atomo-ruta-completa"]');
 const nodoAtomoAyuda = document.querySelector('[data-test="atomo-ayuda"]');
-// Fila "mientras" (v0.2b3 Tarea 3): "Jugar el área"/"Repasar" visibles mientras el anillo carga,
-// mientras se genera una tanda en segundo plano, o si el anillo falló al cargar.
-const nodoAtomoMientras = document.querySelector('[data-test="atomo-mientras"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
@@ -298,7 +289,6 @@ const contenedorMazo = document.getElementById('mazo');
 const barraProgresoRelleno = document.getElementById('barra-progreso-relleno');
 const contenedorMazoResumen = document.getElementById('mazo-resumen');
 const contenedorMazoRepaso = document.getElementById('mazo-repaso');
-const contenedorFiltroRepaso = document.querySelector('[data-test="repaso-filtro"]');
 const progresoAreas = document.getElementById('progreso-areas');
 const importarArchivo = document.getElementById('importar-archivo');
 const plantillaConfianza = document.getElementById('plantilla-confianza');
@@ -317,6 +307,7 @@ function mostrarVista(nombre) {
   });
   // La flecha "←" vuelve a inicio: no tiene sentido mostrarla ya en inicio.
   nodoVolver.hidden = nombre === 'inicio';
+  actualizarCabecera();
 }
 
 /** Primera letra en mayúscula (para nombres de área en textos). */
@@ -436,20 +427,27 @@ function actualizarCabecera() {
   // Espejos "en grande" en inicio: mismo dato, misma fuente de verdad.
   nodoRachaInicio.textContent = textoRacha;
   nodoNivelInicio.textContent = textoNivel;
-  if (filtroPartida && filtroPartida.area) {
-    nodoModoArea.hidden = false;
-    nodoModoArea.textContent = `Solo ${nombreArea(filtroPartida.area)}`;
-  } else if (filtroPartida && filtroPartida.etiqueta) {
-    // Misión de hoy / Pendientes: partidas filtradas por lista de ids concreta.
-    nodoModoArea.hidden = false;
-    nodoModoArea.textContent = filtroPartida.etiqueta;
-  } else {
-    nodoModoArea.hidden = true;
-  }
+  const enModo = VISTAS_DE_MODO.includes(vistaActual());
+  nodoCabecera.classList.toggle('cabecera--modo', enModo);
+  nodoLogo.hidden = enModo;
+  nodoChipFiltro.hidden = !enModo;
+  if (enModo) pintarChip(nodoChipFiltro, textoChipFiltro());
   // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
   // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
   // tanda ya está visible, se reposiciona para seguir pegado justo debajo.
   posicionarIndicadorTanda();
+}
+
+/** Texto del chip: en partida/resumen manda el filtro con el que se arrancó (incluye "Repaso",
+ * "Nuevas" o el `corto` de una tanda); en el aviso de pocos elementos, el filtro guardado del modo. */
+function textoChipFiltro() {
+  const vista = vistaActual();
+  if (vista === 'pregunta' || vista === 'resumen') {
+    if (!filtroPartida) return 'TODOS';
+    if (filtroPartida.etiqueta) return filtroPartida.etiqueta;
+    return filtroPartida.area ? nombreArea(filtroPartida.area) : 'Selección';
+  }
+  return etiquetaFiltro(filtroDeModo(modoActual), nombreArea);
 }
 
 function vistaActual() {
@@ -482,6 +480,7 @@ function limpiarRepasoMazo() {
  * guardadas: Leitner/nivel se aplican una a una; la racha solo se actualiza al
  * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
 function limpiarPartidaEnCurso() {
+  cerrarHojaFiltro();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -587,7 +586,7 @@ const ETIQUETA_ESTADO_SERVIDOR = {
 
 // Tarea 4 (v0.2b3, "Conectar desde la app instalada"): textos de `.atomo-ayuda`, la pista fija
 // que vive bajo la ruta completa del Átomo (ver actualizarAyudaAtomo).
-const TEXTO_AYUDA_ATOMO_DEFECTO = 'Mantén pulsada un área del HUB para abrir su átomo';
+const TEXTO_AYUDA_ATOMO_DEFECTO = 'Toca un tema para concretar; «Elegir» fija el filtro';
 const TEXTO_AYUDA_ATOMO_SIN_SERVIDOR = 'Conecta el servidor (toca el punto de la cabecera)';
 
 /** `.atomo-ayuda` (Tarea 4): sin servidor configurado, pasa a explicar cómo conectar uno en vez
@@ -848,13 +847,6 @@ function mostrarCargandoAtomo() {
   nodoAtomoReintentar.hidden = true;
 }
 
-/** Fila `atomo-mientras` ("Jugar el área"/"Repasar"): visible mientras el anillo carga, mientras
- * falló, o mientras una tanda se genera en segundo plano (incluso si el jugador reabrió el átomo
- * de OTRA área entre tanto) -- oculta solo cuando no hay nada de eso en vuelo (brief). */
-function actualizarFilaMientras() {
-  nodoAtomoMientras.hidden = !(atomoCargando || atomoFallo || Boolean(atomoTrabajoId));
-}
-
 /** Clave de `atomoMostrados` para el anillo vigente. */
 function claveAnilloAtomo() {
   return JSON.stringify(atomoEstado.ruta);
@@ -867,7 +859,6 @@ function empezarCargaAtomo() {
   atomoCargando = true;
   atomoFallo = false;
   mostrarCargandoAtomo();
-  actualizarFilaMientras();
   clearTimeout(atomoAvisoLentoId);
   atomoAvisoLentoId = setTimeout(() => {
     if (!atomoCargando) return; // ya resolvió o se canceló (Atrás) antes de los 20s
@@ -881,7 +872,6 @@ function terminarCargaAtomo() {
   atomoCargando = false;
   clearTimeout(atomoAvisoLentoId);
   atomoAvisoLentoId = null;
-  actualizarFilaMientras();
 }
 
 /** "Máximo detalle: toca Generar" (brief, tope de 6 anillos): elemento propio con
@@ -948,7 +938,6 @@ async function cargarAnilloAtomo() {
   if (!configuracion) {
     terminarCargaAtomo();
     atomoFallo = false;
-    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('Conecta el servidor para generar preguntas nuevas');
     return;
@@ -964,7 +953,6 @@ async function cargarAnilloAtomo() {
   terminarCargaAtomo();
   if (subtemas === null) {
     atomoFallo = true;
-    actualizarFilaMientras();
     atomoInstancia.actualizar([], nucleoAtomoTexto());
     mostrarAvisoAtomo('No se pudieron cargar los subtemas', { reintentar: true });
     return;
@@ -1052,7 +1040,11 @@ function manejarElegirSubtemaAtomo(subtema) {
  * de su propia caché en memoria si ya se había visitado. */
 function manejarAtomoAtras() {
   const nuevoEstado = retroceder(atomoEstado);
-  if (nuevoEstado === atomoEstado) return; // ya en el anillo 1, nada que hacer
+  if (nuevoEstado === atomoEstado) {
+    // Anillo 1: dentro de la hoja del filtro, Atrás vuelve a la lista de áreas.
+    mostrarNivelAreasFiltro();
+    return;
+  }
   atomoPeticionId += 1; // invalida la petición vigente (si la había) antes de cambiar de ruta
   terminarCargaAtomo();
   atomoEstado = nuevoEstado;
@@ -1060,8 +1052,92 @@ function manejarAtomoAtras() {
   cargarAnilloAtomo();
 }
 
+let nodoHojaFiltroDisparador = null;
+
+function abrirHojaFiltro() {
+  if (!nodoHojaFiltro.hidden) return;
+  nodoHojaFiltroDisparador = document.activeElement;
+  mostrarNivelAreasFiltro();
+  nodoHojaFiltro.hidden = false;
+  nodoContenidoApp.inert = true;
+  const primero = nodoFiltroAreas.querySelector('button');
+  if (primero) primero.focus();
+}
+
+function mostrarNivelAreasFiltro() {
+  limpiarAtomo();
+  nodoFiltroAtomo.hidden = true;
+  nodoFiltroAreas.hidden = false;
+  nodoFiltroAreas.innerHTML = '';
+  nodoFiltroAreas.appendChild(
+    construirListaAreas({
+      areas: AREAS,
+      nombreArea,
+      emojiArea: (a) => EMOJI_AREA[a] || '❔',
+      filtroActual: filtroDeModo(modoActual),
+      alElegir: manejarElegirAreaFiltro,
+    })
+  );
+}
+
+function manejarElegirAreaFiltro(area) {
+  if (area === null) {
+    aplicarFiltro(FILTRO_TODOS);
+    return;
+  }
+  const modo = modoPorId(modoActual);
+  if (modo && modo.nivelFiltro === 'area') {
+    aplicarFiltro({ area, ruta: [], etiquetas: [] });
+    return;
+  }
+  abrirAtomo(area);
+}
+
+function cerrarHojaFiltro() {
+  if (nodoHojaFiltro.hidden) return;
+  limpiarAtomo();
+  nodoHojaFiltro.hidden = true;
+  nodoContenidoApp.inert = false;
+  const disparador = nodoHojaFiltroDisparador;
+  nodoHojaFiltroDisparador = null;
+  if (disparador && document.contains(disparador) && !disparador.hidden) disparador.focus();
+}
+
+function manejarElegirFiltro() {
+  if (!atomoEstado) return;
+  aplicarFiltro({ area: atomoEstado.area, ruta: atomoEstado.ruta, etiquetas: atomoEstado.etiquetas });
+}
+
+/** Guarda el filtro del modo en juego, cierra la hoja y relanza el modo con él (spec §4). */
+function aplicarFiltro(filtro) {
+  guardarFiltroDeModo(modoActual, filtro);
+  cerrarHojaFiltro();
+  arrancarModo(modoActual);
+}
+
+/** Punto único de arranque de un modo con su filtro guardado (la Tarea 7 añade el aviso de < 5).
+ * Repaso = partida de las falladas sin recuperar (decisión de Carlos, 5-oct): qué entra lo decide
+ * `filtro.js#filtroParaRepaso` (puro, con test); aquí solo se enruta. */
+function arrancarModo(id) {
+  modoActual = id;
+  if (id === 'repaso') {
+    const partida = filtroParaRepaso(pendientes(estado, banco), filtroDeModo('repaso'), leerIndiceRutas(), estado.reportadas, nombreArea);
+    if (!partida) {
+      irAlHub();
+      mostrarAvisoHub('Nada por repasar');
+      return;
+    }
+    empezarPartida(partida, 'repaso');
+    return;
+  }
+  empezarPartida(filtroParaPartida(filtroDeModo('clasico'), banco, leerIndiceRutas(), estado, nombreArea), 'clasico');
+}
+
 /** Abre el Átomo del área `area` (mantener pulsada una tarjeta del HUB, o su botón "⚛"). */
 function abrirAtomo(area) {
+  if (nodoHojaFiltro.hidden) abrirHojaFiltro();
+  nodoFiltroAreas.hidden = true;
+  nodoFiltroAtomo.hidden = false;
   atomoEstado = crearEstadoAtomo(area);
   atomoMostrados = new Map();
   atomoFallo = false;
@@ -1074,8 +1150,8 @@ function abrirAtomo(area) {
     alVolver: manejarAtomoAtras,
     alMas: manejarMasAtomo,
   });
-  mostrarVista('atomo');
   cargarAnilloAtomo();
+  nodoFiltroElegir.focus();
 }
 
 /** Desmonta el Átomo (SVG + estado de ruta), sin tocar el trabajo/sondeo en curso si lo hubiera
@@ -1112,7 +1188,6 @@ function finalizarTrabajoAtomo() {
   atomoTandaPedidas = 0;
   atomoTandaSegPorPregunta = null;
   actualizarBotonGenerarAtomo();
-  actualizarFilaMientras(); // ya no hay tanda generándose: puede que la fila-mientras deba ocultarse
 }
 
 const PERIMETRO_ANILLO_TANDA = 2 * Math.PI * 15; // r=15 del viewBox 36x36 de index.html
@@ -1462,8 +1537,8 @@ async function manejarGenerarAtomo() {
   guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO });
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
-  actualizarFilaMientras(); // tanda generándose: si se reabre el átomo mientras tanto, se ve
   actualizarIndicadorTanda({ hechas: 0, pedidas: N_TANDA_ATOMO });
+  cerrarHojaFiltro();
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
 }
@@ -1626,7 +1701,8 @@ if (new URLSearchParams(location.search).get('test') === '1') {
  * - `{ ids, etiqueta }`: solo esos ids, en ese orden, sin relleno (Misión de hoy
  *   o Pendientes desde el hub); `etiqueta` es el texto que ve la cabecera.
  * Sin filtro, partida normal (todas las áreas). */
-function empezarPartida(filtro = null) {
+function empezarPartida(filtro = null, modo = 'clasico') {
+  modoActual = modo;
   if (filtro && filtro.area) {
     filtroPartida = { area: filtro.area };
   } else if (filtro && Array.isArray(filtro.ids)) {
@@ -3515,7 +3591,7 @@ function construirAccionesResumen() {
   otra.className = 'boton boton-principal';
   otra.dataset.test = 'otra-partida';
   otra.textContent = 'Otra partida';
-  otra.addEventListener('click', () => empezarPartida(filtroPartida));
+  otra.addEventListener('click', () => (modoActual === 'repaso' ? arrancarModo('repaso') : empezarPartida(filtroPartida)));
 
   const inicio = document.createElement('button');
   inicio.className = 'boton';
@@ -3758,74 +3834,10 @@ function construirMazoResumen(cifras) {
  * YA concatenado, así que respeta los dos tramos con el mismo criterio. Pura
  * en la práctica (no muta nada), aunque vive en app.js porque combina dos
  * funciones de motor.js con el `hoy()`/`banco`/`estado` de la sesión. */
-function construirFeedRepaso(estado, banco, hoy, filtro) {
+function construirFeedRepaso(estado, banco, hoy) {
   const respondidas = ordenarRepaso(estado, banco, hoy);
-  const sinResponder = listarNoRespondidas(estado, banco).map((pregunta) => ({
-    pregunta,
-    estadoRepaso: 'sinResponder',
-  }));
-  const listaCompleta = [...respondidas, ...sinResponder];
-  if (!filtro || filtro === 'todas') return listaCompleta;
-  return listaCompleta.filter((item) => item.pregunta.area === filtro);
-}
-
-/** Cuenta cuántas tarjetas de `lista` (ya la del feed completo, sin filtrar)
- * tiene cada área, para apagar en el filtro los chips sin nada que mostrar
- * (spec v0.2 §2: "un área sin tarjetas se muestra apagada"). */
-function contarRepasoPorArea(lista) {
-  const conteos = {};
-  for (const area of AREAS) conteos[area] = 0;
-  lista.forEach((item) => {
-    conteos[item.pregunta.area] = (conteos[item.pregunta.area] || 0) + 1;
-  });
-  return conteos;
-}
-
-/** Pinta la fila de chips "Todas" + las 8 áreas (spec v0.2 §2): un chip activo
- * a la vez (el de `filtroRepaso`, en cian), apagados los que no tengan
- * ninguna tarjeta en `listaCompleta`. Cambiar de chip guarda el filtro
- * (sessionStorage) y remonta el mazo desde la primera tarjeta (renderRepaso,
- * sin volver a disparar la animación de entrada de la vista). */
-function renderFiltroRepaso(listaCompleta) {
-  const conteos = contarRepasoPorArea(listaCompleta);
-  contenedorFiltroRepaso.innerHTML = '';
-  const opciones = [{ area: 'todas', nombre: 'Todas', total: listaCompleta.length }].concat(
-    AREAS.map((area) => ({ area, nombre: nombreArea(area), total: conteos[area] }))
-  );
-  opciones.forEach(({ area, nombre, total }) => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'repaso-chip';
-    chip.dataset.area = area;
-    chip.textContent = nombre;
-    chip.disabled = total === 0;
-    chip.classList.toggle('repaso-chip--activa', filtroRepaso === area);
-    // I2 (revisión final, accesibilidad): cada chip anuncia si es el activo,
-    // igual que ya hace confianza-opcion (aria-pressed) en la tarjeta.
-    chip.setAttribute('aria-pressed', String(filtroRepaso === area));
-    chip.addEventListener('click', () => {
-      if (chip.disabled || filtroRepaso === area) return;
-      filtroRepaso = area;
-      guardarFiltroRepaso(filtroRepaso);
-      renderRepaso();
-    });
-    contenedorFiltroRepaso.appendChild(chip);
-  });
-  actualizarFiltroRepasoFinal();
-}
-
-/** Ronda 1 de revisión (UX): la fila de chips no avisaba de que había más a la
- * derecha. `.repaso-filtro--final` apaga el degradado del borde derecho
- * (ver estilos.css) cuando la fila ya está desplazada hasta el final -- o
- * cuando ni siquiera hace falta scroll porque todo cabe (mismo cálculo:
- * `scrollWidth <= clientWidth` dispara la comparación igual que "ya al
- * final"). Se llama una vez al pintar los chips (renderFiltroRepaso) y en
- * cada evento 'scroll' de la fila (listener añadido una sola vez, más abajo,
- * junto al resto de listeners del fichero). */
-function actualizarFiltroRepasoFinal() {
-  const alFinal =
-    contenedorFiltroRepaso.scrollLeft + contenedorFiltroRepaso.clientWidth >= contenedorFiltroRepaso.scrollWidth - 1;
-  contenedorFiltroRepaso.classList.toggle('repaso-filtro--final', alFinal);
+  const sinResponder = listarNoRespondidas(estado, banco).map((pregunta) => ({ pregunta, estadoRepaso: 'sinResponder' }));
+  return [...respondidas, ...sinResponder];
 }
 
 /** El PREFIJO de `repasoHuecos` ya construido en nodos DOM, en orden (I1,
@@ -3853,7 +3865,7 @@ function listaMazoRepaso() {
  * posiciones por deslizamiento. */
 function asegurarRepasoConstruidoHasta(hastaIndice) {
   while (repasoHuecos.length <= hastaIndice) {
-    const lista = construirFeedRepaso(estado, banco, hoy(), filtroRepaso);
+    const lista = construirFeedRepaso(estado, banco, hoy());
     if (lista.length === 0) break; // defensivo: no debería darse con banco no vacío
     repasoVueltaTamanos.push(lista.length);
     lista.forEach((item, i) => repasoHuecos.push({ item, posicion: i, total: lista.length, nodo: null }));
@@ -3890,7 +3902,7 @@ function mantenerVueltasRepaso(indice) {
   let huboCambio = false;
 
   while (repasoHuecos.length - 1 - indiceRelativo <= 3) {
-    const lista = construirFeedRepaso(estado, banco, hoy(), filtroRepaso);
+    const lista = construirFeedRepaso(estado, banco, hoy());
     if (lista.length === 0) break; // defensivo: no debería darse con banco no vacío
     repasoVueltaTamanos.push(lista.length);
     lista.forEach((item, i) => repasoHuecos.push({ item, posicion: i, total: lista.length, nodo: null }));
@@ -3926,18 +3938,7 @@ function mantenerVueltasRepaso(indice) {
  * aplicar el filtro. */
 function renderRepaso() {
   limpiarRepasoMazo();
-  const listaCompleta = construirFeedRepaso(estado, banco, hoy(), null);
-  // El filtro guardado puede apuntar a un área que ya no tiene ninguna
-  // tarjeta en ninguno de los dos tramos (p. ej. se reportaron todas desde
-  // la última vez que se abrió el repaso): se cae a "todas" en vez de dejar
-  // la vista vacía en silencio.
-  if (filtroRepaso !== 'todas' && !listaCompleta.some((item) => item.pregunta.area === filtroRepaso)) {
-    filtroRepaso = 'todas';
-    guardarFiltroRepaso(filtroRepaso);
-  }
-  renderFiltroRepaso(listaCompleta);
-  const primeraLista =
-    filtroRepaso === 'todas' ? listaCompleta : listaCompleta.filter((item) => item.pregunta.area === filtroRepaso);
+  const primeraLista = construirFeedRepaso(estado, banco, hoy());
   repasoVueltaTamanos = [primeraLista.length];
   repasoHuecos = primeraLista.map((item, i) => ({ item, posicion: i, total: primeraLista.length, nodo: null }));
   contenedorMazoRepaso.innerHTML = '';
@@ -4358,13 +4359,6 @@ nodoVisualCompleta.addEventListener('keydown', (ev) => {
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
 document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
-// Fila "atomo-mientras" (v0.2b3 Tarea 3): misma idea, dentro de la propia vista del átomo mientras
-// el anillo carga/falla o una tanda se genera en segundo plano -- "Jugar el área" reutiliza la
-// misma función que el HUB al tocar una tarjeta de área (empezarPartida({area})).
-document.querySelector('[data-test="atomo-mientras-jugar"]').addEventListener('click', () => {
-  if (atomoEstado) empezarPartida({ area: atomoEstado.area });
-});
-document.querySelector('[data-test="atomo-mientras-repasar"]').addEventListener('click', () => abrirRepaso());
 // Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
 // "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).
 nodoAtomoEsperaResultado.addEventListener('click', () => {
@@ -4410,19 +4404,21 @@ nodoMision.addEventListener('click', () => {
 });
 nodoPendientes.addEventListener('click', () => {
   if (nodoPendientes.dataset.tocable !== 'true') return;
-  const ids = pendientes(estado, banco).slice(0, 5).map((p) => p.id);
-  if (ids.length === 0) return;
-  empezarPartida({ ids, etiqueta: 'Pendientes' });
+  arrancarModo('repaso');
 });
 // Repaso (spec v0.2 §2): feed "sin fin" de todo lo jugado, filtrable por área.
 nodoRepasoHub.addEventListener('click', () => {
   if (nodoRepasoHub.dataset.tocable !== 'true') return;
   abrirRepaso();
 });
-// Degradado de "hay más chips a la derecha" (ronda 1 de revisión): un solo
-// listener de scroll para toda la vida de la app (los chips se recrean en
-// cada renderFiltroRepaso, pero el contenedor .repaso-filtro nunca).
-contenedorFiltroRepaso.addEventListener('scroll', actualizarFiltroRepasoFinal);
+nodoChipFiltro.addEventListener('click', abrirHojaFiltro);
+document.querySelector('[data-test="filtro-cerrar"]').addEventListener('click', cerrarHojaFiltro);
+nodoFiltroElegir.addEventListener('click', manejarElegirFiltro);
+// Fase de captura: corre ANTES que el Escape de la hoja "Conectar" (que cuelga encima, z 20) y así
+// un Escape con "Conectar" abierta cierra solo esa, no las dos.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Escape' && !nodoHojaFiltro.hidden && nodoConectar.hidden) cerrarHojaFiltro();
+}, true);
 // "←" (cabecera): del HUB a inicio; de pregunta/resumen, siempre al HUB.
 // "Otra partida"/"Inicio" del resumen ya no son botones estáticos: viven
 // dentro del mazo de repaso (ver construirAccionesResumen).
