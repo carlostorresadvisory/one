@@ -79,7 +79,7 @@ export function guardarMochila(mochila, almacen) {
   }
 }
 
-/** Spec §5.1: terminar una tanda de 10 con ≥ 8 aciertos da 1 objeto. */
+/** Spec §5.1: terminar una tanda de 10 con 10/10 aciertos en Clásico da 1 objeto (Repaso nunca da premio). */
 export function ganaPremioTanda({ respondidas, aciertos }) {
-  return respondidas === 10 && aciertos >= 8;
+  return respondidas === 10 && aciertos === 10;
 }

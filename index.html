@@ -87,12 +87,9 @@
       <div id="mazo-repaso" class="mazo" tabindex="-1"></div>
     </section>
 
-    <!-- HUB: sustituye a "Progreso". Se conservan data-vista="progreso" y
-         data-test="progreso" en la sección para no romper referencias, aunque el
-         título ya no es "Progreso": es la pantalla desde la que SIEMPRE se
-         empieza a jugar (Comenzar al azar, la Misión de hoy, Pendientes, o una
-         tarjeta de área = un nivel). Orden de arriba abajo: radar, KPIs, misión +
-         pendientes, áreas (4×2), Comenzar (anclado abajo) y el pie. -->
+    <!-- HUB v0.3: se conservan data-vista="progreso" y data-test="progreso" en la sección por
+         compatibilidad. Es la pantalla desde la que SIEMPRE se empieza a jugar: radar, 6 tarjetas de
+         modo (Clásico, Repaso y los próximos), Comenzar (anclado abajo) y el pie. -->
     <section class="vista vista-hub" data-vista="progreso" data-test="progreso" hidden>
       <div class="hub-radar-envoltorio">
         <svg class="hub-radar" data-test="radar" viewBox="0 0 220 220" aria-hidden="true"></svg>

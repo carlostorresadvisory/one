@@ -70,10 +70,10 @@ test('Review Focus 2: JSON roto o almacén roto → mochila vacía, sin lanzar',
   assert.equal(guardarMochila(crearMochila(), almacenRoto()), false);
 });
 
-test('ganaPremioTanda: tanda de 10 con 8 o más aciertos', () => {
-  assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 8 }), true);
+test('ganaPremioTanda: tanda de 10 con 10/10 aciertos', () => {
   assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 10 }), true);
-  assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 7 }), false);
+  assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 9 }), false);
+  assert.equal(ganaPremioTanda({ respondidas: 10, aciertos: 8 }), false);
   assert.equal(ganaPremioTanda({ respondidas: 9, aciertos: 9 }), false);
 });
 

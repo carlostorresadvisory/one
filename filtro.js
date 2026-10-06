@@ -142,12 +142,17 @@ export function contarJugables(banco, filtro, indice, reportadas = []) {
 }
 
 /** Lo que `app.js#empezarPartida` entiende: null (todo), {area} o {ids, etiqueta} (sin relleno). */
-export function filtroParaPartida(filtro, banco, indice, estado, nombreArea = (a) => a) {
+export function filtroParaPartida(filtro, banco, indice, estado, nombreArea = (a) => a, hoy = null) {
   const f = normalizarFiltro(filtro);
   if (!f.area) return null;
-  if (f.ruta.length === 0) return { area: f.area };
   const tarjetas = (estado && estado.tarjetas) || {};
   const candidatas = preguntasDelFiltro(banco, f, indice, (estado && estado.reportadas) || []);
+  if (f.ruta.length === 0) {
+    // Un área sin ruta se sirve con el motor (solo nuevas o vencidas). Si no queda ninguna (segunda ronda
+    // del mismo día), se juega la lista ordenada (repaso adelantado) para que contar y jugar coincidan.
+    const hayServible = hoy == null || candidatas.some((p) => !tarjetas[p.id] || String(tarjetas[p.id].proximo || '') <= hoy);
+    if (hayServible) return { area: f.area };
+  }
   const ordenadas = [...candidatas].sort((a, b) => {
     const jugadaA = tarjetas[a.id] ? 1 : 0;
     const jugadaB = tarjetas[b.id] ? 1 : 0;

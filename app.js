@@ -532,6 +532,7 @@ function hayPartidaAMedias() {
  * no debería darse; si algún camino futuro vuelve a abrirla con el mazo vivo, el "←" no destruye
  * la partida por sorpresa. */
 function manejarVolver() {
+  cerrarHojaFiltro(); // defensivo: la hoja del filtro nunca queda encima de otra pantalla
   if (vistaActual() === 'progreso') {
     irAInicioEmojis();
     return;
@@ -811,12 +812,12 @@ function actualizarCabeceraAtomo() {
 function actualizarBotonGenerarAtomo() {
   if (!leerConfiguracion()) {
     nodoAtomoGenerar.disabled = true;
-    nodoAtomoGenerar.textContent = 'Generar';
+    nodoAtomoGenerar.textContent = 'Generar preguntas';
     return;
   }
   if (atomoGenerarEnVuelo) {
     nodoAtomoGenerar.disabled = true;
-    nodoAtomoGenerar.textContent = 'Generar';
+    nodoAtomoGenerar.textContent = 'Generar preguntas';
     return;
   }
   if (atomoTrabajoId) {
@@ -825,7 +826,7 @@ function actualizarBotonGenerarAtomo() {
     return;
   }
   nodoAtomoGenerar.disabled = false;
-  nodoAtomoGenerar.textContent = 'Generar';
+  nodoAtomoGenerar.textContent = 'Generar preguntas';
 }
 
 /** `nodoAtomoAviso` se reutiliza para tres textos distintos (conectar servidor / fallo al cargar /
@@ -1138,7 +1139,7 @@ function prepararModo(id) {
   }
   return {
     filtro,
-    partida: filtroParaPartida(filtro, banco, indice, estado, nombreArea),
+    partida: filtroParaPartida(filtro, banco, indice, estado, nombreArea, hoy()),
     n: contarJugables(banco, filtro, indice, estado.reportadas),
   };
 }
@@ -2051,13 +2052,13 @@ function finalizarPartida() {
   // hasta un resize). Todo esto sigue pasando de forma síncrona antes de que
   // el navegador pinte nada, así que no hay parpadeo de una vista a medio
   // construir.
-  // Spec §5.1: en Clásico y en Repaso, una tanda de 10 con ≥ 8 aciertos da 1 objeto (sorteado como
+  // Spec §5.1: solo en Clásico, una tanda de 10 con 10/10 aciertos da 1 objeto (Repaso nunca da premio) (sorteado como
   // un cofre normal). La regla vive en mochila.js#ganaPremioTanda; aquí solo se aplica.
   let premio = null;
-  if (['clasico', 'repaso'].includes(modoActual) && ganaPremioTanda({ respondidas: totalPreguntas, aciertos })) {
+  if (modoActual === 'clasico' && ganaPremioTanda({ respondidas: totalPreguntas, aciertos })) {
     const id = sortearObjeto();
-    guardarMochila(anadirObjeto(cargarMochila(), id));
-    premio = OBJETOS[id];
+    // Solo se anuncia el premio si de verdad se guardó (almacenamiento bloqueado → sin premio fantasma).
+    if (guardarMochila(anadirObjeto(cargarMochila(), id))) premio = OBJETOS[id];
   }
   mostrarVista('resumen');
   contenedorMazoResumen.innerHTML = '';
@@ -4198,6 +4199,7 @@ function renderHub() {
   const resumen = resumenProgreso(estado, banco, hoy());
   actualizarCabecera();
   renderRadar(resumen.porArea);
+  modoElegido = null; // una tarjeta «Próximamente» no se queda seleccionada al volver: vuelve el último modo jugado
   actualizarTarjetasHub({
     aciertosHoy: resumen.hoy.aciertos,
     respondidasHoy: resumen.hoy.respondidas,
@@ -4245,7 +4247,7 @@ function exportarEstado() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function importarEstadoDesdeArchivo(archivo) {

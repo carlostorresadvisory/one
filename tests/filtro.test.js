@@ -206,3 +206,16 @@ test('filtroParaPartida con ruta y 0 candidatas devuelve {ids: [], etiqueta}, no
   const r = filtroParaPartida(ROMA, banco, {}, { reportadas: [], tarjetas: {} }, nombreArea);
   assert.deepEqual(r, { ids: [], etiqueta: 'Historia · Roma' });
 });
+
+test('filtroParaPartida con área sin ruta: {area} si hay nuevas o vencidas; si no, {ids} ordenados (repaso adelantado)', () => {
+  const indice = {};
+  const hoy = '2026-10-06';
+  const nuevas = { reportadas: [], tarjetas: { h1: { proximo: '2026-10-20' } } }; // h2, srv-1, srv-2 sin jugar
+  assert.deepEqual(filtroParaPartida({ area: 'historia' }, banco, indice, nuevas, nombreArea, hoy), { area: 'historia' });
+  const vencida = { reportadas: [], tarjetas: { h1: { proximo: '2026-10-01' }, h2: { proximo: '2026-10-20' }, 'srv-1': { proximo: '2026-10-20' }, 'srv-2': { proximo: '2026-10-20' } } };
+  assert.deepEqual(filtroParaPartida({ area: 'historia' }, banco, indice, vencida, nombreArea, hoy), { area: 'historia' });
+  const todasAlDia = { reportadas: [], tarjetas: { h1: { proximo: '2026-10-09' }, h2: { proximo: '2026-10-08' }, 'srv-1': { proximo: '2026-10-20' }, 'srv-2': { proximo: '2026-10-07' } } };
+  const r = filtroParaPartida({ area: 'historia' }, banco, indice, todasAlDia, nombreArea, hoy);
+  assert.deepEqual(r, { ids: ['srv-2', 'h2', 'h1', 'srv-1'], etiqueta: 'Historia' });
+  assert.equal(r.ids.length, contarJugables(banco, { area: 'historia' }, indice, [])); // contar y jugar coinciden
+});

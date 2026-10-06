@@ -1818,7 +1818,10 @@ test.describe('ONE · integración e2e', () => {
     expect(cajaAntes.height).toBeGreaterThanOrEqual(42);
     expect(cajaAntes.height).toBeLessThanOrEqual(46);
 
-    await responderPreguntaActual(page);
+    // Las de tipo «error» necesitan el índice del sospechoso: sin él el test era intermitente.
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    await responderPreguntaActual(page, sospechosoPorTitulo);
     await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
 
     const confianza = t.locator('[data-test="confianza"]');
@@ -6777,6 +6780,22 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await expect(page.locator('[data-test="hoja-filtro"]')).toBeVisible();
   });
 
+  for (const alto of [812, 667]) test(`chip con subtema largo (375×${alto}): la cabecera no crece y racha/nivel no se parten`, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: alto });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    const ids = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()).then((b) => b.slice(0, 2).map((p) => p.id)));
+    await page.evaluate((lista) => window.__one.empezarPartida({ ids: lista, etiqueta: 'Economía · Mercados y crisis financieras' }), ids);
+    await expect(page.locator('[data-test="chip-filtro"]')).toBeVisible();
+    const cab = await page.locator('.cabecera').first().boundingBox();
+    expect(cab.height).toBeLessThanOrEqual(66);
+    const estado = await page.locator('.cabecera-estado').boundingBox();
+    expect(estado.width).toBeGreaterThanOrEqual(36); // no aplastado (antes 30 px y 4 líneas)
+    const racha = await page.locator('[data-test="racha"]').boundingBox();
+    expect(racha.height).toBeLessThanOrEqual(26); // una sola línea
+    await assertSinScroll(page);
+  });
+
   test('chip con etiqueta larga: se recorta con … sin encoger la letra ni salirse de la pantalla', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
@@ -6818,6 +6837,37 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await page.locator('[data-test="filtro-corto-todos"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('segunda ronda del mismo día con filtro de área: «Jugar las 2» vuelve a jugar esas 2 (no rebota al hub)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await abrirHojaFiltro(page);
+    await elegirAreaEnFiltro(page, 'economia');
+    await page.locator('[data-test="filtro-elegir"]').click();
+    await page.locator('[data-test="filtro-corto-jugar"]').click();
+    await jugarPartida(page, { sospechosoPorTitulo });
+    await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await page.locator('[data-test="filtro-corto-jugar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+  });
+
+  test('defensivo: Volver con la hoja del filtro abierta la cierra', async ({ page }) => {
+    await page.goto('/?ejemplo=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await abrirHojaFiltro(page);
+    await page.evaluate(() => document.querySelector('[data-test="volver"]').click()); // el overlay tapa el botón: click programático
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
   });
 
   test('Review Focus 3: un subtema guardado sin preguntas locales → aviso con 0, nunca partida vacía ni racha', async ({ page }) => {
@@ -7070,6 +7120,59 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
       await expect(page.locator('[data-test="marcador-esfinge"]')).toHaveText('🎒 1');
     });
   }
+
+  // Reglas del premio (Carlos, 6-oct): solo Clásico con 10/10; con 9 no hay; Repaso nunca da premio.
+  async function jugarTandaConFallos(page, sospechosoPorTitulo, fallos) {
+    for (let i = 0; i < 10; i += 1) {
+      if (i < fallos) await fallarPreguntaActual(page, sospechosoPorTitulo);
+      else await responderPreguntaActual(page, sospechosoPorTitulo);
+      await avanzarTrasRespuesta(page);
+    }
+    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
+  }
+
+  async function sospechososDelBanco(page) {
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    return new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+  }
+
+  test('Clásico 9/10: sin premio ni objeto en la mochila', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await jugarTandaConFallos(page, await sospechososDelBanco(page), 1);
+    await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('one.mochila'))).toBeNull();
+  });
+
+  test('si guardar la mochila falla, el resumen no anuncia premio', async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (k === 'one.mochila') throw new Error('QuotaExceededError');
+        return original.call(this, k, v);
+      };
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    await jugarTandaConFallos(page, await sospechososDelBanco(page), 0);
+    await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
+  });
+
+  test('Repaso 10/10: nunca da premio', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="cerebro"]').click();
+    await page.locator('[data-test="comenzar"]').click();
+    const sospechosoPorTitulo = await sospechososDelBanco(page);
+    await jugarTandaConFallos(page, sospechosoPorTitulo, 10); // 10 pendientes
+    const final = await recorrerRepasoHastaFinal(page);
+    await final.locator('[data-test="ir-inicio"]').click();
+    await entrarEnRepaso(page);
+    await jugarTandaConFallos(page, sospechosoPorTitulo, 0);
+    await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
+    expect(await page.evaluate(() => localStorage.getItem('one.mochila'))).toBeNull();
+  });
 
   test('con reducir movimiento: premio sí, confeti no', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
