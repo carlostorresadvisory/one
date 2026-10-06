@@ -2032,8 +2032,12 @@ s.visual-clave-valor {
 }
 
 /* Chip "N preguntas nuevas" (v0.2b2 §4, banco extendido): una notificación, no un modo de partida.
-   v0.3: superpuesto (ver `.hub-chip-nuevas` en el bloque "v0.3 HUB de modos" más abajo). */
+   v0.3: superpuesto sobre el hub (no cambia la maquetación). */
 .hub-chip-nuevas {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 3;
   display: block;
   min-height: 32px;
   padding: 4px 12px;
@@ -2186,12 +2190,13 @@ button.punto-servidor::before {
 }
 
 .cabecera--con-tanda .cabecera-estado,
-.cabecera--con-tanda .boton-silencio,
 .cabecera--con-tanda .cabecera-esfinge {
-  /* visibility, no display: conserva su sitio para que el logo siga centrado (space-between).
-     v0.3: el silencio y la esfinge de la cabecera ceden también su sitio al indicador. */
-  visibility: hidden;
+  /* v0.3: racha/nivel y la esfinge ceden su sitio al indicador. El silencio (spec §7, persistente)
+     se queda: el indicador se coloca a su izquierda (app.js#posicionarIndicadorTanda). */
+  display: none;
 }
+.cabecera--con-tanda .boton-silencio { margin-left: auto; }
+.cabecera--con-tanda .chip-filtro { max-width: 28vw; }
 
 /* Mismo motivo que .hub-chip-nuevas[hidden] más arriba: con `display:flex` declarado, el [hidden]
    del user-agent deja de bastar y el indicador se seguiría pintando al ocultarlo desde JS. */
@@ -2229,8 +2234,8 @@ button.punto-servidor::before {
 }
 
 /* Botones con `disabled` (Generar/Atrás del Átomo, v0.2b2 §4): no había ninguna regla genérica
-   para `.boton:disabled` todavía -- mismo criterio (opacity 0.4) que ya usan
-   .tarjeta-area:disabled/.repaso-chip:disabled en esta misma hoja. */
+   para `.boton:disabled` todavía -- mismo criterio (opacity 0.4) que ya usa
+   .repaso-chip:disabled en esta misma hoja. */
 .boton:disabled {
   opacity: 0.4;
 }
@@ -2975,7 +2980,6 @@ button.punto-servidor::before {
   white-space: nowrap;
 }
 .hub-aviso[hidden] { display: none; }
-.hub-chip-nuevas { position: absolute; top: 40px; right: 0; z-index: 3; }
 .hub-modos {
   display: grid;
   grid-template-columns: 1fr 1fr;

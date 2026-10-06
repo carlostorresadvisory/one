@@ -437,7 +437,6 @@ function actualizarCabecera() {
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
   nodoLogo.hidden = enModo;
   nodoChipFiltro.hidden = !enModo;
-  nodoSilencio.hidden = enModo; // el silencio vive en la cabecera del hub (spec §3)
   if (enModo) pintarChip(nodoChipFiltro, textoChipFiltro());
   // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
   // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
@@ -1289,6 +1288,8 @@ function posicionarIndicadorTanda() {
   const caja = nodoCabecera.getBoundingClientRect();
   const altoIndicador = nodoIndicadorTanda.hidden ? ALTO_REPOSO_INDICADOR_TANDA : nodoIndicadorTanda.getBoundingClientRect().height;
   nodoIndicadorTanda.style.top = `${Math.round(caja.top + (caja.height - altoIndicador) / 2)}px`;
+  // El silencio es persistente (spec §7): con el indicador visible, este se coloca a su izquierda.
+  nodoIndicadorTanda.style.right = nodoIndicadorTanda.hidden ? '' : `${Math.round(document.documentElement.clientWidth - nodoSilencio.getBoundingClientRect().left + 6)}px`;
 }
 
 /** Ronda de corrección 1 (Plan B): con el indicador en una segunda fila, el contenido de la vista

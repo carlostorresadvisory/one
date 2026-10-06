@@ -6991,6 +6991,34 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await expect(hoja).toBeHidden();
   });
 
+  for (const viewport of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+    test(`silencio persistente (spec §7): visible y pulsable en partida y con tanda en curso, sin solape de cabecera, ${viewport.width}×${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      await page.locator('[data-test="cerebro"]').click();
+      await entrarEnModo(page, 'clasico');
+      await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+      const boton = page.locator('[data-test="silencio"]');
+      await expect(boton).toBeVisible();
+      await boton.click();
+      await expect(boton).toHaveAttribute('aria-pressed', 'true');
+      await boton.click();
+      await expect(boton).toHaveAttribute('aria-pressed', 'false');
+      await page.evaluate(() => window.__one.mostrarIndicadorLista(['eco-001'], 'Mercados y crisis financieras'));
+      await expect(page.locator('[data-test="indicador-tanda"]')).toBeVisible();
+      await expect(boton).toBeVisible();
+      await esperarAsentamientoMazo(page);
+      await assertSinSolapeCabecera(page);
+      const dentro = await boton.evaluate((n) => {
+        const c = n.getBoundingClientRect();
+        return c.left >= 0 && c.right <= document.documentElement.clientWidth;
+      });
+      expect(dentro).toBe(true);
+      await boton.click(); // pulsable: no lo tapa el indicador
+      await expect(boton).toHaveAttribute('aria-pressed', 'true');
+    });
+  }
+
   test('Esfinge: tocar la tarjeta → «La tienda llega pronto» y la esfinge grande reacciona', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
