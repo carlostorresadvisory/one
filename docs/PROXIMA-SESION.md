@@ -3,7 +3,7 @@
 ## Dónde estamos (6-oct-2026, tarde)
 - **Publicado**: v0.3 fases 1-2 (caché `one-v21`) + prototipo de avatares en `https://carlostorresadvisory.github.io/one/prototipos/avatares/` (fuera de la app y del sw).
 - **Spec reescrita con todo el feedback de Carlos** y lista para su OK final: `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md`. Fases 3-10 en su §13; §14 sin decisiones abiertas.
-- Pasada adversarial de la spec hecha (Nemotron gratis; 6 de 10 objeciones aplicadas). Los cambios posteriores (imágenes con IA, avatar) aún no han pasado adversarial.
+- Pasada adversarial de la spec hecha dos veces (Nemotron gratis): 6 de 10 objeciones la primera; la segunda, sobre imágenes y avatar MP4, 7 de 12 aplicadas en §7.
 
 ## Decisiones de Carlos del 6-oct (ya en la spec)
 - Tarjeta = modo, sin Comenzar; modos sin hacer → tarjeta apagada «Pronto». Sección «Tienda». Apuesta → «Órdago». Generar = insignia PREMIUM sin bloquear. Aviso grande «Preguntas generadas» clicable.
