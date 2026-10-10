@@ -25,12 +25,24 @@ const NUCLEO = [
 
 const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
 
+// Avatar (esfinge v2): el reposo, las anclas y las imágenes fijas se precachean tolerantes (sin un
+// vídeo la app sigue con la imagen fija). Los 6 gestos no se precachean: el `fetch` de abajo guarda
+// cualquier GET del mismo origen la primera vez que se pide.
+const AVATAR = [
+  'avatar/reposo.mp4', 'avatar/anclas.json',
+  'avatar/neutral.webp', 'avatar/contenta.webp', 'avatar/triste.webp', 'avatar/euforica.webp',
+];
+const AVATAR_GESTOS = [
+  'avatar/saludo.mp4', 'avatar/pensando.mp4', 'avatar/sorpresa.mp4',
+  'avatar/triste.mp4', 'avatar/acierto.mp4', 'avatar/euforia.mp4',
+];
+
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
     caches.open(CACHE).then((cache) =>
       Promise.all([
         cache.addAll(NUCLEO),
-        ...SECUNDARIOS.map((ruta) => cache.add(ruta).catch(() => {
+        ...[...SECUNDARIOS, ...AVATAR].map((ruta) => cache.add(ruta).catch(() => {
           // Un recurso secundario que falte no debe romper la instalación.
         })),
       ])
