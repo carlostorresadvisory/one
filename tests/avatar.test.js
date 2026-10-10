@@ -14,6 +14,7 @@ function reproductorFalso({ falla = false } = {}) {
     montar: () => ({
       gesto(nombre) { r.pedidos.push(nombre); if (falla && r.cb) r.cb(new Error('autoplay')); },
       destruir() { r.destruido = true; },
+      reanudar() { r.reanudaciones = (r.reanudaciones || 0) + 1; },
       alFallar(cb) { r.cb = cb; r.montajes += 1; },
       alCambiar() {},
     }),
@@ -88,6 +89,26 @@ test('si el vídeo falla, sale la imagen fija del gesto, vuelve a neutral y se r
   assert.equal(contenedor.children[0].tagName, 'canvas');
   av.destruir();
 });
+test('autoplay bloqueado: cada toque repite play() sobre el mismo reproductor y lienzo, sin remontar', (t) => {
+  const desinstalar = instalarDomFalso(); t.after(desinstalar);
+  const contenedor = new ElementoFalso('div');
+  const f = reproductorFalso();
+  const av = crearAvatar(contenedor, { documento: globalThis.document, ventana: SIN_MOVIMIENTO, montarReproductor: f.montar, temporizador: temporizadorFalso() });
+  const lienzo = contenedor.children[0];
+  f.r.cb('play');
+  assert.equal(av.modo(), 'fijo');
+  assert.equal(f.r.destruido, false);
+  for (let i = 1; i <= 3; i += 1) {
+    globalThis.document.disparar('pointerdown');
+    assert.equal(av.modo(), 'video');
+    assert.equal(contenedor.children[0], lienzo);
+    assert.equal(f.r.reanudaciones, i);
+    f.r.cb('play'); // sigue bloqueado
+  }
+  assert.equal(f.r.montajes, 1);
+  av.destruir();
+  assert.equal(f.r.destruido, true);
+});
 test('si no se puede montar el reproductor (sin WebGL ni 2D), imagen fija y no lanza', (t) => {
   const desinstalar = instalarDomFalso(); t.after(desinstalar);
   const contenedor = new ElementoFalso('div');
@@ -132,7 +153,11 @@ function entorno(opciones = {}) {
   const liberados = [];
   let siguienteFotograma = null;
   let reloj = 0;
-  const gl = new Proxy({}, { get: (_, k) => (/^[A-Z_0-9]+$/.test(String(k)) ? 1 : () => ({})) });
+  const perdidos = [];
+  const gl = new Proxy({}, { get: (_, k) => {
+    if (k === 'getExtension') return (nombre) => (nombre === 'WEBGL_lose_context' ? { loseContext: () => perdidos.push(nombre) } : null);
+    return /^[A-Z_0-9]+$/.test(String(k)) ? 1 : () => ({});
+  } });
   const lienzo = new ElementoFalso('canvas');
   lienzo.style = { setProperty() {} };
   lienzo.getContext = () => gl;
@@ -157,7 +182,7 @@ function entorno(opciones = {}) {
   const cargarClip = opciones.cargarClip || ((ruta) => Promise.resolve({ src: `blob:${ruta}`, liberar: () => liberados.push(ruta) }));
   const reproductor = montarReproductorMp4(lienzo, { documento, ventana, anclas: ANCLAS, cargarClip });
   return {
-    reproductor, lienzo, liberados, creados,
+    reproductor, lienzo, liberados, creados, perdidos,
     clip: (nombre) => creados.find((v) => v.src === `blob:avatar/${nombre}.mp4`),
     fotograma: () => siguienteFotograma && siguienteFotograma(),
     pasarMs: (ms) => { reloj += ms; },
@@ -259,12 +284,14 @@ test('reproductor: si no se puede descargar el reposo, avisa del fallo', async (
 test('reproductor: si play() del reposo es rechazado (autoplay bloqueado), avisa del fallo', async () => {
   const e = entorno();
   let fallos = 0;
-  e.reproductor.alFallar(() => { fallos += 1; });
+  let razon = null;
+  e.reproductor.alFallar((r) => { fallos += 1; razon = r; });
   const reposo = e.creados[0];
   reposo.play = () => Promise.reject(new Error('autoplay'));
   await tick(); // llega el clip y se arranca el reposo
   await tick();
   assert.equal(fallos, 1);
+  assert.equal(razon, 'play');
 });
 test('reproductor: destruir cancela el fotograma, suelta los vídeos y revoca las URL', async () => {
   const e = await conReposo();
@@ -281,4 +308,20 @@ test('reproductor: sin WebGL ni canvas 2D lanza (crearAvatar lo convierte en ima
   const lienzo = new ElementoFalso('canvas');
   lienzo.getContext = () => null;
   assert.throws(() => montarReproductorMp4(lienzo, { documento: {}, ventana: {}, anclas: ANCLAS, cargarClip: () => Promise.resolve() }));
+});
+test('reproductor: destruir libera el contexto WebGL y quita el oyente de contexto perdido', async () => {
+  const e = await conReposo();
+  let fallos = 0;
+  e.reproductor.alFallar(() => { fallos += 1; });
+  e.reproductor.destruir();
+  assert.deepEqual(e.perdidos, ['WEBGL_lose_context']);
+  e.lienzo.disparar('webglcontextlost');
+  assert.equal(fallos, 0);
+});
+test('reproductor: reanudar repite play() del reposo en el mismo vídeo', async () => {
+  const e = await conReposo();
+  const antes = e.reposo.reproducciones;
+  e.reproductor.reanudar();
+  assert.equal(e.reposo.reproducciones, antes + 1);
+  assert.equal(e.creados.filter((v) => v.tagName === 'video').length, 1);
 });

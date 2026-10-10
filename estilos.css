@@ -2880,7 +2880,6 @@ button.punto-servidor::before {
 .hub-modo-marcador { font-size: 13px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .hub-modo--pronto { cursor: default; }
 .hub-modo--pronto .hub-modo-nombre, .hub-modo--pronto .hub-modo-icono { opacity: 0.6; }
-.hub-modo--pronto .hub-modo-marcador { color: var(--dorado, #f2c14e); }
 .hub-modo--tienda { background: #14232b; }
 /* La esfinge ocupa la tarjeta entera (a la derecha, del alto de la tarjeta); los textos quedan abajo a la izquierda. */
 .hub-modo--tienda > .hub-avatar-lienzo { position: absolute; inset: 0; z-index: 1; justify-content: flex-end; pointer-events: none; }

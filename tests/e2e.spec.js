@@ -7282,6 +7282,31 @@ test.describe('ONE · v0.3 avatar: la esfinge v2 (fase 4)', () => {
     }
   });
 
+  test('20 idas y vueltas hub-Tienda no agotan los contextos WebGL de Chrome', async ({ page }) => {
+    test.setTimeout(120000);
+    const avisos = [];
+    page.on('console', (m) => { if (/Too many active WebGL contexts/i.test(m.text())) avisos.push(m.text()); });
+    await page.addInitScript(() => { // guarda cada contexto WebGL creado para contar los que siguen vivos
+      window.__contextos = [];
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (tipo, ...resto) {
+        const ctx = original.call(this, tipo, ...resto);
+        if (ctx && /webgl/.test(tipo) && !window.__contextos.includes(ctx)) window.__contextos.push(ctx);
+        return ctx;
+      };
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    for (let i = 0; i < 20; i += 1) {
+      await page.locator('[data-test="tarjeta-tienda"]').click();
+      await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-test="tarjeta-tienda"]')).toBeVisible();
+    }
+    expect(avisos).toEqual([]);
+    const vivos = await page.evaluate(() => window.__contextos.filter((c) => !c.isContextLost()).length);
+    expect(vivos).toBeLessThanOrEqual(2); // el de la tarjeta actual; los de las 20 vueltas, liberados
+  });
+
   test('acertar pide el gesto «acierto» y la esfinge no se vuelve a montar', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'clasico');

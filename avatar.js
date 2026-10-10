@@ -72,13 +72,16 @@ function prepararPintado(lienzo) {
     [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach((k) => gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE));
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    return (video) => {
+    const pintar = (video) => {
       gl.viewport(0, 0, lienzo.width, lienzo.height);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
       gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
+    // Chrome limita los contextos WebGL vivos (~16): un lienzo descartado no basta, hay que soltarlo.
+    pintar.liberar = () => { const ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); };
+    return pintar;
   }
   return null;
 }
@@ -128,7 +131,7 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     ventana.fetch(`${base}anclas.json`).then((r) => r.json()).then((j) => { marcas = j; }).catch(() => {});
   }
 
-  function fallar() { if (vivo) alFallar(); }
+  function fallar(razon) { if (vivo) alFallar(razon); }
 
   function cargar(nombre) {
     if (clips[nombre]) return;
@@ -156,7 +159,7 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     entrante = video;
     video.currentTime = 0;
     const promesa = video.play();
-    if (promesa && promesa.catch) promesa.catch(fallar);
+    if (promesa && promesa.catch) promesa.catch(() => fallar('play'));
   }
 
   function nombreDe(video) { return Object.keys(clips).find((n) => clips[n].video === video); }
@@ -198,7 +201,8 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     raf = ventana.requestAnimationFrame(paso);
   }
 
-  lienzo.addEventListener('webglcontextlost', (evento) => { evento.preventDefault(); fallar(); });
+  function contextoPerdido(evento) { evento.preventDefault(); fallar('gl'); }
+  lienzo.addEventListener('webglcontextlost', contextoPerdido);
   cargar('reposo');
   actual = clips.reposo.video;
   raf = ventana.requestAnimationFrame(paso);
@@ -210,11 +214,15 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
       pendiente = nombre;
       pendienteDesde = ahora();
     },
+    // Tras un rechazo de play() (autoplay bloqueado): mismo vídeo y mismo lienzo, solo se pide play() otra vez.
+    reanudar() { if (vivo && clips.reposo) arrancar(clips.reposo.video); },
     alFallar(cb) { alFallar = cb; },
     alCambiar(cb) { alCambiar = cb; },
     destruir() {
       vivo = false;
       ventana.cancelAnimationFrame(raf);
+      lienzo.removeEventListener('webglcontextlost', contextoPerdido);
+      if (pintar.liberar) pintar.liberar();
       Object.values(clips).forEach(({ video, liberar }) => {
         video.pause();
         video.removeAttribute('src');
@@ -241,6 +249,7 @@ export function crearAvatar(contenedor, {
   const sinMovimiento = Boolean(ventana.matchMedia && ventana.matchMedia('(prefers-reduced-motion: reduce)').matches);
   let modo = 'fijo';
   let reproductor = null;
+  let lienzo = null;
   let imagen = null;
   let idVuelta = null;
   let destruido = false;
@@ -263,9 +272,10 @@ export function crearAvatar(contenedor, {
     reproductor = null;
   }
 
-  function pasarAFijo(gesto) {
+  // Con autoplay bloqueado (`conservar`) el reproductor sigue vivo: el siguiente gesto solo repite play().
+  function pasarAFijo(gesto, conservar = false) {
     modo = 'fijo';
-    soltarReproductor();
+    if (!conservar) soltarReproductor();
     imagen = null;
     mostrarFijo(gesto);
     if (!sinMovimiento) documento.addEventListener('pointerdown', reintentar);
@@ -273,11 +283,18 @@ export function crearAvatar(contenedor, {
 
   function reintentar() {
     documento.removeEventListener('pointerdown', reintentar);
-    if (!destruido) montarVideo();
+    if (destruido) return;
+    if (!reproductor) { montarVideo(); return; }
+    temporizador.clearTimeout(idVuelta);
+    idVuelta = null;
+    imagen = null;
+    contenedor.replaceChildren(lienzo);
+    modo = 'video';
+    reproductor.reanudar();
   }
 
   function montarVideo() {
-    const lienzo = documento.createElement('canvas');
+    lienzo = documento.createElement('canvas');
     lienzo.classList.add('avatar-lienzo');
     try {
       reproductor = montarReproductor(lienzo, { documento, ventana });
@@ -285,7 +302,7 @@ export function crearAvatar(contenedor, {
       pasarAFijo('neutral');
       return;
     }
-    reproductor.alFallar(() => pasarAFijo(ultimoGesto));
+    reproductor.alFallar((razon) => pasarAFijo(ultimoGesto, razon === 'play'));
     imagen = null;
     contenedor.replaceChildren(lienzo);
     modo = 'video';
