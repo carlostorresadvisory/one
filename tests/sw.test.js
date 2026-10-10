@@ -29,5 +29,10 @@ test('sw: caché one-v21', () => {
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
   const nucleo = new Set(lista('NUCLEO'));
-  for (const fichero of modulosLocales('app.js')) assert.ok(nucleo.has(fichero), `${fichero} falta en NUCLEO de sw.js`);
+  // depurar-sonido.js es una herramienta de diagnóstico (?depurar=sonido) que se usa con red: no se precachea a propósito.
+  const sinPrecache = new Set(['depurar-sonido.js']);
+  for (const fichero of modulosLocales('app.js')) {
+    if (sinPrecache.has(fichero)) continue;
+    assert.ok(nucleo.has(fichero), `${fichero} falta en NUCLEO de sw.js`);
+  }
 });

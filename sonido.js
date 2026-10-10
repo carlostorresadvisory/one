@@ -40,6 +40,10 @@ function almacenPorDefecto() {
   }
 }
 
+function ahora() {
+  return globalThis.performance?.now?.() ?? Date.now();
+}
+
 export function crearSonido({
   almacen = almacenPorDefecto(),
   cargarMotor = () => import('./vendor/zzfx.js'),
@@ -48,6 +52,10 @@ export function crearSonido({
   let motor = null;
   let carga = null;
   let silencioEnMemoria = false; // respaldo si el almacén no deja leer/escribir
+  // Diagnóstico de solo lectura (?depurar=sonido): no altera el comportamiento del sonido.
+  const MAX_INTENTOS = 20;
+  const intentos = [];
+  let tiempoCargaMs = null;
 
   function estaSilenciado() {
     const guardado = leerSilencio(almacen);
@@ -57,10 +65,12 @@ export function crearSonido({
   return {
     precargar() {
       if (!carga) {
+        const inicioCarga = ahora();
         carga = Promise.resolve()
           .then(() => cargarMotor())
           .then((modulo) => {
             motor = modulo && typeof modulo.zzfx === 'function' ? modulo : null;
+            tiempoCargaMs = ahora() - inicioCarga;
             return Boolean(motor);
           })
           .catch(() => {
@@ -70,17 +80,57 @@ export function crearSonido({
       }
       return carga;
     },
-    desbloquear() {
+    desbloquear(evento = null) {
       const contexto = motor && motor.ZZFX && motor.ZZFX.audioContext;
+      const intento = {
+        evento,
+        estadoAntes: contexto ? contexto.state : 'sin-motor',
+        estadoDespues: contexto ? contexto.state : 'sin-motor',
+        msResume: null,
+        error: null,
+      };
+      intentos.push(intento);
+      if (intentos.length > MAX_INTENTOS) intentos.shift();
       if (!contexto) return false;
       if (contexto.state === 'running') return true;
       try {
+        const inicio = ahora();
         const promesa = contexto.resume();
-        if (promesa && typeof promesa.catch === 'function') promesa.catch(() => {});
-      } catch {
-        // Sin audio: la app sigue muda.
+        if (promesa && typeof promesa.then === 'function') {
+          promesa.then(
+            () => {
+              intento.msResume = ahora() - inicio;
+              intento.estadoDespues = contexto.state;
+            },
+            (e) => {
+              intento.msResume = ahora() - inicio;
+              intento.estadoDespues = contexto.state;
+              intento.error = (e && e.name) || String(e);
+            },
+          );
+        }
+      } catch (e) {
+        intento.error = (e && e.name) || String(e);
       }
+      intento.estadoDespues = contexto.state;
       return contexto.state === 'running';
+    },
+    /** Copia de solo lectura del registro de intentos de desbloqueo (panel ?depurar=sonido). */
+    diagnostico() {
+      const contexto = motor && motor.ZZFX && motor.ZZFX.audioContext;
+      let audioSession = null;
+      try {
+        audioSession = globalThis.navigator?.audioSession?.type ?? null;
+      } catch {
+        audioSession = null;
+      }
+      return {
+        motorCargado: Boolean(motor),
+        estado: contexto ? contexto.state : 'sin-motor',
+        tiempoCargaMs,
+        audioSession,
+        intentos: intentos.map((i) => ({ ...i })),
+      };
     },
     /** 'sin-motor' | 'suspended' | 'running' | … — para el e2e del desbloqueo en iOS. */
     estadoContexto() {

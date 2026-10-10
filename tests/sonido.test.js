@@ -138,3 +138,49 @@ test('Review Focus 2: el getter de globalThis.localStorage lanza (almacenamiento
     else delete globalThis.localStorage;
   }
 });
+
+test('diagnostico registra cada intento de desbloqueo con el estado antes y después', async () => {
+  let resolver;
+  const contexto = {
+    state: 'suspended',
+    resume: () => new Promise((r) => { resolver = () => { contexto.state = 'running'; r(); }; }),
+  };
+  const sonido = crearSonido({ almacen: almacenFalso(), cargarMotor: async () => ({ zzfx() {}, ZZFX: { audioContext: contexto } }) });
+  await sonido.precargar();
+  sonido.desbloquear('touchend');
+  resolver();
+  await Promise.resolve();
+  const d = sonido.diagnostico();
+  assert.equal(d.motorCargado, true);
+  assert.equal(typeof d.tiempoCargaMs, 'number');
+  assert.equal(d.estado, 'running');
+  assert.equal(d.audioSession, null);
+  assert.equal(d.intentos.length, 1);
+  assert.equal(d.intentos[0].evento, 'touchend');
+  assert.equal(d.intentos[0].estadoAntes, 'suspended');
+  assert.equal(d.intentos[0].estadoDespues, 'running');
+  assert.equal(typeof d.intentos[0].msResume, 'number');
+  assert.equal(d.intentos[0].error, null);
+});
+
+test('diagnostico: sin motor registra el intento (H2), un resume rechazado guarda el error y se conservan 20', async () => {
+  const sinMotor = crearSonido({ almacen: almacenFalso(), cargarMotor: async () => ({}) });
+  sinMotor.desbloquear('pointerdown');
+  let d = sinMotor.diagnostico();
+  assert.equal(d.motorCargado, false);
+  assert.equal(d.estado, 'sin-motor');
+  assert.equal(d.intentos[0].estadoAntes, 'sin-motor');
+
+  const contexto = { state: 'suspended', resume: () => Promise.reject(Object.assign(new Error('bloqueado'), { name: 'NotAllowedError' })) };
+  const sonido = crearSonido({ almacen: almacenFalso(), cargarMotor: async () => ({ zzfx() {}, ZZFX: { audioContext: contexto } }) });
+  await sonido.precargar();
+  for (let i = 0; i < 25; i += 1) sonido.desbloquear(`e${i}`);
+  await new Promise((r) => setTimeout(r, 0));
+  d = sonido.diagnostico();
+  assert.equal(d.intentos.length, 20);
+  assert.equal(d.intentos[0].evento, 'e5');
+  assert.equal(d.intentos[19].error, 'NotAllowedError');
+  assert.equal(d.intentos[19].estadoDespues, 'suspended');
+  d.intentos.length = 0; // es una copia
+  assert.equal(sonido.diagnostico().intentos.length, 20);
+});

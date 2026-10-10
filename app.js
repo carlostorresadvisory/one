@@ -1680,6 +1680,7 @@ function reanudarTandaGuardada() {
 async function iniciar() {
   sonido.precargar(); // sin await: el AudioContext de ZzFX existe ya cuando llega el primer toque (iOS)
   const params = new URLSearchParams(location.search);
+  if (params.get('depurar') === 'sonido') import('./depurar-sonido.js').then((m) => m.montarPanelSonido(sonido));
   const esEjemplo = params.get('ejemplo') === '1';
   const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
   // Antes de nada: si el enlace trae `?servidor=&token=` (Carlos lo abre una vez desde el chat,
@@ -4285,8 +4286,8 @@ document.addEventListener('keydown', (ev) => {
 });
 // iOS: el AudioContext solo arranca si su resume() se inicia dentro de un gesto. Se reintenta en
 // cada gesto hasta que corre; después los oyentes se quitan solos.
-function alPrimerGesto() {
-  if (sonido.desbloquear()) {
+function alPrimerGesto(e) {
+  if (sonido.desbloquear(e.type)) {
     ['pointerdown', 'keydown', 'touchend'].forEach((tipo) => document.removeEventListener(tipo, alPrimerGesto, true));
   }
 }
