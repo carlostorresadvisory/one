@@ -1,9 +1,10 @@
-# gesto  vídeo  inicio  fin   (A = 6-oct, B = 7-oct; segundos; clips.py afina ±0,15 s buscando el fotograma más cercano al ancla)
-# El reposo se monta aparte (tramos limpios de A); el ancla N es A8.17.
-saludo    B 6.75 9.70
-pensando  B 0.16 2.41 B 8.89 9.70
-sorpresa  A 2.20 3.26
-triste    A 2.34 2.81 B 3.92 6.75
-acierto   A 0.05 2.25
+# gesto  tramos: vídeo inicio fin [vídeo inicio fin ...]   (A = 6-oct, B = 7-oct; segundos)
+# inicio > fin: marcha atrás (solo saludo y pensando, como las candidatas que Carlos dio por buenas)
+# vídeo con '~': ese tramo a media velocidad (RIFE inventa un fotograma entre cada dos); '~~' a un cuarto
+# clips.py afina ±0,15 s el primer inicio y el último fin buscando el fotograma más cercano al ancla N (A8.17)
+saludo    B 0.00 1.20 B 1.19 0.00
+pensando  B 9.80 8.60 B 8.61 9.80
+sorpresa  A 2.34 2.48 A~~ 2.86 3.12 A 3.14 3.20
+triste    A 2.34 2.48 B 3.88 6.75
+acierto   A 0.05 2.35
 euforia   A 3.30 6.30
-guino     A 7.00 8.00

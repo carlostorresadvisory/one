@@ -1,7 +1,7 @@
 // Esfinge v2: MP4 «stacked alpha» (color arriba, alfa abajo) pintado en <canvas> con WebGL.
 // Todos los clips empiezan en el mismo fotograma ancla N; el reposo acaba justo antes de N.
 // Un gesto pedido espera a un punto de salida del reposo (fotograma casi idéntico a N) y vuelve solo al reposo.
-var GESTOS = ['saludo', 'pensando', 'sorpresa', 'triste', 'acierto', 'euforia', 'guino'];
+var GESTOS = ['saludo', 'pensando', 'sorpresa', 'triste', 'acierto', 'euforia'];
 var CLIPS = ['reposo'].concat(GESTOS);
 
 var VS = 'attribute vec2 p;varying vec2 uv;void main(){uv=vec2((p.x+1.)/2.,(1.-p.y)/2.);gl_Position=vec4(p,0.,1.);}';
@@ -24,7 +24,7 @@ export function montarEsfinge(el, base, anclas) {
   cv.style.display = 'block';
   el.appendChild(cv);
   var vids = {};
-  CLIPS.forEach(function (n) { vids[n] = vid(base + n + '.mp4'); });
+  CLIPS.forEach(function (n) { vids[n] = vid(base + n + '.mp4?v=2'); });
   vids.reposo.loop = true;
   var actual = vids.reposo, entrante = null, pendiente = null, raf = 0, vivo = true, alCambiar = null;
 

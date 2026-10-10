@@ -83,59 +83,69 @@
   "tramos": [
    [
     "B",
-    6.75,
-    9.703
-   ]
-  ],
-  "cuadros": 220,
-  "segundos": 3.67,
-  "uniones": [
-   [
-    1,
-    15
-   ],
-   [
-    206,
-    14
-   ]
-  ],
-  "p95_real": 1.41,
-  "saltos_raros": [],
-  "tiras": [
-   "tiras/saludo-0.jpg",
-   "tiras/saludo-1.jpg"
-  ]
- },
- "pensando": {
-  "tramos": [
-   [
-    "B",
     0.031,
-    2.406
+    1.203
    ],
    [
     "B",
-    8.891,
-    9.703
+    1.188,
+    0.031
    ]
   ],
-  "cuadros": 248,
-  "segundos": 4.13,
+  "cuadros": 176,
+  "segundos": 2.93,
   "uniones": [
    [
     1,
     12
    ],
    [
-    166,
-    15
+    89,
+    0
    ],
    [
-    234,
+    164,
+    12
+   ]
+  ],
+  "p95_real": 1.74,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/saludo-0.jpg",
+   "tiras/saludo-1.jpg",
+   "tiras/saludo-2.jpg"
+  ]
+ },
+ "pensando": {
+  "tramos": [
+   [
+    "B",
+    9.703,
+    8.594
+   ],
+   [
+    "B",
+    8.609,
+    9.703
+   ]
+  ],
+  "cuadros": 172,
+  "segundos": 2.87,
+  "uniones": [
+   [
+    1,
+    14
+   ],
+   [
+    87,
+    0
+   ],
+   [
+    158,
     14
    ]
   ],
-  "p95_real": 1.51,
+  "p95_real": 1.48,
   "saltos_raros": [],
   "tiras": [
    "tiras/pensando-0.jpg",
@@ -148,31 +158,46 @@
    [
     "A",
     2.344,
-    3.281
+    2.484
+   ],
+   [
+    "A~~",
+    2.859,
+    3.125
+   ],
+   [
+    "A",
+    3.141,
+    3.203
    ]
   ],
-  "cuadros": 88,
-  "segundos": 1.47,
+  "cuadros": 134,
+  "segundos": 2.23,
   "uniones": [
    [
     1,
     17
    ],
    [
-    79,
-    9
-   ]
-  ],
-  "p95_real": 1.46,
-  "saltos_raros": [
+    28,
+    14
+   ],
    [
-    77,
-    2.28
+    111,
+    0
+   ],
+   [
+    116,
+    18
    ]
   ],
+  "p95_real": 1.31,
+  "saltos_raros": [],
   "tiras": [
    "tiras/sorpresa-0.jpg",
-   "tiras/sorpresa-1.jpg"
+   "tiras/sorpresa-1.jpg",
+   "tiras/sorpresa-2.jpg",
+   "tiras/sorpresa-3.jpg"
   ]
  },
  "triste": {
@@ -180,32 +205,37 @@
    [
     "A",
     2.344,
-    2.812
+    2.484
    ],
    [
     "B",
-    3.922,
+    3.875,
     6.75
    ]
   ],
-  "cuadros": 260,
-  "segundos": 4.33,
+  "cuadros": 255,
+  "segundos": 4.25,
   "uniones": [
    [
     1,
     17
    ],
    [
-    49,
-    14
+    28,
+    27
    ],
    [
-    245,
+    240,
     15
    ]
   ],
-  "p95_real": 0.94,
-  "saltos_raros": [],
+  "p95_real": 0.78,
+  "saltos_raros": [
+   [
+    56,
+    1.93
+   ]
+  ],
   "tiras": [
    "tiras/triste-0.jpg",
    "tiras/triste-1.jpg",
@@ -242,33 +272,6 @@
   "tiras": [
    "tiras/euforia-0.jpg",
    "tiras/euforia-1.jpg"
-  ]
- },
- "guino": {
-  "tramos": [
-   [
-    "A",
-    6.844,
-    8.156
-   ]
-  ],
-  "cuadros": 95,
-  "segundos": 1.58,
-  "uniones": [
-   [
-    1,
-    9
-   ],
-   [
-    95,
-    0
-   ]
-  ],
-  "p95_real": 0.46,
-  "saltos_raros": [],
-  "tiras": [
-   "tiras/guino-0.jpg",
-   "tiras/guino-1.jpg"
   ]
  }
 }

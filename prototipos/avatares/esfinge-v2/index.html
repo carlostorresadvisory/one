@@ -13,25 +13,25 @@ button{min-height:44px;padding:0 14px;border-radius:22px;border:0;background:var
 button.sec{background:transparent;color:var(--texto);border:1px solid var(--suave)}
 </style></head><body>
 <h1>Esfinge v2 · todas sacadas de los dos vídeos</h1>
-<p>Cada gesto sale del reposo y vuelve a él andando hacia delante. Las uniones las inventa RIFE (interpolación de movimiento), sin fundidos. El gesto arranca en el siguiente punto del reposo que encaja (como mucho ~2 s de espera).</p>
+<p>Cada gesto sale del reposo y vuelve a él. Saludo y pensando bajan la pata por el mismo camino por el que la suben (como en las candidatas); el resto va siempre hacia delante. Las uniones las inventa RIFE (interpolación de movimiento), sin fundidos. El gesto arranca en el siguiente punto del reposo que encaja (como mucho ~2 s de espera).</p>
 <div id="esf"></div>
 <div id="estado">cargando…</div>
 <div class="bts">
  <button data-g="saludo">Saludo</button><button data-g="pensando">Pensando</button>
  <button data-g="sorpresa">Sorpresa «¡oh!»</button><button data-g="triste">Triste</button>
  <button data-g="acierto">Acierto</button><button data-g="euforia">Euforia</button>
- <button data-g="guino">Guiño</button><button id="todos" class="sec">Todos seguidos</button>
- <button id="fondo" class="sec" style="grid-column:span 2">Cambiar fondo (claro / oscuro)</button>
+ <button id="todos" class="sec">Todos seguidos</button>
+ <button id="fondo" class="sec">Cambiar fondo (claro / oscuro)</button>
 </div>
 <script type="module">
-import { montarEsfinge } from './player.js?v=1';
+import { montarEsfinge } from './player.js?v=2';
 const anclas = await fetch('anclas.json?v=1').then(r => r.json());
 const e = montarEsfinge(document.getElementById('esf'), './', anclas);
 const est = document.getElementById('estado');
 let cola = [];
 e.alCambiar(n => { est.textContent = n === 'reposo' ? 'reposo' : '▶ ' + n; if (n === 'reposo' && cola.length) e.gesto(cola.shift()); });
 document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { cola = []; e.gesto(b.dataset.g); est.textContent = 'en espera: ' + b.dataset.g; });
-document.getElementById('todos').onclick = () => { cola = ['saludo', 'pensando', 'sorpresa', 'triste', 'acierto', 'euforia', 'guino']; e.gesto(cola.shift()); };
+document.getElementById('todos').onclick = () => { cola = ['saludo', 'pensando', 'sorpresa', 'triste', 'acierto', 'euforia']; e.gesto(cola.shift()); };
 document.getElementById('fondo').onclick = () => document.body.classList.toggle('claro');
 </script>
 </body></html>

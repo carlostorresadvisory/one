@@ -39,6 +39,15 @@ def rife(a, b, M=64):
                    cwd=RIFE, capture_output=True, check=True)
     return [np.asarray(Image.open(os.path.join(do, f'{j + 1:08d}.png')).convert('RGB')) for j in range(M + 1)]
 
+def lento_x2(trozo):
+    """El tramo a media velocidad: RIFE inventa un fotograma entre cada par."""
+    di, do = os.path.join(TRAB, 'in'), os.path.join(TRAB, 'out')
+    for d in (di, do): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
+    for j, c in enumerate(trozo): Image.fromarray(c).save(os.path.join(di, f'{j + 1:08d}.png'))
+    subprocess.run([os.path.join(RIFE, 'rife-ncnn-vulkan.exe'), '-i', os.path.abspath(di), '-o', os.path.abspath(do), '-m', 'rife-v4.6', '-n', str(2 * len(trozo))],
+                   cwd=RIFE, capture_output=True, check=True)
+    return [np.asarray(Image.open(os.path.join(do, f'{j + 1:08d}.png')).convert('RGB')) for j in range(2 * len(trozo) - 1)]
+
 def puente(a, b, va, vb):
     """Fotogramas intermedios (sin a ni b). Se reparten por cambio visible (no por tiempo de RIFE, que en cambios
     de expresión salta de golpe) y siguen una curva de Hermite: sale de a a velocidad va y llega a b a velocidad vb."""
@@ -63,10 +72,10 @@ def vel(k, i):  # paso típico alrededor del fotograma i (velocidad del movimien
     return dist(X[j[0]], X[j[1]]) / max(1, j[1] - j[0])
 
 def afinar(k, a, b, N):
-    """Busca en ±0,15 s el inicio y el fin más cercanos al ancla."""
+    """Busca en ±0,15 s el inicio, y hasta 0,15 s antes el fin, más cercanos al ancla (el fin nunca se alarga)."""
     X = video(k); w = 10
     ia = min(range(max(0, idx(a) - w), idx(a) + w + 1), key=lambda i: dist(X[i], N))
-    ib = min(range(idx(b) - w, min(len(X) - 1, idx(b) + w) + 1), key=lambda i: dist(X[i], N))
+    ib = min(range(idx(b) - w, min(len(X) - 1, idx(b)) + 1), key=lambda i: dist(X[i], N))
     return ia, ib
 
 def montar(tramos, N, vN):
@@ -74,11 +83,13 @@ def montar(tramos, N, vN):
     cuadros, uniones = [N], []
     prev, vprev = N, vN
     for k, i0, i1 in tramos:
-        X = video(k)
+        lento = len(k) - len(k.rstrip('~')); k = k.rstrip('~'); X = video(k); paso = 1 if i1 >= i0 else -1
         if (k, i0) != N_IDX:
             p = puente(prev, X[i0], vprev, vel(k, i0)); uniones.append((len(cuadros), len(p))); cuadros += p
-        cuadros += [X[i] for i in range(i0 + ((k, i0) == N_IDX), i1 + 1)]
-        prev, vprev = X[i1], vel(k, i1)
+        trozo = [X[i] for i in range(i0 + paso * ((k, i0) == N_IDX), i1 + paso, paso)]
+        for _ in range(lento): trozo = lento_x2(trozo)
+        cuadros += trozo
+        prev, vprev = X[i1], vel(k, i1) / 2 ** lento
     p = puente(prev, N, vprev, vN); uniones.append((len(cuadros), len(p))); cuadros += p
     return cuadros, uniones  # el último cuadro es el anterior a N: el siguiente clip empieza en N
 
@@ -124,7 +135,7 @@ if __name__ == '__main__':
     trabajos = [('reposo', [(v, idx(a), idx(b)) for v, a, b in REPOSO])]
     for g, *r in gestos:  # varios tramos seguidos: vídeo inicio fin vídeo inicio fin ...
         tr = [(r[j], idx(float(r[j + 1])), idx(float(r[j + 2]))) for j in range(0, len(r), 3)]
-        i0, _ = afinar(tr[0][0], tr[0][1] / FPS, tr[0][2] / FPS, N); _, i1 = afinar(tr[-1][0], tr[-1][1] / FPS, tr[-1][2] / FPS, N)
+        i0, _ = afinar(tr[0][0].rstrip('~'), tr[0][1] / FPS, tr[0][2] / FPS, N); _, i1 = afinar(tr[-1][0].rstrip('~'), tr[-1][1] / FPS, tr[-1][2] / FPS, N)
         tr[0] = (tr[0][0], i0, tr[0][2]); tr[-1] = (tr[-1][0], tr[-1][1], i1)
         trabajos.append((g, tr))
     for nombre, tramos in trabajos:
@@ -132,7 +143,7 @@ if __name__ == '__main__':
         cuadros, uniones = montar(tramos, N, vN)
         pasos, fs = tiras(nombre, cuadros, uniones)
         escribir(nombre, cuadros)
-        real = [dist(video(v)[i], video(v)[i + 1]) for v, i0, i1 in tramos for i in range(i0, i1)]
+        real = [dist(video(v.rstrip('~'))[i], video(v.rstrip('~'))[i + 1]) for v, i0, i1 in tramos for i in range(min(i0, i1), max(i0, i1))]
         p95 = float(np.percentile(real, 95)) if real else 1
         malos = [(i, round(p, 2)) for i, p in enumerate(pasos) if p > max(1.5 * p95, 1.5)]
         salidas = [i for i, c in enumerate(cuadros) if dist(c, N) <= 0.6] if nombre == 'reposo' else []
