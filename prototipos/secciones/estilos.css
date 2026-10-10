@@ -64,3 +64,13 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .slider .pul{position:absolute;top:2px;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:var(--acento);box-shadow:0 0 14px #4cc9f088}
 .slider .real{position:absolute;top:8px;width:4px;height:28px;margin-left:-2px;background:var(--ok);border-radius:2px}
 .escala{display:flex;justify-content:space-between;font-size:13px;color:var(--suave);flex:none}
+
+/* foto protagonista (Commons) con la pregunta encima */
+.foto{flex:1;min-height:0;border-radius:var(--r);background:#1c2430 center/cover no-repeat;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.foto::after,.foto-mom::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#0006 0,transparent 30%,transparent 45%,#000d)}
+.foto>*,.foto-mom>*{z-index:1}
+.foto .preg{position:relative;padding:12px;text-shadow:0 1px 8px #000}
+.foto .cred{position:absolute;top:6px;right:8px;font-size:10px;opacity:.75}
+.foto-mom{background:#1c2430 center/cover no-repeat}
+.escalada{width:54px;border-radius:8px;background:#1c2430 center/cover no-repeat;margin:0 auto 4px}
+.foto svg,.foto .et{position:relative;z-index:1}
