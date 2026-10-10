@@ -204,37 +204,47 @@
   "tramos": [
    [
     "B~",
-    4.359,
-    5.594
+    3.281,
+    3.75
+   ],
+   [
+    "B~",
+    4.0,
+    5.297
    ],
    [
     "B",
-    5.609,
+    5.75,
     6.75
    ]
   ],
-  "cuadros": 310,
-  "segundos": 5.17,
+  "cuadros": 389,
+  "segundos": 6.48,
   "uniones": [
    [
     1,
-    61
+    28
    ],
    [
-    221,
-    0
+    90,
+    28
    ],
    [
-    295,
+    285,
+    24
+   ],
+   [
+    374,
     15
    ]
   ],
-  "p95_real": 0.68,
+  "p95_real": 0.81,
   "saltos_raros": [],
   "tiras": [
    "tiras/triste-0.jpg",
    "tiras/triste-1.jpg",
-   "tiras/triste-2.jpg"
+   "tiras/triste-2.jpg",
+   "tiras/triste-3.jpg"
   ]
  },
  "euforia": {

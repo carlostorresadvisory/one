@@ -48,15 +48,15 @@ def lento_x2(trozo):
                    cwd=RIFE, capture_output=True, check=True)
     return [np.asarray(Image.open(os.path.join(do, f'{j + 1:08d}.png')).convert('RGB')) for j in range(2 * len(trozo) - 1)]
 
-def puente(a, b, va, vb, K=None):
-    """Fotogramas intermedios (sin a ni b); K fija cuántos. Se reparten por cambio visible (no por tiempo de RIFE, que en cambios
+def puente(a, b, va, vb):
+    """Fotogramas intermedios (sin a ni b). Se reparten por cambio visible (no por tiempo de RIFE, que en cambios
     de expresión salta de golpe) y siguen una curva de Hermite: sale de a a velocidad va y llega a b a velocidad vb."""
-    if dist(a, b) < 0.8 and K is None: return []
+    if dist(a, b) < 0.8: return []
     densos = rife(a, b)
     pasos = [dist(densos[j], densos[j + 1]) for j in range(len(densos) - 1)]
     cum = np.concatenate([[0], np.cumsum(pasos)]); L = cum[-1]
     vm = max(0.6, (va + vb) / 2)
-    K = K or int(np.clip(round(1.3 * L / vm), 4, 28))  # cuántos fotogramas nuevos
+    K = int(np.clip(round(1.3 * L / vm), 4, 28))  # cuántos fotogramas nuevos
     m0, m1 = [np.clip(v * (K + 1) / L, 0, 2.5) for v in (va, vb)]
     r = []
     for k in range(1, K + 1):
@@ -78,27 +78,14 @@ def afinar(k, a, b, N):
     ib = min(range(idx(b) - w, idx(b) + 1) if b >= a else range(idx(b), idx(b) + w + 1), key=lambda i: dist(X[i], N))
     return ia, ib
 
-Y_OREJAS = 150  # por encima de esta fila (con borde suave de 24 px) van las orejas y la corona; por debajo, la cara
-def mascara():
-    y = np.arange(S, dtype=np.float32)[:, None, None]
-    return np.clip((Y_OREJAS + 12 - y) / 24, 0, 1)
-
-def montar(tramos, N, vN, orejas=None):
-    """tramos: [(vídeo, i0, i1)] reales hacia delante. Puentes RIFE de N al primero, entre tramos y del último a N.
-    orejas (vídeo, i0, i1): el puente de entrada lleva arriba esas orejas reales creciendo y abajo la cara del puente."""
+def montar(tramos, N, vN):
+    """tramos: [(vídeo, i0, i1)] reales hacia delante. Puentes RIFE de N al primero, entre tramos y del último a N."""
     cuadros, uniones = [N], []
     prev, vprev = N, vN
-    for n, (k, i0, i1) in enumerate(tramos):
+    for k, i0, i1 in tramos:
         lento = len(k) - len(k.rstrip('~')); k = k.rstrip('~'); X = video(k); paso = 1 if i1 >= i0 else -1
         if (k, i0) != N_IDX:
-            if n == 0 and orejas:
-                ko, o0, o1 = orejas; O = [video(ko)[i] for i in range(o0, o1 + 1)]; m = mascara()
-                p = puente(prev, X[i0], vprev, vel(k, i0), K=len(O))
-                c = [np.clip(o * m + c * (1 - m), 0, 255).astype(np.uint8) for o, c in zip(O, p)]
-                p = puente(prev, c[0], vprev, vel(ko, o0)) + c + puente(c[-1], X[i0], vel(ko, o1), vel(k, i0))  # la corona entra y sale por RIFE
-            else:
-                p = puente(prev, X[i0], vprev, vel(k, i0))
-            uniones.append((len(cuadros), len(p))); cuadros += p
+            p = puente(prev, X[i0], vprev, vel(k, i0)); uniones.append((len(cuadros), len(p))); cuadros += p
         trozo = [X[i] for i in range(i0 + paso * ((k, i0) == N_IDX), i1 + paso, paso)]
         for _ in range(lento): trozo = lento_x2(trozo)
         cuadros += trozo
@@ -146,17 +133,14 @@ if __name__ == '__main__':
     gestos = [l.split() for l in open('gestos.txt', encoding='utf-8') if l.strip() and not l.startswith('#')]
     informe = json.load(open(f'{DEST}/informe.json')) if os.path.exists(f'{DEST}/informe.json') else {}
     trabajos = [('reposo', [(v, idx(a), idx(b)) for v, a, b in REPOSO])]
-    orejas = {}
-    for g, *r in gestos:  # varios tramos seguidos: vídeo inicio fin vídeo inicio fin ... [orejas vídeo inicio fin]
-        if 'orejas' in r:
-            j = r.index('orejas'); k, a, b = r[j + 1:j + 4]; orejas[g] = (k, idx(float(a)), idx(float(b))); r = r[:j]
+    for g, *r in gestos:  # varios tramos seguidos: vídeo inicio fin vídeo inicio fin ...
         tr = [(r[j], idx(float(r[j + 1])), idx(float(r[j + 2]))) for j in range(0, len(r), 3)]
         i0, _ = afinar(tr[0][0].rstrip('~'), tr[0][1] / FPS, tr[0][2] / FPS, N); _, i1 = afinar(tr[-1][0].rstrip('~'), tr[-1][1] / FPS, tr[-1][2] / FPS, N)
         tr[0] = (tr[0][0], i0, tr[0][2]); tr[-1] = (tr[-1][0], tr[-1][1], i1)
         trabajos.append((g, tr))
     for nombre, tramos in trabajos:
         if quiero and nombre not in quiero: continue
-        cuadros, uniones = montar(tramos, N, vN, orejas.get(nombre))
+        cuadros, uniones = montar(tramos, N, vN)
         pasos, fs = tiras(nombre, cuadros, uniones)
         escribir(nombre, cuadros)
         real = [dist(video(v.rstrip('~'))[i], video(v.rstrip('~'))[i + 1]) for v, i0, i1 in tramos for i in range(min(i0, i1), max(i0, i1))]
