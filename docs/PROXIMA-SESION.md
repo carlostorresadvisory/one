@@ -1,4 +1,8 @@
-# Próxima sesión — ONE v0.3: ejecutar el plan de las fases 3-10
+# Próxima sesión — ONE v0.3: revisar maquetas con Carlos y ejecutar el plan de las fases 3-10
+
+## Lo último (10-oct-2026, 3 am)
+- **Maquetas de las secciones pendientes** (Órdago, Más o menos, Afinar, Contrarreloj, Tienda; 3 estados cada una, estáticas, 375×667 sin scroll) en la rama `diseno-secciones`, `prototipos/secciones/index.html`. Sin publicar ni revisar con adversarial. Dudas abiertas para Carlos: emoji del salvavidas sale magenta (¿icono propio?), resplandores dorado/cian alrededor de esfinge y cofre (¿se quedan?), avatar de 100 px en Más o menos/Afinar (¿resta espacio?), Contrarreloj «jugando» deja un hueco grande entre la pregunta y los botones. Las tarjetas usan emojis sobre degradado como sustituto de imágenes.
+- **Esfinge**: se quedan los 4 clips del 6-oct. Faltan saludo, pensando, sorpresa y triste alternativa: **Carlos genera** un vídeo Wan 10 s con el prompt de `docs/esfinge-prompt-wan.md` (imagen `prototipos/avatares/esfinge-video/neutral.jpg`) y lo deja en `Downloads`; después, cortes medidos + hoja de contacto + OK + montaje.
 
 ## Dónde estamos (6-oct-2026, noche)
 - **Publicado**: v0.3 fases 1-2 (caché `one-v21`) + prototipo de avatares en `https://carlostorresadvisory.github.io/one/prototipos/avatares/`.
@@ -17,6 +21,7 @@
 3. `sharp` en `servidor/`/`tools/` para el WebP de IA (fase 7): Carlos hará `npm install` en el VPS y pondrá `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` en su `.env`.
 
 ## Siguiente paso
+0. Enseñar las maquetas a Carlos en el iPhone (publicar la rama con su OK o servirlas en local), recoger cambios, pasada adversarial (otro modelo) y llevar lo decidido a la spec antes de construir.
 1. Confirmar las 3 asunciones con Carlos.
 2. Fase 3 con `superpowers:subagent-driven-development` (implementador y revisor Sonnet, re-revisión Haiku; cierre con Opus ejecutando la app + adversarial `delegar.mjs --escalera revisar`). Empieza por la Tarea 3.1: panel `?depurar=sonido` y **Carlos lo abre en su iPhone** por la red local (`npm run servir`, IP con `ipconfig`) y manda capturas; sin causa demostrada no se toca el sonido.
 3. Fases 4 → 10 en orden, una sesión por fase si el contexto pasa de 250k.
