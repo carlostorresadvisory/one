@@ -1,16 +1,15 @@
-# Próxima sesión — ONE v0.3: terminar la fase 3 (sonido en el iPhone, aviso grande, cierre)
+# Próxima sesión — ONE v0.3: cerrar la fase 3 (sonido en el iPhone, revisión ejecutando la app, publicar)
 
-## Lo último (10-oct-2026, noche)
-- **Spec v0.3 actualizada y aprobada** (commit `9c3f255`, adversarial Nemotron: 6 aplicadas, 1 descartada): foto de Commons de fondo con la pregunta encima; ninguna tarjeta grande con emoji, salvo el 🛟 del Salvavidas (Carlos lo quiere así); Afinar con fotos a escala real; **suelo de nivel 3** en Órdago y Contrarreloj (Comparar: parejas ≤ ×4, fechas ≤ 300 años); resplandores solo en lo dorado; esfinge v2 (`prototipos/avatares/esfinge-v2/`, reposo + 6 gestos) para la fase 4, con mapa de gestos en §7. **Pendiente de Carlos**: tamaño del avatar en partida, cuando las fotos estén montadas (spec §14).
-- **Asunciones del plan confirmadas** (10-oct): nivel del multiplicador = nivel de la pregunta; Tienda mínima en la fase 3 y en el hub la esfinge solo en su tarjeta; en la fase 7 Carlos hará `npm install` en el VPS y pondrá `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
-- **Fase 3 en marcha** en la rama `v0.3-fase-3` (sale de `diseno-secciones`; al publicar entran también maquetas y esfinge v2). Registro de progreso y decisiones: `.superpowers/sdd/2026-10-06-one-v0.3-fases-3-10/progress.md` (no está en git: es la memoria de la ejecución, léelo primero). Hecho: 3.1 pasos 1-3 (`c474baa`, panel `?depurar=sonido`), 3.3 (`0139b36`, tarjeta = modo, fuera Comenzar, «Pronto»), 3.4 (`d129a0b`+`418a02b`, Tienda mínima con la mochila y Órdago con migración del filtro). Suites: 733 unitarios; e2e 157 antes del arreglo de la 3.4 (la completa se relanza en 3.6).
-- Esfinge v2 aprobada entera; lecciones: Carlos detecta todo boomerang; la cara respeta la emoción; nada cosido por zonas.
+## Lo último (10-oct-2026, noche, sesión desatendida)
+- **Hechas y revisadas en `v0.3-fase-3`**: 3.1 pasos 1-3 (panel `?depurar=sonido`), 3.3 (tarjeta = modo, «Pronto»), 3.4 (Tienda mínima, Órdago), **3.4b** (`ce5a448`: ONE abre directamente en el hub, fuera la pantalla 🧠/💪, sin «←» en el hub; spec §3 y plan en `d550e57`), **3.5** (`089d29c`: aviso grande «Preguntas generadas» + insignia PREMIUM; rulings en el plan: juega exactamente lo generado, nunca se muestra en pregunta/repaso/espera del Átomo, fuera del respaldo) y parte de **3.6** (`ece4cd0`: caché `one-v22` con `aviso-generadas.js`; el e2e del barrido 375×667 tenía una carrera al arrancar → espera al hub, tope 180 s).
+- Suites: unitarios **743/743**. e2e: tras la 3.5, 164 pasan + el barrido (ya arreglado y verificado aislado, 1,5 min). La e2e completa final la cortó Claude Code por falta de memoria en el PC: **relanzarla**.
+- Adversariales (gratis): spec+plan 3.4b (Groq gpt-oss-120b, 10 objeciones, 0 aplicadas) y código de la fase (Nemotron, 5 objeciones, 0 aplicadas: falsas o contra la spec; punto del pie 30×44 asumido). Detalle en `.superpowers/sdd/2026-10-06-one-v0.3-fases-3-10/progress.md`.
 
 ## Siguiente paso
-1. Leer `progress.md` (registro, decisiones y menores aplazados) y `git log --oneline -6`.
-2. **Sonido (3.1 pasos 4-6 → 3.2)**: pedir/leer las capturas de Carlos del panel en su iPhone (`http://192.168.1.137:8765/?depurar=sonido`, recargando una vez por la caché del service worker; con el interruptor en sonido y en silencio). El 10-oct al iPhone no le cargaba la URL: el PC sí sirve (curl 200 en 192.168.1.137:8765; cortafuegos permite node en perfil Público, que es el de la wifi `MIWIFI_sHY3`) → comprobar que el iPhone está en esa wifi y no en datos; si sigue sin cargar, alternativa: Tailscale (PC 100.72.197.51, perfil Privado: habría que permitir node también en Privado). Escribir `docs/diagnostico-sonido-2026-10.md` con la causa demostrada y solo entonces la 3.2.
-3. **Nueva (Carlos, 10-oct): fuera la pantalla de inicio de 🧠/💪**; ONE abre directamente en el hub de tarjetas. Llevarlo a la spec §3 (con adversarial) y hacerlo como tarea de la fase 3 antes de la 3.5 (revisar e2e que entran por `cerebro`).
-4. 3.5 (aviso grande «Preguntas generadas» + PREMIUM) y 3.6 (cierre: `one-v22`, revisión Opus ejecutando la app, adversarial gratis, OK de Carlos para publicar).
+1. Leer `progress.md` y `git log --oneline -8`.
+2. `npx playwright test` completo (con memoria libre; cerrar otras apps) → verde; `git checkout -- docs/capturas`.
+3. **Sonido (3.1 pasos 4-6 → 3.2)**, lo último por decisión de Carlos: `npm run servir` (lo cortó también la falta de memoria) y Carlos abre en el iPhone `http://192.168.1.137:8765/?depurar=sonido` (ya entra directo al hub). Si no carga: iPhone en la wifi `MIWIFI_sHY3` (no en datos 5G) y el PC con `ipconfig` mostrando aún 192.168.1.137; probar antes `http://192.168.1.137:8765/` desde el propio iPhone. Alternativa: Tailscale (PC 100.72.197.51; permitir node en el perfil Privado del cortafuegos). Capturas del panel con el interruptor en sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` con la causa demostrada → 3.2.
+4. Resto de 3.6: revisión final Opus **ejecutando la app** a 375×667 (hub directo, cada tarjeta, Tienda, aviso con `?test=1` y `__one.simularTandaLista`, silencio, sin scroll), `PROXIMA-SESION` reescrito y **OK de Carlos para publicar**.
 5. Antes de las fases 4, 5, 6 y 8: alinear su parte del plan con la spec del 10-oct (esfinge v2 y su API `gesto()`, fotos de fondo, suelo de nivel 3, Afinar con fotos).
 
 ## Aparcado de fases 1-2
@@ -18,7 +17,7 @@
 - Preexistentes: importar el mismo fichero dos veces no hace nada y no avisa; flakes de tests de servidor en Windows (`servidor-cola.test.js:888` EPERM, `servidor-generacion.test.js:1150` temporizadores bajo carga).
 
 ## Cómo trabajar
-- Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (725) y `npx playwright test` (155). La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
+- Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (743) y `npx playwright test` (≈165). La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
 - Escaleras de `delegar.mjs` al día (6-oct): `qwen3.8-27b:free` ya no existe, sustituido por `thinkingmachines/inkling-small:free`. Groq rechaza contextos > 8k tokens/min (413); para spec + plan ganó `nvidia/nemotron-3-super-120b-a12b:free`.
 - Procesar imágenes/vídeo: Pillow + numpy; ffmpeg vía `python -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"`.
 - Publicar solo con OK de Carlos; el push lo lanza él: `! git checkout main && git merge --ff-only <rama> && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve la caché nueva.
