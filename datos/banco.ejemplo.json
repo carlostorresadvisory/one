@@ -49,7 +49,12 @@
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "opciones": ["O", "Ox", "O2", "Om"],
+    "opciones": [
+      "O",
+      "Ox",
+      "O2",
+      "Om"
+    ],
     "correcta": 0
   },
   {
@@ -63,7 +68,12 @@
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "opciones": ["Vincent van Gogh", "Pablo Picasso", "Claude Monet", "Salvador Dalí"],
+    "opciones": [
+      "Vincent van Gogh",
+      "Pablo Picasso",
+      "Claude Monet",
+      "Salvador Dalí"
+    ],
     "correcta": 0
   },
   {
@@ -97,7 +107,12 @@
     "verificador": "manual",
     "verificado": true,
     "criterio": "de más antiguo a más reciente",
-    "items": ["Imperio Romano", "Edad Media", "Revolución Industrial", "Primera Guerra Mundial"]
+    "items": [
+      "Imperio Romano",
+      "Edad Media",
+      "Revolución Industrial",
+      "Primera Guerra Mundial"
+    ]
   },
   {
     "id": "log-001",
@@ -111,7 +126,12 @@
     "verificador": "manual",
     "verificado": true,
     "criterio": "de menor a mayor",
-    "items": ["2", "8", "15", "40"]
+    "items": [
+      "2",
+      "8",
+      "15",
+      "40"
+    ]
   },
   {
     "id": "fil-001",
@@ -125,7 +145,12 @@
     "verificador": "manual",
     "verificado": true,
     "criterio": "de más antiguo a más reciente",
-    "items": ["Sócrates", "Descartes", "Kant", "Nietzsche"]
+    "items": [
+      "Sócrates",
+      "Descartes",
+      "Kant",
+      "Nietzsche"
+    ]
   },
   {
     "id": "cie-002",
@@ -141,10 +166,22 @@
     "tarjeta": {
       "titulo": "Planetas y su posición desde el Sol",
       "filas": [
-        { "etiqueta": "Mercurio", "valor": "1º desde el Sol" },
-        { "etiqueta": "Venus", "valor": "2º desde el Sol" },
-        { "etiqueta": "Tierra", "valor": "3º desde el Sol" },
-        { "etiqueta": "Marte", "valor": "5º desde el Sol" }
+        {
+          "etiqueta": "Mercurio",
+          "valor": "1º desde el Sol"
+        },
+        {
+          "etiqueta": "Venus",
+          "valor": "2º desde el Sol"
+        },
+        {
+          "etiqueta": "Tierra",
+          "valor": "3º desde el Sol"
+        },
+        {
+          "etiqueta": "Marte",
+          "valor": "5º desde el Sol"
+        }
       ]
     },
     "sospechoso": 3
@@ -163,10 +200,22 @@
     "tarjeta": {
       "titulo": "Conceptos económicos básicos",
       "filas": [
-        { "etiqueta": "Oferta", "valor": "Cantidad de un bien que los vendedores están dispuestos a vender" },
-        { "etiqueta": "Demanda", "valor": "Cantidad de un bien que los compradores están dispuestos a comprar" },
-        { "etiqueta": "Inflación", "valor": "Caída generalizada y sostenida de los precios" },
-        { "etiqueta": "PIB", "valor": "Valor de los bienes y servicios finales producidos en un país" }
+        {
+          "etiqueta": "Oferta",
+          "valor": "Cantidad de un bien que los vendedores están dispuestos a vender"
+        },
+        {
+          "etiqueta": "Demanda",
+          "valor": "Cantidad de un bien que los compradores están dispuestos a comprar"
+        },
+        {
+          "etiqueta": "Inflación",
+          "valor": "Caída generalizada y sostenida de los precios"
+        },
+        {
+          "etiqueta": "PIB",
+          "valor": "Valor de los bienes y servicios finales producidos en un país"
+        }
       ]
     },
     "sospechoso": 2
@@ -185,12 +234,414 @@
     "tarjeta": {
       "titulo": "Movimientos artísticos y su periodo aproximado",
       "filas": [
-        { "etiqueta": "Renacimiento", "valor": "Siglos XV-XVI" },
-        { "etiqueta": "Barroco", "valor": "Siglos XVII-XVIII" },
-        { "etiqueta": "Impresionismo", "valor": "Siglo XIX" },
-        { "etiqueta": "Cubismo", "valor": "Siglo XVI" }
+        {
+          "etiqueta": "Renacimiento",
+          "valor": "Siglos XV-XVI"
+        },
+        {
+          "etiqueta": "Barroco",
+          "valor": "Siglos XVII-XVIII"
+        },
+        {
+          "etiqueta": "Impresionismo",
+          "valor": "Siglo XIX"
+        },
+        {
+          "etiqueta": "Cubismo",
+          "valor": "Siglo XVI"
+        }
       ]
     },
     "sospechoso": 3
+  },
+  {
+    "id": "eco-101",
+    "area": "economia",
+    "tipo": "test4",
+    "nivel": 4,
+    "enunciado": "¿Qué país emitió el primer billete de banco de Europa, en 1661?",
+    "explicacion": "El Stockholms Banco emitió en 1661 los primeros billetes europeos, por la escasez de monedas de plata.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Suecia",
+      "Países Bajos",
+      "Inglaterra",
+      "Italia"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "eco-102",
+    "area": "economia",
+    "tipo": "vf",
+    "nivel": 3,
+    "enunciado": "Un índice de Gini igual a 0 describe una sociedad con igualdad perfecta de ingresos.",
+    "explicacion": "El Gini va de 0 (todos ganan lo mismo) a 1 (una sola persona concentra todo el ingreso).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "eco-103",
+    "area": "economia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "Zimbabue llegó a emitir un billete de 100 billones de dólares zimbabuenses.",
+    "explicacion": "En 2009, en plena hiperinflación, el banco central emitió billetes de hasta 100 billones (10^14) de dólares zimbabuenses.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "his-101",
+    "area": "historia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿A qué emperador depuso Odoacro en el año 476?",
+    "explicacion": "Odoacro depuso a Rómulo Augústulo, el último emperador romano de Occidente.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Rómulo Augústulo",
+      "Nerón",
+      "Constantino",
+      "Justiniano"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "his-102",
+    "area": "historia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "La guerra de los Cien Años duró exactamente cien años.",
+    "explicacion": "Fue una serie de conflictos entre Inglaterra y Francia de 1337 a 1453: 116 años.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": false
+  },
+  {
+    "id": "his-103",
+    "area": "historia",
+    "tipo": "test4",
+    "nivel": 4,
+    "enunciado": "¿En qué año cayó Constantinopla en manos otomanas?",
+    "explicacion": "El 29 de mayo de 1453 Mehmed II tomó Constantinopla y acabó con el Imperio bizantino.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "1453",
+      "1204",
+      "1492",
+      "1389"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "cie-101",
+    "area": "ciencia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "La selva amazónica aporta el 20 % del oxígeno que respiramos.",
+    "explicacion": "Es un mito: la selva consume casi tanto oxígeno como produce. La mayor parte del oxígeno viene del fitoplancton y de la acumulación geológica.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": false
+  },
+  {
+    "id": "cie-102",
+    "area": "ciencia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Qué elemento tiene el símbolo W en la tabla periódica?",
+    "explicacion": "W viene de «Wolfram», el nombre alemán del wolframio o tungsteno.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Wolframio",
+      "Vanadio",
+      "Uranio",
+      "Xenón"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "cie-103",
+    "area": "ciencia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "El aire que atraviesa un rayo llega a ser más caliente que la superficie del Sol.",
+    "explicacion": "El canal de un rayo alcanza unos 30.000 K, unas cinco veces la temperatura de la superficie solar (≈ 5.800 K).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "tec-101",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Cuántos bits tiene una dirección IPv6?",
+    "explicacion": "IPv6 usa 128 bits; IPv4 usaba 32.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "128",
+      "64",
+      "256",
+      "32"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "tec-102",
+    "area": "tecnologia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "El primer mensaje enviado por ARPANET, en 1969, se cortó tras dos letras: «LO».",
+    "explicacion": "Quería escribir «LOGIN», pero el sistema se bloqueó tras «LO».",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "tec-103",
+    "area": "tecnologia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Quién creó el lenguaje de programación Python?",
+    "explicacion": "Guido van Rossum lo creó a finales de los años ochenta y publicó la primera versión en 1991.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Guido van Rossum",
+      "James Gosling",
+      "Larry Wall",
+      "Bjarne Stroustrup"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "geo-101",
+    "area": "geografia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Cuál es la capital de Australia?",
+    "explicacion": "Canberra se construyó como capital de compromiso entre las rivales Sídney y Melbourne.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Canberra",
+      "Sídney",
+      "Melbourne",
+      "Perth"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "geo-102",
+    "area": "geografia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "Francia es el país con más husos horarios del mundo, por sus territorios de ultramar.",
+    "explicacion": "Con sus territorios de ultramar, Francia abarca doce husos horarios, más que Rusia (once).",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "geo-103",
+    "area": "geografia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Qué país tiene más lagos del mundo?",
+    "explicacion": "Canadá concentra más de la mitad de los lagos del planeta.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Canadá",
+      "Rusia",
+      "Finlandia",
+      "Estados Unidos"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "fil-101",
+    "area": "filosofia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Qué filósofo fue maestro de Aristóteles?",
+    "explicacion": "Aristóteles estudió veinte años en la Academia de Platón.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Platón",
+      "Sócrates",
+      "Epicuro",
+      "Heráclito"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "fil-102",
+    "area": "filosofia",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "Platón recoge a Sócrates diciendo textualmente «Solo sé que no sé nada».",
+    "explicacion": "Es una paráfrasis. En la Apología, Sócrates dice que no cree saber lo que no sabe.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": false
+  },
+  {
+    "id": "fil-103",
+    "area": "filosofia",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Quién escribió «Crítica de la razón pura»?",
+    "explicacion": "Kant la publicó en 1781.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Immanuel Kant",
+      "David Hume",
+      "Georg Hegel",
+      "René Descartes"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "art-101",
+    "area": "arte",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Qué pintor es el autor de «El jardín de las delicias»?",
+    "explicacion": "Hieronymus Bosch, el Bosco, lo pintó hacia 1500; hoy cuelga en el Museo del Prado.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "El Bosco",
+      "Brueghel el Viejo",
+      "Durero",
+      "Jan van Eyck"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "art-102",
+    "area": "arte",
+    "tipo": "vf",
+    "nivel": 3,
+    "enunciado": "Picasso pintó el «Guernica» en 1937, tras el bombardeo de la ciudad vasca.",
+    "explicacion": "Lo pintó para el pabellón español de la Exposición de París de 1937.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "art-103",
+    "area": "arte",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿En qué ciudad nació Diego Velázquez?",
+    "explicacion": "Nació en Sevilla en 1599 y se formó allí antes de trasladarse a la corte de Madrid.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "Sevilla",
+      "Madrid",
+      "Toledo",
+      "Granada"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "log-101",
+    "area": "logica",
+    "tipo": "vf",
+    "nivel": 4,
+    "enunciado": "En el problema de Monty Hall, cambiar de puerta duplica la probabilidad de ganar respecto a mantener la elección.",
+    "explicacion": "Mantener gana 1/3 de las veces; cambiar gana 2/3.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": true
+  },
+  {
+    "id": "log-102",
+    "area": "logica",
+    "tipo": "test4",
+    "nivel": 3,
+    "enunciado": "¿Cuántas diagonales tiene un hexágono?",
+    "explicacion": "Un polígono de n lados tiene n(n−3)/2 diagonales: 6·3/2 = 9.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "opciones": [
+      "9",
+      "6",
+      "12",
+      "15"
+    ],
+    "correcta": 0
+  },
+  {
+    "id": "log-103",
+    "area": "logica",
+    "tipo": "vf",
+    "nivel": 3,
+    "enunciado": "Tras cinco caras seguidas con una moneda justa, la probabilidad de cruz en el siguiente lanzamiento es mayor del 50 %.",
+    "explicacion": "Cada lanzamiento es independiente: sigue siendo el 50 %. Creer lo contrario es la falacia del jugador.",
+    "confianza": 1,
+    "generador": "manual",
+    "verificador": "manual",
+    "verificado": true,
+    "respuesta": false
   }
 ]

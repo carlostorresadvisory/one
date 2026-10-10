@@ -48,6 +48,15 @@ export const MODOS = Object.freeze([
   }),
 ]);
 
+/** Órdago y Contrarreloj no sirven preguntas de nivel 1-2 (spec §4); Clásico y Repaso siguen desde el 1. */
+export const NIVEL_MINIMO_DIFICIL = 3;
+
+/** ¿Vale esta pregunta para un modo difícil? Solo V/F y test4 de nivel 3-5; sin `nivel` no vale. */
+export function esJugableDificil(p) {
+  return Boolean(p) && (p.tipo === 'vf' || p.tipo === 'test4')
+    && Number.isInteger(p.nivel) && p.nivel >= NIVEL_MINIMO_DIFICIL && p.nivel <= 5;
+}
+
 export function modoPorId(id) {
   return MODOS.find((m) => m.id === id) || null;
 }

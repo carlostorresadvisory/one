@@ -22,5 +22,53 @@
     "termino": "Starry Night Van Gogh painting",
     "ancho": 1,
     "alto": 1
+  },
+  "his-101": {
+    "id": "his-101",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-romulo-augustulo.png",
+    "titulo": "Ejemplo-romulo-augustulo.png",
+    "autor": "Autor de ejemplo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Rómulo Augústulo (imagen de ejemplo para el e2e)",
+    "termino": "Rómulo Augústulo (imagen de ejemplo para el e2e)",
+    "ancho": 1,
+    "alto": 1
+  },
+  "geo-101": {
+    "id": "geo-101",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-canberra.png",
+    "titulo": "Ejemplo-canberra.png",
+    "autor": "",
+    "licencia": "Public domain",
+    "leyenda": "Canberra (imagen de ejemplo para el e2e)",
+    "termino": "Canberra (imagen de ejemplo para el e2e)",
+    "ancho": 1,
+    "alto": 1
+  },
+  "art-101": {
+    "id": "art-101",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-jardin-delicias.png",
+    "titulo": "Ejemplo-jardin-delicias.png",
+    "autor": "Autor de ejemplo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "El jardín de las delicias (imagen de ejemplo para el e2e)",
+    "termino": "El jardín de las delicias (imagen de ejemplo para el e2e)",
+    "ancho": 1,
+    "alto": 1
+  },
+  "cie-102": {
+    "id": "cie-102",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-wolframio.png",
+    "titulo": "Ejemplo-wolframio.png",
+    "autor": "Autor de ejemplo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Wolframio (imagen de ejemplo para el e2e)",
+    "termino": "Wolframio (imagen de ejemplo para el e2e)",
+    "ancho": 1,
+    "alto": 1
   }
 }

@@ -6,12 +6,13 @@ import { exportarRespaldo, importarRespaldo, aplicarModos, VERSION_RESPALDO, CLA
 import { crearEstado, exportar } from '../motor.js';
 import { CLAVE_MOCHILA } from '../mochila.js';
 import { CLAVE_SILENCIO } from '../sonido.js';
+import { CLAVE_ORDAGO, cargarOrdago, crearOrdago } from '../ordago.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 
 const HOY = '2026-10-05';
 
 test('CLAVES_RESPALDO: las claves de v0.3 de estas fases', () => {
-  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas']);
+  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago']);
 });
 
 test('CLAVES_RESPALDO incluye las claves que usan mochila.js y sonido.js (test cruzado)', () => {
@@ -98,6 +99,18 @@ test('localStorage bloqueado (getter que lanza): exportar y aplicar no lanzan', 
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
     else delete globalThis.localStorage;
   }
+});
+
+test('Review Focus 4: one.ordago viaja en el respaldo y, con números absurdos, se normaliza sin lanzar', () => {
+  assert.ok(CLAVES_RESPALDO.includes(CLAVE_ORDAGO));
+  const bueno = JSON.stringify({ version: 1, fondo: 2500, curva: [1000, 2500], maximo: 2500, quiebras: 1, racha: 2 });
+  const ida = importarRespaldo(exportarRespaldo(crearEstado(HOY), almacenFalso({ 'one.ordago': bueno })));
+  assert.deepEqual(ida.modos, { 'one.ordago': bueno });
+  const absurdo = JSON.stringify({ fondo: -9, maximo: 'x', curva: 'no', quiebras: 1.5, racha: 1e99 });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.ordago': absurdo } });
+  const almacen = almacenFalso();
+  aplicarModos(importarRespaldo(json).modos, almacen);
+  assert.deepEqual(cargarOrdago(almacen), crearOrdago());
 });
 
 test('Review Focus 4: un respaldo v3 con one.filtros que trae apuesta importa sin lanzar y el filtro sale como ordago', () => {

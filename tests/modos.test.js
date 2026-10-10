@@ -1,7 +1,7 @@
 // Tests de modos.js: registro del hub v0.3 (spec §3).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MODOS, modoPorId, marcadorModo } from '../modos.js';
+import { MODOS, modoPorId, marcadorModo, esJugableDificil, NIVEL_MINIMO_DIFICIL } from '../modos.js';
 
 test('MODOS: los cinco modos en el orden de la rejilla; solo Clásico y Repaso disponibles', () => {
   assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
@@ -36,6 +36,18 @@ test('marcadorModo: Hoy a/r, por repasar / Al día, Pronto', () => {
 
 test('modos no disponibles marcan «Pronto»', () => {
   assert.equal(marcadorModo('contrarreloj', {}), 'Pronto');
+});
+
+test('suelo de nivel 3: solo V/F y test4 de nivel 3-5 valen para Órdago y Contrarreloj', () => {
+  assert.equal(NIVEL_MINIMO_DIFICIL, 3);
+  assert.equal(esJugableDificil({ tipo: 'vf', nivel: 3 }), true);
+  assert.equal(esJugableDificil({ tipo: 'test4', nivel: 5 }), true);
+  assert.equal(esJugableDificil({ tipo: 'vf', nivel: 2 }), false);
+  assert.equal(esJugableDificil({ tipo: 'vf' }), false);
+  assert.equal(esJugableDificil({ tipo: 'ordenar', nivel: 4 }), false);
+  assert.equal(esJugableDificil({ tipo: 'error', nivel: 4 }), false);
+  assert.equal(esJugableDificil({ tipo: 'vf', nivel: 6 }), false);
+  assert.equal(esJugableDificil(null), false);
 });
 
 test('el modo se llama Órdago con id ordago', () => {

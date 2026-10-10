@@ -134,6 +134,22 @@ test('validarBanco detecta ids duplicados como error', () => {
   assert.ok(errores.some((e) => /duplicad/i.test(e)));
 });
 
+test('banco de ejemplo: pasa el validador y trae >= 24 preguntas jugables de nivel 3-5 (>= 3 por área)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { esJugableDificil } = await import('../modos.js');
+  const banco = JSON.parse(await readFile(new URL('../datos/banco.ejemplo.json', import.meta.url), 'utf8'));
+  const { errores } = validarBanco(banco);
+  assert.deepEqual(errores, []);
+  const duras = banco.filter(esJugableDificil);
+  assert.ok(duras.length >= 24, `solo ${duras.length}`);
+  for (const area of ['economia', 'historia', 'ciencia', 'tecnologia', 'geografia', 'filosofia', 'arte', 'logica']) {
+    assert.ok(duras.filter((p) => p.area === area).length >= 3, area);
+  }
+  const imagenes = JSON.parse(await readFile(new URL('../datos/imagenes.ejemplo.json', import.meta.url), 'utf8'));
+  const ids = new Set(duras.map((p) => p.id));
+  assert.ok(Object.keys(imagenes).filter((id) => ids.has(id)).length >= 4, 'faltan fotos de ejemplo en preguntas difíciles');
+});
+
 test('validarBanco avisa de área con menos de 20 preguntas', () => {
   const banco = [];
   for (let i = 0; i < 19; i++) {

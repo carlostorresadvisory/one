@@ -1,0 +1,114 @@
+// ONE · ordago.js — reglas puras de Órdago (spec v0.3 §5.2): fondo, fichas, multiplicador, salvavidas,
+// quiebra, máximo histórico y persistencia. Sin DOM. Órdago no da objetos: lo que se gana es el fondo
+// (el dinero de la Tienda). La ficha solo se descuenta al RESOLVER una ronda (`resolverRonda`): elegir
+// ficha no toca el estado, así que si iOS mata la app antes de responder, la ronda no existió.
+
+export const FONDO_INICIAL = 1000;
+export const PROB_DORADA = 1 / 7;
+export const CLAVE_ORDAGO = 'one.ordago';
+export const MAX_CURVA = 200;
+const MAX_VALOR = 1e12; // tope contra respaldos manipulados y rachas absurdas
+
+export const FICHAS = Object.freeze([
+  Object.freeze({ id: '10', pct: 0.1, texto: '10 %' }),
+  Object.freeze({ id: '25', pct: 0.25, texto: '25 %' }),
+  Object.freeze({ id: '50', pct: 0.5, texto: '50 %' }),
+  Object.freeze({ id: 'ordago', pct: 1, texto: 'Órdago' }),
+]);
+
+export function crearOrdago() {
+  return { version: 1, fondo: FONDO_INICIAL, curva: [FONDO_INICIAL], maximo: FONDO_INICIAL, quiebras: 0, racha: 0 };
+}
+
+const esEntero = (n, tope = MAX_VALOR) => Number.isInteger(n) && n >= 0 && n <= tope;
+
+export function normalizarOrdago(obj) {
+  const base = crearOrdago();
+  if (!obj || typeof obj !== 'object') return base;
+  const fondo = esEntero(obj.fondo) ? obj.fondo : base.fondo;
+  const curva = Array.isArray(obj.curva) ? obj.curva.filter((n) => esEntero(n)).slice(-MAX_CURVA) : [];
+  return {
+    version: 1,
+    fondo,
+    curva: curva.length > 0 ? curva : [fondo],
+    maximo: Math.max(esEntero(obj.maximo) ? obj.maximo : base.maximo, fondo),
+    quiebras: esEntero(obj.quiebras, 1e6) ? obj.quiebras : 0,
+    racha: esEntero(obj.racha, 1e6) ? obj.racha : 0,
+  };
+}
+
+export function calcularFicha(fondo, pct) {
+  return Math.min(fondo, Math.max(1, Math.floor(fondo * pct)));
+}
+
+/** `nivel` es el de la pregunta (fórmula general 1-5; en Órdago la pantalla solo sirve 3-5). */
+export function multiplicador({ nivel, dorada, racha }) {
+  return (1 + (nivel - 1) * 0.25) * (dorada ? 3 : 1) * (racha >= 3 ? 1.5 : 1);
+}
+
+export function esDorada(rng = Math.random) {
+  return rng() < PROB_DORADA;
+}
+
+/** Una ronda: devuelve el estado nuevo, el cambio del fondo y si hay nuevo máximo o quiebra. */
+export function resolverRonda(estado, { ficha, correcta, nivel, dorada, salvavidas = false }) {
+  const actual = normalizarOrdago(estado);
+  const apuesta = Math.min(actual.fondo, Math.max(1, Math.floor(Number(ficha)) || 1));
+  let delta;
+  let racha;
+  if (correcta) {
+    delta = Math.floor(apuesta * multiplicador({ nivel, dorada, racha: actual.racha }));
+    racha = actual.racha + 1;
+  } else if (salvavidas) {
+    delta = -(apuesta - Math.floor(apuesta / 2));
+    racha = actual.racha;
+  } else {
+    delta = -apuesta;
+    racha = 0;
+  }
+  const fondo = Math.min(MAX_VALOR, Math.max(0, actual.fondo + delta));
+  delta = fondo - actual.fondo;
+  const nuevoMaximo = fondo > actual.maximo;
+  return {
+    estado: {
+      ...actual,
+      fondo,
+      racha,
+      maximo: nuevoMaximo ? fondo : actual.maximo,
+      curva: [...actual.curva, fondo].slice(-MAX_CURVA),
+    },
+    delta,
+    nuevoMaximo,
+    quiebra: fondo < 1,
+  };
+}
+
+/** Tras una quiebra: fondo de 1.000, el máximo histórico se conserva y la quiebra se cuenta. */
+export function abrirFondoNuevo(estado) {
+  const actual = normalizarOrdago(estado);
+  return {
+    ...actual,
+    fondo: FONDO_INICIAL,
+    quiebras: actual.quiebras + 1,
+    racha: 0,
+    curva: [...actual.curva, FONDO_INICIAL].slice(-MAX_CURVA),
+  };
+}
+
+export function cargarOrdago(almacen) {
+  try {
+    const crudo = (almacen ?? globalThis.localStorage).getItem(CLAVE_ORDAGO);
+    return crudo ? normalizarOrdago(JSON.parse(crudo)) : crearOrdago();
+  } catch {
+    return crearOrdago();
+  }
+}
+
+export function guardarOrdago(estado, almacen) {
+  try {
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_ORDAGO, JSON.stringify(normalizarOrdago(estado)));
+    return true;
+  } catch {
+    return false;
+  }
+}
