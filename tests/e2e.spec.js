@@ -1,4 +1,4 @@
-// e2e de ONE: inicio (🧠/💪) -> HUB (radar + misión + pendientes + niveles) ->
+// e2e de ONE: HUB (radar + misión + pendientes + niveles) ->
 // partida (mazo vertical, confianza dentro de la tarjeta, feedback compacto) ->
 // resumen (carrusel "Para repasar") -> HUB, contra el banco de ejemplo, más una
 // partida de humo contra el banco real. Playwright headless a 375x812.
@@ -470,18 +470,14 @@ async function jugarPartida(page, { alDetectarTipo, alVerFeedback, sospechosoPor
 }
 
 test.describe('ONE · integración e2e', () => {
-  test('inicio -> HUB -> partida -> resumen -> HUB: mecánicas, feedback, radar, misión, pendientes y progreso', async ({ page }) => {
+  test('HUB -> partida -> resumen -> HUB: mecánicas, feedback, radar, misión, pendientes y progreso', async ({ page }) => {
     const erroresPagina = [];
     page.on('pageerror', (err) => erroresPagina.push(err));
 
-    // 1. Inicio (🧠/💪) visible, racha en 0, sin tarjetas de modo aquí.
+    // 1. ONE abre directamente en el HUB, con la racha en 0.
     await page.goto('/?ejemplo=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
-    // Las tarjetas de modo viven en el HUB, no aquí: en el inicio de los emojis
-    // no deben verse (siguen en el DOM, solo que su vista está oculta).
-    await expect(page.locator('[data-test="modo-clasico"]')).toBeHidden();
-    await page.screenshot({ path: `${CAPTURAS}/01-inicio.png` });
 
     // Mapa título -> índice sospechoso del banco de ejemplo: permite acertar siempre
     // las preguntas de tipo "error" cuando queremos acertar a propósito.
@@ -490,12 +486,11 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    // 2. 🧠 lleva SIEMPRE al HUB: ahí están las tarjetas de modo, el radar de las 8 áreas, la
+    // 2. En el HUB están las tarjetas de modo, el radar de las 8 áreas, la
     // Misión de hoy y Pendientes. Estado recién creado: puntuación 0 en todas las
     // áreas -> radar vacío con aviso, sin relleno de solidez todavía, Pendientes
     // en 0 y una Misión de hoy recién generada (Economía + Historia son las dos
     // áreas más flojas del banco de ejemplo con todo a 0, por orden de AREAS).
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="radar"]')).toBeVisible();
     await expect(page.locator('[data-test="radar-solido"]')).toHaveCount(0);
@@ -506,12 +501,8 @@ test.describe('ONE · integración e2e', () => {
     await comprobarHuecoGridPie(page);
     await page.screenshot({ path: `${CAPTURAS}/02-hub.png` });
 
-    // 3. "←" desde el HUB vuelve a los emojis (nunca al revés): comprobamos el
-    // viaje de ida y vuelta antes de complicar el estado jugando.
-    await page.locator('[data-test="volver"]').click();
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    // 3. En el HUB no hay «←»: no hay a dónde volver.
+    await expect(page.locator('[data-test="volver"]')).toBeHidden();
 
     // 4. Practicar solo un área desde el HUB: tocar la tarjeta de "economia"
     // arranca una partida filtrada (el banco de ejemplo tiene 2 preguntas de esa
@@ -559,7 +550,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
 
-    // 7. "Inicio" (resumen) vuelve SIEMPRE al HUB, nunca a los emojis. Con la
+    // 7. "Inicio" (resumen) vuelve SIEMPRE al HUB. Con la
     // primera pregunta fallada, el resumen ES un mazo de repaso (spec v0.1c
     // §6): hay que recorrerlo hasta la tarjeta final para llegar a "Inicio".
     // La racha ya cuenta esta partida filtrada como partida completa del día,
@@ -600,7 +591,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
 
-    // 9. "←" desde pregunta/resumen vuelve siempre al HUB (nunca a los emojis):
+    // 9. "←" desde pregunta/resumen vuelve siempre al HUB:
     // arrancamos la partida normal (sin filtro) para comprobarlo desde pregunta. Clásico recuerda
     // el filtro de Economía del paso 4: el aviso de menos de 5 ofrece «Volver a TODOS».
     await entrarEnModo(page, 'clasico');
@@ -725,15 +716,12 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
     await expect(page.locator('[data-vista="resumen"]')).toBeHidden();
 
-    // 12. Recargar: siempre se cae en el inicio de los emojis (no hay "última
+    // 12. Recargar: siempre se cae en el HUB (no hay "última
     // vista" que recordar); la racha persiste. Volver al HUB: el radar ya no
     // está vacío, hay relleno de solidez y al menos una barra de área tiene progreso.
     await page.reload();
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
-
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 1');
     await expect(page.locator('#radar-vacio')).toBeHidden();
     await expect(page.locator('[data-test="radar-solido"], .radar-dato')).not.toHaveCount(0);
     await assertSinScroll(page);
@@ -753,8 +741,7 @@ test.describe('ONE · integración e2e', () => {
     page.on('pageerror', (err) => erroresPagina.push(err));
 
     await page.goto('/');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
     await page.locator('[data-test="modo-clasico"]').click();
@@ -773,11 +760,10 @@ test.describe('ONE · integración e2e', () => {
     await page.setViewportSize({ width: 430, height: 932 });
 
     await page.goto('/?ejemplo=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
     await page.screenshot({ path: `${CAPTURAS_430}/01-inicio.png` });
 
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
     await comprobarHuecoGridPie(page);
@@ -884,7 +870,6 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -993,8 +978,7 @@ test.describe('ONE · integración e2e', () => {
   test('mazo v0.1c §2.2: gesto real (down/move/up) — horizontal, vertical y diagonal nunca disparan los dos a la vez', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     // his-001 (vf) + art-001 (test4): 2 huecos fijos, para poder navegar al
@@ -1071,8 +1055,7 @@ test.describe('ONE · integración e2e', () => {
   // se vuelve al HUB con un aviso breve y la racha NO sube.
   test('M1: un filtro sin nada que jugar vuelve al HUB con aviso, sin fingir partida ni subir la racha', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
 
@@ -1157,8 +1140,7 @@ test.describe('ONE · integración e2e', () => {
     async function comprobarEnViewport(viewport, sufijo) {
       await page.setViewportSize(viewport);
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       // Partida cerrada a estas dos ids concretas (mismo mecanismo que Misión
@@ -1209,8 +1191,7 @@ test.describe('ONE · integración e2e', () => {
     async function comprobarEnViewport(viewport) {
       await page.setViewportSize(viewport);
       await page.goto('/?ejemplo=1&test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       await page.evaluate(
@@ -1295,8 +1276,7 @@ test.describe('ONE · integración e2e', () => {
     async function comprobarEnViewport(viewport, sufijo) {
       await page.setViewportSize(viewport);
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
@@ -1395,8 +1375,7 @@ test.describe('ONE · integración e2e', () => {
     }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       if (vp.zonaSegura) {
@@ -1543,8 +1522,7 @@ test.describe('ONE · integración e2e', () => {
       await page.goto('/?test=1');
       await page.evaluate(() => localStorage.clear());
       await page.reload();
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await page.evaluate(() => window.__one.empezarPartida({ ids: ['art-003'], etiqueta: 'captura-imagen' }));
 
@@ -1614,8 +1592,7 @@ test.describe('ONE · integración e2e', () => {
     page,
   }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     // URL relativa que el propio servidor de test (tools/servir.js) responde
@@ -1667,8 +1644,7 @@ test.describe('ONE · integración e2e', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const idSintetico = 'sintetico-m2-imagen-rota-con-visual';
@@ -1717,8 +1693,7 @@ test.describe('ONE · integración e2e', () => {
 
   test('mazo v0.1d §1: contador de la cabecera (respondidas/total en partida)', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -1741,7 +1716,7 @@ test.describe('ONE · integración e2e', () => {
 
   test('mazo v0.1d §1: contador del repaso (posición/total, no respondidas/10)', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     // Necesario para acertar SIEMPRE las de tipo "error" (spec de
     // responderPreguntaActual): sin este mapa, "responder correctamente"
@@ -1752,7 +1727,6 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
 
     // Falla las dos primeras a propósito para tener exactamente dos tarjetas
@@ -1780,8 +1754,7 @@ test.describe('ONE · integración e2e', () => {
 
   test('v0.2a.2.1 §1.2.4: "esta pregunta está mal" en su propia línea bajo los chips, y "Anotado" en su sitio', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -1808,8 +1781,7 @@ test.describe('ONE · integración e2e', () => {
 
   test('mazo v0.1d §3: confianza compacta a 32px tras responder, sigue editable', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -1856,8 +1828,7 @@ test.describe('ONE · integración e2e', () => {
     // vacío) la pista se mostraría en su lugar y el chevrón, correctamente,
     // no se vería.
     await page.evaluate(() => localStorage.setItem('one.pistaMazo', '5'));
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const indicador = page.locator('[data-test="mazo-gesto"]');
@@ -1893,8 +1864,7 @@ test.describe('ONE · integración e2e', () => {
     // camino y las medidas de .zona-imagen/.tarjeta-contenido salen unos px del sitio.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     // his-001 trae imagen en datos/imagenes.ejemplo.json (data: URI, sin red).
     await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'sobrante-imagen' }));
@@ -1938,8 +1908,7 @@ test.describe('ONE · integración e2e', () => {
       await page.goto('/?ejemplo=1&test=1');
       await page.evaluate(() => localStorage.clear());
       await page.reload();
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       // eco-001 (vf) no tiene entrada en datos/imagenes.ejemplo.json: tarjeta
@@ -1998,8 +1967,7 @@ test.describe('ONE · visuales v0.1e', () => {
       page,
     }) => {
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
@@ -2049,8 +2017,7 @@ test.describe('ONE · visuales v0.1e', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
@@ -2131,8 +2098,7 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
         await page.setViewportSize({ width: vp.width, height: vp.height });
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto('/?test=1');
-        await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-        await page.locator('[data-test="cerebro"]').click();
+        await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
         await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
         await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
 
@@ -2209,7 +2175,6 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
       const p2 = await contexto.newPage();
       await p2.emulateMedia({ reducedMotion: 'reduce' });
       await p2.goto('/?test=1');
-      await p2.locator('[data-test="cerebro"]').click();
       await p2.evaluate((idPregunta) => window.__one.empezarPartida({ ids: [idPregunta], etiqueta: 'barrido' }), id);
       await responderPreguntaActual(p2);
       await esperarAsentamientoMazo(p2);
@@ -2247,8 +2212,7 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
     await page.setViewportSize({ width: 375, height: 655 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), 'cie-008');
 
@@ -2299,8 +2263,7 @@ test.describe('ONE · C1 visual desbordado con zonas seguras del iPhone', () => 
     }) => {
       await page.setViewportSize({ width: 393, height: 852 });
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       // Zonas seguras reales de un iPhone con notch/Dynamic Island (59px
@@ -2343,8 +2306,7 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const idSintetico = 'sintetico-enunciado-6-lineas';
@@ -2391,8 +2353,7 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const idSintetico = 'sintetico-enunciado-40-lineas';
@@ -2468,8 +2429,7 @@ test.describe('ONE · Añadido A/B v0.1e', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await page.evaluate(() => window.__one.empezarPartida({ ids: ['log-040'], etiqueta: 'critico-enunciado-activo' }));
@@ -2504,8 +2464,7 @@ test.describe('ONE · repaso v0.2a', () => {
    * HUB con "←" desde el resumen (manejarVolver ya lleva siempre al HUB fuera
    * de la vista progreso, sin tener que recorrer el mazo de resumen). */
   async function prepararYJugar(page) {
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
@@ -2601,8 +2560,7 @@ test.describe('ONE · repaso v0.2a', () => {
     await page.addStyleTag({
       content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
     });
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const idLargo = 'sintetico-c1-desborde';
@@ -2826,7 +2784,7 @@ test.describe('ONE · repaso v0.2a', () => {
     page,
   }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const preguntaTest4 = bancoEjemplo.find((p) => p.tipo === 'test4');
@@ -2868,8 +2826,7 @@ test.describe('ONE · repaso v0.2a', () => {
     );
     await page.reload(); // recarga app.js: cargarEstado() lee YA el estado precargado.
 
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -2900,8 +2857,7 @@ test.describe('ONE · repaso v0.2a', () => {
     page,
   }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -2931,8 +2887,7 @@ test.describe('ONE · repaso v0.2a', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -2980,8 +2935,7 @@ test.describe('ONE · repaso v0.2a', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -3078,7 +3032,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     // URL limpia: sin servidor/token, conserva ?test=1 (no se pierde el hook de test).
     await expect(page).toHaveURL(/\/\?test=1$/);
 
-    // Directo al HUB (no a los emojis) con el aviso de conexión.
+    // Directo al HUB con el aviso de conexión.
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Servidor conectado');
 
@@ -3146,8 +3100,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     }));
 
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     expect(peticiones).toBe(0);
@@ -3218,7 +3171,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
 
     // Segunda sincronización: se dispara al recargar (mismo camino que "al abrir la app").
     await page.reload();
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await expect
       .poll(() => page.evaluate((id) => {
@@ -3320,7 +3273,6 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
 // debe pisar ni los enlaces del pie ni la rejilla de modos. Geometría real, sin mocks de servidor.
 test('HUB: el área táctil de 44px del punto de estado no pisa los enlaces del pie ni la rejilla (C4)', async ({ page }) => {
   await page.goto('/?test=1');
-  await page.locator('[data-test="cerebro"]').click();
   await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
   const geometria = await page.evaluate(() => {
@@ -3510,7 +3462,6 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirAtomoDesdeHub(page, 'economia');
@@ -3847,7 +3798,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     // Con el SW ya activo y controlando (self.clients.claim() en sw.js#activate), la SIGUIENTE
     // navegación al enlace especial de configuración sí pasa por su fetch handler -- la primera
     // petición de navegación de esta misma prueba (arriba) no pudo pasar por él: el SW todavía no
@@ -4150,7 +4101,6 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
   test('v0.2b4 §2: el chip "tanda-lista" del HUB ya no existe (una sola señal)', async ({ page }) => {
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="tanda-lista"]')).toHaveCount(0);
   });
@@ -4258,7 +4208,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
     // Exactamente lo que hace iOS al cambiar de app o bloquear el móvil.
     await page.reload();
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     // Sin tocar nada: el indicador sigue ahí y el sondeo se ha reanudado solo.
     await expect(indicador).toBeVisible();
     // Extra (hallazgo Minor diferido de tareas anteriores): reanudar NO debe pasar por ningún
@@ -4346,7 +4296,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       );
     });
     await page.goto('/?test=1'); // sin ?servidor=&token=: no hay configuración guardada
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-test="indicador-tanda"]')).toBeHidden();
     await expect.poll(() => page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
   });
@@ -4818,7 +4768,6 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     // Solo lleva `?test=1` (para el gancho que abre el átomo): comprueba que `location.search` no gana
     // nada tras conectar (el enlace se pegó en un <input>, nunca tocó la barra de direcciones).
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await abrirAtomoDesdeHub(page, 'economia');
     await expect(page.locator('[data-test="atomo"]')).toBeVisible();
@@ -4859,7 +4808,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
       'Toca un tema para concretar; «Elegir» fija el filtro'
     );
 
-    // El "Conectado" desaparece solo, a los 2s (mismo mecanismo que mostrarAvisoHub/mostrarAvisoCuerpo).
+    // El "Conectado" desaparece solo, a los 2s (mismo mecanismo que mostrarAvisoHub).
     await expect(page.locator('[data-test="conectar-hecho"]')).toBeHidden({ timeout: 3000 });
   });
 
@@ -4872,7 +4821,6 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
 
     await page.goto('/');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'gris');
@@ -4899,7 +4847,6 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
   }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
     await page.goto('/');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const punto = page.locator('[data-test="estado-servidor"]');
@@ -4931,7 +4878,6 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
   }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await abrirAtomoDesdeHub(page, 'economia');
     await expect(page.locator('[data-test="atomo"]')).toBeVisible();
 
@@ -4960,7 +4906,6 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
     page,
   }) => {
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await abrirAtomoDesdeHub(page, 'economia');
     await expect(page.locator('[data-test="atomo"]')).toBeVisible();
 
@@ -5106,8 +5051,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
       // bajo "reducir movimiento".
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/?ejemplo=1&test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       if (vp.zonaSegura) {
@@ -5179,8 +5123,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   // la lleva por reutilizar construirTarjetaRespondida).
   test('la tarjeta ACTIVA sin responder no lleva tarjeta--revelada ni tarjeta--recien-revelada', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -5226,8 +5169,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     test.setTimeout(120000);
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -5277,8 +5219,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const idClave = 'pv-i1-clave';
@@ -5329,8 +5270,7 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'clave-ordenar' }));
 
     const t = tarjetaActual(page);
@@ -5367,8 +5307,7 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await page.evaluate((q) => window.__one.inyectarPregunta(q), {
@@ -5463,8 +5402,7 @@ test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     // Tres preguntas sintéticas SIN imagen ni `visual`: las tres caen en la tercera capa.
     const preguntas = [
@@ -5568,8 +5506,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'a');
     const t = await jugarYRevelar(page, idImagen, 'pc-a');
 
@@ -5623,8 +5560,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     // no espera animaciones CSS por su cuenta y su toBeVisible() no mira `opacity`).
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idClave } = await inyectarImagenYClave(page, 'b');
     const t = await jugarYRevelar(page, idClave, 'pc-b');
     await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
@@ -5657,8 +5593,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'c');
     const t = await jugarYRevelar(page, idImagen, 'pc-c');
 
@@ -5691,8 +5626,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'd');
     const t = await jugarYRevelar(page, idImagen, 'pc-d');
 
@@ -5725,8 +5659,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await page.setViewportSize({ width: 375, height: 812 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'e');
     const t = await jugarYRevelar(page, idImagen, 'pc-e');
 
@@ -5743,8 +5676,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   test('el enlace de atribución del pie de la imagen sigue funcionando y no abre pantalla completa', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'f');
     const t = await jugarYRevelar(page, idImagen, 'pc-f');
 
@@ -5764,8 +5696,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   test('abre también desde el repaso "sin fin" del HUB (mazo-repaso)', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     await abrirFeedRepaso(page);
@@ -5787,8 +5718,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   test('el botón de cierre (44×44, arriba a la izquierda) cierra la superposición', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'g');
     const t = await jugarYRevelar(page, idImagen, 'pc-g');
 
@@ -5819,8 +5749,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'h');
     const t = await jugarYRevelar(page, idImagen, 'pc-h');
 
@@ -5859,8 +5788,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   test('trampa de foco sin atribución (tarjeta tipográfica): Tab se queda en el botón de cierre', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idClave } = await inyectarImagenYClave(page, 'j');
     const t = await jugarYRevelar(page, idClave, 'pc-j');
 
@@ -5887,8 +5815,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'i');
     const t = await jugarYRevelar(page, idImagen, 'pc-i');
 
@@ -5926,8 +5853,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'l');
     const t = await jugarYRevelar(page, idImagen, 'pc-l');
 
@@ -5967,8 +5893,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'p');
     const t = await jugarYRevelar(page, idImagen, 'pc-p');
 
@@ -6020,8 +5945,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await abrirFeedRepaso(page);
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
@@ -6072,8 +5996,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen } = await inyectarImagenYClave(page, 'n');
     const t = await jugarYRevelar(page, idImagen, 'pc-n');
     const overlay = page.locator('[data-test="visual-completa"]');
@@ -6132,8 +6055,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const { idImagen, idClave } = await inyectarImagenYClave(page, 'o');
     const overlay = page.locator('[data-test="visual-completa"]');
 
@@ -6160,8 +6082,7 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
@@ -6227,8 +6148,7 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await abrirFeedRepaso(page);
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
@@ -6278,8 +6198,7 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       // La imagen real de art-091 vive en upload.wikimedia.org: se fuerza un fixture con las
@@ -6365,8 +6284,7 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const FORMATOS = [
@@ -6404,8 +6322,7 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const base = {
       area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
@@ -6443,8 +6360,7 @@ test.describe('ONE · visual al 50-60 % real de la tarjeta (v0.2a.2.1 §1.1)', (
     // que no tiene nada que ver con lo que este test mide (el efecto del TEXTO sobre la zona).
     await page.evaluate(() => localStorage.clear());
     await page.reload();
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.evaluate((q) => window.__one.inyectarPregunta(q), larga);
 
     await page.evaluate(() => window.__one.empezarPartida({ ids: ['alto-larga'], etiqueta: 'alto-larga' }));
@@ -6472,8 +6388,7 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.evaluate((q) => window.__one.inyectarPregunta(q), {
       id, area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
       enunciado: 'El agua hierve a 100 °C al nivel del mar.',
@@ -6525,8 +6440,7 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const enunciadoLargo = `¿Cuál es la respuesta? ${'Contexto muy largo que no cabe de ninguna manera. '.repeat(8)}`;
     await page.evaluate((q) => window.__one.inyectarPregunta(q), {
       id: 'txt-enunciado', area: 'ciencia', tipo: 'vf', nivel: 1, respuesta: true,
@@ -6563,8 +6477,7 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
-    await page.locator('[data-test="cerebro"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const enunciadoLargo = 'Enunciado sintético deliberadamente absurdo, mucho más largo de lo que cabría nunca en una tarjeta neutra del repaso, pensado para forzar el recorte calculado del paso (d) de la cascada revelada. '.repeat(6);
@@ -6684,12 +6597,11 @@ test.describe('ONE · texto recortado tocable (v0.2a.2.1 §1.4)', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     const banco = await page.evaluate(() => fetch('datos/banco.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(
       banco.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
-    await page.locator('[data-test="cerebro"]').click();
 
     // 1. Duchamp (art-091), la captura que Carlos mandó con la imagen al 25 %.
     await page.evaluate((url) => window.__one.forzarImagen('art-091', {
@@ -6729,7 +6641,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   test('el chip abre la hoja, Ciencia → átomo (sin servidor) → Elegir: la partida es solo de Ciencia; sin scroll a 375×812 y 375×667', async ({ page }) => {
     // Banco real (35 de ciencia): con el de ejemplo (2) la Tarea 7 mandaría al aviso de "menos de 5".
     await page.goto('/?test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     const chip = page.locator('[data-test="chip-filtro"]');
@@ -6755,7 +6666,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('cerrar (✕ o Escape) no cambia el filtro ni abandona la partida; el foco vuelve al chip', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await page.locator('[data-test="filtro-cerrar"]').click();
@@ -6770,7 +6680,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('Atrás en el anillo 1 del átomo vuelve a la lista de áreas dentro de la hoja', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'ciencia');
@@ -6785,7 +6694,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   for (const alto of [812, 667]) test(`chip con subtema largo (375×${alto}): la cabecera no crece y racha/nivel no se parten`, async ({ page }) => {
     await page.setViewportSize({ width: 375, height: alto });
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     const ids = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()).then((b) => b.slice(0, 2).map((p) => p.id)));
     await page.evaluate((lista) => window.__one.empezarPartida({ ids: lista, etiqueta: 'Economía · Mercados y crisis financieras' }), ids);
     await expect(page.locator('[data-test="chip-filtro"]')).toBeVisible();
@@ -6800,7 +6708,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('chip con etiqueta larga: se recorta con … sin encoger la letra ni salirse de la pantalla', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     const ids = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()).then((b) => b.slice(0, 2).map((p) => p.id)));
     await page.evaluate((lista) => window.__one.empezarPartida({ ids: lista, etiqueta: 'Civilizaciones mesoamericanas precolombinas y su legado' }), ids);
     const chip = page.locator('[data-test="chip-filtro"]');
@@ -6816,7 +6723,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('pocos elementos: Economía (2 en el banco de ejemplo) → aviso; «Jugar las 2» juega solo esas; «Volver a TODOS» quita el filtro', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
@@ -6845,7 +6751,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await page.goto('/?ejemplo=1&test=1');
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
@@ -6863,7 +6768,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('defensivo: Volver con la hoja del filtro abierta la cierra', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await abrirHojaFiltro(page);
@@ -6877,7 +6781,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
       localStorage.setItem('one.filtros', JSON.stringify({ clasico: { area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma'] } }));
     });
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Aún no hay preguntas de Historia · Roma');
     await expect(page.locator('[data-test="filtro-corto-jugar"]')).toBeHidden();
@@ -6890,7 +6793,6 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
   test('Repaso filtrado a Ciencia con 1 pendiente: aviso con «Repasar la 1», sin Generar; jugarla la recupera', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
     const idCiencia = bancoEjemplo.find((p) => p.area === 'ciencia').id;
@@ -6914,7 +6816,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await page.setViewportSize(viewport);
       await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // imagen rota: la tarjeta se ve igual
       await page.goto('/?ejemplo=1');
-      await page.locator('[data-test="cerebro"]').click();
       await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
       for (const id of ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']) {
         await expect(page.locator(`[data-test="modo-${id}"]`)).toBeVisible();
@@ -6939,7 +6840,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 
   test('Repaso sin falladas avisa «Nada por repasar» sin navegar; una tarjeta «Pronto» no responde', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-ordago"]').click({ force: true });
     await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
@@ -6951,7 +6851,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 
   test('v0.3 fase 3: tocar una tarjeta lleva a su modo; las «Pronto» no responden; sin Comenzar', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
     const pronto = page.locator('[data-test="modo-contrarreloj"]');
     await expect(pronto).toHaveAttribute('aria-disabled', 'true');
@@ -6972,7 +6871,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   test('Review Focus 4: 375×667 con indicador de tanda, chip de nuevas y aviso a la vez: sin scroll ni solapes con las tarjetas', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.evaluate(() => {
       window.__one.mostrarIndicadorLista(['eco-001'], 'Mercados y crisis financieras');
       window.__one.mostrarChipNuevas(14, ['eco-001']);
@@ -6992,20 +6890,17 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 
   test('silencio: alterna 🔊/🔇 con aria-pressed y persiste tras recargar', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     const boton = page.locator('[data-test="silencio"]');
     await expect(boton).toHaveText('🔊');
     await boton.click();
     await expect(boton).toHaveText('🔇');
     await expect(boton).toHaveAttribute('aria-pressed', 'true');
     await page.reload();
-    await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-test="silencio"]')).toHaveText('🔇');
   });
 
   test('Exportar descarga un respaldo v3 con modos; Importar acepta un respaldo v2 antiguo (Review Focus 5)', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="silencio"]').click();
     const [descarga] = await Promise.all([page.waitForEvent('download'), page.locator('[data-test="exportar"]').click()]);
     const respaldo = JSON.parse(await (await descarga.createReadStream()).toArray().then((t) => Buffer.concat(t).toString('utf8')));
@@ -7028,7 +6923,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 
   test('Importar un respaldo v3 con basura en modos: el estado entra y la clave vieja one.ultimoModo se ignora', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     const v3 = await page.evaluate(() =>
       import('./motor.js').then((m) => {
         const e = m.crearEstado('2026-10-05');
@@ -7045,7 +6939,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   test('Créditos: las 5 imágenes con autor, licencia y enlace a Commons; cierra con Escape; cabe a 375×667', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="abrir-creditos"]').click();
     const hoja = page.locator('[data-test="creditos"]');
     await expect(hoja).toBeVisible();
@@ -7062,7 +6955,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     test(`silencio persistente (spec §7): visible y pulsable en partida y con tanda en curso, sin solape de cabecera, ${viewport.width}×${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto('/?ejemplo=1&test=1');
-      await page.locator('[data-test="cerebro"]').click();
       await entrarEnModo(page, 'clasico');
       await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
       const boton = page.locator('[data-test="silencio"]');
@@ -7090,7 +6982,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     test(`Tienda ${viewport.width}×${viewport.height}: la tarjeta abre la vista con la mochila, sin scroll, ← vuelve al hub y no quedan «Esfinge» ni «Apuesta»`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto('/?ejemplo=1');
-      await page.locator('[data-test="cerebro"]').click();
       await expect(page.locator('[data-test="tarjeta-tienda"]')).toContainText('Tienda');
       await expect(page.locator('body')).not.toContainText('Apuesta');
       await expect(page.locator('body')).not.toContainText('Esfinge');
@@ -7117,7 +7008,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   test('Tienda: la cantidad refleja la mochila guardada', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.evaluate(() => localStorage.setItem('one.mochila', JSON.stringify({ version: 1, objetos: { cincuenta: 2, salvavidas: 1, mas5: 0 } })));
-    await page.locator('[data-test="cerebro"]').click();
+    await page.reload();
     await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 3');
     await page.locator('[data-test="tarjeta-tienda"]').click();
     await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('×2');
@@ -7128,7 +7019,6 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
   test('acierto: ding + esfinge contenta + salto; fallo: golpe + esfinge triste', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
@@ -7150,7 +7040,6 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     test(`tanda de 10 con 10 aciertos (375×${alto}): premio de 1 objeto en el resumen, confeti, fanfarria y 🎒 1 en el hub`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: alto });
       await page.goto('/?ejemplo=1&test=1');
-      await page.locator('[data-test="cerebro"]').click();
       await page.locator('[data-test="modo-clasico"]').click();
       await page.locator('body').click({ position: { x: 5, y: 5 } });
       const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
@@ -7185,7 +7074,6 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
 
   test('Clásico 9/10: sin premio ni objeto en la mochila', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await jugarTandaConFallos(page, await sospechososDelBanco(page), 1);
     await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
@@ -7201,7 +7089,6 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
       };
     });
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     await jugarTandaConFallos(page, await sospechososDelBanco(page), 0);
     await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
@@ -7209,7 +7096,6 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
 
   test('Repaso 10/10: nunca da premio', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     const sospechosoPorTitulo = await sospechososDelBanco(page);
     await jugarTandaConFallos(page, sospechosoPorTitulo, 10); // 10 pendientes
@@ -7224,7 +7110,6 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
   test('con reducir movimiento: premio sí, confeti no', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
-    await page.locator('[data-test="cerebro"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
@@ -7232,4 +7117,23 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     await expect(page.locator('[data-test="premio"]')).toBeVisible();
     await expect(page.locator('[data-test="confeti"]')).toHaveCount(0);
   });
+});
+
+test('v0.3 fase 3: ONE abre directamente en el hub, sin pantalla 🧠/💪 y sin «←» en el hub', async ({ page }) => {
+  await page.goto('/?ejemplo=1&test=1');
+  await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  await expect(page.locator('[data-vista="inicio"]')).toHaveCount(0);
+  await expect(page.locator('[data-test="cerebro"]')).toHaveCount(0);
+  await expect(page.locator('[data-test="volver"]')).toBeHidden();
+  await page.locator('[data-test="modo-clasico"]').click();
+  await expect(page.locator('[data-test="volver"]')).toBeVisible();
+  await page.locator('[data-test="volver"]').click();
+  await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  await expect(page.locator('[data-test="volver"]')).toBeHidden();
+  for (const vp of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+    await page.setViewportSize(vp);
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await assertSinScroll(page);
+  }
 });

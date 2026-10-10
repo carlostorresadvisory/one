@@ -135,7 +135,7 @@ let repasoPartida = [];
 
 // Mazo del REPASO del HUB (feed "sin fin", spec v0.2 §2, infinito con todo el
 // banco desde v0.2a.1 §7): se monta en abrirRepaso()/renderRepaso() sobre
-// #mazo-repaso y se destruye al abandonar la vista (irAlHub/irAInicioEmojis,
+// #mazo-repaso y se destruye al abandonar la vista (irAlHub,
 // vía limpiarPartidaEnCurso) o antes de remontarlo con otro filtro. Nada que
 // ver con mazoResumenControlador (el repaso de UNA partida ya jugada): este
 // es el feed de TODO el banco (lo respondido + lo que falta por responder).
@@ -154,7 +154,7 @@ let repasoHuecos = [];
 let repasoVueltaTamanos = [];
 
 // Modo "practicar solo un área": null en partida normal; { area } cuando se entra
-// desde Progreso pulsando "Practicar" en una fila. Se limpia al volver a inicio
+// desde Progreso pulsando "Practicar" en una fila. Se limpia al volver al HUB
 // ("←" o "Inicio"); "Otra partida" en el resumen lo respeta para repetir el
 // mismo filtro.
 let filtroPartida = null;
@@ -244,8 +244,6 @@ const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto'];
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
 const nodoContenidoApp = document.querySelector('main#app');
 const nodoVolver = document.querySelector('[data-test="volver"]');
-const botonCuerpo = document.querySelector('[data-test="cuerpo"]');
-const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // Aviso breve del HUB (M1): "Nada que jugar con este filtro" cuando un filtro
 // (Misión de hoy, Pendientes...) resulta sin ninguna pregunta elegible.
 const avisoHub = document.getElementById('aviso-hub');
@@ -260,14 +258,10 @@ const esfingeCabecera = crearEsfinge(document.querySelector('[data-test="esfinge
 let esfingeHub = null;
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
 let nodoMarcadorTienda = null;
-// Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
-// grande" y visibles sin tener que fijarse en la esquina.
-const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
-const nodoNivelInicio = document.querySelector('[data-test="nivel-inicio"]');
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
-// Servidor de generación (v0.2b2 §4): punto de estado del pie del inicio y chip de banco extendido.
+// Servidor de generación (v0.2b2 §4): punto de estado del pie del HUB y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
 const nodoIndicadorTanda = document.querySelector('[data-test="indicador-tanda"]');
@@ -320,8 +314,8 @@ function mostrarVista(nombre) {
       v.classList.add('vista-entra');
     }
   });
-  // La flecha "←" vuelve a inicio: no tiene sentido mostrarla ya en inicio.
-  nodoVolver.hidden = nombre === 'inicio';
+  // El HUB es la pantalla de arranque: no hay a dónde volver desde él.
+  nodoVolver.hidden = nombre === 'progreso';
   actualizarCabecera();
 }
 
@@ -426,13 +420,8 @@ function capitalizar(texto) {
 }
 
 function actualizarCabecera() {
-  const textoRacha = `🔥 ${estado.racha.dias}`;
-  const textoNivel = `Nivel ${estado.nivelPartida}`;
-  nodoRacha.textContent = textoRacha;
-  nodoNivelPartida.textContent = textoNivel;
-  // Espejos "en grande" en inicio: mismo dato, misma fuente de verdad.
-  nodoRachaInicio.textContent = textoRacha;
-  nodoNivelInicio.textContent = textoNivel;
+  nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
+  nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
   const enModo = VISTAS_DE_MODO.includes(vistaActual());
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
   nodoLogo.hidden = enModo;
@@ -501,14 +490,8 @@ function limpiarPartidaEnCurso() {
   actualizarCabecera();
 }
 
-/** Pantalla de los dos emojis (🧠/💪). Solo se llega aquí desde "←" en el HUB. */
-function irAInicioEmojis() {
-  limpiarPartidaEnCurso();
-  mostrarVista('inicio');
-}
-
 /** El HUB (antes "Progreso"): SIEMPRE se empieza a jugar desde aquí. Se llega
- * desde 🧠, desde "←" en pregunta/resumen, y desde "Inicio" en el resumen. */
+ * desde "←" en pregunta/resumen, y desde "Inicio" en el resumen. */
 function irAlHub() {
   limpiarPartidaEnCurso();
   renderHub();
@@ -522,8 +505,8 @@ function hayPartidaAMedias() {
   return ['pregunta', 'repaso'].includes(vistaActual());
 }
 
-/** "←" de la cabecera: desde el HUB vuelve a los emojis; desde cualquier otro
- * sitio (pregunta, resumen) vuelve siempre al HUB, nunca a los emojis.
+/** "←" de la cabecera: en el HUB no hace nada (y está oculta); desde cualquier otro
+ * sitio (pregunta, resumen) vuelve siempre al HUB.
  *
  * Ola final v0.2b4 (I1c): excepción para `atomo-espera` -- si se llegó ahí desde una partida que
  * sigue montada, "←" devuelve a la partida en vez de mandarla a la basura. Defensivo: hoy el
@@ -532,26 +515,12 @@ function hayPartidaAMedias() {
  * la partida por sorpresa. */
 function manejarVolver() {
   cerrarHojaFiltro(); // defensivo: la hoja del filtro nunca queda encima de otra pantalla
-  if (vistaActual() === 'progreso') {
-    irAInicioEmojis();
-    return;
-  }
+  if (vistaActual() === 'progreso') return;
   if (vistaActual() === 'atomo-espera' && mazoControlador) {
     mostrarVista('pregunta');
     return;
   }
   irAlHub();
-}
-
-let avisoCuerpoId = null;
-/** 💪 está apagado: un aviso breve, sin navegar a ningún sitio. */
-function mostrarAvisoCuerpo() {
-  avisoCuerpo.hidden = false;
-  if (avisoCuerpoId !== null) clearTimeout(avisoCuerpoId);
-  avisoCuerpoId = setTimeout(() => {
-    avisoCuerpo.hidden = true;
-    avisoCuerpoId = null;
-  }, 1600);
 }
 
 let avisoHubId = null;
@@ -604,7 +573,7 @@ function actualizarAyudaAtomo() {
   nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
 }
 
-/** Pinta el punto del pie del inicio (data-estado + aria-label) según `estadoServidor`. También el
+/** Pinta el punto del pie del HUB (data-estado + aria-label) según `estadoServidor`. También el
  * mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador; Tarea 4 +
  * revisión combinada: los dos son ahora también botones que abren la hoja "Conectar", ver más
  * abajo, pero eso no cambia qué anuncia su `aria-label` -- sigue siendo el estado real
@@ -693,7 +662,7 @@ async function sincronizarEnSegundoPlano() {
 let avisoConectadoId = null;
 /** "Conectado" 2s (`data-test="conectar-hecho"`) tras guardar la configuración con éxito -- la
  * hoja ya se ha cerrado en ese momento (ver manejarConectarOk), así que este vive fuera de ella,
- * fijo y visible encima de cualquier vista (mismo patrón que mostrarAvisoCuerpo/mostrarAvisoHub). */
+ * fijo y visible encima de cualquier vista (mismo patrón que mostrarAvisoHub). */
 function mostrarAvisoConectado() {
   nodoConectarHecho.hidden = false;
   if (avisoConectadoId !== null) clearTimeout(avisoConectadoId);
@@ -1193,7 +1162,7 @@ function actualizarGenerarFiltroCorto() {
   const ocupado = Boolean(atomoTrabajoId) || atomoGenerarEnVuelo;
   nodoFiltroCortoGenerar.disabled = !conServidor || ocupado;
   const pista = !conServidor
-    ? 'Conecta el servidor para generar (punto del pie del inicio)'
+    ? 'Conecta el servidor para generar (punto del pie del HUB)'
     : ocupado
       ? 'Ya se está generando una tanda; te aviso arriba'
       : '';
@@ -1223,7 +1192,7 @@ function abrirAtomo(area) {
 }
 
 /** Desmonta el Átomo (SVG + estado de ruta), sin tocar el trabajo/sondeo en curso si lo hubiera
- * -- ver limpiarPartidaEnCurso, que es quien la llama al salir hacia el HUB o los emojis. */
+ * -- ver limpiarPartidaEnCurso, que es quien la llama al salir hacia el HUB. */
 function limpiarAtomo() {
   if (atomoInstancia) {
     atomoInstancia.destruir();
@@ -1696,15 +1665,9 @@ async function iniciar() {
   actualizarPuntoServidor();
   reanudarTandaGuardada(); // spec §1: la tanda a medias sobrevive a la recarga de iOS
 
-  if (seGuardoConfiguracion) {
-    // Directo al HUB (no a los emojis): es donde vive el punto de estado y el aviso, y así se ve
-    // "Servidor conectado" al momento en vez de quedarse esperando en la pantalla de inicio.
-    renderHub();
-    mostrarVista('progreso');
-    mostrarAvisoHub('Servidor conectado');
-  } else {
-    mostrarVista('inicio');
-  }
+  renderHub();
+  mostrarVista('progreso');
+  if (seGuardoConfiguracion) mostrarAvisoHub('Servidor conectado');
 
   // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
   sincronizarEnSegundoPlano();
@@ -3687,14 +3650,6 @@ function animarConteo(nodo, prefijo, valorFinal, sufijo = '') {
   contarCifra(nodo, { desde: 0, hasta: valorFinal, duracionMs: 600, formato: (n) => `${prefijo}${n}${sufijo}` });
 }
 
-// El fondo del inicio respira en bucle: se pausa cuando la app no está visible para
-// no gastar batería (hallazgo bajo de la pasada adversarial).
-document.addEventListener('visibilitychange', () => {
-  for (const luz of document.querySelectorAll('.fondo-luz')) {
-    luz.style.animationPlayState = document.hidden ? 'paused' : 'running';
-  }
-});
-
 // ============================================================================
 // --- REPASO: mazo vertical de solo lectura (spec v0.1c §6). Mismo componente
 // (montarMazo) que la partida, montado sobre #mazo-resumen: tarjeta 0 con las
@@ -4352,7 +4307,7 @@ nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
 nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
 nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
 // Hoja "Conectar" (v0.2b3 Tarea 4 + revisión combinada): se abre al tocar el punto de estado de
-// la cabecera del Átomo, el del HUB (en el pie del inicio -- Carlos aterriza ahí al abrir la app
+// la cabecera del Átomo, el del HUB (en el pie del HUB, donde aterriza Carlos al abrir la app
 // instalada), o el aviso del Átomo -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin
 // configuración); con servidor configurado el mismo nodo muestra otros textos (fallo al cargar,
 // "Buscando..."), que no deben abrir esta hoja.
@@ -4494,9 +4449,6 @@ window.addEventListener('resize', () => {
   posicionarIndicadorTanda();
   reservarHuecoIndicadorTanda();
 });
-// 🧠 lleva siempre al HUB (con los datos recién pintados); 💪 solo avisa.
-document.querySelector('[data-test="cerebro"]').addEventListener('click', irAlHub);
-botonCuerpo.addEventListener('click', mostrarAvisoCuerpo);
 nodoChipFiltro.addEventListener('click', abrirHojaFiltro);
 nodoFiltroCortoJugar.addEventListener('click', () => {
   if (filtroCortoContexto) arrancarModoSinComprobar(filtroCortoContexto.modo);

@@ -26,31 +26,6 @@
   </header>
 
   <main id="app">
-    <!-- INICIO: solo los dos emojis (🧠 lleva al HUB, 💪 apagado = "pronto"). Sin
-         botón Jugar: desde aquí nunca se juega directamente, se entra al HUB. -->
-    <section class="vista vista-inicio" data-vista="inicio">
-      <div class="fondo-dinamico" aria-hidden="true">
-        <div class="fondo-luz"></div>
-        <div class="fondo-vineta"></div>
-      </div>
-      <div class="inicio-centro">
-        <div class="inicio-emojis">
-          <button class="inicio-emoji-boton" data-test="cerebro" aria-label="Entrar a ONE">
-            <span class="inicio-emoji">🧠</span>
-          </button>
-          <button class="inicio-emoji-boton inicio-emoji-boton--apagado" data-test="cuerpo" aria-label="CUERPO, próximamente">
-            <span class="inicio-emoji">💪</span>
-            <span class="inicio-etiqueta-pronto">pronto</span>
-          </button>
-        </div>
-        <p class="inicio-aviso" id="aviso-cuerpo" hidden>Pronto: CUERPO</p>
-        <div class="inicio-mini-stats">
-          <span data-test="racha-inicio">🔥 0</span>
-          <span data-test="nivel-inicio">Nivel 1</span>
-        </div>
-      </div>
-    </section>
-
     <section class="vista" data-vista="pregunta" data-test="pregunta" hidden>
       <div class="barra-progreso">
         <div class="barra-progreso-relleno" id="barra-progreso-relleno"></div>

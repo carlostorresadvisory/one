@@ -166,120 +166,6 @@ main#app {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* Sección inicio: contenedor con overflow oculto para que el fondo animado (que
-   respira un poco más allá de sus bordes) nunca provoque scroll horizontal. */
-.vista-inicio {
-  position: relative;
-  overflow: hidden;
-}
-
-.inicio-centro {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* Los emojis caen en el tercio medio-bajo de la pantalla, no en el centro
-     exacto: más cerca del pulgar (spec "pantalla completa" 12-sep). */
-  padding-top: 12vh;
-  gap: 20px;
-}
-
-.inicio-emoji {
-  font-size: 72px;
-  margin: 0;
-  line-height: 1;
-}
-
-/* --- fondo dinámico del inicio (técnica adaptada de un fondo con "luces que
-   respiran" de otro proyecto propio; colores y proporciones son los de ONE) ---
-   Tres capas fijas al tamaño de la sección: dos luces radiales que se mueven muy
-   lentamente y una viñeta que oscurece los bordes. Sin JS: solo CSS. */
-.fondo-dinamico {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.fondo-luz {
-  position: absolute;
-  inset: -20%;
-  /* Las posiciones están calculadas para que, tras el inset:-20% (la capa mide
-     1.4x la sección), los brillos caigan CENTRADOS en la zona visible (donde
-     están los emojis), no en una esquina: comprobado con las coordenadas reales
-     (getBoundingClientRect) a 375x812, no solo a ojo. */
-  background:
-    radial-gradient(48% 42% at 39% 36%, rgba(76, 201, 240, 0.20), transparent 80%),
-    radial-gradient(52% 46% at 68% 64%, rgba(76, 201, 240, 0.13), transparent 80%),
-    radial-gradient(60% 55% at 50% 93%, rgba(21, 27, 35, 0.9), transparent 72%);
-  animation: fondo-respira 22s var(--ease-suave) infinite alternate;
-}
-
-@keyframes fondo-respira {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-2%, 1.5%, 0) scale(1.08); }
-}
-
-.fondo-vineta {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(120% 90% at 50% 35%, transparent 55%, rgba(11, 15, 20, 0.6) 100%);
-}
-
-.inicio-emojis {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-}
-
-.inicio-emoji-boton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 12px;
-  background: none;
-  border: none;
-  transition: transform 0.15s ease;
-}
-
-.inicio-emoji-boton:active {
-  transform: scale(0.97);
-}
-
-.inicio-emoji-boton--apagado {
-  opacity: 0.35;
-}
-
-.inicio-etiqueta-pronto {
-  font-size: 11px;
-  color: var(--texto-suave);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.inicio-aviso {
-  min-height: 20px;
-  margin: 4px 0 0;
-  color: var(--acento);
-  font-size: var(--tam-1);
-  text-align: center;
-}
-
-.inicio-mini-stats {
-  display: flex;
-  gap: 16px;
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
 .boton {
   min-height: 44px;
   min-width: 44px;
@@ -2718,12 +2604,11 @@ button.punto-servidor::before {
 }
 
 /* --- accesibilidad de movimiento ---
-   Con "reducir movimiento" activo: sin fondo animado, sin pulso/sacudida de la
+   Con "reducir movimiento" activo: sin pulso/sacudida de la
    tarjeta, y ninguna transición/animación del resto de la app (barra de
    progreso, transform de tarjeta al arrastrar, conteo del resumen se pinta ya
    resuelto por app.js). */
 @media (prefers-reduced-motion: reduce) {
-  .fondo-luz { animation: none; }
   .tarjeta.correcto > .tarjeta-contenido, .tarjeta.incorrecto > .tarjeta-contenido { animation: none; }
   /* spec §8/v0.2a.2: la entrada de la visual al responder (visual-entra, ver
      más arriba) tampoco anima con "reducir movimiento" activo. */
