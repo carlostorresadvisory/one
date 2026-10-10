@@ -43,6 +43,17 @@
  <div class="relleno"></div>
  <button class="btn pri" style="min-height:52px">Abrir un fondo nuevo con 1.000</button>
  <button class="btn dor" style="min-height:52px">🎒 Vender objetos → Tienda (3)</button>
+ <div class="et centro" style="font-size:12px">Este botón solo aparece si tienes objetos en la mochila.</div>
+</div></div>
+
+<div class="estado"><h3>4 · Nuevo máximo</h3><div class="m">
+ <div class="cab"><button class="atras">←</button><div class="marcador">Órdago<small>Nuevo máximo</small></div><button class="chip">TODOS ▾</button></div>
+ <div class="centro"><img class="av" style="width:170px;height:170px;filter:drop-shadow(0 0 22px #f2c14e88)" src="../avatares/i-esfinge/euforica.png" alt=""></div>
+ <div class="centro"><div class="grande" style="color:var(--dorado)">¡Nuevo máximo!</div><div class="et" style="margin-top:4px">Has superado tu máximo anterior de 3.100</div><div class="cifra" style="font-size:44px">3.482</div></div>
+ <div class="tarj"><div class="et" style="font-size:14px;color:var(--texto)">Superar el máximo <b>no da ningún objeto</b>. Tu fondo se canjea por objetos en la <b style="color:var(--dorado)">Tienda</b>.</div></div>
+ <div class="relleno"></div>
+ <button class="btn pri" style="min-height:52px">Seguir jugando</button>
+ <button class="btn dor" style="min-height:48px">Ir a la Tienda</button>
 </div></div>
 </section>
 
@@ -64,8 +75,9 @@
  <div class="banda" style="height:100px"><img class="av" style="width:100px;height:100px" src="../avatares/i-esfinge/contenta.png" alt=""><div class="info"><div class="et">Racha</div><div class="cifra">🔥 7</div></div></div>
  <div class="img" style="flex:1;background:linear-gradient(135deg,#6b4a1d,#2a1a0e)">🏛️<span class="nom">Fundación de Roma<br><small style="font-weight:400">año</small></span><span class="cif">753 a. C.</span></div>
  <div class="img" style="flex:1;background:linear-gradient(135deg,#1d4e3b,#0e2a1d)">🗼<span class="nom">Torre Eiffel</span><span class="cif" style="color:var(--ok)">1889</span></div>
- <div class="res ok">¡Después, acertaste! <small>Curiosidad: iba a desmontarse a los 20 años.</small></div>
- <div class="fila"><button class="btn ok" style="min-height:56px;font-size:18px">Antes</button><button class="btn" style="min-height:56px;font-size:18px">Después</button></div>
+ <div class="res ok" style="padding:6px 12px">¡Después, acertaste! <small>Curiosidad: iba a desmontarse a los 20 años.</small></div>
+ <div class="fila"><button class="btn ok" disabled style="min-height:56px;font-size:18px;opacity:.35">Antes</button><button class="btn" disabled style="min-height:56px;font-size:18px;opacity:.35">Después</button></div>
+ <button class="btn pri" style="min-height:48px">Toca para seguir ▶</button>
 </div></div>
 
 <div class="estado"><h3>3 · Comparar, fallo (diferencia)</h3><div class="m">
@@ -109,18 +121,21 @@
  <div class="res ok" style="font-size:20px">¡Clavado! <small>Tu estimación 96 m · real 93 m · error 3 %</small></div>
  <div class="slider"><div class="riel"></div><div class="real" style="left:41%"></div><div class="pul" style="left:42%;background:var(--ok);box-shadow:0 0 14px #3ddc8488"></div></div>
  <div class="escala"><span>1/20 ×</span><span>marca verde = valor real</span><span>20 ×</span></div>
+ <div class="et centro" style="font-size:12px">¡Clavado! &lt;2 % · Muy cerca &lt;10 % · Cerca &lt;25 % · Lejos</div>
  <button class="btn pri" style="min-height:52px">Siguiente</button>
 </div></div>
 
-<div class="estado"><h3>3 · Fechas: línea temporal</h3><div class="m">
+<div class="estado"><h3>3 · Fechas revelada: «Muy cerca» (niveles de cercanía)</h3><div class="m">
  <div class="cab"><button class="atras">←</button><div class="marcador">Afinar<small>Récord 5</small></div><button class="chip">Historia ▾</button></div>
  <div class="conm"><button>Comparar</button><button class="on">Afinar</button></div>
- <div class="banda" style="height:100px"><img class="av" style="width:100px;height:100px" src="../avatares/i-esfinge/neutral.png" alt=""><div class="info"><div class="et">Racha</div><div class="cifra">🔥 3</div></div></div>
- <div class="tarj" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
-  <div class="centro"><div class="et">Referencia clavada en su año</div><div style="font-size:48px">🏛️</div><div style="font-weight:700">Fundación de Roma · 753 a. C.</div></div>
-  <svg viewBox="0 0 300 70" width="100%"><line x1="10" y1="40" x2="290" y2="40" stroke="#2a3340" stroke-width="4"/><circle cx="60" cy="40" r="8" fill="#f2c14e"/><text x="60" y="22" text-anchor="middle" fill="#8a97a6" font-size="13">753 a. C.</text><circle cx="205" cy="40" r="14" fill="#4cc9f0"/><text x="205" y="68" text-anchor="middle" fill="#4cc9f0" font-size="14">¿ ?</text></svg>
-  <div class="centro"><div class="et">Arrastra: Caída de Constantinopla</div><div class="cifra" style="color:var(--acento);font-size:30px">≈ año 1380</div><div class="et">zoom: siglos → décadas</div></div></div>
- <button class="btn pri" style="min-height:52px">Listo</button>
+ <div class="banda" style="height:90px"><img class="av" style="width:90px;height:90px" src="../avatares/i-esfinge/contenta.png" alt=""><div class="info"><div class="et">Racha</div><div class="cifra">🔥 4</div></div></div>
+ <div class="tarj centro" style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px">
+  <div style="font-weight:700;font-size:15px">Caída de Constantinopla</div>
+  <svg viewBox="0 0 300 70" width="100%"><line x1="10" y1="40" x2="290" y2="40" stroke="#2a3340" stroke-width="4"/><circle cx="60" cy="40" r="7" fill="#f2c14e"/><text x="60" y="22" text-anchor="middle" fill="#8a97a6" font-size="12">753 a. C.</text><rect x="224" y="26" width="4" height="28" rx="2" fill="#3ddc84"/><text x="226" y="20" text-anchor="middle" fill="#3ddc84" font-size="12">real 1453</text><circle cx="205" cy="40" r="10" fill="#4cc9f0"/><text x="205" y="68" text-anchor="middle" fill="#4cc9f0" font-size="12">tú 1380</text></svg>
+  <div class="et">marca verde = fecha real</div></div>
+ <div class="res ok" style="padding:6px 12px">Muy cerca <small>Tu año 1380 · real 1453 · error 5 %</small></div>
+ <div class="et centro" style="font-size:12px">¡Clavado! &lt;2 % · Muy cerca &lt;10 % · Cerca &lt;25 % · Lejos</div>
+ <button class="btn pri" style="min-height:48px">Siguiente</button>
 </div></div>
 </section>
 
