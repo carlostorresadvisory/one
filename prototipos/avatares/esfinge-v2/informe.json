@@ -84,36 +84,55 @@
    [
     "B",
     0.406,
-    1.453
+    1.203
    ],
    [
     "B",
-    9.0,
-    9.5
+    0.797,
+    1.203
+   ],
+   [
+    "B^",
+    0.703,
+    0.406
    ]
   ],
-  "cuadros": 186,
-  "segundos": 3.1,
+  "cuadros": 180,
+  "segundos": 3.0,
   "uniones": [
    [
     1,
     28
    ],
    [
-    97,
-    28
+    81,
+    22
    ],
    [
-    158,
-    28
+    130,
+    20
+   ],
+   [
+    160,
+    20
    ]
   ],
-  "p95_real": 1.62,
-  "saltos_raros": [],
+  "p95_real": 1.95,
+  "saltos_raros": [
+   [
+    153,
+    3.21
+   ],
+   [
+    155,
+    3.59
+   ]
+  ],
   "tiras": [
    "tiras/saludo-0.jpg",
    "tiras/saludo-1.jpg",
-   "tiras/saludo-2.jpg"
+   "tiras/saludo-2.jpg",
+   "tiras/saludo-3.jpg"
   ]
  },
  "pensando": {
