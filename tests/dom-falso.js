@@ -33,6 +33,7 @@ export class ElementoFalso {
   getAttribute(nombre) { return Object.prototype.hasOwnProperty.call(this.attrs, nombre) ? this.attrs[nombre] : null; }
   appendChild(hijo) { this.children.push(hijo); return hijo; }
   append(...hijos) { hijos.forEach((h) => this.children.push(h)); }
+  replaceChildren(...hijos) { this.children = [...hijos]; }
   get classList() {
     const clases = this._clases;
     return {
@@ -78,9 +79,15 @@ export class ElementoFalso {
 
 export function instalarDomFalso() {
   const anterior = globalThis.document;
+  const oyentes = {};
   globalThis.document = {
     createElement: (tag) => new ElementoFalso(tag),
     createElementNS: (_ns, tag) => new ElementoFalso(tag),
+    addEventListener: (tipo, fn) => { (oyentes[tipo] = oyentes[tipo] || []).push(fn); },
+    removeEventListener: (tipo, fn) => { oyentes[tipo] = (oyentes[tipo] || []).filter((f) => f !== fn); },
+    /** Dispara a mano los oyentes de `tipo` del documento. */
+    disparar: (tipo) => [...(oyentes[tipo] || [])].forEach((fn) => fn({})),
+    oyentes: (tipo) => (oyentes[tipo] || []).length,
   };
   return () => {
     if (anterior === undefined) delete globalThis.document;
