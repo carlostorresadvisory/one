@@ -166,48 +166,38 @@
  "sorpresa": {
   "tramos": [
    [
-    "A~~",
-    3.203,
-    2.906
+    "B~~",
+    3.281,
+    3.703
    ],
    [
-    "A~~",
-    2.906,
-    3.125
-   ],
-   [
-    "A~",
-    3.141,
-    3.203
+    "B~",
+    6.156,
+    6.75
    ]
   ],
-  "cuadros": 180,
-  "segundos": 3.0,
+  "cuadros": 250,
+  "segundos": 4.17,
   "uniones": [
    [
     1,
-    18
+    28
    ],
    [
-    96,
-    0
+    138,
+    20
    ],
    [
-    153,
-    0
-   ],
-   [
-    162,
-    18
+    235,
+    15
    ]
   ],
-  "p95_real": 1.25,
+  "p95_real": 0.82,
   "saltos_raros": [],
   "tiras": [
    "tiras/sorpresa-0.jpg",
    "tiras/sorpresa-1.jpg",
-   "tiras/sorpresa-2.jpg",
-   "tiras/sorpresa-3.jpg"
+   "tiras/sorpresa-2.jpg"
   ]
  },
  "triste": {
@@ -223,19 +213,19 @@
     6.75
    ]
   ],
-  "cuadros": 277,
-  "segundos": 4.62,
+  "cuadros": 310,
+  "segundos": 5.17,
   "uniones": [
    [
     1,
-    28
+    61
    ],
    [
-    188,
+    221,
     0
    ],
    [
-    262,
+    295,
     15
    ]
   ],

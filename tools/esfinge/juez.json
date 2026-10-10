@@ -1,60 +1,25 @@
 {
- "tiras/pensando-0.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "se nota",
-  "motivo": "La pata delantera que se levanta para saludar se ve muy deformada, pareciendo una masa amorfa y sin dedos definidos (efecto 'blob') en los fotogramas interpolados, lo que rompe la continuidad anatómica del movimiento.",
-  "fotogramas": [
-   27,
-   28,
-   29,
-   30,
-   31,
-   32
-  ]
- },
- "tiras/pensando-2.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "natural",
-  "motivo": "Los fotogramas interpolados muestran una transición sumamente suave y continua, sin deformaciones, doble contorno, fantasma ni saltos bruscos de posición o expresión, por lo que la unión es imperceptible.",
-  "fotogramas": []
- },
- "tiras/sorpresa-1.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "natural",
-  "motivo": "La transición entre los fotogramas es extremadamente suave, sin que se observen saltos bruscos de posición, deformaciones geométricas, dobles contornos o efectos de desvanecimiento en ninguna parte del cuerpo del personaje.",
-  "fotogramas": []
- },
- "tiras/sorpresa-0.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "natural",
-  "motivo": "La interpolación es de alta calidad; no hay doble contorno, deformaciones, desvanecimientos ni saltos bruscos en la postura o la expresión del personaje.",
-  "fotogramas": []
- },
  "tiras/sorpresa-2.jpg": {
   "modelo": "dots-studio/dots-3-note-preview:free",
   "veredicto": "natural",
-  "motivo": "No se aprecian artefactos de interpolación como dobles contornos, translucidez, deformaciones geométricas ni saltos bruscos en la posición o expresión del personaje, mostrando una secuencia uniforme y continua.",
+  "motivo": "La interpolación muestra un movimiento suave y continuo, especialmente en la cola, sin presentar deformaciones, dobles contornos, desvanecimientos ni saltos bruscos de posición o expresión.",
   "fotogramas": []
+ },
+ "tiras/triste-0.jpg": {
+  "modelo": "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "veredicto": "se nota",
+  "motivo": "cambio brusco de expresión (ojos abiertos a cerrados) entre fotogramas consecutivos",
+  "fotogramas": [
+   4,
+   5,
+   9,
+   10
+  ]
  },
  "tiras/triste-2.jpg": {
   "modelo": "dots-studio/dots-3-note-preview:free",
   "veredicto": "natural",
-  "motivo": "No se observan artefactos de interpolación como fantasmas, transparencias, dobles contornos ni deformaciones; la secuencia es visualmente consistente y sin saltos bruscos.",
+  "motivo": "No se observan artefactos de interpolación como transparencias, doble contorno, fantasma o deformaciones, dado que el personaje permanece prácticamente estático y la transición entre los fotogramas es sumamente continua y uniforme.",
   "fotogramas": []
- },
- "tiras/triste-1.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "natural",
-  "motivo": "La única parte que mueve es los ojos, y la transición de los párpados y pupilas es extremadamente suave y continua, sin signos de doble contorno, fantasma, desvanecimiento ni saltos bruscos de posición.",
-  "fotogramas": []
- },
- "tiras/triste-0.jpg": {
-  "modelo": "dots-studio/dots-3-note-preview:free",
-  "veredicto": "se nota",
-  "motivo": "Las orejas aparecen de manera completamente brusca y opaca en el fotograma 25 sin una transición gradual de morphing o fundido desde el fotograma 24, generando un salto visual y estructual muy pronunciado.",
-  "fotogramas": [
-   24,
-   25
-  ]
  }
 }

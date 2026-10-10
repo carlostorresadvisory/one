@@ -1,12 +1,13 @@
 # gesto  tramos: vídeo inicio fin [vídeo inicio fin ...]   (A = 6-oct, B = 7-oct; segundos)
-# inicio > fin: marcha atrás (saludo, la subida de pensando y las orejas de sorpresa, que crecen con la recogida de orejas de A al revés)
+# inicio > fin: marcha atrás (saludo y la subida de pensando)
+# sorpresa: orejas y «¡oh!» reales de B a un cuarto, y sale por otro camino (las orejas se doblan, B6.15-6.75): sin boomerang
 # pensando: sube al revés, se queda pensando con la pata en la barbilla (B~ 1.95-2.45) y baja por delante, cortando antes de la sonrisa de B9.55
-# triste: entra directo a la cara triste de B (sin las orejas de A, que lo mezclaban con la sorpresa)
+# triste: la cara entra directa a la triste de B; 'orejas v i f' pone arriba (corona y orejas) ese crecimiento real de orejas
 # vídeo con '~': ese tramo a media velocidad (RIFE inventa un fotograma entre cada dos); '~~' a un cuarto
 # clips.py afina ±0,15 s el primer inicio y el último fin buscando el fotograma más cercano al ancla N (A8.17)
 saludo    B 0.40 1.20 B 1.19 0.40
 pensando  B 9.50 8.60 B~ 1.95 2.45 B 8.89 9.50
-sorpresa  A~~ 3.20 2.91 A~~ 2.90 3.12 A~ 3.14 3.20
-triste    B~ 4.20 5.60 B 5.61 6.75
+sorpresa  B~~ 3.28 3.70 B~ 6.15 6.75
+triste    B~ 4.20 5.60 B 5.61 6.75 orejas B 3.20 3.80
 acierto   A 0.05 2.35
 euforia   A 3.30 6.30

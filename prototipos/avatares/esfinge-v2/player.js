@@ -24,7 +24,7 @@ export function montarEsfinge(el, base, anclas) {
   cv.style.display = 'block';
   el.appendChild(cv);
   var vids = {};
-  CLIPS.forEach(function (n) { vids[n] = vid(base + n + '.mp4?v=4'); });
+  CLIPS.forEach(function (n) { vids[n] = vid(base + n + '.mp4?v=5'); });
   vids.reposo.loop = true;
   var actual = vids.reposo, entrante = null, pendiente = null, raf = 0, vivo = true, alCambiar = null;
 
