@@ -83,17 +83,19 @@ def montar(tramos, N, vN):
     cuadros, uniones = [N], []
     prev, vprev = N, vN; seguido = set()
     for k, i0, i1 in tramos:
-        k, _, f = k.partition('*'); f = float(f or 1)  # 'B*1.2': ese tramo a 1,2x
+        k, _, f = k.partition('*'); va, _, vb = (f or '1').partition('-'); va = float(va); vb = float(vb or va)  # 'B*1.2' a 1,2x; 'B*1-1.6' acelera de 1x a 1,6x
         lento = k.count('~'); k = k.rstrip('~'); X = video(k); paso = 1 if i1 >= i0 else -1
         if (k, i0) != N_IDX and (k, i0) not in seguido:  # un tramo que sigue al anterior en el vídeo no lleva puente
             p = puente(prev, X[i0], vprev, vel(k, i0)); uniones.append((len(cuadros), len(p))); cuadros += p
         trozo = [X[i] for i in range(i0, i1 + paso, paso)]
-        if f != 1:  # a 1,3x saltar fotogramas reales da pasos de 1 y 2 (tirones): se densifica x4 con RIFE y se muestrea parejo
-            d = lento_x2(lento_x2(trozo)); trozo = [d[round(j * 4 * f)] for j in range(int((len(d) - 1) / (4 * f)) + 1)]
+        if (va, vb) != (1, 1):  # saltar fotogramas reales da pasos de 1 y 2 (tirones): se densifica x4 con RIFE y se muestrea parejo
+            d = lento_x2(lento_x2(trozo)); L = len(d) - 1; x, pos = 0.0, []
+            while x <= L: pos.append(round(x)); x += 4 * (va + (vb - va) * x / L)
+            trozo = [d[i] for i in pos]
         trozo = trozo[int((k, i0) == N_IDX):]
         for _ in range(lento): trozo = lento_x2(trozo)
         cuadros += trozo
-        prev, vprev = trozo[-1], vel(k, i1) * f / 2 ** lento; seguido = {(k, i1 + 1), (k, i1 - 1)}
+        prev, vprev = trozo[-1], vel(k, i1) * vb / 2 ** lento; seguido = {(k, i1 + 1), (k, i1 - 1)}
     p = puente(prev, N, vprev, vN); uniones.append((len(cuadros), len(p))); cuadros += p
     return cuadros, uniones  # el último cuadro es el anterior a N: el siguiente clip empieza en N
 
