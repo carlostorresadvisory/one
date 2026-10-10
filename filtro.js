@@ -63,13 +63,28 @@ export function claveRuta(area, ruta) {
   return JSON.stringify([area, ruta]);
 }
 
-export function filtroDeModo(modo, almacen) {
+/** Lee `one.filtros` migrando la clave antigua `apuesta` (el modo se renombró a Órdago): si hay
+ * `ordago` manda ese; se reescribe sin `apuesta` (lo guardado no se pierde). Nada lanza. */
+function leerFiltros(almacen) {
   const todos = leerJson(almacen, CLAVE_FILTROS);
+  if (!esObjetoPlano(todos) || !('apuesta' in todos)) return todos;
+  const { apuesta, ...resto } = todos;
+  const migrado = 'ordago' in resto ? resto : { ...resto, ordago: apuesta };
+  try {
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_FILTROS, JSON.stringify(migrado));
+  } catch {
+    // almacenamiento bloqueado: se usa la versión migrada en memoria
+  }
+  return migrado;
+}
+
+export function filtroDeModo(modo, almacen) {
+  const todos = leerFiltros(almacen);
   return normalizarFiltro(esObjetoPlano(todos) ? todos[modo] : null);
 }
 
 export function guardarFiltroDeModo(modo, filtro, almacen) {
-  const todos = leerJson(almacen, CLAVE_FILTROS);
+  const todos = leerFiltros(almacen);
   const nuevo = { ...(esObjetoPlano(todos) ? todos : {}), [modo]: normalizarFiltro(filtro) };
   try {
     (almacen ?? globalThis.localStorage).setItem(CLAVE_FILTROS, JSON.stringify(nuevo));

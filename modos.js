@@ -23,7 +23,7 @@ export const MODOS = Object.freeze([
     }),
   }),
   Object.freeze({
-    id: 'apuesta', nombre: 'Apuesta', icono: '🎲', disponible: false, nivelFiltro: 'arbol',
+    id: 'ordago', nombre: 'Órdago', icono: '🎲', disponible: false, nivelFiltro: 'arbol',
     imagen: Object.freeze({
       url: `${COMMONS}/1/1c/Roulette_-_detail.jpg/500px-Roulette_-_detail.jpg`,
       pagina: 'https://commons.wikimedia.org/wiki/File:Roulette_-_detail.jpg',

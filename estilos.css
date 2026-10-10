@@ -2175,7 +2175,18 @@ button.punto-servidor::before {
      se queda: el indicador se coloca a su izquierda (app.js#posicionarIndicadorTanda). */
   display: none;
 }
-.cabecera--con-tanda .boton-silencio { margin-left: auto; }
+.cabecera--con-tanda /* Tienda mínima (fase 3): sin brillos ni sombras luminosas; el dorado queda para lo dorado. */
+.vista-tienda { align-items: stretch; gap: 14px; }
+.tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
+.tienda-avatar { display: flex; justify-content: center; }
+.tienda-avatar .esfinge--grande { width: 96px; height: 96px; }
+.tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.tienda-objeto { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
+.tienda-objeto-icono { font-size: 24px; line-height: 1; }
+.tienda-objeto-nombre { flex: 1 1 auto; font-size: var(--tam-1); font-weight: 600; }
+.tienda-objeto-cantidad { font-size: var(--tam-2); font-weight: 600; }
+.tienda-pronto { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
+.boton-silencio { margin-left: auto; }
 .cabecera--con-tanda .chip-filtro { max-width: 28vw; }
 
 /* Mismo motivo que .hub-chip-nuevas[hidden] más arriba: con `display:flex` declarado, el [hidden]
@@ -2989,7 +3000,7 @@ button.punto-servidor::before {
 }
 .hub-modo[data-modo="clasico"] { --color-modo: #12303a; }
 .hub-modo[data-modo="repaso"] { --color-modo: #172a3c; }
-.hub-modo[data-modo="apuesta"] { --color-modo: #2e2914; }
+.hub-modo[data-modo="ordago"] { --color-modo: #2e2914; }
 .hub-modo[data-modo="masomenos"] { --color-modo: #14302a; }
 .hub-modo[data-modo="contrarreloj"] { --color-modo: #2a2218; }
 .hub-modo-imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.32; pointer-events: none; }
@@ -3001,8 +3012,8 @@ button.punto-servidor::before {
 .hub-modo--pronto { cursor: default; }
 .hub-modo--pronto .hub-modo-nombre, .hub-modo--pronto .hub-modo-icono { opacity: 0.6; }
 .hub-modo--pronto .hub-modo-marcador { color: var(--dorado, #f2c14e); }
-.hub-modo--esfinge { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
-.hub-modo--esfinge .esfinge--grande { width: 60px; height: 60px; }
+.hub-modo--tienda { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
+.hub-modo--tienda .esfinge--grande { width: 60px; height: 60px; }
 .hub-esfinge-textos { display: flex; flex-direction: column; gap: 2px; }
 .boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
 .boton-silencio[hidden] { display: none; }

@@ -1,16 +1,16 @@
 // ONE · mochila.js — núcleo puro de la mochila (spec v0.3 §6). En las fases 1-2 solo hace falta
-// guardar objetos ganados (premio de tanda en Clásico) y contarlos (tarjeta Esfinge del hub).
+// guardar objetos ganados (premio de tanda en Clásico) y contarlos (tarjeta Tienda del hub).
 // Usar comodines, cofres, tienda (comprar/canjear) llegan en las fases 4 y 6 sobre esta base.
 // Precios en UNA sola tabla para retocarlos.
 
 export const OBJETOS = Object.freeze({
   cincuenta: Object.freeze({
     id: 'cincuenta', nombre: '50/50', icono: '✂️', precio: 300, rareza: 'raro',
-    modos: Object.freeze(['clasico', 'repaso', 'apuesta', 'contrarreloj']),
+    modos: Object.freeze(['clasico', 'repaso', 'ordago', 'contrarreloj']),
   }),
   salvavidas: Object.freeze({
     id: 'salvavidas', nombre: 'Salvavidas', icono: '🛟', precio: 500, rareza: 'epico',
-    modos: Object.freeze(['clasico', 'repaso', 'apuesta', 'masomenos', 'contrarreloj']),
+    modos: Object.freeze(['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']),
   }),
   mas5: Object.freeze({
     id: 'mas5', nombre: '+5 s', icono: '⏱️', precio: 200, rareza: 'comun',

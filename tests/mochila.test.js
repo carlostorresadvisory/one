@@ -88,3 +88,10 @@ test('localStorage bloqueado (getter que lanza): cargar y guardar no lanzan', ()
     else delete globalThis.localStorage;
   }
 });
+
+test('los comodines nombran ordago, no apuesta', () => {
+  assert.ok(OBJETOS.salvavidas.modos.includes('ordago'));
+  assert.ok(OBJETOS.cincuenta.modos.includes('ordago'));
+  assert.ok(!OBJETOS.salvavidas.modos.includes('apuesta'));
+  assert.ok(!OBJETOS.cincuenta.modos.includes('apuesta'));
+});

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { MODOS, modoPorId, marcadorModo } from '../modos.js';
 
 test('MODOS: los cinco modos en el orden de la rejilla; solo Clásico y Repaso disponibles', () => {
-  assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'apuesta', 'masomenos', 'contrarreloj']);
+  assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
   assert.deepEqual(MODOS.filter((m) => m.disponible).map((m) => m.id), ['clasico', 'repaso']);
 });
 
@@ -31,9 +31,14 @@ test('marcadorModo: Hoy a/r, por repasar / Al día, Pronto', () => {
   assert.equal(marcadorModo('clasico', datos), 'Hoy 4/10');
   assert.equal(marcadorModo('repaso', datos), '15 por repasar');
   assert.equal(marcadorModo('repaso', { ...datos, porRepasar: 0 }), 'Al día');
-  for (const id of ['apuesta', 'masomenos', 'contrarreloj']) assert.equal(marcadorModo(id, datos), 'Pronto');
+  for (const id of ['ordago', 'masomenos', 'contrarreloj']) assert.equal(marcadorModo(id, datos), 'Pronto');
 });
 
 test('modos no disponibles marcan «Pronto»', () => {
   assert.equal(marcadorModo('contrarreloj', {}), 'Pronto');
+});
+
+test('el modo se llama Órdago con id ordago', () => {
+  assert.equal(modoPorId('ordago').nombre, 'Órdago');
+  assert.equal(modoPorId('apuesta'), null);
 });

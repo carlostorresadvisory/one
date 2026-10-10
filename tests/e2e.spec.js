@@ -6916,15 +6916,15 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await page.goto('/?ejemplo=1');
       await page.locator('[data-test="cerebro"]').click();
       await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
-      for (const id of ['clasico', 'repaso', 'apuesta', 'masomenos', 'contrarreloj']) {
+      for (const id of ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']) {
         await expect(page.locator(`[data-test="modo-${id}"]`)).toBeVisible();
       }
       await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
       await expect(page.locator('[data-test="modo-clasico"]')).not.toHaveAttribute('aria-pressed', /.*/);
       await expect(page.locator('[data-test="marcador-clasico"]')).toHaveText('Hoy 0/0');
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
-      await expect(page.locator('[data-test="marcador-apuesta"]')).toHaveText('Pronto');
-      await expect(page.locator('[data-test="marcador-esfinge"]')).toHaveText('🎒 0');
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Pronto');
+      await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
       await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveCount(1);
       await expect(page.locator('[data-test="silencio"]')).toBeVisible();
       for (const quitado of ['mision', 'pendientes', 'repaso-hub', 'kpi-aciertos-hoy', 'recuperadas', 'practicar-economia']) {
@@ -6940,7 +6940,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   test('Repaso sin falladas avisa «Nada por repasar» sin navegar; una tarjeta «Pronto» no responde', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="modo-apuesta"]').click({ force: true });
+    await page.locator('[data-test="modo-ordago"]').click({ force: true });
     await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await entrarEnModo(page, 'repaso');
@@ -7086,12 +7086,39 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     });
   }
 
-  test('Esfinge: tocar la tarjeta → «La tienda llega pronto» y la esfinge grande reacciona', async ({ page }) => {
+  for (const viewport of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+    test(`Tienda ${viewport.width}×${viewport.height}: la tarjeta abre la vista con la mochila, sin scroll, ← vuelve al hub y no quedan «Esfinge» ni «Apuesta»`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1');
+      await page.locator('[data-test="cerebro"]').click();
+      await expect(page.locator('[data-test="tarjeta-tienda"]')).toContainText('Tienda');
+      await expect(page.locator('body')).not.toContainText('Apuesta');
+      await expect(page.locator('body')).not.toContainText('Esfinge');
+      await page.locator('[data-test="tarjeta-tienda"]').dblclick(); // doble toque rápido: una sola vista
+      await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+      await expect(page.locator('[data-vista="tienda"]')).toContainText('Tienda');
+      await expect(page.locator('[data-test="tienda-avatar"] svg')).toHaveCount(1);
+      for (const id of ['cincuenta', 'salvavidas', 'mas5']) {
+        await expect(page.locator(`[data-test="tienda-cantidad-${id}"]`)).toHaveText('×0');
+      }
+      await expect(page.locator('[data-test="tienda-objeto-salvavidas"]')).toContainText('🛟');
+      await expect(page.locator('[data-test="tienda-pronto"]')).toHaveText('Comprar y vender: pronto');
+      await expect(page.locator('body')).not.toContainText('Apuesta');
+      await expect(page.locator('body')).not.toContainText('Esfinge');
+      await assertSinScroll(page);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    });
+  }
+
+  test('Tienda: la cantidad refleja la mochila guardada', async ({ page }) => {
     await page.goto('/?ejemplo=1');
+    await page.evaluate(() => localStorage.setItem('one.mochila', JSON.stringify({ version: 1, objetos: { cincuenta: 2, salvavidas: 1, mas5: 0 } })));
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="tarjeta-esfinge"]').click();
-    await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('La tienda llega pronto');
-    await expect(page.locator('[data-test="tarjeta-esfinge"] svg')).toHaveAttribute('data-expresion', 'contenta');
+    await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 3');
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('×2');
+    await expect(page.locator('[data-test="tienda-cantidad-salvavidas"]')).toHaveText('×1');
   });
 });
 
@@ -7134,7 +7161,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
       await assertTarjetaSinScroll(page);
       expect(await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('one.mochila')).objetos).reduce((a, b) => a + b, 0))).toBe(1);
       await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
-      await expect(page.locator('[data-test="marcador-esfinge"]')).toHaveText('🎒 1');
+      await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 1');
     });
   }
 

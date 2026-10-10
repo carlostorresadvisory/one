@@ -250,7 +250,7 @@ const avisoCuerpo = document.getElementById('aviso-cuerpo');
 // (Misión de hoy, Pendientes...) resulta sin ninguna pregunta elegible.
 const avisoHub = document.getElementById('aviso-hub');
 
-// --- HUB v0.3: sonido, esfinge, tarjetas de modo ---
+// --- HUB v0.3: sonido, avatar, tarjetas de modo y Tienda ---
 const registroSonidos = new URLSearchParams(location.search).get('test') === '1' ? [] : null;
 const sonido = crearSonido({ registro: registroSonidos });
 const nodoSilencio = document.querySelector('[data-test="silencio"]');
@@ -259,7 +259,7 @@ const nodoCreditos = document.querySelector('[data-test="creditos"]');
 const esfingeCabecera = crearEsfinge(document.querySelector('[data-test="esfinge-cabecera"]'), { tamano: 'pequena' });
 let esfingeHub = null;
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
-let nodoMarcadorEsfinge = null;
+let nodoMarcadorTienda = null;
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
 // grande" y visibles sin tener que fijarse en la esquina.
 const nodoRachaInicio = document.querySelector('[data-test="racha-inicio"]');
@@ -4151,34 +4151,66 @@ function montarTarjetasHub() {
     nodoHubModos.appendChild(boton);
     nodosTarjetaModo.set(modo.id, { boton, marcador });
   }
-  const esfinge = document.createElement('button');
-  esfinge.type = 'button';
-  esfinge.className = 'hub-modo hub-modo--esfinge';
-  esfinge.dataset.test = 'tarjeta-esfinge';
+  const tienda = document.createElement('button');
+  tienda.type = 'button';
+  tienda.className = 'hub-modo hub-modo--tienda';
+  tienda.dataset.test = 'tarjeta-tienda';
   const lienzo = document.createElement('span');
   lienzo.className = 'hub-esfinge-lienzo';
   const textos = document.createElement('span');
   textos.className = 'hub-esfinge-textos';
   const nombre = document.createElement('span');
   nombre.className = 'hub-modo-nombre';
-  nombre.textContent = 'Esfinge';
-  nodoMarcadorEsfinge = document.createElement('span');
-  nodoMarcadorEsfinge.className = 'hub-modo-marcador';
-  nodoMarcadorEsfinge.dataset.test = 'marcador-esfinge';
-  textos.append(nombre, nodoMarcadorEsfinge);
-  esfinge.append(lienzo, textos);
-  esfinge.addEventListener('click', () => {
+  nombre.textContent = 'Tienda';
+  nodoMarcadorTienda = document.createElement('span');
+  nodoMarcadorTienda.className = 'hub-modo-marcador';
+  nodoMarcadorTienda.dataset.test = 'marcador-tienda';
+  textos.append(nombre, nodoMarcadorTienda);
+  tienda.append(lienzo, textos);
+  tienda.addEventListener('click', () => {
+    // Misma guardia que las tarjetas de modo: un segundo toque rápido no reabre la vista.
+    if (vistaActual() !== 'progreso') return;
     if (esfingeHub) esfingeHub.reaccionar('contenta');
-    mostrarAvisoHub('La tienda llega pronto');
+    abrirTienda();
   });
-  nodoHubModos.appendChild(esfinge);
+  nodoHubModos.appendChild(tienda);
   if (esfingeHub) esfingeHub.destruir();
   esfingeHub = crearEsfinge(lienzo, { tamano: 'grande' });
 }
 
+/** Vista Tienda mínima (fase 3): el avatar actual en grande y la mochila (icono, nombre, cantidad).
+ * Comprar y vender llegan en la fase 9. */
+let esfingeTienda = null;
+function abrirTienda() {
+  const nodoAvatar = document.querySelector('[data-test="tienda-avatar"]');
+  if (!esfingeTienda) esfingeTienda = crearEsfinge(nodoAvatar, { tamano: 'grande' });
+  const mochila = cargarMochila();
+  const lista = document.querySelector('[data-test="tienda-mochila"]');
+  lista.innerHTML = '';
+  for (const objeto of Object.values(OBJETOS)) {
+    const fila = document.createElement('li');
+    fila.className = 'tienda-objeto';
+    fila.dataset.test = `tienda-objeto-${objeto.id}`;
+    const icono = document.createElement('span');
+    icono.className = 'tienda-objeto-icono';
+    icono.setAttribute('aria-hidden', 'true');
+    icono.textContent = objeto.icono;
+    const nombre = document.createElement('span');
+    nombre.className = 'tienda-objeto-nombre';
+    nombre.textContent = objeto.nombre;
+    const cantidad = document.createElement('span');
+    cantidad.className = 'tienda-objeto-cantidad';
+    cantidad.dataset.test = `tienda-cantidad-${objeto.id}`;
+    cantidad.textContent = `×${mochila.objetos[objeto.id]}`;
+    fila.append(icono, nombre, cantidad);
+    lista.appendChild(fila);
+  }
+  mostrarVista('tienda');
+}
+
 function actualizarTarjetasHub(datos) {
   for (const [id, { marcador }] of nodosTarjetaModo) marcador.textContent = marcadorModo(id, datos);
-  if (nodoMarcadorEsfinge) nodoMarcadorEsfinge.textContent = `🎒 ${datos.objetos}`;
+  if (nodoMarcadorTienda) nodoMarcadorTienda.textContent = `🎒 ${datos.objetos}`;
 }
 
 /** El HUB de v0.3 (spec §3): radar + 6 tarjetas (tocar una abre su modo). Ya no genera la misión del día. */

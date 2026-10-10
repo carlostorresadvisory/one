@@ -42,7 +42,7 @@ test('filtro por modo: cada modo recuerda el suyo', () => {
   guardarFiltroDeModo('repaso', { area: 'ciencia' }, almacen);
   assert.deepEqual(filtroDeModo('clasico', almacen), ROMA);
   assert.equal(filtroDeModo('repaso', almacen).area, 'ciencia');
-  assert.equal(filtroDeModo('apuesta', almacen).area, null);
+  assert.equal(filtroDeModo('ordago', almacen).area, null);
 });
 
 test('Review Focus 2: one.filtros roto o almacén roto → TODOS, sin lanzar', () => {
@@ -218,4 +218,20 @@ test('filtroParaPartida con área sin ruta: {area} si hay nuevas o vencidas; si 
   const r = filtroParaPartida({ area: 'historia' }, banco, indice, todasAlDia, nombreArea, hoy);
   assert.deepEqual(r, { ids: ['srv-2', 'h2', 'h1', 'srv-1'], etiqueta: 'Historia' });
   assert.equal(r.ids.length, contarJugables(banco, { area: 'historia' }, indice, [])); // contar y jugar coinciden
+});
+
+test('migra el filtro guardado con la clave antigua apuesta a ordago', () => {
+  const almacen = almacenFalso({ 'one.filtros': JSON.stringify({ apuesta: { area: 'historia', ruta: [], etiquetas: [] } }) });
+  assert.equal(filtroDeModo('ordago', almacen).area, 'historia');
+  assert.ok(!('apuesta' in JSON.parse(almacen.getItem('one.filtros'))));
+  assert.equal(JSON.parse(almacen.getItem('one.filtros')).ordago.area, 'historia');
+});
+
+test('migración de apuesta: si ya hay ordago manda ese; con almacén roto no lanza', () => {
+  const almacen = almacenFalso({ 'one.filtros': JSON.stringify({
+    apuesta: { area: 'historia', ruta: [], etiquetas: [] }, ordago: { area: 'ciencia', ruta: [], etiquetas: [] },
+  }) });
+  assert.equal(filtroDeModo('ordago', almacen).area, 'ciencia');
+  assert.ok(!('apuesta' in JSON.parse(almacen.getItem('one.filtros'))));
+  assert.equal(filtroDeModo('ordago', almacenRoto()).area, null);
 });

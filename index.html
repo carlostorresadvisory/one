@@ -98,7 +98,7 @@
       <!-- Superpuestos (v0.3: no cambian la maquetación ni provocan scroll). -->
       <p class="hub-aviso" id="aviso-hub" data-test="aviso-hub" hidden aria-live="polite"></p>
       <button type="button" class="hub-chip-nuevas" data-test="nuevas-servidor" hidden></button>
-      <!-- HUB v0.3 (spec §3): radar + 5 modos + tarjeta de la esfinge (las monta app.js#montarTarjetasHub)
+      <!-- HUB v0.3 (spec §3): radar + 5 modos + tarjeta Tienda (las monta app.js#montarTarjetasHub)
            + pie (Exportar / Importar / Créditos / punto del servidor). -->
       <div class="hub-modos" data-test="hub-modos" role="group" aria-label="Modos de juego"></div>
       <div class="hub-pie">
@@ -118,6 +118,15 @@
           aria-label="Servidor sin conectar, toca para conectar"
         ></button>
       </div>
+    </section>
+
+    <!-- TIENDA mínima (v0.3 fase 3; la completa llega en la fase 9): avatar grande + mochila. Se abre
+         desde la tarjeta Tienda del hub y la flecha ← de la cabecera vuelve al hub. -->
+    <section class="vista vista-tienda" data-vista="tienda" data-test="tienda" hidden>
+      <h2 class="tienda-titulo">Tienda</h2>
+      <div class="tienda-avatar" data-test="tienda-avatar"></div>
+      <ul class="tienda-mochila" data-test="tienda-mochila" aria-label="Mochila"></ul>
+      <p class="tienda-pronto" data-test="tienda-pronto">Comprar y vender: pronto</p>
     </section>
 
     <!-- v0.3 §4/§11: el filtro del modo deja menos de 5 elementos jugables. -->
