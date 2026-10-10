@@ -112,3 +112,35 @@ export function guardarOrdago(estado, almacen) {
     return false;
   }
 }
+
+/** Cifras con punto de miles también de 4 cifras («1.250»); `toLocaleString('es-ES')` las deja pegadas. */
+export function formatearCifra(n) {
+  const entero = Math.trunc(Number(n));
+  if (!Number.isFinite(entero)) return '0';
+  return String(Math.abs(entero)).replace(/\B(?=(\d{3})+(?!\d))/g, '.').replace(/^/, entero < 0 ? '−' : '');
+}
+
+/** Siguiente pregunta: entre las `candidatas` (ya filtradas por tema y nivel 3-5) las no usadas en esta
+ * sesión, las que aún no se han jugado nunca (`vistas`) primero; agotadas, se repite alguna menos la
+ * última. `null` si no hay ninguna. */
+export function elegirPreguntaOrdago(candidatas, { usados = new Set(), vistas = new Set(), ultima = null, rng = Math.random } = {}) {
+  const libres = candidatas.filter((p) => !usados.has(p.id));
+  const base = libres.length > 0 ? libres : candidatas.filter((p) => p.id !== ultima);
+  const reserva = base.length > 0 ? base : candidatas;
+  const nuevas = reserva.filter((p) => !vistas.has(p.id));
+  const lista = nuevas.length > 0 ? nuevas : reserva;
+  return lista.length > 0 ? lista[Math.min(lista.length - 1, Math.floor(rng() * lista.length))] : null;
+}
+
+/** Puntos de la minicurva (viewBox `ancho`×`alto`, con margen) y la altura del máximo histórico. */
+export function puntosMinicurva(curva, maximo, { ancho = 60, alto = 24, margen = 2 } = {}) {
+  const base = Array.isArray(curva) && curva.length > 0 ? curva : [0];
+  const valores = base.length === 1 ? [base[0], base[0]] : base;
+  const techo = Math.max(maximo, ...valores);
+  const suelo = Math.min(...valores);
+  const rango = techo - suelo || 1;
+  const redondear = (n) => Math.round(n * 10) / 10;
+  const y = (v) => redondear(alto - margen - ((v - suelo) / rango) * (alto - 2 * margen));
+  const paso = ancho / (valores.length - 1);
+  return { puntos: valores.map((v, i) => `${redondear(i * paso)},${y(v)}`).join(' '), yMaximo: y(maximo) };
+}

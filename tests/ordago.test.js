@@ -104,3 +104,28 @@ test('resolverRonda no confía en una ficha mayor que el fondo ni en una ficha a
   const s = O.resolverRonda(O.crearOrdago(), { ficha: NaN, correcta: false, nivel: 3, dorada: false });
   assert.equal(s.estado.fondo, 999);
 });
+test('formatearCifra: punto de miles desde 4 cifras y signo menos tipográfico', () => {
+  assert.equal(O.formatearCifra(1000), '1.000');
+  assert.equal(O.formatearCifra(1250), '1.250');
+  assert.equal(O.formatearCifra(999), '999');
+  assert.equal(O.formatearCifra(1234567), '1.234.567');
+  assert.equal(O.formatearCifra(-250), '−250');
+  assert.equal(O.formatearCifra(NaN), '0');
+});
+test('elegirPreguntaOrdago: no repite hasta agotar, prefiere las nunca jugadas y evita la última', () => {
+  const lista = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  assert.equal(O.elegirPreguntaOrdago([], {}), null);
+  assert.equal(O.elegirPreguntaOrdago(lista, { usados: new Set(['a', 'b']), rng: () => 0 }).id, 'c');
+  assert.equal(O.elegirPreguntaOrdago(lista, { vistas: new Set(['a', 'b']), rng: () => 0 }).id, 'c');
+  const agotadas = O.elegirPreguntaOrdago(lista, { usados: new Set(['a', 'b', 'c']), ultima: 'c', rng: () => 0.99 });
+  assert.notEqual(agotadas.id, 'c');
+  assert.equal(O.elegirPreguntaOrdago([{ id: 'x' }], { usados: new Set(['x']), ultima: 'x' }).id, 'x');
+});
+test('puntosMinicurva: sube hacia arriba, el máximo marca el techo y un solo punto no rompe', () => {
+  const { puntos, yMaximo } = O.puntosMinicurva([1000, 500, 1500], 1500);
+  assert.equal(puntos, '0,12 30,22 60,2');
+  assert.equal(yMaximo, 2);
+  const uno = O.puntosMinicurva([1000], 1000);
+  assert.equal(uno.puntos.split(' ').length, 2);
+  assert.ok(Number.isFinite(O.puntosMinicurva([], 0).yMaximo));
+});

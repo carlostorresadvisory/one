@@ -323,13 +323,13 @@
     "area": "historia",
     "tipo": "vf",
     "nivel": 4,
-    "enunciado": "La guerra de los Cien Años duró exactamente cien años.",
-    "explicacion": "Fue una serie de conflictos entre Inglaterra y Francia de 1337 a 1453: 116 años.",
+    "enunciado": "La guerra de los Cien Años duró 116 años.",
+    "explicacion": "Fue una serie de conflictos entre Inglaterra y Francia de 1337 a 1453: 116 años, no cien.",
     "confianza": 1,
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "respuesta": false
+    "respuesta": true
   },
   {
     "id": "his-103",
@@ -355,13 +355,13 @@
     "area": "ciencia",
     "tipo": "vf",
     "nivel": 4,
-    "enunciado": "La selva amazónica aporta el 20 % del oxígeno que respiramos.",
-    "explicacion": "Es un mito: la selva consume casi tanto oxígeno como produce. La mayor parte del oxígeno viene del fitoplancton y de la acumulación geológica.",
+    "enunciado": "La selva amazónica consume casi tanto oxígeno como el que produce.",
+    "explicacion": "Por eso no es «el pulmón del planeta»: aporta menos del 20 % del oxígeno que se le atribuye; la mayor parte viene del fitoplancton.",
     "confianza": 1,
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "respuesta": false
+    "respuesta": true
   },
   {
     "id": "cie-102",
@@ -521,13 +521,13 @@
     "area": "filosofia",
     "tipo": "vf",
     "nivel": 4,
-    "enunciado": "Platón recoge a Sócrates diciendo textualmente «Solo sé que no sé nada».",
-    "explicacion": "Es una paráfrasis. En la Apología, Sócrates dice que no cree saber lo que no sabe.",
+    "enunciado": "La frase «Solo sé que no sé nada» es una paráfrasis de lo que Platón recoge de Sócrates.",
+    "explicacion": "En la Apología, Sócrates dice que no cree saber lo que no sabe; la fórmula famosa es una paráfrasis posterior.",
     "confianza": 1,
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "respuesta": false
+    "respuesta": true
   },
   {
     "id": "fil-103",
@@ -636,12 +636,12 @@
     "area": "logica",
     "tipo": "vf",
     "nivel": 3,
-    "enunciado": "Tras cinco caras seguidas con una moneda justa, la probabilidad de cruz en el siguiente lanzamiento es mayor del 50 %.",
-    "explicacion": "Cada lanzamiento es independiente: sigue siendo el 50 %. Creer lo contrario es la falacia del jugador.",
+    "enunciado": "Tras cinco caras seguidas con una moneda justa, la probabilidad de cruz en el siguiente lanzamiento sigue siendo del 50 %.",
+    "explicacion": "Cada lanzamiento es independiente. Creer lo contrario es la falacia del jugador.",
     "confianza": 1,
     "generador": "manual",
     "verificador": "manual",
     "verificado": true,
-    "respuesta": false
+    "respuesta": true
   }
 ]

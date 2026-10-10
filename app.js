@@ -34,15 +34,17 @@ import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
 import {
   FILTRO_TODOS, filtroDeModo, guardarFiltroDeModo, etiquetaFiltro, esTodos, filtroParaPartida,
   filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
-  avisoFiltroCorto,
+  avisoFiltroCorto, preguntasDelFiltro,
 } from './filtro.js';
-import { MODOS, modoPorId, marcadorModo } from './modos.js';
+import { MODOS, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
 import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
 import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
+import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
+import { montarOrdago } from './ordago-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -243,7 +245,7 @@ const nodoFiltroCortoPista = document.querySelector('[data-test="filtro-corto-pi
 // guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
 let modoActual = 'clasico';
 // El feed de lectura (vista `repaso`) NO es un modo: es la continuación del resumen, sin chip.
-const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto'];
+const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra'];
 // `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
 const nodoContenidoApp = document.querySelector('main#app');
@@ -518,6 +520,7 @@ function limpiarRepasoMazo() {
  * COMPLETAR una partida, ver finalizarPartida) y limpia el filtro de área. */
 function limpiarPartidaEnCurso() {
   cerrarHojaFiltro();
+  destruirOrdago();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -1147,6 +1150,11 @@ function prepararModo(id) {
     const partida = filtroParaRepaso(pendientes(estado, banco), filtro, indice, estado.reportadas, nombreArea);
     return { filtro, partida, n: partida ? partida.ids.length : 0 };
   }
+  if (id === 'ordago') {
+    // Órdago solo sirve V/F y test4 de nivel 3-5 (spec §4): el aviso de «menos de 5» cuenta solo esas.
+    const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableDificil).length;
+    return { filtro, partida: null, n };
+  }
   return {
     filtro,
     partida: filtroParaPartida(filtro, banco, indice, estado, nombreArea, hoy()),
@@ -1181,7 +1189,56 @@ function arrancarModoSinComprobar(id, preparado = prepararModo(id)) {
     empezarPartida(preparado.partida, 'repaso');
     return;
   }
+  if (id === 'ordago') {
+    empezarOrdago();
+    return;
+  }
   empezarPartida(preparado.partida, 'clasico');
+}
+
+// --- ÓRDAGO (v0.3 fase 5): la pantalla vive en ordago-ui.js; aquí solo se le inyecta lo de app.js ---
+let ordagoInstancia = null;
+
+function destruirOrdago() {
+  if (!ordagoInstancia) return;
+  ordagoInstancia.destruir();
+  ordagoInstancia = null;
+}
+
+/** Siguiente pregunta de Órdago: V/F y test4 de nivel 3-5 del banco (con las generadas) bajo el filtro del modo. */
+function elegirPreguntaDeOrdago({ usados, ultima }) {
+  const candidatas = preguntasDelFiltro(banco, filtroDeModo('ordago'), leerIndiceRutas(), estado.reportadas)
+    .filter(esJugableDificil);
+  return elegirPreguntaOrdago(candidatas, { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
+}
+
+/** Toda respuesta a una pregunta del banco pasa por `registrarRespuesta` (radar, nivel, repaso). */
+function registrarRespuestaOrdago(pregunta, correcta, respuesta) {
+  estado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: 'media', respuesta }).estado;
+  guardarEstado(estado);
+  actualizarCabecera();
+}
+
+function empezarOrdago() {
+  destruirOrdago();
+  modoActual = 'ordago';
+  ordagoInstancia = montarOrdago(document.querySelector('[data-vista="ordago"]'), {
+    contenedorQuiebra: document.querySelector('[data-vista="quiebra"]'),
+    mostrarVista,
+    elegirPregunta: elegirPreguntaDeOrdago,
+    registrar: registrarRespuestaOrdago,
+    celebrarAcierto,
+    lamentarFallo,
+    celebrarPremio,
+    resplandorEsfinge,
+    imagenDe: (pregunta) => imagenesPorId.get(pregunta.id) || null,
+    pedirGesto,
+    vigia: vigiaPensando,
+    alSinPreguntas: () => {
+      irAlHub();
+      mostrarAvisoHub('Aún no hay preguntas difíciles');
+    },
+  });
 }
 
 function mostrarFiltroCorto(modo, filtro, aviso) {
@@ -1251,6 +1308,7 @@ const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sond
 // -- 5 x 5 s ≈ 25 s, de sobra para un túnel, un cambio de wifi a datos o un servidor reiniciándose.
 const MAX_SONDEOS_FALLIDOS = 5;
 const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
+const NIVEL_OBJETIVO_DIFICIL = 4; // nivel que se pide al generar desde Órdago (el central de 3-5)
 const N_TANDA_ATOMO = 10; // preguntas por tanda del Átomo (lo que se pide y lo que cuenta el indicador)
 
 function detenerSondeoAtomo() {
@@ -1636,7 +1694,10 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   atomoGenerarEnVuelo = true;
   actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
   if (origen === 'filtro-corto') actualizarGenerarFiltroCorto();
-  const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, fetchImpl: fetch });
+  // Órdago y Contrarreloj solo juegan nivel 3-5 (spec §4): la tanda se pide concentrada en el central (4).
+  // 🔶 Provisional: el servidor toma un solo número; el cliente descarta igualmente lo de nivel < 3.
+  const nivelObjetivo = modoActual === 'ordago' ? NIVEL_OBJETIVO_DIFICIL : undefined;
+  const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
   if (!resultado) {
@@ -1785,6 +1846,16 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     arrancarModo(id) {
       arrancarModo(id);
     },
+    // v0.3 fase 5: ganchos de Órdago para los e2e (la pregunta en juego y responderla a propósito).
+    ultimaPreguntaOrdago() {
+      return ordagoInstancia ? ordagoInstancia.preguntaActual() : null;
+    },
+    fallarPreguntaOrdago() {
+      return Boolean(ordagoInstancia) && ordagoInstancia.responderParaTest(false);
+    },
+    acertarPreguntaOrdago() {
+      return Boolean(ordagoInstancia) && ordagoInstancia.responderParaTest(true);
+    },
     // v0.3: abre el átomo de un área desde el HUB, sin partida debajo (sustituye al "+" retirado de
     // las tarjetas de área). El filtro que se elija es el de Clásico.
     abrirAtomo(area) {
@@ -1846,6 +1917,7 @@ if (new URLSearchParams(location.search).get('test') === '1') {
  * Sin filtro, partida normal (todas las áreas). */
 function empezarPartida(filtro = null, modo = 'clasico') {
   modoActual = modo;
+  destruirOrdago();
   if (filtro && filtro.area) {
     filtroPartida = { area: filtro.area };
   } else if (filtro && Array.isArray(filtro.ids)) {
@@ -3708,10 +3780,16 @@ function lamentarFallo(nodoTarjeta) {
 }
 
 /** Récords, cofres, premios (spec §7): confeti + fanfarria + esfinge eufórica. */
-function celebrarPremio() {
+function celebrarPremio(evento = 'cofre') {
   lanzarConfeti();
   sonido.reproducir('fanfarria');
-  pedirGesto('cofre');
+  pedirGesto(evento);
+}
+
+/** Resplandor dorado de la esfinge en el «¡Nuevo máximo!» (spec §7: de los pocos brillos de la app). */
+function resplandorEsfinge() {
+  nodoAvatarCabecera.classList.add('cabecera-avatar--resplandor');
+  setTimeout(() => nodoAvatarCabecera.classList.remove('cabecera-avatar--resplandor'), 2600);
 }
 
 /** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
@@ -4243,6 +4321,7 @@ function renderHub() {
     respondidasHoy: resumen.hoy.respondidas,
     porRepasar: resumen.pendientes,
     objetos: contarObjetos(cargarMochila()),
+    fondo: cargarOrdago().fondo,
   });
   pintarSilencio();
 }

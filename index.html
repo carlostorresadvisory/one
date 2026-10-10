@@ -115,6 +115,38 @@
       <p class="filtro-corto-pista" data-test="filtro-corto-pista" hidden></p>
     </section>
 
+    <!-- ÓRDAGO (v0.3 fase 5, spec §5.2): marcador del fondo con su minicurva, foto de la pregunta con el
+         enunciado encima (foto-pregunta.js) y, abajo, UNA de tres cosas en el mismo hueco: las fichas, las
+         respuestas (tras elegir ficha) o el resultado. Las monta ordago-ui.js. -->
+    <section class="vista vista-ordago" data-vista="ordago" data-test="ordago" hidden>
+      <div class="ordago-marcador">
+        <span class="ordago-fondo-etiqueta">Fondo</span>
+        <span class="ordago-fondo" data-test="ordago-fondo">1.000</span>
+        <span class="ordago-racha llama" data-test="ordago-racha" hidden></span>
+        <svg class="ordago-curva" data-test="ordago-curva" viewBox="0 0 60 24" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <div class="ordago-foto" data-test="ordago-foto"></div>
+      <div class="ordago-mando">
+        <div class="ordago-fichas" data-test="ordago-fichas" role="group" aria-label="Elige tu ficha"></div>
+        <div class="ordago-opciones" data-test="ordago-opciones" role="group" aria-label="Respuestas" hidden></div>
+        <div class="ordago-resultado" data-test="ordago-resultado" aria-live="polite" hidden>
+          <div class="ordago-resultado-fila">
+            <span class="ordago-delta" data-test="ordago-delta"></span>
+            <button type="button" class="boton boton-principal ordago-siguiente" data-test="ordago-siguiente">Siguiente</button>
+          </div>
+          <p class="ordago-aviso" data-test="ordago-aviso" hidden></p>
+          <p class="ordago-explicacion" data-test="ordago-explicacion"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUIEBRA de Órdago (spec §5.2): fondo por debajo de 1. La esfinge triste va en la banda de la cabecera. -->
+    <section class="vista vista-quiebra" data-vista="quiebra" data-test="quiebra" hidden>
+      <h2 class="quiebra-titulo">Quiebra</h2>
+      <p class="quiebra-maximo" data-test="quiebra-maximo"></p>
+      <button type="button" class="boton boton-principal" data-test="quiebra-fondo-nuevo">Abrir un fondo nuevo con 1.000</button>
+    </section>
+
     <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->

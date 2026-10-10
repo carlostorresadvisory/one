@@ -585,7 +585,7 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
  */
 const N_TANDA_DEFECTO = 10;
 
-export async function pedirTanda({ area, ruta = [], n, fetchImpl = fetch } = {}) {
+export async function pedirTanda({ area, ruta = [], n, nivelObjetivo, fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
   if (!configuracion || !area) return null;
   // Ronda final de revisión (adversarial A12): `n` inválido (undefined, NaN, negativo, decimal...)
@@ -596,7 +596,11 @@ export async function pedirTanda({ area, ruta = [], n, fetchImpl = fetch } = {})
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/generar`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),
-    body: JSON.stringify({ area, ruta, n: nValido, urgente: true }),
+    // `nivelObjetivo` (1-5) solo viaja si es válido: Órdago y Contrarreloj piden tandas de nivel 3-5.
+    body: JSON.stringify({
+      area, ruta, n: nValido, urgente: true,
+      ...(Number.isInteger(nivelObjetivo) && nivelObjetivo >= 1 && nivelObjetivo <= 5 ? { nivelObjetivo } : {}),
+    }),
   });
   if (!datos || typeof datos.trabajoId !== 'string') return null;
   return { trabajoId: datos.trabajoId, estimadoSeg: datos.estimadoSeg };

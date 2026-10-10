@@ -562,6 +562,33 @@ test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con 
   }
 });
 
+test('v0.3 §4: /generar pasa nivelObjetivo (1-5) hasta producirTanda y descarta el que no es válido', async () => {
+  const vistos = [];
+  const producirTandaFake = async (params) => {
+    vistos.push(params.nivelObjetivo);
+    return resultadoOk(params.area, params.n, params.n);
+  };
+  const { base, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });
+  try {
+    for (const nivelObjetivo of [4, 9, 'x', undefined]) {
+      const resp = await fetch(`${base}/generar`, {
+        method: 'POST',
+        headers: cabeceras(),
+        body: JSON.stringify({ area: 'economia', ruta: [], n: 1, urgente: true, nivelObjetivo }),
+      });
+      assert.equal(resp.status, 200);
+      const { trabajoId } = await resp.json();
+      await hastaQue(async () => {
+        const r = await fetch(`${base}/trabajo/${trabajoId}`, { headers: cabeceras() });
+        return (await r.json()).estado === 'lista';
+      });
+    }
+    assert.deepEqual(vistos, [4, undefined, undefined, undefined]);
+  } finally {
+    await cerrar();
+  }
+});
+
 test('v0.2b4 §6c: /generar estima con la media móvil x (por delante + pedidas), no 90 s por puesto', async () => {
   const producirTandaFake = async ({ area, n }) => resultadoOk(area, n, n);
   const { base, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });

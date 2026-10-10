@@ -334,7 +334,11 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       let resultado = null;
       try {
         resultado = await producirTanda(
-          { area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar },
+          {
+            area: trabajo.area, ruta: trabajo.ruta, n: tamanoLote, evitar,
+            // Órdago/Contrarreloj piden nivel 3-5 (v0.3 spec §4): solo viaja si el cliente lo mandó.
+            ...(trabajo.nivelObjetivo ? { nivelObjetivo: trabajo.nivelObjetivo } : {}),
+          },
           {
             ...opciones,
             urgente: trabajo.urgente,
@@ -624,7 +628,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       });
   }
 
-  function encolar({ area, ruta = [], n = PEDIDAS_DEFECTO, urgente = false } = {}) {
+  function encolar({ area, ruta = [], n = PEDIDAS_DEFECTO, urgente = false, nivelObjetivo } = {}) {
     if (!area) throw new Error('encolar: falta area');
 
     // Ronda 2 (revisión), punto 3 (Minor): tope de 32 en `colaFondo` -- las nuevas peticiones de
@@ -640,6 +644,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       area,
       ruta,
       urgente: !!urgente,
+      nivelObjetivo: Number.isInteger(nivelObjetivo) && nivelObjetivo >= 1 && nivelObjetivo <= 5 ? nivelObjetivo : undefined,
       pedidas: n,
       hechas: 0,
       estado: 'en-cola',

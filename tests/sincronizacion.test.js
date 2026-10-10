@@ -750,6 +750,18 @@ test('pedirTanda: POST /generar con urgente:true siempre, devuelve trabajoId/est
   assert.deepEqual(cuerpo, { area: 'economia', ruta: ['inflacion'], n: 10, urgente: true });
 });
 
+test('pedirTanda: nivelObjetivo válido (1-5) viaja en el cuerpo; el inválido o ausente no', async () => {
+  for (const [nivelObjetivo, viaja] of [[4, true], [0, false], [6, false], [3.5, false], ['4', false], [undefined, false]]) {
+    prepararGlobales({ conConfiguracion: true });
+    const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { trabajoId: 't-1', estimadoSeg: 10 } }]);
+    // eslint-disable-next-line no-await-in-loop -- test secuencial, sin solape de llamadas.
+    await pedirTanda({ area: 'economia', n: 10, nivelObjetivo, fetchImpl: fetchFalso });
+    const cuerpo = JSON.parse(fetchFalso.llamadas[0].opciones.body);
+    assert.equal('nivelObjetivo' in cuerpo, viaja, `nivelObjetivo=${JSON.stringify(nivelObjetivo)}`);
+    if (viaja) assert.equal(cuerpo.nivelObjetivo, 4);
+  }
+});
+
 test('pedirTanda: error del servidor → null', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchFalso = crearFetchFalso([{ ok: false, status: 503, cuerpo: { error: 'La cola está llena' } }]);

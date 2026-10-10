@@ -2,6 +2,7 @@
 // `disponible: true`, añade su caso en `marcadorModo` y su rama en app.js#arrancarModo. Imágenes de
 // Wikimedia Commons (licencia libre, atribución en la hoja "Créditos" del pie del hub).
 
+import { formatearCifra } from './ordago.js';
 
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/thumb';
 
@@ -23,7 +24,7 @@ export const MODOS = Object.freeze([
     }),
   }),
   Object.freeze({
-    id: 'ordago', nombre: 'Órdago', icono: '🎲', disponible: false, nivelFiltro: 'arbol',
+    id: 'ordago', nombre: 'Órdago', icono: '🎲', disponible: true, nivelFiltro: 'arbol',
     imagen: Object.freeze({
       url: `${COMMONS}/1/1c/Roulette_-_detail.jpg/500px-Roulette_-_detail.jpg`,
       pagina: 'https://commons.wikimedia.org/wiki/File:Roulette_-_detail.jpg',
@@ -62,8 +63,9 @@ export function modoPorId(id) {
 }
 
 /** Marcador vivo de la tarjeta del hub (spec §3). `datos` lo calcula app.js#renderHub. */
-export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0 } = {}) {
+export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0, fondo = 1000 } = {}) {
   if (id === 'clasico') return `Hoy ${aciertosHoy}/${respondidasHoy}`;
   if (id === 'repaso') return porRepasar > 0 ? `${porRepasar} por repasar` : 'Al día';
+  if (id === 'ordago') return formatearCifra(fondo);
   return 'Pronto';
 }

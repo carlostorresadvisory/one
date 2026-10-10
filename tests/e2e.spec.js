@@ -517,18 +517,18 @@ test.describe('ONE · integración e2e', () => {
     // 3. En el HUB no hay «←»: no hay a dónde volver.
     await expect(page.locator('[data-test="volver"]')).toBeHidden();
 
-    // 4. Practicar solo un área desde el HUB: tocar la tarjeta de "economia"
-    // arranca una partida filtrada (el banco de ejemplo tiene 2 preguntas de esa
-    // área). La cabecera debe anunciar "Solo Economía" y la tarjeta debe serlo.
+    // 4. Practicar solo un área desde el HUB: tocar la tarjeta de "geografia"
+    // arranca una partida filtrada (el banco de ejemplo tiene 4 preguntas de esa
+    // área: con 5 o más no habría aviso). La cabecera debe anunciar "Solo Geografía" y la tarjeta debe serlo.
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
-    await elegirAreaEnFiltro(page, 'economia');
+    await elegirAreaEnFiltro(page, 'geografia');
     await page.locator('[data-test="filtro-elegir"]').click();
-    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 4 preguntas de Geografía');
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await expect(page.locator('[data-test="chip-filtro"]')).toBeVisible();
-    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía');
-    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Geografía');
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Geografía');
 
     // 5. Primera pregunta de economía: confianza (con su etiqueta) visible antes
     // de responder; "Siguiente" debe estar OCULTO hasta responder. Fallamos A
@@ -540,8 +540,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjeta1.locator('[data-test="confianza-etiqueta"]')).toHaveText('Confianza');
     await expect(tarjeta1.locator('[data-test="confianza-media"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(tarjeta1.locator('[data-test="siguiente"]')).toBeHidden();
-    // El orden de las 2 preguntas de economía lo decide el rng del motor: puede
-    // salir primero la vf o la de tipo "error", así que fallamos sea cual sea.
+    // El orden de las 4 preguntas de geografía lo decide el rng del motor: fallamos la primera sea cual sea.
     await fallarPreguntaActual(page, sospechosoPorTitulo);
     await expect(tarjeta1.locator('[data-test="siguiente"]')).toBeVisible();
     await expect(tarjeta1.locator('[data-test="explicacion"]')).toBeVisible();
@@ -549,10 +548,9 @@ test.describe('ONE · integración e2e', () => {
     await assertTarjetaSinScroll(page);
     await avanzarTrasRespuesta(page);
 
-    // 6. Segunda (y última) pregunta de economía: acertamos a propósito. Al ser
-    // la última del área filtrada, puede avanzar sola al resumen o esperar
-    // "Siguiente".
-    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+    // 6. Segunda pregunta de geografía: acertamos a propósito (con la explicación y "Siguiente" a la vista)
+    // y el resto del área se juega acertando; la última puede avanzar sola al resumen o esperar "Siguiente".
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Geografía');
     const tarjeta2 = tarjetaActual(page);
     await expect(tarjeta2.locator('[data-test="confianza"]')).toBeVisible();
     await responderPreguntaActual(page, sospechosoPorTitulo);
@@ -560,6 +558,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjeta2.locator('[data-test="explicacion"]')).toBeVisible();
     await expect(tarjeta2.locator('[data-test="siguiente"]')).toBeVisible();
     await avanzarTrasRespuesta(page);
+    await jugarPartida(page, { sospechosoPorTitulo });
     await expect(page.locator('[data-test="resumen"]')).toBeVisible();
     await assertSinScroll(page);
 
@@ -606,9 +605,9 @@ test.describe('ONE · integración e2e', () => {
 
     // 9. "←" desde pregunta/resumen vuelve siempre al HUB:
     // arrancamos la partida normal (sin filtro) para comprobarlo desde pregunta. Clásico recuerda
-    // el filtro de Economía del paso 4: el aviso de menos de 5 ofrece «Volver a TODOS».
+    // el filtro de Geografía del paso 4: el aviso de menos de 5 ofrece «Volver a TODOS».
     await entrarEnModo(page, 'clasico');
-    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 4 preguntas de Geografía');
     await page.locator('[data-test="filtro-corto-todos"]').click();
     await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toBeVisible();
     await page.locator('[data-test="volver"]').click();
@@ -6744,24 +6743,24 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await assertSinScroll(page);
   });
 
-  test('pocos elementos: Economía (2 en el banco de ejemplo) → aviso; «Jugar las 2» juega solo esas; «Volver a TODOS» quita el filtro', async ({ page }) => {
+  test('pocos elementos: Geografía (4 en el banco de ejemplo) → aviso; «Jugar las 4» juega solo esas; «Volver a TODOS» quita el filtro', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
-    await elegirAreaEnFiltro(page, 'economia');
+    await elegirAreaEnFiltro(page, 'geografia');
     await page.locator('[data-test="filtro-elegir"]').click();
     await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
-    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 4 preguntas de Geografía');
     await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeDisabled(); // sin servidor
     await expect(page.locator('[data-test="filtro-corto-pista"]')).toBeVisible();
-    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía');
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Geografía');
     await assertSinScroll(page);
     await page.setViewportSize({ width: 375, height: 667 });
     await assertSinScroll(page);
 
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
-    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Geografía');
 
     await page.locator('[data-test="volver"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
@@ -6770,23 +6769,23 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
   });
 
-  test('segunda ronda del mismo día con filtro de área: «Jugar las 2» vuelve a jugar esas 2 (no rebota al hub)', async ({ page }) => {
+  test('segunda ronda del mismo día con filtro de área: «Jugar las 4» vuelve a jugar esas 4 (no rebota al hub)', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
     await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
-    await elegirAreaEnFiltro(page, 'economia');
+    await elegirAreaEnFiltro(page, 'geografia');
     await page.locator('[data-test="filtro-elegir"]').click();
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await jugarPartida(page, { sospechosoPorTitulo });
     await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
     await page.locator('[data-test="modo-clasico"]').click();
-    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 4 preguntas de Geografía');
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
-    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
+    await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Geografía');
   });
 
   test('defensivo: Volver con la hoja del filtro abierta la cierra', async ({ page }) => {
@@ -6847,7 +6846,8 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="modo-clasico"]')).not.toHaveAttribute('aria-pressed', /.*/);
       await expect(page.locator('[data-test="marcador-clasico"]')).toHaveText('Hoy 0/0');
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
-      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Pronto');
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+      await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Pronto');
       await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
       await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo, [data-test="tarjeta-tienda"] img.avatar-fijo')).toHaveCount(1);
       await expect(page.locator('header canvas, header img')).toHaveCount(0); // el hub no lleva esfinge en la cabecera
@@ -6864,7 +6864,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 
   test('Repaso sin falladas avisa «Nada por repasar» sin navegar; una tarjeta «Pronto» no responde', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="modo-ordago"]').click({ force: true });
+    await page.locator('[data-test="modo-masomenos"]').click({ force: true });
     await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await entrarEnModo(page, 'repaso');
@@ -7362,5 +7362,266 @@ test.describe('ONE · v0.3 avatar: la esfinge v2 (fase 4)', () => {
     await entrarEnModo(page, 'clasico'); // pide `saludo`: se descarga y se guarda al primer uso
     await expect.poll(() => page.evaluate(async () => Boolean(await caches.match('avatar/saludo.mp4'))), { timeout: 15000 }).toBe(true);
     await expect(page.locator('[data-test="avatar-cabecera"] canvas.avatar-lienzo')).toHaveCount(1);
+  });
+});
+
+test.describe('ONE · v0.3 Órdago (fase 5)', () => {
+  const URL_SERVIDOR_ORDAGO = 'https://servidor.prueba';
+  const TOKEN_ORDAGO = 'token-de-prueba-e2e-1234567890';
+  const CORS_ORDAGO = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+    }
+  };
+
+  // Tras cada cambio de panel los botones ignoran toques durante 350 ms (antirrebote contra el doble toque).
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+
+  /** Una ronda con los ganchos de test: ficha, respuesta (acertada o fallada) y, si se pide, «Siguiente». */
+  async function jugarRondaOrdago(page, { ficha = '10', acertar = true, siguiente = true } = {}) {
+    await esperarAntirrebote(page);
+    await page.locator(`[data-test="ficha-${ficha}"]`).click();
+    await page.evaluate((a) => (a ? window.__one.acertarPreguntaOrdago() : window.__one.fallarPreguntaOrdago()), acertar);
+    await expect(page.locator('[data-test="ordago-resultado"]')).toBeVisible();
+    if (siguiente) {
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ordago-siguiente"]').click();
+    }
+  }
+
+  test('Órdago: foto con enunciado, ficha, respuesta, cobro, nivel ≥ 3, quiebra y fondo nuevo (sin scroll a 375×812 y 375×667)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText('1.000');
+    await expect(page.locator('[data-test="ordago-opciones"]')).toBeHidden();
+    await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
+    await expect(page.locator('[data-test="ficha-10"]')).toContainText('100');
+    await expect(page.locator('[data-test="ficha-ordago"]')).toContainText('1.000');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
+    expect(await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel)).toBeGreaterThanOrEqual(3);
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
+    await expect(page.locator('[data-test="ordago-opciones"]')).toBeVisible();
+    await expect(page.locator('[data-test="ficha-10"]')).toBeHidden();
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-opciones"] button').first().click();
+    await expect(page.locator('[data-test="ordago-delta"]')).toHaveText(/^[+−]\d+/);
+    await expect(page.locator('[data-test="ordago-explicacion"]')).toContainText('Respuesta:');
+    await sinScrollEnAmbos(page);
+    // Órdago y fallo a propósito: quiebra.
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-siguiente"]').click();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-ordago"]').click();
+    await page.evaluate(() => window.__one.fallarPreguntaOrdago());
+    await expect(page.locator('[data-test="ordago-delta"]')).toHaveText(/^−\d+/);
+    await expect(page.locator('[data-test="ordago-siguiente"]')).toHaveText('Continuar');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-siguiente"]').click();
+    await expect(page.locator('[data-vista="quiebra"]')).toBeVisible();
+    await expect(page.locator('[data-test="quiebra-maximo"]')).toContainText('Máximo alcanzado');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // la misma esfinge de la banda
+    await sinScrollEnAmbos(page);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('triste');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="quiebra-fondo-nuevo"]').click();
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText('1.000');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).quiebras)).toBe(1);
+  });
+
+  test('Órdago: solo sirve V/F o test4 de nivel 3-5 durante 12 rondas', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    for (let i = 0; i < 12; i += 1) {
+      const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaOrdago());
+      expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
+      expect(['vf', 'test4']).toContain(pregunta.tipo);
+      // Ficha mínima para no llegar a la quiebra por azar; se alterna acierto y fallo.
+      await jugarRondaOrdago(page, { ficha: '10', acertar: i % 3 !== 2 });
+    }
+  });
+
+  test('Review Focus 2: doble toque en la ficha y en la respuesta apuesta y responde una sola vez', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    // El segundo toque de cada doble toque cae sobre el botón nuevo que aparece en el mismo sitio: no cuenta.
+    await page.locator('[data-test="ficha-25"]').dblclick();
+    await expect(page.locator('[data-test="ordago-opciones"]')).toBeVisible();
+    await expect(page.locator('[data-test="ordago-resultado"]')).toBeHidden();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-opciones"] button').first().dblclick();
+    await expect(page.locator('[data-test="ordago-resultado"]')).toBeVisible();
+    const guardado = await page.evaluate(() => ({
+      ordago: JSON.parse(localStorage.getItem('one.ordago')),
+      respondidas: JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas,
+    }));
+    expect(guardado.respondidas).toBe(1); // registrarRespuesta una sola vez
+    expect(guardado.ordago.curva.length).toBe(2); // una sola ronda resuelta
+    const delta = Math.abs(guardado.ordago.fondo - 1000);
+    expect(delta).toBeGreaterThan(0);
+    expect(delta).toBeLessThanOrEqual(250 * 2 + 1); // una ficha del 25 %, ×2 como mucho
+    // «Siguiente» con doble toque tampoco se salta una pregunta.
+    const antes = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().id);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-siguiente"]').dblclick();
+    await expect(page.locator('[data-test="ordago-fichas"]')).toBeVisible();
+    await expect(page.locator('[data-test="ordago-opciones"]')).toBeHidden(); // la ficha no se eligió con el segundo toque
+    const despues = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().id);
+    expect(despues).not.toBe(antes);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas)).toBe(1);
+  });
+
+  test('Review Focus 3: recargar con el órdago en el aire y sin responder no pierde ni gana nada', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await jugarRondaOrdago(page, { ficha: '10', acertar: true });
+    const fondoGuardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-ordago"]').click(); // todo el fondo en el aire
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo)).toBe(fondoGuardado);
+    await entrarEnModo(page, 'ordago');
+    const esperado = String(fondoGuardado).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText(esperado);
+  });
+
+  test('Órdago: recargar en plena quiebra vuelve a la pantalla de quiebra al entrar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await jugarRondaOrdago(page, { ficha: 'ordago', acertar: false, siguiente: false });
+    await page.reload();
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="quiebra"]')).toBeVisible();
+  });
+
+  test('Órdago: el primer acierto supera el máximo y celebra (confeti, fanfarria, esfinge eufórica y resplandor dorado) sin dar objeto', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await jugarRondaOrdago(page, { ficha: '10', acertar: true, siguiente: false });
+    await expect(page.locator('[data-test="ordago-aviso"]')).toContainText('Nuevo máximo');
+    await expect(page.locator('[data-test="confeti"]')).toHaveCount(1);
+    const sonidos = await page.evaluate(() => window.__one.sonidos());
+    expect(sonidos).toContain('fanfarria');
+    expect(sonidos).toContain('monedas');
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('euforia');
+    await expect(page.locator('[data-test="avatar-cabecera"]')).toHaveClass(/cabecera-avatar--resplandor/);
+    expect(await page.evaluate(() => localStorage.getItem('one.mochila'))).toBeNull(); // Órdago no da objetos
+    await assertSinScroll(page);
+  });
+
+  test('Órdago: la pregunta dorada lleva borde dorado y la esfinge se sorprende', async ({ page }) => {
+    await page.addInitScript(() => { Math.random = () => 0.01; });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-test="foto-pregunta"]')).toHaveClass(/foto-pregunta--dorada/);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('sorpresa');
+  });
+
+  test('Órdago: peor caso (enunciado, opciones y explicación larguísimos) sin scroll y sin recortar el enunciado ni encoger la letra a 375×667', async ({ page }) => {
+    await page.addInitScript(() => { Math.random = () => 0.9999; }); // elige la última candidata (la inyectada) y no sale dorada
+    await page.goto('/?ejemplo=1&test=1');
+    const larga = 'Esta es una pregunta deliberadamente larga para comprobar que el enunciado se lee entero encima de la foto sin encoger la letra ni provocar scroll en ninguna pantalla';
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible(); // la app ya cargó el banco
+    await page.setViewportSize({ width: 375, height: 667 });
+    // Inyectar y entrar en la misma tarea: la sincronización en segundo plano reconstruye el banco y borraría la inyectada.
+    await page.evaluate((texto) => {
+      window.__one.inyectarPregunta({
+        id: 'zz-larga', area: 'historia', tipo: 'test4', nivel: 5, enunciado: texto,
+        explicacion: `${texto} ${texto}`, confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+        opciones: ['Una opción bastante larga que ocupa dos líneas', 'Otra opción igual de larga que la anterior', 'Tercera opción larga para el test', 'Cuarta opción larga para el test'], correcta: 0,
+      });
+      window.__one.arrancarModo('ordago');
+    }, larga);
+    expect((await page.evaluate(() => window.__one.ultimaPreguntaOrdago())).id).toBe('zz-larga');
+    const medir = () => page.evaluate(() => {
+      const foto = document.querySelector('[data-test="foto-pregunta"]').getBoundingClientRect();
+      const nodo = document.querySelector('[data-test="foto-pregunta-enunciado"]');
+      const texto = nodo.getBoundingClientRect();
+      return { cabe: texto.top >= foto.top - 1 && texto.bottom <= foto.bottom + 1, fuente: getComputedStyle(nodo).fontSize };
+    });
+    expect(await medir()).toEqual({ cabe: true, fuente: '20px' });
+    await assertSinScroll(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-50"]').click();
+    await assertSinScroll(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-opciones"] button').first().click();
+    await assertSinScroll(page);
+    expect(await medir()).toEqual({ cabe: true, fuente: '20px' });
+  });
+
+  test('Órdago: con < 5 jugables difíciles bajo el filtro ofrece Generar (PREMIUM) o volver a TODOS; «Jugar las N» solo sirve nivel ≥ 3', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ ordago: { area: 'geografia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 3 preguntas de Geografía');
+    await expect(page.locator('[data-test="filtro-corto-generar"] [data-test="insignia-premium"]')).toBeVisible();
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeDisabled(); // sin servidor
+    await page.locator('[data-test="filtro-corto-jugar"]').click();
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    for (let i = 0; i < 4; i += 1) {
+      const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaOrdago());
+      expect(pregunta.area).toBe('geografia');
+      expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
+      await jugarRondaOrdago(page, { ficha: '10', acertar: true });
+    }
+    await page.locator('[data-test="volver"]').click();
+    await entrarEnModo(page, 'ordago');
+    await page.locator('[data-test="filtro-corto-todos"]').click();
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('Órdago: «Generar preguntas» desde el aviso pide la tanda con nivelObjetivo 4', async ({ page }) => {
+    const peticiones = [];
+    await page.route(`${URL_SERVIDOR_ORDAGO}/**`, async (ruta) => {
+      const peticion = ruta.request();
+      if (peticion.method() === 'OPTIONS') {
+        await ruta.fulfill({ status: 204, headers: CORS_ORDAGO });
+        return;
+      }
+      const cabeceras = { ...CORS_ORDAGO, 'Content-Type': 'application/json' };
+      if (new URL(peticion.url()).pathname === '/generar') {
+        peticiones.push(peticion.postDataJSON());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ trabajoId: 't-1', enCola: 1, estimadoSeg: 40 }) });
+      } else {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null, estado_servidor: 'ok' }) });
+      }
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ ordago: { area: 'geografia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto(`/?ejemplo=1&test=1&servidor=${encodeURIComponent(URL_SERVIDOR_ORDAGO)}&token=${TOKEN_ORDAGO}`);
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeEnabled();
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect.poll(() => peticiones.length).toBe(1);
+    expect(peticiones[0]).toMatchObject({ area: 'geografia', nivelObjetivo: 4, urgente: true });
+  });
+
+  test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante la ronda y la tarjeta del hub enseña el fondo', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+    await entrarEnModo(page, 'ordago');
+    await page.evaluate(() => window.__one.simularTandaLista({ ids: ['zz-1'], corto: 'Historia' }));
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeVisible();
   });
 });

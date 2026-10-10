@@ -3050,3 +3050,57 @@ button.punto-servidor::before {
 @media (prefers-reduced-motion: no-preference) {
   .foto-pregunta--dorada { animation: dorada-brillo 1.6s ease-in-out infinite; }
 }
+
+/* ===== v0.3 Órdago (ordago-ui.js, spec §5.2): marcador del fondo + minicurva, foto con el enunciado encima y,
+   en el mismo hueco inferior, fichas / respuestas / resultado. Todo plano: el dorado queda para lo dorado. ===== */
+.vista-ordago { gap: 8px; overflow: hidden; }
+.ordago-marcador { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.ordago-fondo-etiqueta { color: var(--texto-suave); font-size: 14px; }
+.ordago-fondo { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ordago-racha[hidden] { display: none; }
+.ordago-curva { margin-left: auto; width: 60px; height: 24px; flex: none; overflow: visible; }
+.ordago-curva-linea { fill: none; stroke: var(--acento); stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ordago-curva-maximo { stroke: var(--dorado); stroke-width: 1; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+.vista-ordago > .ordago-foto { flex: 1 1 0; min-height: 80px; display: flex; }
+.ordago-mando { display: grid; min-height: 140px; align-content: start; } /* cabe el resultado con el aviso de nuevo máximo: la foto no salta */
+.ordago-mando > * { grid-area: 1 / 1; }
+.ordago-fichas, .ordago-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+.ordago-fichas[hidden], .ordago-opciones[hidden], .ordago-resultado[hidden] { display: none; }
+.ordago-ficha, .ordago-opcion {
+  min-height: 52px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid #22303d;
+  background: var(--tarjeta);
+  color: var(--texto);
+  font-size: var(--tam-1);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.ordago-ficha--ordago { border-color: var(--acento); color: var(--acento); }
+.ordago-ficha:active, .ordago-opcion:active { transform: scale(0.97); }
+.ordago-resultado { display: flex; flex-direction: column; gap: 6px; }
+.ordago-resultado-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ordago-delta { font-size: var(--tam-3); font-weight: 700; font-variant-numeric: tabular-nums; }
+.ordago-delta--ok { color: var(--ok); }
+.ordago-delta--ko { color: var(--ko); }
+.ordago-siguiente { padding: 10px 24px; }
+.ordago-aviso { margin: 0; color: var(--dorado); font-weight: 700; }
+.ordago-aviso[hidden] { display: none; }
+.ordago-explicacion {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--texto-suave);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* La esfinge del «¡Nuevo máximo!»: el único brillo que lleva el avatar (dorado). */
+.cabecera-avatar--resplandor { filter: drop-shadow(0 0 10px rgba(242, 193, 78, 0.85)); }
+.vista-quiebra { justify-content: center; align-items: stretch; gap: 16px; text-align: center; }
+.quiebra-titulo { margin: 0; font-size: var(--tam-3); }
+.quiebra-maximo { margin: 0; font-size: var(--tam-2); color: var(--texto-suave); font-variant-numeric: tabular-nums; }

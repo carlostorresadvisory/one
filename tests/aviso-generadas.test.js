@@ -42,8 +42,8 @@ test('encolar ignora un aviso sin preguntas', () => {
   assert.equal(cola.pendiente(), null);
 });
 
-test('puedeMostrarse: no en pregunta, repaso, atomo-espera ni en segundo plano; sí en el resto', () => {
-  for (const vista of ['pregunta', 'repaso', 'atomo-espera']) assert.equal(puedeMostrarse({ vista, visible: true }), false, vista);
+test('puedeMostrarse: no en pregunta, repaso, ordago, atomo-espera ni en segundo plano; sí en el resto', () => {
+  for (const vista of ['pregunta', 'repaso', 'ordago', 'atomo-espera']) assert.equal(puedeMostrarse({ vista, visible: true }), false, vista);
   assert.equal(puedeMostrarse({ vista: 'progreso', visible: false }), false);
   for (const vista of ['progreso', 'resumen', 'atomo']) assert.equal(puedeMostrarse({ vista, visible: true }), true, vista);
 });

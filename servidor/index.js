@@ -577,8 +577,11 @@ export function crearServidor({
     }
     const n = Number.isInteger(cuerpo.n) && cuerpo.n > 0 ? cuerpo.n : undefined;
     const urgente = !!cuerpo.urgente;
+    const nivelObjetivo = Number.isInteger(cuerpo.nivelObjetivo) && cuerpo.nivelObjetivo >= 1 && cuerpo.nivelObjetivo <= 5
+      ? cuerpo.nivelObjetivo
+      : undefined;
 
-    const resultado = cola.encolar({ area: cuerpo.area, ruta, n, urgente });
+    const resultado = cola.encolar({ area: cuerpo.area, ruta, n, urgente, nivelObjetivo });
     if (!resultado) {
       responderError(res, 503, 'La cola de fondo está llena, inténtalo más tarde');
       return;
