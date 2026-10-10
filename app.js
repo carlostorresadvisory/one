@@ -36,7 +36,7 @@ import {
   filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
   avisoFiltroCorto,
 } from './filtro.js';
-import { MODOS, modoPorId, cargarUltimoModo, guardarUltimoModo, marcadorModo } from './modos.js';
+import { MODOS, modoPorId, marcadorModo } from './modos.js';
 import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
@@ -258,7 +258,6 @@ const nodoHubModos = document.querySelector('[data-test="hub-modos"]');
 const nodoCreditos = document.querySelector('[data-test="creditos"]');
 const esfingeCabecera = crearEsfinge(document.querySelector('[data-test="esfinge-cabecera"]'), { tamano: 'pequena' });
 let esfingeHub = null;
-let modoElegido = null; // tarjeta seleccionada en el hub; null = leer el último modo jugado
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
 let nodoMarcadorEsfinge = null;
 // Espejos de racha/nivel en inicio: mismos datos que la cabecera, solo que "en
@@ -268,7 +267,7 @@ const nodoNivelInicio = document.querySelector('[data-test="nivel-inicio"]');
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
-// Servidor de generación (v0.2b2 §4): punto de estado junto a "Comenzar" y chip de banco extendido.
+// Servidor de generación (v0.2b2 §4): punto de estado del pie del inicio y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
 const nodoIndicadorTanda = document.querySelector('[data-test="indicador-tanda"]');
@@ -605,7 +604,7 @@ function actualizarAyudaAtomo() {
   nodoAtomoAyuda.textContent = leerConfiguracion() ? TEXTO_AYUDA_ATOMO_DEFECTO : TEXTO_AYUDA_ATOMO_SIN_SERVIDOR;
 }
 
-/** Pinta el punto junto a "Comenzar" (data-estado + aria-label) según `estadoServidor`. También el
+/** Pinta el punto del pie del inicio (data-estado + aria-label) según `estadoServidor`. También el
  * mismo punto duplicado en la cabecera del Átomo (v0.2b2 §4, decisión #1 del controlador; Tarea 4 +
  * revisión combinada: los dos son ahora también botones que abren la hoja "Conectar", ver más
  * abajo, pero eso no cambia qué anuncia su `aria-label` -- sigue siendo el estado real
@@ -1194,7 +1193,7 @@ function actualizarGenerarFiltroCorto() {
   const ocupado = Boolean(atomoTrabajoId) || atomoGenerarEnVuelo;
   nodoFiltroCortoGenerar.disabled = !conServidor || ocupado;
   const pista = !conServidor
-    ? 'Conecta el servidor para generar (punto junto a Comenzar)'
+    ? 'Conecta el servidor para generar (punto del pie del inicio)'
     : ocupado
       ? 'Ya se está generando una tanda; te aviso arriba'
       : '';
@@ -4141,7 +4140,14 @@ function montarTarjetasHub() {
     marcador.className = 'hub-modo-marcador';
     marcador.dataset.test = `marcador-${modo.id}`;
     boton.append(imagen, icono, nombre, marcador);
-    boton.addEventListener('click', () => elegirModoHub(modo.id));
+    if (modo.disponible) {
+      // Guardia contra el doble toque: solo se arranca desde el hub (una vez en el modo, la tarjeta ya no es tocable).
+      boton.addEventListener('click', () => {
+        if (vistaActual() === 'progreso') arrancarModo(modo.id);
+      });
+    } else {
+      boton.setAttribute('aria-disabled', 'true'); // «Pronto»: se ve pero no responde
+    }
     nodoHubModos.appendChild(boton);
     nodosTarjetaModo.set(modo.id, { boton, marcador });
   }
@@ -4170,37 +4176,16 @@ function montarTarjetasHub() {
   esfingeHub = crearEsfinge(lienzo, { tamano: 'grande' });
 }
 
-function elegirModoHub(id) {
-  modoElegido = id;
-  for (const [idModo, { boton }] of nodosTarjetaModo) {
-    const elegido = idModo === id;
-    boton.classList.toggle('hub-modo--elegido', elegido);
-    boton.setAttribute('aria-pressed', String(elegido));
-  }
-}
-
 function actualizarTarjetasHub(datos) {
   for (const [id, { marcador }] of nodosTarjetaModo) marcador.textContent = marcadorModo(id, datos);
   if (nodoMarcadorEsfinge) nodoMarcadorEsfinge.textContent = `🎒 ${datos.objetos}`;
-  elegirModoHub(modoElegido || cargarUltimoModo());
 }
 
-function comenzarModoElegido() {
-  const modo = modoPorId(modoElegido || cargarUltimoModo());
-  if (!modo || !modo.disponible) {
-    mostrarAvisoHub('Próximamente');
-    return;
-  }
-  guardarUltimoModo(modo.id);
-  arrancarModo(modo.id);
-}
-
-/** El HUB de v0.3 (spec §3): radar + 6 tarjetas + Comenzar. Ya no genera la misión del día. */
+/** El HUB de v0.3 (spec §3): radar + 6 tarjetas (tocar una abre su modo). Ya no genera la misión del día. */
 function renderHub() {
   const resumen = resumenProgreso(estado, banco, hoy());
   actualizarCabecera();
   renderRadar(resumen.porArea);
-  modoElegido = null; // una tarjeta «Próximamente» no se queda seleccionada al volver: vuelve el último modo jugado
   actualizarTarjetasHub({
     aciertosHoy: resumen.hoy.aciertos,
     respondidasHoy: resumen.hoy.respondidas,
@@ -4259,7 +4244,6 @@ function importarEstadoDesdeArchivo(archivo) {
       estado = importado;
       guardarEstado(estado);
       aplicarModos(modos);
-      modoElegido = null; // vuelve a leer el último modo del respaldo
       renderHub();
     } catch (err) {
       console.error('No se pudo importar el estado:', err.message);
@@ -4270,11 +4254,9 @@ function importarEstadoDesdeArchivo(archivo) {
 }
 
 // --- eventos de navegación ---
-// "Comenzar" (en el HUB) siempre arranca sin filtro (aunque quedara uno de una
-// práctica anterior sin limpiar); "Otra" en el resumen SÍ respeta el filtro
-// vigente, para poder repetir la misma área varias veces seguidas.
-// v0.3: Comenzar lanza el modo elegido en el hub (o el último jugado).
-document.querySelector('[data-test="comenzar"]').addEventListener('click', comenzarModoElegido);
+// Tocar una tarjeta del HUB arranca su modo con el filtro guardado de ese modo (ver
+// montarTarjetasHub); "Otra" en el resumen SÍ respeta el filtro vigente, para poder repetir la misma
+// área varias veces seguidas.
 nodoSilencio.addEventListener('click', () => {
   sonido.alternarSilencio();
   pintarSilencio();
@@ -4338,7 +4320,7 @@ nodoAtomoAtras.addEventListener('click', manejarAtomoAtras);
 nodoAtomoGenerar.addEventListener('click', manejarGenerarAtomo);
 nodoAtomoReintentar.addEventListener('click', () => cargarAnilloAtomo());
 // Hoja "Conectar" (v0.2b3 Tarea 4 + revisión combinada): se abre al tocar el punto de estado de
-// la cabecera del Átomo, el del HUB (junto a "Comenzar" -- Carlos aterriza ahí al abrir la app
+// la cabecera del Átomo, el del HUB (en el pie del inicio -- Carlos aterriza ahí al abrir la app
 // instalada), o el aviso del Átomo -- pero SOLO cuando ese aviso es "Conecta el servidor..." (sin
 // configuración); con servidor configurado el mismo nodo muestra otros textos (fallo al cargar,
 // "Buscando..."), que no deben abrir esta hoja.

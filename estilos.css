@@ -147,7 +147,7 @@ main#app {
 
 /* Los hijos directos de una vista nunca se encogen: en una columna flex con
    overflow, un botón con min-height explícito (44px) se comprimía y el texto de
-   "Comenzar" (28px + 18px de relleno) salía cortado por abajo. */
+   el botón principal (28px + 18px de relleno) salía cortado por abajo. */
 .vista > * {
   flex-shrink: 0;
 }
@@ -1977,7 +1977,7 @@ s.visual-clave-valor {
    puntuación (.radar-dato, como antes); relleno más opaco = solidez
    (.radar-solido, nuevo). Ver renderRadar() en app.js.
    Absorbe el espacio libre del HUB (spec "pantalla completa" 12-sep): flex:1
-   entre min y max, así no queda hueco vacío entre la rejilla y "Comenzar".
+   entre min y max, así no queda hueco vacío entre la rejilla y el pie.
    Especificidad igual a ".vista > *" (0,1,0): gana por ir después en la hoja. */
 .hub-radar-envoltorio {
   display: flex;
@@ -2061,18 +2061,7 @@ s.visual-clave-valor {
   display: none;
 }
 
-.hub-comenzar-fila {
-  position: relative;
-}
-
-.boton-comenzar {
-  width: 100%;
-  min-height: 56px;
-  padding: 14px;
-  font-size: var(--tam-2);
-}
-
-/* Punto de estado del servidor de generación, en la esquina del botón Comenzar (v0.2b2 §4).
+/* Punto de estado del servidor de generación (v0.2b2 §4; en el HUB vive en el pie, ver .hub-pie).
    Gris por defecto (sin servidor o sincronización aún no confirmada esta sesión); el color final
    lo decide `data-estado` (ver actualizarPuntoServidor en app.js), nunca una clase aparte, para
    que una sola línea de JS baste. Ámbar (no hay token de --ko de sobra: rojo es "fallo", no el
@@ -2098,10 +2087,10 @@ s.visual-clave-valor {
 }
 
 /* Botón del punto de estado (Tarea 4 + revisión combinada, "Conectar desde la app instalada"): los
-   DOS puntos (cabecera del Átomo y HUB junto a "Comenzar") eran `<span>` decorativos, ahora también
+   DOS puntos (cabecera del Átomo y pie del HUB) eran `<span>` decorativos, ahora también
    el disparador para abrir la hoja "Conectar" -- reset de <button> más un `::before` invisible que
    amplía el área táctil a 44px (Apple HIG) sin tocar el tamaño/posición del punto visible en sí
-   (tanto `.atomo-cabecera` como `.hub-comenzar-fila` ya son `position: relative`). */
+   (`.atomo-cabecera` ya es `position: relative`; el del pie se coloca en el flujo, ver `.hub-pie`). */
 button.punto-servidor {
   appearance: none;
   padding: 0;
@@ -2119,39 +2108,28 @@ button.punto-servidor::before {
   transform: translate(-50%, -50%);
 }
 
-/* Ronda final de arreglos (revisión, 14-sep-2026) -- Important (C4): en el HUB, el punto de estado
-   está pegado a la esquina superior derecha del botón "Comenzar" (`.punto-servidor` en top:-4px;
-   right:-4px -- ver arriba), así que el `::before` de 44px CENTRADO en el punto invade 24×24px de
-   esa esquina: un toque real ahí abría "Conectar" en vez de arrancar la partida (medido en vivo:
-   .punto-servidor de 12×12 solapando el botón por 8px en cada eje, más los 16px que añade el
-   `::before` a cada lado). El punto de la cabecera del Átomo NO tiene este problema (solo pisa el
-   final del texto de la ruta, sin ningún control debajo) y sigue con el `::before` de arriba, sin
-   tocar.
-   Arreglo, solo aquí: en vez de centrar el área táctil en el punto, se ancla a la DERECHA de él --
-   `.hub-comenzar-fila`, `.boton-comenzar` y `.hub-modos` comparten el mismo borde derecho (son
-   los tres al 100% de ancho de su contenedor), así que un área táctil que empiece exactamente en
-   ese borde (left: 10px respecto del punto de 12px de ancho -- 2px de margen de seguridad sobre el
-   borde real, ver el test de geometría en tests/e2e.spec.js) no solapa ni "Comenzar" ni la rejilla
-   de áreas, para cualquier ancho de pantalla. Se mantienen los 44px de ALTO que pide Apple HIG
-   (Carlos, 14-sep); el ANCHO se reduce a 34px porque casi todo el área cae fuera de la pantalla, a
-   la derecha del punto -- no hay ningún control ahí, así que no es un problema de solape, solo de
-   alcance (aceptado: el punto ya vive pegado al borde de la pantalla). */
-.hub-comenzar-fila .punto-servidor::before {
-  top: 50%;
-  left: 10px;
-  right: auto;
-  width: 34px;
-  height: 44px;
-  transform: translateY(-50%);
-}
-
 /* Exportar/Importar: pie discreto, ya no son la acción principal del HUB. */
 .hub-pie {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
   margin-top: 4px;
   font-size: 13px;
+}
+
+/* El punto de estado del servidor va en el flujo del pie (no en una esquina): área táctil de 44px de
+   alto y 30 de ancho, que cabe en el hueco entre enlaces sin pisarlos. */
+.hub-pie .punto-servidor {
+  position: relative;
+  top: auto;
+  right: auto;
+  flex: none;
+}
+
+.hub-pie .punto-servidor::before {
+  width: 30px;
+  height: 44px;
 }
 
 /* --- Indicador de tanda (spec v0.2b4 §2) ------------------------------------------------------
@@ -3020,8 +2998,9 @@ button.punto-servidor::before {
 .hub-modo-icono { font-size: 20px; line-height: 1; }
 .hub-modo-nombre { font-size: var(--tam-1); font-weight: 600; white-space: nowrap; }
 .hub-modo-marcador { font-size: 13px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.hub-modo--pronto { cursor: default; }
+.hub-modo--pronto .hub-modo-nombre, .hub-modo--pronto .hub-modo-icono { opacity: 0.6; }
 .hub-modo--pronto .hub-modo-marcador { color: var(--dorado, #f2c14e); }
-.hub-modo--elegido { border-color: var(--acento); box-shadow: 0 0 0 1px var(--acento), 0 0 16px rgba(76, 201, 240, 0.35); }
 .hub-modo--esfinge { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
 .hub-modo--esfinge .esfinge--grande { width: 60px; height: 60px; }
 .hub-esfinge-textos { display: flex; flex-direction: column; gap: 2px; }

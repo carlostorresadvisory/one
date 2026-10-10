@@ -2,8 +2,6 @@
 // `disponible: true`, añade su caso en `marcadorModo` y su rama en app.js#arrancarModo. Imágenes de
 // Wikimedia Commons (licencia libre, atribución en la hoja "Créditos" del pie del hub).
 
-export const MODO_POR_DEFECTO = 'clasico';
-export const CLAVE_ULTIMO_MODO = 'one.ultimoModo';
 
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/thumb';
 
@@ -54,30 +52,9 @@ export function modoPorId(id) {
   return MODOS.find((m) => m.id === id) || null;
 }
 
-// `almacen ?? globalThis.localStorage` se resuelve DENTRO del try: con el almacenamiento bloqueado
-// el getter de `localStorage` lanza SecurityError y no debe escapar.
-export function cargarUltimoModo(almacen) {
-  try {
-    const id = (almacen ?? globalThis.localStorage).getItem(CLAVE_ULTIMO_MODO);
-    return modoPorId(id) ? id : MODO_POR_DEFECTO;
-  } catch {
-    return MODO_POR_DEFECTO;
-  }
-}
-
-export function guardarUltimoModo(id, almacen) {
-  if (!modoPorId(id)) return false;
-  try {
-    (almacen ?? globalThis.localStorage).setItem(CLAVE_ULTIMO_MODO, id);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /** Marcador vivo de la tarjeta del hub (spec §3). `datos` lo calcula app.js#renderHub. */
 export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0 } = {}) {
   if (id === 'clasico') return `Hoy ${aciertosHoy}/${respondidasHoy}`;
   if (id === 'repaso') return porRepasar > 0 ? `${porRepasar} por repasar` : 'Al día';
-  return 'Próximamente';
+  return 'Pronto';
 }

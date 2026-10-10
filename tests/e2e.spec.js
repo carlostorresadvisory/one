@@ -186,13 +186,13 @@ async function medirHuecoMuerto(page) {
 }
 
 /** El radar absorbe el espacio libre del HUB (spec "pantalla completa"
- * 12-sep): nada de hueco vacío entre la rejilla de áreas y "Comenzar". */
-async function comprobarHuecoGridComenzar(page) {
+ * 12-sep): nada de hueco vacío entre la rejilla de modos y el pie. */
+async function comprobarHuecoGridPie(page) {
   const cajaGrid = await page.locator('[data-test="hub-modos"]').boundingBox();
-  const cajaComenzar = await page.locator('[data-test="comenzar"]').boundingBox();
+  const cajaPie = await page.locator('.hub-pie').boundingBox();
   expect(cajaGrid).not.toBeNull();
-  expect(cajaComenzar).not.toBeNull();
-  const hueco = cajaComenzar.y - (cajaGrid.y + cajaGrid.height);
+  expect(cajaPie).not.toBeNull();
+  const hueco = cajaPie.y - (cajaGrid.y + cajaGrid.height);
   expect(hueco).toBeLessThanOrEqual(48);
 }
 
@@ -214,10 +214,9 @@ async function assertHojaSinScroll(page) {
   expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
 }
 
-/** v0.3: desde el HUB, elige la tarjeta del modo y pulsa Comenzar. */
+/** v0.3: desde el HUB, un solo toque en la tarjeta del modo lo abre. */
 async function entrarEnModo(page, modo) {
   await page.locator(`[data-test="modo-${modo}"]`).click();
-  await page.locator('[data-test="comenzar"]').click();
 }
 
 /** v0.3: Repaso = partida de las falladas (decisión de Carlos, 5-oct). Requiere ≥ 1 pendiente. */
@@ -475,13 +474,13 @@ test.describe('ONE · integración e2e', () => {
     const erroresPagina = [];
     page.on('pageerror', (err) => erroresPagina.push(err));
 
-    // 1. Inicio (🧠/💪) visible, racha en 0, sin botón Comenzar aquí.
+    // 1. Inicio (🧠/💪) visible, racha en 0, sin tarjetas de modo aquí.
     await page.goto('/?ejemplo=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 0');
-    // El botón "Comenzar" vive en el HUB, no aquí: en el inicio de los emojis
-    // no debe verse (sigue existiendo en el DOM, solo que su vista está oculta).
-    await expect(page.locator('[data-test="comenzar"]')).toBeHidden();
+    // Las tarjetas de modo viven en el HUB, no aquí: en el inicio de los emojis
+    // no deben verse (siguen en el DOM, solo que su vista está oculta).
+    await expect(page.locator('[data-test="modo-clasico"]')).toBeHidden();
     await page.screenshot({ path: `${CAPTURAS}/01-inicio.png` });
 
     // Mapa título -> índice sospechoso del banco de ejemplo: permite acertar siempre
@@ -491,7 +490,7 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    // 2. 🧠 lleva SIEMPRE al HUB: ahí está "Comenzar", el radar de las 8 áreas, la
+    // 2. 🧠 lleva SIEMPRE al HUB: ahí están las tarjetas de modo, el radar de las 8 áreas, la
     // Misión de hoy y Pendientes. Estado recién creado: puntuación 0 en todas las
     // áreas -> radar vacío con aviso, sin relleno de solidez todavía, Pendientes
     // en 0 y una Misión de hoy recién generada (Economía + Historia son las dos
@@ -504,7 +503,7 @@ test.describe('ONE · integración e2e', () => {
     await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
     await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
     await assertSinScroll(page);
-    await comprobarHuecoGridComenzar(page);
+    await comprobarHuecoGridPie(page);
     await page.screenshot({ path: `${CAPTURAS}/02-hub.png` });
 
     // 3. "←" desde el HUB vuelve a los emojis (nunca al revés): comprobamos el
@@ -517,7 +516,7 @@ test.describe('ONE · integración e2e', () => {
     // 4. Practicar solo un área desde el HUB: tocar la tarjeta de "economia"
     // arranca una partida filtrada (el banco de ejemplo tiene 2 preguntas de esa
     // área). La cabecera debe anunciar "Solo Economía" y la tarjeta debe serlo.
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
     await page.locator('[data-test="filtro-elegir"]').click();
@@ -611,7 +610,7 @@ test.describe('ONE · integración e2e', () => {
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
-    // 10. Partida normal (sin filtro) de verdad, desde "Comenzar": la primera
+    // 10. Partida normal (sin filtro) de verdad, desde la tarjeta Clásico: la primera
     // pregunta se falla a propósito (deja al menos una tarjeta en "Para repasar"
     // para el resumen), la segunda se acierta con confianza Alta (comprueba el
     // "×1,5"), y el resto se juega en modo genérico capturando cada mecánica
@@ -758,7 +757,7 @@ test.describe('ONE · integración e2e', () => {
     await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     await jugarPartida(page);
 
@@ -781,7 +780,7 @@ test.describe('ONE · integración e2e', () => {
     await page.locator('[data-test="cerebro"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
-    await comprobarHuecoGridComenzar(page);
+    await comprobarHuecoGridPie(page);
     await page.screenshot({ path: `${CAPTURAS_430}/02-hub.png` });
 
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
@@ -789,7 +788,7 @@ test.describe('ONE · integración e2e', () => {
       bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso])
     );
 
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const vistos = new Set();
     const nombreCaptura = { vf: '03-vf.png', error: '06-error.png' };
@@ -886,7 +885,7 @@ test.describe('ONE · integración e2e', () => {
     );
 
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     await expect(t).toHaveAttribute('data-indice', '0');
@@ -1720,7 +1719,7 @@ test.describe('ONE · integración e2e', () => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     const contador = t.locator('[data-test="mazo-contador"]');
@@ -1754,7 +1753,7 @@ test.describe('ONE · integración e2e', () => {
     );
 
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     // Falla las dos primeras a propósito para tener exactamente dos tarjetas
     // de repaso con posiciones distintas que comprobar.
@@ -1783,7 +1782,7 @@ test.describe('ONE · integración e2e', () => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     await responderPreguntaActual(page);
@@ -1811,7 +1810,7 @@ test.describe('ONE · integración e2e', () => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     const cajaAntes = await t.locator('[data-test="confianza"]').boundingBox();
@@ -1859,7 +1858,7 @@ test.describe('ONE · integración e2e', () => {
     await page.evaluate(() => localStorage.setItem('one.pistaMazo', '5'));
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const indicador = page.locator('[data-test="mazo-gesto"]');
     await expect(page.locator('[data-test="pista-mazo"]')).toBeHidden();
@@ -3163,7 +3162,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await expect(page.locator('[data-test="estado-servidor"]')).toHaveAttribute('data-estado', 'ambar');
 
     // Silencioso de verdad: nada de esto impide seguir jugando con normalidad.
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
   });
 
@@ -3317,10 +3316,9 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
 
 // C4 de la revisión final v0.2b3-atomo-amplio-gemini: el `::before` de 44×44 que amplía el área
 // táctil del punto de estado (estilos.css#button.punto-servidor::before), CENTRADO en el punto,
-// invadía 24×24px de la esquina superior derecha de "Comenzar" -- un toque real ahí abría la hoja
-// "Conectar" en vez de arrancar la partida (medido en vivo con boundingBox, ver el informe de la
-// revisión). Geometría real, sin mocks de servidor: basta con abrir el HUB.
-test('HUB: el área táctil de 44px del punto de estado no pisa "Comenzar" (C4)', async ({ page }) => {
+// invadía la esquina del botón principal. Desde v0.3 el punto vive en el pie del HUB: su área táctil no
+// debe pisar ni los enlaces del pie ni la rejilla de modos. Geometría real, sin mocks de servidor.
+test('HUB: el área táctil de 44px del punto de estado no pisa los enlaces del pie ni la rejilla (C4)', async ({ page }) => {
   await page.goto('/?test=1');
   await page.locator('[data-test="cerebro"]').click();
   await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
@@ -3361,7 +3359,9 @@ test('HUB: el área táctil de 44px del punto de estado no pisa "Comenzar" (C4)'
     }
     return {
       areaTactil: cajaPseudoBefore(document.querySelector('[data-test="estado-servidor"]')),
-      comenzar: caja('[data-test="comenzar"]'),
+      exportar: caja('[data-test="exportar"]'),
+      importar: caja('.hub-pie .boton-archivo'),
+      creditos: caja('[data-test="abrir-creditos"]'),
       grid: caja('[data-test="hub-modos"]'),
     };
   });
@@ -3371,7 +3371,9 @@ test('HUB: el área táctil de 44px del punto de estado no pisa "Comenzar" (C4)'
   }
 
   expect(geometria.areaTactil.height, 'el área táctil debe seguir midiendo >= 44px de alto (Apple HIG)').toBeGreaterThanOrEqual(44);
-  expect(seSolapan(geometria.areaTactil, geometria.comenzar), 'el área táctil del punto no debe solapar "Comenzar"').toBe(false);
+  for (const enlace of ['exportar', 'importar', 'creditos']) {
+    expect(seSolapan(geometria.areaTactil, geometria[enlace]), `el área táctil del punto no debe solapar «${enlace}»`).toBe(false);
+  }
   expect(seSolapan(geometria.areaTactil, geometria.grid), 'el área táctil del punto no debe solapar la rejilla de áreas').toBe(false);
 });
 
@@ -3895,7 +3897,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(indicador).toBeVisible();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(indicador).toBeVisible();
 
@@ -3931,7 +3933,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       await assertSinSolapeCabecera(page);
       await assertSinScroll(page);
 
-      await page.locator('[data-test="comenzar"]').click();
+      await page.locator('[data-test="modo-clasico"]').click();
       await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
       await esperarAsentamientoMazo(page); // geometría definitiva de la tarjeta, no a mitad de transición
       await assertSinSolapeCabecera(page);
@@ -3993,7 +3995,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // (b) 'lista' con una partida a medias: el toque no pisa la partida y el indicador se queda.
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     const contadorAntes = await tarjetaActual(page).locator('[data-test="mazo-contador"]').textContent();
@@ -4372,7 +4374,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
       localStorage.setItem('one.filtros', JSON.stringify({ clasico: { area: 'economia', ruta: ['Mercados y crisis financieras'], etiquetas: ['Mercados y crisis'] } }));
     });
     await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeEnabled();
     await page.locator('[data-test="filtro-corto-generar"]').click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
@@ -4381,7 +4383,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     const indice = await page.evaluate(() => JSON.parse(localStorage.getItem('one.indiceRutas')));
     expect(indice['["economia",["Mercados y crisis financieras"]]']).toHaveLength(10);
     await page.locator('[data-test="volver"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía · Mercados y crisis');
     await esperarAsentamientoMazo(page);
@@ -4391,7 +4393,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
   test('v0.3: chip → Economía → nodo del anillo → Elegir: hoja cerrada y chip con el nodo (listeners vivos en la superposición)', async ({ page }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
     await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
     await expect(page.locator('[data-test="atomo-nodo"]')).toHaveCount(4);
@@ -4862,9 +4864,9 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
   });
 
   // Revisión combinada (Tarea 4): Carlos aterriza en el HUB al abrir la app instalada, así que el
-  // punto de estado de ahí (junto a "Comenzar") también debe abrir la hoja -- no solo el gemelo
+  // punto de estado de ahí (en el pie) también debe abrir la hoja -- no solo el gemelo
   // dentro del Átomo, que exige un paso extra (abrir el átomo de un área) para llegar a él.
-  test('abrir la hoja también desde el punto de estado del HUB (junto a "Comenzar"), sin pasar por el Átomo', async ({
+  test('abrir la hoja también desde el punto de estado del HUB (en el pie), sin pasar por el Átomo', async ({
     page,
   }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorConectarFalso());
@@ -5179,7 +5181,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     await expect(t).toHaveAttribute('data-respondida', 'false');
@@ -6160,7 +6162,7 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="inicio"]')).toBeVisible();
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
 
     const t = tarjetaActual(page);
     await responderPreguntaActual(page);
@@ -6728,7 +6730,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     // Banco real (35 de ciencia): con el de ejemplo (2) la Tarea 7 mandaría al aviso de "menos de 5".
     await page.goto('/?test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     const chip = page.locator('[data-test="chip-filtro"]');
     await expect(chip).toHaveText('TODOS');
@@ -6754,7 +6756,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   test('cerrar (✕ o Escape) no cambia el filtro ni abandona la partida; el foco vuelve al chip', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await page.locator('[data-test="filtro-cerrar"]').click();
     await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
@@ -6769,7 +6771,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   test('Atrás en el anillo 1 del átomo vuelve a la lista de áreas dentro de la hoja', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'ciencia');
     const atras = page.locator('[data-test="atomo-atras"]');
@@ -6815,7 +6817,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   test('pocos elementos: Economía (2 en el banco de ejemplo) → aviso; «Jugar las 2» juega solo esas; «Volver a TODOS» quita el filtro', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
     await page.locator('[data-test="filtro-elegir"]').click();
@@ -6833,7 +6835,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await expect(tarjetaActual(page).locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
 
     await page.locator('[data-test="volver"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await page.locator('[data-test="filtro-corto-todos"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
@@ -6844,14 +6846,14 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await abrirHojaFiltro(page);
     await elegirAreaEnFiltro(page, 'economia');
     await page.locator('[data-test="filtro-elegir"]').click();
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await jugarPartida(page, { sospechosoPorTitulo });
     await page.locator('[data-test="resumen-cifras"] [data-test="ir-inicio"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Solo hay 2 preguntas de Economía');
     await page.locator('[data-test="filtro-corto-jugar"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
@@ -6862,7 +6864,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
   test('defensivo: Volver con la hoja del filtro abierta la cierra', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await abrirHojaFiltro(page);
     await page.evaluate(() => document.querySelector('[data-test="volver"]').click()); // el overlay tapa el botón: click programático
@@ -6876,7 +6878,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     });
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await expect(page.locator('[data-test="filtro-corto-texto"]')).toHaveText('Aún no hay preguntas de Historia · Roma');
     await expect(page.locator('[data-test="filtro-corto-jugar"]')).toBeHidden();
     await expect(page.locator('[data-test="resumen"]')).toBeHidden();
@@ -6908,7 +6910,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
 test.describe('ONE · v0.3 HUB de modos', () => {
   for (const viewport of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
-    test(`HUB ${viewport.width}×${viewport.height}: 6 tarjetas, Clásico elegido, nada del hub viejo, sin scroll y letra fija`, async ({ page }) => {
+    test(`HUB ${viewport.width}×${viewport.height}: 6 tarjetas, «Pronto» sin responder, nada del hub viejo, sin scroll y letra fija`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // imagen rota: la tarjeta se ve igual
       await page.goto('/?ejemplo=1');
@@ -6917,10 +6919,11 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       for (const id of ['clasico', 'repaso', 'apuesta', 'masomenos', 'contrarreloj']) {
         await expect(page.locator(`[data-test="modo-${id}"]`)).toBeVisible();
       }
-      await expect(page.locator('[data-test="modo-clasico"]')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
+      await expect(page.locator('[data-test="modo-clasico"]')).not.toHaveAttribute('aria-pressed', /.*/);
       await expect(page.locator('[data-test="marcador-clasico"]')).toHaveText('Hoy 0/0');
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
-      await expect(page.locator('[data-test="marcador-apuesta"]')).toHaveText('Próximamente');
+      await expect(page.locator('[data-test="marcador-apuesta"]')).toHaveText('Pronto');
       await expect(page.locator('[data-test="marcador-esfinge"]')).toHaveText('🎒 0');
       await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveCount(1);
       await expect(page.locator('[data-test="silencio"]')).toBeVisible();
@@ -6934,22 +6937,36 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     });
   }
 
-  test('Apuesta → Comenzar avisa «Próximamente» sin navegar; Repaso se recuerda tras recargar', async ({ page }) => {
+  test('Repaso sin falladas avisa «Nada por repasar» sin navegar; una tarjeta «Pronto» no responde', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="modo-apuesta"]').click();
-    await expect(page.locator('[data-test="modo-apuesta"]')).toHaveAttribute('aria-pressed', 'true');
-    await page.locator('[data-test="comenzar"]').click();
-    await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Próximamente');
+    await page.locator('[data-test="modo-apuesta"]').click({ force: true });
+    await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await assertSinScroll(page);
-    // Repaso sin falladas: avisa «Nada por repasar» y no navega, pero queda como último modo elegido.
     await entrarEnModo(page, 'repaso');
     await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Nada por repasar');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await page.reload();
+    await assertSinScroll(page);
+  });
+
+  test('v0.3 fase 3: tocar una tarjeta lleva a su modo; las «Pronto» no responden; sin Comenzar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await expect(page.locator('[data-test="modo-repaso"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
+    const pronto = page.locator('[data-test="modo-contrarreloj"]');
+    await expect(pronto).toHaveAttribute('aria-disabled', 'true');
+    await expect(pronto).toContainText('Pronto');
+    await pronto.click({ force: true });
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.locator('[data-test="modo-clasico"]').dblclick();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    for (const vp of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+      await page.setViewportSize(vp);
+      await page.locator('[data-test="volver"]').click();
+      await assertSinScroll(page);
+      await page.locator('[data-test="modo-clasico"]').click();
+      await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    }
   });
 
   test('Review Focus 4: 375×667 con indicador de tanda, chip de nuevas y aviso a la vez: sin scroll ni solapes con las tarjetas', async ({ page }) => {
@@ -6960,8 +6977,8 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       window.__one.mostrarIndicadorLista(['eco-001'], 'Mercados y crisis financieras');
       window.__one.mostrarChipNuevas(14, ['eco-001']);
     });
-    await page.locator('[data-test="modo-contrarreloj"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-repaso"]').click(); // sin falladas: avisa «Nada por repasar» sin navegar
+    await expect(page.locator('[data-test="aviso-hub"]')).toBeVisible();
     await assertSinScroll(page);
     const solapes = await page.evaluate(() => {
       const caja = (sel) => document.querySelector(sel).getBoundingClientRect();
@@ -7009,7 +7026,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
   });
 
-  test('Importar un respaldo v3 con basura en modos: el estado entra y un último modo inexistente deja Clásico', async ({ page }) => {
+  test('Importar un respaldo v3 con basura en modos: el estado entra y la clave vieja one.ultimoModo se ignora', async ({ page }) => {
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="cerebro"]').click();
     const v3 = await page.evaluate(() =>
@@ -7021,7 +7038,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     );
     await page.locator('#importar-archivo').setInputFiles({ name: 'basura.json', mimeType: 'application/json', buffer: Buffer.from(v3) });
     await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 5');
-    await expect(page.locator('[data-test="modo-clasico"]')).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => localStorage.getItem('one.ultimoModo'))).toBeNull();
     await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
   });
 
@@ -7082,7 +7099,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
   test('acierto: ding + esfinge contenta + salto; fallo: golpe + esfinge triste', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
     await page.locator('body').click({ position: { x: 5, y: 5 } }); // primer gesto: desbloquea el audio
@@ -7104,7 +7121,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
       await page.setViewportSize({ width: 375, height: alto });
       await page.goto('/?ejemplo=1&test=1');
       await page.locator('[data-test="cerebro"]').click();
-      await page.locator('[data-test="comenzar"]').click();
+      await page.locator('[data-test="modo-clasico"]').click();
       await page.locator('body').click({ position: { x: 5, y: 5 } });
       const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
       const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
@@ -7139,7 +7156,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
   test('Clásico 9/10: sin premio ni objeto en la mochila', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await jugarTandaConFallos(page, await sospechososDelBanco(page), 1);
     await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
     expect(await page.evaluate(() => localStorage.getItem('one.mochila'))).toBeNull();
@@ -7155,7 +7172,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     });
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     await jugarTandaConFallos(page, await sospechososDelBanco(page), 0);
     await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
   });
@@ -7163,7 +7180,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
   test('Repaso 10/10: nunca da premio', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     const sospechosoPorTitulo = await sospechososDelBanco(page);
     await jugarTandaConFallos(page, sospechosoPorTitulo, 10); // 10 pendientes
     const final = await recorrerRepasoHastaFinal(page);
@@ -7178,7 +7195,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="cerebro"]').click();
-    await page.locator('[data-test="comenzar"]').click();
+    await page.locator('[data-test="modo-clasico"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
     const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
     await jugarPartida(page, { sospechosoPorTitulo });

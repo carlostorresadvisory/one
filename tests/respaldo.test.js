@@ -10,7 +10,7 @@ import { almacenFalso, almacenRoto } from './almacen-falso.js';
 const HOY = '2026-10-05';
 
 test('CLAVES_RESPALDO: las claves de v0.3 de estas fases', () => {
-  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.ultimoModo', 'one.filtros', 'one.silencio', 'one.indiceRutas']);
+  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas']);
 });
 
 test('CLAVES_RESPALDO incluye las claves que usan mochila.js y sonido.js (test cruzado)', () => {
@@ -34,10 +34,24 @@ test('exportarRespaldo con almacén roto exporta el estado sin modos', () => {
 test('ida y vuelta v3: mismo estado y mismos modos', () => {
   const estado = crearEstado(HOY);
   estado.xp = 77;
-  const json = exportarRespaldo(estado, almacenFalso({ 'one.ultimoModo': 'repaso' }));
+  const json = exportarRespaldo(estado, almacenFalso({ 'one.silencio': '1' }));
   const { estado: importado, modos } = importarRespaldo(json);
   assert.equal(importado.xp, 77);
-  assert.deepEqual(modos, { 'one.ultimoModo': 'repaso' });
+  assert.deepEqual(modos, { 'one.silencio': '1' });
+});
+
+test('importar un respaldo v3 viejo con one.ultimoModo no lanza y la ignora', () => {
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.ultimoModo': 'repaso', 'one.silencio': '1' } });
+  const r = importarRespaldo(json);
+  assert.ok(r);
+  assert.deepEqual(r.modos, { 'one.silencio': '1' });
+  const almacen = almacenFalso();
+  aplicarModos(r.modos, almacen);
+  assert.equal(almacen.getItem('one.ultimoModo'), null);
+  assert.equal(almacen.getItem('one.silencio'), '1');
+  // Aunque alguien llame a aplicarModos con la clave vieja, no se escribe.
+  aplicarModos({ 'one.ultimoModo': 'repaso' }, almacen);
+  assert.equal(almacen.getItem('one.ultimoModo'), null);
 });
 
 test('Review Focus 5: un respaldo v2 antiguo (motor.exportar) se importa sin modos', () => {
