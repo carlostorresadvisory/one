@@ -762,7 +762,7 @@ test.describe('ONE · integración e2e', () => {
     await page.goto('/?ejemplo=1');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
-    await page.screenshot({ path: `${CAPTURAS_430}/01-inicio.png` });
+    await page.screenshot({ path: `${CAPTURAS_430}/01-hub.png` });
 
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
