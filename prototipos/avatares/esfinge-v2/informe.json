@@ -120,43 +120,53 @@
   "tramos": [
    [
     "B",
-    9.703,
+    9.5,
     8.594
    ],
    [
+    "B~",
+    1.953,
+    2.453
+   ],
+   [
     "B",
-    8.609,
-    9.703
+    8.891,
+    9.5
    ]
   ],
-  "cuadros": 172,
-  "segundos": 2.87,
+  "cuadros": 253,
+  "segundos": 4.22,
   "uniones": [
    [
     1,
-    14
+    28
    ],
    [
-    87,
-    0
+    88,
+    16
    ],
    [
-    158,
-    14
+    169,
+    16
+   ],
+   [
+    225,
+    28
    ]
   ],
-  "p95_real": 1.48,
+  "p95_real": 1.07,
   "saltos_raros": [],
   "tiras": [
    "tiras/pensando-0.jpg",
    "tiras/pensando-1.jpg",
-   "tiras/pensando-2.jpg"
+   "tiras/pensando-2.jpg",
+   "tiras/pensando-3.jpg"
   ]
  },
  "sorpresa": {
   "tramos": [
    [
-    "A",
+    "A~~",
     3.203,
     2.906
    ],
@@ -166,28 +176,28 @@
     3.125
    ],
    [
-    "A",
+    "A~",
     3.141,
     3.203
    ]
   ],
-  "cuadros": 119,
-  "segundos": 1.98,
+  "cuadros": 180,
+  "segundos": 3.0,
   "uniones": [
    [
     1,
     18
    ],
    [
-    39,
-    0
-   ],
-   [
     96,
     0
    ],
    [
-    101,
+    153,
+    0
+   ],
+   [
+    162,
     18
    ]
   ],
@@ -203,43 +213,34 @@
  "triste": {
   "tramos": [
    [
-    "A",
-    3.203,
-    2.859
+    "B~",
+    4.359,
+    5.594
    ],
    [
     "B",
-    3.875,
+    5.609,
     6.75
    ]
   ],
-  "cuadros": 255,
-  "segundos": 4.25,
+  "cuadros": 277,
+  "segundos": 4.62,
   "uniones": [
    [
     1,
-    18
+    28
    ],
    [
-    42,
-    13
+    188,
+    0
    ],
    [
-    240,
+    262,
     15
    ]
   ],
-  "p95_real": 0.89,
-  "saltos_raros": [
-   [
-    38,
-    1.53
-   ],
-   [
-    56,
-    1.93
-   ]
-  ],
+  "p95_real": 0.68,
+  "saltos_raros": [],
   "tiras": [
    "tiras/triste-0.jpg",
    "tiras/triste-1.jpg",
