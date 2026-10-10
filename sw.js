@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v21';
+const CACHE = 'one-v22';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -18,7 +18,7 @@ const CACHE = 'one-v21';
 // tolerante: que falte un icono no debe tumbar la app.
 const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
-  'sonido.js', 'efectos.js', 'esfinge.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js',
+  'sonido.js', 'efectos.js', 'esfinge.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',
   'estilos.css', 'datos/banco.json',
 ];

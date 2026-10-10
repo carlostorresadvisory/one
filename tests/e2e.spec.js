@@ -2168,7 +2168,7 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
     browser,
     page,
   }) => {
-    test.setTimeout(90000);
+    test.setTimeout(180000);
     // `page` de este test solo se usa para leer los JSON del banco (fetch necesita un origen ya
     // navegado); las 44 partidas del barrido, cada una en su propio contexto, más abajo.
     await page.goto('/?test=1');
@@ -2188,6 +2188,8 @@ test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', 
       const p2 = await contexto.newPage();
       await p2.emulateMedia({ reducedMotion: 'reduce' });
       await p2.goto('/?test=1');
+      // El arranque acaba en el hub: esperarlo evita que su mostrarVista('progreso') tape la partida.
+      await expect(p2.locator('[data-vista="progreso"]')).toBeVisible();
       await p2.evaluate((idPregunta) => window.__one.empezarPartida({ ids: [idPregunta], etiqueta: 'barrido' }), id);
       await responderPreguntaActual(p2);
       await esperarAsentamientoMazo(p2);
