@@ -1,33 +1,16 @@
-# Próxima sesión — ONE v0.3: revisar maquetas con Carlos y ejecutar el plan de las fases 3-10
+# Próxima sesión — ONE v0.3: terminar la fase 3 (sonido en el iPhone, aviso grande, cierre)
 
 ## Lo último (10-oct-2026, noche)
-- **Maquetas revisadas por Carlos en el iPhone** (rama `diseno-secciones`, `prototipos/secciones/index.html`, commit `4309f1b`). Decidido: **imagen de Commons de fondo con la pregunta encima** (sombra abajo); **ninguna tarjeta grande con emoji**, siempre foto; **Afinar con fotos a escala real** (alto proporcional a la cifra; la de la estimación crece con el deslizador); **preguntas difíciles** (ejemplos en la maqueta). Duda «hueco en Contrarreloj» resuelta: lo llena la foto. **Sin decidir**: salvavidas magenta (¿icono propio?), resplandores, avatar de 100 px, y las 3 asunciones del plan (abajo). **Nada de esto está aún en la spec**: llevarlo antes de construir, con adversarial.
-- **Esfinge v2 aprobada** (plan `docs/superpowers/plans/2026-10-10-esfinge-interpolada.md`). `prototipos/avatares/esfinge-v2/`: reposo en bucle (2,1 s) + 6 gestos (saludo, pensando, sorpresa, triste, acierto, euforia; guiño quitado por Carlos: sin uso), todos salen del ancla N (A8.17) y vuelven a ella hacia delante; uniones inventadas por RIFE (`rife-ncnn-vulkan` en `%LOCALAPPDATA%\rife-ncnn-vulkan\`, modelo `rife-v4.6`), sin fundidos; 64 fps de la fuente marcados a 60 (cada fotograma se ve una vez); alfa propio por croma verde; `player.js` cambia de clip solo en puntos de salida del reposo (espera máx. ~2 s). Se monta con `cd tools/esfinge && python clips.py [gesto]` (lee `gestos.txt`; deja tiras de cada unión en `tiras/` e `informe.json`); juez gratis `node juez.mjs tiras/*.jpg` (`openrouter/free`; acierta el control malo pero da falsos positivos en el cambio de fila de la tira: es primer filtro, no veredicto).
-- **Revisiones de Carlos (10-oct)**: aprobados pensando (sube al revés, piensa con la pata en la barbilla B~1,95-2,45 y baja por delante cortando antes de la sonrisa de B9,55), sorpresa (orejas y «¡oh!» reales de B3,28-3,70 a ¼ y sale doblando las orejas, B6,15-6,75), triste (el mismo susto a ½ y luego cabeza baja B4,00-5,30, saltando las medias sonrisas de B3,77-3,98 y B5,35-5,70), acierto y euforia. **Saludo: el primero** (sube, saluda y baja por el mismo camino, B0,40-1,20 y vuelta): tras seis pasadas que seguían viéndose robóticas, Carlos decidió quedarse con él (10-oct, noche). **Esfinge v2 aprobada entera**; la fase 4 la lleva a `avatar.js`.
-  - Lecciones: Carlos detecta todo boomerang (salir por otro camino real); la cara respeta la emoción (sin sonrisas coladas); nada cosido por zonas (el gorro se deforma); cambios de velocidad en los extremos del vaivén y graduales.
-- Descartado: montaje con fundidos (`esfinge-candidatas/personaje.mp4`), triste de ONE con fundido FILM.
-
-## Dónde estamos (6-oct-2026, noche)
-- **Publicado**: v0.3 fases 1-2 (caché `one-v21`) + prototipo de avatares en `https://carlostorresadvisory.github.io/one/prototipos/avatares/`.
-- **Spec aprobada**: `docs/superpowers/specs/2026-10-05-one-v0.3-tres-modos-design.md`.
-- **Plan escrito y revisado** (adversarial Nemotron gratis: 4 aplicadas, 5 ya cubiertas): `docs/superpowers/plans/2026-10-06-one-v0.3-fases-3-10.md`. Una rama por fase (`v0.3-fase-3`, …), commit por tarea, publicación con OK de Carlos. **Sin ejecutar todavía.**
-- Esfinge definitiva: `prototipos/avatares/esfinge-mp4/` (4 MP4 stacked alpha + `player.js`); la fase 4 la lleva a `avatar.js`. Las animaciones se mejoran otro día: no reabrir.
-
-## Decisiones de Carlos del 6-oct (ya en spec y plan)
-- **Órdago no da objetos**: lo que se gana es el fondo, dinero canjeable en la Tienda. Superar el máximo solo se celebra.
-- Tarjeta = modo, sin Comenzar; modos sin hacer → tarjeta apagada «Pronto». «Tienda», «Órdago», insignia PREMIUM sin bloquear, aviso grande «Preguntas generadas» clicable.
-- Imágenes con impacto, nunca esquemas; IA (Cloudflare FLUX gratis, cupo 100/día; Runware de respaldo dentro de 0,10 €/día) solo como último recurso.
-
-## Asunciones del plan pendientes de confirmar con Carlos (preguntar al empezar)
-1. El `nivel` del multiplicador de Órdago es el nivel de la pregunta (1-5).
-2. La tarjeta Tienda abre ya en la fase 3 una Tienda mínima con la mochila; en el hub la esfinge animada vive en esa tarjeta y la cabecera no lleva otra (un reproductor por pantalla).
-3. `sharp` en `servidor/`/`tools/` para el WebP de IA (fase 7): Carlos hará `npm install` en el VPS y pondrá `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` en su `.env`.
+- **Spec v0.3 actualizada y aprobada** (commit `9c3f255`, adversarial Nemotron: 6 aplicadas, 1 descartada): foto de Commons de fondo con la pregunta encima; ninguna tarjeta grande con emoji, salvo el 🛟 del Salvavidas (Carlos lo quiere así); Afinar con fotos a escala real; **suelo de nivel 3** en Órdago y Contrarreloj (Comparar: parejas ≤ ×4, fechas ≤ 300 años); resplandores solo en lo dorado; esfinge v2 (`prototipos/avatares/esfinge-v2/`, reposo + 6 gestos) para la fase 4, con mapa de gestos en §7. **Pendiente de Carlos**: tamaño del avatar en partida, cuando las fotos estén montadas (spec §14).
+- **Asunciones del plan confirmadas** (10-oct): nivel del multiplicador = nivel de la pregunta; Tienda mínima en la fase 3 y en el hub la esfinge solo en su tarjeta; en la fase 7 Carlos hará `npm install` en el VPS y pondrá `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`.
+- **Fase 3 en marcha** en la rama `v0.3-fase-3` (sale de `diseno-secciones`; al publicar entran también maquetas y esfinge v2). Registro de progreso y decisiones: `.superpowers/sdd/2026-10-06-one-v0.3-fases-3-10/progress.md` (no está en git: es la memoria de la ejecución, léelo primero). Hecho: 3.1 pasos 1-3 (`c474baa`, panel `?depurar=sonido`), 3.3 (`0139b36`, tarjeta = modo, fuera Comenzar, «Pronto»). 3.4 (Tienda y Órdago) lanzada al cerrar la sesión: comprobar en el registro y en `git log` si terminó.
+- Esfinge v2 aprobada entera; lecciones: Carlos detecta todo boomerang; la cara respeta la emoción; nada cosido por zonas.
 
 ## Siguiente paso
-0b. Cerrar las 3 dudas de las maquetas, pasar lo decidido a la spec v0.3 con adversarial.
-1. Confirmar las 3 asunciones con Carlos.
-2. Fase 3 con `superpowers:subagent-driven-development` (implementador y revisor Sonnet, re-revisión Haiku; cierre con Opus ejecutando la app + adversarial `delegar.mjs --escalera revisar`). Empieza por la Tarea 3.1: panel `?depurar=sonido` y **Carlos lo abre en su iPhone** por la red local (`npm run servir`, IP con `ipconfig`) y manda capturas; sin causa demostrada no se toca el sonido.
-3. Fases 4 → 10 en orden, una sesión por fase si el contexto pasa de 250k.
+1. Leer `progress.md` y `git log --oneline -6`. Si 3.4 no tiene commit, relanzarla (implementador Sonnet); si lo tiene sin revisión, revisarla (`scripts/review-package` de la skill subagent-driven-development + revisor Sonnet).
+2. **Sonido (3.1 pasos 4-6 → 3.2)**: pedir/leer las capturas de Carlos del panel en su iPhone (`http://192.168.1.137:8765/?depurar=sonido`, recargando una vez por la caché del service worker; con el interruptor en sonido y en silencio). Escribir `docs/diagnostico-sonido-2026-10.md` con la causa demostrada y solo entonces la 3.2.
+3. 3.5 (aviso grande «Preguntas generadas» + PREMIUM) y 3.6 (cierre: `one-v22`, revisión Opus ejecutando la app, adversarial gratis, OK de Carlos para publicar).
+4. Antes de las fases 4, 5, 6 y 8: alinear su parte del plan con la spec del 10-oct (esfinge v2 y su API `gesto()`, fotos de fondo, suelo de nivel 3, Afinar con fotos).
 
 ## Aparcado de fases 1-2
 - Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar; confeti concurrente puede crear dos lienzos; `esfinge.js` usa el `document` global (desaparece en la fase 4).
