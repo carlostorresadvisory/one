@@ -8,9 +8,10 @@
 
 ## Siguiente paso
 1. Leer `progress.md` (registro, decisiones y menores aplazados) y `git log --oneline -6`.
-2. **Sonido (3.1 pasos 4-6 → 3.2)**: pedir/leer las capturas de Carlos del panel en su iPhone (`http://192.168.1.137:8765/?depurar=sonido`, recargando una vez por la caché del service worker; con el interruptor en sonido y en silencio). Escribir `docs/diagnostico-sonido-2026-10.md` con la causa demostrada y solo entonces la 3.2.
-3. 3.5 (aviso grande «Preguntas generadas» + PREMIUM) y 3.6 (cierre: `one-v22`, revisión Opus ejecutando la app, adversarial gratis, OK de Carlos para publicar).
-4. Antes de las fases 4, 5, 6 y 8: alinear su parte del plan con la spec del 10-oct (esfinge v2 y su API `gesto()`, fotos de fondo, suelo de nivel 3, Afinar con fotos).
+2. **Sonido (3.1 pasos 4-6 → 3.2)**: pedir/leer las capturas de Carlos del panel en su iPhone (`http://192.168.1.137:8765/?depurar=sonido`, recargando una vez por la caché del service worker; con el interruptor en sonido y en silencio). El 10-oct al iPhone no le cargaba la URL: el PC sí sirve (curl 200 en 192.168.1.137:8765; cortafuegos permite node en perfil Público, que es el de la wifi `MIWIFI_sHY3`) → comprobar que el iPhone está en esa wifi y no en datos; si sigue sin cargar, alternativa: Tailscale (PC 100.72.197.51, perfil Privado: habría que permitir node también en Privado). Escribir `docs/diagnostico-sonido-2026-10.md` con la causa demostrada y solo entonces la 3.2.
+3. **Nueva (Carlos, 10-oct): fuera la pantalla de inicio de 🧠/💪**; ONE abre directamente en el hub de tarjetas. Llevarlo a la spec §3 (con adversarial) y hacerlo como tarea de la fase 3 antes de la 3.5 (revisar e2e que entran por `cerebro`).
+4. 3.5 (aviso grande «Preguntas generadas» + PREMIUM) y 3.6 (cierre: `one-v22`, revisión Opus ejecutando la app, adversarial gratis, OK de Carlos para publicar).
+5. Antes de las fases 4, 5, 6 y 8: alinear su parte del plan con la spec del 10-oct (esfinge v2 y su API `gesto()`, fotos de fondo, suelo de nivel 3, Afinar con fotos).
 
 ## Aparcado de fases 1-2
 - Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar; confeti concurrente puede crear dos lienzos; `esfinge.js` usa el `document` global (desaparece en la fase 4).
