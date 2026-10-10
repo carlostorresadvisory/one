@@ -108,7 +108,7 @@
     <section class="vista vista-filtro-corto" data-vista="filtro-corto" data-test="filtro-corto" hidden>
       <p class="filtro-corto-texto" data-test="filtro-corto-texto" aria-live="polite"></p>
       <div class="filtro-corto-acciones">
-        <button type="button" class="boton boton-principal" data-test="filtro-corto-generar">Generar preguntas</button>
+        <button type="button" class="boton boton-principal" data-test="filtro-corto-generar">Generar preguntas <span class="insignia-premium" data-test="insignia-premium">PREMIUM</span></button>
         <button type="button" class="boton" data-test="filtro-corto-jugar"></button>
         <button type="button" class="boton" data-test="filtro-corto-todos">Volver a TODOS</button>
       </div>
@@ -177,16 +177,16 @@
       <div class="atomo-acciones">
         <button type="button" class="boton" data-test="atomo-atras">Atrás</button>
         <button type="button" class="boton" data-test="filtro-elegir">Elegir</button>
-        <button type="button" class="boton boton-principal" data-test="atomo-generar" disabled>Generar preguntas</button>
+        <button type="button" class="boton boton-principal" data-test="atomo-generar" disabled>Generar preguntas <span class="insignia-premium" data-test="insignia-premium">PREMIUM</span></button>
       </div>
     </div>
   </div>
 
   <!-- Indicador de tanda (spec v0.2b4 §2): FUERA de <main>, fijo arriba a la derecha, así se ve en
        TODAS las vistas (inicio, HUB, partida, repaso, átomo, espera) mientras hay una tanda en
-       curso o lista. SUSTITUYE al chip "tanda-lista" del HUB (una sola señal, decisión de la spec).
-       Tocarlo: en curso abre la vista de espera del átomo; lista arranca la partida con esas
-       preguntas; en fallo solo se cierra (y se cierra solo a los 6 s). -->
+       curso o con fallo. Tocarlo: en curso abre la vista de espera del átomo; en fallo solo se cierra
+       (y se cierra solo a los 6 s). La tanda lista es el aviso grande de aviso-generadas.js. -->
+  <div class="aviso-generadas" data-test="aviso-generadas" hidden aria-live="polite"></div>
   <button type="button" class="indicador-tanda" data-test="indicador-tanda" hidden aria-live="polite">
     <svg class="indicador-tanda-anillo" viewBox="0 0 36 36" aria-hidden="true">
       <circle class="indicador-tanda-pista" cx="18" cy="18" r="15"></circle>

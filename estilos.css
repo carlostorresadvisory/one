@@ -2932,3 +2932,70 @@ button.punto-servidor::before {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Aviso grande «Preguntas generadas» (v0.3 fase 3): banda fija abajo, ~1/6 de la pantalla, encima
+   de todo salvo las hojas; todo superpuesto, no altera la maquetación. Toda la banda (menos ✕) es el
+   botón de jugar. Cian sobre oscuro, sin magenta. */
+.aviso-generadas {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: stretch;
+  height: 16.6vh;
+  min-height: 88px;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #0e2530;
+  border-top: 2px solid var(--acento);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+}
+.aviso-generadas[hidden] { display: none; }
+.aviso-generadas-jugar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 8px 0 16px;
+  border: none;
+  background: transparent;
+  color: var(--texto);
+  font: inherit;
+  text-align: left;
+}
+.aviso-generadas-icono { font-size: var(--tam-3); }
+.aviso-generadas-textos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aviso-generadas-titulo { font-size: var(--tam-2); font-weight: 700; color: var(--acento); }
+.aviso-generadas-detalle {
+  font-size: 14px;
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aviso-generadas-accion { font-size: var(--tam-1); font-weight: 700; color: var(--acento); white-space: nowrap; }
+.aviso-generadas-cerrar {
+  flex: none;
+  width: 56px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--texto-suave);
+  font-size: var(--tam-2);
+}
+
+/* Insignia PREMIUM de los botones «Generar preguntas»: dorado solo aquí. */
+.insignia-premium {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--dorado);
+  border-radius: 6px;
+  color: var(--dorado);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+}

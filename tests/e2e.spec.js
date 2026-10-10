@@ -6,6 +6,19 @@ import { test, expect } from '@playwright/test';
 
 const CAPTURAS = 'docs/capturas';
 
+/** Aviso grande «Preguntas generadas» (v0.3 fase 3): sustituye al indicador pequeño en el estado «lista». */
+const avisoGeneradas = (page) => page.locator('[data-test="aviso-generadas"]');
+const jugarAviso = (page) => page.locator('[data-test="aviso-generadas-jugar"]');
+/** Con la tanda terminando mientras se mira la espera del Átomo el aviso no se enseña (esa vista ya
+ * tiene «Jugar la tanda»): se espera el resultado, se vuelve al HUB y allí llega el aviso. */
+async function esperarAvisoTrasEspera(page, timeout) {
+  await expect(page.locator('[data-test="atomo-espera-resultado"]')).toHaveText('Jugar la tanda', { timeout });
+  await expect(avisoGeneradas(page)).toBeHidden();
+  await page.locator('[data-test="volver"]').click();
+  await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+  await expect(avisoGeneradas(page)).toContainText('· 10');
+}
+
 /** Ninguna vista debe hacer scroll (spec "que se note" 12-sep): la .vista activa
  * debe caber entera en su alto visible. */
 async function assertSinScroll(page) {
@@ -3477,7 +3490,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await assertHojaSinScroll(page);
   });
 
-  test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> chip "Tanda lista" -> partida con esos ids', async ({
+  test('con servidor: "⚛" abre el átomo (4 nodos), elegir uno pide el anillo 2, Generar -> espera -> Jugar mientras -> 2 sondeos -> aviso «Preguntas generadas» -> partida con esos ids', async ({
     page,
   }) => {
     // v0.2b3 Tarea 3 quitó la órbita giratoria entera (ya no hace falta reducedMotion para que
@@ -3529,11 +3542,12 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // el chip aparece -- timeout ampliado porque son ~10s reales de sondeo (2 x 5000ms).
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    const indicador = page.locator('[data-test="indicador-tanda"]');
-    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await expect(avisoGeneradas(page)).toContainText('Preguntas generadas', { timeout: 13000 });
+    await expect(avisoGeneradas(page)).toContainText('· 10');
+    await expect(page.locator('[data-test="indicador-tanda"]')).toBeHidden();
 
-    await indicador.click();
-    await expect(indicador).toBeHidden();
+    await jugarAviso(page).click();
+    await expect(avisoGeneradas(page)).toBeHidden();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     // "0/10": recién arrancada (0 respondidas), 10 preguntas totales -- exactamente los ids de
@@ -3599,7 +3613,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     expect(contadores.trabajo).toBe(llamadasTrasElFallo);
   });
 
-  test('trabajo "parcial" terminal (hechas>=pedidas, contrato real del servidor) con 3 preguntas: chip "Tanda lista: 3", sondeo detenido y Generar disponible otra vez (Ronda final, Critical #1)', async ({
+  test('trabajo "parcial" terminal (hechas>=pedidas, contrato real del servidor) con 3 preguntas: aviso «Preguntas generadas · 3», sondeo detenido y Generar disponible otra vez (Ronda final, Critical #1)', async ({
     page,
   }) => {
     const contadores = {};
@@ -3629,7 +3643,10 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await abrirAtomoDesdeHub(page, 'economia');
     await page.locator('[data-test="atomo-generar"]').click();
 
-    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 3', { timeout: 5000 });
+    // Se espera en la vista de espera del Átomo: ahí el aviso no se enseña (ya tiene su botón).
+    await expect(page.locator('[data-test="atomo-espera-resultado"]')).toHaveText('Jugar la tanda', { timeout: 5000 });
+    await expect(avisoGeneradas(page)).toBeHidden();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.avisoGeneradas')).ids.length)).toBe(3);
 
     // Sondeo detenido de verdad: un ciclo más (>5s) no debe sumar ninguna llamada más.
     const llamadasTrasChip = contadores.trabajo;
@@ -3639,6 +3656,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Generar vuelve a estar disponible (finalizarTrabajoAtomo se llamó al llegar a terminal).
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(avisoGeneradas(page)).toContainText('· 3');
     await abrirAtomoDesdeHub(page, 'economia');
     await expect(page.locator('[data-test="atomo-generar"]')).toBeEnabled();
   });
@@ -3713,6 +3731,9 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
 
     await resultado.click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    // El aviso grande pendiente se descarta con este botón: no vuelve al terminar la partida.
+    expect(await page.evaluate(() => localStorage.getItem('one.avisoGeneradas'))).toBeNull();
+    await expect(avisoGeneradas(page)).toBeHidden();
   });
 
   test('visibilitychange oculto/visible: el sondeo se pausa y se reanuda con una consulta inmediata (Ronda final, Critical #3)', async ({
@@ -3874,8 +3895,8 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     // Ronda de corrección 1 (Important, hallazgo del revisor verificado en vivo a 375×812 en
     // `pregunta`): el indicador no debe solapar NINGÚN hijo de la cabecera (botón "←", logo,
     // racha/nivel) en HUB, pregunta y repaso, a 375×812 y 393×852, con el indicador en su estado
-    // más ancho ("0 de 10 · ~40 s", mismo ancho renderizado que "5 de 10 · ~40 s") y en el más
-    // corto ("Tanda lista · 10").
+    // más ancho ("0 de 10 · ~40 s", mismo ancho renderizado que "5 de 10 · ~40 s") y, ya
+    // terminada la tanda, sin indicador y con el aviso grande abajo (no debe provocar scroll).
     // Extra (hallazgo Minor diferido): assertSinScroll(page) en las tres vistas, a 375×812 y
     // 393×852 (esta función se llama bajo los dos tamaños de viewport más abajo) -- cierra el
     // riesgo del `padding-top` dinámico de <main> mientras el indicador está visible (Plan B).
@@ -3906,11 +3927,12 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await comprobarSolapeEnTresVistas();
     await page.setViewportSize({ width: 375, height: 812 });
 
-    // Estado terminal "Tanda lista · 10" (spec §2): el mismo mock por defecto (sin
-    // `trabajoRespuesta` fija) resuelve "lista" con 10 preguntas en su segundo sondeo.
+    // Estado terminal (spec §2): el mismo mock por defecto (sin `trabajoRespuesta` fija) resuelve
+    // "lista" con 10 preguntas en su segundo sondeo; el indicador se apaga y llega el aviso grande.
     await page.unroute(`${URL_SERVIDOR}/**`);
     await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
-    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await expect(avisoGeneradas(page)).toContainText('· 10', { timeout: 13000 });
+    await expect(indicador).toBeHidden();
 
     await comprobarSolapeEnTresVistas();
     await page.setViewportSize({ width: 393, height: 852 });
@@ -3921,7 +3943,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
    * mientras se juega la abandonaba: en 'en-curso' abría la espera (y el "←" de ahí desmontaba el
    * mazo) y en 'lista' arrancaba OTRA partida encima. Ruling del controlador: desde
    * `pregunta`/`repaso` el toque no hace nada; desde el HUB sigue funcionando igual que siempre. */
-  test('v0.2b4 §2 (I1): tocar el indicador durante una partida no la abandona, ni en curso ni listo', async ({
+  test('v0.2b4 §2 (I1): tocar el indicador durante una partida no la abandona; el aviso de tanda lista no se enseña durante la partida y sí fuera', async ({
     page,
   }) => {
     test.setTimeout(60000);
@@ -3943,7 +3965,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeHidden();
 
-    // (b) 'lista' con una partida a medias: el toque no pisa la partida y el indicador se queda.
+    // (b) tanda lista con una partida a medias: el aviso no se enseña (pulsarlo la abandonaría).
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await page.locator('[data-test="modo-clasico"]').click();
@@ -3951,21 +3973,19 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await esperarAsentamientoMazo(page);
     const contadorAntes = await tarjetaActual(page).locator('[data-test="mazo-contador"]').textContent();
 
-    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 13000 });
-    await indicador.click();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('one.avisoGeneradas')), { timeout: 13000 }).not.toBeNull();
+    await expect(indicador).toBeHidden();
+    await expect(avisoGeneradas(page)).toBeHidden();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
-    // Sigue siendo LA MISMA partida (el contador no se ha reiniciado a "0/10" de otra tanda) y el
-    // indicador sigue ofreciendo la tanda: no es un aviso que se apaga, es una oferta que espera.
+    // Sigue siendo LA MISMA partida (el contador no se ha reiniciado a "0/10" de otra tanda).
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText(contadorAntes);
-    await expect(texto).toHaveText('Tanda lista · 10');
-    await expect(indicador).toBeVisible();
 
-    // Fuera de la partida (HUB) el toque vuelve a arrancar la tanda, como siempre.
+    // Fuera de la partida (HUB) el aviso espera ahí y tocarlo arranca la tanda.
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(texto).toHaveText('Tanda lista · 10');
-    await indicador.click();
-    await expect(indicador).toBeHidden();
+    await expect(avisoGeneradas(page)).toContainText('· 10');
+    await jugarAviso(page).click();
+    await expect(avisoGeneradas(page)).toBeHidden();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
@@ -4033,7 +4053,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(texto).toHaveText(/^3 de 10 · ~/, { timeout: 12000 });
     await page.screenshot({ path: `${CAPTURAS}/v0.2b4.1-indicador-3-de-10-375.png` });
     await expect(texto).toHaveText(/^7 de 10 · ~/, { timeout: 12000 });
-    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await esperarAvisoTrasEspera(page, 15000);
     await assertSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
     await assertSinScroll(page);
@@ -4093,9 +4113,9 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="atomo-generar"]').click();
 
     const texto = page.locator('[data-test="indicador-tanda-texto"]');
-    // Con el bug: aquí ya ponía "Tanda lista · 5" y el sondeo se paraba para siempre.
+    // Con el bug: aquí ya se anunciaba una tanda de 5 y el sondeo se paraba para siempre.
     await expect(texto).toHaveText(/^5 de 10 · ~/, { timeout: 12000 });
-    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 15000 });
+    await esperarAvisoTrasEspera(page, 15000);
     await assertSinScroll(page);
   });
 
@@ -4184,7 +4204,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     });
   }
 
-  test('v0.2b4 §1: recargar a mitad de tanda retoma el sondeo y acaba en "Tanda lista"', async ({ page }) => {
+  test('v0.2b4 §1: recargar a mitad de tanda retoma el sondeo y acaba en el aviso «Preguntas generadas»', async ({ page }) => {
     const contadores = {};
     await page.route(`${URL_SERVIDOR}/**`, servidorTandaFalso({ contadores, sondeosAntesDeTerminar: 3 }));
 
@@ -4217,14 +4237,15 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(texto).not.toHaveText(/No se pudo generar|La tanda se perdió|El servidor tarda demasiado/);
     await expect.poll(() => contadores.trabajo, { timeout: 8000 }).toBeGreaterThan(sondeosAntes);
 
-    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await expect(avisoGeneradas(page)).toContainText('· 10', { timeout: 13000 });
+    await expect(indicador).toBeHidden();
     await page.screenshot({ path: `${CAPTURAS}/v0.2b4-indicador-lista-375.png` });
     await assertSinScroll(page);
     await page.setViewportSize({ width: 393, height: 852 });
     await assertSinScroll(page);
     await page.setViewportSize({ width: 375, height: 812 });
 
-    await indicador.click();
+    await jugarAviso(page).click();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
@@ -4238,7 +4259,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
    * borraba `one.atomoTrabajo` y mentía con "La tanda se perdió, genera otra". Aquí se aborta
    * exactamente el 3.er sondeo (`internetdisconnected`, lo que pasa al salir de cobertura) y se
    * comprueba que el indicador sigue en curso, la clave sigue guardada y el sondeo siguiente
-   * continúa hasta "Tanda lista". */
+   * continúa hasta el aviso «Preguntas generadas». */
   test('v0.2b4 §1: un sondeo con la red caída NO borra la tanda ni para el sondeo (C2)', async ({ page }) => {
     // Cinco sondeos reales a 5 s cada uno: no cabe en el timeout por defecto de 30 s.
     test.setTimeout(60000);
@@ -4280,7 +4301,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     expect(guardada && guardada.id).toBe('tanda-recarga-1');
 
     // Y el sondeo siguiente (ya con red) continúa hasta el final.
-    await expect(texto).toHaveText('Tanda lista · 10', { timeout: 25000 });
+    await esperarAvisoTrasEspera(page, 25000);
   });
 
   // Ola final v0.2b4 (M4): una tanda guardada sin configuración de servidor no se puede sondear
@@ -4329,7 +4350,7 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await page.locator('[data-test="filtro-corto-generar"]').click();
     await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
     expect(peticiones[0]).toMatchObject({ area: 'economia', ruta: ['Mercados y crisis financieras'] });
-    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText('Tanda lista · 10', { timeout: 13000 });
+    await expect(page.locator('[data-test="atomo-espera-resultado"]')).toHaveText('Jugar la tanda', { timeout: 13000 });
     const indice = await page.evaluate(() => JSON.parse(localStorage.getItem('one.indiceRutas')));
     expect(indice['["economia",["Mercados y crisis financieras"]]']).toHaveLength(10);
     await page.locator('[data-test="volver"]').click();
@@ -6868,11 +6889,11 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     }
   });
 
-  test('Review Focus 4: 375×667 con indicador de tanda, chip de nuevas y aviso a la vez: sin scroll ni solapes con las tarjetas', async ({ page }) => {
+  test('Review Focus 4: 375×667 con aviso de tanda generada, chip de nuevas y aviso del hub a la vez: sin scroll ni solapes con las tarjetas', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?ejemplo=1&test=1');
     await page.evaluate(() => {
-      window.__one.mostrarIndicadorLista(['eco-001'], 'Mercados y crisis financieras');
+      window.__one.simularTandaLista({ ids: ['eco-001'], corto: 'Mercados y crisis financieras' });
       window.__one.mostrarChipNuevas(14, ['eco-001']);
     });
     await page.locator('[data-test="modo-repaso"]').click(); // sin falladas: avisa «Nada por repasar» sin navegar
@@ -6882,7 +6903,9 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       const caja = (sel) => document.querySelector(sel).getBoundingClientRect();
       const se = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
       const modos = caja('[data-test="hub-modos"]');
-      return ['[data-test="indicador-tanda"]', '[data-test="nuevas-servidor"]', '[data-test="aviso-hub"]']
+      // El aviso de tanda generada es una banda superpuesta por diseño (se cierra solo a los 20 s):
+      // lo que no debe hacer es solapar a los otros dos avisos entre sí ni a las tarjetas.
+      return ['[data-test="nuevas-servidor"]', '[data-test="aviso-hub"]']
         .filter((sel) => se(caja(sel), modos));
     });
     expect(solapes).toEqual([]);
@@ -6952,7 +6975,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   });
 
   for (const viewport of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
-    test(`silencio persistente (spec §7): visible y pulsable en partida y con tanda en curso, sin solape de cabecera, ${viewport.width}×${viewport.height}`, async ({ page }) => {
+    test(`silencio persistente (spec §7): visible y pulsable en partida con una tanda generada pendiente (el aviso no se enseña), sin solape de cabecera, ${viewport.width}×${viewport.height}`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.goto('/?ejemplo=1&test=1');
       await entrarEnModo(page, 'clasico');
@@ -6963,8 +6986,8 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(boton).toHaveAttribute('aria-pressed', 'true');
       await boton.click();
       await expect(boton).toHaveAttribute('aria-pressed', 'false');
-      await page.evaluate(() => window.__one.mostrarIndicadorLista(['eco-001'], 'Mercados y crisis financieras'));
-      await expect(page.locator('[data-test="indicador-tanda"]')).toBeVisible();
+      await page.evaluate(() => window.__one.simularTandaLista({ ids: ['eco-001'], corto: 'Mercados y crisis financieras' }));
+      await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
       await expect(boton).toBeVisible();
       await esperarAsentamientoMazo(page);
       await assertSinSolapeCabecera(page);
@@ -6973,7 +6996,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
         return c.left >= 0 && c.right <= document.documentElement.clientWidth;
       });
       expect(dentro).toBe(true);
-      await boton.click(); // pulsable: no lo tapa el indicador
+      await boton.click(); // pulsable: no lo tapa nada
       await expect(boton).toHaveAttribute('aria-pressed', 'true');
     });
   }
@@ -7136,4 +7159,95 @@ test('v0.3 fase 3: ONE abre directamente en el hub, sin pantalla 🧠/💪 y sin
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
   }
+});
+
+test.describe('ONE · v0.3 aviso grande «Preguntas generadas» e insignia PREMIUM (Tarea 3.5)', () => {
+  const IDS = ['eco-001', 'eco-002', 'eco-003'];
+  const simular = (page) => page.evaluate((ids) => window.__one.simularTandaLista({ ids, corto: 'Roma' }), IDS);
+
+  test('aviso visible en el hub, alto > 1/8 de pantalla a 375×812, sin scroll; tocarlo juega exactamente esas preguntas y borra la clave', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await simular(page);
+    const aviso = avisoGeneradas(page);
+    await expect(aviso).toBeVisible();
+    await expect(aviso).toContainText('Preguntas generadas');
+    await expect(aviso).toContainText('Roma');
+    const caja = await aviso.boundingBox();
+    expect(caja.height).toBeGreaterThan(812 / 8);
+    expect(Math.round(caja.y + caja.height)).toBe(812);
+    const cierre = await page.locator('[data-test="aviso-generadas-cerrar"]').boundingBox();
+    expect(cierre.width).toBeGreaterThanOrEqual(44);
+    expect(cierre.height).toBeGreaterThanOrEqual(44);
+    await assertSinScroll(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.3-aviso-generadas-375x812.png` });
+
+    await jugarAviso(page).click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/3');
+    await expect(aviso).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem('one.avisoGeneradas'))).toBeNull();
+  });
+
+  test('sin scroll a 375×667', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await simular(page);
+    await expect(avisoGeneradas(page)).toBeVisible();
+    await assertSinScroll(page);
+  });
+
+  test('durante una partida el aviso no se ve; al acabarla (resumen) aparece', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-001'], etiqueta: 'Una' }));
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await simular(page);
+    await expect(avisoGeneradas(page)).toBeHidden();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('one.avisoGeneradas'))).not.toBeNull();
+    await responderPreguntaActual(page);
+    await avanzarTrasRespuesta(page);
+    await expect(page.locator('[data-vista="resumen"]')).toBeVisible();
+    await expect(avisoGeneradas(page)).toBeVisible();
+  });
+
+  test('con la app en segundo plano no se muestra; al volver a primer plano aparece', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      window.__one.simularTandaLista({ ids: ['eco-001', 'eco-002'], corto: 'Roma' });
+    });
+    await expect(avisoGeneradas(page)).toBeHidden();
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect(avisoGeneradas(page)).toBeVisible();
+  });
+
+  test('recargar con el aviso pendiente lo mantiene en el hub; ✕ lo quita y no vuelve tras recargar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await simular(page);
+    await expect(avisoGeneradas(page)).toBeVisible();
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(avisoGeneradas(page)).toBeVisible();
+    await expect(avisoGeneradas(page)).toContainText('Roma');
+    await page.locator('[data-test="aviso-generadas-cerrar"]').click();
+    await expect(avisoGeneradas(page)).toBeHidden();
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(avisoGeneradas(page)).toBeHidden();
+  });
+
+  test('insignia PREMIUM en los dos botones «Generar preguntas»', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-test="filtro-corto-generar"] [data-test="insignia-premium"]')).toHaveCount(1);
+    await expect(page.locator('[data-test="atomo-generar"] [data-test="insignia-premium"]')).toHaveCount(1);
+    await expect(page.locator('[data-test="insignia-premium"]').first()).toHaveText('PREMIUM');
+  });
 });

@@ -41,6 +41,7 @@ import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ga
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
+import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
 import { crearEsfinge } from './esfinge.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
@@ -160,7 +161,7 @@ let repasoVueltaTamanos = [];
 let filtroPartida = null;
 
 // --- Átomo (spec v0.2b2 §4): estado de la ruta elegida, instancia del SVG, y el trabajo de
-// generación en curso (Generar -> espera -> chip "Tanda lista"). Todo module-level porque, a
+// generación en curso (Generar -> espera -> aviso «Preguntas generadas»). Todo module-level porque, a
 // diferencia del mazo, el sondeo del trabajo sigue corriendo aunque el jugador navegue a otra
 // vista (jugar/repasar "mientras" se genera) -- solo se detiene al llegar a un estado final o al
 // cerrar la app (pagehide).
@@ -170,7 +171,7 @@ let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas 
 let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
 let atomoTrabajoInfo = null; // {corto, rutaTexto, area, ruta} de lo que se pidió: texto de espera/chip e índice de rutas.
 let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
-let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin chip que mostrar.
+let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin tanda parcial que ofrecer.
 // Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
 // -- `atomoTrabajoId` no sirve de guarda ahí porque solo se fija DESPUÉS del await, así que dos
 // toques rápidos alcanzaban a mandar dos POST /generar antes de que el primero volviera. Ver
@@ -200,7 +201,9 @@ let atomoEsperaResultado = null;
 let atomoTandaInicio = null;
 let atomoTandaPedidas = 0;
 let atomoTandaSegPorPregunta = null;
-let atomoTandaEstado = null; // 'en-curso' | 'lista' | 'fallo' | null (decide qué hace el toque)
+let atomoTandaEstado = null; // 'en-curso' | 'fallo' | null (decide qué hace el toque)
+const colaAviso = crearColaAviso({}); // aviso grande «Preguntas generadas» pendiente (persistido)
+let avisoMontado = null; // {cerrar} mientras el aviso está a la vista
 let indicadorTandaTimeoutId = null; // los 6 s del aviso de fallo antes de esconderse solo
 
 // --- Átomo dinámico (v0.2b3 Tarea 3, "Ampliación"): nodo "Más…", paginación y transición
@@ -264,6 +267,7 @@ const radarVacio = document.getElementById('radar-vacio');
 // Servidor de generación (v0.2b2 §4): punto de estado del pie del HUB y chip de banco extendido.
 const nodoEstadoServidor = document.querySelector('[data-test="estado-servidor"]');
 const nodoNuevasServidor = document.querySelector('[data-test="nuevas-servidor"]');
+const nodoAvisoGeneradas = document.querySelector('[data-test="aviso-generadas"]');
 const nodoIndicadorTanda = document.querySelector('[data-test="indicador-tanda"]');
 const nodoIndicadorTandaTexto = document.querySelector('[data-test="indicador-tanda-texto"]');
 const nodoIndicadorTandaAvance = document.querySelector('[data-test="indicador-tanda-anillo"]');
@@ -317,6 +321,7 @@ function mostrarVista(nombre) {
   // El HUB es la pantalla de arranque: no hay a dónde volver desde él.
   nodoVolver.hidden = nombre === 'progreso';
   actualizarCabecera();
+  intentarMostrarAviso();
 }
 
 /** Primera letra en mayúscula (para nombres de área en textos). */
@@ -1329,19 +1334,41 @@ function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
   reservarHuecoIndicadorTanda();
 }
 
-/** Estado terminal con >= 1 pregunta: "Tanda lista · N"; tocarlo arranca la partida (ver el
- * listener junto al resto de eventos de navegación). No se esconde solo: es una oferta, no un aviso. */
+/** Estado terminal con >= 1 pregunta: el indicador pequeño se apaga y la tanda pasa al aviso grande
+ * «Preguntas generadas» (aviso-generadas.js), que espera a que la vista lo permita. */
 function mostrarIndicadorTandaLista(ids, corto) {
-  atomoTandaLista = { ids, corto };
-  atomoTandaEstado = 'lista';
-  nodoIndicadorTandaTexto.textContent = `Tanda lista · ${ids.length}`;
-  nodoIndicadorTanda.setAttribute('aria-label', `Tanda lista: ${ids.length} preguntas de ${corto}; toca para jugarlas`);
-  pintarAnilloTanda(1);
-  clearTimeout(indicadorTandaTimeoutId);
-  indicadorTandaTimeoutId = null;
-  posicionarIndicadorTanda();
-  nodoIndicadorTanda.hidden = false;
-  reservarHuecoIndicadorTanda();
+  ocultarIndicadorTanda();
+  colaAviso.encolar({ ids, corto });
+  ocultarAviso();
+  intentarMostrarAviso();
+}
+
+/** Muestra el aviso pendiente si la vista y la visibilidad lo permiten; si no, lo oculta sin
+ * descartarlo (reaparece al terminar la partida o al volver a primer plano). */
+function intentarMostrarAviso() {
+  const pendiente = colaAviso.pendiente();
+  if (!pendiente || !puedeMostrarse({ vista: vistaActual(), visible: !document.hidden })) {
+    ocultarAviso();
+    return;
+  }
+  if (avisoMontado) return;
+  avisoMontado = montarAviso(nodoAvisoGeneradas, pendiente, {
+    alJugar: () => {
+      avisoMontado = null;
+      colaAviso.descartar();
+      empezarPartida({ ids: pendiente.ids, etiqueta: pendiente.corto });
+    },
+    alCerrar: () => {
+      avisoMontado = null;
+      colaAviso.descartar();
+    },
+  });
+}
+
+function ocultarAviso() {
+  if (avisoMontado) avisoMontado.cerrar();
+  avisoMontado = null;
+  nodoAvisoGeneradas.hidden = true;
 }
 
 /** Fallo (spec §2: 6 s y desaparece). Tres textos posibles, todos por aquí: "No se pudo generar"
@@ -1388,7 +1415,7 @@ function idsUtilizablesDeTanda(trabajo) {
 /** Repinta la tarjeta de espera con el resultado FINAL (Ronda final, Critical #2) -- antes se
  * quedaba en "Generando... ~42 s" para siempre aunque el trabajo ya hubiera terminado hace rato.
  * Si el jugador ya se fue a "Jugar mientras"/"Repasar mientras" (o cualquier otra vista), no tiene
- * sentido resucitar una pantalla que abandonó: el chip del HUB ya es la única señal que hace
+ * sentido resucitar una pantalla que abandonó: el aviso «Preguntas generadas» ya es la única señal que hace
  * falta. `atomoEsperaResultado` se guarda de todas formas (por si vuelve a "atomo-espera" con el
  * botón "←" antes de que la vista cambie de sitio) y es lo que lee el listener del botón único. */
 function actualizarEsperaAtomoConResultado({ ok, ids, corto, mensaje }) {
@@ -1725,7 +1752,7 @@ if (new URLSearchParams(location.search).get('test') === '1') {
       modoActual = 'clasico';
       abrirAtomo(area);
     },
-    mostrarIndicadorLista(ids, corto) { mostrarIndicadorTandaLista(ids, corto); },
+    simularTandaLista({ ids, corto }) { mostrarIndicadorTandaLista(ids, corto); },
     mostrarChipNuevas(n, ids) { mostrarChipNuevas(n, ids); },
     sonidos() { return registroSonidos ? [...registroSonidos] : []; },
     estadoAudio() { return sonido.estadoContexto(); },
@@ -4271,30 +4298,19 @@ nodoNuevasServidor.addEventListener('click', () => {
   nuevasServidorIds = [];
   empezarPartida({ ids, etiqueta: 'Nuevas' });
 });
-// Indicador de tanda (v0.2b4 §2): un solo nodo con tres comportamientos según el estado.
-// - 'lista': arranca la partida con esas preguntas (`empezarPartida({ids, etiqueta: corto})`).
+// Indicador de tanda (v0.2b4 §2): un solo nodo con dos comportamientos según el estado (la tanda
+// lista ya no vive aquí: es el aviso grande de aviso-generadas.js).
 // - 'en-curso': abre la vista de espera del átomo (tras una recarga esta vista todavía no tiene
 //   texto: `mostrarEsperaAtomo` lo pinta desde `atomoTrabajoInfo` antes de mostrarla).
 // - 'fallo' o cualquier otro: solo se cierra.
 //
 // Ola final v0.2b4 (I1, hallazgo del revisor ejecutando la app): el indicador vive FUERA de
-// <main>, así que está encima de la partida mientras se juega -- y tocarlo la abandonaba, tanto
-// en 'en-curso' (abría la espera; el "←" de ahí llamaba a irAlHub y desmontaba el mazo) como en
-// 'lista' (arrancaba OTRA partida encima de la que se estaba jugando). Ruling del controlador:
-// desde `pregunta`/`repaso` el toque NO hace nada, ni navega ni pisa nada; el indicador se queda
-// donde está ("Tanda lista · N" no se apaga) hasta que el jugador termine o salga al HUB, y allí
-// el toque vuelve a funcionar como siempre. Sin diálogos nativos (confirm() está prohibido).
+// <main>, así que está encima de la partida mientras se juega -- y tocarlo en 'en-curso' abría la
+// espera y el "←" de ahí llamaba a irAlHub y desmontaba el mazo. Ruling del controlador: desde
+// `pregunta`/`repaso` el toque NO hace nada. Sin diálogos nativos (confirm() está prohibido).
 nodoIndicadorTanda.addEventListener('click', () => {
-  if (atomoTandaEstado === 'lista' && atomoTandaLista) {
-    if (hayPartidaAMedias()) return; // no se pisa la partida en curso (I1b)
-    const { ids, corto } = atomoTandaLista;
-    atomoTandaLista = null;
-    ocultarIndicadorTanda();
-    empezarPartida({ ids, etiqueta: corto });
-    return;
-  }
   if (atomoTandaEstado === 'en-curso') {
-    if (hayPartidaAMedias()) return; // no se abandona la partida en curso (I1a)
+    if (hayPartidaAMedias()) return; // no se abandona la partida en curso
     const info = atomoTrabajoInfo || {};
     mostrarEsperaAtomo(info.rutaTexto || info.corto || 'tu tanda', null);
     return;
@@ -4422,6 +4438,8 @@ document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener(
 nodoAtomoEsperaResultado.addEventListener('click', () => {
   if (!atomoEsperaResultado) return;
   if (atomoEsperaResultado.tipo === 'jugar') {
+    colaAviso.descartar();
+    ocultarAviso();
     empezarPartida({ ids: atomoEsperaResultado.ids, etiqueta: atomoEsperaResultado.corto });
   } else {
     irAlHub();
@@ -4440,6 +4458,7 @@ window.addEventListener('pagehide', (ev) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) detenerSondeoAtomo();
   else reanudarSondeoAtomoSiHaceFalta();
+  intentarMostrarAviso();
 });
 window.addEventListener('pageshow', reanudarSondeoAtomoSiHaceFalta);
 // Ronda de corrección 1 del indicador de tanda: barato (dos lecturas de layout) e inocuo si el
