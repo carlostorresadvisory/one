@@ -92,13 +92,13 @@
     1.203
    ],
    [
-    "B^",
+    "B*1.2",
     0.703,
     0.406
    ]
   ],
-  "cuadros": 180,
-  "segundos": 3.0,
+  "cuadros": 194,
+  "segundos": 3.23,
   "uniones": [
    [
     1,
@@ -113,21 +113,12 @@
     20
    ],
    [
-    160,
-    20
+    166,
+    28
    ]
   ],
   "p95_real": 1.95,
-  "saltos_raros": [
-   [
-    153,
-    3.21
-   ],
-   [
-    155,
-    3.59
-   ]
-  ],
+  "saltos_raros": [],
   "tiras": [
    "tiras/saludo-0.jpg",
    "tiras/saludo-1.jpg",
