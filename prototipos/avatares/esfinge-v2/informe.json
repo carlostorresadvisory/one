@@ -1,0 +1,274 @@
+{
+ "reposo": {
+  "tramos": [
+   [
+    "A",
+    8.172,
+    8.844
+   ],
+   [
+    "A",
+    6.344,
+    7.047
+   ],
+   [
+    "A",
+    7.953,
+    8.156
+   ]
+  ],
+  "cuadros": 127,
+  "segundos": 2.12,
+  "uniones": [
+   [
+    44,
+    13
+   ],
+   [
+    103,
+    10
+   ],
+   [
+    127,
+    0
+   ]
+  ],
+  "p95_real": 0.53,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/reposo-0.jpg",
+   "tiras/reposo-1.jpg",
+   "tiras/reposo-2.jpg"
+  ],
+  "salidas": [
+   0,
+   1,
+   2,
+   3,
+   122,
+   123,
+   124,
+   125,
+   126
+  ]
+ },
+ "acierto": {
+  "tramos": [
+   [
+    "A",
+    0.203,
+    2.344
+   ]
+  ],
+  "cuadros": 167,
+  "segundos": 2.78,
+  "uniones": [
+   [
+    1,
+    12
+   ],
+   [
+    151,
+    16
+   ]
+  ],
+  "p95_real": 0.75,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/acierto-0.jpg",
+   "tiras/acierto-1.jpg"
+  ]
+ },
+ "saludo": {
+  "tramos": [
+   [
+    "B",
+    6.75,
+    9.703
+   ]
+  ],
+  "cuadros": 220,
+  "segundos": 3.67,
+  "uniones": [
+   [
+    1,
+    15
+   ],
+   [
+    206,
+    14
+   ]
+  ],
+  "p95_real": 1.41,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/saludo-0.jpg",
+   "tiras/saludo-1.jpg"
+  ]
+ },
+ "pensando": {
+  "tramos": [
+   [
+    "B",
+    0.031,
+    2.406
+   ],
+   [
+    "B",
+    8.891,
+    9.703
+   ]
+  ],
+  "cuadros": 248,
+  "segundos": 4.13,
+  "uniones": [
+   [
+    1,
+    12
+   ],
+   [
+    166,
+    15
+   ],
+   [
+    234,
+    14
+   ]
+  ],
+  "p95_real": 1.51,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/pensando-0.jpg",
+   "tiras/pensando-1.jpg",
+   "tiras/pensando-2.jpg"
+  ]
+ },
+ "sorpresa": {
+  "tramos": [
+   [
+    "A",
+    2.344,
+    3.281
+   ]
+  ],
+  "cuadros": 88,
+  "segundos": 1.47,
+  "uniones": [
+   [
+    1,
+    17
+   ],
+   [
+    79,
+    9
+   ]
+  ],
+  "p95_real": 1.46,
+  "saltos_raros": [
+   [
+    77,
+    2.28
+   ]
+  ],
+  "tiras": [
+   "tiras/sorpresa-0.jpg",
+   "tiras/sorpresa-1.jpg"
+  ]
+ },
+ "triste": {
+  "tramos": [
+   [
+    "A",
+    2.344,
+    2.812
+   ],
+   [
+    "B",
+    3.922,
+    6.75
+   ]
+  ],
+  "cuadros": 260,
+  "segundos": 4.33,
+  "uniones": [
+   [
+    1,
+    17
+   ],
+   [
+    49,
+    14
+   ],
+   [
+    245,
+    15
+   ]
+  ],
+  "p95_real": 0.94,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/triste-0.jpg",
+   "tiras/triste-1.jpg",
+   "tiras/triste-2.jpg"
+  ]
+ },
+ "euforia": {
+  "tramos": [
+   [
+    "A",
+    3.281,
+    6.281
+   ]
+  ],
+  "cuadros": 213,
+  "segundos": 3.55,
+  "uniones": [
+   [
+    1,
+    9
+   ],
+   [
+    203,
+    10
+   ]
+  ],
+  "p95_real": 4.04,
+  "saltos_raros": [
+   [
+    53,
+    6.44
+   ]
+  ],
+  "tiras": [
+   "tiras/euforia-0.jpg",
+   "tiras/euforia-1.jpg"
+  ]
+ },
+ "guino": {
+  "tramos": [
+   [
+    "A",
+    6.844,
+    8.156
+   ]
+  ],
+  "cuadros": 95,
+  "segundos": 1.58,
+  "uniones": [
+   [
+    1,
+    9
+   ],
+   [
+    95,
+    0
+   ]
+  ],
+  "p95_real": 0.46,
+  "saltos_raros": [],
+  "tiras": [
+   "tiras/guino-0.jpg",
+   "tiras/guino-1.jpg"
+  ]
+ }
+}

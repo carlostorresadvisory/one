@@ -5,8 +5,8 @@ ff = imageio_ffmpeg.get_ffmpeg_exe(); S = 240
 def fr(p, t):
     o = subprocess.run([ff, '-ss', str(t), '-i', p, '-frames:v', '1', '-vf', f'scale={S}:{S}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
     return np.frombuffer(o, np.uint8).reshape(S, S, 3).astype(np.float32)
-A = np.mean([fr('videos/v06.mp4', t) for t in (6.4, 8.2, 9.0)], axis=0)
-Bs = [fr('videos/v07.mp4', t) for t in (0.1, 6.6, 9.7)]
+A = np.mean([fr('../../prototipos/avatares/esfinge-video/original.mp4', t) for t in (6.4, 8.2, 9.0)], axis=0)
+Bs = [fr('../../prototipos/avatares/esfinge-candidatas/video-7oct.mp4', t) for t in (0.1, 6.6, 9.7)]
 def transf(img, s, dx, dy):
     im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8))
     c = S / 2

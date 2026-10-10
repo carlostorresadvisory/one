@@ -1,0 +1,9 @@
+# gesto  vídeo  inicio  fin   (A = 6-oct, B = 7-oct; segundos; clips.py afina ±0,15 s buscando el fotograma más cercano al ancla)
+# El reposo se monta aparte (tramos limpios de A); el ancla N es A8.17.
+saludo    B 6.75 9.70
+pensando  B 0.16 2.41 B 8.89 9.70
+sorpresa  A 2.20 3.26
+triste    A 2.34 2.81 B 3.92 6.75
+acierto   A 0.05 2.25
+euforia   A 3.30 6.30
+guino     A 7.00 8.00

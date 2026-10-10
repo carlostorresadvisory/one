@@ -12,7 +12,7 @@ cache = {}
 def fot(i):
     k = 'A' if i < nA else 'B'
     if k not in cache:
-        o = subprocess.run([ff, '-i', {'A': 'videos/v06.mp4', 'B': 'videos/v07.mp4'}[k], '-vf', f'scale={S}:{S}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
+        o = subprocess.run([ff, '-i', {'A': '../../prototipos/avatares/esfinge-video/original.mp4', 'B': '../../prototipos/avatares/esfinge-candidatas/video-7oct.mp4'}[k], '-vf', f'scale={S}:{S}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
         cache[k] = np.frombuffer(o, np.uint8).reshape(-1, S, S, 3)
     f = cache[k][i if k == 'A' else i - nA].astype(np.float32)
     if k == 'B':  # igualar color al vídeo A

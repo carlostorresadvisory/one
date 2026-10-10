@@ -1,0 +1,155 @@
+{
+ "tiras/control-malo.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "La pata del personaje que baja el brazo aparece semitransparente, mostrando el verde del fondo como un fantasma cromático (efecto de fundido incorrecto) en lugar de moverse de forma sólida y continua.",
+  "fotogramas": [
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24
+  ]
+ },
+ "tiras/acierto-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Se observa un salto brusco de expresión y pose al pasar del fotograma 12 al 13 (al cambiar de la primera a la segunda fila), pasando de una sonrisa con ojos achinados a una expresión con ojos más abiertos sin una transición interpolate suave.",
+  "fotogramas": [
+   12,
+   13
+  ]
+ },
+ "tiras/euforia-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Los fotogramas interpolados (del 5 al 14) se muestran completamente estáticos y sin variación alguna, generando un brusco corte de movimiento que salta repentinamente a una expresión sorprendida en el fotograma 15, seguido de bruscos cambios de expresión y posición de la cabeza en la segunda fila que carecen de transición fluida.",
+  "fotogramas": [
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15
+  ]
+ },
+ "tiras/guino-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "No se observan artefactos de interpolación como doble contorno, transparencias, deformaciones o saltos bruscos de posición; el personaje permanece estático y consistente en todos los fotogramas.",
+  "fotogramas": []
+ },
+ "tiras/pensando-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "No se aprecian deformaciones, fundidos, dobles contornos ni saltos bruscos en los fotogramas interpolados, luciendo visualmente idénticos y perfectamente integrados con los reales.",
+  "fotogramas": []
+ },
+ "tiras/guino-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "No se aprecian artefactos de interpolación como doble contorno, fantasmas, semi-transparencias, saltos bruscos de posición ni deformaciones; el personaje permanece de forma estable y nítida en todos los fotogramas intermedios, haciendo la transición completamente imperceptible.",
+  "fotogramas": []
+ },
+ "tiras/pensando-2.jpg": {
+  "modelo": "google/gemma-4-31b-it:free",
+  "veredicto": "se nota",
+  "motivo": "Hay un salto brusco en la expresión de los ojos y párpados entre el fotograma 12 y el 13.",
+  "fotogramas": [
+   12,
+   13
+  ]
+ },
+ "tiras/reposo-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Salto brusco de expresión en los ojos al pasar del fotograma 12 (ojos cerrados por líneas) al fotograma 13 (ojos grandes y abiertos) sin una transición morfológica gradual.",
+  "fotogramas": [
+   12,
+   13
+  ]
+ },
+ "tiras/pensando-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Se observa un ligero efecto de fusión y fantasma (doble contorno) en la zona de la mano y la boca durante el movimiento de transición, típico de interpolaciones que no manejan bien la oclusión de un dedo sobre el rostro.",
+  "fotogramas": [
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21
+  ]
+ },
+ "tiras/reposo-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "Los fotogramas interpolados muestran una transición extremadamente suave y coherente, sin que se aprecien doble contorno, desvanecimientos (fundidos), deformaciones ni saltos bruscos de posición o expresión.",
+  "fotogramas": []
+ },
+ "tiras/saludo-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "El personaje permanece completamente estático y coherente a lo largo de toda la secuencia, sin presentar deformaciones, doble contorno, desvanecimientos (fundidos) ni saltos bruscos de posición o expresión, por lo que la unión por interpolación es totalmente imperceptible.",
+  "fotogramas": []
+ },
+ "tiras/triste-0.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Hay un salto brusco en la expresión del rostro entre los fotogramas 13 y 14, cambiando de una sonrisa leve a una gran sonrisa con ojos cerrados de forma abrupta, sin una transición morfológica suave.",
+  "fotogramas": [
+   13,
+   14
+  ]
+ },
+ "tiras/sorpresa-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "No se observan deformaciones, dobles contornos, semitransparencias ni saltos bruscos de posición o expresión; la transición en los fotogramas interpolados es completamente suave, coherente y visualmente consistente con el resto de la secuencia.",
+  "fotogramas": []
+ },
+ "tiras/triste-2.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "natural",
+  "motivo": "La transición entre los fotogramas interpolados es completamente fluida y coherente, sin presentar dobles contornos, desvanecimientos, deformaciones ni saltos bruscos de posición.",
+  "fotogramas": []
+ },
+ "tiras/triste-1.jpg": {
+  "modelo": "dots-studio/dots-3-note-preview:free",
+  "veredicto": "se nota",
+  "motivo": "Se observa un salto brusco en la expresión facial al cerrarse los ojos de forma repentina entre los fotogramas 12 y 13, junto con deformaciones y transiciones morfológicas poco naturales en el rostro durante el cierre de los ojos y la boca entre los fotogramas 13 y 18.",
+  "fotogramas": [
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18
+  ]
+ }
+}

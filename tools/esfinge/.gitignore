@@ -1,0 +1,5 @@
+*.npy
+tiras/
+trabajo/
+juez.log
+__pycache__/

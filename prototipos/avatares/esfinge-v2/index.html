@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Esfinge v2</title>
+<style>
+:root{--fondo:#0b0f14;--texto:#e8edf2;--suave:#8a97a6;--acento:#4cc9f0}
+body{margin:0;background:var(--fondo);color:var(--texto);font-family:-apple-system,system-ui,sans-serif;padding:12px 16px 40px;transition:background .3s}
+body.claro{--fondo:#f4efe4;--texto:#1b1f24;--suave:#5b6470}
+h1{font-size:20px;margin:4px 0 2px}p{margin:4px 0;color:var(--suave);font-size:14px;line-height:1.4}
+#esf{width:260px;height:260px;margin:12px auto 0}
+#estado{text-align:center;font-size:13px;color:var(--suave);min-height:18px}
+.bts{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-width:420px;margin:10px auto 0}
+button{min-height:44px;padding:0 14px;border-radius:22px;border:0;background:var(--acento);color:#04141b;font:inherit;font-weight:700}
+button.sec{background:transparent;color:var(--texto);border:1px solid var(--suave)}
+</style></head><body>
+<h1>Esfinge v2 · todas sacadas de los dos vídeos</h1>
+<p>Cada gesto sale del reposo y vuelve a él andando hacia delante. Las uniones las inventa RIFE (interpolación de movimiento), sin fundidos. El gesto arranca en el siguiente punto del reposo que encaja (como mucho ~2 s de espera).</p>
+<div id="esf"></div>
+<div id="estado">cargando…</div>
+<div class="bts">
+ <button data-g="saludo">Saludo</button><button data-g="pensando">Pensando</button>
+ <button data-g="sorpresa">Sorpresa «¡oh!»</button><button data-g="triste">Triste</button>
+ <button data-g="acierto">Acierto</button><button data-g="euforia">Euforia</button>
+ <button data-g="guino">Guiño</button><button id="todos" class="sec">Todos seguidos</button>
+ <button id="fondo" class="sec" style="grid-column:span 2">Cambiar fondo (claro / oscuro)</button>
+</div>
+<script type="module">
+import { montarEsfinge } from './player.js?v=1';
+const anclas = await fetch('anclas.json?v=1').then(r => r.json());
+const e = montarEsfinge(document.getElementById('esf'), './', anclas);
+const est = document.getElementById('estado');
+let cola = [];
+e.alCambiar(n => { est.textContent = n === 'reposo' ? 'reposo' : '▶ ' + n; if (n === 'reposo' && cola.length) e.gesto(cola.shift()); });
+document.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { cola = []; e.gesto(b.dataset.g); est.textContent = 'en espera: ' + b.dataset.g; });
+document.getElementById('todos').onclick = () => { cola = ['saludo', 'pensando', 'sorpresa', 'triste', 'acierto', 'euforia', 'guino']; e.gesto(cola.shift()); };
+document.getElementById('fondo').onclick = () => document.body.classList.toggle('claro');
+</script>
+</body></html>

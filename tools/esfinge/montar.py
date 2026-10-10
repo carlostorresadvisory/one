@@ -5,7 +5,7 @@ dref = np.load('dref.npy'); nA = 641
 cache = {}
 def video(k):
     if k not in cache:
-        p = {'A': 'videos/v06.mp4', 'B': 'videos/v07.mp4'}[k]
+        p = {'A': '../../prototipos/avatares/esfinge-video/original.mp4', 'B': '../../prototipos/avatares/esfinge-candidatas/video-7oct.mp4'}[k]
         o = subprocess.run([ff, '-i', p, '-vf', f'scale={S}:{S}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
         cache[k] = np.frombuffer(o, np.uint8).reshape(-1, S, S, 3)
     return cache[k]

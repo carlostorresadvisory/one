@@ -6,9 +6,9 @@ ff = imageio_ffmpeg.get_ffmpeg_exe(); W = 64; FPS = 64
 def leer(p):
     o = subprocess.run([ff, '-i', p, '-vf', f'scale={W}:{W}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], capture_output=True).stdout
     return np.frombuffer(o, np.uint8).reshape(-1, W, W, 3).astype(np.float32)
-A = leer('videos/v06.mp4'); B = leer('videos/v07.mp4')
+A = leer('../../prototipos/avatares/esfinge-video/original.mp4'); B = leer('../../prototipos/avatares/esfinge-candidatas/video-7oct.mp4')
 X = np.concatenate([A, B]); nA = len(A); N = len(X)
-ref = np.asarray(Image.open('../../../../OneDrive/Desktop/ONE/prototipos/avatares/esfinge-video/neutral.jpg'.replace('../../../../', 'C:/Users/torre/')).convert('RGB').resize((W, W))).astype(np.float32)
+ref = np.asarray(Image.open('../../prototipos/avatares/esfinge-video/neutral.jpg').convert('RGB').resize((W, W))).astype(np.float32)
 dref = np.abs(X - ref).mean(axis=(1, 2, 3))
 F = X.reshape(N, -1)
 # distancia media absoluta entre todos los pares (por bloques)
