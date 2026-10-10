@@ -18,7 +18,7 @@ const CACHE = 'one-v22';
 // tolerante: que falte un icono no debe tumbar la app.
 const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
-  'sonido.js', 'efectos.js', 'esfinge.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
+  'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',
   'estilos.css', 'datos/banco.json',
 ];

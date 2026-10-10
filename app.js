@@ -42,7 +42,7 @@ import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfet
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
-import { crearEsfinge } from './esfinge.js';
+import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -222,6 +222,7 @@ let atomoTopeTimeoutId = null; // setTimeout de 2s del aviso "Máximo detalle: t
 
 // --- referencias a nodos ---
 const nodoRacha = document.querySelector('[data-test="racha"]');
+const nodoRachaNivel = document.querySelector('.cabecera-estado');
 const nodoNivelPartida = document.querySelector('[data-test="nivel-partida"]');
 // Ronda de corrección 1 del indicador de tanda (Plan B, segunda fila bajo la cabecera): su borde
 // inferior real es lo que mide `posicionarIndicadorTanda` para no solaparla.
@@ -257,8 +258,11 @@ const sonido = crearSonido({ registro: registroSonidos });
 const nodoSilencio = document.querySelector('[data-test="silencio"]');
 const nodoHubModos = document.querySelector('[data-test="hub-modos"]');
 const nodoCreditos = document.querySelector('[data-test="creditos"]');
-const esfingeCabecera = crearEsfinge(document.querySelector('[data-test="esfinge-cabecera"]'), { tamano: 'pequena' });
-let esfingeHub = null;
+const nodoAvatarCabecera = document.querySelector('[data-test="avatar-cabecera"]');
+let nodoAvatarTarjetaTienda = null;
+let avatarVigente = null; // {contenedor, avatar}: la esfinge de la pantalla actual (solo hay una)
+const gestosPedidos = registroSonidos ? [] : null; // solo con ?test=1: los e2e comprueban qué gestos se pidieron
+const vigiaPensando = crearVigiaPensando({ alPensar: () => pedirGesto('inactivo') });
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
 let nodoMarcadorTienda = null;
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
@@ -321,7 +325,39 @@ function mostrarVista(nombre) {
   // El HUB es la pantalla de arranque: no hay a dónde volver desde él.
   nodoVolver.hidden = nombre === 'progreso';
   actualizarCabecera();
+  if (nombre !== 'pregunta') vigiaPensando.parar();
+  montarAvatarDeVista(nombre);
   intentarMostrarAviso();
+}
+
+/** Dónde vive la esfinge en cada vista (spec §7): la tarjeta Tienda en el hub, grande en la Tienda y en
+ * la banda de la cabecera en los modos. El resto de vistas no lleva ninguna. */
+function destinoAvatar(nombreVista) {
+  if (nombreVista === 'progreso') return nodoAvatarTarjetaTienda && { contenedor: nodoAvatarTarjetaTienda, tamano: 'tarjeta' };
+  if (nombreVista === 'tienda') return { contenedor: document.querySelector('[data-test="tienda-avatar"]'), tamano: 'protagonista' };
+  if (VISTAS_DE_MODO.includes(nombreVista)) return { contenedor: nodoAvatarCabecera, tamano: 'cabecera' };
+  return null;
+}
+
+/** Un solo reproductor por pantalla: si la vista nueva usa el mismo contenedor se conserva (pregunta ->
+ * resumen sin parpadeo); si no, se destruye el vigente y se monta el que toca. */
+function montarAvatarDeVista(nombreVista) {
+  const destino = destinoAvatar(nombreVista);
+  if (avatarVigente && (!destino || avatarVigente.contenedor !== destino.contenedor)) {
+    avatarVigente.avatar.destruir();
+    avatarVigente = null;
+  }
+  if (!destino || avatarVigente) return;
+  avatarVigente = { contenedor: destino.contenedor, avatar: crearAvatar(destino.contenedor, { tamano: destino.tamano }) };
+  if (nombreVista !== 'progreso') pedirGesto('abrir');
+}
+
+/** Pide a la esfinge el gesto que corresponde a un evento del juego (`gestoParaEvento`, spec §7). */
+function pedirGesto(evento) {
+  const gesto = gestoParaEvento(evento);
+  if (!gesto || !avatarVigente) return;
+  if (gestosPedidos) gestosPedidos.push(gesto);
+  avatarVigente.avatar.gesto(gesto);
 }
 
 /** Primera letra en mayúscula (para nombres de área en textos). */
@@ -431,6 +467,7 @@ function actualizarCabecera() {
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
   nodoLogo.hidden = enModo;
   nodoChipFiltro.hidden = !enModo;
+  nodoAvatarCabecera.hidden = !enModo;
   if (enModo) pintarChip(nodoChipFiltro, textoChipFiltro());
   // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
   // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
@@ -1260,7 +1297,9 @@ function posicionarIndicadorTanda() {
   // Nunca cambia `hidden` (un reposicionamiento por resize con el indicador oculto lo resucitaba):
   // oculto no tiene alto medible, así que se usa su alto de reposo (min-height:30px del CSS) y, en
   // cuanto se muestra, reservarHuecoIndicadorTanda vuelve a llamar aquí con el alto real.
-  const caja = nodoCabecera.getBoundingClientRect();
+  // En la banda de modo (avatar de 100 px) el hueco de racha/nivel es la segunda fila, bajo el chip:
+  // ahí se centra el indicador; en el HUB, en el centro de la cabecera.
+  const caja = (nodoCabecera.classList.contains('cabecera--modo') ? nodoRachaNivel : nodoCabecera).getBoundingClientRect();
   const altoIndicador = nodoIndicadorTanda.hidden ? ALTO_REPOSO_INDICADOR_TANDA : nodoIndicadorTanda.getBoundingClientRect().height;
   nodoIndicadorTanda.style.top = `${Math.round(caja.top + (caja.height - altoIndicador) / 2)}px`;
   // El silencio es persistente (spec §7): con el indicador visible, este se coloca a su izquierda.
@@ -1755,6 +1794,7 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     simularTandaLista({ ids, corto }) { mostrarIndicadorTandaLista(ids, corto); },
     mostrarChipNuevas(n, ids) { mostrarChipNuevas(n, ids); },
     sonidos() { return registroSonidos ? [...registroSonidos] : []; },
+    gestosPedidos,
     estadoAudio() { return sonido.estadoContexto(); },
     abrirRepaso() { abrirRepaso(); },
     // Inyecta/quita una imagen para un id concreto del banco (Tarea 3b): para
@@ -1971,6 +2011,8 @@ function asegurarSiguienteDisponible() {
 
 function manejarCambioIndiceMazo(nuevoIndice) {
   indiceMazo = nuevoIndice;
+  if (mazo[nuevoIndice] && !mazo[nuevoIndice].respondida) vigiaPensando.reiniciar();
+  else vigiaPensando.parar();
   asegurarSiguienteDisponible();
   actualizarBarraProgreso();
 }
@@ -3653,22 +3695,23 @@ function celebrarAcierto(nodoTarjeta, sonidoAcierto = 'ding') {
   efectoAcierto(nodoTarjeta && (nodoTarjeta.querySelector('.tarjeta-contenido') || nodoTarjeta));
   destelloPantalla('ok');
   sonido.reproducir(sonidoAcierto);
-  esfingeCabecera.reaccionar('contenta');
+  vigiaPensando.parar();
+  pedirGesto('acierto');
 }
 
 function lamentarFallo(nodoTarjeta) {
   efectoFallo(nodoTarjeta && (nodoTarjeta.querySelector('.tarjeta-contenido') || nodoTarjeta));
   destelloPantalla('ko');
   sonido.reproducir('golpe');
-  esfingeCabecera.reaccionar('triste');
+  vigiaPensando.parar();
+  pedirGesto('fallo');
 }
 
-/** Récords, cofres, premios (spec §7): confeti + fanfarria + esfinge eufórica (la del hub también). */
+/** Récords, cofres, premios (spec §7): confeti + fanfarria + esfinge eufórica. */
 function celebrarPremio() {
   lanzarConfeti();
   sonido.reproducir('fanfarria');
-  esfingeCabecera.reaccionar('euforica');
-  if (esfingeHub) esfingeHub.reaccionar('euforica');
+  pedirGesto('cofre');
 }
 
 /** Cuenta 0 -> valor en ~600ms (aciertos y XP del resumen). Con "reducir
@@ -4138,9 +4181,10 @@ function montarTarjetasHub() {
   tienda.className = 'hub-modo hub-modo--tienda';
   tienda.dataset.test = 'tarjeta-tienda';
   const lienzo = document.createElement('span');
-  lienzo.className = 'hub-esfinge-lienzo';
+  lienzo.className = 'hub-avatar-lienzo';
+  nodoAvatarTarjetaTienda = lienzo;
   const textos = document.createElement('span');
-  textos.className = 'hub-esfinge-textos';
+  textos.className = 'hub-avatar-textos';
   const nombre = document.createElement('span');
   nombre.className = 'hub-modo-nombre';
   nombre.textContent = 'Tienda';
@@ -4152,20 +4196,14 @@ function montarTarjetasHub() {
   tienda.addEventListener('click', () => {
     // Misma guardia que las tarjetas de modo: un segundo toque rápido no reabre la vista.
     if (vistaActual() !== 'progreso') return;
-    if (esfingeHub) esfingeHub.reaccionar('contenta');
     abrirTienda();
   });
   nodoHubModos.appendChild(tienda);
-  if (esfingeHub) esfingeHub.destruir();
-  esfingeHub = crearEsfinge(lienzo, { tamano: 'grande' });
 }
 
 /** Vista Tienda mínima (fase 3): el avatar actual en grande y la mochila (icono, nombre, cantidad).
  * Comprar y vender llegan en la fase 9. */
-let esfingeTienda = null;
 function abrirTienda() {
-  const nodoAvatar = document.querySelector('[data-test="tienda-avatar"]');
-  if (!esfingeTienda) esfingeTienda = crearEsfinge(nodoAvatar, { tamano: 'grande' });
   const mochila = cargarMochila();
   const lista = document.querySelector('[data-test="tienda-mochila"]');
   lista.innerHTML = '';

@@ -6721,7 +6721,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
     await page.evaluate((lista) => window.__one.empezarPartida({ ids: lista, etiqueta: 'Economía · Mercados y crisis financieras' }), ids);
     await expect(page.locator('[data-test="chip-filtro"]')).toBeVisible();
     const cab = await page.locator('.cabecera').first().boundingBox();
-    expect(cab.height).toBeLessThanOrEqual(66);
+    expect(cab.height).toBeLessThanOrEqual(92); // la banda de modo (avatar de 100 px con margen negativo) no crece con el chip largo
     const estado = await page.locator('.cabecera-estado').boundingBox();
     expect(estado.width).toBeGreaterThanOrEqual(36); // no aplastado (antes 30 px y 4 líneas)
     const racha = await page.locator('[data-test="racha"]').boundingBox();
@@ -6849,7 +6849,8 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
       await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Pronto');
       await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
-      await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveCount(1);
+      await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo, [data-test="tarjeta-tienda"] img.avatar-fijo')).toHaveCount(1);
+      await expect(page.locator('header canvas, header img')).toHaveCount(0); // el hub no lleva esfinge en la cabecera
       await expect(page.locator('[data-test="silencio"]')).toBeVisible();
       for (const quitado of ['mision', 'pendientes', 'repaso-hub', 'kpi-aciertos-hoy', 'recuperadas', 'practicar-economia']) {
         await expect(page.locator(`[data-test="${quitado}"]`)).toHaveCount(0);
@@ -7013,7 +7014,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await page.locator('[data-test="tarjeta-tienda"]').dblclick(); // doble toque rápido: una sola vista
       await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
       await expect(page.locator('[data-vista="tienda"]')).toContainText('Tienda');
-      await expect(page.locator('[data-test="tienda-avatar"] svg')).toHaveCount(1);
+      await expect(page.locator('[data-test="tienda-avatar"] canvas.avatar-lienzo, [data-test="tienda-avatar"] img.avatar-fijo')).toHaveCount(1);
       for (const id of ['cincuenta', 'salvavidas', 'mas5']) {
         await expect(page.locator(`[data-test="tienda-cantidad-${id}"]`)).toHaveText('×0');
       }
@@ -7042,7 +7043,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
 });
 
 test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
-  test('acierto: ding + esfinge contenta + salto; fallo: golpe + esfinge triste', async ({ page }) => {
+  test('acierto: ding + gesto «acierto» + salto; fallo: golpe + gesto «triste»', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="modo-clasico"]').click();
     const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
@@ -7050,12 +7051,12 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     await page.locator('body').click({ position: { x: 5, y: 5 } }); // primer gesto: desbloquea el audio
     await expect.poll(() => page.evaluate(() => window.__one.estadoAudio())).toBe('running');
     await responderPreguntaActual(page, sospechosoPorTitulo);
-    await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveAttribute('data-expresion', 'contenta');
+    expect((await page.evaluate(() => window.__one.gestosPedidos)).at(-1)).toBe('acierto');
     await expect(tarjetaActual(page).locator('.tarjeta-contenido')).toHaveClass(/efecto-acierto/);
     expect(await page.evaluate(() => window.__one.sonidos())).toContain('ding');
     await avanzarTrasRespuesta(page);
     await fallarPreguntaActual(page, sospechosoPorTitulo);
-    await expect(page.locator('[data-test="esfinge-cabecera"] svg')).toHaveAttribute('data-expresion', 'triste');
+    expect((await page.evaluate(() => window.__one.gestosPedidos)).at(-1)).toBe('triste');
     expect(await page.evaluate(() => window.__one.sonidos())).toContain('golpe');
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
@@ -7203,6 +7204,7 @@ test.describe('ONE · v0.3 aviso grande «Preguntas generadas» e insignia PREMI
 
   test('durante una partida el aviso no se ve; al acabarla (resumen) aparece', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible(); // el banco ya está cargado
     await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-001'], etiqueta: 'Una' }));
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
@@ -7251,5 +7253,89 @@ test.describe('ONE · v0.3 aviso grande «Preguntas generadas» e insignia PREMI
     await expect(page.locator('[data-test="filtro-corto-generar"] [data-test="insignia-premium"]')).toHaveCount(1);
     await expect(page.locator('[data-test="atomo-generar"] [data-test="insignia-premium"]')).toHaveCount(1);
     await expect(page.locator('[data-test="insignia-premium"]').first()).toHaveText('PREMIUM');
+  });
+});
+
+test.describe('ONE · v0.3 avatar: la esfinge v2 (fase 4)', () => {
+  const reproductores = (page) => page.locator('canvas.avatar-lienzo, img.avatar-fijo');
+
+  test('un solo reproductor de esfinge por pantalla y del tamaño pedido', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(reproductores(page)).toHaveCount(1); // el hub: solo la tarjeta Tienda
+    await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo, [data-test="tarjeta-tienda"] img.avatar-fijo')).toHaveCount(1);
+    await entrarEnModo(page, 'clasico');
+    await expect(reproductores(page)).toHaveCount(1);
+    const caja = await page.locator('[data-test="avatar-cabecera"]').boundingBox();
+    expect(caja.height).toBeGreaterThanOrEqual(96);
+    expect(caja.height).toBeLessThanOrEqual(120);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('saludo');
+    await page.locator('[data-test="volver"]').click();
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+    await expect(reproductores(page)).toHaveCount(1); // la Tienda: el protagonista, y el de la tarjeta ya destruido
+    await expect(page.locator('[data-test="tienda-avatar"] canvas.avatar-lienzo, [data-test="tienda-avatar"] img.avatar-fijo')).toHaveCount(1);
+    for (const vp of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+      const lado = await page.locator('[data-test="tienda-avatar"] .avatar-lienzo').evaluate((c) => c.getBoundingClientRect().height);
+      expect(lado).toBeGreaterThanOrEqual(96);
+    }
+  });
+
+  test('acertar pide el gesto «acierto» y la esfinge no se vuelve a montar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'clasico');
+    await expect(reproductores(page)).toHaveCount(1);
+    const lienzo = await page.locator('[data-test="avatar-cabecera"] canvas').elementHandle();
+    await responderPreguntaActual(page);
+    const gestos = await page.evaluate(() => window.__one.gestosPedidos);
+    expect(gestos).toContain('acierto');
+    expect(await lienzo.evaluate((c) => c.isConnected)).toBe(true); // misma esfinge, sin remontar
+  });
+
+  test('pensando: a los 8 s sin responder la esfinge lo pide, y responder lo detiene', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'clasico');
+    await expect.poll(() => page.evaluate(() => window.__one.gestosPedidos), { timeout: 12000 }).toContain('pensando');
+    await page.evaluate(() => window.__one.gestosPedidos.splice(0));
+    await responderPreguntaActual(page);
+    await page.waitForTimeout(9000);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).not.toContain('pensando');
+  });
+
+  test('sin vídeo (autoplay bloqueado), la esfinge sale como imagen fija (nunca un hueco)', async ({ page }) => {
+    await page.addInitScript(() => { HTMLMediaElement.prototype.play = () => Promise.reject(new Error('bloqueado')); });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('img.avatar-fijo')).toBeVisible();
+    await expect(page.locator('img.avatar-fijo')).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.locator('img.avatar-fijo')).toHaveAttribute('alt', '');
+  });
+
+  test('con reducir movimiento no se pide ningún vídeo', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const pedidos = [];
+    page.on('request', (r) => { if (r.url().endsWith('.mp4')) pedidos.push(r.url()); });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('img.avatar-fijo')).toBeVisible();
+    await entrarEnModo(page, 'clasico');
+    await expect(page.locator('img.avatar-fijo')).toBeVisible();
+    expect(pedidos).toEqual([]);
+  });
+
+  test('el hub no lleva avatar en la cabecera y la esfinge no es texto accesible', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('header canvas, header img.avatar-fijo')).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('Esfinge');
+  });
+
+  test('con el service worker activo el vídeo sigue funcionando y los gestos quedan en la caché', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.reload();
+    await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo')).toHaveCount(1);
+    expect(await page.evaluate(async () => Boolean(await caches.match('avatar/reposo.mp4')))).toBe(true);
+    await entrarEnModo(page, 'clasico'); // pide `saludo`: se descarga y se guarda al primer uso
+    await expect.poll(() => page.evaluate(async () => Boolean(await caches.match('avatar/saludo.mp4'))), { timeout: 15000 }).toBe(true);
+    await expect(page.locator('[data-test="avatar-cabecera"] canvas.avatar-lienzo')).toHaveCount(1);
   });
 });

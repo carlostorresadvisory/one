@@ -2055,12 +2055,12 @@ button.punto-servidor::before {
   white-space: nowrap;
 }
 
-.cabecera--con-tanda .cabecera-estado,
-.cabecera--con-tanda .cabecera-esfinge {
-  /* v0.3: racha/nivel y la esfinge ceden su sitio al indicador. El silencio (spec §7, persistente)
+.cabecera--con-tanda .cabecera-estado {
+  /* v0.3: racha/nivel ceden su sitio al indicador. El silencio (spec §7, persistente)
      se queda: el indicador se coloca a su izquierda (app.js#posicionarIndicadorTanda). */
   display: none;
 }
+.cabecera--modo.cabecera--con-tanda .cabecera-estado { display: flex; visibility: hidden; } /* conserva su fila: ahí se coloca el indicador */
 .cabecera--con-tanda .boton-silencio { margin-left: auto; }
 .cabecera--con-tanda .chip-filtro { max-width: 28vw; }
 
@@ -2737,39 +2737,34 @@ button.punto-servidor::before {
   .destello--activo { opacity: 0.6; }
 }
 
-/* ===== v0.3 esfinge (esfinge.js): cian + dorado; animaciones fuera con reducir movimiento ===== */
-.esfinge { display: block; overflow: visible; }
-.esfinge--pequena { width: 32px; height: 32px; }
-.esfinge--grande { width: 72px; height: 72px; }
-.esfinge-relleno { fill: #0f2a33; stroke: var(--acento); stroke-width: 2; stroke-linejoin: round; }
-.esfinge-trazo { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linecap: round; }
-.esfinge-franjas { fill: none; stroke: var(--fondo); stroke-width: 1.5; stroke-linecap: round; }
-.esfinge-oro { fill: var(--dorado); stroke: #b8892a; stroke-width: 1.2; stroke-linejoin: round; }
-.esfinge-ojo { fill: var(--acento); }
-.esfinge-ojos { transform-box: fill-box; transform-origin: center; transition: transform 90ms; }
-.esfinge-ojos--cerrados { transform: scaleY(0.1); }
-.esfinge-boca { fill: none; stroke: var(--acento); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.esfinge--euforica .esfinge-boca { fill: var(--acento); }
-.esfinge-oreja { transform-box: fill-box; transition: transform 200ms var(--ease-suave); }
-.esfinge-oreja--izq { transform-origin: top right; }
-.esfinge-oreja--der { transform-origin: top left; }
-.esfinge--triste .esfinge-oreja--izq { transform: rotate(18deg); }
-.esfinge--triste .esfinge-oreja--der { transform: rotate(-18deg); }
-.esfinge-brillos { opacity: 0; }
-.esfinge-brillo { fill: var(--dorado); }
-.esfinge--euforica .esfinge-brillos { opacity: 1; animation: esfinge-brillos 0.7s ease-in-out infinite alternate; }
-.esfinge--contenta, .esfinge--euforica { animation: esfinge-salta 0.5s var(--ease-suave); }
-@keyframes esfinge-salta { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14%); } }
-@keyframes esfinge-brillos { from { opacity: 0.4; } to { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) {
-  .esfinge--contenta, .esfinge--euforica, .esfinge--euforica .esfinge-brillos { animation: none; }
-  .esfinge-oreja, .esfinge-ojos { transition: none; }
-}
+/* ===== v0.3 avatar (avatar.js): la esfinge v2 en <canvas>, o su imagen fija si el vídeo no arranca.
+   Sin halo: el brillo queda para lo dorado. El lado del lienzo lo fija avatar.js (el menor del contenedor). ===== */
+.avatar { display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+.avatar-lienzo { display: block; }
+.avatar-fijo { display: block; height: 100%; width: auto; max-width: 100%; aspect-ratio: 1; object-fit: contain; }
 
 /* ===== v0.3 cabecera de modo + chip + hoja del filtro ===== */
 .cabecera { justify-content: flex-start; gap: 8px; }
 .cabecera-estado { margin-left: auto; }
 .cabecera-logo[hidden] { display: none; }
+.cabecera-avatar[hidden] { display: none; }
+/* Banda de modo (spec §4): ← · avatar de 100 px · chip de filtro con racha y nivel debajo · silencio.
+   El margen negativo deja que los bordes transparentes del lienzo asomen por encima y por debajo de la
+   cabecera: la esfinge se ve entera sin que la banda quite alto a la tarjeta de la pregunta. */
+.cabecera-avatar { width: 100px; height: 100px; margin-block: -16px; pointer-events: none; }
+.cabecera--modo {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "volver avatar chip silencio" "volver avatar estado silencio";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 4px;
+}
+.cabecera--modo .boton-volver { grid-area: volver; }
+.cabecera--modo .cabecera-avatar { grid-area: avatar; }
+.cabecera--modo .chip-filtro { grid-area: chip; justify-self: end; }
+.cabecera--modo .cabecera-estado { grid-area: estado; justify-self: end; margin-left: 0; flex-direction: row; gap: 8px; }
+.cabecera--modo .boton-silencio { grid-area: silencio; }
 .chip-filtro {
   position: relative;
   max-width: 42vw;
@@ -2886,14 +2881,15 @@ button.punto-servidor::before {
 .hub-modo--pronto { cursor: default; }
 .hub-modo--pronto .hub-modo-nombre, .hub-modo--pronto .hub-modo-icono { opacity: 0.6; }
 .hub-modo--pronto .hub-modo-marcador { color: var(--dorado, #f2c14e); }
-.hub-modo--tienda { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
-.hub-modo--tienda .esfinge--grande { width: 60px; height: 60px; }
-.hub-esfinge-textos { display: flex; flex-direction: column; gap: 2px; }
+.hub-modo--tienda { background: #14232b; }
+/* La esfinge ocupa la tarjeta entera (a la derecha, del alto de la tarjeta); los textos quedan abajo a la izquierda. */
+.hub-modo--tienda > .hub-avatar-lienzo { position: absolute; inset: 0; z-index: 1; justify-content: flex-end; pointer-events: none; }
+.hub-avatar-textos { display: flex; flex-direction: column; gap: 2px; }
 /* Tienda mínima (fase 3): sin brillos ni sombras luminosas; el dorado queda para lo dorado. */
 .vista-tienda { align-items: stretch; gap: 14px; }
 .tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
-.tienda-avatar { display: flex; justify-content: center; }
-.tienda-avatar .esfinge--grande { width: 96px; height: 96px; }
+/* La esfinge protagonista toma el hueco que deja la lista de objetos (sin scroll). */
+.vista-tienda > .tienda-avatar { flex: 1 1 0; min-height: 96px; }
 .tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .tienda-objeto { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
 .tienda-objeto-icono { font-size: 24px; line-height: 1; }
@@ -2902,7 +2898,6 @@ button.punto-servidor::before {
 .tienda-pronto { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
 .boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
 .boton-silencio[hidden] { display: none; }
-.cabecera-esfinge { display: flex; align-items: center; }
 .hub-pie { gap: 14px; }
 .hoja-creditos {
   position: fixed;
