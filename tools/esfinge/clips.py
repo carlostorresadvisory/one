@@ -72,10 +72,10 @@ def vel(k, i):  # paso típico alrededor del fotograma i (velocidad del movimien
     return dist(X[j[0]], X[j[1]]) / max(1, j[1] - j[0])
 
 def afinar(k, a, b, N):
-    """Busca en ±0,15 s el inicio, y hasta 0,15 s antes el fin, más cercanos al ancla (el fin nunca se alarga)."""
+    """Busca hasta 0,15 s después del inicio y antes del fin el fotograma más cercano al ancla (el gesto nunca se alarga)."""
     X = video(k); w = 10
-    ia = min(range(max(0, idx(a) - w), idx(a) + w + 1), key=lambda i: dist(X[i], N))
-    ib = min(range(idx(b) - w, min(len(X) - 1, idx(b)) + 1), key=lambda i: dist(X[i], N))
+    ia = min(range(idx(a), idx(a) + w + 1) if b >= a else range(idx(a) - w, idx(a) + 1), key=lambda i: dist(X[i], N))
+    ib = min(range(idx(b) - w, idx(b) + 1) if b >= a else range(idx(b), idx(b) + w + 1), key=lambda i: dist(X[i], N))
     return ia, ib
 
 def montar(tramos, N, vN):

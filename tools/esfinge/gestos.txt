@@ -1,10 +1,11 @@
 # gesto  tramos: vídeo inicio fin [vídeo inicio fin ...]   (A = 6-oct, B = 7-oct; segundos)
-# inicio > fin: marcha atrás (solo saludo y pensando, como las candidatas que Carlos dio por buenas)
+# inicio > fin: marcha atrás (saludo y pensando, como las candidatas que Carlos dio por buenas; las orejas de sorpresa y triste
+# crecen con la recogida de orejas de A al revés, para no entrar por la sonrisa del final del acierto)
 # vídeo con '~': ese tramo a media velocidad (RIFE inventa un fotograma entre cada dos); '~~' a un cuarto
 # clips.py afina ±0,15 s el primer inicio y el último fin buscando el fotograma más cercano al ancla N (A8.17)
-saludo    B 0.00 1.20 B 1.19 0.00
+saludo    B 0.40 1.20 B 1.19 0.40
 pensando  B 9.80 8.60 B 8.61 9.80
-sorpresa  A 2.34 2.48 A~~ 2.86 3.12 A 3.14 3.20
-triste    A 2.34 2.48 B 3.88 6.75
+sorpresa  A 3.20 2.91 A~~ 2.90 3.12 A 3.14 3.20
+triste    A 3.20 2.86 B 3.88 6.75
 acierto   A 0.05 2.35
 euforia   A 3.30 6.30
