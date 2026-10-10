@@ -2175,18 +2175,7 @@ button.punto-servidor::before {
      se queda: el indicador se coloca a su izquierda (app.js#posicionarIndicadorTanda). */
   display: none;
 }
-.cabecera--con-tanda /* Tienda mínima (fase 3): sin brillos ni sombras luminosas; el dorado queda para lo dorado. */
-.vista-tienda { align-items: stretch; gap: 14px; }
-.tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
-.tienda-avatar { display: flex; justify-content: center; }
-.tienda-avatar .esfinge--grande { width: 96px; height: 96px; }
-.tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.tienda-objeto { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
-.tienda-objeto-icono { font-size: 24px; line-height: 1; }
-.tienda-objeto-nombre { flex: 1 1 auto; font-size: var(--tam-1); font-weight: 600; }
-.tienda-objeto-cantidad { font-size: var(--tam-2); font-weight: 600; }
-.tienda-pronto { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
-.boton-silencio { margin-left: auto; }
+.cabecera--con-tanda .boton-silencio { margin-left: auto; }
 .cabecera--con-tanda .chip-filtro { max-width: 28vw; }
 
 /* Mismo motivo que .hub-chip-nuevas[hidden] más arriba: con `display:flex` declarado, el [hidden]
@@ -3015,6 +3004,17 @@ button.punto-servidor::before {
 .hub-modo--tienda { flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px; background: #14232b; }
 .hub-modo--tienda .esfinge--grande { width: 60px; height: 60px; }
 .hub-esfinge-textos { display: flex; flex-direction: column; gap: 2px; }
+/* Tienda mínima (fase 3): sin brillos ni sombras luminosas; el dorado queda para lo dorado. */
+.vista-tienda { align-items: stretch; gap: 14px; }
+.tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
+.tienda-avatar { display: flex; justify-content: center; }
+.tienda-avatar .esfinge--grande { width: 96px; height: 96px; }
+.tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.tienda-objeto { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
+.tienda-objeto-icono { font-size: 24px; line-height: 1; }
+.tienda-objeto-nombre { flex: 1 1 auto; font-size: var(--tam-1); font-weight: 600; }
+.tienda-objeto-cantidad { font-size: var(--tam-2); font-weight: 600; }
+.tienda-pronto { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
 .boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
 .boton-silencio[hidden] { display: none; }
 .cabecera-esfinge { display: flex; align-items: center; }

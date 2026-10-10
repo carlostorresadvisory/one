@@ -7105,6 +7105,9 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="tienda-pronto"]')).toHaveText('Comprar y vender: pronto');
       await expect(page.locator('body')).not.toContainText('Apuesta');
       await expect(page.locator('body')).not.toContainText('Esfinge');
+      expect(await page.locator('[data-vista="tienda"]').evaluate((n) => getComputedStyle(n).rowGap)).toBe('14px');
+      // El silencio no se desplaza fuera de la tanda (margin-left auto solo con .cabecera--con-tanda).
+      expect(await page.locator('[data-test="silencio"]').evaluate((n) => getComputedStyle(n).marginLeft)).toBe('0px');
       await assertSinScroll(page);
       await page.locator('[data-test="volver"]').click();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();

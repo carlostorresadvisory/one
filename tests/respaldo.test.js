@@ -1,6 +1,7 @@
 // Tests de respaldo.js (spec v0.3 §9): exportar v3 con modos; importar v3 y el antiguo v1/v2.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { filtroDeModo } from '../filtro.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos, VERSION_RESPALDO, CLAVES_RESPALDO } from '../respaldo.js';
 import { crearEstado, exportar } from '../motor.js';
 import { CLAVE_MOCHILA } from '../mochila.js';
@@ -97,4 +98,15 @@ test('localStorage bloqueado (getter que lanza): exportar y aplicar no lanzan', 
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
     else delete globalThis.localStorage;
   }
+});
+
+test('Review Focus 4: un respaldo v3 con one.filtros que trae apuesta importa sin lanzar y el filtro sale como ordago', () => {
+  const filtros = JSON.stringify({ apuesta: { area: 'historia', ruta: [], etiquetas: [] } });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.filtros': filtros } });
+  const r = importarRespaldo(json);
+  assert.ok(r);
+  const almacen = almacenFalso();
+  aplicarModos(r.modos, almacen);
+  assert.equal(filtroDeModo('ordago', almacen).area, 'historia');
+  assert.ok(!('apuesta' in JSON.parse(almacen.getItem('one.filtros'))));
 });

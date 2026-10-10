@@ -235,3 +235,10 @@ test('migración de apuesta: si ya hay ordago manda ese; con almacén roto no la
   assert.ok(!('apuesta' in JSON.parse(almacen.getItem('one.filtros'))));
   assert.equal(filtroDeModo('ordago', almacenRoto()).area, null);
 });
+
+test('migración de apuesta: lee bien pero setItem lanza → no lanza y devuelve el filtro migrado en memoria', () => {
+  const base = almacenFalso({ 'one.filtros': JSON.stringify({ apuesta: { area: 'historia', ruta: [], etiquetas: [] } }) });
+  const almacen = { getItem: (c) => base.getItem(c), setItem: () => { throw new Error('cuota llena'); } };
+  assert.equal(filtroDeModo('ordago', almacen).area, 'historia');
+  assert.equal(guardarFiltroDeModo('ordago', { area: 'ciencia' }, almacen), false);
+});
