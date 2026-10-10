@@ -1,0 +1,12 @@
+# nombre inicio fin  (A = vídeo 6-oct, B = vídeo 7-oct; segundos)
+reposo A6.30 7.05
+guiño A7.05 7.95
+reposo A7.95 8.90
+acierto A0.10 2.25
+sorpresa+euforia A2.25 6.25
+reposo A6.25 7.00
+saluda-y-piensa B6.66 9.66
+reposo A8.00 9.15
+guiño-2 A9.15 9.90
+secuencia-larga B0.16 6.66
+reposo A6.30 7.05

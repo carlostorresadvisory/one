@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Esfinge: gestos</title>
+<style>
+body{margin:0;background:#0b0f14;color:#e8edf2;font-family:-apple-system,system-ui,sans-serif;padding:12px 16px 40px}
+h1{font-size:20px;margin:4px 0 2px}h2{font-size:16px;margin:22px 0 4px;color:#4cc9f0}
+p{margin:4px 0;color:#8a97a6;font-size:14px;line-height:1.4}
+.rej{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+.c{background:#151b23;border:1px solid #2a3340;border-radius:14px;padding:8px;text-align:center}
+.c b{display:block;font-size:15px;margin-top:4px}.c small{display:block;color:#8a97a6;font-size:12px;line-height:1.3;margin-top:2px}
+video{width:100%;aspect-ratio:1;border-radius:10px;background:#1c2430;display:block}
+#esf{width:200px;height:200px;margin:8px auto 0}
+.bts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+button{min-height:44px;padding:0 14px;border-radius:22px;border:0;background:#4cc9f0;color:#04141b;font:inherit;font-weight:700}
+.hip{border-style:dashed}.hip .ph{aspect-ratio:1;border-radius:10px;background:#1c2430;display:flex;align-items:center;justify-content:center;font-size:13px;color:#8a97a6;padding:8px}
+</style></head><body>
+<h1>Esfinge: lo que hay y lo que podría haber</h1>
+<p>Toca un vídeo si no arranca solo. Las secciones 2 y 2b van a 64 fotogramas por segundo (todo lo que da el vídeo original); las ya montadas en ONE van a 24.</p>
+
+<h2>0 · El personaje, de corrido (19 s, 64 fps)</h2>
+<p>Un solo vídeo que encadena todo lo aprovechable, siempre hacia delante: reposo → guiño → acierto → sorpresa y euforia → saluda y piensa → guiño → secuencia larga (saluda, piensa, se sorprende, orgullosa) → reposo. Ninguna unión salta más que el propio movimiento del vídeo.</p>
+<div class="c" style="max-width:420px;margin:8px auto 0"><video src="personaje.mp4" autoplay loop muted playsinline controls></video></div>
+
+<h2>1 · Ya montadas en ONE (6-oct)</h2>
+<p>Reposo en bucle; las otras suenan una vez y vuelven solas al reposo.</p>
+<div id="esf"></div>
+<div class="bts"><button data-e="contenta">Acierto</button><button data-e="euforica">Eufórica</button><button data-e="triste">Triste</button></div>
+
+<h2>2 · Sacadas del vídeo del 7-oct sin generar nada (ida y vuelta)</h2>
+<p>Cada gesto empieza y acaba en el mismo fotograma casi neutro, así que encaja con el reposo sin corte visible. Fondo verde porque aún no está recortado.</p>
+<div class="rej">
+ <div class="c"><video src="saludo.mp4" autoplay loop muted playsinline></video><b>Saludo</b><small>Al entrar al inicio o a un modo</small></div>
+ <div class="c"><video src="pensando.mp4" autoplay loop muted playsinline></video><b>Pensando</b><small>Elegir ficha en Órdago, deslizar en Afinar</small></div>
+</div>
+
+<h2>2b · Más chicha: empalmes hacia delante (sin marcha atrás)</h2>
+<p>Se busca, en los dos vídeos, fotogramas casi idénticos y se salta de uno a otro con un fundido de 3 fotogramas (el salto es tan pequeño como el paso normal entre fotogramas). Así el gesto vuelve al reposo andando hacia delante.</p>
+<div class="rej">
+ <div class="c"><video src="saludo-adelante.mp4" autoplay loop muted playsinline></video><b>Saludo (hacia delante)</b><small>Saluda y baja la pata; 4 empalmes · compárala con la de ida y vuelta</small></div>
+ <div class="c"><video src="sorpresa-oh.mp4" autoplay loop muted playsinline></video><b>Sorpresa «¡oh!»</b><small>Del vídeo del 6-oct: orejas arriba y boca en «o» · pregunta dorada, cofre</small></div>
+ <div class="c"><video src="guino.mp4" autoplay loop muted playsinline></video><b>Guiño</b><small>Nuevo · al usar 50/50 o una pista, «te ayudo»</small></div>
+ <div class="c"><video src="guino-2.mp4" autoplay loop muted playsinline></video><b>Guiño 2</b><small>Otra toma del guiño, más corta</small></div>
+ <div class="c"><video src="orgullosa.mp4" autoplay loop muted playsinline></video><b>Orgullosa</b><small>Orejas arriba y ojos cerrados de gusto · racha, «Muy cerca»</small></div>
+</div>
+
+<h2>3 · Hipotéticas (habría que generarlas)</h2>
+<div class="rej">
+ <div class="c hip"><div class="ph">Tapa los ojos con las patas y espía por una rendija</div><b>Nervios</b><small>Apostar Órdago (todo el fondo), últimos 3 s de Contrarreloj</small></div>
+ <div class="c hip"><div class="ph">Se tapa la cara, cae de espaldas y se levanta</div><b>Quiebra</b><small>Fondo a cero en Órdago (hoy usaría Triste)</small></div>
+ <div class="c hip"><div class="ph">Abre un cofre que brilla y lo mira asombrada</div><b>Cofre</b><small>Recompensa de Contrarreloj y racha de Afinar</small></div>
+</div>
+
+<h2>4 · Vídeos originales</h2>
+<div class="rej">
+ <div class="c"><video src="../esfinge-video/original.mp4" controls muted playsinline></video><b>6-oct</b><small>De aquí salen reposo, acierto y eufórica</small></div>
+ <div class="c"><video src="video-7oct.mp4" controls muted playsinline></video><b>7-oct</b><small>Saludo, pensando y sorpresa encadenados</small></div>
+</div>
+
+<script type="module">
+import { montarEsfinge } from '../esfinge-mp4/player.js';
+const e = montarEsfinge(document.getElementById('esf'), '../esfinge-mp4/');
+document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => e.expresion(b.dataset.e));
+</script>
+</body></html>
