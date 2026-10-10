@@ -81,21 +81,15 @@ def afinar(k, a, b, N):
 def montar(tramos, N, vN):
     """tramos: [(vídeo, i0, i1)] reales hacia delante. Puentes RIFE de N al primero, entre tramos y del último a N."""
     cuadros, uniones = [N], []
-    prev, vprev = N, vN; seguido = set()
+    prev, vprev = N, vN
     for k, i0, i1 in tramos:
-        k, _, f = k.partition('*'); va, _, vb = (f or '1').partition('-'); va = float(va); vb = float(vb or va)  # 'B*1.2' a 1,2x; 'B*1-1.6' acelera de 1x a 1,6x
-        lento = k.count('~'); k = k.rstrip('~'); X = video(k); paso = 1 if i1 >= i0 else -1
-        if (k, i0) != N_IDX and (k, i0) not in seguido:  # un tramo que sigue al anterior en el vídeo no lleva puente
+        lento = len(k) - len(k.rstrip('~')); k = k.rstrip('~'); X = video(k); paso = 1 if i1 >= i0 else -1
+        if (k, i0) != N_IDX:
             p = puente(prev, X[i0], vprev, vel(k, i0)); uniones.append((len(cuadros), len(p))); cuadros += p
-        trozo = [X[i] for i in range(i0, i1 + paso, paso)]
-        if (va, vb) != (1, 1):  # saltar fotogramas reales da pasos de 1 y 2 (tirones): se densifica x4 con RIFE y se muestrea parejo
-            d = lento_x2(lento_x2(trozo)); L = len(d) - 1; x, pos = 0.0, []
-            while x <= L: pos.append(round(x)); x += 4 * (va + (vb - va) * x / L)
-            trozo = [d[i] for i in pos]
-        trozo = trozo[int((k, i0) == N_IDX):]
+        trozo = [X[i] for i in range(i0 + paso * ((k, i0) == N_IDX), i1 + paso, paso)]
         for _ in range(lento): trozo = lento_x2(trozo)
         cuadros += trozo
-        prev, vprev = trozo[-1], vel(k, i1) * vb / 2 ** lento; seguido = {(k, i1 + 1), (k, i1 - 1)}
+        prev, vprev = X[i1], vel(k, i1) / 2 ** lento
     p = puente(prev, N, vprev, vN); uniones.append((len(cuadros), len(p))); cuadros += p
     return cuadros, uniones  # el último cuadro es el anterior a N: el siguiente clip empieza en N
 
@@ -141,7 +135,7 @@ if __name__ == '__main__':
     trabajos = [('reposo', [(v, idx(a), idx(b)) for v, a, b in REPOSO])]
     for g, *r in gestos:  # varios tramos seguidos: vídeo inicio fin vídeo inicio fin ...
         tr = [(r[j], idx(float(r[j + 1])), idx(float(r[j + 2]))) for j in range(0, len(r), 3)]
-        i0, _ = afinar(tr[0][0].split('*')[0].rstrip('~'), tr[0][1] / FPS, tr[0][2] / FPS, N); _, i1 = afinar(tr[-1][0].split('*')[0].rstrip('~'), tr[-1][1] / FPS, tr[-1][2] / FPS, N)
+        i0, _ = afinar(tr[0][0].rstrip('~'), tr[0][1] / FPS, tr[0][2] / FPS, N); _, i1 = afinar(tr[-1][0].rstrip('~'), tr[-1][1] / FPS, tr[-1][2] / FPS, N)
         tr[0] = (tr[0][0], i0, tr[0][2]); tr[-1] = (tr[-1][0], tr[-1][1], i1)
         trabajos.append((g, tr))
     for nombre, tramos in trabajos:
@@ -149,7 +143,7 @@ if __name__ == '__main__':
         cuadros, uniones = montar(tramos, N, vN)
         pasos, fs = tiras(nombre, cuadros, uniones)
         escribir(nombre, cuadros)
-        real = [dist(video(v.split('*')[0].rstrip('~'))[i], video(v.split('*')[0].rstrip('~'))[i + 1]) for v, i0, i1 in tramos for i in range(min(i0, i1), max(i0, i1))]
+        real = [dist(video(v.rstrip('~'))[i], video(v.rstrip('~'))[i + 1]) for v, i0, i1 in tramos for i in range(min(i0, i1), max(i0, i1))]
         p95 = float(np.percentile(real, 95)) if real else 1
         malos = [(i, round(p, 2)) for i, p in enumerate(pasos) if p > max(1.5 * p95, 1.5)]
         salidas = [i for i, c in enumerate(cuadros) if dist(c, N) <= 0.6] if nombre == 'reposo' else []

@@ -24,7 +24,7 @@ button.sec{background:transparent;color:var(--texto);border:1px solid var(--suav
  <button id="fondo" class="sec">Cambiar fondo (claro / oscuro)</button>
 </div>
 <script type="module">
-import { montarEsfinge } from './player.js?v=12';
+import { montarEsfinge } from './player.js?v=13';
 const anclas = await fetch('anclas.json?v=1').then(r => r.json());
 const e = montarEsfinge(document.getElementById('esf'), './', anclas);
 const est = document.getElementById('estado');

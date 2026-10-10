@@ -1,12 +1,11 @@
 # gesto  tramos: vídeo inicio fin [vídeo inicio fin ...]   (A = 6-oct, B = 7-oct; segundos)
-# inicio > fin: marcha atrás (la subida de pensando)
-# saludo: velocidad que cambia poco a poco y empalma entre tramos (B*a-b): la pata acelera al subir, saluda (rápido donde la mano casi se para, el vaivén grande cerca de la real), un segundo vaivén solo grande (no la repetición entera) y frena al posarse
+# inicio > fin: marcha atrás (la bajada del saludo y la subida de pensando)
 # sorpresa: orejas y «¡oh!» reales de B a un cuarto, y sale por otro camino (las orejas se doblan, B6.15-6.75): sin boomerang
 # pensando: sube al revés, se queda pensando con la pata en la barbilla (B~ 1.95-2.45) y baja por delante, cortando antes de la sonrisa de B9.55
 # triste: el susto de B (orejas y «¡oh!») a media velocidad, luego agacha la cabeza triste; se saltan las dos medias sonrisas (B3.77-3.98 y B5.35-5.70)
-# vídeo con '~': ese tramo a media velocidad (RIFE inventa un fotograma entre cada dos); '~~' a un cuarto; '*1.2' a 1,2x; '*1-1.6' acelerando de 1x a 1,6x
+# vídeo con '~': ese tramo a media velocidad (RIFE inventa un fotograma entre cada dos); '~~' a un cuarto
 # clips.py afina ±0,15 s el primer inicio y el último fin buscando el fotograma más cercano al ancla N (A8.17)
-saludo    B*1-1.25 0.40 0.81 B*1.25-1.6 0.83 0.94 B*1.6-1.3 0.95 1.12 B*1.3-1.5 1.14 1.20 B*1.5-1.2 0.95 1.125 B*1.2-0.85 0.80 0.40
+saludo    B 0.40 1.20 B 1.19 0.40
 pensando  B 9.50 8.60 B~ 1.95 2.45 B 8.89 9.50
 sorpresa  B~~ 3.28 3.70 B~ 6.15 6.75
 triste    B~ 3.28 3.75 B~ 4.00 5.30 B 5.75 6.75
