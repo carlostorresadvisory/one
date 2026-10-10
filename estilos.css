@@ -2993,3 +2993,60 @@ button.punto-servidor::before {
   letter-spacing: 0.06em;
   vertical-align: middle;
 }
+
+/* ===== v0.3 pantalla de pregunta con foto (foto-pregunta.js, spec §4): la foto es la protagonista y ocupa
+   todo el hueco libre; el enunciado va ENCIMA (blanco con sombra) sobre un degradado oscuro; crédito
+   pequeño arriba a la derecha. Sin imagen (o si no carga) queda el color del área, sin emoji grande. ===== */
+.foto-pregunta {
+  --color-area: #17222d;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--color-area);
+  border: 1px solid #22303d;
+}
+.foto-pregunta--economia { --color-area: #1d3b2a; }
+.foto-pregunta--historia { --color-area: #3b2f1c; }
+.foto-pregunta--ciencia { --color-area: #123a4a; }
+.foto-pregunta--tecnologia { --color-area: #1c2c4d; }
+.foto-pregunta--geografia { --color-area: #1f3d33; }
+.foto-pregunta--filosofia { --color-area: #2b3342; }
+.foto-pregunta--arte { --color-area: #3d2a22; }
+.foto-pregunta--logica { --color-area: #28324a; }
+.foto-pregunta-imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.foto-pregunta-degradado { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 15, 20, 0) 25%, rgba(11, 15, 20, 0.88) 100%); pointer-events: none; }
+.foto-pregunta-enunciado {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: var(--tam-2);
+  font-weight: 700;
+  line-height: 1.25;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+.foto-pregunta-credito {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  max-width: 70%;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(11, 15, 20, 0.55);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* Pregunta dorada: el único resplandor de esta pantalla (borde y brillo difuso dorados). */
+.foto-pregunta--dorada { border-color: var(--dorado); box-shadow: 0 0 0 2px var(--dorado), 0 0 18px rgba(242, 193, 78, 0.45); }
+@media (prefers-reduced-motion: no-preference) {
+  .foto-pregunta--dorada { animation: dorada-brillo 1.6s ease-in-out infinite; }
+}

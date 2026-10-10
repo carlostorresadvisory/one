@@ -31,9 +31,11 @@ export class ElementoFalso {
   }
   setAttribute(nombre, valor) { this.attrs[nombre] = String(valor); }
   getAttribute(nombre) { return Object.prototype.hasOwnProperty.call(this.attrs, nombre) ? this.attrs[nombre] : null; }
-  appendChild(hijo) { this.children.push(hijo); return hijo; }
-  append(...hijos) { hijos.forEach((h) => this.children.push(h)); }
-  replaceChildren(...hijos) { this.children = [...hijos]; }
+  appendChild(hijo) { hijo.parentNode = this; this.children.push(hijo); return hijo; }
+  append(...hijos) { hijos.forEach((h) => this.appendChild(h)); }
+  replaceChildren(...hijos) { this.children = []; hijos.forEach((h) => this.appendChild(h)); }
+  /** Se saca del padre, como `Element.remove()`. */
+  remove() { if (this.parentNode) this.parentNode.removeChild(this); this.parentNode = null; }
   get classList() {
     const clases = this._clases;
     return {
