@@ -52,7 +52,7 @@ export async function construirIcono(lado, zona) {
   const m = await sharp(figura).metadata();
   const left = Math.round((lado - m.width) / 2);
   const top = Math.round((lado - m.height) / 2);
-  return sharp(fondoSvg(lado)).composite([{ input: figura, left, top }]).flatten({ background: '#0b0f14' }).png({ compressionLevel: 9 }).toBuffer();
+  return sharp(fondoSvg(lado)).composite([{ input: figura, left, top }]).flatten({ background: '#0b0f14' }).png({ compressionLevel: 9, palette: true, quality: 90, effort: 10 }).toBuffer();
 }
 
 async function generar() {
