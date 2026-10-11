@@ -1,4 +1,15 @@
-# Próxima sesión — ONE v0.3 lista para publicar (fases 3 a 9, entrega 1)
+# Próxima sesión — ONE v0.3.1: correcciones de Carlos tras probar v0.3 (11-oct-2026)
+
+v0.3 PUBLICADA el 11-oct (main `8287e5f`, Pages `one-v32`, servidor del VPS reconstruido con las claves de Cloudflare). Carlos: «buena primera versión».
+
+## Correcciones pedidas por Carlos (11-oct, 18:28) — planificar antes de ejecutar
+1. **Órdago**: quitar la imagen de la ruleta (tarjeta del hub y/o fondo del modo) y poner otra.
+2. **Reacciones de la esfinge muy lentas**: el gesto debe empezar al instante (los gestos se descargan bajo demanda desde 97e1914: precargar los más usados — acierto/triste — tras el arranque, o empezar el gesto desde el fotograma de reposo sin esperar).
+3. **La esfinge como icono de la app** (iconos/180, 192, 512 y manifest).
+4. **Nombre nuevo de la app**: Carlos elige entre 10 propuestas (preferidas: Esfinx, Giza; resto: Ankh, Kefrén, Acerta, Nefer, Órdago, Enigma, Oráculo, Sfinga) tras comprobar que no chocan con apps conocidas.
+5. **Muchas imágenes no cargan**: diagnosticar en el iPhone/real (Commons 404 como art-019, CORS del SW, miniaturas sin comprobar por el 429, rutas `/imagenes/` del servidor) con causa demostrada.
+6. **Contrarreloj: preguntas más fáciles al principio** (rampa de dificultad: niveles bajos en las primeras y suelo de nivel 3 solo a partir de cierta pregunta; cambiar la spec §5.4 y §4).
+7. **Botón PREMIUM «+» en el inicio**: pantalla del plan freemium (precio, crédito para la Tienda, generar preguntas infinitas). Decisión de Carlos: **sin cobro real** en esta versión; «Activar» lo activa gratis para él; el pago (Stripe/Apple) más adelante.
 
 ## Estado (11-oct-2026, rama `v0.3-fase-9`, sale de `v0.3-fase-8`)
 - **v0.3 está terminada y lista para publicar** en la entrega 1: esfinge v2 con sonido, Órdago, Contrarreloj, fotos con enunciado, Más o menos, Tienda y comodines. Falta solo el OK de Carlos y su push. Publicar publica también las fases 3 a 8. `CACHE` es `one-v32`.
