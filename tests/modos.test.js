@@ -31,13 +31,16 @@ test('marcadorModo: Hoy a/r, por repasar / Al día, Pronto', () => {
   assert.equal(marcadorModo('clasico', datos), 'Hoy 4/10');
   assert.equal(marcadorModo('repaso', datos), '15 por repasar');
   assert.equal(marcadorModo('repaso', { ...datos, porRepasar: 0 }), 'Al día');
-  for (const id of ['masomenos', 'contrarreloj']) assert.equal(marcadorModo(id, datos), 'Pronto');
+  assert.equal(marcadorModo('masomenos', datos), 'Pronto');
   assert.equal(marcadorModo('ordago', { fondo: 1250 }), '1.250');
   assert.equal(marcadorModo('ordago', {}), '1.000');
 });
 
-test('modos no disponibles marcan «Pronto»', () => {
-  assert.equal(marcadorModo('contrarreloj', {}), 'Pronto');
+test('Contrarreloj enseña su marca o «Sin marca»; Más o menos sigue en «Pronto»', () => {
+  assert.equal(marcadorModo('contrarreloj', {}), 'Sin marca');
+  assert.equal(marcadorModo('contrarreloj', { marca: '7/10' }), '7/10');
+  assert.equal(marcadorModo('contrarreloj', { marca: 'Doble ×2' }), 'Doble ×2');
+  assert.equal(marcadorModo('masomenos', {}), 'Pronto');
 });
 
 test('suelo de nivel 3: solo V/F y test4 de nivel 3-5 valen para Órdago y Contrarreloj', () => {

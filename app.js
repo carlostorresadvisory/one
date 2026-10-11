@@ -46,7 +46,7 @@ import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.j
 import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
-import { esJugableContrarreloj } from './contrarreloj.js';
+import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
 import { montarContrarreloj } from './contrarreloj-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
@@ -4431,6 +4431,7 @@ function renderHub() {
     objetos: contarObjetos(cargarMochila()),
     ordago,
     fondo: ordago.fondo,
+    marca: marcaTextoContrarreloj(cargarRecordsContrarreloj()),
   });
   pintarSilencio();
 }

@@ -20,6 +20,7 @@ import { AREAS } from './motor.js';
 
 export const FILTRO_TODOS = Object.freeze({ area: null, ruta: Object.freeze([]), etiquetas: Object.freeze([]) });
 export const MIN_JUGABLES = 5;
+export const MIN_JUGABLES_CONTRARRELOJ = 10; // una serie entera: con menos, las preguntas se repetirían
 export const MAX_PARTIDA_FILTRO = 10;
 export const CLAVE_FILTROS = 'one.filtros';
 export const CLAVE_INDICE_RUTAS = 'one.indiceRutas';
@@ -197,13 +198,13 @@ export function filtroParaRepaso(pendientesLista, filtro, indice, reportadas = [
 
 /**
  * Aviso de "menos de 5" (spec §4/§11), regla y textos en un solo sitio (puro, con test).
- * `null` si no hay aviso: filtro TODOS o `n >= MIN_JUGABLES`. Si no: `{texto, generar, jugar}` donde
+ * `null` si no hay aviso: filtro TODOS o `n >= MIN_JUGABLES` (10 en Contrarreloj, una serie). Si no: `{texto, generar, jugar}` donde
  * `jugar` es el texto del botón ("Jugar las 2", "Repasar la 1") o `null` con 0 elementos, y `generar`
  * dice si se ofrece "Generar preguntas" (nunca en Repaso: lo generado es nuevo, no pendiente).
  */
 export function avisoFiltroCorto({ modo, filtro, n, nombreArea = (a) => a }) {
   const f = normalizarFiltro(filtro);
-  if (!f.area || n >= MIN_JUGABLES) return null;
+  if (!f.area || n >= (modo === 'contrarreloj' ? MIN_JUGABLES_CONTRARRELOJ : MIN_JUGABLES)) return null;
   const etiqueta = etiquetaFiltro(f, nombreArea);
   const esRepaso = modo === 'repaso';
   const cosa = esRepaso ? (n === 1 ? 'pendiente' : 'pendientes') : n === 1 ? 'pregunta' : 'preguntas';

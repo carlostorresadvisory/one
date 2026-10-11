@@ -184,6 +184,14 @@ test('construirListaAreas: TODOS + un botón por área, marca el actual y avisa 
   assert.deepEqual(elegidas, [null, 'historia']);
 });
 
+test('avisoFiltroCorto: Contrarreloj necesita una serie entera (10), el resto 5', () => {
+  const f = { area: 'geografia', ruta: [], etiquetas: [] };
+  assert.equal(avisoFiltroCorto({ modo: 'contrarreloj', filtro: f, n: 10 }), null);
+  assert.deepEqual(avisoFiltroCorto({ modo: 'contrarreloj', filtro: f, n: 7, nombreArea: () => 'Geografía' }),
+    { texto: 'Solo hay 7 preguntas de Geografía', generar: true, jugar: 'Jugar las 7' });
+  assert.equal(avisoFiltroCorto({ modo: 'ordago', filtro: f, n: 7 }), null);
+});
+
 test('avisoFiltroCorto: null con TODOS o con 5 o más; textos y botones por modo y número', () => {
   const ECO = { area: 'economia', ruta: [], etiquetas: [] };
   assert.equal(avisoFiltroCorto({ modo: 'clasico', filtro: FILTRO_TODOS, n: 0 }), null);

@@ -6848,6 +6848,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
       await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
       await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Pronto');
+      await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('Sin marca');
       await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
       await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo, [data-test="tarjeta-tienda"] img.avatar-fijo')).toHaveCount(1);
       await expect(page.locator('header canvas, header img')).toHaveCount(0); // el hub no lleva esfinge en la cabecera
@@ -6876,7 +6877,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
   test('v0.3 fase 3: tocar una tarjeta lleva a su modo; las «Pronto» no responden; sin Comenzar', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
-    const pronto = page.locator('[data-test="modo-contrarreloj"]');
+    const pronto = page.locator('[data-test="modo-masomenos"]');
     await expect(pronto).toHaveAttribute('aria-disabled', 'true');
     await expect(pronto).toContainText('Pronto');
     await pronto.click({ force: true });
@@ -7891,5 +7892,88 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     });
     expect(medidas).toMatchObject({ cabe: true, fuente: '20px', opcion: '16px' });
     expect(medidas.fotoAlto).toBeGreaterThan(100);
+  });
+  for (const viewport of VIEWPORTS) {
+    test(`Contrarreloj: la tarjeta del hub ya no es «Pronto», enseña «Sin marca» y luego la marca (hub ${viewport.width}×${viewport.height} sin scroll)`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      const tarjeta = page.locator('[data-test="modo-contrarreloj"]');
+      await expect(tarjeta).not.toHaveAttribute('aria-disabled', 'true');
+      await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('Sin marca');
+      await assertSinScroll(page);
+      await entrarEnModo(page, 'contrarreloj');
+      await page.evaluate(() => window.__one.acertarContrarreloj(4));
+      await page.evaluate(() => window.__one.fallarContrarreloj());
+      await page.waitForTimeout(450);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('4/10');
+      await assertSinScroll(page);
+    });
+  }
+
+  test('Contrarreloj: con < 10 jugables bajo el filtro avisa (Generar PREMIUM / volver a TODOS) y «Jugar las N» sigue sirviendo nivel ≥ 3', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ contrarreloj: { area: 'geografia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toContainText('de Geografía');
+    await expect(page.locator('[data-test="filtro-corto-generar"] [data-test="insignia-premium"]')).toBeVisible();
+    await page.locator('[data-test="filtro-corto-jugar"]').click();
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
+    expect(pregunta.area).toBe('geografia');
+    expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
+    await page.locator('[data-test="volver"]').click();
+    await entrarEnModo(page, 'contrarreloj');
+    await page.locator('[data-test="filtro-corto-todos"]').click();
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('Contrarreloj: «Generar preguntas» desde el aviso pide la tanda con nivelObjetivo 4', async ({ page }) => {
+    const peticiones = [];
+    const cors = {
+      'Access-Control-Allow-Origin': 'http://localhost:8765',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    await page.route('https://servidor.prueba/**', async (ruta) => {
+      const peticion = ruta.request();
+      if (peticion.method() === 'OPTIONS') {
+        await ruta.fulfill({ status: 204, headers: cors });
+        return;
+      }
+      const cabeceras = { ...cors, 'Content-Type': 'application/json' };
+      if (new URL(peticion.url()).pathname === '/generar') {
+        peticiones.push(peticion.postDataJSON());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ trabajoId: 't-1', enCola: 1, estimadoSeg: 40 }) });
+      } else {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null, estado_servidor: 'ok' }) });
+      }
+    });
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ contrarreloj: { area: 'geografia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto('/?ejemplo=1&test=1&servidor=https%3A%2F%2Fservidor.prueba&token=token-de-prueba-e2e-1234567890');
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeEnabled();
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect.poll(() => peticiones.length).toBe(1);
+    expect(peticiones[0]).toMatchObject({ area: 'geografia', nivelObjetivo: 4 });
+  });
+
+  test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante Contrarreloj ni en el cofre y sale al volver al hub', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.simularTandaLista({ ids: ['zz-1'], corto: 'Historia' }));
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-plantarse"]').click();
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeVisible();
   });
 });

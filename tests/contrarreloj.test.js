@@ -58,6 +58,7 @@ test('caer en la serie normal no da nada', () => {
 });
 test('récords: mejor marca y dobles ganados; texto de marca', () => {
   let r = C.crearRecords();
+  assert.equal(C.marcaTexto(r), ''); // sin marca todavía
   r = C.actualizarRecords(r, { fase: 'normal', indice: 7, viva: false, terminada: false });
   assert.equal(C.marcaTexto(r), '7/10');
   r = C.actualizarRecords(r, { fase: 'normal', indice: 3, viva: false, terminada: false });

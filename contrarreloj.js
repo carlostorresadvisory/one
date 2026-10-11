@@ -99,10 +99,11 @@ export function actualizarRecords(records, serie) {
   return aciertos > actual.mejor.aciertos ? { ...actual, mejor: { fase: 'normal', aciertos } } : actual;
 }
 
-/** `'7/10'` o `'Doble ×2'`. */
+/** `'7/10'` o `'Doble ×2'`; cadena vacía si aún no hay marca. */
 export function marcaTexto(records) {
   const r = normalizarRecords(records);
-  return r.doblesGanados > 0 ? `Doble ×${r.doblesGanados}` : `${r.mejor.aciertos}/${N_SERIE}`;
+  if (r.doblesGanados > 0) return `Doble ×${r.doblesGanados}`;
+  return r.mejor.aciertos > 0 ? `${r.mejor.aciertos}/${N_SERIE}` : '';
 }
 
 export function cargarRecords(almacen) {
