@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as C from '../tools/construir-cifras.js';
+import * as M from '../masomenos.js';
 
 const fx = (n) => JSON.parse(readFileSync(new URL(`./fixtures/${n}`, import.meta.url), 'utf8'));
 const filas = fx('wikidata-filas.json');
@@ -27,12 +28,43 @@ test('construirConsulta: SPARQL con la propiedad, la clase y el filtro de cada c
   assert.match(montana, /wd:Q8502/);
   assert.ok(montana.includes('FILTER(?valor > 3999)'));
   assert.ok(C.construirConsulta('longitud-rio').includes('FILTER(?valor > 999999)')); // 1.000 km en metros
-  assert.match(C.construirConsulta('poblacion-pais'), /P1082[\s\S]*pq:P585/);
+  assert.match(C.construirConsulta('poblacion-ciudad'), /P1082[\s\S]*pq:P585/);
+  assert.throws(() => C.construirConsulta('poblacion-pais')); // la población de países es del Banco Mundial
   assert.match(C.construirConsulta('ano-hecho'), /P585[\s\S]*timePrecision \?prec \. FILTER\(\?prec >= 9\)/);
   assert.ok(C.construirConsulta('poblacion-ciudad').includes('FILTER(?valor > 1000000)'));
   assert.ok(C.construirConsulta('ano-obra').includes('?e wdt:P195 ?col')); // solo las pinturas de los grandes museos
   assert.ok(!C.construirConsulta('ano-hecho').includes('P195'));
   assert.throws(() => C.construirConsulta('pib-pais'));
+});
+
+test('construirConsulta: nunca valores obsoletos y, si hay uno preferido, solo ese (todos los tipos)', () => {
+  for (const cat of ['poblacion-ciudad', 'altitud-montana', 'altura-edificio', 'longitud-rio', 'superficie-pais', 'ano-obra', 'ano-hecho']) {
+    const q = C.construirConsulta(cat);
+    assert.ok(q.includes('FILTER(?r != wikibase:DeprecatedRank)'), cat);
+    assert.ok(/FILTER\(\?r = wikibase:PreferredRank \|\| NOT EXISTS \{ \?e p:P\d+\/wikibase:rank wikibase:PreferredRank \}\)/.test(q), cat);
+  }
+});
+
+test('construirConsulta: edificios terminados (apertura en el pasado) y ciudades sin áreas urbanas ni aglomeraciones', () => {
+  assert.match(C.construirConsulta('altura-edificio'), /wdt:P1619 \?apertura \. FILTER\(\?apertura <= NOW\(\)\)/);
+  const ciudad = C.construirConsulta('poblacion-ciudad');
+  assert.match(ciudad, /FILTER NOT EXISTS \{ \?e wdt:P31 \?otra \. VALUES \?otra \{[^}]*wd:Q1907114[^}]*wd:Q159313/);
+});
+
+test('población y PIB de los países son del Banco Mundial (último año), no de Wikidata', () => {
+  assert.equal(C.CATEGORIAS['poblacion-pais'].tipo, 'banco');
+  assert.equal(C.CATEGORIAS['poblacion-pais'].indicador, 'SP.POP.TOTL');
+  assert.equal(C.CATEGORIAS['pib-pais'].indicador, 'NY.GDP.MKTP.CD');
+});
+
+test('área, unidad y rango de cada categoría salen de masomenos.js, la misma tabla que valida la app', async () => {
+  const M = await import('../masomenos.js');
+  assert.deepEqual(Object.keys(C.CATEGORIAS).sort(), Object.keys(M.CATEGORIAS).sort());
+  for (const [cat, c] of Object.entries(C.CATEGORIAS)) {
+    assert.equal(c.area, M.CATEGORIAS[cat].area, cat);
+    assert.equal(c.unidad, M.CATEGORIAS[cat].unidad, cat);
+  }
+  assert.equal(C.validarCifra, M.validarCifra);
 });
 
 test('normalizarFilaWikidata: fila real → cifra con id estable, valor numérico y fecha', () => {
@@ -41,7 +73,18 @@ test('normalizarFilaWikidata: fila real → cifra con id estable, valor numéric
   const monte = C.normalizarFilaWikidata(filas['altitud-montana'][0], 'altitud-montana');
   assert.equal(monte.valor, 8849); // 8848,86 → entero
   assert.equal(monte.fecha, null);
-  assert.equal(C.normalizarFilaWikidata(filas['ano-hecho'][2], 'ano-hecho').valor, -479);
+  // Wikidata/SPARQL cuenta el año 0 como 1 a. C.: la fila de las Termópilas trae −479 y la batalla fue en el 480 a. C.
+  const termopilas = C.normalizarFilaWikidata(filas['ano-hecho'][2], 'ano-hecho');
+  assert.equal(termopilas.valor, -480);
+  assert.equal(M.formatearValor(termopilas.valor, 'ano-hecho'), '480 a. C.');
+});
+
+test('anoSinCero: el año 0 de SPARQL es 1 a. C.; los años d. C. no cambian', () => {
+  assert.equal(C.anoSinCero(-1273), -1274); // Qadesh
+  assert.equal(C.anoSinCero(0), -1);
+  assert.equal(C.anoSinCero(1), 1);
+  assert.equal(C.anoSinCero(1815), 1815);
+  assert.equal(C.anoSinCero(-479.0), -480);
 });
 
 test('normalizarFilaWikidata: descarta filas rotas', () => {
@@ -83,7 +126,7 @@ test('deduplicar: sin fecha, valores parecidos (8848/8850) se quedan y los que d
 });
 
 test('validarCifra: valor finito > 0, años entre −3000 y 2026, nombre real y fuente https', () => {
-  const buena = { id: 'am-Q513', categoria: 'altitud-montana', nombre: 'Everest', valor: 8849, unidad: 'm', fuente: 'https://www.wikidata.org/wiki/Q513' };
+  const buena = { id: 'am-Q513', area: 'geografia', categoria: 'altitud-montana', nombre: 'Everest', valor: 8849, unidad: 'm', fuente: 'https://www.wikidata.org/wiki/Q513' };
   assert.equal(C.validarCifra(buena), true);
   assert.equal(C.validarCifra({ ...buena, valor: 0 }), false);
   assert.equal(C.validarCifra({ ...buena, valor: -5 }), false);
@@ -91,7 +134,7 @@ test('validarCifra: valor finito > 0, años entre −3000 y 2026, nombre real y 
   assert.equal(C.validarCifra({ ...buena, valor: 3999 }), false); // por debajo de los 4000 m
   assert.equal(C.validarCifra({ ...buena, nombre: 'Q513' }), false); // sin etiqueta en Wikidata
   assert.equal(C.validarCifra({ ...buena, fuente: 'wikidata' }), false);
-  const hecho = { id: 'ah-Q1', categoria: 'ano-hecho', nombre: 'Batalla de Salamina', valor: -480, unidad: 'año', fuente: 'https://www.wikidata.org/wiki/Q1' };
+  const hecho = { id: 'ah-Q1', area: 'historia', categoria: 'ano-hecho', nombre: 'Batalla de Salamina', valor: -480, unidad: 'año', fuente: 'https://www.wikidata.org/wiki/Q1' };
   assert.equal(C.validarCifra(hecho), true);
   assert.equal(C.validarCifra({ ...hecho, valor: -3001 }), false);
   assert.equal(C.validarCifra({ ...hecho, valor: 2027 }), false);
@@ -155,14 +198,19 @@ test('detalleDeEntidades: nombre en español (si no en inglés), foto aceptable 
   assert.equal(mapa.get('Q513').nombre, 'Everest');
 });
 
-test('parsearPibBancoMundial: solo países (ISO3) con valor; fuera agregados regionales', () => {
-  const mapa = C.parsearPibBancoMundial(fx('banco-mundial-pib.json'));
+test('parsearBancoMundial: solo países (ISO3) con valor; fuera agregados regionales', () => {
+  const mapa = C.parsearBancoMundial(fx('banco-mundial-pib.json'));
   assert.ok(mapa.has('ESP') && mapa.has('USA'));
   assert.ok(mapa.get('ESP').valor > 1e12);
   assert.match(mapa.get('ESP').fecha, /^\d{4}$/);
-  assert.equal(C.parsearPibBancoMundial(null).size, 0);
-  assert.equal(C.parsearPibBancoMundial([{}, [{ countryiso3code: 'XXX', value: null }]]).size, 0);
-  assert.equal(C.parsearPibBancoMundial([{}, [{ countryiso3code: '', value: 5 }]]).size, 0); // agregado sin ISO3
+  assert.equal(C.parsearBancoMundial(null).size, 0);
+  assert.equal(C.parsearBancoMundial([{}, [{ countryiso3code: 'XXX', value: null }]]).size, 0);
+  assert.equal(C.parsearBancoMundial([{}, [{ countryiso3code: '', value: 5 }]]).size, 0); // agregado sin ISO3
+  // población: India por encima de China con el último dato del Banco Mundial
+  const poblacion = C.parsearBancoMundial([{}, [
+    { countryiso3code: 'CHN', date: '2024', value: 1408975000 }, { countryiso3code: 'IND', date: '2024', value: 1450935791 },
+  ]]);
+  assert.ok(poblacion.get('IND').valor > poblacion.get('CHN').valor);
 });
 
 test('cifrasDeFilas: normaliza, deduplica, descarta valores rotos y ordena por enlaces', () => {
@@ -172,6 +220,65 @@ test('cifrasDeFilas: normaliza, deduplica, descarta valores rotos y ordena por e
   assert.deepEqual(cifras.map((c) => c.qid), ['Q513', 'Q43512']); // Fuji y Vesubio no llegan a 4000 m; el de más enlaces va primero
   assert.ok(!cifras.some((c) => c.qid === 'Q9'));
   assert.ok(cifras.every((c) => c.valor >= 4000));
+});
+
+test('cifrasDeFilas: edificios con alturas dudosas (> 0,5 %) se descartan salvo los iconos con valor fijo', () => {
+  const fila = (q, valor, sl = 100) => ({ e: { value: `http://www.wikidata.org/entity/${q}` }, valor: { value: String(valor) }, sl: { value: String(sl) } });
+  const cifras = C.cifrasDeFilas([
+    fila('Q9188', 457.2009, 125), fila('Q9188', 453, 125), // Empire State: con antena y en pies, discrepan → valor fijo (techo)
+    fila('Q29294', 442.1, 97), // Sears/Willis
+    fila('Q1', 300, 60), fila('Q1', 259, 60), // dudoso y sin valor fijo → fuera
+    fila('Q2', 421, 50), fila('Q2', 420.5, 50), // 0,1 %: es la misma medida, gana la menor
+  ], 'altura-edificio');
+  const por = Object.fromEntries(cifras.map((c) => [c.qid, c.valor]));
+  assert.equal(por.Q9188, 381);
+  assert.ok(por.Q9188 < por.Q29294); // el Empire State no supera a la Willis
+  assert.equal(por.Q1, undefined);
+  assert.equal(por.Q2, 421);
+});
+
+test('cifrasDeFilas: las ciudades con valor de área metropolitana se excluyen o llevan la cifra del censo del municipio', () => {
+  const fila = (q, valor, sl = 100) => ({ e: { value: `http://www.wikidata.org/entity/${q}` }, valor: { value: String(valor) }, sl: { value: String(sl) } });
+  const cifras = C.cifrasDeFilas([fila('Q3130', 5450496, 266), fila('Q1156', 15414288, 230), fila('Q90', 2103778, 366)], 'poblacion-ciudad');
+  assert.deepEqual(cifras.map((c) => c.qid), ['Q90', 'Q1156']); // Sídney fuera
+  assert.equal(cifras.find((c) => c.qid === 'Q1156').valor, 12442373);
+});
+
+test('esMapaOPlano: un mapa se reconoce por las categorías de Commons aunque el título no lo diga', () => {
+  const pagina = (title, ...categorias) => ({ title: `File:${title}`, categories: categorias.map((t) => ({ title: `Category:${t}` })) });
+  assert.equal(C.esMapaOPlano(pagina('Battle of Thermopylae and movements to Salamis, 480 BC.gif', 'Maps of the Second Greco-Persian War')), true);
+  assert.equal(C.esMapaOPlano(pagina('Battle of Chaeronea, 338 BC.png', 'Battle of Chaeronea', 'Maps of the United States Military Academy')), true);
+  assert.equal(C.esMapaOPlano(pagina('000 Sllovakia harta.PNG', 'Blank maps of Slovakia')), true);
+  assert.equal(C.esMapaOPlano(pagina('Battle of Jena-Auerstedt - Map01.jpg', 'Maps of the Battle of Jena-Auerstedt')), true);
+  assert.equal(C.esMapaOPlano(pagina('Battle of Pharsalus, 48 BC.png', 'Battle plans')), true);
+  assert.equal(C.esMapaOPlano(pagina('Mount Everest.jpg', 'Mount Everest', 'Himalayas')), false);
+  assert.equal(C.esMapaOPlano({ title: 'File:Mount Everest.jpg' }), false);
+  // y no llega a ser la foto de la cifra
+  const paginas = Object.values(fx('commons-p18.json').query.pages);
+  const everest = JSON.parse(JSON.stringify(paginas.find((p) => /Everest/.test(p.title))));
+  assert.ok(C.imagenDeWikidata(everest));
+  everest.categories = [{ title: 'Category:Maps of Nepal' }];
+  assert.equal(C.imagenDeWikidata(everest), null);
+});
+
+test('miniaturaCommons: un original de más de 500 px se sirve en miniatura de 500 px; las miniaturas y lo pequeño, igual', () => {
+  const original = 'https://upload.wikimedia.org/wikipedia/commons/7/72/Foto_grande.PNG';
+  assert.equal(C.miniaturaCommons(original, 700), 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Foto_grande.PNG/500px-Foto_grande.PNG');
+  assert.equal(C.miniaturaCommons(original, 400), original);
+  const thumb = 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Foto.jpg/800px-Foto.jpg';
+  assert.equal(C.miniaturaCommons(thumb, 3000), thumb);
+  assert.equal(C.miniaturaCommons('https://upload.wikimedia.org/wikipedia/commons/7/72/Dibujo.tif', 900), 'https://upload.wikimedia.org/wikipedia/commons/7/72/Dibujo.tif');
+});
+
+test('obras con el mismo nombre llevan el apellido de su autor entre paréntesis', () => {
+  assert.equal(C.apellidoDe('William-Adolphe Bouguereau'), 'Bouguereau');
+  assert.equal(C.apellidoDe('Vincent van Gogh'), 'van Gogh');
+  assert.equal(C.apellidoDe('Rembrandt'), 'Rembrandt');
+  assert.equal(C.apellidoDe(null), '');
+  const repetidos = new Set(['el nacimiento de venus']);
+  assert.equal(C.nombreDeObra({ nombre: 'el nacimiento de Venus', autor: 'William-Adolphe Bouguereau' }, repetidos), 'El nacimiento de Venus (Bouguereau)');
+  assert.equal(C.nombreDeObra({ nombre: 'Las Meninas', autor: 'Diego Velázquez' }, repetidos), 'Las Meninas');
+  assert.equal(C.nombreDeObra({ nombre: 'El nacimiento de Venus', autor: null }, repetidos), 'El nacimiento de Venus');
 });
 
 test('notas curiosas: texto usable, V/F para el verificador y solo pasan las verificadas', async () => {
