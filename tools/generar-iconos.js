@@ -1,4 +1,4 @@
-// Genera los iconos de la app a partir de la esfinge (prototipos/avatares/i-esfinge/neutral.png, 512 px con alfa):
+// Genera los iconos de la app a partir de la esfinge (prototipos/avatares/i-esfinge/esfinge-1024.png: la imagen de Gemini de Carlos a 1024 px con el fondo verde quitado):
 // iconos/esfinx-180.png (apple-touch-icon), esfinx-192.png, esfinx-512.png y esfinx-512-maskable.png.
 // Fondo #0b0f14 con un leve degradado cian; cabeza y nemes centrados dentro de la zona segura del 80 %
 // (círculo central de diámetro 0,80 del lado; el maskable, con más margen, 0,66).
@@ -10,11 +10,11 @@ import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(__dirname, '..');
-const FUENTE = path.join(RAIZ, 'prototipos/avatares/i-esfinge/neutral.png');
+const FUENTE = path.join(RAIZ, 'prototipos/avatares/i-esfinge/esfinge-1024.png');
 
 // Cabeza y nemes dentro de la imagen fuente (la caja que los contiene y el punto donde se desvanece el cuerpo).
-const CAJA = { left: 70, top: 20, width: 370, height: 330 };
-const DESVANECER_DESDE = 285;
+const CAJA = { left: 260, top: 150, width: 540, height: 470 };
+const DESVANECER_DESDE = 390;
 
 const SALIDAS = [
   { nombre: 'esfinx-180.png', lado: 180, zona: 0.8 },
