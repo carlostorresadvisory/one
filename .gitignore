@@ -9,3 +9,5 @@ test-results/
 playwright-report/
 .env
 datos-servidor/
+tmp/
+datos/cupo-ia.json

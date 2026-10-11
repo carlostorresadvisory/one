@@ -10,5 +10,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0"
+  },
+  "dependencies": {
+    "sharp": "^0.35.5"
   }
 }
