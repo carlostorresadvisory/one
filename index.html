@@ -179,6 +179,20 @@
       </div>
     </section>
 
+    <!-- MÁS O MENOS (v0.3 fase 8, spec §5.3): racha y récord, interruptor Comparar | Afinar y el cuerpo de cada
+         variante (dos tarjetas con foto, o las fotos a escala y la barra). Lo monta masomenos-ui.js. -->
+    <section class="vista vista-masomenos" data-vista="masomenos" data-test="masomenos" hidden>
+      <div class="mm-marcador">
+        <span class="mm-racha llama" data-test="mm-racha" hidden></span>
+        <span class="mm-record" data-test="mm-record">Récord 0</span>
+        <div class="mm-interruptor" role="group" aria-label="Variante">
+          <button type="button" class="mm-var" data-test="mm-var-comparar" aria-pressed="true">Comparar</button>
+          <button type="button" class="mm-var" data-test="mm-var-afinar" aria-pressed="false">Afinar</button>
+        </div>
+      </div>
+      <div class="mm-cuerpo" data-test="mm-cuerpo"></div>
+    </section>
+
     <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->

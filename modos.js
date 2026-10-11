@@ -44,7 +44,7 @@ export const MODOS = Object.freeze([
     }),
   }),
   Object.freeze({
-    id: 'masomenos', nombre: 'Más o menos', icono: '⚖️', disponible: false, nivelFiltro: 'area',
+    id: 'masomenos', nombre: 'Más o menos', icono: '⚖️', disponible: true, nivelFiltro: 'area',
     imagen: Object.freeze({
       url: 'imagenes-hub/masomenos.webp',
       pagina: 'https://commons.wikimedia.org/wiki/File:Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg',
@@ -77,10 +77,11 @@ export function modoPorId(id) {
 }
 
 /** Marcador vivo de la tarjeta del hub (spec §3). `datos` lo calcula app.js#renderHub. */
-export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0, fondo = 1000, marca = '' } = {}) {
+export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0, fondo = 1000, marca = '', recordMasomenos = '' } = {}) {
   if (id === 'clasico') return `Hoy ${aciertosHoy}/${respondidasHoy}`;
   if (id === 'repaso') return porRepasar > 0 ? `${porRepasar} por repasar` : 'Al día';
   if (id === 'ordago') return formatearCifra(fondo);
   if (id === 'contrarreloj') return marca || 'Sin marca';
+  if (id === 'masomenos') return recordMasomenos || 'Sin récord';
   return 'Pronto';
 }

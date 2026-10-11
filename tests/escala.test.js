@@ -204,3 +204,15 @@ test('línea temporal: los años anteriores a Cristo se escriben «a. C.» y nad
   linea.revelar(NaN);
   assert.ok(contenedor.children[0].children.length > 0);
 });
+
+test('escena: con `formato`, las etiquetas llevan la cifra (la misteriosa «?» hasta revelar)', () => {
+  const contenedor = new ElementoFalso('div');
+  const escena = E.montarEscenaFotos(contenedor, {
+    ref: cifra('Burj Khalifa', 828), misteriosa: cifra('Everest', 8848), modo: 'alto', maxPx: 200, formato: (v) => `${v} m`, documento: documentoFalso(),
+  });
+  const textos = () => contenedor.children[0].buscarPorClase('escala-etiquetas').children.map((e) => e.textContent);
+  assert.match(textos()[0], /Burj Khalifa · 828 m/);
+  assert.match(textos()[1], /Everest · \?/);
+  escena.revelar(8848, { duracionMs: 0 });
+  assert.match(textos()[1], /Everest · 8848 m/);
+});

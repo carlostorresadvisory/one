@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil, NIVEL_MINIMO_DIFICIL } from '../modos.js';
 
-test('MODOS: los cinco modos en el orden de la rejilla; Clásico, Repaso, Órdago y Contrarreloj disponibles', () => {
+test('MODOS: los cinco modos en el orden de la rejilla, todos disponibles', () => {
   assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
-  assert.deepEqual(MODOS.filter((m) => m.disponible).map((m) => m.id), ['clasico', 'repaso', 'ordago', 'contrarreloj']);
+  assert.deepEqual(MODOS.filter((m) => m.disponible).map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
 });
 
 test('Más o menos filtra solo hasta el área; el resto, árbol completo', () => {
@@ -34,16 +34,17 @@ test('marcadorModo: Hoy a/r, por repasar / Al día, Pronto', () => {
   assert.equal(marcadorModo('clasico', datos), 'Hoy 4/10');
   assert.equal(marcadorModo('repaso', datos), '15 por repasar');
   assert.equal(marcadorModo('repaso', { ...datos, porRepasar: 0 }), 'Al día');
-  assert.equal(marcadorModo('masomenos', datos), 'Pronto');
+  assert.equal(marcadorModo('masomenos', datos), 'Sin récord');
   assert.equal(marcadorModo('ordago', { fondo: 1250 }), '1.250');
   assert.equal(marcadorModo('ordago', {}), '1.000');
 });
 
-test('Contrarreloj enseña su marca o «Sin marca»; Más o menos sigue en «Pronto»', () => {
+test('Contrarreloj enseña su marca o «Sin marca»; Más o menos su récord de racha o «Sin récord»', () => {
   assert.equal(marcadorModo('contrarreloj', {}), 'Sin marca');
   assert.equal(marcadorModo('contrarreloj', { marca: '7/10' }), '7/10');
   assert.equal(marcadorModo('contrarreloj', { marca: 'Doble ×2' }), 'Doble ×2');
-  assert.equal(marcadorModo('masomenos', {}), 'Pronto');
+  assert.equal(marcadorModo('masomenos', {}), 'Sin récord');
+  assert.equal(marcadorModo('masomenos', { recordMasomenos: 'Récord 12' }), 'Récord 12');
 });
 
 test('suelo de nivel 3: solo V/F y test4 de nivel 3-5 valen para Órdago y Contrarreloj', () => {

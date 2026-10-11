@@ -6285,7 +6285,7 @@ test.describe('ONE · v0.3 hoja del filtro', () => {
 
 test.describe('ONE · v0.3 HUB de modos', () => {
   for (const viewport of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
-    test(`HUB ${viewport.width}×${viewport.height}: 6 tarjetas, «Pronto» sin responder, nada del hub viejo, sin scroll y letra fija`, async ({ page }) => {
+    test(`HUB ${viewport.width}×${viewport.height}: 6 tarjetas, nada del hub viejo, sin scroll y letra fija`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // imagen rota: la tarjeta se ve igual
       await page.goto('/?ejemplo=1');
@@ -6298,7 +6298,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="marcador-clasico"]')).toHaveText('Hoy 0/0');
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
       await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
-      await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Pronto');
+      await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Sin récord');
       await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('Sin marca');
       await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
       await expect(page.locator('[data-test="tarjeta-tienda"] canvas.avatar-lienzo, [data-test="tarjeta-tienda"] img.avatar-fijo')).toHaveCount(1);
@@ -6314,25 +6314,19 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     });
   }
 
-  test('Repaso sin falladas avisa «Nada por repasar» sin navegar; una tarjeta «Pronto» no responde', async ({ page }) => {
+  test('Repaso sin falladas avisa «Nada por repasar» sin navegar', async ({ page }) => {
     await page.goto('/?ejemplo=1');
-    await page.locator('[data-test="modo-masomenos"]').click({ force: true });
-    await expect(page.locator('[data-test="aviso-hub"]')).toBeHidden();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await entrarEnModo(page, 'repaso');
     await expect(page.locator('[data-test="aviso-hub"]')).toHaveText('Nada por repasar');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await assertSinScroll(page);
   });
 
-  test('v0.3 fase 3: tocar una tarjeta lleva a su modo; las «Pronto» no responden; sin Comenzar', async ({ page }) => {
+  test('v0.3 fase 3: tocar una tarjeta lleva a su modo; ninguna es «Pronto»; sin Comenzar', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-test="comenzar"]')).toHaveCount(0);
-    const pronto = page.locator('[data-test="modo-masomenos"]');
-    await expect(pronto).toHaveAttribute('aria-disabled', 'true');
-    await expect(pronto).toContainText('Pronto');
-    await pronto.click({ force: true });
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="hub-modos"] [aria-disabled="true"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="hub-modos"]')).not.toContainText('Pronto');
     await page.locator('[data-test="modo-clasico"]').dblclick();
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     for (const vp of [{ width: 375, height: 812 }, { width: 375, height: 667 }]) {
@@ -7468,5 +7462,363 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await esperarAntirrebote(page);
     await page.locator('[data-test="cofre-plantarse"]').click();
     await expect(page.locator('[data-test="aviso-generadas"]')).toBeVisible();
+  });
+});
+
+test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+    }
+  };
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+  const pareja = (page) => page.evaluate(() => window.__one.parejaMasomenos());
+  /** Entra en Más o menos con el filtro de área indicado (o sin filtro). */
+  async function entrar(page, area = null) {
+    if (area) {
+      await page.addInitScript((a) => {
+        localStorage.setItem('one.filtros', JSON.stringify({ masomenos: { area: a, ruta: [], etiquetas: [] } }));
+      }, area);
+    }
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-vista="masomenos"]')).toBeVisible();
+    await expect(page.locator('[data-test="mm-cuerpo"] > *').first()).toBeVisible();
+    await esperarAntirrebote(page); // los toques de los primeros 350 ms no cuentan
+  }
+  /** Responde Comparar pulsando el botón correcto (o el contrario) según la pareja real. */
+  async function responder(page, correcta = true) {
+    await esperarAntirrebote(page);
+    const p = await pareja(page);
+    const sube = p.abajo.valor > p.arriba.valor;
+    await page.locator(`[data-test="mm-${correcta === sube ? 'mas' : 'menos'}"]`).click();
+    return p;
+  }
+  const siguiente = async (page) => {
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="mm-siguiente"]').click();
+  };
+
+  test('Comparar: dos tarjetas, un solo avatar, acierto sube la de abajo, sin scroll a 375×812 y 375×667 y sin tocar el radar', async ({ page }) => {
+    await entrar(page);
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+    await expect(page.locator('[data-test="mm-var-comparar"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.mm-tarjeta')).toHaveCount(2);
+    await expect(page.locator('[data-test="mm-valor-abajo"]')).toHaveText('?');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
+    await sinScrollEnAmbos(page);
+    const antes = await pareja(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('¡Correcto!');
+    await expect(page.locator('[data-test="mm-diferencia"]')).toContainText(antes.abajo.nombre);
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 1');
+    await expect(page.locator('[data-test="mm-racha"]')).toBeHidden(); // la llama sale desde racha 3
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('acierto');
+    await sinScrollEnAmbos(page);
+    await siguiente(page);
+    const despues = await pareja(page);
+    expect(despues.arriba.id).toBe(antes.abajo.id); // la de abajo sube
+    await expect(page.locator('[data-test="mm-valor-abajo"]')).toHaveText('?');
+    // Las cifras no son preguntas del banco: ni radar ni respondidas de hoy.
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado'))?.hoy?.respondidas ?? 0)).toBe(0);
+  });
+
+  test('Comparar: fallar pone la racha a 0, enseña la diferencia y sigue con una pareja nueva', async ({ page }) => {
+    await entrar(page);
+    await responder(page, true);
+    await siguiente(page);
+    await responder(page, true);
+    await siguiente(page);
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 2');
+    const p = await responder(page, false);
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('Fallaste');
+    await expect(page.locator('[data-test="mm-diferencia"]')).toContainText(/más|menos|antes|después/);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('triste');
+    const guardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')));
+    expect(guardado.comparar).toEqual({ racha: 0, record: 2 });
+    await sinScrollEnAmbos(page);
+    await siguiente(page);
+    expect((await pareja(page)).arriba.id).not.toBe(p.abajo.id);
+  });
+
+  test('Comparar: ninguna pareja mostrada supera ×4 (fechas: 300 años) en 30 parejas', async ({ page }) => {
+    await entrar(page);
+    for (let i = 0; i < 30; i += 1) {
+      const p = await pareja(page);
+      expect(p.arriba.categoria).toBe(p.abajo.categoria);
+      expect(p.arriba.valor).not.toBe(p.abajo.valor);
+      if (p.abajo.unidad === 'año') {
+        expect(Math.abs(p.arriba.valor - p.abajo.valor)).toBeLessThanOrEqual(300);
+      } else {
+        const mayor = Math.max(p.arriba.valor, p.abajo.valor);
+        const menor = Math.min(p.arriba.valor, p.abajo.valor);
+        expect(mayor / menor).toBeLessThanOrEqual(4);
+        expect((mayor - menor) / mayor).toBeGreaterThanOrEqual(0.05);
+      }
+      expect(await page.evaluate(() => window.__one.responderMasomenos(true))).toBe(true);
+      await siguiente(page);
+    }
+  });
+
+  test('Comparar con fechas: botones «Después» / «Antes», sin scroll y las dos tarjetas con el color del área si no hay foto', async ({ page }) => {
+    await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // todas las fotos rotas: color del área, sin hueco
+    await entrar(page, 'historia');
+    await expect(page.locator('[data-test="mm-mas"]')).toHaveText('Después');
+    await expect(page.locator('[data-test="mm-menos"]')).toHaveText('Antes');
+    await expect(page.locator('.mm-tarjeta[data-area="historia"]')).toHaveCount(2);
+    await expect(page.locator('.mm-tarjeta-img')).toHaveCount(0); // el error de carga quita la foto
+    await sinScrollEnAmbos(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-diferencia"]')).toContainText(/años? (antes|después)/);
+    await sinScrollEnAmbos(page);
+  });
+
+  test('Comparar con tamaños: al responder, las dos fotos pasan a su tamaño real sobre la misma línea de suelo', async ({ page }) => {
+    await entrar(page, 'economia');
+    await responder(page, true);
+    await expect(page.locator('[data-test="escala"]')).toBeVisible();
+    await expect(page.locator('[data-test="escala-misteriosa"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    await page.waitForTimeout(900); // la transición de la revelación
+    const medidas = await page.evaluate(() => {
+      const a = document.querySelector('[data-test="escala-ref"]').getBoundingClientRect();
+      const b = document.querySelector('[data-test="escala-misteriosa"]').getBoundingClientRect();
+      return { sueloA: Math.round(a.bottom), sueloB: Math.round(b.bottom), ladoA: a.width, ladoB: b.width, altoA: a.height, altoB: b.height };
+    });
+    expect(Math.abs(medidas.sueloA - medidas.sueloB)).toBeLessThanOrEqual(1); // misma línea de suelo
+    const p = await pareja(page);
+    const razon = Math.max(p.arriba.valor, p.abajo.valor) / Math.min(p.arriba.valor, p.abajo.valor);
+    const lados = Math.max(medidas.ladoA, medidas.ladoB) / Math.min(medidas.ladoA, medidas.ladoB);
+    expect(lados).toBeGreaterThan(Math.sqrt(razon) * 0.85); // lado ∝ √cifra (el área es la cifra)
+    expect(lados).toBeLessThan(Math.sqrt(razon) * 1.15);
+  });
+
+  test('Afinar con tamaños: la foto de la misteriosa crece con la barra, «Listo» califica y revela a escala (sin scroll en ambos tamaños)', async ({ page }) => {
+    await entrar(page, 'economia');
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await esperarAntirrebote(page);
+    await expect(page.locator('[data-test="mm-var-afinar"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-test="mm-enunciado"]')).toContainText('PIB');
+    await expect(page.locator('[data-test="mm-referencia"]')).toContainText('US$');
+    await expect(page.locator('[data-test="escala"]')).toBeVisible();
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1);
+    await sinScrollEnAmbos(page);
+    const lado = () => page.locator('[data-test="escala-misteriosa"]').evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; });
+    const inicial = await lado();
+    const textoInicial = await page.locator('[data-test="mm-estimacion"]').textContent();
+    await page.locator('[data-test="mm-barra"]').fill('1500');
+    await page.waitForTimeout(900); // la transición de tamaño
+    await expect(page.locator('[data-test="mm-estimacion"]')).not.toHaveText(textoInicial);
+    expect(await lado()).not.toBe(inicial); // la foto cambia de tamaño en tiempo real
+    await expect(page.locator('[data-test="escala-misteriosa"]')).toHaveClass(/escala-caja--estimacion/); // contorno de «tu estimación»
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText(/¡Clavado!|Muy cerca|Cerca|Lejos/);
+    await expect(page.locator('[data-test="escala-fantasma"]')).toBeVisible();
+    await expect(page.locator('[data-test="mm-diferencia"]')).toContainText('US$');
+    await sinScrollEnAmbos(page);
+    const guardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')));
+    expect(guardado.variante).toBe('afinar');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado'))?.hoy?.respondidas ?? 0)).toBe(0); // no toca el radar
+  });
+
+  test('Afinar: clavar la cifra da «¡Clavado!», confeti y la esfinge eufórica; lejos corta la racha', async ({ page }) => {
+    await entrar(page, 'geografia');
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await expect(page.locator('[data-test="mm-barra"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    const estimado = await page.evaluate(() => window.__one.estimarMasomenos({ factor: 1 }));
+    expect(estimado).toBeGreaterThan(0);
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('¡Clavado!');
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('euforia');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).afinar)).toEqual({ racha: 1, record: 1 });
+    await siguiente(page);
+    await esperarAntirrebote(page);
+    await page.evaluate(() => window.__one.estimarMasomenos({ factor: 4 })); // 300 % de error: lejos
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('Lejos');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).afinar)).toEqual({ racha: 0, record: 1 });
+  });
+
+  test('Afinar con fechas: la foto del evento con la pregunta encima y la línea temporal en su banda (sin scroll en ambos tamaños)', async ({ page }) => {
+    await entrar(page, 'historia');
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await expect(page.locator('[data-test="foto-pregunta"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toContainText('¿En qué año ocurrió');
+    await expect(page.locator('[data-test="escala-linea"]')).toBeVisible();
+    await expect(page.locator('[data-test="escala-marca-ref"]')).toBeAttached();
+    await sinScrollEnAmbos(page);
+    const ancho = async () => page.locator('[data-test="escala-linea"] .escala-tic').count();
+    const antes = await ancho();
+    await page.evaluate(() => window.__one.estimarMasomenos({ anos: 3 })); // cerca: décadas
+    await expect(page.locator('[data-test="escala-marca-estimacion"]')).toBeAttached();
+    expect(await ancho()).not.toBe(antes); // la línea hizo zoom
+    await sinScrollEnAmbos(page);
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('¡Clavado!');
+    await expect(page.locator('[data-test="escala-marca-real"]')).toBeAttached();
+    await sinScrollEnAmbos(page);
+    // La línea va en su banda oscura: un fondo casi opaco para que se lea sobre la foto.
+    const fondo = await page.locator('[data-test="escala-linea"]').evaluate((n) => getComputedStyle(n).backgroundColor);
+    expect(fondo).toMatch(/rgba\(11, 15, 20, 0\.8/);
+  });
+
+  test('letra sin encoger: cifra, nombre, botones y enunciado miden lo mismo en 375×812 y 375×667', async ({ page }) => {
+    await entrar(page);
+    const medir = () => page.evaluate(() => {
+      const f = (s) => getComputedStyle(document.querySelector(s)).fontSize;
+      return { valor: f('[data-test="mm-valor-arriba"]'), nombre: f('.mm-tarjeta-nombre'), boton: f('[data-test="mm-mas"]'), pregunta: f('.mm-pregunta') };
+    });
+    const grande = await medir();
+    await page.setViewportSize({ width: 375, height: 667 });
+    expect(await medir()).toEqual(grande);
+    expect(grande).toEqual({ valor: '28px', nombre: '16px', boton: '20px', pregunta: '14px' });
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    const afinar = await page.evaluate(() => {
+      const f = (s) => getComputedStyle(document.querySelector(s)).fontSize;
+      return { lectura: f('[data-test="mm-estimacion"]'), etiqueta: f('.escala-etiqueta') };
+    });
+    expect(afinar.lectura).toBe('20px');
+    expect(Number.parseFloat(afinar.etiqueta)).toBeGreaterThanOrEqual(11); // texto funcional ≥ 11 px
+  });
+
+  test('premio: al llegar a 10 de racha cae 1 objeto en la mochila (y a la 11 no)', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 9, record: 9 }, afinar: { racha: 0, record: 0 } }));
+    });
+    await entrar(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-premio"]')).toContainText('Premio:');
+    const objetos = () => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('one.mochila')).objetos).reduce((a, b) => a + b, 0));
+    expect(await objetos()).toBe(1);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('euforia');
+    await siguiente(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-premio"]')).toHaveCount(0);
+    expect(await objetos()).toBe(1);
+    await expect(page.locator('[data-test="mm-racha"]')).toBeVisible(); // llama desde racha 3
+  });
+
+  test('un doble toque en «Más» responde una sola vez', async ({ page }) => {
+    await entrar(page);
+    await page.locator('[data-test="mm-mas"]').dblclick();
+    const guardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).comparar);
+    expect(guardado.racha).toBeLessThanOrEqual(1); // una sola respuesta: racha 1 como mucho
+    expect(guardado.record).toBeLessThanOrEqual(1);
+    await expect(page.locator('[data-test="mm-resultado"]')).toHaveCount(1);
+  });
+
+  test('la variante se recuerda al salir y volver a entrar; «←» destruye la pantalla y la esfinge', async ({ page }) => {
+    await entrar(page);
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="mm-cuerpo"] > *')).toHaveCount(0); // sin nodos ni oyentes vivos
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-test="mm-var-afinar"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-test="mm-barra"]')).toBeVisible();
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1);
+  });
+
+  test('sin parejas comparables bajo el filtro: aviso y «Volver a TODOS»', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ masomenos: { area: 'ciencia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
+    await expect(page.locator('[data-test="filtro-corto-texto"]')).toContainText('No hay cifras comparables de Ciencia');
+    await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeHidden(); // «Generar» cifras es la fase 10
+    await page.locator('[data-test="filtro-corto-todos"]').click();
+    await expect(page.locator('[data-vista="masomenos"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
+  });
+
+  test('el chip del filtro solo ofrece áreas y la elegida se aplica (solo cifras de ese área)', async ({ page }) => {
+    await entrar(page);
+    await abrirHojaFiltro(page);
+    await page.locator('[data-test="filtro-area-geografia"]').click();
+    await expect(page.locator('[data-test="atomo"]')).toBeHidden(); // nivel área: no hay árbol de átomos
+    await expect(page.locator('[data-vista="masomenos"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Geografía');
+    for (let i = 0; i < 5; i += 1) {
+      const p = await pareja(page);
+      expect(['altitud-montana', 'longitud-rio', 'poblacion-pais', 'poblacion-ciudad', 'superficie-pais']).toContain(p.abajo.categoria);
+      await page.evaluate(() => window.__one.responderMasomenos(true));
+      await siguiente(page);
+    }
+  });
+
+  test('con el almacenamiento bloqueado la racha y el récord viven en memoria y nada lanza', async ({ page }) => {
+    await page.addInitScript(() => {
+      const setItem = Storage.prototype.setItem;
+      const getItem = Storage.prototype.getItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (k === 'one.masomenos') throw new Error('SecurityError');
+        return setItem.call(this, k, v);
+      };
+      Storage.prototype.getItem = function (k) {
+        if (k === 'one.masomenos') throw new Error('SecurityError');
+        return getItem.call(this, k);
+      };
+    });
+    const errores = [];
+    page.on('pageerror', (e) => errores.push(e.message));
+    await entrar(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 1');
+    await siguiente(page);
+    await responder(page, true);
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 2');
+    await page.waitForTimeout(450);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Récord 2');
+    expect(errores).toEqual([]);
+  });
+
+  test('«Preguntas generadas» no se enseña durante Más o menos y sale al volver al hub', async ({ page }) => {
+    await entrar(page);
+    await page.evaluate(() => window.__one.simularTandaLista({ ids: ['zz-1'], corto: 'Historia' }));
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
+    await responder(page, true);
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="aviso-generadas"]')).toBeVisible();
+  });
+
+  for (const viewport of VIEWPORTS) {
+    test(`hub ${viewport.width}×${viewport.height}: la tarjeta de Más o menos ya no es «Pronto», enseña «Sin récord» y luego el récord (sin scroll)`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      const tarjeta = page.locator('[data-test="modo-masomenos"]');
+      await expect(tarjeta).not.toHaveAttribute('aria-disabled', 'true');
+      await expect(tarjeta).not.toContainText('Pronto');
+      await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Sin récord');
+      await assertSinScroll(page);
+      await entrarEnModo(page, 'masomenos');
+      await expect(page.locator('[data-vista="masomenos"]')).toBeVisible();
+      await responder(page, true);
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Récord 1');
+      await assertSinScroll(page);
+    });
+  }
+
+  test('el respaldo exportado lleva one.masomenos', async ({ page }) => {
+    await entrar(page);
+    await responder(page, true);
+    const respaldo = await page.evaluate(async () => {
+      const { exportarRespaldo } = await import('./respaldo.js');
+      const { cargarEstado } = await import('./motor.js').catch(() => ({}));
+      return exportarRespaldo(cargarEstado ? cargarEstado() : { version: 2 }, localStorage);
+    }).catch(() => null);
+    if (respaldo) expect(JSON.parse(respaldo).modos['one.masomenos']).toBeTruthy();
+    else expect(await page.evaluate(() => localStorage.getItem('one.masomenos'))).toBeTruthy();
   });
 });

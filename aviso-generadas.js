@@ -5,9 +5,9 @@ export const CLAVE_AVISO = 'one.avisoGeneradas';
 export const MS_AVISO = 20000;
 
 // Vistas donde pulsar el aviso abandonaría lo que se está haciendo: la partida (`pregunta`, `repaso`,
-// `ordago`, `contrarreloj`, `caida` y `cofre`, este con el premio sin recoger) y la espera del Átomo,
+// `ordago`, `contrarreloj`, `caida`, `cofre` y `masomenos`, este con el premio sin recoger) y la espera del Átomo,
 // que ya trae su propio botón «Jugar la tanda».
-const VISTAS_SIN_AVISO = ['pregunta', 'repaso', 'ordago', 'contrarreloj', 'caida', 'cofre', 'atomo-espera'];
+const VISTAS_SIN_AVISO = ['pregunta', 'repaso', 'ordago', 'contrarreloj', 'caida', 'cofre', 'masomenos', 'atomo-espera'];
 
 function normalizar(valor) {
   if (!valor || !Array.isArray(valor.ids) || valor.ids.length === 0 || typeof valor.corto !== 'string') return null;

@@ -20,8 +20,9 @@ const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
   'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
   'ordago.js', 'ordago-ui.js', 'foto-pregunta.js', 'contrarreloj.js', 'contrarreloj-ui.js',
+  'masomenos.js', 'masomenos-ui.js', 'escala.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',
-  'estilos.css', 'datos/banco.json',
+  'estilos.css', 'datos/banco.json', 'datos/cifras.json',
 ];
 
 const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
@@ -41,8 +42,9 @@ const AVATAR_GESTOS = [
 // Imágenes del banco (imagenes-ia/, imagenes-banco/, imagenes-hub/): NO se precachean; el `fetch` de
 // abajo las guarda al verlas (cualquier GET del mismo origen) y esto acota cuántos BYTES se conservan
 // (no cuántas son): al pasarse de MAX_BYTES_IMAGENES se borran las más antiguas. Tope medido el
-// 11-oct-2026: núcleo + secundarios + avatar con sus 6 gestos = 4,72 MB y la app se compromete a no
-// pasar de 5 MB en total, así que a las imágenes les quedan 256 KB (tests/sw.test.js lo vigila).
+// 11-oct-2026: núcleo (con datos/cifras.json y los módulos de Más o menos) + secundarios + avatar con sus 6 gestos =
+// 4,09 MB tras recomprimir `triste` y `euforia` (crf 27, −1,1 MB, PSNR > 40 dB) y la app se compromete a no pasar
+// de 5 MB en total, así que a las imágenes les quedan 256 KB (tests/sw.test.js lo vigila).
 const CARPETAS_IMAGENES = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
 const MAX_BYTES_IMAGENES = 256 * 1024;
 

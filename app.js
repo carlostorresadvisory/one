@@ -49,6 +49,8 @@ import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
 import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
 import { montarContrarreloj } from './contrarreloj-ui.js';
+import { elegirPareja, CATEGORIAS as CATEGORIAS_CIFRAS, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
+import { montarMasomenos } from './masomenos-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -265,7 +267,7 @@ const nodoFiltroCortoPista = document.querySelector('[data-test="filtro-corto-pi
 // guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
 let modoActual = 'clasico';
 // El feed de lectura (vista `repaso`) NO es un modo: es la continuación del resumen, sin chip.
-const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra', 'contrarreloj', 'caida', 'cofre'];
+const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra', 'contrarreloj', 'caida', 'cofre', 'masomenos'];
 // `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
 const nodoContenidoApp = document.querySelector('main#app');
@@ -542,6 +544,7 @@ function limpiarPartidaEnCurso() {
   cerrarHojaFiltro();
   destruirOrdago();
   destruirContrarreloj();
+  destruirMasomenos();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -1176,6 +1179,11 @@ function prepararModo(id) {
     const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableDificil).length;
     return { filtro, partida: null, n };
   }
+  if (id === 'masomenos') {
+    // Las cifras no son preguntas del banco: el aviso de «menos de 5» no aplica. Si el filtro se queda sin parejas
+    // comparables lo dice `empezarMasomenos` (necesita las cifras cargadas, que es asíncrono).
+    return { filtro, partida: null, n: Infinity };
+  }
   if (id === 'contrarreloj') {
     // Solo V/F y test4 cortos de nivel 3-5 (spec §4 y §8): el aviso de «menos de 10» cuenta solo esas.
     const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableContrarrelojReal).length;
@@ -1221,6 +1229,10 @@ function arrancarModoSinComprobar(id, preparado = prepararModo(id)) {
   }
   if (id === 'contrarreloj') {
     empezarContrarreloj();
+    return;
+  }
+  if (id === 'masomenos') {
+    empezarMasomenos();
     return;
   }
   empezarPartida(preparado.partida, 'clasico');
@@ -1304,7 +1316,7 @@ function elegirPreguntaDeContrarreloj({ usados, ultima, enSerie }) {
 }
 
 /** Los objetos del cofre pasan a la mochila solo al plantarse o recoger (la serie no se guarda). */
-function darObjetosContrarreloj(ids) {
+function darObjetosAMochila(ids) {
   let mochila = cargarMochila();
   for (const id of ids) mochila = anadirObjeto(mochila, id);
   guardarMochila(mochila);
@@ -1324,7 +1336,7 @@ function empezarContrarreloj() {
     celebrarPremio,
     reproducir: (nombre) => sonido.reproducir(nombre),
     imagenDe,
-    darObjetos: darObjetosContrarreloj,
+    darObjetos: darObjetosAMochila,
     vigia: vigiaPensando,
     alSalir: () => {
       // El segundo toque de un doble toque en «Plantarse»/«Recoger» cae sobre una tarjeta del hub.
@@ -1335,6 +1347,68 @@ function empezarContrarreloj() {
     alSinPreguntas: () => {
       irAlHub();
       mostrarAvisoHub('Aún no hay preguntas cortas y difíciles');
+    },
+  });
+}
+
+// --- MÁS O MENOS (v0.3 fase 8): la pantalla vive en masomenos-ui.js; aquí solo se le inyecta lo de app.js ---
+let masomenosInstancia = null;
+let cifrasPromesa = null;
+let arranqueMasomenos = 0; // un doble toque en la tarjeta no monta dos pantallas
+
+function destruirMasomenos() {
+  arranqueMasomenos += 1; // cancela un arranque que aún esperaba las cifras
+  if (!masomenosInstancia) return;
+  masomenosInstancia.destruir();
+  masomenosInstancia = null;
+}
+
+/** Banco de cifras (datos/cifras.json), cargado una vez. El service worker lo guarda al verlo (no va en el precaché:
+ * ver sw.js); sin red y sin copia, null y el modo avisa. Solo pasan las cifras con forma válida. */
+function cargarCifras() {
+  cifrasPromesa ??= fetch('datos/cifras.json')
+    .then((respuesta) => (respuesta.ok ? respuesta.json() : null))
+    .then((lista) => (Array.isArray(lista)
+      ? lista.filter((c) => c && typeof c.id === 'string' && typeof c.nombre === 'string' && Number.isFinite(c.valor) && CATEGORIAS_CIFRAS[c.categoria])
+      : null))
+    .catch(() => null)
+    .then((lista) => {
+      if (!lista || lista.length === 0) cifrasPromesa = null; // reintentable al volver a entrar
+      return lista && lista.length > 0 ? lista : null;
+    });
+  return cifrasPromesa;
+}
+
+async function empezarMasomenos() {
+  destruirMasomenos();
+  const mio = arranqueMasomenos;
+  modoActual = 'masomenos';
+  const cifras = await cargarCifras();
+  if (mio !== arranqueMasomenos) return; // el jugador salió o volvió a tocar mientras se cargaba
+  if (!cifras) {
+    irAlHub();
+    mostrarAvisoHub('No se pudieron cargar las cifras');
+    return;
+  }
+  const filtro = filtroDeModo('masomenos');
+  // Sin ninguna pareja comparable bajo el filtro: aviso + volver a TODOS (spec §11).
+  if (!elegirPareja(cifras, { area: filtro.area ?? null }) && !elegirPareja(cifras, { area: filtro.area ?? null, variante: 'afinar' })) {
+    mostrarFiltroCorto('masomenos', filtro, { texto: `No hay cifras comparables de ${etiquetaFiltro(filtro, nombreArea)}`, generar: false, jugar: null });
+    return;
+  }
+  masomenosInstancia = montarMasomenos(document.querySelector('[data-vista="masomenos"]'), {
+    cifras,
+    area: filtro.area ?? null,
+    mostrarVista,
+    celebrarAcierto,
+    lamentarFallo,
+    celebrarPremio,
+    pedirGesto,
+    darObjetos: darObjetosAMochila,
+    vigia: vigiaPensando,
+    alSinParejas: () => {
+      irAlHub();
+      mostrarAvisoHub('No hay más cifras comparables');
     },
   });
 }
@@ -1963,6 +2037,16 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     },
     fallarContrarreloj() {
       return Boolean(contrarrelojInstancia) && contrarrelojInstancia.responderParaTest(false);
+    },
+    // v0.3 fase 8: ganchos de Más o menos para los e2e (la pareja en juego y responderla a propósito).
+    parejaMasomenos() {
+      return masomenosInstancia ? masomenosInstancia.parejaActual() : null;
+    },
+    responderMasomenos(correcta) {
+      return Boolean(masomenosInstancia) && masomenosInstancia.responderParaTest(correcta);
+    },
+    estimarMasomenos(desviacion) {
+      return masomenosInstancia ? masomenosInstancia.estimarParaTest(desviacion) : null;
     },
     // v0.3: abre el átomo de un área desde el HUB, sin partida debajo (sustituye al "+" retirado de
     // las tarjetas de área). El filtro que se elija es el de Clásico.
@@ -4442,6 +4526,7 @@ function renderHub() {
     ordago,
     fondo: ordago.fondo,
     marca: marcaTextoContrarreloj(cargarRecordsContrarreloj()),
+    recordMasomenos: recordTextoMasomenos(cargarMasomenos()),
   });
   pintarSilencio();
 }

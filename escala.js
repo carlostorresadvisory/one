@@ -115,7 +115,7 @@ function ponerTamano(caja, px, modo, anchoCaja) {
  * estimación»); `revelar` pasa las dos a su tamaño relativo verdadero y deja el contorno donde estaba la estimación.
  * 🔶 Provisional (la spec no fija el ancho): en `'alto'` cada caja tiene un ancho fijo (la mitad menos el hueco).
  */
-export function montarEscenaFotos(contenedor, { ref, misteriosa, modo = 'alto', colorArea = null, maxPx = 160, documento = contenedor.ownerDocument ?? globalThis.document }) {
+export function montarEscenaFotos(contenedor, { ref, misteriosa, modo = 'alto', colorArea = null, maxPx = 160, formato = null, documento = contenedor.ownerDocument ?? globalThis.document }) {
   const raiz = crear(documento, 'div', 'escala escala--vivo');
   raiz.setAttribute('data-test', 'escala');
   raiz.setAttribute('data-modo', modo);
@@ -144,7 +144,12 @@ export function montarEscenaFotos(contenedor, { ref, misteriosa, modo = 'alto', 
   let ultimaEstimacion = ref.valor; // la barra empieza a la par de la referencia (y la cifra misteriosa no se toca hasta revelar)
   let fantasma = null;
 
-  const etiquetaDe = (cifra, t) => (t.diminuta ? `${cifra.nombre} · real: ${miles(t.veces)} veces más pequeña` : cifra.nombre);
+  // `formato(valor)` (opcional) escribe la cifra en la etiqueta; la de la misteriosa es «?» hasta revelar.
+  let valorRevelado = null;
+  const etiquetaDe = (cifra, t, valor) => {
+    const cifraTexto = formato && valor !== null ? ` · ${valor === undefined ? '?' : formato(valor)}` : '';
+    return `${cifra.nombre}${cifraTexto}${t.diminuta ? ` · real: ${miles(t.veces)} veces más pequeña` : ''}`;
+  };
 
   function pintar(valorMis) {
     const t = tamanosFotos({ ref: ref.valor, valor: valorMis, modo, maxPx });
@@ -152,8 +157,8 @@ export function montarEscenaFotos(contenedor, { ref, misteriosa, modo = 'alto', 
     ponerTamano(cajaMis, t.valor.px, modo, anchoCaja);
     cajaRef.classList.toggle('escala-caja--diminuta', t.ref.diminuta);
     cajaMis.classList.toggle('escala-caja--diminuta', t.valor.diminuta);
-    etiquetaRef.textContent = etiquetaDe(ref, t.ref);
-    etiquetaMis.textContent = etiquetaDe(misteriosa, t.valor);
+    etiquetaRef.textContent = etiquetaDe(ref, t.ref, ref.valor);
+    etiquetaMis.textContent = etiquetaDe(misteriosa, t.valor, valorRevelado ?? undefined);
     return t;
   }
 
@@ -170,6 +175,7 @@ export function montarEscenaFotos(contenedor, { ref, misteriosa, modo = 'alto', 
     revelar(valorReal, { duracionMs = 700 } = {}) {
       if (revelada) return;
       revelada = true;
+      valorRevelado = valorReal;
       raiz.classList.remove('escala--vivo');
       cajaRef.style.transitionDuration = `${duracionMs}ms`;
       cajaMis.style.transitionDuration = `${duracionMs}ms`;

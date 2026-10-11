@@ -2994,3 +2994,124 @@ button.punto-servidor::before {
 @media (prefers-reduced-motion: reduce) {
   .cofre-objeto { animation: none; }
 }
+
+/* ===== v0.3 Más o menos (masomenos-ui.js, spec §5.3): racha/récord + interruptor Comparar | Afinar y, debajo, dos
+   tarjetas con foto (Comparar) o las fotos a escala y la barra (Afinar). Todo plano; ninguna pantalla hace scroll. ===== */
+.vista-masomenos { gap: 8px; overflow: hidden; -webkit-user-select: none; user-select: none; }
+.mm-marcador { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.mm-racha[hidden] { display: none; }
+.mm-record { color: var(--texto-suave); font-size: 14px; font-variant-numeric: tabular-nums; }
+.mm-interruptor { margin-left: auto; display: flex; border: 1px solid #22303d; border-radius: 999px; overflow: hidden; }
+.mm-var { min-height: 32px; padding: 4px 14px; border: 0; background: transparent; color: var(--texto-suave); font-size: 14px; font-weight: 600; }
+.mm-var--activa { background: var(--acento); color: #06202b; }
+.vista-masomenos > .mm-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mm-cuerpo > * { flex-shrink: 0; }
+.mm-cuerpo > .mm-tarjetas, .mm-cuerpo > .mm-zona { flex-shrink: 1; }
+.mm-tarjetas { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.mm-tarjeta {
+  --color-area: #17222d;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--color-area);
+  border: 1px solid #22303d;
+  display: flex;
+  align-items: flex-end;
+}
+.mm-tarjeta[data-area="economia"], .escala-caja[data-area="economia"] { background: #1d3b2a; }
+.mm-tarjeta[data-area="historia"], .escala-caja[data-area="historia"] { background: #3b2f1c; }
+.mm-tarjeta[data-area="ciencia"], .escala-caja[data-area="ciencia"] { background: #123a4a; }
+.mm-tarjeta[data-area="tecnologia"], .escala-caja[data-area="tecnologia"] { background: #1c2c4d; }
+.mm-tarjeta[data-area="geografia"], .escala-caja[data-area="geografia"] { background: #1f3d33; }
+.mm-tarjeta[data-area="filosofia"], .escala-caja[data-area="filosofia"] { background: #2b3342; }
+.mm-tarjeta[data-area="arte"], .escala-caja[data-area="arte"] { background: #3d2a22; }
+.mm-tarjeta[data-area="logica"], .escala-caja[data-area="logica"] { background: #28324a; }
+.mm-tarjeta-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mm-tarjeta-velo { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 15, 20, 0.05) 20%, rgba(11, 15, 20, 0.78) 100%); pointer-events: none; }
+.mm-tarjeta-textos { position: relative; width: 100%; padding: 10px 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mm-tarjeta-nombre { margin: 0; color: #fff; font-size: var(--tam-1); font-weight: 700; line-height: 1.2; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); overflow-wrap: anywhere; }
+.mm-tarjeta-valor { margin: 0; flex: none; color: #fff; font-size: var(--tam-3); font-weight: 700; font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
+.mm-tarjeta--acierto { border-color: var(--ok); }
+.mm-tarjeta--fallo { border-color: var(--ko); }
+.mm-credito {
+  position: absolute; top: 6px; right: 8px; max-width: 70%; padding: 2px 6px; border-radius: 6px;
+  background: rgba(11, 15, 20, 0.55); color: rgba(255, 255, 255, 0.8); font-size: 11px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+}
+.mm-mando { display: flex; flex-direction: column; gap: 6px; min-height: 96px; }
+.mm-pregunta { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
+.mm-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.mm-botones[hidden] { display: none; }
+.mm-boton {
+  min-height: 52px; padding: 6px 10px; border-radius: 12px; border: 1px solid #22303d; background: var(--tarjeta);
+  color: var(--texto); font-size: var(--tam-2); font-weight: 700;
+}
+.mm-boton:active { transform: scale(0.97); }
+.mm-resultado { display: flex; flex-direction: column; gap: 4px; }
+.mm-resultado-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mm-resultado-titulo { font-size: var(--tam-2); font-weight: 700; }
+.mm-resultado-titulo--ok { color: var(--ok); }
+.mm-resultado-titulo--ko { color: var(--ko); }
+.mm-siguiente { padding: 10px 24px; }
+.mm-diferencia, .mm-nota, .mm-premio { margin: 0; font-size: 14px; line-height: 1.3; color: var(--texto-suave); }
+.mm-premio { color: var(--texto); font-weight: 600; }
+.mm-nota { font-style: italic; }
+/* Afinar */
+.mm-zona { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.mm-zona > * { flex-shrink: 0; }
+.mm-zona--foto { gap: 0; }
+.vista-masomenos .mm-zona--foto > .mm-foto { flex: 1 1 0; min-height: 0; display: flex; }
+.mm-enunciado { margin: 0; font-size: var(--tam-2); font-weight: 700; line-height: 1.25; }
+.mm-referencia { margin: 0; font-size: 14px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.mm-escala { position: relative; min-height: 0; }
+.vista-masomenos .mm-zona > .mm-escala, .mm-tarjetas > .mm-escala { flex: 1 1 0; min-height: 0; }
+.mm-lectura { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mm-lectura-etiqueta { color: var(--texto-suave); font-size: 14px; }
+.mm-lectura-valor { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.mm-barra-fila { display: flex; align-items: center; gap: 12px; }
+.mm-barra { flex: 1 1 auto; min-width: 0; height: 36px; accent-color: var(--acento); background: transparent; }
+.mm-listo { padding: 10px 22px; }
+.mm-listo[hidden] { display: none; }
+.mm-barra:disabled { opacity: 0.5; }
+
+/* ===== v0.3 Escala (escala.js, spec §5.3.1): dos fotos apoyadas en la misma línea de suelo, a escala real; en
+   fechas, la línea temporal en su banda oscura sobre la foto. ===== */
+.escala { --escala-ancho: 88%; position: relative; display: flex; flex-direction: column; gap: 4px; height: 100%; min-height: 0; }
+.escala-suelo { flex: 1 1 0; min-height: 0; display: flex; align-items: flex-end; gap: 8px; border-bottom: 2px solid #3a4b5c; }
+.escala-item { position: relative; flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.escala-caja {
+  position: relative; overflow: hidden; border-radius: 8px 8px 0 0; background: #17222d;
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  transition: height 0.7s var(--ease-suave), width 0.7s var(--ease-suave);
+}
+.escala--vivo .escala-caja { transition: none; } /* mientras se desliza, la foto sigue al dedo sin retraso */
+.escala-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.escala-caja-nombre { position: relative; z-index: 1; padding: 4px; color: #fff; font-size: 14px; font-weight: 700; text-align: center; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); overflow-wrap: anywhere; }
+.escala-caja:not(.escala-caja--sin-foto) .escala-caja-nombre { display: none; } /* con foto, el nombre va en la etiqueta de abajo */
+.escala-caja--diminuta .escala-caja-nombre { display: none; }
+.escala-caja--estimacion { outline: 2px dashed var(--acento); outline-offset: 2px; } /* «tu estimación» */
+.escala-caja--real { outline: 2px solid var(--ok); outline-offset: 0; }
+.escala-fantasma { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); box-sizing: border-box; border: 2px dashed var(--acento); border-radius: 8px 8px 0 0; pointer-events: none; }
+.escala-etiquetas { display: flex; gap: 8px; }
+.escala-etiqueta { flex: 1 1 0; min-width: 0; min-height: 2.4em; font-size: 12px; line-height: 1.2; text-align: center; color: var(--texto-suave); overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) {
+  .escala-caja { transition: none; }
+}
+/* Línea temporal sobre la foto del evento (Afinar con fechas). */
+.escala-linea {
+  position: absolute; left: 8px; right: 8px; top: 30px; height: 84px; padding: 0 14px; box-sizing: border-box;
+  border-radius: 10px; background: rgba(11, 15, 20, 0.86); border: 1px solid #22303d;
+}
+.escala-linea-eje { position: absolute; left: 14px; right: 14px; top: 50px; height: 2px; background: #3a4b5c; }
+.escala-tic { position: absolute; top: -4px; width: 1px; height: 10px; background: #5b6b7b; }
+.escala-tic--grande { top: -7px; height: 16px; }
+.escala-tic-texto { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--texto-suave); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.escala-marca { position: absolute; top: -6px; width: 0; height: 14px; }
+.escala-marca::before { content: ''; position: absolute; left: -6px; top: 0; width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; background: var(--acento); border: 2px solid #06202b; }
+.escala-marca--estimacion::before { background: transparent; border: 2px dashed var(--acento); }
+.escala-marca--real::before { background: var(--ok); }
+.escala-marca-texto { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.escala-marca--estimacion .escala-marca-texto { bottom: 36px; color: var(--acento); }
+.escala-marca--real .escala-marca-texto { bottom: 36px; color: var(--ok); }
