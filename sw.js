@@ -32,11 +32,13 @@ const SECUNDARIOS = [
   'imagenes-hub/ordago.webp', 'imagenes-hub/repaso.webp', 'imagenes-hub/tienda.webp',
 ];
 
-// Avatar (esfinge v2): el reposo, las anclas y las imágenes fijas se precachean tolerantes (sin un
-// vídeo la app sigue con la imagen fija). Los 6 gestos no se precachean: el `fetch` de abajo guarda
-// cualquier GET del mismo origen la primera vez que se pide.
+// Avatar (esfinge v2): el reposo, las anclas, los puentes del reposo al ancla (v0.3.1, ~250 KB) y las imágenes
+// fijas se precachean tolerantes (sin un vídeo la app sigue con la imagen fija). Los 6 gestos no se precachean
+// aquí: `app.js` los pide en ocioso tras el arranque y el `fetch` de abajo guarda cualquier GET del mismo origen.
 const AVATAR = [
   'avatar/reposo.mp4', 'avatar/anclas.json',
+  'avatar/puente-8.mp4', 'avatar/puente-14.mp4', 'avatar/puente-22.mp4', 'avatar/puente-30.mp4', 'avatar/puente-38.mp4', 'avatar/puente-46.mp4', 'avatar/puente-54.mp4',
+  'avatar/puente-78.mp4', 'avatar/puente-86.mp4', 'avatar/puente-94.mp4', 'avatar/puente-102.mp4', 'avatar/puente-110.mp4', 'avatar/puente-116.mp4',
   'avatar/neutral.webp', 'avatar/contenta.webp', 'avatar/triste.webp', 'avatar/euforica.webp',
 ];
 const AVATAR_GESTOS = [

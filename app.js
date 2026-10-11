@@ -44,7 +44,7 @@ import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfet
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
-import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
+import { crearAvatar, gestoParaEvento, crearVigiaPensando, GESTOS, rutaClip } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago, cargarOrdagoResuelto } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
 import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
@@ -288,6 +288,7 @@ const nodoCreditos = document.querySelector('[data-test="creditos"]');
 const nodoAvatarCabecera = document.querySelector('[data-test="avatar-cabecera"]');
 let nodoAvatarTarjetaTienda = null;
 let avatarVigente = null; // {contenedor, avatar}: la esfinge de la pantalla actual (solo hay una)
+let alMedirAvatar = null; // solo con ?depurar=avatar: recoge la latencia de cada gesto
 const gestosPedidos = registroSonidos ? [] : null; // solo con ?test=1: los e2e comprueban qué gestos se pidieron
 const vigiaPensando = crearVigiaPensando({ alPensar: () => pedirGesto('inactivo') });
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
@@ -375,8 +376,18 @@ function montarAvatarDeVista(nombreVista) {
     avatarVigente = null;
   }
   if (!destino || avatarVigente) return;
-  avatarVigente = { contenedor: destino.contenedor, avatar: crearAvatar(destino.contenedor, { tamano: destino.tamano }) };
+  // En las vistas de modo acierto y triste quedan cargados y decodificados mientras viva la esfinge (v0.3.1).
+  const residentes = VISTAS_DE_MODO.includes(nombreVista) ? ['acierto', 'triste'] : [];
+  avatarVigente = { contenedor: destino.contenedor, avatar: crearAvatar(destino.contenedor, { tamano: destino.tamano, residentes, alMedir: alMedirAvatar }) };
   if (nombreVista !== 'progreso') pedirGesto('abrir');
+}
+
+/** Tras el arranque, los 6 gestos a la caché del service worker (su `fetch` guarda todo GET del mismo origen):
+ * así «pedir gesto» no espera a la red. En ocioso si hay `requestIdleCallback` (Safari no lo tiene) y si no a los 3 s. */
+function precalentarGestosAvatar() {
+  const pedir = () => GESTOS.forEach((g) => fetch(rutaClip(g)).catch(() => {}));
+  if (window.requestIdleCallback) window.requestIdleCallback(pedir, { timeout: 5000 });
+  else setTimeout(pedir, 3000);
 }
 
 /** Pide a la esfinge el gesto que corresponde a un evento del juego (`gestoParaEvento`, spec §7). */
@@ -1957,7 +1968,14 @@ function reanudarTandaGuardada() {
 
 // --- carga del banco y arranque ---
 async function iniciar() {
-  sonido.precargar(); // sin await: el AudioContext de ZzFX existe ya cuando llega el primer toque (iOS)
+  sonido.precargar();
+  if (new URLSearchParams(location.search).get('depurar') === 'avatar') {
+    // Solo con ?depurar=avatar: ms desde que se pide el gesto hasta su primer fotograma pintado (e2e de latencia).
+    window.__one = window.__one || {};
+    window.__one.avatarLatencias = [];
+    window.__one.pedirGestoAvatar = (gesto) => Boolean(avatarVigente) && (avatarVigente.avatar.gesto(gesto), true);
+    alMedirAvatar = (ms, gesto) => window.__one.avatarLatencias.push({ gesto, ms, en: Math.round(performance.now()) });
+  } // sin await: el AudioContext de ZzFX existe ya cuando llega el primer toque (iOS)
   const params = new URLSearchParams(location.search);
   if (params.get('depurar') === 'sonido') import('./depurar-sonido.js').then((m) => m.montarPanelSonido(sonido));
   const esEjemplo = params.get('ejemplo') === '1';
@@ -1984,6 +2002,7 @@ async function iniciar() {
 
   // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
   sincronizarEnSegundoPlano();
+  precalentarGestosAvatar();
 }
 
 /** Carga `datos/imagenes.json` (o `.ejemplo.json` con `?ejemplo=1`, ruta

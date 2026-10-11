@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GESTOS, rutaClip, rutaFija, esSalida, gestoParaEvento, crearVigiaPensando, crearAvatar, montarReproductorMp4 } from '../avatar.js';
+import { GESTOS, rutaClip, rutaFija, esSalida, puenteDeSalida, gestoParaEvento, crearVigiaPensando, crearAvatar, montarReproductorMp4 } from '../avatar.js';
 import { ElementoFalso, instalarDomFalso } from './dom-falso.js';
 import { temporizadorFalso } from './temporizador-falso.js';
 
@@ -168,6 +168,7 @@ function entorno(opciones = {}) {
     removeEventListener: (tipo, fn) => { oyentes[tipo] = (oyentes[tipo] || []).filter((f) => f !== fn); },
     createElement(tag) {
       const v = new ElementoFalso(tag);
+      if (opciones.ganchoVideo && tag === 'video') opciones.ganchoVideo(v);
       Object.assign(v, { readyState: 0, currentTime: 0, duration: 127 / 60, reproducciones: 0, pausado: false });
       v.play = () => { v.reproducciones += 1; return Promise.resolve(); };
       v.pause = () => { v.pausado = true; };
@@ -186,9 +187,12 @@ function entorno(opciones = {}) {
     removeEventListener: (tipo, fn) => { oyentes[`v:${tipo}`] = (oyentes[`v:${tipo}`] || []).filter((f) => f !== fn); },
   };
   const cargarClip = opciones.cargarClip || ((ruta) => Promise.resolve({ src: `blob:${ruta}`, liberar: () => liberados.push(ruta) }));
-  const reproductor = montarReproductorMp4(lienzo, { documento, ventana, anclas: ANCLAS, cargarClip });
+  const medidas = [];
+  const reproductor = montarReproductorMp4(lienzo, {
+    documento, ventana, anclas: opciones.anclas || ANCLAS, cargarClip, residentes: opciones.residentes, alMedir: (ms, n) => medidas.push([ms, n]),
+  });
   return {
-    reproductor, lienzo, liberados, creados, perdidos,
+    reproductor, lienzo, liberados, creados, perdidos, medidas,
     clip: (nombre) => creados.find((v) => v.src === `blob:avatar/${nombre}.mp4`),
     fotograma: () => siguienteFotograma && siguienteFotograma(),
     pasarMs: (ms) => { reloj += ms; },
@@ -200,8 +204,8 @@ function entorno(opciones = {}) {
 }
 
 /** Monta el entorno con el reposo ya sonando en un punto que no es de salida. */
-async function conReposo() {
-  const e = entorno();
+async function conReposo(opciones = {}) {
+  const e = entorno(opciones);
   await tick();
   const reposo = e.clip('reposo');
   reposo.readyState = 2; reposo.currentTime = 1; // fotograma 60: no es salida
@@ -402,4 +406,155 @@ test('reproductor: destruir quita los oyentes de visibilidad y pageshow', async 
   assert.equal(e.oyentesVivos(), 2);
   e.reproductor.destruir();
   assert.equal(e.oyentesVivos(), 0);
+});
+
+// --- v0.3.1: puentes y residentes ---
+const ANCLAS_PUENTES = { ...ANCLAS, puentes: { 14: 'puente-14.mp4', 78: 'puente-78.mp4' } };
+
+test('puntos de salida con puente: esSalida los acepta y puenteDeSalida da el clip (null en las salidas directas)', () => {
+  assert.equal(esSalida(14 / 60, 127 / 60, ANCLAS_PUENTES), true);
+  assert.equal(esSalida(15 / 60, 127 / 60, ANCLAS_PUENTES), false);
+  assert.equal(esSalida(14 / 60, 127 / 60, ANCLAS), false, 'sin puentes en anclas.json, como antes');
+  assert.equal(puenteDeSalida(14 / 60, 127 / 60, ANCLAS_PUENTES), 'puente-14');
+  assert.equal(puenteDeSalida((127 + 78) / 60, 127 / 60, ANCLAS_PUENTES), 'puente-78', 'vuelta siguiente del bucle');
+  assert.equal(puenteDeSalida(2 / 60, 127 / 60, ANCLAS_PUENTES), null, 'salida directa: sin puente');
+  assert.equal(puenteDeSalida(15 / 60, 127 / 60, ANCLAS_PUENTES), null);
+});
+test('reproductor: los puentes se precargan con el reposo', async () => {
+  const e = entorno({ anclas: ANCLAS_PUENTES });
+  await tick();
+  assert.ok(e.clip('puente-14') && e.clip('puente-78'));
+  assert.equal(e.clip('puente-14').loop, undefined, 'un puente no hace bucle');
+});
+test('reproductor: salida por puente -> el reposo se queda quieto, suena el puente y al acabar arranca el gesto', async () => {
+  const e = await conReposo({ anclas: ANCLAS_PUENTES });
+  const cambios = [];
+  e.reproductor.alCambiar((n) => cambios.push(n));
+  e.reproductor.gesto('sorpresa');
+  await tick();
+  const puente = e.clip('puente-14'); const sorpresa = e.clip('sorpresa');
+  sorpresa.readyState = 2;
+  e.reposo.currentTime = 14 / 60;
+  e.fotograma();
+  assert.equal(puente.reproducciones, 0, 'el puente no está listo: se espera a otro punto de salida');
+  assert.equal(sorpresa.reproducciones, 0);
+  puente.readyState = 2;
+  e.fotograma();
+  assert.equal(e.reposo.pausado, true, 'el reposo se queda en el fotograma de salida');
+  assert.equal(puente.reproducciones, 1);
+  assert.equal(sorpresa.reproducciones, 0, 'el gesto espera a que acabe el puente');
+  puente.currentTime = 0.05;
+  e.fotograma();
+  assert.deepEqual(cambios, ['puente-14']);
+  puente.disparar('ended');
+  assert.equal(sorpresa.reproducciones, 1, 'puente -> gesto encadenado');
+  sorpresa.currentTime = 0.05;
+  e.fotograma();
+  assert.deepEqual(cambios, ['puente-14', 'sorpresa']);
+  assert.equal(puente.src, 'blob:avatar/puente-14.mp4', 'los puentes no se sueltan');
+});
+test('reproductor: el gesto encadenado no se suelta mientras suena el puente aunque se pida otro', async () => {
+  const e = await conReposo({ anclas: ANCLAS_PUENTES });
+  e.reproductor.gesto('sorpresa');
+  await tick();
+  e.clip('sorpresa').readyState = 2; e.clip('puente-14').readyState = 2;
+  e.reposo.currentTime = 14 / 60;
+  e.fotograma();
+  e.reproductor.gesto('saludo');
+  await tick();
+  assert.ok(e.clip('sorpresa'), 'el gesto decidido sigue vivo');
+  assert.equal(e.liberados.includes('avatar/sorpresa.mp4'), false);
+});
+test('reproductor: en una salida directa no hay puente (gesto directo, como antes)', async () => {
+  const e = await conReposo({ anclas: ANCLAS_PUENTES });
+  e.reproductor.gesto('acierto');
+  await tick();
+  e.clip('acierto').readyState = 2; e.clip('puente-14').readyState = 2;
+  e.reposo.currentTime = 2 / 60;
+  e.fotograma();
+  assert.equal(e.clip('acierto').reproducciones, 1);
+  assert.equal(e.clip('puente-14').reproducciones, 0);
+  assert.equal(e.reposo.pausado, false);
+});
+test('reproductor: residentes cargados desde el arranque, no se sueltan al usarse y quedan en el primer fotograma', async () => {
+  const e = await conReposo({ residentes: ['acierto', 'triste'] });
+  assert.ok(e.clip('acierto') && e.clip('triste'), 'cargados sin pedirlos');
+  assert.equal(e.clip('saludo'), undefined, 'solo los residentes');
+  const acierto = await jugarGesto(e, 'acierto');
+  assert.equal(acierto.src, 'blob:avatar/acierto.mp4', 'no se suelta tras usarse');
+  assert.equal(acierto.currentTime, 0, 'listo para repetirse');
+  assert.equal(e.liberados.includes('avatar/acierto.mp4'), false);
+  const antes = e.creados.length;
+  e.reproductor.gesto('acierto');
+  await tick();
+  assert.equal(e.creados.length, antes, 'pedirlo otra vez no baja nada');
+  // un gesto no residente sigue soltándose
+  await jugarGesto(e, 'saludo');
+  assert.deepEqual(e.liberados, ['avatar/saludo.mp4']);
+});
+test('reproductor: mide la latencia gesto pedido -> primer fotograma del gesto (alMedir)', async () => {
+  const e = await conReposo();
+  e.pasarMs(1000);
+  e.reproductor.gesto('euforia');
+  await tick();
+  const clip = e.clip('euforia');
+  clip.readyState = 2;
+  e.pasarMs(120);
+  e.reposo.currentTime = 2 / 60;
+  e.fotograma();
+  e.pasarMs(30);
+  clip.currentTime = 0.05;
+  e.fotograma();
+  assert.deepEqual(e.medidas, [[150, 'euforia']]);
+});
+test('crearAvatar pasa residentes y alMedir al reproductor', (t) => {
+  const desinstalar = instalarDomFalso(); t.after(desinstalar);
+  const recibidas = [];
+  const contenedor = new ElementoFalso('div');
+  const alMedir = () => {};
+  crearAvatar(contenedor, {
+    documento: globalThis.document, ventana: SIN_MOVIMIENTO, temporizador: temporizadorFalso(), residentes: ['acierto', 'triste'], alMedir,
+    montarReproductor: (lienzo, opciones) => { recibidas.push(opciones); return { gesto() {}, destruir() {}, reanudar() {}, alFallar() {}, alCambiar() {} }; },
+  });
+  assert.deepEqual(recibidas[0].residentes, ['acierto', 'triste']);
+  assert.equal(recibidas[0].alMedir, alMedir);
+});
+test('reproductor: el gesto arranca al acercarse el puente a su final y el "ended" posterior no relanza el reposo', async () => {
+  const e = await conReposo({ anclas: ANCLAS_PUENTES });
+  e.reproductor.gesto('sorpresa');
+  await tick();
+  const puente = e.clip('puente-14'); const sorpresa = e.clip('sorpresa');
+  puente.readyState = 2; sorpresa.readyState = 2; puente.duration = 9 / 60;
+  e.reposo.currentTime = 14 / 60;
+  e.fotograma();
+  puente.currentTime = 1 / 60;
+  e.fotograma(); // relevo al puente
+  assert.equal(sorpresa.reproducciones, 0, 'aún le quedan varios fotogramas');
+  puente.currentTime = 8 / 60; // a 1 fotograma del final
+  e.fotograma();
+  assert.equal(sorpresa.reproducciones, 1);
+  const reproduccionesReposo = e.reposo.reproducciones;
+  puente.disparar('ended');
+  assert.equal(sorpresa.reproducciones, 1);
+  assert.equal(e.reposo.reproducciones, reproduccionesReposo, 'el reposo no arranca por encima del gesto');
+});
+test('reproductor: con requestVideoFrameCallback la salida se decide en el fotograma exacto que presenta el reposo', async () => {
+  let aviso = null;
+  const e = entorno({
+    anclas: ANCLAS_PUENTES,
+    ganchoVideo: (video) => { if (!aviso) video.requestVideoFrameCallback = (cb) => { aviso = cb; }; },
+  });
+  await tick();
+  assert.equal(typeof aviso, 'function', 'el reposo se suscribe a sus fotogramas');
+  const reposo = e.clip('reposo'); reposo.readyState = 2; reposo.currentTime = 1;
+  e.fotograma();
+  e.reproductor.gesto('triste');
+  await tick();
+  e.clip('triste').readyState = 2; e.clip('puente-14').readyState = 2;
+  // el fotograma presentado es el 14: sale por su puente sin esperar al requestAnimationFrame
+  const enganche = aviso; aviso = null;
+  enganche(0, { mediaTime: 14 / 60 });
+  assert.equal(e.clip('puente-14').reproducciones, 1);
+  assert.equal(reposo.pausado, true);
+  assert.equal(typeof aviso, 'function', 'sigue suscrito al siguiente fotograma');
 });

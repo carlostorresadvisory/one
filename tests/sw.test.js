@@ -54,6 +54,16 @@ test('sw: se precachea el reposo, las anclas y las imágenes fijas; los gestos s
   assert.doesNotMatch(sw, /AVATAR_GESTOS\.map|addAll\(\[[^\]]*AVATAR_GESTOS/);
 });
 
+test('sw: los puentes de anclas.json van en la precarga tolerante del avatar (y solo ésos)', () => {
+  const anclas = JSON.parse(leer('avatar/anclas.json'));
+  const declarados = Object.values(anclas.puentes).map((f) => `avatar/${f}`).sort();
+  assert.ok(declarados.length >= 8, 'puntos de salida repartidos por el bucle');
+  assert.deepEqual(lista('AVATAR').filter((r) => /puente-/.test(r)).sort(), declarados);
+  for (const r of declarados) assert.ok(statSync(new URL(`../${r}`, import.meta.url)).size > 0, r);
+  const peso = declarados.reduce((suma, r) => suma + statSync(new URL(`../${r}`, import.meta.url)).size, 0);
+  assert.ok(peso <= 300 * 1024, `puentes: ${(peso / 1024).toFixed(0)} KB`);
+});
+
 test('sw: las fotos de preguntas no se precachean (van a una caché aparte con tope por bytes); las 6 del hub sí', () => {
   const precacheadas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')];
   assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco)\//.test(r)), 'ninguna foto de pregunta en el precaché');

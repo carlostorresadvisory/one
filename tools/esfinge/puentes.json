@@ -1,0 +1,106 @@
+{
+ "8": {
+  "fotogramas": 6,
+  "dist_a_ancla": 1.6,
+  "paso_max": 0.65,
+  "paso_real_p95": 0.54,
+  "bytes": 16137,
+  "tira": "tiras/puentes/puente-8.png"
+ },
+ "14": {
+  "fotogramas": 7,
+  "dist_a_ancla": 2.05,
+  "paso_max": 0.47,
+  "paso_real_p95": 0.54,
+  "bytes": 18049,
+  "tira": "tiras/puentes/puente-14.png"
+ },
+ "22": {
+  "fotogramas": 9,
+  "dist_a_ancla": 2.58,
+  "paso_max": 0.45,
+  "paso_real_p95": 0.54,
+  "bytes": 20773,
+  "tira": "tiras/puentes/puente-22.png"
+ },
+ "30": {
+  "fotogramas": 9,
+  "dist_a_ancla": 2.43,
+  "paso_max": 0.49,
+  "paso_real_p95": 0.54,
+  "bytes": 20536,
+  "tira": "tiras/puentes/puente-30.png"
+ },
+ "38": {
+  "fotogramas": 8,
+  "dist_a_ancla": 2.3,
+  "paso_max": 0.48,
+  "paso_real_p95": 0.54,
+  "bytes": 19313,
+  "tira": "tiras/puentes/puente-38.png"
+ },
+ "46": {
+  "fotogramas": 8,
+  "dist_a_ancla": 2.04,
+  "paso_max": 0.46,
+  "paso_real_p95": 0.54,
+  "bytes": 19156,
+  "tira": "tiras/puentes/puente-46.png"
+ },
+ "54": {
+  "fotogramas": 10,
+  "dist_a_ancla": 2.9,
+  "paso_max": 0.66,
+  "paso_real_p95": 0.54,
+  "bytes": 22476,
+  "tira": "tiras/puentes/puente-54.png"
+ },
+ "78": {
+  "fotogramas": 10,
+  "dist_a_ancla": 2.79,
+  "paso_max": 0.56,
+  "paso_real_p95": 0.54,
+  "bytes": 22897,
+  "tira": "tiras/puentes/puente-78.png"
+ },
+ "86": {
+  "fotogramas": 9,
+  "dist_a_ancla": 2.31,
+  "paso_max": 0.48,
+  "paso_real_p95": 0.54,
+  "bytes": 20278,
+  "tira": "tiras/puentes/puente-86.png"
+ },
+ "94": {
+  "fotogramas": 9,
+  "dist_a_ancla": 2.58,
+  "paso_max": 0.56,
+  "paso_real_p95": 0.54,
+  "bytes": 20176,
+  "tira": "tiras/puentes/puente-94.png"
+ },
+ "102": {
+  "fotogramas": 10,
+  "dist_a_ancla": 2.99,
+  "paso_max": 0.54,
+  "paso_real_p95": 0.54,
+  "bytes": 21227,
+  "tira": "tiras/puentes/puente-102.png"
+ },
+ "110": {
+  "fotogramas": 6,
+  "dist_a_ancla": 1.43,
+  "paso_max": 0.43,
+  "paso_real_p95": 0.54,
+  "bytes": 16208,
+  "tira": "tiras/puentes/puente-110.png"
+ },
+ "116": {
+  "fotogramas": 5,
+  "dist_a_ancla": 1.35,
+  "paso_max": 0.5,
+  "paso_real_p95": 0.54,
+  "bytes": 15507,
+  "tira": "tiras/puentes/puente-116.png"
+ }
+}
