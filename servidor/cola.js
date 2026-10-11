@@ -27,18 +27,18 @@ const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas 
 const CERROJO_COLCHON = 'colchon.json';
 // v0.2b4.1 §5: cuántas preguntas se intentan completar en UNA pasada del trabajo de fondo. Un tope
 // bajo a propósito -- procesarCola lo llama cada vez que se queda sin trabajos (potencialmente muy
-// seguido), y cada visual es una llamada de red de segundos; no tiene sentido intentar de golpe
+// seguido), y cada imagen es una llamada de red de segundos; no tiene sentido intentar de golpe
 // todo lo que haya pendiente en el colchón.
-const MAX_VISUALES_PENDIENTES_POR_PASADA = 10;
+const MAX_IMAGENES_PENDIENTES_POR_PASADA = 10;
 // v0.2b4.1 §5 (I2, ronda de corrección 1): a partir de este número de intentos fallidos, una
-// pregunta con el visual pendiente se rinde -- deja de reintentarse para siempre en vez de ocupar
-// un hueco de cada pasada sin avanzar nunca (antes no había ningún límite: un visual que nunca sale
+// pregunta con la imagen pendiente se rinde -- deja de reintentarse para siempre en vez de ocupar
+// un hueco de cada pasada sin avanzar nunca (antes no había ningún límite: una imagen que nunca sale
 // se reintentaba indefinidamente y, con `pendientes.slice(0, max)` siempre desde el principio,
-// también bloqueaba a las que iban detrás -- ver la rotación por `intentosVisual` más abajo).
-const MAX_INTENTOS_VISUAL = 3;
+// también bloqueaba a las que iban detrás -- ver la rotación por `intentosImagen` más abajo).
+const MAX_INTENTOS_IMAGEN = 3;
 // Ola final v0.2b4.1 (M1): tope de lo que `actualizadas` puede devolver en UNA respuesta de
 // `POST /estado`. Un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y cada
-// elemento lleva un visual entero: sin tope, esa respuesta se dispara de tamaño justo en la
+// elemento lleva una imagen entero: sin tope, esa respuesta se dispara de tamaño justo en la
 // petición que el jugador espera al abrir la app. Lo que no entra conserva su `actualizadaEn` y
 // entra en la sincronización siguiente -- no se pierde nada, solo se reparte.
 const MAX_ACTUALIZADAS = 50;
@@ -63,10 +63,11 @@ const CAMPOS_PUBLICOS_PREGUNTA = [
   'criterio',
   'hilo',
   'visual',
-  // v0.2b4.1 §5: "esta pregunta todavía no tiene su visual, pero lo tendrá". El cliente lo usa
-  // para no dar por definitiva una tarjeta sin visual (y para saber que merece la pena volver a
-  // preguntar). `actualizadaEn` NO entra aquí: es logística del colchón, como `creada`/`servida`.
-  'visualPendiente',
+  // v0.3 §7: la imagen (`{url, autor, licencia, fuente, nota}`) y "esta pregunta todavía no tiene su
+  // imagen, pero la tendrá". El cliente lo usa para no dar por definitiva una tarjeta sin imagen.
+  // `actualizadaEn` NO entra aquí: es logística del colchón, como `creada`/`servida`.
+  'imagen',
+  'imagenPendiente',
   'tarjeta',
   'sospechoso',
   'confianza',
@@ -77,7 +78,14 @@ function paraCliente(pregunta) {
   for (const campo of CAMPOS_PUBLICOS_PREGUNTA) {
     if (pregunta[campo] !== undefined) limpio[campo] = pregunta[campo];
   }
+  // Migración: una pregunta vieja del colchón con `visualPendiente` se trata como `imagenPendiente`.
+  if (limpio.imagenPendiente === undefined && pregunta.visualPendiente === true) limpio.imagenPendiente = true;
   return limpio;
+}
+
+/** Pendiente de imagen: `imagenPendiente` o, por migración, el antiguo `visualPendiente`. */
+function esPendienteDeImagen(p) {
+  return p.imagenPendiente === true || p.visualPendiente === true;
 }
 
 function mismaRuta(a = [], b = []) {
@@ -135,14 +143,14 @@ function purgarColchon(lista) {
  * @param {object} params
  * @param {ReturnType<import('./almacen.js').crearAlmacen>} params.almacen
  * @param {Function} params.producirTanda
- * @param {Function} [params.completarVisual] v0.2b4.1 §5: misma firma que
- *   servidor/generacion.js#completarVisual. Opcional -- sin ella, `completarVisualesPendientes` es
+ * @param {Function} [params.completarImagen] v0.2b4.1 §5: misma firma que
+ *   servidor/generacion.js#completarImagen. Opcional -- sin ella, `completarImagenesPendientes` es
  *   un no-op (ver más abajo); así los tests que no necesitan el trabajo de fondo no tienen que
  *   inyectarla.
  * @param {object} [params.opciones] opciones base pasadas a producirTanda en cada lote (llamar,
  *   permitirPago, topeEur, rutaLog); `urgente` se añade/sobrescribe por trabajo.
  */
-export function crearCola({ almacen, producirTanda, completarVisual = null, opciones = {}, reloj = () => Date.now() } = {}) {
+export function crearCola({ almacen, producirTanda, completarImagen = null, opciones = {}, reloj = () => Date.now() } = {}) {
   if (!almacen) throw new Error('crearCola: falta almacen');
   if (typeof producirTanda !== 'function') throw new Error('crearCola: falta producirTanda');
 
@@ -163,9 +171,9 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   let procesando = false;
   let contadorId = 0;
   // v0.2b4.1 §5: cerrojo propio (booleano, igual patrón que `procesando`) para que dos disparos de
-  // completarVisualesPendientes -- uno desde procesarCola al vaciarse, otro desde POST /estado -- no
-  // se solapen pidiendo el mismo visual pendiente dos veces a la vez.
-  let completandoVisuales = false;
+  // completarImagenesPendientes -- uno desde procesarCola al vaciarse, otro desde POST /estado -- no
+  // se solapen pidiendo el mismo imagen pendiente dos veces a la vez.
+  let completandoImagenes = false;
   // Ronda final (revisión, 14-sep-2026) -- Critical (C2): señal de salud del trabajador, para que
   // /salud pueda decir algo más que "el proceso sigue vivo". `ultimoError` es el motivo (corto, sin
   // trazas) del último lote que falló de cualquier forma; `ultimaGeneracionOk` es el ISO del último
@@ -346,7 +354,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
             // desde dentro del lote. Ceder entre lotes no basta: un lote de fondo con concurrencia
             // 1 y cascadas lentas dura minutos él solo (medido: un urgente esperó 5 m 23 s detrás
             // de UNO). `producirTanda` solo la consulta en modo fondo, y solo para cortar su fase
-            // de visuales (ver generacion.js#cortarPorUrgente).
+            // de imágenes (ver generacion.js#cortarPorUrgente).
             hayUrgente: () => colaUrgente.length > 0,
             onProgreso: ({ verificadas }) => {
               const dentroDelLote = Math.min(Math.max(0, verificadas), tamanoLote);
@@ -434,23 +442,23 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   }
 
   /**
-   * v0.2b4.1 §5: el trabajo de fondo que completa los visuales que la tanda urgente no esperó.
+   * v0.2b4.1 §5: el trabajo de fondo que completa los imágenes que la tanda urgente no esperó.
    * Se dispara cuando el trabajador se queda sin trabajos (ver procesarCola, debajo) -- la
    * prioridad más baja, detrás de todo urgente y de todo fondo. Ronda de corrección 1 (I1): NO
    * garantiza completar la pasada entera de un tirón -- si un urgente llega a mitad, se corta
    * ENTRE preguntas (nunca a mitad de una) y `procesarCola` lo recoge en la vuelta siguiente de su
-   * bucle exterior; así un urgente nunca espera más que UN visual ya en curso, nunca la pasada
+   * bucle exterior; así un urgente nunca espera más que UN imagen ya en curso, nunca la pasada
    * completa. Cada pregunta completada queda marcada con `actualizadaEn` para que `POST /estado`
    * pueda contársela al móvil que ya tiene esa pregunta (ver `actualizadas`).
-   * Ronda de corrección 1 (I2): cada intento fallido incrementa `intentosVisual` en la propia
-   * entrada del colchón; al llegar a `MAX_INTENTOS_VISUAL` la pregunta se rinde (`visualPendiente:
-   * false` sin visual, igual criterio que una rechazada por el verificador) y deja de elegirse. Las
-   * pendientes se ordenan por `intentosVisual` ascendente y luego por antigüedad -- así una que
+   * Ronda de corrección 1 (I2): cada intento fallido incrementa `intentosImagen` en la propia
+   * entrada del colchón; al llegar a `MAX_INTENTOS_IMAGEN` la pregunta se rinde (`imagenPendiente:
+   * false` sin imagen, igual criterio que una rechazada por el verificador) y deja de elegirse. Las
+   * pendientes se ordenan por `intentosImagen` ascendente y luego por antigüedad -- así una que
    * nunca se ha intentado (o se ha intentado menos veces) siempre entra antes que una que ya viene
    * fallando, lo que rota de forma natural: lo que quedó fuera de `max` esta vez (o lo que cortó
    * I1 a mitad) entra con prioridad la próxima pasada, en vez de quedarse siempre detrás de las
    * primeras `max` por orden de creación.
-   * Sin `completarVisual` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
+   * Sin `completarImagen` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
    * necesitan el trabajo de fondo no tienen que simularla.
    * @param {{max?: number}} [params]
    * @returns {Promise<{completadas: number, pendientes: number|null, enCurso?: boolean}>}
@@ -458,19 +466,19 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
    *   de "no hay nada pendiente" (Minor, ronda de corrección 1): antes las dos devolvían
    *   `{completadas: 0, pendientes: 0}` y quien llamaba no podía saber si valía la pena reintentar.
    */
-  async function completarVisualesPendientes({ max = MAX_VISUALES_PENDIENTES_POR_PASADA } = {}) {
-    if (typeof completarVisual !== 'function') return { completadas: 0, pendientes: 0 };
-    if (completandoVisuales) return { completadas: 0, pendientes: null, enCurso: true };
-    completandoVisuales = true;
+  async function completarImagenesPendientes({ max = MAX_IMAGENES_PENDIENTES_POR_PASADA } = {}) {
+    if (typeof completarImagen !== 'function') return { completadas: 0, pendientes: 0 };
+    if (completandoImagenes) return { completadas: 0, pendientes: null, enCurso: true };
+    completandoImagenes = true;
     try {
       const colchon = await almacen.leerColchon();
-      // I2: intentosVisual ascendente primero (nunca intentada, o menos veces, entra antes),
+      // I2: intentosImagen ascendente primero (nunca intentada, o menos veces, entra antes),
       // antigüedad como desempate -- ver el JSDoc de arriba.
       const pendientes = colchon
-        .filter((p) => p.visualPendiente === true)
+        .filter((p) => esPendienteDeImagen(p))
         .sort((a, b) => {
-          const ia = Number.isFinite(a.intentosVisual) ? a.intentosVisual : 0;
-          const ib = Number.isFinite(b.intentosVisual) ? b.intentosVisual : 0;
+          const ia = Number.isFinite(a.intentosImagen) ? a.intentosImagen : 0;
+          const ib = Number.isFinite(b.intentosImagen) ? b.intentosImagen : 0;
           if (ia !== ib) return ia - ib;
           return new Date(a.creada).getTime() - new Date(b.creada).getTime();
         });
@@ -485,16 +493,16 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       const intentosFallidos = new Map();
       for (const pregunta of elegidas) {
         try {
-          const salida = await completarVisual(pregunta, opciones);
-          if (salida && salida.visual) {
-            resueltas.set(pregunta.id, salida.visual);
+          const salida = await completarImagen(pregunta, opciones);
+          if (salida && salida.imagen) {
+            resueltas.set(pregunta.id, salida.imagen);
           } else {
-            intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosVisual) ? pregunta.intentosVisual : 0) + 1);
+            intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1);
           }
         } catch (err) {
           // Igual criterio que ejecutarUnLote: un fallo aquí nunca puede tumbar al trabajador.
           ultimoError = String(err?.message || err).slice(0, 300);
-          intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosVisual) ? pregunta.intentosVisual : 0) + 1);
+          intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1);
         }
         // I1: un urgente que llegó DURANTE esta pasada -- un jugador esperando -- no debe esperar
         // a que termine el resto de pendientes. Se corta aquí, ENTRE preguntas (nunca a mitad de
@@ -511,19 +519,20 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
         const actual = await almacen.leerColchon();
         const ahora = new Date().toISOString();
         const actualizado = actual.map((p) => {
-          if (p.visualPendiente !== true) return p;
+          if (!esPendienteDeImagen(p)) return p;
           if (resueltas.has(p.id)) {
-            return { ...p, visual: resueltas.get(p.id), visualPendiente: false, actualizadaEn: ahora };
+            const { visualPendiente: _vieja, ...resto } = p;
+            return { ...resto, imagen: resueltas.get(p.id), imagenPendiente: false, actualizadaEn: ahora };
           }
           if (intentosFallidos.has(p.id)) {
             const intentos = intentosFallidos.get(p.id);
-            // I2: agotados los intentos, se rinde -- mismo criterio que un visual rechazado por el
-            // verificador: se queda sin él y `visualPendiente:false` lo saca de la lista de
-            // pendientes para siempre (nada cambió de cara al cliente -- sigue sin visual --, así
+            // I2: agotados los intentos, se rinde -- mismo criterio que una imagen rechazado por el
+            // verificador: se queda sin él y `imagenPendiente:false` lo saca de la lista de
+            // pendientes para siempre (nada cambió de cara al cliente -- sigue sin imagen --, así
             // que no se marca `actualizadaEn`, igual que cuando un intento simplemente no llega).
-            return intentos >= MAX_INTENTOS_VISUAL
-              ? { ...p, visualPendiente: false, intentosVisual: intentos }
-              : { ...p, intentosVisual: intentos };
+            return intentos >= MAX_INTENTOS_IMAGEN
+              ? { ...p, imagenPendiente: false, intentosImagen: intentos }
+              : { ...p, intentosImagen: intentos };
           }
           return p;
         });
@@ -532,7 +541,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
 
       return { completadas: resueltas.size, pendientes: pendientes.length - resueltas.size };
     } finally {
-      completandoVisuales = false;
+      completandoImagenes = false;
     }
   }
 
@@ -550,13 +559,13 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
   // trabajo activo a la vez (concurrencia 1): `tomarSiguiente()`/`activo` no cambian de sitio.
   async function procesarCola() {
     // v0.2b4.1 §5 (autorrevisión): bucle EXTERIOR alrededor del `while` de siempre + el trabajo de
-    // fondo de visuales. `completarVisualesPendientes()` hace red de verdad (puede tardar segundos,
+    // fondo de imágenes. `completarImagenesPendientes()` hace red de verdad (puede tardar segundos,
     // no un tick) -- si se llamara solo una vez DESPUÉS del `while` y se retornara sin más, un
     // trabajo que llega mientras tanto (`encolar()` lo empuja, pero `dispararProcesamiento()` no
     // hace nada porque `procesando` sigue en true) se quedaría atascado en la cola hasta que un
     // `encolar()` futuro y sin relación lo destrabara por casualidad -- justo lo que esta tarea NO
     // debe permitir con un urgente (un jugador esperando). Se sale del todo solo cuando, tras
-    // completar visuales, las dos colas siguen vacías.
+    // completar imágenes, las dos colas siguen vacías.
     for (;;) {
       let siguiente;
       // eslint-disable-next-line no-cond-assign
@@ -596,16 +605,16 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
         }
       }
 
-      // El trabajador se ha quedado sin trabajos: es el momento de completar visuales pendientes --
+      // El trabajador se ha quedado sin trabajos: es el momento de completar imágenes pendientes --
       // lo más bajo de la escala de prioridad, detrás de todo urgente y de todo fondo. Ronda de
       // corrección 1 (I1): esta pasada puede cortarse antes de terminar (ver
-      // completarVisualesPendientes) si un urgente llega mientras tanto -- por eso el bucle
+      // completarImagenesPendientes) si un urgente llega mientras tanto -- por eso el bucle
       // exterior de aquí vuelve a mirar la cola justo debajo en vez de darla por vacía sin más.
-      await completarVisualesPendientes().catch((err) => {
-        console.error(`servidor/cola: fallo al completar visuales pendientes: ${err?.message || err}`);
+      await completarImagenesPendientes().catch((err) => {
+        console.error(`servidor/cola: fallo al completar imágenes pendientes: ${err?.message || err}`);
       });
 
-      // Si nada llegó mientras se completaban visuales, se sale de verdad -- si algo llegó
+      // Si nada llegó mientras se completaban imágenes, se sale de verdad -- si algo llegó
       // (urgente o de fondo), el `while` de arriba lo recoge en la próxima vuelta.
       if (colaUrgente.length === 0 && colaFondo.length === 0) break;
     }
@@ -815,13 +824,13 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
 
   /**
    * v0.2b4.1 §5: qué ha cambiado, de lo que el móvil YA tiene, desde la última vez que preguntó.
-   * Solo `visual` y `explicacion`: son los dos únicos campos que este servidor reescribe después de
-   * haber servido una pregunta (el trabajo de fondo de `completarVisualesPendientes`). Mandar la
+   * Solo `imagen` y `explicacion`: son los dos únicos campos que este servidor reescribe después de
+   * haber servido una pregunta (el trabajo de fondo de `completarImagenesPendientes`). Mandar la
    * pregunta entera sería invitar a que el cliente pise un enunciado que el jugador está leyendo.
    * No toca el disco más que para leer: no marca nada, no purga, no sirve nada nuevo.
    * M1 (ola final v0.2b4.1): como mucho `MAX_ACTUALIZADAS`, las más recientes primero.
    * @param {{idsConocidos?: string[], desde?: string}} params `desde` en ISO; sin él, todo lo marcado
-   * @returns {Promise<{id: string, visual: object|null, explicacion: string}[]>}
+   * @returns {Promise<{id: string, imagen: object|null, explicacion: string}[]>}
    */
   async function actualizadas({ idsConocidos = [], desde = null } = {}) {
     const conocidos = new Set(idsConocidos);
@@ -839,7 +848,7 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       // sea lo más antiguo -- es lo que el jugador tiene menos probabilidades de estar mirando.
       .sort((a, b) => new Date(b.actualizadaEn).getTime() - new Date(a.actualizadaEn).getTime())
       .slice(0, MAX_ACTUALIZADAS)
-      .map((p) => ({ id: p.id, visual: p.visual ?? null, explicacion: p.explicacion }));
+      .map((p) => ({ id: p.id, imagen: p.imagen ?? null, explicacion: p.explicacion }));
   }
 
   // Ronda 2 (revisión), punto 1: el borrado de colchon.json también va dentro del mismo cerrojo
@@ -854,6 +863,28 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
       if (actualizado.length !== colchon.length) {
         await almacen.guardarColchon(actualizado);
       }
+    });
+    return { ok: true };
+  }
+
+  /**
+   * v0.3 §7: el jugador marcó la IMAGEN de una pregunta como mala. La pregunta no está mal: se queda
+   * en el colchón, pero sin esa imagen (queda en `imagenesDescartadas` para no repetirla) y de nuevo
+   * pendiente; el trabajo de fondo busca otra. La marca `actualizadaEn` cuenta al móvil que ya no
+   * hay imagen.
+   */
+  async function reportarImagenMala(id) {
+    await almacen.anadirImagenMala?.(id);
+    await almacen.conCerrojo(CERROJO_COLCHON, async () => {
+      const colchon = await almacen.leerColchon();
+      let cambiado = false;
+      const actualizado = colchon.map((p) => {
+        if (p.id !== id) return p;
+        cambiado = true;
+        const descartadas = [...(p.imagenesDescartadas ?? []), ...(p.imagen?.url ? [p.imagen.url] : [])].slice(-20);
+        return { ...p, imagen: null, imagenPendiente: true, intentosImagen: 0, imagenesDescartadas: descartadas, actualizadaEn: new Date().toISOString() };
+      });
+      if (cambiado) await almacen.guardarColchon(actualizado);
     });
     return { ok: true };
   }
@@ -882,9 +913,10 @@ export function crearCola({ almacen, producirTanda, completarVisual = null, opci
     rellenarHaciaObjetivo,
     servir,
     reportar,
+    reportarImagenMala,
     estadisticas,
     segundosPorPregunta,
-    completarVisualesPendientes,
+    completarImagenesPendientes,
     actualizadas,
   };
 }

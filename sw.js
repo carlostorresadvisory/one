@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v25';
+const CACHE = 'one-v26';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -37,6 +37,17 @@ const AVATAR_GESTOS = [
   'avatar/saludo.mp4', 'avatar/pensando.mp4', 'avatar/sorpresa.mp4',
   'avatar/triste.mp4', 'avatar/acierto.mp4', 'avatar/euforia.mp4',
 ];
+
+// Imágenes del banco (imagenes-ia/, imagenes-banco/, imagenes-hub/): NO se precachean; el `fetch` de
+// abajo las guarda al verlas (cualquier GET del mismo origen) y esto acota cuántas se conservan para
+// que la caché no crezca sin fin: al pasar de MAX_IMAGENES_CACHE se borran las más antiguas.
+const CARPETAS_IMAGENES = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
+const MAX_IMAGENES_CACHE = 120;
+
+async function acotarImagenes(cache) {
+  const claves = (await cache.keys()).filter((r) => CARPETAS_IMAGENES.some((c) => new URL(r.url).pathname.includes(c)));
+  for (const clave of claves.slice(0, Math.max(0, claves.length - MAX_IMAGENES_CACHE))) await cache.delete(clave);
+}
 
 self.addEventListener('install', (evento) => {
   evento.waitUntil(
@@ -80,7 +91,12 @@ self.addEventListener('fetch', (evento) => {
       const enCache = await cache.match(evento.request, { ignoreSearch: true });
       const actualizacion = fetch(evento.request)
         .then((respuesta) => {
-          if (respuesta && respuesta.ok) cache.put(claveCache, respuesta.clone());
+          if (respuesta && respuesta.ok) {
+            cache.put(claveCache, respuesta.clone()).then(() => {
+              if (CARPETAS_IMAGENES.some((c) => url.pathname.includes(c))) return acotarImagenes(cache);
+              return undefined;
+            }).catch(() => {});
+          }
           return respuesta;
         })
         .catch(() => null);

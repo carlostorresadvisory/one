@@ -37,7 +37,7 @@ function aprobada(area, n = 1, extra = {}) {
     enunciado: `Enunciado ${area} #${n}`,
     explicacion: 'una explicación corta',
     respuesta: true,
-    visual: null,
+    imagen: null,
     ...extra,
   };
 }
@@ -795,12 +795,12 @@ test('servir (Ronda final, C3): una conocida que nunca había pasado por servir(
   assert.ok(colchon[0].servida, 'se marca servida en cuanto el móvil confirma que ya la conoce');
 });
 
-test('v0.2b4.1 §5: `visualPendiente` llega al cliente; los campos internos del colchón siguen sin salir', async () => {
+test('v0.2b4.1 §5: `imagenPendiente` llega al cliente; los campos internos del colchón siguen sin salir', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
     {
-      ...aprobada('economia', 1, { visual: null, visualPendiente: true }),
+      ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }),
       origen: 'servidor',
       creada: '2026-09-15T10:00:00.000Z',
       servida: null,
@@ -811,7 +811,7 @@ test('v0.2b4.1 §5: `visualPendiente` llega al cliente; los campos internos del 
 
   const [servida] = await cola.servir({ idsConocidos: [], resumen: {}, max: 5 });
 
-  assert.equal(servida.visualPendiente, true, 'el cliente tiene que poder saber que falta el visual');
+  assert.equal(servida.imagenPendiente, true, 'el cliente tiene que poder saber que falta la imagen');
   assert.equal(servida.origen, undefined, 'campo interno del colchón');
   assert.equal(servida.creada, undefined);
   assert.equal(servida.actualizadaEn, undefined, 'la marca de actualización es logística, no contenido');
@@ -1192,70 +1192,70 @@ test('v0.2b4.1 §6: si producirTanda avisa de más preguntas de las del lote, `h
   assert.equal(cola.estadoTrabajo(trabajoId).hechas, 10);
 });
 
-// --- v0.2b4.1 §5: trabajo de fondo que completa visuales pendientes + actualizadas -------------
+// --- v0.2b4.1 §5: trabajo de fondo que completa imágenes pendientes + actualizadas -------------
 
-test('v0.2b4.1 §5: la cola completa los visuales pendientes del colchón y marca actualizadaEn', async () => {
+test('v0.2b4.1 §5: la cola completa las imágenes pendientes del colchón y marca actualizadaEn', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
-    { ...aprobada('historia', 2, { visual: { tipo: 'dato' }, visualPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('historia', 2, { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, imagenPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
 
   const pedidas = [];
-  const completarVisualFalso = async (pregunta) => {
+  const completarImagenFalso = async (pregunta) => {
     pedidas.push(pregunta.id);
-    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'Prueba' }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
 
-  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0), completarVisual: completarVisualFalso });
-  const resultado = await cola.completarVisualesPendientes();
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0), completarImagen: completarImagenFalso });
+  const resultado = await cola.completarImagenesPendientes();
 
   assert.equal(resultado.completadas, 1);
-  assert.equal(pedidas.length, 1, 'solo la que tenía el visual pendiente');
+  assert.equal(pedidas.length, 1, 'solo la que tenía la imagen pendiente');
 
   const colchon = await almacen.leerColchon();
   const completada = colchon.find((p) => p.id === pedidas[0]);
-  assert.equal(completada.visualPendiente, false);
-  assert.equal(completada.visual.tipo, 'formula');
+  assert.equal(completada.imagenPendiente, false);
+  assert.equal(completada.imagen.fuente, 'Commons');
   assert.ok(typeof completada.actualizadaEn === 'string' && completada.actualizadaEn.includes('T'), 'marca ISO');
-  // La otra no se toca: ni visual, ni marca.
+  // La otra no se toca: ni imagen, ni marca.
   const intacta = colchon.find((p) => p.id !== pedidas[0]);
   assert.equal(intacta.actualizadaEn, undefined);
 });
 
-test('v0.2b4.1 §5: si completarVisual no consigue visual, la pregunta sigue pendiente para otra pasada', async () => {
+test('v0.2b4.1 §5: si completarImagen no consigue imagen, la pregunta sigue pendiente para otra pasada', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
   const cola = crearCola({
     almacen,
     producirTanda: async () => resultadoVacio(0),
-    completarVisual: async (p) => ({ visual: null, explicacion: p.explicacion, coste: 0 }),
+    completarImagen: async (p) => ({ imagen: null, explicacion: p.explicacion, coste: 0 }),
   });
 
-  const resultado = await cola.completarVisualesPendientes();
+  const resultado = await cola.completarImagenesPendientes();
 
   assert.equal(resultado.completadas, 0);
   const [p] = await almacen.leerColchon();
-  assert.equal(p.visualPendiente, true, 'sigue en la lista de pendientes');
+  assert.equal(p.imagenPendiente, true, 'sigue en la lista de pendientes');
   assert.equal(p.actualizadaEn, undefined, 'nada cambió, así que no hay nada que anunciar al cliente');
 });
 
-test('v0.2b4.1 §5: sin completarVisual inyectado, completarVisualesPendientes no hace nada (y no rompe)', async () => {
+test('v0.2b4.1 §5: sin completarImagen inyectado, completarImagenesPendientes no hace nada (y no rompe)', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
-  assert.deepEqual(await cola.completarVisualesPendientes(), { completadas: 0, pendientes: 0 });
+  assert.deepEqual(await cola.completarImagenesPendientes(), { completadas: 0, pendientes: 0 });
 });
 
 test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha cambiado desde `desde`', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const base = { servida: '2026-09-15T09:00:00.000Z', creada: '2026-09-15T08:00:00.000Z' };
-  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', visual: { tipo: 'dato' } };
+  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } };
   const vieja = { ...aprobada('economia', 2), ...base, id: 'srv-eco-vieja', actualizadaEn: '2026-09-15T08:30:00.000Z' };
   const desconocida = { ...aprobada('economia', 3), ...base, id: 'srv-eco-ajena', actualizadaEn: '2026-09-15T10:00:00.000Z' };
   const sinMarca = { ...aprobada('economia', 4), ...base, id: 'srv-eco-sinmarca' };
@@ -1268,7 +1268,7 @@ test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha
   });
 
   assert.deepEqual(salida.map((p) => p.id), ['srv-eco-conocida']);
-  assert.deepEqual(salida[0].visual, { tipo: 'dato' });
+  assert.deepEqual(salida[0].imagen, { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 });
   assert.equal(typeof salida[0].explicacion, 'string');
   assert.equal(salida[0].enunciado, undefined, 'solo lo que puede haber cambiado, no la pregunta entera');
 });
@@ -1287,7 +1287,7 @@ test('v0.2b4.1 §5: sin `desde`, `actualizadas` devuelve TODO lo conocido que te
 });
 
 // Ola final v0.2b4.1 (M1): un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y
-// `actualizadas` le devolvía TODAS las que tuvieran marca -- visuales incluidos, que son objetos
+// `actualizadas` le devolvía TODAS las que tuvieran marca -- imágenes incluidos, que son objetos
 // grandes -- en la misma respuesta de `POST /estado`. Tope de 50 y las más recientes primero: lo
 // que no entre sigue teniendo su `actualizadaEn`, así que entra en la sincronización siguiente.
 test('v0.2b4.1 (M1): `actualizadas` devuelve como mucho 50, las más recientes primero', async () => {
@@ -1305,34 +1305,34 @@ test('v0.2b4.1 (M1): `actualizadas` devuelve como mucho 50, las más recientes p
   const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
 
   const salida = await cola.actualizadas({ idsConocidos: colchon.map((p) => p.id) });
-  assert.equal(salida.length, 50, 'tope duro: una respuesta de /estado no puede llevar 70 visuales');
+  assert.equal(salida.length, 50, 'tope duro: una respuesta de /estado no puede llevar 70 imágenes');
   assert.equal(salida[0].id, 'srv-eco-69', 'la más reciente primero');
   assert.equal(salida[49].id, 'srv-eco-20');
   assert.equal(salida.some((p) => p.id === 'srv-eco-00'), false, 'lo más viejo es lo que se queda fuera');
 });
 
-// Autorrevisión (Tarea 4): procesarCola dispara completarVisualesPendientes() DESPUÉS de que su
+// Autorrevisión (Tarea 4): procesarCola dispara completarImagenesPendientes() DESPUÉS de que su
 // `while` se vacíe, y esa llamada puede tardar de verdad (red). `dispararProcesamiento` solo mira
 // el flag `procesando` -- si un trabajo (sobre todo uno urgente, un jugador esperando) llega
-// MIENTRAS completarVisualesPendientes sigue en marcha, `encolar()` lo empuja a la cola pero
+// MIENTRAS completarImagenesPendientes sigue en marcha, `encolar()` lo empuja a la cola pero
 // `dispararProcesamiento()` no hace nada (procesando ya es true) y NADA vuelve a mirar la cola
 // cuando termina -- el trabajo se queda atascado hasta que un encolar() futuro y no relacionado lo
 // destrabe por pura casualidad. Este test demuestra que NO pasa: procesarCola debe recomprobar la
 // cola al terminar el trabajo de fondo y seguir procesando lo que haya llegado mientras tanto.
-test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan visuales pendientes no se queda atascado en la cola', async () => {
+test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan imágenes pendientes no se queda atascado en la cola', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
 
   let soltar;
   const enEspera = new Promise((r) => { soltar = r; });
   let empezoCompletar = false;
-  const completarVisualFalso = async (pregunta) => {
+  const completarImagenFalso = async (pregunta) => {
     empezoCompletar = true;
     await enEspera;
-    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
 
   const cola = crearCola({
@@ -1340,11 +1340,11 @@ test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan visuales pendient
     // El trabajo inicial (n=0) no aprueba nada -- solo sirve para disparar procesarCola. El
     // urgente sí necesita aprobadas de verdad para poder llegar a 'lista'.
     producirTanda: async ({ area, n }) => resultadoOk(area, n, n),
-    completarVisual: completarVisualFalso,
+    completarImagen: completarImagenFalso,
   });
 
   // Trabajo mínimo (0 preguntas pedidas) que termina al instante: al vaciarse la cola justo
-  // después, procesarCola entra en completarVisualesPendientes() y se queda colgado de `enEspera`.
+  // después, procesarCola entra en completarImagenesPendientes() y se queda colgado de `enEspera`.
   cola.encolar({ area: 'economia', n: 0, urgente: false });
   await hastaQue(() => empezoCompletar);
 
@@ -1360,15 +1360,15 @@ test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan visuales pendient
 
 // --- Ronda de corrección 1 (revisión Opus): I1, I2, Minor -------------------------------------
 
-// I1: antes, un urgente que llegaba a mitad de la pasada de visuales pendientes esperaba a que la
-// pasada ENTERA terminara (hasta 10 preguntas secuenciales). Ahora `completarVisualesPendientes`
+// I1: antes, un urgente que llegaba a mitad de la pasada de imágenes pendientes esperaba a que la
+// pasada ENTERA terminara (hasta 10 preguntas secuenciales). Ahora `completarImagenesPendientes`
 // corta el bucle ENTRE preguntas en cuanto ve un urgente en cola -- el urgente solo espera al
-// visual que ya estaba en curso, nunca al resto de la pasada.
-test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de visuales se atiende sin esperar a que termine toda la pasada', async () => {
+// imagen que ya estaba en curso, nunca al resto de la pasada.
+test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de imágenes se atiende sin esperar a que termine toda la pasada', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const pendientes = Array.from({ length: 5 }, (_, i) => ({
-    ...aprobada('economia', i, { visual: null, visualPendiente: true }),
+    ...aprobada('economia', i, { imagen: null, imagenPendiente: true }),
     servida: null,
     creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
   }));
@@ -1377,68 +1377,68 @@ test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de visuales se a
   const eventos = [];
   let soltar;
   const enEspera = new Promise((r) => { soltar = r; });
-  let cola; // referenciada desde dentro de completarVisualFalso, asignada más abajo
+  let cola; // referenciada desde dentro de completarImagenFalso, asignada más abajo
 
-  const completarVisualFalso = async (pregunta) => {
-    eventos.push(`visual:${pregunta.id}`);
+  const completarImagenFalso = async (pregunta) => {
+    eventos.push(`imagen:${pregunta.id}`);
     if (eventos.length === 1) {
       // Mientras se procesa la 1ª pendiente, llega un urgente real (un jugador esperando).
       cola.encolar({ area: 'historia', n: 1, urgente: true });
       await enEspera; // no deja avanzar a la 2ª pendiente hasta que el test lo permita
     }
-    return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
   const producirTandaFalso = async ({ area, n }) => {
     if (area === 'historia') eventos.push('urgente:historia');
     return resultadoOk(area, n, n);
   };
 
-  cola = crearCola({ almacen, producirTanda: producirTandaFalso, completarVisual: completarVisualFalso });
+  cola = crearCola({ almacen, producirTanda: producirTandaFalso, completarImagen: completarImagenFalso });
 
   cola.encolar({ area: 'economia', n: 0, urgente: false }); // dispara la pasada de fondo
-  await hastaQue(() => eventos.includes(`visual:${pendientes[0].id}`));
+  await hastaQue(() => eventos.includes(`imagen:${pendientes[0].id}`));
 
-  // El urgente ya está encolado (dentro de completarVisualFalso) pero la pasada sigue bloqueada en
+  // El urgente ya está encolado (dentro de completarImagenFalso) pero la pasada sigue bloqueada en
   // el `await enEspera` de la 1ª pendiente -- todavía no debería haberse procesado.
   assert.ok(!eventos.includes('urgente:historia'), 'el urgente no debe procesarse mientras la 1ª pendiente sigue en curso');
 
-  soltar(); // termina el completarVisual de la 1ª pendiente -- el bucle debe cortarse aquí (I1)
+  soltar(); // termina el completarImagen de la 1ª pendiente -- el bucle debe cortarse aquí (I1)
 
   await hastaQue(() => eventos.includes('urgente:historia'));
   const indiceUrgente = eventos.indexOf('urgente:historia');
-  const indiceSegundaPendiente = eventos.indexOf(`visual:${pendientes[1].id}`);
+  const indiceSegundaPendiente = eventos.indexOf(`imagen:${pendientes[1].id}`);
   assert.equal(indiceSegundaPendiente, -1, 'el bucle se corta tras la 1ª: la 2ª pendiente no debe llegar a intentarse');
   assert.ok(indiceUrgente >= 0, 'el urgente sí debe procesarse');
 });
 
-// I2: sin límite de reintentos, un visual que nunca sale se reintentaba para siempre. A partir de
+// I2: sin límite de reintentos, un imagen que nunca sale se reintentaba para siempre. A partir de
 // MAX_INTENTOS_VISUAL (3) intentos fallidos, la pregunta se rinde: deja de estar pendiente (se
-// queda sin visual, igual que una rechazada por el verificador) y deja de elegirse.
+// queda sin imagen, igual que una rechazada por el verificador) y deja de elegirse.
 test('v0.2b4.1 §5 (I2): tras 3 pasadas fallidas, la pregunta deja de estar pendiente (se rinde)', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
   const cola = crearCola({
     almacen,
     producirTanda: async () => resultadoVacio(0),
-    completarVisual: async (p) => ({ visual: null, explicacion: p.explicacion, coste: 0 }),
+    completarImagen: async (p) => ({ imagen: null, explicacion: p.explicacion, coste: 0 }),
   });
 
   for (let i = 0; i < 3; i++) {
     // eslint-disable-next-line no-await-in-loop
-    await cola.completarVisualesPendientes();
+    await cola.completarImagenesPendientes();
   }
 
   const [p] = await almacen.leerColchon();
-  assert.equal(p.visualPendiente, false, 'se rinde tras agotar los intentos');
-  assert.equal(p.visual, null, 'nunca llegó a tener visual');
-  assert.equal(p.intentosVisual, 3);
+  assert.equal(p.imagenPendiente, false, 'se rinde tras agotar los intentos');
+  assert.equal(p.imagen, null, 'nunca llegó a tener imagen');
+  assert.equal(p.intentosImagen, 3);
 
   // Una pasada más no la vuelve a tocar (ya no es "pendiente": el filtro de arriba la descarta).
   const antes = await almacen.leerColchon();
-  const resultado = await cola.completarVisualesPendientes();
+  const resultado = await cola.completarImagenesPendientes();
   assert.equal(resultado.completadas, 0);
   assert.equal(resultado.pendientes, 0);
   assert.deepEqual(await almacen.leerColchon(), antes);
@@ -1446,12 +1446,12 @@ test('v0.2b4.1 §5 (I2): tras 3 pasadas fallidas, la pregunta deja de estar pend
 
 // I2 (rotación): con más pendientes que el tope de una pasada, las que se quedaron fuera (y las
 // que nunca se han intentado) entran con prioridad en la pasada siguiente frente a las que ya
-// fallaron una vez -- por eso se ordena por `intentosVisual` ascendente antes de recortar a `max`.
+// fallaron una vez -- por eso se ordena por `intentosImagen` ascendente antes de recortar a `max`.
 test('v0.2b4.1 §5 (I2, rotación): con 12 pendientes y tope 10, la 11ª y 12ª se intentan en la pasada siguiente', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const doce = Array.from({ length: 12 }, (_, i) => ({
-    ...aprobada('economia', i, { visual: null, visualPendiente: true }),
+    ...aprobada('economia', i, { imagen: null, imagenPendiente: true }),
     servida: null,
     creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
   }));
@@ -1462,18 +1462,18 @@ test('v0.2b4.1 §5 (I2, rotación): con 12 pendientes y tope 10, la 11ª y 12ª 
   const cola = crearCola({
     almacen,
     producirTanda: async () => resultadoVacio(0),
-    // Todas fallan (visual: null) -- así ninguna sale de "pendiente" y se puede comprobar la
+    // Todas fallan (imagen: null) -- así ninguna sale de "pendiente" y se puede comprobar la
     // rotación (si alguna tuviera éxito, dejaría de competir por hueco en la pasada siguiente).
-    completarVisual: async (p) => {
+    completarImagen: async (p) => {
       pedidas.push(p.id);
-      return { visual: null, explicacion: p.explicacion, coste: 0 };
+      return { imagen: null, explicacion: p.explicacion, coste: 0 };
     },
   });
 
-  await cola.completarVisualesPendientes(); // pasada 1: las 10 más antiguas (índices 0-9)
+  await cola.completarImagenesPendientes(); // pasada 1: las 10 más antiguas (índices 0-9)
   pedidasPorPasada.push(pedidas);
   pedidas = [];
-  await cola.completarVisualesPendientes(); // pasada 2: deben entrar la 11ª y 12ª (nunca intentadas)
+  await cola.completarImagenesPendientes(); // pasada 2: deben entrar la 11ª y 12ª (nunca intentadas)
   pedidasPorPasada.push(pedidas);
 
   assert.equal(pedidasPorPasada[0].length, 10);
@@ -1485,11 +1485,11 @@ test('v0.2b4.1 §5 (I2, rotación): con 12 pendientes y tope 10, la 11ª y 12ª 
 
 // Minor (ronda de corrección 1): antes, "no hay nada pendiente" y "ya hay una pasada en marcha"
 // devolvían exactamente lo mismo ({completadas:0, pendientes:0}) -- indistinguibles desde fuera.
-test('v0.2b4.1 §5 (Minor): completarVisualesPendientes() reentrante devuelve un resultado distinguible de "nada pendiente"', async () => {
+test('v0.2b4.1 §5 (Minor): completarImagenesPendientes() reentrante devuelve un resultado distinguible de "nada pendiente"', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { visual: null, visualPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
   let soltar;
   const enEspera = new Promise((r) => { soltar = r; });
@@ -1497,20 +1497,61 @@ test('v0.2b4.1 §5 (Minor): completarVisualesPendientes() reentrante devuelve un
   const cola = crearCola({
     almacen,
     producirTanda: async () => resultadoVacio(0),
-    completarVisual: async (p) => {
+    completarImagen: async (p) => {
       entro = true;
       await enEspera;
-      return { visual: { tipo: 'formula', texto: 'a = b', leyenda: 'x' }, explicacion: p.explicacion, coste: 0 };
+      return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: p.explicacion, coste: 0 };
     },
   });
 
-  const primera = cola.completarVisualesPendientes();
+  const primera = cola.completarImagenesPendientes();
   await hastaQue(() => entro);
 
-  const reentrante = await cola.completarVisualesPendientes();
+  const reentrante = await cola.completarImagenesPendientes();
   assert.deepEqual(reentrante, { completadas: 0, pendientes: null, enCurso: true });
 
   soltar();
   const resultado = await primera;
   assert.equal(resultado.completadas, 1);
+});
+
+// === v0.3 §7: imagen mala y migración de visualPendiente ==========================================
+
+test('reportarImagenMala: la pregunta se queda, sin imagen, pendiente, con la imagen descartada y marcada como actualizada', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(5) });
+  const imagen = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 };
+  await almacen.guardarColchon([{ id: 'srv-eco-1', area: 'economia', imagen, creada: '2026-01-01T00:00:00.000Z', servida: null, intentosImagen: 2 }]);
+
+  await cola.reportarImagenMala('srv-eco-1');
+
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagen, null);
+  assert.equal(p.imagenPendiente, true);
+  assert.equal(p.intentosImagen, 0, 'vuelve a tener todos sus intentos');
+  assert.deepEqual(p.imagenesDescartadas, [imagen.url]);
+  assert.equal(typeof p.actualizadaEn, 'string');
+  assert.deepEqual(await almacen.leerReportadas(), []);
+});
+
+test('migración: una pregunta vieja con visualPendiente se sirve como imagenPendiente y el trabajo de fondo la completa', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([{ id: 'srv-eco-1', area: 'economia', visual: null, visualPendiente: true, creada: '2026-01-01T00:00:00.000Z', servida: null }]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async () => ({ imagen: { url: '/imagenes/srv-eco-1.webp', fuente: 'IA', nota: null } }),
+  });
+
+  const [servida] = await cola.servir({ idsConocidos: [], resumen: {}, max: 1 });
+  assert.equal(servida.imagenPendiente, true);
+
+  const r = await cola.completarImagenesPendientes();
+  assert.equal(r.completadas, 1);
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagenPendiente, false);
+  assert.equal('visualPendiente' in p, false);
+  assert.equal(p.imagen.fuente, 'IA');
 });

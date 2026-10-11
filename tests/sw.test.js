@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v25', () => {
-  assert.match(sw, /const CACHE = 'one-v25';/);
+test('sw: caché one-v26', () => {
+  assert.match(sw, /const CACHE = 'one-v26';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -52,4 +52,12 @@ test('sw: se precachea el reposo, las anclas y las imágenes fijas; los gestos s
   for (const g of gestos) assert.ok(!avatar.includes(g), `${g} no se precachea`);
   assert.match(sw, /\.\.\.SECUNDARIOS, \.\.\.AVATAR\]/);
   assert.doesNotMatch(sw, /AVATAR_GESTOS\.map|addAll\(\[[^\]]*AVATAR_GESTOS/);
+});
+
+test('sw: las imágenes del banco no se precachean pero se cachean al verlas, con tope', () => {
+  const precacheadas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')];
+  assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco|hub)\//.test(r)), 'ninguna imagen del banco en el precaché');
+  assert.ok(lista('SECUNDARIOS').includes('datos/imagenes.json'));
+  assert.match(sw, /cache\.put\(claveCache/, 'el fetch guarda cualquier GET del mismo origen');
+  assert.match(sw, /MAX_IMAGENES_CACHE = \d+/);
 });

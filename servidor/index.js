@@ -20,7 +20,8 @@ import { AREAS } from '../tools/validar-banco.js';
 import { HILOS_POR_AREA, textoCriterio } from '../tools/criterio.js';
 import { crearAlmacen } from './almacen.js';
 import { crearCola } from './cola.js';
-import { producirTanda, completarVisual } from './generacion.js';
+import { producirTanda, completarImagen } from './generacion.js';
+import { crearResolvedorReal } from './imagenes.js';
 
 const require = createRequire(import.meta.url);
 
@@ -504,7 +505,7 @@ export function crearServidor({
     // Ronda de corrección 1 (I1): el reloj del servidor, capturado LO ANTES POSIBLE -- antes de
     // `cola.servir()` y, sobre todo, antes de `cola.actualizadas()` (la única línea que importa de
     // verdad para esta garantía). El móvil lo guardará como su próxima marca de agua en vez de su
-    // propio reloj: así una actualización que `completarVisualesPendientes` marque DESPUÉS de este
+    // propio reloj: así una actualización que `completarImagenesPendientes` marque DESPUÉS de este
     // punto -- incluso a mitad de esta misma petición -- queda con `actualizadaEn` posterior a
     // `ahora`, y la próxima sincronización (que pedirá `desde: ahora`) la sigue viendo. Capturarlo
     // más tarde (p. ej. justo antes de responder) dejaría un hueco: una escritura que ocurriera
@@ -545,10 +546,10 @@ export function crearServidor({
     });
 
     // v0.2b4.1 §5: y de paso se empuja el trabajo de fondo de los visuales pendientes. La cola lo
-    // ignora si ya hay uno en marcha o si no hay nada pendiente (ver completarVisualesPendientes),
+    // ignora si ya hay uno en marcha o si no hay nada pendiente (ver completarImagenesPendientes),
     // así que es barato pedirlo aquí: sin este empujón, un colchón con visuales a medias esperaría
     // a que el trabajador se quedara sin trabajos por su cuenta (procesarCola).
-    cola.completarVisualesPendientes?.().catch((err) => {
+    cola.completarImagenesPendientes?.().catch((err) => {
       console.error(`servidor: fallo al completar visuales pendientes desde /estado: ${err?.message || err}`);
     });
   }
@@ -742,7 +743,8 @@ export function crearServidor({
     // Ronda final (revisión, 14-sep-2026) -- Menor (M6): el motivo se guarda junto al id (recortado
     // a 200 caracteres dentro de almacen.js) -- antes se aceptaba en el body y se descartaba.
     const motivo = typeof cuerpo.motivo === 'string' ? cuerpo.motivo : undefined;
-    const resultado = await cola.reportar(cuerpo.id, motivo);
+    // v0.3 §7: «imagen mala» no es «pregunta mala»: la pregunta sigue sirviéndose, sin esa imagen.
+    const resultado = motivo === 'imagen-mala' ? await cola.reportarImagenMala(cuerpo.id) : await cola.reportar(cuerpo.id, motivo);
     responderJson(res, 200, resultado);
   }
 
@@ -784,6 +786,22 @@ export function crearServidor({
 
     if (req.method === 'GET' && ruta === '/salud') {
       await manejarSalud(req, res);
+      return;
+    }
+
+    // v0.3 §7: las WebP de las imágenes (IA y bancos libres) son públicas -- un <img> no puede mandar
+    // la cabecera de autorización -- y su nombre solo admite letras, cifras y guiones (nada de rutas).
+    const coincideImagen = req.method === 'GET' ? ruta.match(/^\/imagenes\/([\w-]{1,64})\.webp$/) : null;
+    if (coincideImagen) {
+      let contenido;
+      try {
+        contenido = await readFile(path.join(rutaDatos, 'imagenes', `${coincideImagen[1]}.webp`));
+      } catch {
+        responderError(res, 404, 'Imagen no encontrada');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'image/webp', 'Content-Length': contenido.length, 'Cache-Control': 'public, max-age=86400' });
+      res.end(contenido);
       return;
     }
 
@@ -885,10 +903,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
 
   const almacenReal = crearAlmacen(rutaDatos);
+  // v0.3 §7: búsqueda de imagen (Commons -> bancos libres -> IA) con las WebP en <RUTA_DATOS>/imagenes.
+  const resolverImagen = crearResolvedorReal({ rutaDatos });
   const colaReal = crearCola({
     almacen: almacenReal,
-    producirTanda,
-    completarVisual,
+    producirTanda: (params, opcionesTanda) => producirTanda(params, { ...opcionesTanda, resolverImagen }),
+    completarImagen: (pregunta, opcionesFondo) => completarImagen(pregunta, { ...opcionesFondo, resolverImagen }),
     opciones: { permitirPago, topeEur, rutaLog: path.join(rutaDatos, 'llamadas.log') },
   });
 

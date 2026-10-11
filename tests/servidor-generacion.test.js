@@ -13,20 +13,14 @@ import {
   VERIFICADOR_PREGUNTAS_SOLO_PAGO,
   enParalelo,
   MAX_LOTES_EN_VUELO,
-  MAX_VISUALES_EN_VUELO,
-  completarVisual,
+  MAX_IMAGENES_EN_VUELO,
+  completarImagen,
   TIMEOUT_LLAMADA_URGENTE_MS,
   intercalarPagoBarato,
   conLimite,
 } from '../servidor/generacion.js';
 import { MODELOS, esModeloGratis, llamar as llamarReal } from '../tools/openrouter.js';
 import { crearRegistroCuota } from '../tools/cuota.js';
-import {
-  GENERADOR_SOLO_PAGO,
-  VERIFICADOR_SOLO_PAGO,
-  GENERADOR_VISUAL_FONDO,
-  VERIFICADOR_VISUAL_FONDO,
-} from '../tools/visualizar.js';
 import { validarPregunta } from '../tools/validar-banco.js';
 import { EJEMPLOS, promptUsuarioVF, promptSistemaGenerador } from '../tools/prompts-preguntas.js';
 import { MEZCLA } from '../motor.js';
@@ -649,8 +643,6 @@ const VEREDICTO_OK_POR_DEFECTO = { correcta: true, unica: true, inequivoca: true
 function crearLlamarPipeline({
   preguntasPorTipo = {},
   veredictoPorEnunciado = () => VEREDICTO_OK_POR_DEFECTO,
-  visual = { tipo: 'dato', cifra: '3', texto: 'x', leyenda: 'y', fuente: 'INE 2024' },
-  fallaVisual = false,
 } = {}) {
   const registro = [];
   const colas = {};
@@ -678,34 +670,33 @@ function crearLlamarPipeline({
       return { texto: JSON.stringify({ resultados }), modelo: modelos[0], coste: 0.00003, usage: {} };
     }
 
-    if (sistema.includes('Tu tarea ahora NO es generar preguntas nuevas')) {
-      // Paso 4a: generarVisualYExplicacion (dentro de resolverPregunta).
-      if (fallaVisual === 'excepcion') throw new Error('cascada de visuales agotada');
-      return {
-        texto: JSON.stringify({ explicacion: 'Explicación corta y verificable con mecanismo real.', visual }),
-        modelo: modelos[0],
-        coste: 0.00002,
-        usage: {},
-      };
-    }
-
-    if (sistema.includes('Verificas, de forma ESCÉPTICA')) {
-      // Paso 4b: verificarVisualYExplicacion (dentro de resolverPregunta).
-      return {
-        texto: JSON.stringify({
-          explicacionOk: true,
-          visualOk: fallaVisual !== 'rechazo',
-          motivo: fallaVisual === 'rechazo' ? 'cifra no reproducible' : '',
-        }),
-        modelo: modelos[0],
-        coste: 0.00001,
-        usage: {},
-      };
-    }
-
     throw new Error(`crearLlamarPipeline: prompt de sistema no reconocido: ${sistema.slice(0, 60)}`);
   };
   return { llamar, registro };
+}
+
+// v0.3 §7: resolverImagen falso (servidor/imagenes.js hace la red de verdad). `espera(i)` = ms que
+// tarda la i-ésima llamada; `resultado(pregunta)` decide qué devuelve; mide la concurrencia.
+const IMAGEN_PRUEBA = { url: 'https://upload.wikimedia.org/x.jpg', pagina: 'https://commons.wikimedia.org/wiki/File:x.jpg', titulo: 'x', autor: 'A', licencia: 'CC BY 4.0', fuente: 'Commons', nota: 5 };
+
+function crearResolverImagen({ espera = () => 0, resultado = () => ({ imagen: IMAGEN_PRUEBA }) } = {}) {
+  const llamadas = [];
+  let enVuelo = 0;
+  let maxEnVuelo = 0;
+  const resolver = async (pregunta, opciones) => {
+    const i = llamadas.length;
+    llamadas.push({ pregunta, opciones });
+    enVuelo += 1;
+    maxEnVuelo = Math.max(maxEnVuelo, enVuelo);
+    try {
+      const ms = espera(i);
+      if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+      return resultado(pregunta);
+    } finally {
+      enVuelo -= 1;
+    }
+  };
+  return { resolver, llamadas, maxEnVuelo: () => maxEnVuelo };
 }
 
 // n=1 -> repartoPorTipo da {test4:1, resto 0} (ver tests de repartoPorTipo más arriba), así que las
@@ -858,22 +849,20 @@ test('producirTanda: descarta lo rechazado por el verificador y lo que no pasa v
   assert.match(rechazoValidacion.motivo, /nivel/);
 });
 
-test('producirTanda: incluye el visual de resolverPregunta en las aprobadas', async () => {
+test('producirTanda: incluye la imagen de resolverImagen en las aprobadas', async () => {
   const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen();
 
-  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, resolverImagen: resolver });
 
   assert.equal(resultado.aprobadas.length, 1);
   const [p] = resultado.aprobadas;
-  assert.equal(p.visual.tipo, 'dato');
+  assert.equal(p.imagen.fuente, 'Commons');
+  assert.equal(p.imagenPendiente, false);
   assert.ok(validarPregunta(p).length === 0, `la aprobada debe ser válida: ${validarPregunta(p).join('; ')}`);
 });
 
-// v0.2b4 §6b: producirTanda llama a resolverPregunta con saltarAcortado:true -- el borrador que
-// acaba de salir del generador de preguntas (y que ya pasó verificarBorradores) ya cumple el límite
-// de 25-40 palabras (preguntaGenerica produce "Explicación N con mecanismo real.", 5 palabras), así
-// que resolverPregunta NO debe gastar una llamada en reescribirla: la aprobada conserva la
-// explicación original tal cual, aunque el `llamar` falso del paso de visual devuelva otra distinta.
+// v0.3 §7: el paso de imagen ya no toca la explicación: la aprobada conserva la del borrador.
 test('v0.2b4 §6b: producirTanda no reescribe una explicación que ya cumple el límite de palabras', async () => {
   const { llamar } = crearLlamarPipeline({});
 
@@ -881,8 +870,7 @@ test('v0.2b4 §6b: producirTanda no reescribe una explicación que ya cumple el 
 
   assert.equal(resultado.aprobadas.length, 1);
   const [p] = resultado.aprobadas;
-  assert.match(p.explicacion, /^Explicación \d+ con mecanismo real\.$/, 'conserva la explicación del borrador, no la del mock de visual');
-  assert.notEqual(p.explicacion, 'Explicación corta y verificable con mecanismo real.');
+  assert.match(p.explicacion, /^Explicación \d+ con mecanismo real\.$/, 'conserva la explicación del borrador');
 });
 
 // Ronda final (revisión, 14-sep-2026) -- Menor (M5): la confianza del verificador se copia a la
@@ -896,25 +884,36 @@ test('producirTanda (M5): copia la confianza del verificador a la pregunta aprob
   assert.equal(resultado.aprobadas[0].confianza, 0.87);
 });
 
-test('producirTanda: tolera visual null cuando el verificador de visual lo rechaza', async () => {
-  const { llamar } = crearLlamarPipeline({ fallaVisual: 'rechazo' });
+test('producirTanda: sin imagen buena la pregunta entra igual, con imagenPendiente (nunca bloquea)', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen({ resultado: () => ({ imagen: null }) });
 
-  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, resolverImagen: resolver });
 
   assert.equal(resultado.aprobadas.length, 1);
-  assert.equal(resultado.aprobadas[0].visual, null);
+  assert.equal(resultado.aprobadas[0].imagen, null);
+  assert.equal(resultado.aprobadas[0].imagenPendiente, true);
   assert.ok(validarPregunta(resultado.aprobadas[0]).length === 0);
 });
 
-test('producirTanda: si resolverPregunta lanza (cascada de visuales agotada), la pregunta entra igual sin visual', async () => {
+test('producirTanda: si resolverImagen lanza, la pregunta entra igual sin imagen y conserva su explicación', async () => {
   const preguntasPorTipo = { test4: [preguntaGenerica('test4', 0, { explicacion: 'explicación original' })] };
-  const { llamar } = crearLlamarPipeline({ preguntasPorTipo, fallaVisual: 'excepcion' });
+  const { llamar } = crearLlamarPipeline({ preguntasPorTipo });
+  const resolver = async () => { throw new Error('bancos caídos'); };
 
-  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, resolverImagen: resolver });
 
   assert.equal(resultado.aprobadas.length, 1);
-  assert.equal(resultado.aprobadas[0].visual, null);
-  assert.equal(resultado.aprobadas[0].explicacion, 'explicación original', 'sin resolverPregunta, conserva la explicación del borrador');
+  assert.equal(resultado.aprobadas[0].imagen, null);
+  assert.equal(resultado.aprobadas[0].imagenPendiente, true);
+  assert.equal(resultado.aprobadas[0].explicacion, 'explicación original');
+});
+
+test('producirTanda: sin resolverImagen configurado no hay paso de imagen ni pendiente', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
+  assert.equal(resultado.aprobadas[0].imagen, null);
+  assert.equal(resultado.aprobadas[0].imagenPendiente, false);
 });
 
 test('producirTanda: suma el coste de generación, verificación y resolución', async () => {
@@ -922,18 +921,15 @@ test('producirTanda: suma el coste de generación, verificación y resolución',
 
   const resultado = await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar });
 
-  // 0.0001 (generación) + 0.00003 (verificación) + 0.00002 (visual generador) + 0.00001 (visual verificador)
+  // 0.0001 (generación) + 0.00003 (verificación): la imagen no cuesta nada (bancos libres y modelos gratis)
   assert.ok(resultado.coste > 0.0001, `coste debería sumar varias llamadas, fue ${resultado.coste}`);
-  assert.ok(Math.abs(resultado.coste - (0.0001 + 0.00003 + 0.00002 + 0.00001)) < 1e-9);
+  assert.ok(Math.abs(resultado.coste - (0.0001 + 0.00003)) < 1e-9);
 });
 
 test('producirTanda: con permitirPago=false, nunca pasa un modelo de pago a llamar al generar/verificar preguntas', async () => {
   // Alcance de esta comprobación: generarBorradores/verificarBorradores (código nuevo de esta
   // tarea) filtran la cascada a solo modelos gratis (esModeloGratis: ':free' o "gemini:*") antes
-  // de llamar (ver filtrarPorPago en servidor/generacion.js). El paso de visual (resolverPregunta, tools/visualizar.js, ya
-  // existente y fuera de esta tarea) NO filtra por su cuenta -- confía, como siempre, en que
-  // tools/openrouter.js#llamar se salte cada modelo de pago uno a uno; eso ya está cubierto por
-  // los tests de visualizar.test.js y no se toca aquí.
+  // de llamar (ver filtrarPorPago en servidor/generacion.js).
   const { llamar, registro } = crearLlamarPipeline({});
 
   await producirTanda({ area: 'economia', ruta: [], n: 1 }, { llamar, permitirPago: false });
@@ -969,8 +965,6 @@ test('producirTanda: con urgente + permitirPago=true, intercala el pago barato t
   };
   assert.ok(cascadasVistas.some((c) => bienIntercalada(c, GENERADOR_PREGUNTAS_SOLO_PAGO)), 'generación de preguntas');
   assert.ok(cascadasVistas.some((c) => bienIntercalada(c, VERIFICADOR_PREGUNTAS_SOLO_PAGO)), 'verificación de preguntas');
-  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, GENERADOR_SOLO_PAGO)), 'generación del visual');
-  assert.ok(cascadasVistas.some((c) => bienIntercalada(c, VERIFICADOR_SOLO_PAGO)), 'verificación del visual');
 });
 
 test('intercalarPagoBarato: el pago va tras los gratis rápidos y antes del primer lento; sin lentos, al final', () => {
@@ -993,10 +987,6 @@ test('v0.2b4.1 §3: una tanda urgente usa las cascadas rápidas y una de fondo l
   const verFondo = fondo.registro.find((r) => r.sistema.includes('verificador escéptico de preguntas'));
   // El verificador excluye al modelo que generó, así que se compara contra la cascada ya filtrada.
   assert.deepEqual(verFondo.modelos, MODELOS.verificadorFondo.filter((m) => m !== genFondo.modelos[0]));
-
-  // Y el paso de visual también cambia de cascada según urgencia.
-  const visualFondo = fondo.registro.find((r) => r.sistema.includes('visual'));
-  assert.equal(visualFondo.modelos[0], GENERADOR_VISUAL_FONDO[0]);
 });
 
 // REESCRITO (v0.2b4.1 §3, excepción declarada en Global Constraints): antes afirmaba que sin
@@ -1058,7 +1048,7 @@ test('v0.2b4.1 §4: los lotes de generación por tipo van en PARALELO, con tope 
 
   assert.ok(resultado.aprobadas.length > 0, 'la tanda sigue produciendo preguntas');
   assert.ok(medida.max > 1, 'secuencial: los cuatro tipos deben solaparse');
-  assert.ok(medida.max <= MAX_VISUALES_EN_VUELO, 'nunca por encima del tope mayor del pipeline');
+  assert.ok(medida.max <= MAX_IMAGENES_EN_VUELO, 'nunca por encima del tope mayor del pipeline');
 });
 
 test('v0.2b4.1 §4: enParalelo respeta el tope y conserva el ORDEN de los resultados', async () => {
@@ -1112,34 +1102,17 @@ test('v0.2b4.1 §4 (M5): enParalelo con tope no numérico (NaN) se trata como 1,
   assert.deepEqual(salida, [{ ok: true, valor: 1 }, { ok: true, valor: 2 }, { ok: true, valor: 3 }]);
 });
 
-test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuelo y sin pausa entre preguntas', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  let visualesEnVuelo = 0;
-  let maxVisuales = 0;
-  const llamar = async (opciones) => {
-    const esVisual = opciones.mensajes[0].content.includes('visual');
-    if (esVisual) {
-      visualesEnVuelo += 1;
-      maxVisuales = Math.max(maxVisuales, visualesEnVuelo);
-    }
-    try {
-      await new Promise((r) => setTimeout(r, 15));
-      return base(opciones);
-    } finally {
-      if (esVisual) visualesEnVuelo -= 1;
-    }
-  };
+test('v0.3 §7: las imágenes se resuelven en PARALELO, con tope de 5 en vuelo y sin pausa entre preguntas', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver, maxEnVuelo } = crearResolverImagen({ espera: () => 15 });
 
   const inicio = Date.now();
-  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar, urgente: true });
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 10 }, { llamar, urgente: true, resolverImagen: resolver });
   const duracion = Date.now() - inicio;
 
   assert.equal(resultado.aprobadas.length, 10);
-  assert.ok(maxVisuales > 1, 'los visuales deben solaparse');
-  assert.ok(maxVisuales <= MAX_VISUALES_EN_VUELO, `tope de ${MAX_VISUALES_EN_VUELO} en vuelo`);
-  // Sin paralelismo ni pausa serían >= 20 llamadas x 15 ms = 300 ms; con la pausa de 1 s por
-  // pregunta que la spec manda quitar, más de 10 s. El margen es amplio a propósito: mide que NO
-  // hay serialización oculta, no una latencia concreta.
+  assert.ok(maxEnVuelo() > 1, 'las búsquedas de imagen deben solaparse');
+  assert.ok(maxEnVuelo() <= MAX_IMAGENES_EN_VUELO, `tope de ${MAX_IMAGENES_EN_VUELO} en vuelo`);
   assert.ok(duracion < 2000, `una tanda de 10 con dobles de 15 ms no puede tardar ${duracion} ms`);
 });
 
@@ -1148,22 +1121,14 @@ test('v0.2b4.1 §4: los visuales se resuelven en PARALELO, con tope de 5 en vuel
 // TODOS juntos al terminar el lote entero -- el bug real que encontró la revisión. Ahora también se
 // mide EN QUÉ MOMENTO llega cada aviso, con resoluciones que terminan en ticks distintos.
 test('v0.2b4.1 §6: producirTanda avisa por cada pregunta resuelta, no por lote (y en tiempo real, no al final)', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  let contadorVisual = 0;
-  const llamar = async (opciones) => {
-    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
-    if (esGeneradorVisual) {
-      const i = contadorVisual++;
-      await new Promise((r) => setTimeout(r, i * 25)); // ticks distintos: 0, 25, 50, 75, 100 ms
-    }
-    return base(opciones);
-  };
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen({ espera: (i) => i * 25 }); // ticks distintos: 0, 25, 50, 75, 100 ms
 
   const avisos = [];
   const inicio = Date.now();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 5 },
-    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
+    { llamar, resolverImagen: resolver, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
   );
   assert.equal(avisos.length, resultado.aprobadas.length, 'un aviso por aprobada');
   assert.deepEqual(avisos.map((a) => a.verificadas), avisos.map((_, i) => i + 1), '1, 2, 3... nunca saltos');
@@ -1220,22 +1185,14 @@ test('v0.2b4.1 §4 (I1): una tanda de FONDO procesa secuencial (tope 1); una URG
 // (stagger creciente por orden de llamada) y comprueba que los avisos llegan repartidos en el
 // tiempo, no todos juntos al final.
 test('v0.2b4.1 §6 (I2): onProgreso llega en tiempo real, según cada candidata va terminando -- no todo junto al final', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  let contadorVisual = 0;
-  const llamar = async (opciones) => {
-    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
-    if (esGeneradorVisual) {
-      const i = contadorVisual++;
-      await new Promise((r) => setTimeout(r, i * 30)); // ticks distintos: 0, 30, 60, 90, 120 ms
-    }
-    return base(opciones);
-  };
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen({ espera: (i) => i * 30 }); // ticks distintos: 0, 30, 60, 90, 120 ms
 
   const avisos = [];
   const inicio = Date.now();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 5 },
-    { llamar, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
+    { llamar, resolverImagen: resolver, urgente: true, onProgreso: (p) => avisos.push({ ...p, enMs: Date.now() - inicio }) },
   );
 
   assert.equal(resultado.aprobadas.length, 5);
@@ -1250,85 +1207,75 @@ test('v0.2b4.1 §6 (I2): onProgreso llega en tiempo real, según cada candidata 
   assert.ok(ultimo - primero > 40, `los avisos deben repartirse en el tiempo, no llegar todos juntos (rango medido: ${ultimo - primero} ms)`);
 });
 
-// --- v0.2b4.1 §5: el visual deja de bloquear (timeout, visualPendiente, completarVisual) --------
+// --- v0.3 §7: la imagen no bloquea (timeout, imagenPendiente, completarImagen) ------------------
 
-test('v0.2b4.1 §5: un visual que tarda más de la cuenta NO retiene la pregunta: sale con visualPendiente', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  const llamar = async (opciones) => {
-    // Solo el paso de visual se queda colgado; generar y verificar preguntas responden normal.
-    if (opciones.mensajes[0].content.includes('visual')) {
-      await new Promise((r) => setTimeout(r, 200));
-    }
-    return base(opciones);
-  };
+test('v0.3 §7: una imagen que tarda más de la cuenta NO retiene la pregunta: sale con imagenPendiente y se aborta la búsqueda', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver, llamadas } = crearResolverImagen({ espera: () => 200 });
 
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 2 },
-    { llamar, urgente: true, timeoutVisualMs: 30 },
+    { llamar, urgente: true, timeoutImagenMs: 30, resolverImagen: resolver },
   );
 
-  assert.equal(resultado.aprobadas.length, 2, 'las preguntas salen igual: el visual es opcional');
+  assert.equal(resultado.aprobadas.length, 2, 'las preguntas salen igual: la imagen es opcional');
   for (const p of resultado.aprobadas) {
-    assert.equal(p.visual, null);
-    assert.equal(p.visualPendiente, true, 'marcada para que el trabajo de fondo la complete');
+    assert.equal(p.imagen, null);
+    assert.equal(p.imagenPendiente, true, 'marcada para que el trabajo de fondo la complete');
   }
+  assert.ok(llamadas.every((l) => l.opciones.signal?.aborted === true), 'la señal de aborto llega a la búsqueda');
 });
 
-test('v0.2b4.1 §5: si el visual llega a tiempo, la pregunta sale completa y SIN visualPendiente', async () => {
+test('v0.3 §7: una tanda urgente nunca pide la IA (permitirIA: false); si la imagen llega a tiempo sale SIN pendiente', async () => {
   const { llamar } = crearLlamarPipeline({});
-  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
-  for (const p of resultado.aprobadas) {
-    assert.equal(p.visualPendiente, false);
-  }
+  const { resolver, llamadas } = crearResolverImagen();
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true, resolverImagen: resolver });
+  for (const p of resultado.aprobadas) assert.equal(p.imagenPendiente, false);
+  assert.ok(llamadas.length === 2 && llamadas.every((l) => l.opciones.permitirIA === false), 'la IA solo se usa en el trabajo de fondo');
 });
 
-test('v0.2b4.1 §5: un trabajo de FONDO no tiene timeout corto (nadie espera, el visual se hace entero)', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  const llamar = async (opciones) => {
-    if (opciones.mensajes[0].content.includes('visual')) await new Promise((r) => setTimeout(r, 60));
-    return base(opciones);
-  };
+test('v0.3 §7: un trabajo de FONDO no tiene timeout corto (nadie espera, la imagen se busca entera)', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen({ espera: () => 60 });
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 1 },
-    { llamar, urgente: false, timeoutVisualMs: 30 },
+    { llamar, urgente: false, timeoutImagenMs: 30, resolverImagen: resolver },
   );
-  assert.equal(resultado.aprobadas[0].visualPendiente, false, 'el timeout es solo del camino urgente');
-  assert.notEqual(resultado.aprobadas[0].visual, null);
+  assert.equal(resultado.aprobadas[0].imagenPendiente, false, 'el timeout es solo del camino urgente');
+  assert.notEqual(resultado.aprobadas[0].imagen, null);
 });
 
-// --- Ola final v0.2b4.1 (C2): un lote de FONDO cede el paso de visuales a un urgente -------------
+// --- Ola final v0.2b4.1 (C2): un lote de FONDO cede el paso de imágenes a un urgente -------------
 //
 // Medido en vivo el 15-sep: un urgente esperó 5 m 23 s detrás de UN solo lote de fondo. El
-// trabajador ya cede ENTRE lotes (servidor/cola.js), pero un lote de fondo con concurrencia 1 y
-// cascadas lentas puede durar minutos él solo, y el jugador está mirando el indicador. El paso de
-// visuales es el único que se puede cortar sin perder nada: la pregunta ya está generada,
-// verificada y validada, y sale con `visualPendiente: true` para que el trabajo de fondo de
-// servidor/cola.js#completarVisualesPendientes le ponga el visual después.
-test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de visuales y entrega el resto pendiente', async () => {
-  const { llamar: base } = crearLlamarPipeline({});
-  let visualesResueltos = 0;
-  const llamar = async (opciones) => {
-    const esGeneradorVisual = opciones.mensajes[0].content.includes('Tu tarea ahora NO es generar preguntas nuevas');
-    if (esGeneradorVisual) await new Promise((r) => setTimeout(r, 60));
-    const salida = await base(opciones);
-    if (opciones.mensajes[0].content.includes('Verificas, de forma ESCÉPTICA')) visualesResueltos += 1;
-    return salida;
-  };
+// paso de imágenes es el único que se puede cortar sin perder nada: la pregunta ya está generada,
+// verificada y validada, y sale con `imagenPendiente: true` para que el trabajo de fondo de
+// servidor/cola.js#completarImagenesPendientes le ponga la imagen después.
+test('v0.2b4.1 (C2): si llega un urgente, el lote de fondo corta la fase de imágenes y entrega el resto pendiente', async () => {
+  const { llamar } = crearLlamarPipeline({});
+  let resueltas = 0;
+  const { resolver } = crearResolverImagen({
+    espera: () => 60,
+    resultado: () => {
+      resueltas += 1;
+      return { imagen: IMAGEN_PRUEBA };
+    },
+  });
 
   const inicio = Date.now();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 5 },
-    { llamar, urgente: false, hayUrgente: () => visualesResueltos >= 1 },
+    { llamar, urgente: false, resolverImagen: resolver, hayUrgente: () => resueltas >= 1 },
   );
   const transcurrido = Date.now() - inicio;
 
   assert.equal(resultado.aprobadas.length, 5, 'no se pierde ninguna aprobada: el lote entrega todo lo que tiene');
-  const conVisual = resultado.aprobadas.filter((p) => p.visual !== null);
-  assert.equal(conVisual.length, 1, 'solo el visual que ya estaba en curso llega a terminarse');
+  const conImagen = resultado.aprobadas.filter((p) => p.imagen !== null);
+  assert.equal(conImagen.length, 1, 'solo la imagen que ya estaba en curso llega a terminarse');
   for (const p of resultado.aprobadas) {
-    assert.equal(p.visualPendiente, p.visual === null, 'lo que se corta sale marcado como pendiente');
+    assert.equal(p.imagenPendiente, p.imagen === null, 'lo que se corta sale marcado como pendiente');
   }
-  assert.ok(transcurrido < 200, `el lote no espera los 5 visuales (~300 ms), solo el primero (medido: ${transcurrido} ms)`);
+  assert.ok(transcurrido < 250, `el lote no espera las 5 búsquedas (~300 ms), solo la primera (medido: ${transcurrido} ms)`);
 });
 
 // --- Ola final v0.2b4.1 (#3, adversarial): el visual que se pasa del plazo se ABORTA de verdad ---
@@ -1468,7 +1415,7 @@ test('v0.2b4.1 (I3): la reposición es SOLO urgente y SOLO una ronda extra', asy
 });
 
 // --- Ola final v0.2b4.1 (I1/I2): plazo corto por llamada en una tanda urgente --------------------
-test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 60 s a los cuatro pasos; la de fondo no lo toca', async () => {
+test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 60 s a los pasos con modelo; la de fondo no lo toca', async () => {
   const { llamar: base } = crearLlamarPipeline({});
   const plazos = [];
   const llamar = async (opciones) => {
@@ -1477,73 +1424,53 @@ test('v0.2b4.1 (I1): una tanda URGENTE pasa timeoutMs de 60 s a los cuatro pasos
   };
 
   await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: true });
-  assert.ok(plazos.length >= 4, 'generación, verificación, visual y verificación de visual');
-  assert.equal(new Set(plazos).size, 1, 'el mismo plazo en los cuatro pasos');
+  assert.ok(plazos.length >= 2, 'generación y verificación');
+  assert.equal(new Set(plazos).size, 1, 'el mismo plazo en los dos pasos');
   assert.equal(plazos[0], TIMEOUT_LLAMADA_URGENTE_MS);
   assert.equal(TIMEOUT_LLAMADA_URGENTE_MS, 60000);
 
   plazos.length = 0;
   await producirTanda({ area: 'economia', ruta: [], n: 2 }, { llamar, urgente: false });
-  assert.ok(plazos.length >= 4);
+  assert.ok(plazos.length >= 2);
   for (const p of plazos) assert.equal(p, undefined, 'el fondo conserva el plazo por defecto de llamar (120 s)');
 });
 
-test('v0.2b4.1 (C2): sin urgente en cola, un lote de fondo resuelve TODOS sus visuales como siempre', async () => {
+test('v0.2b4.1 (C2): sin urgente en cola, un lote de fondo resuelve TODAS sus imágenes como siempre', async () => {
   const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 3 },
-    { llamar, urgente: false, hayUrgente: () => false },
+    { llamar, urgente: false, resolverImagen: resolver, hayUrgente: () => false },
   );
   assert.equal(resultado.aprobadas.length, 3);
   for (const p of resultado.aprobadas) {
-    assert.equal(p.visualPendiente, false);
-    assert.notEqual(p.visual, null);
+    assert.equal(p.imagenPendiente, false);
+    assert.notEqual(p.imagen, null);
   }
 });
 
 test('v0.2b4.1 (C2): una tanda URGENTE nunca cede, aunque `hayUrgente` diga que sí (es ella misma)', async () => {
   const { llamar } = crearLlamarPipeline({});
+  const { resolver } = crearResolverImagen();
   const resultado = await producirTanda(
     { area: 'economia', ruta: [], n: 2 },
-    { llamar, urgente: true, hayUrgente: () => true },
+    { llamar, urgente: true, resolverImagen: resolver, hayUrgente: () => true },
   );
   assert.equal(resultado.aprobadas.length, 2);
-  for (const p of resultado.aprobadas) assert.equal(p.visualPendiente, false);
+  for (const p of resultado.aprobadas) assert.equal(p.imagenPendiente, false);
 });
 
-test('v0.2b4.1 §5: completarVisual usa las cascadas de FONDO y no toca la explicación', async () => {
-  const cascadasVistas = [];
-  const llamar = async ({ modelos, mensajes }) => {
-    cascadasVistas.push(modelos);
-    // Autocorrección del brief (24-sep-2026): el prompt de verificación real dice "Verificas..."
-    // (con mayúscula inicial) -- `.includes('verificas')` en minúsculas nunca casaba con nada y
-    // dejaba `esVerificador` siempre en `false`, lo que hacía que el propio verificador recibiera
-    // la respuesta con forma de GENERADOR y rechazara el visual (visualOk quedaba undefined). Se
-    // compara en minúsculas por los dos lados para no depender de mayúsculas exactas del prompt.
-    const esVerificador = mensajes[0].content.toLowerCase().includes('verificas');
-    return {
-      texto: JSON.stringify(
-        esVerificador
-          ? { explicacionOk: true, visualOk: true, motivo: '' }
-          : { explicacion: 'da igual lo que diga aquí', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'Prueba' } },
-      ),
-      modelo: modelos[0],
-      coste: 0,
-      usage: {},
-    };
-  };
+test('v0.3 §7: completarImagen pide la imagen CON la IA permitida (el trabajo de fondo sí puede usarla)', async () => {
+  const { resolver, llamadas } = crearResolverImagen();
+  const pregunta = { ...borradorVF(), explicacion: 'Explicación original del banco, intacta.', imagen: null };
+  const salida = await completarImagen(pregunta, { resolverImagen: resolver });
 
-  const pregunta = { ...borradorVF(), explicacion: 'Explicación original del banco, intacta.', visual: null };
-  const salida = await completarVisual(pregunta, { llamar });
-
-  assert.equal(salida.visual.tipo, 'formula');
-  assert.equal(salida.explicacion, 'Explicación original del banco, intacta.', 'el fondo no reescribe texto');
-  assert.equal(cascadasVistas[0][0], GENERADOR_VISUAL_FONDO[0], 'sin prisa: NVIDIA y :free primero');
+  assert.equal(salida.imagen.fuente, 'Commons');
+  assert.equal(llamadas[0].opciones.permitirIA, true);
 });
 
-test('v0.2b4.1 §5: completarVisual devuelve visual null si la cascada entera falla, sin lanzar', async () => {
-  const llamar = async () => { throw new Error('cascada agotada'); };
-  const salida = await completarVisual({ ...borradorVF(), visual: null }, { llamar });
-  assert.equal(salida.visual, null);
-  assert.equal(salida.coste, 0);
+test('v0.3 §7: completarImagen devuelve imagen null si no hay resolvedor o este lanza, sin lanzar', async () => {
+  assert.deepEqual(await completarImagen({ ...borradorVF() }, {}), { imagen: null });
+  const salida = await completarImagen({ ...borradorVF() }, { resolverImagen: async () => { throw new Error('cupo agotado'); } });
+  assert.deepEqual(salida, { imagen: null });
 });

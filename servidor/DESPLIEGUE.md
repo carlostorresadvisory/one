@@ -80,6 +80,14 @@ repo ni se manda a nadie más):
   `servidor/docker-compose.yml` **no se toca**: `env_file: ../.env` ya pasa al contenedor todo lo
   que haya en `/opt/one/.env`, que es como llegó `GEMINI_API_KEY_GRATIS` desde v0.2b3.
 
+- **Imágenes de las preguntas generadas** (v0.3 fase 7): añadir a `/opt/one/.env` del VPS `CLOUDFLARE_AI_TOKEN` y
+  `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` solo si quiere el escalón de pago, tope 0,10 €/día) y reconstruir
+  **con `--build`** (el Dockerfile ahora instala `sharp` con `npm ci`):
+  `docker compose -f servidor/docker-compose.yml up -d --build`. Las WebP quedan en `/opt/one-datos/imagenes` y se
+  sirven sin token en `/imagenes/<id>.webp`; el cupo de IA (≤ 100 al día) en `/opt/one-datos/cupo-ia.json`.
+  Los ids de las imágenes que el jugador marque como malas quedan en `/opt/one-datos/imagenes-malas.json` (el lote
+  `tools/mejorar-imagenes.js` los lee de `datos/imagenes-malas.json`).
+
 ## Verificación rápida
 
 - `GET /salud` sin token debe devolver `{"ok": true, ...}` con el estado del colchón y el gasto de

@@ -145,6 +145,18 @@ export function crearAlmacen(rutaDatos) {
         await escribirAtomico('reportadas-motivos.json', motivos);
       }
     },
+    // v0.3 §7: ids cuya IMAGEN marcó el jugador como mala (la pregunta no está mal: no entra en
+    // reportadas.json). Es la lista que el lote tools/mejorar-imagenes.js lee (datos/imagenes-malas.json).
+    async anadirImagenMala(id) {
+      const actuales = await leerJson(rutaDatos, 'imagenes-malas.json', []);
+      if (!actuales.includes(id)) {
+        actuales.push(id);
+        await escribirAtomico('imagenes-malas.json', actuales.slice(-2000));
+      }
+    },
+    async leerImagenesMalas() {
+      return leerJson(rutaDatos, 'imagenes-malas.json', []);
+    },
     async leerMotivosReportados() {
       return leerJson(rutaDatos, 'reportadas-motivos.json', {});
     },

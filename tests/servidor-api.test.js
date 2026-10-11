@@ -1392,3 +1392,49 @@ test('esperarInactividad: si nunca queda inactivo, resuelve igualmente al llegar
   assert.ok(transcurrido >= 100, 'debe respetar el máximo antes de resolver');
   assert.ok(transcurrido < 1000, 'no debe quedarse esperando mucho más del máximo');
 });
+
+// === v0.3 §7: imágenes ===========================================================================
+
+test('POST /reportar con motivo imagen-mala NO saca la pregunta: quita su imagen, la deja pendiente y apunta el id', async () => {
+  const { base, almacen, cerrar } = await crearServidorDePrueba();
+  try {
+    const imagen = { url: '/imagenes/srv-eco-z2.webp', fuente: 'IA', nota: null };
+    await almacen.guardarColchon([{ id: 'srv-eco-z2', area: 'economia', enunciado: 'X', imagen, creada: new Date().toISOString(), servida: null }]);
+
+    const resp = await fetch(`${base}/reportar`, {
+      method: 'POST',
+      headers: cabeceras(),
+      body: JSON.stringify({ id: 'srv-eco-z2', motivo: 'imagen-mala' }),
+    });
+    assert.equal(resp.status, 200);
+
+    const [p] = await almacen.leerColchon();
+    assert.equal(p.id, 'srv-eco-z2', 'la pregunta sigue en el colchón');
+    assert.equal(p.imagen, null);
+    assert.equal(p.imagenPendiente, true);
+    assert.deepEqual(p.imagenesDescartadas, [imagen.url]);
+    assert.ok(!(await almacen.leerReportadas()).includes('srv-eco-z2'), 'no es una pregunta reportada');
+    assert.deepEqual(await almacen.leerImagenesMalas(), ['srv-eco-z2']);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('GET /imagenes/<id>.webp es público (sin token), sirve la WebP y rechaza nombres raros', async () => {
+  const { base, dir, cerrar } = await crearServidorDePrueba();
+  try {
+    const { mkdir, writeFile } = await import('node:fs/promises');
+    await mkdir(`${dir}/imagenes`, { recursive: true });
+    await writeFile(`${dir}/imagenes/srv-eco-z3.webp`, Buffer.from('RIFFxxxxWEBP'));
+
+    const ok = await fetch(`${base}/imagenes/srv-eco-z3.webp`);
+    assert.equal(ok.status, 200);
+    assert.equal(ok.headers.get('content-type'), 'image/webp');
+    assert.equal((await ok.arrayBuffer()).byteLength, 12);
+
+    assert.equal((await fetch(`${base}/imagenes/no-existe.webp`)).status, 404);
+    assert.equal((await fetch(`${base}/imagenes/..%2F..%2Fx.webp`)).status, 401, 'un nombre con rutas no entra por la ruta pública');
+  } finally {
+    await cerrar();
+  }
+});

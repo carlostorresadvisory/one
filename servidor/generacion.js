@@ -2,12 +2,12 @@
 // Spec: docs/superpowers/specs/2026-09-14-one-v0.2-generacion-y-repaso-design.md §3.1 y §3.4.
 //
 // "La verificación nunca se salta, se esconde" (Carlos, 12-sep): nada entra en el colchón sin
-// pasar (a) verificarBorradores por un modelo DISTINTO del generador, (b) validarPregunta, (c)
-// resolverPregunta (explicación corta + visual, verificados por otro modelo). Este fichero solo
-// produce -- no toca disco (eso es servidor/almacen.js y servidor/cola.js, Tareas 2-3).
+// pasar (a) verificarBorradores por un modelo DISTINTO del generador, (b) validarPregunta, y luego
+// (c) la imagen (servidor/imagenes.js, v0.3 §7; sustituye al antiguo visual dibujado). Este fichero
+// solo produce -- no toca disco (eso es servidor/almacen.js y servidor/cola.js, Tareas 2-3).
 //
 // Todas las funciones aceptan `opciones.llamar` inyectable (por defecto tools/openrouter.js#llamar)
-// para que los tests no hagan red, siguiendo el mismo patrón que tools/visualizar.js#resolverPregunta.
+// para que los tests no hagan red.
 // OPENROUTER_API_KEY solo se lee dentro de tools/openrouter.js; aquí nunca se lee ni se registra.
 //
 // Ronda 1 (corrección del controlador, 14-sep-2026): la primera versión de esta tarea solo
@@ -26,15 +26,6 @@
 // preguntas, no del pipeline, y este fichero solo debía importar prompts, no definirlos.
 import { llamar as llamarReal, extraerJson, MODELOS, esModeloGratis } from '../tools/openrouter.js';
 import { validarPregunta } from '../tools/validar-banco.js';
-import {
-  resolverPregunta,
-  GENERADOR_SOLO_PAGO,
-  VERIFICADOR_SOLO_PAGO,
-  GENERADOR_VISUAL,
-  VERIFICADOR_VISUAL,
-  GENERADOR_VISUAL_FONDO,
-  VERIFICADOR_VISUAL_FONDO,
-} from '../tools/visualizar.js';
 import {
   promptSistemaGenerador,
   promptUsuarioVF,
@@ -107,10 +98,10 @@ const UMBRAL_CONFIANZA_DEFECTO = 0.7;
 // que pasarse de aquí no acelera, solo convierte el trabajo en 429 en cadena. 4 lotes = los 4 tipos
 // de pregunta a la vez; 5 visuales = la mitad de una tanda de 10, repartidos entre dos proveedores.
 export const MAX_LOTES_EN_VUELO = 4;
-export const MAX_VISUALES_EN_VUELO = 5;
-/** Timeout del visual dentro de una tanda urgente (spec §5): pasado esto, la pregunta se sirve sin
- * él y un trabajo de fondo lo completa después (Tarea 4). Nunca se aplica al colchón. */
-export const TIMEOUT_VISUAL_MS = 20000;
+export const MAX_IMAGENES_EN_VUELO = 5;
+/** Timeout de la imagen dentro de una tanda urgente (spec v0.3 §7): pasado esto, la pregunta se sirve
+ * con el color del área y un trabajo de fondo le pone la imagen después. Nunca se aplica al colchón. */
+export const TIMEOUT_IMAGEN_MS = 20000;
 /**
  * Ola final v0.2b4.1 (I1/I2): plazo máximo de CADA llamada dentro de una tanda urgente -- los
  * cuatro pasos (generación, verificación, visual y verificación del visual). El plazo general de
@@ -684,18 +675,19 @@ export async function verificarBorradores(borradores, opciones = {}) {
  * @param {number} [opciones.topeEur]
  * @param {string} [opciones.rutaLog]
  * @param {boolean} [opciones.urgente] con permitirPago, antepone las cascadas de pago barato
- *   (GENERADOR_PREGUNTAS_SOLO_PAGO/VERIFICADOR_PREGUNTAS_SOLO_PAGO y, para el visual,
- *   GENERADOR_SOLO_PAGO/VERIFICADOR_SOLO_PAGO de tools/visualizar.js) a las normales -- Ronda final
+ *   (GENERADOR_PREGUNTAS_SOLO_PAGO/VERIFICADOR_PREGUNTAS_SOLO_PAGO) a las normales -- Ronda final
  *   (revisión, 14-sep-2026) -- Important (I2): antes las SUSTITUÍA, así que si el único modelo de
  *   pago barato de ese papel fallaba (agotado, red...), la tanda urgente se quedaba sin ningún
  *   modelo más que probar aunque `permitirPago` siguiera activo y la cascada normal (gratis + pago)
  *   tuviera más candidatos detrás. Ahora la cascada efectiva es `[...pago barato, ...normal]`: se
  *   sigue intentando primero lo rápido/barato pensado para "el jugador está esperando", pero nunca
  *   se pierde el resto de la cascada normal como red de seguridad.
- * @param {number} [opciones.timeoutVisualMs] v0.2b4.1 §5: por defecto TIMEOUT_VISUAL_MS (20 s).
- *   Solo se aplica con `urgente: true` -- un trabajo de fondo nunca tiene prisa, ver `limiteVisual`
- *   más abajo. Pasado este tiempo, el visual de esa candidata se descarta (la llamada sigue viva,
- *   su resultado se ignora) y la pregunta sale con `visual: null, visualPendiente: true`.
+ * @param {number} [opciones.timeoutImagenMs] v0.3 §7: por defecto TIMEOUT_IMAGEN_MS (20 s).
+ *   Solo se aplica con `urgente: true` -- un trabajo de fondo nunca tiene prisa, ver `limiteImagen`
+ *   más abajo. Pasado este tiempo, la búsqueda de imagen de esa candidata se aborta y la pregunta
+ *   sale con `imagen: null, imagenPendiente: true`.
+ * @param {Function} [opciones.resolverImagen] `(pregunta, { permitirIA, signal }) => { imagen }`
+ *   (servidor/imagenes.js). Sin él no hay paso de imagen.
  * @returns {Promise<{
  *   aprobadas: object[], rechazadas: {borrador: object, motivo: string}[], coste: number,
  *   modelos: string[], fallos: {tipo: string, motivo: string}[], pedidas: number, obtenidas: number,
@@ -703,14 +695,11 @@ export async function verificarBorradores(borradores, opciones = {}) {
  *   generarBorradores); `pedidas` es el `n` pedido y `obtenidas` los borradores que sí se
  *   generaron (antes de verificar/validar) -- así la cola (Task 2) puede marcar el trabajo
  *   "parcial" u homogéneo sin tener que adivinarlo a partir de `aprobadas`. Cada elemento de
- *   `aprobadas` lleva `visualPendiente: boolean` (v0.2b4.1 §5): `true` cuando el visual no llegó a
- *   tiempo (o su cascada falló del todo) y queda para que un trabajo de fondo lo complete.
+ *   `aprobadas` lleva `imagenPendiente: boolean` (v0.3 §7): `true` cuando la imagen no llegó a
+ *   tiempo (o no había ninguna buena) y queda para que un trabajo de fondo la complete.
  *
  * Nota sobre permitirPago=false: generarBorradores/verificarBorradores (código de esta tarea)
- * filtran su cascada a solo ':free' antes de llamar. El paso de visual (resolverPregunta, ya
- * existente en tools/visualizar.js, fuera de esta tarea) no filtra por su cuenta -- sigue confiando
- * en que tools/openrouter.js#llamar se salte cada modelo de pago uno a uno, como ya hacía antes de
- * este plan; ese comportamiento tiene sus propios tests en tests/visualizar.test.js y no se toca.
+ * filtran su cascada a solo ':free' antes de llamar. El paso de imagen usa solo cascadas gratis.
  */
 export async function producirTanda(params, opciones = {}) {
   const { area, ruta = [], n = 10, nivelObjetivo, evitar = [] } = params || {};
@@ -721,8 +710,11 @@ export async function producirTanda(params, opciones = {}) {
     rutaLog,
     urgente = false,
     onProgreso,
-    // v0.2b4.1 §5: timeout del visual SOLO para una tanda urgente (ver `limiteVisual` en fase 2).
-    timeoutVisualMs = TIMEOUT_VISUAL_MS,
+    // v0.3 §7: timeout de la imagen SOLO para una tanda urgente (ver `limiteImagen` en fase 2).
+    timeoutImagenMs = TIMEOUT_IMAGEN_MS,
+    // v0.3 §7: `(pregunta, { permitirIA, signal }) => Promise<{ imagen }>` (servidor/imagenes.js).
+    // Sin él (los tests de generación pura) las preguntas salen sin imagen y sin pendiente.
+    resolverImagen = null,
     // Ola final v0.2b4.1 (C2): "¿hay alguien esperando ahora mismo?". La inyecta servidor/cola.js
     // (`() => colaUrgente.length > 0`) y SOLO se consulta en modo fondo -- ver `cortarPorUrgente`.
     hayUrgente = null,
@@ -740,21 +732,17 @@ export async function producirTanda(params, opciones = {}) {
     ? {
         generador: MODELOS.generador,
         verificador: MODELOS.verificador,
-        visualGenerador: GENERADOR_VISUAL,
-        visualVerificador: VERIFICADOR_VISUAL,
       }
     : {
         generador: MODELOS.generadorFondo,
         verificador: MODELOS.verificadorFondo,
-        visualGenerador: GENERADOR_VISUAL_FONDO,
-        visualVerificador: VERIFICADOR_VISUAL_FONDO,
       };
   // v0.2b4.1 §4 (ronda de corrección 1 -- I1): la concurrencia también depende de quién espera, no
-  // solo los modelos. Una tanda urgente sigue paralela (MAX_LOTES_EN_VUELO/MAX_VISUALES_EN_VUELO);
+  // solo los modelos. Una tanda urgente sigue paralela (MAX_LOTES_EN_VUELO/MAX_IMAGENES_EN_VUELO);
   // el colchón nocturno procesa SECUENCIAL (tope 1) -- si no, dispara 4 generaciones + 5 visuales de
   // golpe contra NVIDIA y los ':free', justo los eslabones con menos margen y sin nadie esperando.
   const topeLotes = urgente ? MAX_LOTES_EN_VUELO : 1;
-  const topeVisuales = urgente ? MAX_VISUALES_EN_VUELO : 1;
+  const topeImagenes = urgente ? MAX_IMAGENES_EN_VUELO : 1;
   // I1/I2: en una tanda urgente, ninguna llamada de ningún paso puede llevarse más de 60 s (ver
   // TIMEOUT_LLAMADA_URGENTE_MS). `undefined` deja el plazo por defecto de `llamar` (120 s), que es
   // el que quiere el fondo: ahí nadie espera y un eslabón lento sigue siendo mejor que ninguno.
@@ -774,7 +762,7 @@ export async function producirTanda(params, opciones = {}) {
   // v0.2b4.1 6 (ronda de correccion 1 -- I2): el indicador del movil debe poder mostrar 1..10, no
   // 0/5/10. `avisarProgreso` se llama DENTRO de `fn` (mas abajo), al terminar cada candidata
   // individual -- NUNCA en un `.forEach` posterior a `await enParalelo(...)`, que corre sincrono
-  // DESPUES de que las `topeVisuales` promesas ya se resolvieron todas (ese era el bug: con las 5
+  // DESPUES de que las `topeImagenes` promesas ya se resolvieron todas (ese era el bug: con las 5
   // llamadas terminando "a la vez" en el mismo tick de after-await, GET /trabajo/:id nunca veia
   // valores intermedios reales, solo 0 -> 5 -> 10). El contador es una variable compartida por
   // closure: el incremento es sincrono, sin ningun `await` de por medio, asi que no hay condicion
@@ -790,12 +778,12 @@ export async function producirTanda(params, opciones = {}) {
     }
   }
 
-  // v0.2b4.1 5: en una tanda URGENTE el visual tiene `timeoutVisualMs` (20 s por defecto);
-  // pasados, la pregunta se sirve sin el, marcada `visualPendiente`, y un trabajo de fondo lo
-  // completa despues (servidor/cola.js#completarVisualesPendientes). Nunca al reves: el jugador
-  // prefiere 10 preguntas jugables en 60 s a 10 completas en 5 minutos. En un trabajo de FONDO no
-  // hay limite: nadie espera y el visual sale entero a la primera.
-  const limiteVisual = urgente ? timeoutVisualMs : 0;
+  // v0.3 §7: en una tanda URGENTE la imagen tiene `timeoutImagenMs` (20 s por defecto); pasados, la
+  // pregunta se sirve con el color del área, marcada `imagenPendiente`, y un trabajo de fondo le
+  // pone la imagen despues (servidor/cola.js#completarImagenesPendientes). Nunca al reves: el
+  // jugador prefiere 10 preguntas jugables en 60 s a 10 completas en 5 minutos. En un trabajo de
+  // FONDO no hay limite: nadie espera.
+  const limiteImagen = urgente ? timeoutImagenMs : 0;
 
   // Ola final v0.2b4.1 (C2): ha llegado un urgente mientras este lote de FONDO trabajaba? Medido
   // en vivo el 15-sep: un urgente espero 5 m 23 s detras de UN solo lote de fondo -- el trabajador
@@ -896,72 +884,34 @@ export async function producirTanda(params, opciones = {}) {
       candidatas.push(candidata);
     }
 
-    // Fase 2: el visual de cada candidata, EN PARALELO (spec 4). Era el bucle secuencial mas caro
-    // de la tanda: 10 preguntas x (generar + verificar + a veces reintento) una detras de otra. La
-    // pausa de 1 s entre preguntas desaparece de aqui -- PAUSA_ENTRE_PREGUNTAS_MS sigue viva en la
-    // CLI offline de tools/visualizar.js, que es donde tiene sentido ser cortes con la cascada.
-    const resueltas = await enParalelo(candidatas, topeVisuales, async (candidata) => {
+    // Fase 2: la imagen de cada candidata, EN PARALELO (spec 4). Commons y otros bancos libres con nota
+    // de un modelo con visión; la IA NO entra aquí (`permitirIA: false`): nunca bloquea una pregunta.
+    // Sin `resolverImagen` configurado no hay paso de imagen y la pregunta sale sin ella.
+    const resueltas = await enParalelo(candidatas, topeImagenes, async (candidata) => {
       try {
-        // C2: hay un jugador esperando -- esta pregunta sale ya, sin visual y marcada pendiente.
+        if (typeof resolverImagen !== 'function') return { imagen: null, sinPaso: true };
+        // C2: hay un jugador esperando -- esta pregunta sale ya, sin imagen y marcada pendiente.
         if (cortarPorUrgente()) return null;
-        const resolucion = await conLimite(
-          (senal) => resolverPregunta(candidata, {
-            llamar: llamarFn,
-            permitirPago,
-            topeEur,
-            rutaLog,
-            timeoutMs: timeoutLlamadaMs,
-            // #3: si el plazo del visual vence, esta señal corta las llamadas que sigan en vuelo.
-            signal: senal,
-            necesitaVisual: true,
-            saltarAcortado: true,
-            modelosGenerador: usaPagoBarato ? intercalarPagoBarato(cascadas.visualGenerador, GENERADOR_SOLO_PAGO) : cascadas.visualGenerador,
-            modelosVerificador: usaPagoBarato
-              ? intercalarPagoBarato(cascadas.visualVerificador, VERIFICADOR_SOLO_PAGO)
-              : cascadas.visualVerificador,
-          }),
-          limiteVisual,
-        );
-        return resolucion; // `null` si se paso del limite (solo posible con `urgente`)
+        // `null` si se paso del limite (solo posible con `urgente`); la señal corta las búsquedas.
+        return await conLimite((senal) => resolverImagen(candidata, { permitirIA: false, signal: senal }), limiteImagen);
       } finally {
-        // Se avisa cuando la candidata esta DE VERDAD terminada -- con su visual resuelto,
-        // descartado, o pasado el limite de tiempo -- tanto si `resolverPregunta` acabo bien como
-        // si lanzo. Las tres ramas siguen (mas abajo) dejando la pregunta en `aprobadas`, asi que
-        // las tres cuentan como "una mas" para el indicador de progreso del movil.
+        // Se avisa cuando la candidata esta DE VERDAD terminada -- con su imagen resuelta, sin ella,
+        // o pasado el limite de tiempo -- para el indicador de progreso del movil.
         avisarProgreso();
       }
     });
 
     resueltas.forEach((resultado, i) => {
       const candidata = candidatas[i];
-      // `resultado.ok === false` = la cascada de visuales lanzo (agotada); `resultado.valor ===
-      // null` = `conLimite` se paso del tiempo. Los dos casos entran sin visual y marcados
-      // `visualPendiente` -- reintentar un visual que fallo por cascada agotada es exactamente lo
-      // que el trabajo de fondo sabe hacer bien (cascada distinta, sin prisa), igual que el que no
-      // llego a tiempo.
       const resolucion = resultado.ok ? resultado.valor : null;
-      if (resolucion) {
-        acumulador.coste += resolucion.coste || 0;
-        if (resolucion.modeloGenerador) modelosUsados.add(resolucion.modeloGenerador);
-        if (resolucion.modeloVerificador) modelosUsados.add(resolucion.modeloVerificador);
-        aprobadas.push({
-          ...candidata,
-          explicacion: resolucion.explicacion,
-          visual: resolucion.visual,
-          // Un visual que el verificador RECHAZO no esta pendiente: esta decidido que no lo lleva.
-          // Solo se marca pendiente lo que no llego a tiempo o lo que fallo del todo (ver arriba).
-          visualPendiente: false,
-        });
+      if (resolucion?.sinPaso) {
+        aprobadas.push({ ...candidata, imagen: null, imagenPendiente: false });
+      } else if (resolucion?.imagen) {
+        aprobadas.push({ ...candidata, imagen: resolucion.imagen, imagenPendiente: false });
       } else {
-        // Ola final v0.2b4.1 (M2), documentado a propósito: de un visual que se pasó del plazo (o
-        // cuya cascada falló) NO se contabiliza nada en `coste` ni en `modelos`, ni siquiera las
-        // llamadas que SÍ habían respondido antes del abort. `resolverPregunta` acumula su coste
-        // dentro y solo lo devuelve al terminar entera, así que al abortarla ese dato se pierde
-        // con ella. Hoy no tiene consecuencia práctica -- las cascadas de visual son 100 % gratis
-        // (coste 0) y `modelos` es informativo --, y arreglarlo de verdad exigiría cambiar la
-        // forma de retorno de resolverPregunta (tools/visualizar.js, fuera del alcance de esta
-        // ola). Queda anotado aquí para que nadie lea `coste` como "todo lo que se llamó".
-        aprobadas.push({ ...candidata, visual: null, visualPendiente: true });
+        // Sin imagen buena a tiempo (o la busqueda fallo): sale con el color del area y el trabajo
+        // de fondo (con IA como ultimo recurso) la completa despues.
+        aprobadas.push({ ...candidata, imagen: null, imagenPendiente: true });
       }
     });
   }
@@ -993,34 +943,21 @@ export async function producirTanda(params, opciones = {}) {
 }
 
 /**
- * v0.2b4.1 §5: completa el visual de UNA pregunta que salió de una tanda urgente sin él
- * (`visualPendiente: true`). Es el "produce" testeable del trabajo de fondo de servidor/cola.js
- * (`completarVisualesPendientes`): sin timeout corto (nadie espera), con las cascadas de FONDO
- * (para no gastar la cuota rápida del día) y sin tocar la explicación -- ya la verificó
- * `verificarBorradores` cuando nació la pregunta (`saltarAcortado: true`, igual que en la fase 2 de
- * `producirTanda`). Nunca lanza: una cascada agotada devuelve `visual: null` y el trabajo de fondo
- * lo volverá a intentar en otra pasada.
- * @param {object} pregunta pregunta del colchón, con su explicación ya buena
- * @param {object} [opciones] `llamar`, `permitirPago`, `topeEur`, `rutaLog`
- * @returns {Promise<{visual: object|null, explicacion: string, coste: number}>}
+ * v0.3 §7: completa la imagen de UNA pregunta que salió sin ella (`imagenPendiente: true`). Es el
+ * "produce" testeable del trabajo de fondo de servidor/cola.js (`completarImagenesPendientes`): sin
+ * timeout corto (nadie espera) y CON la IA como último recurso (cupo diario). Nunca lanza: si no hay
+ * imagen buena devuelve `imagen: null` y el trabajo de fondo lo volverá a intentar más tarde.
+ * @param {object} pregunta pregunta del colchón
+ * @param {object} [opciones] `resolverImagen` (servidor/imagenes.js)
+ * @returns {Promise<{imagen: object|null}>}
  */
-export async function completarVisual(pregunta, opciones = {}) {
-  const { llamar: llamarFn = llamarReal, permitirPago = false, topeEur = 0, rutaLog } = opciones;
+export async function completarImagen(pregunta, opciones = {}) {
+  const { resolverImagen = null } = opciones;
+  if (typeof resolverImagen !== 'function') return { imagen: null };
   try {
-    const resolucion = await resolverPregunta(pregunta, {
-      llamar: llamarFn,
-      permitirPago,
-      topeEur,
-      rutaLog,
-      necesitaVisual: true,
-      saltarAcortado: true, // la explicación ya cumple: aquí solo se pide el visual
-      modelosGenerador: GENERADOR_VISUAL_FONDO,
-      modelosVerificador: VERIFICADOR_VISUAL_FONDO,
-    });
-    return { visual: resolucion.visual, explicacion: resolucion.explicacion, coste: resolucion.coste || 0 };
+    const salida = await resolverImagen(pregunta, { permitirIA: true });
+    return { imagen: salida?.imagen ?? null };
   } catch {
-    // Cascada entera agotada (o cualquier otro fallo): nunca se propaga -- el trabajo de fondo
-    // (servidor/cola.js) simplemente deja `visualPendiente` como estaba y lo reintenta más tarde.
-    return { visual: null, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: null };
   }
 }

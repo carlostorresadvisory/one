@@ -5,7 +5,10 @@ FROM node:22-alpine
 
 WORKDIR /opt/one
 
-COPY package.json ./
+COPY package.json package-lock.json ./
+# v0.3 §7: `sharp` (WebP de las imágenes) es la única dependencia; sin él el contenedor arranca pero no
+# guarda imágenes. `npm ci` respeta el lockfile y baja el binario para Alpine (musl).
+RUN npm ci --omit=dev
 COPY servidor/ ./servidor/
 COPY tools/ ./tools/
 # servidor/generacion.js importa MEZCLA de motor.js (raíz del repo, no de servidor/ ni tools/) para
