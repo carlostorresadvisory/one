@@ -19,7 +19,7 @@ import { puntuarImagen, esBuena } from './nota-imagen.js';
 import { urlMiniatura } from './copiar-fotos-commons.js';
 import { llamarTexto, dataUrlWebp, preguntaDeCifra, guardarWebp } from './mejorar-imagenes.js';
 import { serializar, RUTA_CIFRAS } from './construir-cifras.js';
-import { escribirPrompt, generarImagen, crearCupo, aWebp as aWebpIA, CREDITO_IA } from '../servidor/imagen-ia.js';
+import { ESTILO_ONE, escribirPrompt, generarImagen, crearCupo, aWebp as aWebpIA, CREDITO_IA } from '../servidor/imagen-ia.js';
 import { iaPermitida, iaMejoraActual, creditoCompleto, descargarAcotado } from '../servidor/politica-imagen.js';
 
 const RUTA_BANCO = 'datos/banco.json';
@@ -37,6 +37,7 @@ const QUE = arg('que', 'ambas');
 const LIMITE = Number(arg('limite', Infinity));
 const IDS = arg('ids', null)?.split(',') ?? null;
 const SIN_IA = process.argv.includes('--sin-ia');
+const MAX_IA = Number(arg('ia-max', 200)); // cupo propio de IA de hoy (Carlos, 12-oct: 200 para este lote único)
 const DRY = process.argv.includes('--dry-run');
 const PAUSA = Math.max(1000, Number(arg('pausa', 1200)));
 const MAX_CAND = Number(arg('candidatas', 4));
@@ -135,16 +136,16 @@ async function traer(c) {
 }
 
 async function juzgar(webp, pregunta, estado) {
-  for (let ronda = 0; ronda < 3; ronda++) {
+  // Los jueces gratis tienen tope diario/por minuto de tokens: si ninguno responde, se espera (10 min) y se reintenta.
+  for (let ronda = 0; ronda < 8; ronda++) {
     const r = await puntuarImagen({ url: dataUrlWebp(webp), pregunta }, { modelos: MODELOS_JUEZ });
-    if (r) { estado.fallosSeguidos = 0; return r; }
+    if (r) { estado.fallosSeguidos = 0; estado.esperas = 0; return r; }
     estado.fallosSeguidos += 1;
-    if (estado.fallosSeguidos >= 8) return null;
-    await dormir(20000);
+    if (ronda >= 1) { console.log('  juez sin cupo: espero 10 min'); await dormir(600000); }
+    else await dormir(20000);
   }
   return null;
 }
-
 
 // --- Filtro de relevancia por título (texto, gratis): el juez de visión no es fiable para descartar fotos sin relación ---
 async function filtrarRelevantes(cands, pregunta) {
@@ -170,7 +171,7 @@ async function primeraBuena(cands, pregunta, estado, notas) {
     if (!t) { tecnico = true; continue; }
     const r = await juzgar(t.webp, { ...pregunta, enunciado: `${pregunta.enunciado}
 (Título de la foto en su banco: ${String(c.titulo).slice(0, 100)})` }, estado);
-    if (!r) { tecnico = true; if (estado.fallosSeguidos >= 8) break; continue; }
+    if (!r) { tecnico = true; if (estado.fallosSeguidos >= 40) break; continue; }
     notas.push(r.nota);
     if (esBuena(r.nota)) return { buena: { ...c, ...t, nota: r.nota, notaModelo: r.modelo }, tecnico };
   }
@@ -179,6 +180,7 @@ async function primeraBuena(cands, pregunta, estado, notas) {
 
 // --- Una pregunta / una cifra ------------------------------------------------------------------------------
 async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
+  if (estado.buscadas?.[pregunta.id]) return { buena: null, notas: [], tecnico: false }; // ya se buscó sin éxito: solo queda la IA
   const notas = [];
   const q = [...new Set([...(terminos ?? []), String(pregunta.enunciado).slice(0, 60)])].slice(0, 3);
   let tecnico = false;
@@ -187,8 +189,9 @@ async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
     const r = await primeraBuena((await filtrarRelevantes(cands, pregunta)).slice(0, MAX_CAND), pregunta, estado, notas);
     tecnico ||= r.tecnico;
     if (r.buena) return { buena: r.buena, notas };
-    if (estado.fallosSeguidos >= 8) break;
+    if (estado.fallosSeguidos >= 40) break;
   }
+  if (!tecnico && estado.fallosSeguidos < 40) (estado.buscadas ??= {})[pregunta.id] = true;
   return { buena: null, notas, tecnico };
 }
 
@@ -205,26 +208,51 @@ async function rellenarPregunta(p, ctx) {
     usadas.add(buena.pagina);
     return { rama: 'nueva', fuente: buena.fuente, nota: buena.nota };
   }
-  if (tecnico || estado.fallosSeguidos >= 8) return { rama: 'tecnico' };
-  if (!iaPermitida(p)) return { rama: 'sin-imagen', motivo: 'la política no admite IA (arte / hecho o lugar concreto)' };
+  if (tecnico || estado.fallosSeguidos >= 40) return { rama: 'tecnico' };
+  return viaIA(p, p, ctx, p.id, p.id);
+}
+
+
+// --- Último recurso: IA (Cloudflare FLUX, cupo propio). Regla de Carlos (12-oct): ninguna pregunta ni cifra sin imagen.
+// Si la política normal no admite IA (arte, hechos o lugares concretos, cifras de cosas reales), se usa un prompt
+// SIMBÓLICO: escena atmosférica del tema, sin personas reales, sin obras, sin mapas, sin banderas, sin texto.
+const PROMPT_SIMBOLICO = 'You write one image-generation prompt in English (max 40 words) for a striking, ATMOSPHERIC and SYMBOLIC scene that evokes the general theme of a quiz item (e.g. a typical landscape of a region, an emblematic object of the field, an abstract metaphor). NEVER depict real or identifiable people, specific artworks, maps, flags, logos, or any text, letters or numbers; do not depict or hint at the answer. Reply with just the prompt, no quotes.';
+async function promptSimbolico(pregunta) {
+  const t = await llamarTexto([{ role: 'system', content: PROMPT_SIMBOLICO }, { role: 'user', content: `Item: ${pregunta.enunciado}
+Answer (do NOT depict it): ${pregunta.explicacion ?? ''}` }]);
+  const limpio = String(t ?? '').replace(/\s+/g, ' ').replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.,;\s]+$/, '');
+  return limpio ? `${limpio}, ${ESTILO_ONE}` : null;
+}
+
+async function viaIA(item, pregunta, ctx, nombre, id) {
+  const { imagenes, cupo } = ctx;
   if (SIN_IA || ctx.iaCaida >= 3 || !cupo.puede()) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
-  const prompt = await escribirPrompt(p, { llamarModelo: ({ mensajes }) => llamarTexto(mensajes) });
-  const g = prompt ? await generarImagen(prompt, { cupo }) : null;
-  if (!g) { ctx.iaCaida = (ctx.iaCaida ?? 0) + 1; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen (¿tramo gratis diario agotado?)' }; }
-  ctx.iaCaida = 0;
-  const webp = await aWebpIA(g.buffer);
-  const r = await juzgar(webp, p, estado);
-  if (!r) return { rama: 'tecnico' };
-  if (!iaMejoraActual(r.nota, undefined)) return { rama: 'sin-imagen', motivo: `IA descartada (nota ${r.nota})` };
-  const url = await guardarWebp(DIR_IA, p.id, webp);
-  imagenes[p.id] = { id: p.id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt, proveedor: g.proveedor, ancho: 768, alto: 768, nota: r.nota, notaModelo: r.modelo, origen: 'lote' };
-  return { rama: 'nueva', fuente: 'IA', nota: r.nota };
+  const normal = iaPermitida(pregunta) && !ctx.esCifra?.(item);
+  for (let intento = 0; intento < 2; intento++) {
+    const llamarModelo = ({ mensajes }) => llamarTexto(mensajes);
+    const prompt = normal && intento === 0 ? await escribirPrompt(pregunta, { llamarModelo }) : await promptSimbolico(pregunta);
+    const g = prompt ? await generarImagen(prompt, { cupo }) : null;
+    if (!g) { ctx.iaCaida = (ctx.iaCaida ?? 0) + 1; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen (¿tramo gratis diario agotado?)' }; }
+    ctx.iaCaida = 0;
+    const webp = await aWebpIA(g.buffer);
+    const r = await juzgar(webp, pregunta, ctx.estado);
+    if (!r) return { rama: 'tecnico' };
+    if (!iaMejoraActual(r.nota, undefined)) { if (intento === 1) return { rama: 'sin-imagen', motivo: `IA descartada (nota ${r.nota})` }; continue; }
+    const url = await guardarWebp(DIR_IA, nombre, webp);
+    if (ctx.esCifra?.(item)) item.imagen = { url, fuente: 'IA', nota: r.nota, notaModelo: r.modelo };
+    else imagenes[id] = { id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt, proveedor: g.proveedor, ancho: 768, alto: 768, nota: r.nota, notaModelo: r.modelo, origen: 'lote' };
+    return { rama: 'nueva', fuente: 'IA', nota: r.nota };
+  }
+  return { rama: 'sin-imagen', motivo: 'IA descartada' };
 }
 
 async function rellenarCifra(c, ctx) {
   const { estado, usadas } = ctx;
   const { buena, tecnico } = await buscarFuentes({ pregunta: preguntaDeCifra(c), area: c.area, terminos: estado.terminos[c.id], usadas, estado });
-  if (!buena) return tecnico || estado.fallosSeguidos >= 8 ? { rama: 'tecnico' } : { rama: 'sin-imagen', motivo: 'ninguna candidata llegó a 4' };
+  if (!buena) {
+    if (tecnico || estado.fallosSeguidos >= 40) return { rama: 'tecnico' };
+    return viaIA(c, preguntaDeCifra(c), ctx, `cifra-${c.id}`, c.id);
+  }
   const url = await guardarWebp(DIR_BANCO, `cifra-${c.id}`, buena.webp);
   c.imagen = { url, pagina: buena.pagina, autor: buena.autor, licencia: buena.licencia, fuente: buena.fuente, nota: buena.nota, notaModelo: buena.notaModelo };
   usadas.add(buena.pagina);
@@ -241,7 +269,7 @@ async function principal() {
   const cifras = await leer(RUTA_CIFRAS, []);
   const estado = (await leer(RUTA_ESTADO, null)) ?? { terminos: {}, intentadas: {}, resumen: {} };
   estado.fallosSeguidos = 0;
-  const cupo = crearCupo({ ruta: RUTA_CUPO });
+  const cupo = crearCupo({ ruta: RUTA_CUPO, maxDia: MAX_IA });
   const usadas = new Set([...Object.values(imagenes).map((e) => e.pagina), ...cifras.map((c) => c.imagen?.pagina)].filter(Boolean));
 
   const pendP = QUE === 'cifras' ? [] : preguntas.filter((p) => !imagenes[p.id] && !estado.intentadas[p.id] && (!IDS || IDS.includes(p.id))).slice(0, LIMITE);
@@ -260,11 +288,11 @@ async function principal() {
   await proponerTerminos(pendC, estado, PROMPT_TERMINOS_CIFRA, (c) => `${c.id}: ${c.nombre} (${c.categoria})`);
   await guardarEstado();
 
-  const ctx = { imagenes, estado, usadas, cupo };
+  const ctx = { imagenes, estado, usadas, cupo, esCifra: (x) => 'categoria' in x };
   const cola2 = [...pendP.map((x) => ['p', x]), ...pendC.map((x) => ['c', x])];
   let i = 0, n = 0;
   async function trabajador() {
-    while (i < cola2.length && estado.fallosSeguidos < 8) {
+    while (i < cola2.length && estado.fallosSeguidos < 40) {
       const [tipo, x] = cola2[i++];
       try {
         const r = tipo === 'p' ? await rellenarPregunta(x, ctx) : await rellenarCifra(x, ctx);
@@ -278,7 +306,7 @@ async function principal() {
   }
   await Promise.all([trabajador(), trabajador()]);
   await guardarTodo();
-  if (estado.fallosSeguidos >= 8) console.log('Los modelos de visión no responden (8 fallos seguidos): se paró. Relanza más tarde.');
+  if (estado.fallosSeguidos >= 40) console.log('Los modelos de visión no responden (8 fallos seguidos): se paró. Relanza más tarde.');
   console.log('\nResumen acumulado:', estado.resumen, '· cupo IA:', cupo.estadoHoy());
 }
 

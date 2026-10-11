@@ -3883,5 +3883,21 @@
     "nota": 5,
     "notaModelo": "nvidia:meta/llama-3.2-11b-vision-instruct",
     "origen": "lote"
+  },
+  "log-037": {
+    "id": "log-037",
+    "url": "imagenes-banco/log-037.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Monty_Hall_Paradox.png",
+    "titulo": "Monty Hall Paradox.png",
+    "autor": "Dien Ho",
+    "licencia": "CC BY-SA 4.0",
+    "fuente": "Commons",
+    "leyenda": "Monty Hall Paradox",
+    "termino": "Monty Hall problem illustration",
+    "ancho": 500,
+    "alto": 549,
+    "nota": 4,
+    "notaModelo": "nvidia:meta/llama-3.2-11b-vision-instruct",
+    "origen": "lote"
   }
 }
