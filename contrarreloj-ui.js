@@ -10,7 +10,8 @@ import {
   N_SERIE, crearSerie, responder as responderSerie, abrirCofre, aceptarDoble, resultadoFinal,
   tiempoPreguntaMs, actualizarRecords, cargarRecords, guardarRecords,
 } from './contrarreloj.js';
-import { OBJETOS } from './mochila.js';
+import { OBJETOS, cargarMochila } from './mochila.js';
+import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
 import { pintarBarraTiempo } from './efectos.js';
@@ -18,6 +19,7 @@ import { MS_ANTIREBOTE } from './ordago-ui.js';
 
 // Pausa tras un acierto para que se vea el destello antes de la siguiente pregunta (el reloj no corre).
 export const MS_PAUSA_ACIERTO = 450;
+export const MS_MAS5 = 5000;
 const ETIQUETA_RAREZA = { comun: 'Común', raro: 'Raro', epico: 'Épico' };
 
 function crear(documento, etiqueta, clase, texto) {
@@ -46,6 +48,7 @@ export function montarContrarreloj(contenedor, deps) {
   const nodoFoto = nodo('contrarreloj-foto');
   const nodoBarra = nodo('contrarreloj-barra');
   const nodoOpciones = nodo('contrarreloj-opciones');
+  const nodoComodines = nodo('contrarreloj-comodines');
   const caida = deps.contenedorCaida;
   const nodoCaidaResumen = nodo('caida-resumen', caida);
   const nodoCaidaExplicacion = nodo('caida-explicacion', caida);
@@ -78,6 +81,26 @@ export function montarContrarreloj(contenedor, deps) {
   let desbloqueoEn = 0;
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
+
+  // Comodines (spec §6): el 50/50 y el +5 s se descuentan al usarlos; el Salvavidas, solo si de verdad te salva.
+  const comodines = nodoComodines && montarComodines(nodoComodines, {
+    modo: 'contrarreloj', mochila: () => cargarMochila(deps.almacen), documento, alUsar: usarComodin,
+  });
+  function usarComodin(id) {
+    if (fase !== 'jugando') return;
+    if (id === 'cincuenta') {
+      ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
+      gastarComodin(id, deps.almacen);
+      for (const boton of nodoOpciones.querySelectorAll('button')) {
+        boton.hidden = ronda.ocultas.includes(Number(boton.getAttribute('data-original')));
+      }
+    } else if (id === 'mas5') {
+      ronda.total += MS_MAS5; // suma 5 s al tiempo restante; la barra se repinta en el siguiente fotograma
+      gastarComodin(id, deps.almacen);
+    } else if (id === 'salvavidas') {
+      ronda.salvavidas = true;
+    }
+  }
 
   const detenerReloj = () => {
     if (rafId !== null) cancelarRaf(rafId);
@@ -123,7 +146,9 @@ export function montarContrarreloj(contenedor, deps) {
     nodoNumero.textContent = `${serie.indice + 1}/${N_SERIE}`;
     nodoFase.hidden = serie.fase !== 'doble';
     const total = tiempoPreguntaMs(serie.indice, serie.fase);
-    ronda = { pregunta, total, inicio: ahora(), ultimoTic: null };
+    ronda = { pregunta, total, inicio: ahora(), ultimoTic: null, ocultas: [], salvavidas: false };
+    comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [] });
+    comodines?.visible(true);
     pintarBarraTiempo(nodoBarra, total, total);
     fase = 'jugando';
     pausadaPor = null;
@@ -161,8 +186,17 @@ export function montarContrarreloj(contenedor, deps) {
     deps.vigia?.parar();
     const { pregunta } = ronda;
     const correcta = !tiempo && evaluar(pregunta, valor);
-    serie = responderSerie(serie, { correcta });
+    const salvada = !correcta && ronda.salvavidas; // el Salvavidas perdona el fallo y también el tiempo agotado
+    serie = responderSerie(serie, { correcta, salvavidas: salvada });
+    if (salvada) gastarComodin('salvavidas', deps.almacen);
     if (!tiempo) deps.registrar(pregunta, correcta, valor);
+    comodines?.visible(false);
+    if (salvada) {
+      deps.lamentarFallo(nodoFoto);
+      if (sinPausa) avanzar();
+      else pausaId = temporizador.setTimeout(() => { pausaId = null; avanzar(); }, MS_PAUSA_ACIERTO);
+      return;
+    }
     if (correcta) {
       deps.celebrarAcierto(nodoFoto);
       if (sinPausa) avanzar();
@@ -296,6 +330,7 @@ export function montarContrarreloj(contenedor, deps) {
       }
       fase = 'destruido';
       deps.vigia?.parar();
+      comodines?.destruir();
       detenerReloj();
       detenerPausa();
       documento.removeEventListener('visibilitychange', alCambiarVisibilidad);

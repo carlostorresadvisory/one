@@ -12,6 +12,8 @@ import {
 import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
+import { cargarMochila } from './mochila.js';
+import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 // Tras cada cambio de panel (fichas → respuestas → resultado → siguiente ronda) los botones nuevos caen
@@ -66,6 +68,7 @@ export function montarOrdago(contenedor, deps) {
   const quiebra = deps.contenedorQuiebra;
   const nodoQuiebraMaximo = nodo('quiebra-maximo', quiebra);
   const botonFondoNuevo = nodo('quiebra-fondo-nuevo', quiebra);
+  const nodoComodines = nodo('ordago-comodines');
 
   let estado = cargarOrdago(deps.almacen);
   let fase = 'inicio'; // 'ficha' | 'opciones' | 'resuelta' | 'quiebra' | 'destruido'
@@ -78,6 +81,10 @@ export function montarOrdago(contenedor, deps) {
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
   let generacionFondo = 0;
+  // Comodines (spec §6): 50/50 y Salvavidas valen (y se descuentan) solo para la ronda en curso.
+  const comodines = nodoComodines && montarComodines(nodoComodines, {
+    modo: 'ordago', mochila: () => cargarMochila(deps.almacen), documento, alUsar: usarComodin,
+  });
 
   function pintarMarcador(desde = null) {
     generacionFondo += 1;
@@ -102,7 +109,26 @@ export function montarOrdago(contenedor, deps) {
     nodoFichas.hidden = cual !== 'fichas';
     nodoOpciones.hidden = cual !== 'opciones';
     nodoResultado.hidden = cual !== 'resultado';
+    comodines?.visible(cual !== 'resultado');
   };
+
+  /** El 50/50 se descuenta al usarlo; el Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo. */
+  function usarComodin(id) {
+    if (id === 'cincuenta') {
+      ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
+      gastarComodin(id, deps.almacen);
+      ocultarDescartadas();
+    } else if (id === 'salvavidas') {
+      ronda.salvavidas = true;
+    }
+  }
+
+  function ocultarDescartadas() {
+    if (!ronda.ocultas.length) return;
+    for (const boton of nodoOpciones.querySelectorAll('button')) {
+      boton.hidden = ronda.ocultas.includes(Number(boton.getAttribute('data-original')));
+    }
+  }
 
   function nuevaRonda(cambiarVista = false) {
     if (estado.fondo < 1) {
@@ -122,7 +148,7 @@ export function montarOrdago(contenedor, deps) {
     foto = montarFotoPregunta(nodoFoto, {
       enunciado: pregunta.enunciado, imagen: deps.imagenDe(pregunta), area: pregunta.area, dorada, documento,
     });
-    ronda = { pregunta, dorada, ficha: 0, orden: pregunta.tipo === 'vf' ? [] : barajarOrden(pregunta.opciones.length, deps.rng) };
+    ronda = { pregunta, dorada, ficha: 0, ocultas: [], salvavidas: false, orden: pregunta.tipo === 'vf' ? [] : barajarOrden(pregunta.opciones.length, deps.rng) };
     pintarMarcador();
 
     nodoFichas.replaceChildren(...FICHAS.map((f) => {
@@ -134,10 +160,11 @@ export function montarOrdago(contenedor, deps) {
       return boton;
     }));
     mostrar('fichas');
+    comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [] });
     fase = 'ficha';
     armar();
-    deps.vigia?.reiniciar();
     if (cambiarVista) deps.mostrarVista('ordago'); // entre rondas la vista no se recarga
+    deps.vigia?.reiniciar(); // después de mostrarVista, que lo para: así arranca también en la primera ronda
     if (dorada) deps.pedirGesto('dorada');
   }
 
@@ -158,6 +185,7 @@ export function montarOrdago(contenedor, deps) {
       boton.addEventListener('click', () => { if (libre()) responder(valor); });
       return boton;
     }));
+    ocultarDescartadas();
     mostrar('opciones');
   }
 
@@ -168,7 +196,9 @@ export function montarOrdago(contenedor, deps) {
     const { pregunta, dorada, ficha } = ronda;
     const correcta = evaluar(pregunta, valor);
     const antes = estado.fondo;
-    const resultado = resolverRonda(estado, { ficha, correcta, nivel: pregunta.nivel, dorada });
+    const salvavidas = ronda.salvavidas && !correcta;
+    const resultado = resolverRonda(estado, { ficha, correcta, nivel: pregunta.nivel, dorada, salvavidas });
+    if (salvavidas) gastarComodin('salvavidas', deps.almacen);
     estado = resultado.estado;
     guardarOrdago(estado, deps.almacen);
     deps.registrar(pregunta, correcta, valor);
@@ -178,7 +208,7 @@ export function montarOrdago(contenedor, deps) {
     nodoDelta.classList.toggle('ordago-delta--ko', !correcta);
     nodoAviso.hidden = !resultado.nuevoMaximo;
     nodoAviso.textContent = resultado.nuevoMaximo ? `Nuevo máximo · ${formatearCifra(estado.maximo)}` : '';
-    nodoExplicacion.textContent = `Respuesta: ${textoRespuesta(pregunta)}. ${pregunta.explicacion}`;
+    nodoExplicacion.textContent = `${salvavidas ? '🛟 Salvavidas: pierdes la mitad de la ficha y la racha sigue. ' : ''}Respuesta: ${textoRespuesta(pregunta)}. ${pregunta.explicacion}`;
     botonSiguiente.textContent = resultado.quiebra ? 'Continuar' : 'Siguiente';
     pintarMarcador(antes);
     mostrar('resultado');
@@ -227,6 +257,7 @@ export function montarOrdago(contenedor, deps) {
       if (foto) foto.destruir();
       foto = null;
       deps.vigia?.parar();
+      comodines?.destruir();
     },
     /** Solo para los e2e (`?test=1`). */
     preguntaActual: () => (ronda ? ronda.pregunta : null),

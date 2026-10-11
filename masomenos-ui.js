@@ -16,7 +16,8 @@ import {
 import { montarEscenaFotos, montarLineaTemporal } from './escala.js';
 import { montarFotoPregunta, creditoTexto } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
-import { sortearObjeto, OBJETOS } from './mochila.js';
+import { sortearObjeto, OBJETOS, cargarMochila } from './mochila.js';
+import { montarComodines, gastarComodin } from './comodines-ui.js';
 import { MS_ANTIREBOTE } from './ordago-ui.js';
 
 const RECIENTES = 12; // ids vistos hace poco: se evitan mientras haya alternativa
@@ -105,9 +106,13 @@ export function montarMasomenos(contenedor, deps) {
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
   let generacionCuenta = 0;
-  // El récord se celebra una sola vez por racha: la primera vez que se supera (tras recargar a mitad de una racha en el
-  // récord no se puede saber si ya se celebró, y se celebra una vez más).
-  const recordCelebrado = { comparar: false, afinar: false };
+  // El récord se celebra una sola vez por racha: la primera vez que la racha supera el récord que había al empezarla.
+  // Tras recargar a mitad de una racha que ya iba en el récord (racha ≥ récord) ya se celebró: no se repite; si iba por
+  // debajo, el récord de ahora es el de entonces.
+  const recordCelebrado = {
+    comparar: estado.comparar.racha > 0 && estado.comparar.racha >= estado.comparar.record,
+    afinar: estado.afinar.racha > 0 && estado.afinar.racha >= estado.afinar.record,
+  };
   const oyentes = []; // [nodo, tipo, fn]: se quitan todos al destruir
   const escuchar = (n, tipo, fn) => { n.addEventListener(tipo, fn); oyentes.push([n, tipo, fn]); };
 
@@ -149,6 +154,7 @@ export function montarMasomenos(contenedor, deps) {
   }
 
   function vaciar() {
+    ronda?.comodines?.destruir();
     limpiarRonda();
     limpiarRonda = () => {};
     generacionCuenta += 1;
@@ -161,7 +167,9 @@ export function montarMasomenos(contenedor, deps) {
   /** Aplica el resultado a la racha de la variante, lo guarda y devuelve el texto del premio (o ''). */
   function anotar(acierto) {
     const antes = estado[variante].record;
-    const r = registrarResultado(estado, variante, { acierto });
+    const salvavidas = !acierto && Boolean(ronda?.salvavidas); // el Salvavidas mantiene la racha y se descuenta solo aquí
+    if (salvavidas) gastarComodin('salvavidas', deps.almacen);
+    const r = registrarResultado(estado, variante, { acierto, salvavidas });
     estado = { ...r.estado, variante };
     guardarMasomenos(estado, deps.almacen);
     pintarMarcador();
@@ -178,6 +186,17 @@ export function montarMasomenos(contenedor, deps) {
     if (superaRecord || (acierto && antes === 0)) recordCelebrado[variante] = true; // sin récord previo no hay nada que superar
     else if (!acierto) recordCelebrado[variante] = false; // la racha siguiente vuelve a poder celebrarlo
     return premio;
+  }
+
+  /** Barra de comodines de la ronda (solo Salvavidas aplica a Más o menos), primer hijo del mando. */
+  function montarBarraComodines(mando) {
+    const barra = crear(documento, 'div', 'mm-comodines');
+    barra.setAttribute('data-test', 'mm-comodines');
+    mando.prepend(barra);
+    ronda.comodines = montarComodines(barra, {
+      modo: 'masomenos', mochila: () => cargarMochila(deps.almacen), documento,
+      alUsar: (id) => { if (id === 'salvavidas') ronda.salvavidas = true; },
+    });
   }
 
   function panelResultado(clase) {
@@ -264,6 +283,7 @@ export function montarMasomenos(contenedor, deps) {
     mando.append(pregunta, botones);
     nodoCuerpo.append(tarjetas, mando);
     ronda.nodos = { tarjetas, tAbajo, tArriba, mando, botones };
+    montarBarraComodines(mando);
     fase = 'comparar';
     armar();
     deps.vigia?.reiniciar();
@@ -281,10 +301,11 @@ export function montarMasomenos(contenedor, deps) {
     nodos.tAbajo.raiz.classList.add(acierto ? 'mm-tarjeta--acierto' : 'mm-tarjeta--fallo');
     if (acierto) deps.celebrarAcierto(nodos.tAbajo.raiz);
     else deps.lamentarFallo(nodos.tAbajo.raiz);
+    const salvada = !acierto && Boolean(ronda.salvavidas);
     const premio = anotar(acierto); // después de celebrar: el gesto del récord o del premio sustituye al del acierto
 
     const panel = panelResultado(acierto ? 'mm-resultado--ok' : 'mm-resultado--ko');
-    panel.append(filaResultado(acierto ? '¡Correcto!' : 'Fallaste', acierto ? 'mm-resultado-titulo--ok' : 'mm-resultado-titulo--ko', () => siguienteComparar(acierto)));
+    panel.append(filaResultado(acierto ? '¡Correcto!' : `Fallaste${salvada ? ' · 🛟 racha salvada' : ''}`, acierto ? 'mm-resultado-titulo--ok' : 'mm-resultado-titulo--ko', () => siguienteComparar(acierto)));
     const diferencia = crear(documento, 'p', 'mm-diferencia', `${fondo.nombre}: ${diferenciaTexto(cima, fondo)}`);
     diferencia.setAttribute('data-test', 'mm-diferencia');
     panel.appendChild(diferencia);
@@ -386,6 +407,7 @@ export function montarMasomenos(contenedor, deps) {
     mando.append(lectura, fila);
     nodoCuerpo.append(zona, mando);
     ronda.nodos = { zona, mando, barra, listo, valorEnVivo };
+    montarBarraComodines(mando);
 
     if (!conFechas) {
       // Hay que medir después de montar (y con la vista visible): el alto disponible es el de la zona de fotos.
@@ -439,11 +461,12 @@ export function montarMasomenos(contenedor, deps) {
     if (calif === 'clavado') deps.celebrarPremio('clavado'); // confeti + fanfarria + esfinge eufórica
     else if (acierto) deps.celebrarAcierto(zonaEfecto);
     else deps.lamentarFallo(zonaEfecto);
+    const salvada = !acierto && Boolean(ronda.salvavidas);
     const premio = anotar(acierto);
 
     const panel = panelResultado(acierto ? 'mm-resultado--ok' : 'mm-resultado--ko');
     panel.setAttribute('data-calificacion', calif);
-    const fila = filaResultado(TEXTO_CALIFICACION[calif], acierto ? 'mm-resultado-titulo--ok' : 'mm-resultado-titulo--ko', () => nuevaAfinar());
+    const fila = filaResultado(`${TEXTO_CALIFICACION[calif]}${salvada ? ' · 🛟 racha salvada' : ''}`, acierto ? 'mm-resultado-titulo--ok' : 'mm-resultado-titulo--ko', () => nuevaAfinar());
     panel.appendChild(fila);
     // La cifra real se cuenta en el panel del resultado (la lectura de la barra desaparece al poner el panel).
     const real = crear(documento, 'p', 'mm-real');

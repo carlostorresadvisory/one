@@ -39,7 +39,7 @@ import {
   avisoFiltroCorto, preguntasDelFiltro,
 } from './filtro.js';
 import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
-import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
+import { OBJETOS, crearMochila, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
@@ -51,6 +51,7 @@ import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marc
 import { montarContrarreloj } from './contrarreloj-ui.js';
 import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
 import { montarMasomenos } from './masomenos-ui.js';
+import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -2019,6 +2020,12 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     arrancarModo(id) {
       arrancarModo(id);
     },
+    // v0.3 fase 9: siembra la mochila para los e2e de comodines y Tienda (`{cincuenta, salvavidas, mas5}`).
+    sembrarMochila(objetos = {}) {
+      let mochila = crearMochila();
+      for (const [id, n] of Object.entries(objetos)) mochila = anadirObjeto(mochila, id, n);
+      guardarMochila(mochila);
+    },
     // v0.3 fase 5: ganchos de Órdago para los e2e (la pregunta en juego y responderla a propósito).
     ultimaPreguntaOrdago() {
       return ordagoInstancia ? ordagoInstancia.preguntaActual() : null;
@@ -2549,6 +2556,7 @@ function construirOpcionesTest4(hueco) {
     boton.dataset.test = `opcion-${posicion}`;
     boton.dataset.original = String(original);
     boton.textContent = hueco.pregunta.opciones[original];
+    boton.hidden = Boolean(hueco.ocultas?.includes(original)); // 50/50 ya usado en esta pregunta
     boton.addEventListener('click', () => manejarRespuesta(hueco, original));
     opciones.appendChild(boton);
   });
@@ -2792,6 +2800,50 @@ function activarSwipeVf(tarjeta, hueco) {
   tarjeta.addEventListener('pointercancel', soltar);
 }
 
+/** Barra de comodines de una tarjeta sin responder (spec §6): 50/50 quita 2 opciones incorrectas de un test4; el
+ * Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo (ver `salvarConSalvavidas`). */
+function construirBarraComodines(hueco, tarjeta) {
+  const barra = document.createElement('div');
+  barra.dataset.test = 'comodines';
+  hueco.salvavidas = false;
+  hueco.ocultas = null;
+  hueco.comodines = montarComodines(barra, {
+    modo: modoActual,
+    mochila: () => cargarMochila(),
+    tipoPregunta: hueco.pregunta.tipo,
+    alUsar: (id) => {
+      if (id === 'cincuenta') {
+        hueco.ocultas = descartesCincuenta(hueco.pregunta);
+        gastarComodin(id);
+        for (const boton of tarjeta.querySelectorAll('[data-test^="opcion-"]')) {
+          boton.hidden = hueco.ocultas.includes(Number(boton.dataset.original));
+        }
+      } else if (id === 'salvavidas') {
+        hueco.salvavidas = true;
+      }
+    },
+  });
+  return barra;
+}
+
+/** Fallo con el Salvavidas armado: no se registra (ni radar ni nivel ni repaso), la pregunta queda sin contar y el
+ * hueco recibe otra (si el filtro es cerrado y no queda ninguna, la misma, de nuevo sin responder). */
+function salvarConSalvavidas(hueco) {
+  gastarComodin('salvavidas');
+  const otra = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
+  if (otra) {
+    partidaUsados.add(otra.id);
+    hueco.pregunta = otra;
+  }
+  hueco.ordenOpciones = undefined;
+  hueco.confianza = 'media';
+  hueco.bloqueoHasta = performance.now() + 400; // el segundo toque de un doble toque cae en la tarjeta nueva
+  hueco.nodo = construirTarjetaSinResponder(hueco);
+  hueco.comodines.aviso('🛟 Salvavidas: no cuenta como fallo');
+  mazoControlador.actualizarTarjetas(listaActual());
+  vigiaPensando.reiniciar();
+}
+
 /** Tarjeta de un hueco todavía sin responder: cabecera, enunciado, confianza
  * (opcional, Media por defecto), zona de respuesta según tipo y, en vf, los
  * botones FALSO/VERDADERO anclados abajo. */
@@ -2821,6 +2873,7 @@ function construirTarjetaSinResponder(hueco) {
 
   const zonaAccion = document.createElement('div');
   zonaAccion.className = 'tarjeta-accion';
+  zonaAccion.appendChild(construirBarraComodines(hueco, tarjeta));
   if (pregunta.tipo === 'vf') {
     zonaAccion.appendChild(construirPistaSwipeVf());
     zonaAccion.appendChild(construirBotonesVf(hueco));
@@ -3915,8 +3968,13 @@ function construirTarjetaCierre() {
  * su tarjeta ya en estado respondida y la deja lista en el mazo. */
 function manejarRespuesta(hueco, respuesta) {
   if (hueco.respondida) return; // guarda contra doble tap / doble evento
+  if (hueco.bloqueoHasta && performance.now() < hueco.bloqueoHasta) return;
   const pregunta = hueco.pregunta;
   const correcta = evaluar(pregunta, respuesta);
+  if (!correcta && hueco.salvavidas) {
+    salvarConSalvavidas(hueco);
+    return;
+  }
   // diaPartida (hallazgo B5), no hoy(): el día se fija una vez al arrancar la
   // partida, así una partida que cruce la medianoche no reparte sus
   // respuestas entre dos días de calendario distintos.

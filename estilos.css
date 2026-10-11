@@ -3122,3 +3122,20 @@ button.punto-servidor::before {
 .escala-marca-texto { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
 .escala-marca--estimacion .escala-marca-texto { color: var(--acento); }
 .escala-marca--real .escala-marca-texto { color: var(--ok); }
+
+/* ===== v0.3 Comodines (comodines-ui.js, spec §4 y §6): barra bajo la tarjeta, o entre la foto y las respuestas en los
+   modos con foto. Botones planos (sin resplandor); con la mochila vacía la barra no existe (hidden). ===== */
+.comodines { display: flex; align-items: center; justify-content: center; gap: 8px; flex: none; }
+.comodines[hidden] { display: none; }
+.comodin {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 8px 10px; border-radius: 12px;
+  border: 1px solid #22303d; background: var(--tarjeta); color: var(--texto); font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.comodin-icono { font-size: 16px; line-height: 1; }
+.comodin-cantidad { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.comodin[aria-pressed="true"] { border-color: var(--acento); color: var(--acento); }
+.comodin:disabled:not([aria-pressed="true"]) { opacity: 0.45; }
+.comodin:active:not(:disabled) { transform: scale(0.97); }
+.comodines-aviso { color: var(--texto-suave); font-size: 12px; }
+.tarjeta-accion:not(:has(> :not([hidden]))) { display: none; } /* la barra de comodines vacía no deja hueco */
+button[hidden] { display: none; } /* las opciones quitadas por el 50/50 no ocupan sitio aunque su clase fije display */

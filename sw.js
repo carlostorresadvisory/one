@@ -20,7 +20,7 @@ const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
   'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
   'ordago.js', 'ordago-ui.js', 'foto-pregunta.js', 'contrarreloj.js', 'contrarreloj-ui.js',
-  'masomenos.js', 'masomenos-ui.js', 'escala.js',
+  'masomenos.js', 'masomenos-ui.js', 'escala.js', 'comodines-ui.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',
   'estilos.css', 'datos/banco.json', 'datos/cifras.json',
 ];

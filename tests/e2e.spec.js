@@ -7909,7 +7909,7 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
 
   test('el récord se celebra una sola vez por racha: la esfinge no se vuelve eufórica en cada acierto de la racha', async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 3, record: 3 }, afinar: { racha: 0, record: 0 } }));
+      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 2, record: 3 }, afinar: { racha: 0, record: 0 } }));
     });
     await entrar(page);
     for (let i = 0; i < 4; i += 1) {
@@ -8022,5 +8022,211 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
       expect(textos.some((t) => t === '480 a. C.')).toBe(true);
       expect(textos.every((t) => /^\d+ a\. C\.$/.test(t))).toBe(true);
     });
+  });
+});
+
+test.describe('ONE · v0.3 récord de Más o menos tras recargar (fase 9)', () => {
+  test('recargar a mitad de una racha que ya iba en el récord no lo vuelve a celebrar', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 5, record: 5 }, afinar: { racha: 0, record: 0 } }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-test="mm-cuerpo"] > *').first()).toBeVisible();
+    for (let i = 0; i < 3; i += 1) {
+      await page.waitForTimeout(450);
+      await page.evaluate(() => window.__one.responderMasomenos(true));
+      await page.waitForTimeout(450);
+      await page.locator('[data-test="mm-siguiente"]').click();
+    }
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 8');
+    expect((await page.evaluate(() => window.__one.gestosPedidos)).filter((g) => g === 'euforia')).toHaveLength(0);
+  });
+});
+
+test.describe('ONE · v0.3 Órdago: el vigía de «pensando» arranca en la primera ronda (fase 9)', () => {
+  test('a los 8 s sin tocar nada en la primera ronda la esfinge «piensa»', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__one.gestosPedidos), { timeout: 12000 }).toContain('pensando');
+  });
+});
+
+test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page, conTarjeta = false) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      if (conTarjeta) await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      if (conTarjeta) await assertTarjetaSinScroll(page);
+    }
+  };
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+  const mochila = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.mochila')).objetos);
+  const sembrar = (page, objetos) => page.evaluate((o) => window.__one.sembrarMochila(o), objetos);
+  const tipoOrdago = (page) => page.evaluate(() => window.__one.ultimaPreguntaOrdago().tipo);
+  const empezar = (page, ids) => page.evaluate((i) => window.__one.empezarPartida({ ids: i, etiqueta: 'comodines' }), ids);
+
+  for (const [tipo, ids] of [['test4', ['cie-001']], ['vf', ['eco-001']], ['ordenar', ['his-002']]]) {
+    test(`Clásico (${tipo}): la barra aparece con la mochila sembrada, sin scroll en 375×812 y 375×667 y sin hueco si está vacía`, async ({ page }) => {
+      await page.goto('/?ejemplo=1&test=1');
+      await sembrar(page, {});
+      await empezar(page, ids);
+      await expect(tarjetaActual(page)).toBeVisible();
+      await expect(tarjetaActual(page).locator('[data-test="comodines"]')).toBeHidden(); // mochila vacía: nada
+      await sembrar(page, { cincuenta: 1, salvavidas: 1, mas5: 1 });
+      await empezar(page, ids);
+      const barra = tarjetaActual(page).locator('[data-test="comodines"]');
+      await expect(barra).toBeVisible();
+      await expect(barra.locator('button')).toHaveCount(tipo === 'test4' ? 2 : 1); // +5 s no vale en Clásico; 50/50 solo en test4
+      await expect(barra.locator('[data-test="comodin-mas5"]')).toHaveCount(0);
+      await sinScrollEnAmbos(page, true);
+    });
+  }
+
+  test('Clásico: 50/50 deja 2 opciones (doble toque = un solo uso) y la correcta sigue', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { cincuenta: 2 });
+    await empezar(page, ['cie-001']);
+    const t = tarjetaActual(page);
+    await expect(t.locator('[data-test^="opcion-"]')).toHaveCount(4);
+    await t.locator('[data-test="comodin-cincuenta"]').click({ clickCount: 2 });
+    await expect(t.locator('[data-test^="opcion-"]:visible')).toHaveCount(2);
+    await expect(t.locator('[data-test^="opcion-"][data-original="0"]')).toBeVisible();
+    expect((await mochila(page)).cincuenta).toBe(1);
+    await expect(t.locator('[data-test="comodin-cincuenta"]')).toBeDisabled();
+    await sinScrollEnAmbos(page, true);
+  });
+
+  test('Clásico: Salvavidas armado y fallo = no respondida (no se registra) y se gasta una sola vez; si aciertas, no se gasta', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { salvavidas: 2 });
+    await empezar(page, ['cie-001', 'art-001', 'tec-001']);
+    // Armado y acertando: no se gasta.
+    await tarjetaActual(page).locator('[data-test="comodin-salvavidas"]').click();
+    await responderPreguntaActual(page);
+    expect((await mochila(page)).salvavidas).toBe(2);
+    await avanzarTrasRespuesta(page);
+    // Armado y fallando: no cuenta como fallo ni se registra, y se gasta uno.
+    const registradas = () => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('one.estado')).tarjetas ?? {}).length);
+    const antes = await registradas();
+    await tarjetaActual(page).locator('[data-test="comodin-salvavidas"]').click({ clickCount: 2 });
+    await fallarPreguntaActual(page);
+    await expect(tarjetaActual(page).locator('[data-test="comodines-aviso"]')).toContainText('no cuenta como fallo');
+    await expect(tarjetaActual(page).locator('[data-test="siguiente"]')).toHaveCount(0); // sigue sin responder
+    expect((await mochila(page)).salvavidas).toBe(1);
+    expect(await registradas()).toBe(antes);
+    await sinScrollEnAmbos(page, true);
+    // La pregunta nueva se responde con normalidad.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await esperarAntirrebote(page);
+    await responderPreguntaActual(page);
+    await expect(tarjetaActual(page).locator('[data-test="siguiente"]')).toBeVisible();
+  });
+
+  test('Órdago: 50/50 quita 2 respuestas y Salvavidas pierde la mitad de la ficha sin cortar la racha (sin scroll con la barra)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { cincuenta: 1, salvavidas: 2 });
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible();
+    for (let i = 0; i < 12 && (await tipoOrdago(page)) !== 'test4'; i += 1) {
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ficha-10"]').click();
+      await page.evaluate(() => window.__one.acertarPreguntaOrdago());
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ordago-siguiente"]').click();
+    }
+    expect(await tipoOrdago(page)).toBe('test4');
+    const barra = page.locator('[data-test="ordago-comodines"]');
+    await expect(barra.locator('button')).toHaveCount(2); // 50/50 + Salvavidas
+    await sinScrollEnAmbos(page);
+    await barra.locator('[data-test="comodin-cincuenta"]').click({ clickCount: 2 });
+    expect((await mochila(page)).cincuenta).toBe(0);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
+    await expect(page.locator('[data-test="ordago-opciones"] button:visible')).toHaveCount(2);
+    await expect(page.locator('[data-test="ordago-opciones"] [data-original="0"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    await barra.locator('[data-test="comodin-salvavidas"]').click({ clickCount: 2 });
+    expect((await mochila(page)).salvavidas).toBe(2); // armado, aún no gastado
+    const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')));
+    await page.evaluate(() => window.__one.fallarPreguntaOrdago());
+    const despues = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')));
+    const apuesta = Math.max(1, Math.floor(antes.fondo * 0.1));
+    expect(antes.fondo - despues.fondo).toBe(apuesta - Math.floor(apuesta / 2)); // pierde la mitad (la ficha menos su mitad)
+    expect(despues.racha).toBe(antes.racha); // la racha no se corta
+    expect((await mochila(page)).salvavidas).toBe(1);
+    await expect(page.locator('[data-test="ordago-explicacion"]')).toContainText('Salvavidas');
+    await expect(barra).toBeHidden(); // en el resultado la barra no está
+    await sinScrollEnAmbos(page);
+  });
+
+  test('Contrarreloj: +5 s hace crecer la barra y Salvavidas perdona el fallo (sigues vivo), cada uno gastado una vez', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { mas5: 2, salvavidas: 2 });
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    const barraComodines = page.locator('[data-test="contrarreloj-comodines"]');
+    await expect(barraComodines.locator('[data-test="comodin-mas5"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    await page.clock.fastForward(8000);
+    await page.clock.runFor(100);
+    const fraccion = () => page.locator('[data-test="contrarreloj-barra"]').evaluate((n) => Number(n.style.getPropertyValue('--fraccion')));
+    const antes = await fraccion();
+    await barraComodines.locator('[data-test="comodin-mas5"]').click({ clickCount: 2 });
+    await page.clock.runFor(100);
+    expect(await fraccion()).toBeGreaterThan(antes + 0.1);
+    expect((await mochila(page)).mas5).toBe(1);
+    await barraComodines.locator('[data-test="comodin-salvavidas"]').click({ clickCount: 2 });
+    expect((await mochila(page)).salvavidas).toBe(2); // armado, aún no gastado
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-vista="caida"]')).toBeHidden();
+    await page.clock.runFor(600);
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('2/10');
+    expect((await mochila(page)).salvavidas).toBe(1);
+    await expect(barraComodines.locator('[data-test="comodin-cantidad-salvavidas"]')).toHaveText('×1');
+    await sinScrollEnAmbos(page);
+    // Sin armar otro, el siguiente fallo sí tumba.
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-vista="caida"]')).toBeVisible();
+    expect((await mochila(page)).salvavidas).toBe(1);
+  });
+
+  test('Más o menos: Salvavidas mantiene la racha ante un fallo en Comparar y ante Cerca/Lejos en Afinar; 50/50 y +5 s no aparecen', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ masomenos: { area: 'economia', ruta: [], etiquetas: [] } }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { cincuenta: 1, salvavidas: 2, mas5: 1 });
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-test="mm-cuerpo"] > *').first()).toBeVisible();
+    const barra = page.locator('[data-test="mm-comodines"]');
+    await expect(barra.locator('button')).toHaveCount(1);
+    await expect(barra.locator('[data-test="comodin-salvavidas"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.evaluate(() => window.__one.responderMasomenos(true));
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="mm-siguiente"]').click();
+    await esperarAntirrebote(page);
+    await barra.locator('[data-test="comodin-salvavidas"]').click({ clickCount: 2 });
+    expect((await mochila(page)).salvavidas).toBe(2);
+    await page.evaluate(() => window.__one.responderMasomenos(false));
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toContainText('racha salvada');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).comparar)).toEqual({ racha: 1, record: 1 });
+    expect((await mochila(page)).salvavidas).toBe(1);
+    // Afinar: «Lejos» con el Salvavidas armado tampoco corta la racha.
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await expect(page.locator('[data-test="mm-barra"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="mm-comodines"] [data-test="comodin-salvavidas"]').click();
+    await page.evaluate(() => window.__one.estimarMasomenos({ factor: 15, anos: 1500 }));
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toContainText('racha salvada');
+    expect((await mochila(page)).salvavidas).toBe(0);
   });
 });

@@ -127,3 +127,64 @@ test('el vigía de «pensando» se reinicia en cada pregunta y se para al salir'
   assert.deepEqual(eventos.filter((e) => e === 'r').length >= 1, true);
   assert.equal(eventos.at(-1), 'p');
 });
+
+// --- Comodines (fase 9) ---------------------------------------------------------------------------------------------
+import { guardarMochila, cargarMochila, crearMochila, anadirObjeto } from '../mochila.js';
+
+// `montar` no crea el contenedor de la barra de comodines: estos tests lo añaden a mano.
+function montarSalvavidas(objetos) {
+  const almacen = almacenFalso();
+  guardarMochila(Object.entries(objetos).reduce((m, [id, n]) => anadirObjeto(m, id, n), crearMochila()), almacen);
+  const comodines = new ElementoFalso('div');
+  comodines.querySelector = (sel) => comodines.buscarPorClase(sel.replace('.', ''));
+  const juego = contenedorCon(['contrarreloj-numero', 'contrarreloj-fase', 'contrarreloj-foto', 'contrarreloj-barra', 'contrarreloj-opciones']);
+  const qs = juego.querySelector;
+  juego.querySelector = (sel) => (sel.includes('contrarreloj-comodines') ? comodines : qs(sel));
+  juego.porId['contrarreloj-comodines'] = comodines;
+  return { almacen, comodines, juego };
+}
+
+test('Salvavidas armado: fallar no te hace caer, se descuenta una sola vez y la serie avanza', () => {
+  const { almacen, comodines, juego } = montarSalvavidas({ salvavidas: 2 });
+  const documento = new ElementoFalso('document');
+  documento.createElement = (t) => new ElementoFalso(t);
+  documento.hidden = false;
+  const caida = contenedorCon(['caida-resumen', 'caida-explicacion', 'caida-reintentar']);
+  const cofre = contenedorCon(['cofre-titulo', 'cofre-premio', 'cofre-nota', 'cofre-doble', 'cofre-plantarse', 'cofre-recoger']);
+  const t = temporizadorFalso();
+  const vistas = [];
+  const instancia = montarContrarreloj(juego, {
+    documento, contenedorCaida: caida, contenedorCofre: cofre, mostrarVista: (v) => vistas.push(v),
+    elegirPregunta: ({ enSerie }) => ({ id: `p${enSerie.size}`, tipo: 'vf', nivel: 4, area: 'historia', enunciado: 'x', respuesta: true, explicacion: 'e' }),
+    registrar() {}, celebrarAcierto() {}, lamentarFallo() {}, celebrarPremio() {}, reproducir() {}, imagenDe: () => null,
+    darObjetos() {}, alSalir() {}, alSinPreguntas() {}, almacen, rng, ahora: () => 0, raf: () => 1, cancelarRaf() {}, temporizador: t,
+  });
+  const boton = comodines.children.find((c) => c.getAttribute('data-test') === 'comodin-salvavidas');
+  boton.disparar('click');
+  boton.disparar('click'); // doble toque
+  assert.equal(cargarMochila(almacen).objetos.salvavidas, 2); // armado, aún no gastado
+  assert.equal(instancia.responderParaTest(false), true);
+  assert.equal(cargarMochila(almacen).objetos.salvavidas, 1); // gastado una vez, al perdonar el fallo
+  assert.ok(!vistas.includes('caida'));
+  assert.equal(juego.porId['contrarreloj-numero'].textContent, '2/10'); // la serie sigue, en la siguiente
+  instancia.responderParaTest(false); // sin armar otro: ahora sí cae
+  assert.ok(vistas.includes('caida'));
+  assert.equal(cargarMochila(almacen).objetos.salvavidas, 1);
+});
+
+test('Salvavidas armado pero acertando: no se gasta', () => {
+  const { almacen, comodines, juego } = montarSalvavidas({ salvavidas: 1 });
+  const documento = new ElementoFalso('document');
+  documento.createElement = (t) => new ElementoFalso(t);
+  documento.hidden = false;
+  const instancia = montarContrarreloj(juego, {
+    documento, contenedorCaida: contenedorCon(['caida-resumen', 'caida-explicacion', 'caida-reintentar']),
+    contenedorCofre: contenedorCon(['cofre-titulo', 'cofre-premio', 'cofre-nota', 'cofre-doble', 'cofre-plantarse', 'cofre-recoger']),
+    mostrarVista() {}, elegirPregunta: ({ enSerie }) => ({ id: `p${enSerie.size}`, tipo: 'vf', nivel: 4, area: 'historia', enunciado: 'x', respuesta: true, explicacion: 'e' }),
+    registrar() {}, celebrarAcierto() {}, lamentarFallo() {}, celebrarPremio() {}, reproducir() {}, imagenDe: () => null,
+    darObjetos() {}, alSalir() {}, alSinPreguntas() {}, almacen, rng, ahora: () => 0, raf: () => 1, cancelarRaf() {}, temporizador: temporizadorFalso(),
+  });
+  comodines.children[0].disparar('click');
+  instancia.responderParaTest(true);
+  assert.equal(cargarMochila(almacen).objetos.salvavidas, 1);
+});
