@@ -420,11 +420,59 @@ test('puntos de salida con puente: esSalida los acepta y puenteDeSalida da el cl
   assert.equal(puenteDeSalida(2 / 60, 127 / 60, ANCLAS_PUENTES), null, 'salida directa: sin puente');
   assert.equal(puenteDeSalida(15 / 60, 127 / 60, ANCLAS_PUENTES), null);
 });
-test('reproductor: los puentes se precargan con el reposo', async () => {
-  const e = entorno({ anclas: ANCLAS_PUENTES });
+const CLAVES = [8, 14, 22, 30, 38, 46, 54, 78, 86, 94, 102, 110, 116];
+const ANCLAS_MUCHOS = { ...ANCLAS, puentes: Object.fromEntries(CLAVES.map((k) => [k, `puente-${k}.mp4`])) };
+const vivos = (e) => e.creados.filter((v) => v.tagName === 'video' && v.src !== undefined);
+const puentesVivos = (e) => vivos(e).map((v) => v.src.replace('blob:avatar/', '').replace('.mp4', '')).filter((n) => n.startsWith('puente-'));
+
+test('reproductor: los 13 blobs de puente se bajan al arrancar pero solo los 2 próximos tienen <video> con src', async () => {
+  const bajados = [];
+  const e = entorno({ anclas: ANCLAS_MUCHOS, cargarClip: (ruta) => { bajados.push(ruta); return Promise.resolve({ src: `blob:${ruta}`, liberar: () => {} }); } });
   await tick();
-  assert.ok(e.clip('puente-14') && e.clip('puente-78'));
-  assert.equal(e.clip('puente-14').loop, undefined, 'un puente no hace bucle');
+  assert.equal(bajados.filter((r) => /puente-/.test(r)).length, 13, 'todos los blobs en memoria');
+  e.reposo = e.clip('reposo'); e.reposo.readyState = 2; e.reposo.currentTime = 0;
+  e.fotograma();
+  assert.deepEqual(puentesVivos(e).sort(), ['puente-14', 'puente-8']);
+});
+test('reproductor: la ventana de puentes avanza con el bucle y nunca hay más de 2 <video> de puente ni más de 6 vivos', async () => {
+  const e = entorno({ anclas: ANCLAS_MUCHOS, residentes: ['acierto', 'triste'] });
+  await tick();
+  const reposo = e.clip('reposo'); reposo.readyState = 2;
+  let maximoPuentes = 0; let maximoVivos = 0;
+  const medir = () => { maximoPuentes = Math.max(maximoPuentes, puentesVivos(e).length); maximoVivos = Math.max(maximoVivos, vivos(e).length); };
+  for (let f = 0; f < 127 * 2; f += 1) {
+    reposo.currentTime = (f % 127) / 60;
+    e.fotograma();
+    await tick();
+    medir();
+    const siguientes = CLAVES.filter((k) => k >= f % 127);
+    const esperados = [...siguientes, ...CLAVES].slice(0, 2).map((k) => `puente-${k}`);
+    assert.deepEqual(puentesVivos(e).sort(), esperados.sort(), `fotograma ${f % 127}`);
+  }
+  e.reproductor.gesto('saludo');
+  await tick(); e.clip('saludo').readyState = 2; medir();
+  assert.equal(maximoPuentes, 2);
+  assert.ok(maximoVivos <= 6, `vivos: ${maximoVivos}`); // reposo + 2 puentes + 2 residentes + 1 gesto
+  assert.equal(maximoVivos, 6);
+});
+test('reproductor: un puente en uso no se suelta aunque salga de la ventana', async () => {
+  const e = entorno({ anclas: ANCLAS_MUCHOS });
+  await tick();
+  const reposo = e.clip('reposo'); reposo.readyState = 2; reposo.currentTime = 22 / 60;
+  e.fotograma(); await tick();
+  e.reproductor.gesto('sorpresa'); await tick();
+  e.clip('sorpresa').readyState = 2; e.clip('puente-22').readyState = 2;
+  e.fotograma();
+  assert.equal(e.clip('puente-22').reproducciones, 1);
+  reposo.currentTime = 100 / 60; // la ventana ya apunta a otros; el puente sonando se queda
+  e.fotograma();
+  assert.ok(e.clip('puente-22'));
+});
+test('reproductor: destruir revoca también los blobs de los puentes', async () => {
+  const e = entorno({ anclas: ANCLAS_MUCHOS });
+  await tick();
+  e.reproductor.destruir();
+  assert.equal(e.liberados.filter((r) => /puente-/.test(r)).length, 13);
 });
 test('reproductor: salida por puente -> el reposo se queda quieto, suena el puente y al acabar arranca el gesto', async () => {
   const e = await conReposo({ anclas: ANCLAS_PUENTES });

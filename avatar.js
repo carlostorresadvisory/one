@@ -149,15 +149,26 @@ export function montarReproductorMp4(lienzo, {
   let alCambiar = () => {};
   let medida = '';
 
-  const precargarPuentes = () => Object.values(marcas.puentes || {}).forEach((f) => cargar(f.replace(/\.mp4$/, '')));
+  // Puentes: los 13 blobs (~250 KB) se guardan en memoria, pero solo hay <video> con src para los DOS
+  // próximos puntos de salida del reposo (ventana deslizante): iOS no aguanta muchos decodificadores a la vez.
+  const blobsPuente = {};
+  const nombreDePuente = (fichero) => fichero.replace(/\.mp4$/, '');
+  const precargarPuentes = () => Object.values(marcas.puentes || {}).forEach((fichero) => {
+    const n = nombreDePuente(fichero);
+    if (blobsPuente[n]) return;
+    blobsPuente[n] = 'bajando';
+    cargarClip(`${base}${n}.mp4`).then((blob) => {
+      if (!vivo) { blob.liberar(); return; }
+      blobsPuente[n] = blob;
+    }).catch(() => { delete blobsPuente[n]; });
+  });
   if (!anclas) {
     ventana.fetch(`${base}anclas.json`).then((r) => r.json()).then((j) => { marcas = j; if (vivo) precargarPuentes(); }).catch(() => {});
   }
 
   function fallar(razon) { if (vivo) alFallar(razon); }
 
-  function cargar(nombre) {
-    if (clips[nombre]) return;
+  function crearVideo(nombre) {
     const video = documento.createElement('video');
     video.muted = true; video.defaultMuted = true; video.playsInline = true; video.preload = 'auto';
     video.setAttribute('muted', ''); video.setAttribute('playsinline', ''); video.setAttribute('webkit-playsinline', '');
@@ -171,6 +182,45 @@ export function montarReproductorMp4(lienzo, {
         arrancar(siguiente ? siguiente.video : clips.reposo.video);
       });
     }
+    return video;
+  }
+
+  /** Los dos puentes que vienen: el del primer punto de salida desde el fotograma actual del reposo y el siguiente. */
+  function puentesProximos(tiempo, duracion) {
+    const claves = Object.keys(marcas.puentes || {}).map(Number).sort((a, b) => a - b);
+    if (!claves.length) return [];
+    const f = fotogramaDe(tiempo, duracion, marcas);
+    const i = claves.findIndex((k) => k >= f);
+    const desde = i < 0 ? 0 : i;
+    return [claves[desde], claves[(desde + 1) % claves.length]].filter((k, j, a) => a.indexOf(k) === j)
+      .map((k) => nombreDePuente(marcas.puentes[k]));
+  }
+
+  function actualizarVentanaPuentes() {
+    const reposo = clips.reposo && clips.reposo.video;
+    if (!reposo || !(reposo.duration > 0)) return;
+    const quiero = puentesProximos(reposo.currentTime, reposo.duration);
+    Object.keys(clips).forEach((n) => {
+      const clip = clips[n];
+      if (!esPuente(n) || quiero.includes(n) || clip.video === actual || clip.video === entrante) return;
+      delete clips[n];
+      clip.video.pause();
+      clip.video.removeAttribute('src');
+      clip.video.load();
+    });
+    quiero.forEach((n) => {
+      const blob = blobsPuente[n];
+      if (clips[n] || !blob || blob === 'bajando') return;
+      const video = crearVideo(n);
+      clips[n] = { video, liberar: null };
+      video.src = blob.src;
+      video.load();
+    });
+  }
+
+  function cargar(nombre) {
+    if (clips[nombre]) return;
+    const video = crearVideo(nombre);
     const clip = { video, liberar: null };
     clips[nombre] = clip;
     cargarClip(`${base}${nombre}.mp4`).then(({ src, liberar }) => {
@@ -278,6 +328,7 @@ export function montarReproductorMp4(lienzo, {
   function paso() {
     if (!vivo) return;
     medir();
+    actualizarVentanaPuentes();
     relevo();
     if (pendiente) {
       const clip = clips[pendiente];
@@ -342,6 +393,7 @@ export function montarReproductorMp4(lienzo, {
       documento.removeEventListener?.('visibilitychange', alVolver);
       ventana.removeEventListener?.('pageshow', alVolver);
       if (pintar.liberar) pintar.liberar();
+      Object.values(blobsPuente).forEach((blob) => { if (blob && blob.liberar) blob.liberar(); });
       Object.values(clips).forEach(({ video, liberar }) => {
         video.pause();
         video.removeAttribute('src');
