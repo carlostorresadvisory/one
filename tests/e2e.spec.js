@@ -7169,8 +7169,11 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
   });
 
   test('Clásico: las opciones de un test4 salen barajadas y el orden no cambia al volver a la tarjeta', async ({ page }) => {
-    await page.goto('/?ejemplo=1');
-    await entrarEnModo(page, 'clasico');
+    await page.goto('/?ejemplo=1&test=1');
+    await page.waitForFunction(() => window.__one?.listo === true);
+    // Solo preguntas test4 (antes salían del azar y a veces tocaban < 2): 10 con 4! = 24 órdenes posibles.
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['cie-001', 'art-001', 'tec-001', 'eco-101', 'his-101', 'his-103', 'cie-102', 'tec-101', 'tec-103', 'geo-101'], etiqueta: 'barajadas' }));
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
     const ordenes = new Set();
     for (let i = 0; i < 10; i += 1) {
       const t = tarjetaActual(page);
@@ -7806,6 +7809,10 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     expect(Number.parseFloat(grande.valor)).toBeLessThanOrEqual(28);
     expect({ ...grande, valor: undefined }).toEqual({ nombre: '16px', boton: '20px', pregunta: '14px', valor: undefined });
     await page.locator('[data-test="mm-var-afinar"]').click();
+    await expect(page.locator('[data-test="mm-estimacion"]')).toBeVisible(); // la variante se pinta tras el toque
+    // Pareja fija de tamaños (PIB): Afinar al azar puede tocar fechas, que usan línea temporal y no tienen `.escala-etiqueta`.
+    expect(await page.evaluate(() => window.__one.fijarParejaMasomenos('pib-Q183', 'pib-Q851'))).toBe(true);
+    await expect(page.locator('.escala-etiqueta').first()).toBeVisible();
     const afinar = await page.evaluate(() => {
       const f = (s) => getComputedStyle(document.querySelector(s)).fontSize;
       return { lectura: f('[data-test="mm-estimacion"]'), etiqueta: f('.escala-etiqueta') };
@@ -8194,7 +8201,10 @@ test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
   };
   const esperarAntirrebote = (page) => page.waitForTimeout(450);
   const mochila = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.mochila')).objetos);
-  const sembrar = (page, objetos) => page.evaluate((o) => window.__one.sembrarMochila(o), objetos);
+  const sembrar = async (page, objetos) => {
+    await page.waitForFunction(() => window.__one?.listo === true); // sin esto, el arranque asíncrono puede pisar la partida con el hub
+    await page.evaluate((o) => window.__one.sembrarMochila(o), objetos);
+  };
   const tipoOrdago = (page) => page.evaluate(() => window.__one.ultimaPreguntaOrdago().tipo);
   const empezar = (page, ids) => page.evaluate((i) => window.__one.empezarPartida({ ids: i, etiqueta: 'comodines' }), ids);
 

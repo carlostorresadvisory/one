@@ -1980,6 +1980,7 @@ async function iniciar() {
   renderHub();
   mostrarVista('progreso');
   if (seGuardoConfiguracion) mostrarAvisoHub('Servidor conectado');
+  if (window.__one) window.__one.listo = true; // señal para los e2e: el arranque asíncrono terminó (si no, renderHub pisa una partida lanzada antes)
 
   // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
   sincronizarEnSegundoPlano();
