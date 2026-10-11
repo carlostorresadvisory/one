@@ -62,6 +62,7 @@ const MAX_NUM_FOTOS = 120;
 const MAX_ESPERA_REINTENTO_MS = 2000;
 const ESPERA_REINTENTO_DEFECTO_MS = 1000;
 const MAX_SIMULTANEAS_COMMONS = 2;
+const PLAZO_PETICION_FOTO_MS = 15000;
 const CARPETAS_FOTOS = ['/imagenes-ia/', '/imagenes-banco/'];
 const HOSTS_FOTOS = ['upload.wikimedia.org'];
 
@@ -103,6 +104,17 @@ async function conReintento(pedir) {
   return respuesta;
 }
 
+// Una petición ajena que se cuelga se aborta a los 15 s: así la plaza de la cola siempre se libera.
+async function fetchConPlazo(entrada, opciones = {}) {
+  const control = new AbortController();
+  const temporizador = setTimeout(() => control.abort(), PLAZO_PETICION_FOTO_MS);
+  try {
+    return await fetch(entrada, { ...opciones, signal: control.signal });
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 // Cola de como mucho 2 peticiones a la vez para Commons.
 let activasCommons = 0;
 const esperandoCommons = [];
@@ -127,13 +139,13 @@ async function responderFoto(peticion, url) {
   const traer = async () => {
     let r = null;
     try {
-      r = await (propia ? fetch(peticion) : conReintento(() => fetch(peticion.url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })));
+      r = await (propia ? fetch(peticion) : conReintento(() => fetchConPlazo(peticion.url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })));
     } catch {
       r = null;
     }
     if (!r && !propia) {
       try {
-        r = await fetch(peticion); // CORS denegado o red caída: se enseña (opaca) sin guardar
+        r = await fetchConPlazo(peticion); // CORS denegado o red caída: se enseña (opaca) sin guardar
       } catch {
         r = null;
       }

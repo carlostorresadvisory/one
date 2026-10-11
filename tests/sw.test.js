@@ -94,6 +94,7 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   const manejadores = {};
   const llamadas = [];
   const esperas = [];
+  const plazos = []; // temporizadores de plazo de petición: no corren solos, el test los dispara
   const caches = {
     open: async (n) => abrir(n),
     keys: async () => [...almacenes.keys()],
@@ -102,7 +103,12 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   const contexto = vm.createContext({
     self: { addEventListener: (t, f) => { manejadores[t] = f; }, location: { origin: 'https://x' }, skipWaiting() {}, clients: { claim() {} } },
     URL, Request, Response, caches,
-    setTimeout: (fn, ms) => { esperas.push(ms); return setTimeout(fn, 0); },
+    AbortController,
+    clearTimeout: (id) => { const i = plazos.findIndex((p) => p.id === id); if (i >= 0) plazos.splice(i, 1); else clearTimeout(id); },
+    setTimeout: (fn, ms) => {
+      if (ms === 15000) { const id = `plazo${plazos.length}${Math.random()}`; plazos.push({ id, fn }); return id; }
+      esperas.push(ms); return setTimeout(fn, 0);
+    },
     fetch: async (r, opciones) => { llamadas.push([typeof r === 'string' ? r : r.url, opciones]); return red(r, opciones); },
   });
   vm.runInContext(sw, contexto);
@@ -114,7 +120,7 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
     return promesa;
   };
   const pausa = () => new Promise((r) => setTimeout(r, 20));
-  return { vm, contexto, almacenes, abrir, manejadores, llamadas, esperas, pedir, pausa };
+  return { vm, contexto, almacenes, abrir, manejadores, llamadas, esperas, plazos, pedir, pausa };
 }
 
 test('sw: acotarFotos borra las más antiguas hasta que caben en el tope de bytes', async () => {
@@ -219,4 +225,20 @@ test('sw: las peticiones a Commons van en cola de 2 a la vez', async () => {
   assert.ok(respuestas.every((r) => r.status === 200));
   assert.equal(maximo, 2);
   assert.equal(sim.llamadas.length, 5);
+});
+
+test('sw: una petición a Commons colgada se aborta al vencer su plazo (15 s), libera la plaza y la siguiente sale', async () => {
+  const sim = await montarSw({ red: async (r, opciones) => {
+    if (String(r).includes('Cuelga')) return new Promise((_, rechazar) => opciones.signal.addEventListener('abort', () => rechazar(new TypeError('abortada'))));
+    return new Response(new Uint8Array(10));
+  } });
+  const colgadas = [1, 2].map((i) => sim.pedir(`https://upload.wikimedia.org/wikipedia/commons/a/ab/Cuelga${i}.jpg`));
+  const tercera = sim.pedir('https://upload.wikimedia.org/wikipedia/commons/a/ab/Normal.jpg');
+  await sim.pausa();
+  assert.equal(sim.plazos.length, 2, 'dos colgadas ocupan las dos plazas; la tercera espera en cola');
+  assert.equal(sim.llamadas.length, 2);
+  sim.plazos.slice().forEach((p) => p.fn()); // vence el plazo de 15 s
+  assert.equal((await tercera).status, 200, 'la tercera sale al liberarse una plaza');
+  const resueltas = await Promise.all(colgadas); // las colgadas terminan (con la reserva opaca), no se quedan para siempre
+  assert.equal(resueltas.length, 2);
 });

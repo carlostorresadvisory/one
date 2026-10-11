@@ -58,6 +58,8 @@ export function reintentarImagen(img, alFallar, programar = (fn, ms) => globalTh
     reintentada = true;
     const url = String(img.src);
     programar(() => {
+      // Imagen ya quitada del DOM, o con otra URL (otra pregunta): el reintento caduca sin tocar nada.
+      if (img.isConnected === false || String(img.src) !== url) return;
       img.src = `${url}${url.includes('?') ? '&' : '?'}reintento=1`;
     }, ESPERA_REINTENTO_IMAGEN_MS);
   });

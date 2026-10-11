@@ -98,6 +98,23 @@ test('reintentarImagen: un solo reintento con parámetro nuevo (& si ya hay quer
   assert.equal(cola.length, 1, 'no hay segundo reintento');
 });
 
+test('reintentarImagen: si la imagen ya no está en el DOM o cambió de URL, el reintento no hace nada', () => {
+  const montarImg = () => ({ src: 'https://h/a.webp', isConnected: true, _o: [], addEventListener(t, f) { this._o.push(f); } });
+  const quitada = montarImg();
+  const cola = [];
+  reintentarImagen(quitada, () => {}, (fn) => cola.push(fn));
+  quitada._o[0]();
+  quitada.isConnected = false;
+  cola[0]();
+  assert.equal(quitada.src, 'https://h/a.webp');
+  const cambiada = montarImg();
+  reintentarImagen(cambiada, () => {}, (fn) => cola.push(fn));
+  cambiada._o[0]();
+  cambiada.src = 'https://h/otra.webp';
+  cola[1]();
+  assert.equal(cambiada.src, 'https://h/otra.webp');
+});
+
 test('sin imagen no hay <img> ni crédito, y tampoco emoji', () => {
   const { raiz, desinstalar } = montar({ imagen: null });
   try {
