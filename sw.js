@@ -27,7 +27,7 @@ const NUCLEO = [
 
 // Las 6 fotos del hub (≈ 0,25 MB) van precacheadas aquí: sin conexión el hub las tiene.
 const SECUNDARIOS = [
-  'manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png',
+  'manifest.json', 'datos/imagenes.json', 'iconos/esfinx-180.png', 'iconos/esfinx-192.png', 'iconos/esfinx-512.png', 'iconos/esfinx-512-maskable.png',
   'imagenes-hub/clasico.webp', 'imagenes-hub/contrarreloj.webp', 'imagenes-hub/masomenos.webp',
   'imagenes-hub/ordago.webp', 'imagenes-hub/repaso.webp', 'imagenes-hub/tienda.webp',
 ];
