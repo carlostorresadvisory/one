@@ -58,3 +58,25 @@ Primera pasada (4 en paralelo, pausa 400 ms): 194 OK, **343 con 429**, 1 con 404
 
 ## 5. Qué falta por medir (necesita el iPhone)
 - Cuántas fallan en su red móvil real y en qué orden. Propuesta: tras aplicar el reintento, anotar en `localStorage` los `error` de imagen con su URL y estado (el `<img>` no da el estado; sí lo daría el SW con un `postMessage`).
+
+## 6. Corrección aplicada: fotos propias (11-oct-2026, v0.3.1)
+
+`node tools/copiar-fotos-commons.js` (en serie, pausa 3 s, respeta `Retry-After`; relanzable) bajó la miniatura de 500 px de cada foto de Commons y la guardó como WebP (calidad 75 o menos, ≤ 80 KB) en `imagenes-banco/commons-<fichero>.webp`; reescribió la `url` en `datos/imagenes.json` y `datos/cifras.json` (crédito, autor, licencia y página siguen siendo los de Commons). Commons aún devolvía 429 cada pocas peticiones (límite en miniaturas no cacheadas): la copia tardó unos 100 minutos, sin fallos.
+
+- Resultado: 421 fotos copiadas (401 en la pasada final + 20 de una pasada previa), 0 fallidas; ya no queda ninguna `upload.wikimedia.org` en los datos.
+- Peso total de `imagenes-banco/`: **17 MB** (objetivo ≤ 40 MB).
+- `art-019` (404 en Commons): sustituida por «Golden spiral on a shell.jpg» (CC BY-SA 4.0, Suyothami), nota 5 del juez (`gemini-flash-lite`). El lote de `mejorar-imagenes.js` devolvía «sin puntuar» porque el juez pedía la foto a Commons por URL y recibía 429; se puntuó descargando la miniatura y pasándola en base64.
+- PNG pesados (cifras `ah-Q179288`, `ah-Q570204`, `geo-043`, `his-055`): ya salen como WebP de 500 px por la copia. No quedan PNG/JPG > 1 MB en la app (solo `prototipos/avatares/i-esfinge/esfinge-1024.png`, que no se sirve).
+
+### Antes / después
+
+Antes (primera pasada, red, 4 en paralelo): 194 OK, 343 con 429, 1 con 404 (`art-019`), 2 pesadas.
+
+Después: `node tools/diagnostico-imagenes.js --local` (nuevo modo: las rutas propias se leen del repo y se comprueba existencia, formato real y peso):
+
+```
+usos 540 · únicas 456 · porClase {"OK": 540} · tipos {"image/webp": 540}
+pesoMedioKB 39 · pesoMaxKB 113 · malas 0
+```
+
+0 fallos en fotos del banco (194), de las cifras (340) y del hub (6). Falta confirmar con la web ya publicada en Pages (`node tools/diagnostico-imagenes.js` sin `--local`) tras el push.

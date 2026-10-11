@@ -4,6 +4,8 @@
 // tarjetas de Más o Menos; datos/imagenes-hub.json = fotos del hub), las construye como el código
 // (app.js#imagenDe y masomenos-ui.js: la `url` tal cual; las relativas se resuelven contra la base de Pages),
 // las pide como un iPhone Safari desde la página de Pages, y clasifica el resultado.
+// --local: las rutas propias (imagenes-banco/, imagenes-hub/...) se leen del repo en vez de pedirlas a Pages (comprueba que
+// el fichero existe, que es WebP/JPEG/PNG de verdad y su peso); lo ajeno (Commons, servidor) se sigue pidiendo por red.
 // Escribe el detalle en tmp/diagnostico-imagenes.json y un resumen por consola.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,6 +16,7 @@ const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i > 0 ?
 const BASE = arg('base', 'https://carlostorresadvisory.github.io/one/');
 const PAUSA = Number(arg('pausa', 400));
 const CONC = Number(arg('conc', 4));
+const LOCAL = process.argv.includes('--local');
 const ORIGEN = new URL(BASE).origin;
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
 const SAFARI_OK = /^image\/(jpeg|png|gif|webp|avif|svg\+xml)$/; // Safari iOS 16+ lee webp/avif; tif y otros no
@@ -37,6 +40,14 @@ const unicas = [...new Map(items.map((i) => [i.abs, i])).values()];
 
 // --- 2. Petición ---
 async function pedir(it, intento = 0) {
+  if (LOCAL && it.propia) {
+    const f = path.join(RAIZ, it.url.split('?')[0]);
+    if (!fs.existsSync(f)) return { estado: 404, bytes: 0, ms: 0 };
+    const buf = fs.readFileSync(f);
+    const tipo = buf.subarray(0, 4).toString('latin1') === 'RIFF' && buf.subarray(8, 12).toString('latin1') === 'WEBP' ? 'image/webp'
+      : buf[0] === 0xff && buf[1] === 0xd8 ? 'image/jpeg' : buf.subarray(1, 4).toString('latin1') === 'PNG' ? 'image/png' : 'desconocido';
+    return { estado: 200, tipo, bytes: buf.length, ms: 0, magico: buf.subarray(0, 12).toString('latin1') };
+  }
   const t0 = Date.now();
   const cab = { 'User-Agent': UA, Referer: BASE, Accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5', 'Accept-Language': 'es-ES,es;q=0.9' };
   if (!it.propia) { cab.Origin = ORIGEN; } // el SW la pide con CORS; el <img> no manda Origin, pero así se ve el ACAO
