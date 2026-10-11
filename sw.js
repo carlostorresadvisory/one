@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v30';
+const CACHE = 'one-v31';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -39,25 +39,65 @@ const AVATAR_GESTOS = [
   'avatar/triste.mp4', 'avatar/acierto.mp4', 'avatar/euforia.mp4',
 ];
 
-// Imágenes del banco (imagenes-ia/, imagenes-banco/, imagenes-hub/): NO se precachean; el `fetch` de
-// abajo las guarda al verlas (cualquier GET del mismo origen) y esto acota cuántos BYTES se conservan
-// (no cuántas son): al pasarse de MAX_BYTES_IMAGENES se borran las más antiguas. Tope medido el
-// 11-oct-2026: núcleo (con datos/cifras.json y los módulos de Más o menos) + secundarios + avatar con sus 6 gestos =
-// 4,13 MiB (medido con `node --test tests/sw.test.js`, tras recomprimir `triste` y `euforia`: crf 27, −1,1 MB,
-// PSNR > 40 dB). La app se compromete a no pasar de 5 MB en total, así que a las imágenes les quedan 256 KB
-// (tests/sw.test.js lo vigila).
-const CARPETAS_IMAGENES = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
-const MAX_BYTES_IMAGENES = 256 * 1024;
+// Fotos de las preguntas: NO se precachean ni van en la caché del núcleo. Se guardan al verlas en una caché
+// APARTE (`one-fotos`), fuera del techo de ≈ 5 MB del núcleo (tests/sw.test.js lo vigila: 4,13 MiB medidos el
+// 11-oct-2026), y se acota por entradas o por bytes, lo que antes llegue: al pasarse se borran las más antiguas.
+// Esa caché NO se borra al subir la versión del núcleo (`activate`): las fotos no cambian con la app.
+// Son fotos las de las carpetas propias (imagenes-ia/, imagenes-banco/, imagenes-hub/), las WebP del servidor
+// (/imagenes/<id>.webp) y las de Commons (upload.wikimedia.org). Estas dos últimas son de otro origen: un `<img>`
+// las pide sin CORS (respuesta opaca, que el navegador cuenta con ~7 MB de relleno cada una), así que el SW las
+// vuelve a pedir con CORS (Commons lo permite) para guardar una respuesta normal; si el origen no lo permite, la
+// foto se enseña igual pero sin guardarla.
+const CACHE_FOTOS = 'one-fotos';
+const MAX_FOTOS = 60;
+const MAX_BYTES_FOTOS = 3 * 1024 * 1024;
+const CARPETAS_FOTOS = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
+const HOSTS_FOTOS = ['upload.wikimedia.org'];
 
-async function acotarImagenes(cache) {
-  const claves = (await cache.keys()).filter((r) => CARPETAS_IMAGENES.some((c) => new URL(r.url).pathname.includes(c)));
+function esFoto(url, peticion) {
+  if (url.origin === self.location.origin) {
+    return url.pathname.startsWith('/imagenes/') || CARPETAS_FOTOS.some((c) => url.pathname.includes(c));
+  }
+  return peticion.destination === 'image' && (HOSTS_FOTOS.includes(url.hostname) || /^\/imagenes\/[\w-]+\.webp$/.test(url.pathname));
+}
+
+async function acotarFotos(cache) {
+  const claves = await cache.keys();
   let total = 0;
+  let cuantas = 0;
   // De la más nueva a la más antigua: se conservan las recientes mientras quepan.
   for (const clave of claves.reverse()) {
     const respuesta = await cache.match(clave);
     total += respuesta ? (await respuesta.blob()).size : 0;
-    if (total > MAX_BYTES_IMAGENES) await cache.delete(clave);
+    cuantas += 1;
+    if (cuantas > MAX_FOTOS || total > MAX_BYTES_FOTOS) await cache.delete(clave);
   }
+}
+
+// Las fotos no cambian: primero la caché; si no está, red y, si es una respuesta normal, se guarda.
+async function responderFoto(peticion, url) {
+  const fotos = await caches.open(CACHE_FOTOS);
+  const guardada = await fotos.match(peticion.url);
+  if (guardada) return guardada;
+  const propia = url.origin === self.location.origin;
+  let respuesta = null;
+  try {
+    respuesta = await (propia ? fetch(peticion) : fetch(peticion.url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' }));
+  } catch {
+    respuesta = null;
+  }
+  if (!respuesta && !propia) {
+    try {
+      respuesta = await fetch(peticion); // CORS denegado o red caída: se enseña (opaca) sin guardar
+    } catch {
+      respuesta = null;
+    }
+  }
+  if (!respuesta) return new Response('Sin conexión y sin copia local', { status: 503, statusText: 'Sin conexión' });
+  if (respuesta.ok && respuesta.type !== 'opaque') {
+    fotos.put(peticion.url, respuesta.clone()).then(() => acotarFotos(fotos)).catch(() => {});
+  }
+  return respuesta;
 }
 
 self.addEventListener('install', (evento) => {
@@ -77,7 +117,7 @@ self.addEventListener('install', (evento) => {
 self.addEventListener('activate', (evento) => {
   evento.waitUntil(
     caches.keys().then((claves) =>
-      Promise.all(claves.filter((clave) => clave !== CACHE).map((clave) => caches.delete(clave)))
+      Promise.all(claves.filter((clave) => clave !== CACHE && clave !== CACHE_FOTOS).map((clave) => caches.delete(clave)))
     )
   );
   self.clients.claim();
@@ -86,6 +126,10 @@ self.addEventListener('activate', (evento) => {
 self.addEventListener('fetch', (evento) => {
   if (evento.request.method !== 'GET') return;
   const url = new URL(evento.request.url);
+  if (esFoto(url, evento.request)) {
+    evento.respondWith(responderFoto(evento.request, url));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   // Ronda final de revisión (Critical #4): una navegación con `?servidor=...&token=...` (el
@@ -102,12 +146,7 @@ self.addEventListener('fetch', (evento) => {
       const enCache = await cache.match(evento.request, { ignoreSearch: true });
       const actualizacion = fetch(evento.request)
         .then((respuesta) => {
-          if (respuesta && respuesta.ok) {
-            cache.put(claveCache, respuesta.clone()).then(() => {
-              if (CARPETAS_IMAGENES.some((c) => url.pathname.includes(c))) return acotarImagenes(cache);
-              return undefined;
-            }).catch(() => {});
-          }
+          if (respuesta && respuesta.ok) cache.put(claveCache, respuesta.clone()).catch(() => {});
           return respuesta;
         })
         .catch(() => null);

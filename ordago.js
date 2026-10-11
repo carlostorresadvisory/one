@@ -16,11 +16,26 @@ export const FICHAS = Object.freeze([
   Object.freeze({ id: 'ordago', pct: 1, texto: 'Órdago' }),
 ]);
 
+// `fondoNuevoDia`: fecha local (AAAA-MM-DD) del último fondo nuevo gratis tras una quiebra (uno al día).
+// `pendiente`: la ronda con ficha elegida y sin responder ({ pregunta, ficha }); salir o recargar la cuenta como fallo.
 export function crearOrdago() {
-  return { version: 1, fondo: FONDO_INICIAL, curva: [FONDO_INICIAL], maximo: FONDO_INICIAL, quiebras: 0, racha: 0 };
+  return { version: 1, fondo: FONDO_INICIAL, curva: [FONDO_INICIAL], maximo: FONDO_INICIAL, quiebras: 0, racha: 0, fondoNuevoDia: null, pendiente: null };
+}
+
+/** Fecha local del móvil como AAAA-MM-DD (el «día» del fondo nuevo gratis). */
+export function fechaLocal(fecha = new Date()) {
+  const dos = (n) => String(n).padStart(2, '0');
+  return `${fecha.getFullYear()}-${dos(fecha.getMonth() + 1)}-${dos(fecha.getDate())}`;
 }
 
 const esEntero = (n, tope = MAX_VALOR) => Number.isInteger(n) && n >= 0 && n <= tope;
+
+function pendienteValido(p) {
+  if (!p || typeof p !== 'object') return null;
+  if (typeof p.pregunta !== 'string' || p.pregunta.length < 1 || p.pregunta.length > 64) return null;
+  if (!Number.isInteger(p.ficha) || p.ficha < 1 || p.ficha > MAX_VALOR) return null;
+  return { pregunta: p.pregunta, ficha: p.ficha };
+}
 
 export function normalizarOrdago(obj) {
   const base = crearOrdago();
@@ -34,6 +49,8 @@ export function normalizarOrdago(obj) {
     maximo: esEntero(obj.maximo) ? obj.maximo : Math.max(base.maximo, fondo), // lo alcanzado jugando: no se fuerza ≥ fondo
     quiebras: esEntero(obj.quiebras, 1e6) ? obj.quiebras : 0,
     racha: esEntero(obj.racha, 1e6) ? obj.racha : 0,
+    fondoNuevoDia: typeof obj.fondoNuevoDia === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(obj.fondoNuevoDia) ? obj.fondoNuevoDia : null,
+    pendiente: pendienteValido(obj.pendiente),
   };
 }
 
@@ -41,9 +58,17 @@ export function calcularFicha(fondo, pct) {
   return Math.min(fondo, Math.max(1, Math.floor(fondo * pct)));
 }
 
-/** `nivel` es el de la pregunta (fórmula general 1-5; en Órdago la pantalla solo sirve 3-5). */
+/** Equilibrio estricto (spec §5.2): base 1,5 / 1,6 / 1,7 según el nivel de la pregunta (en Órdago siempre 3-5;
+ * lo de fuera se acota), ×1,5 si es dorada y ×1,5 con racha de 3 o más. */
 export function multiplicador({ nivel, dorada, racha }) {
-  return (1 + (nivel - 1) * 0.25) * (dorada ? 3 : 1) * (racha >= 3 ? 1.5 : 1);
+  const base = 1.5 + (Math.min(5, Math.max(3, Math.round(Number(nivel)) || 3)) - 3) * 0.1;
+  return base * (dorada ? 1.5 : 1) * (racha >= 3 ? 1.5 : 1);
+}
+
+/** Ganancia neta de acertar: la ficha vuelve multiplicada, así que se gana `ficha × (multiplicador − 1)`,
+ * redondeada hacia arriba (un fondo de 1 no se atasca). Se redondea antes a 6 decimales: 100 × (1,6 − 1) es 60. */
+function gananciaNeta(apuesta, mult) {
+  return Math.ceil(Number((apuesta * (mult - 1)).toFixed(6)));
 }
 
 export function esDorada(rng = Math.random) {
@@ -52,7 +77,7 @@ export function esDorada(rng = Math.random) {
 
 /** Lo que se ganaría al acertar con esta ficha (mismo cálculo que `resolverRonda`; la pantalla de fichas lo enseña). */
 export function gananciaFicha({ fondo, pct, nivel, dorada, racha }) {
-  return Math.floor(calcularFicha(fondo, pct) * multiplicador({ nivel, dorada, racha }));
+  return gananciaNeta(calcularFicha(fondo, pct), multiplicador({ nivel, dorada, racha }));
 }
 
 /** Una ronda: devuelve el estado nuevo, el cambio del fondo y si hay nuevo máximo o quiebra. */
@@ -62,7 +87,7 @@ export function resolverRonda(estado, { ficha, correcta, nivel, dorada, salvavid
   let delta;
   let racha;
   if (correcta) {
-    delta = Math.floor(apuesta * multiplicador({ nivel, dorada, racha: actual.racha }));
+    delta = gananciaNeta(apuesta, multiplicador({ nivel, dorada, racha: actual.racha }));
     racha = actual.racha + 1;
   } else if (salvavidas) {
     delta = -(apuesta - Math.floor(apuesta / 2));
@@ -79,6 +104,7 @@ export function resolverRonda(estado, { ficha, correcta, nivel, dorada, salvavid
       ...actual,
       fondo,
       racha,
+      pendiente: null,
       maximo: nuevoMaximo ? fondo : actual.maximo,
       curva: [...actual.curva, fondo].slice(-MAX_CURVA),
     },
@@ -88,11 +114,34 @@ export function resolverRonda(estado, { ficha, correcta, nivel, dorada, salvavid
   };
 }
 
-/** Tras una quiebra: fondo de 1.000, el máximo histórico se conserva y la quiebra se cuenta. */
-export function abrirFondoNuevo(estado) {
+/** Elegir ficha compromete: la ronda queda pendiente (el fondo no se toca hasta resolverla). */
+export function comprometerFicha(estado, { pregunta, ficha }) {
   const actual = normalizarOrdago(estado);
+  const apuesta = Math.min(actual.fondo, Math.max(1, Math.floor(Number(ficha)) || 1));
+  return { ...actual, pendiente: pendienteValido({ pregunta: String(pregunta), ficha: apuesta }) };
+}
+
+/** Salir, cambiar de vista o recargar con la ficha elegida y sin responder es un fallo (pierde la ficha, racha a 0).
+ * Devuelve lo mismo que `resolverRonda`, o `null` si no había nada pendiente (así solo se cobra una vez). */
+export function resolverPendiente(estado) {
+  const actual = normalizarOrdago(estado);
+  if (!actual.pendiente) return null;
+  return resolverRonda(actual, { ficha: actual.pendiente.ficha, correcta: false, nivel: 3, dorada: false });
+}
+
+/** ¿Queda un fondo nuevo gratis hoy (fecha local `hoy`)? Uno al día. */
+export function puedeFondoNuevo(estado, hoy = fechaLocal()) {
+  return normalizarOrdago(estado).fondoNuevoDia !== hoy;
+}
+
+/** Tras una quiebra: fondo de 1.000 (uno gratis al día; si ya se usó hoy, el estado no cambia), el máximo
+ * histórico se conserva y la quiebra se cuenta. */
+export function abrirFondoNuevo(estado, hoy = fechaLocal()) {
+  const actual = normalizarOrdago(estado);
+  if (!puedeFondoNuevo(actual, hoy)) return actual;
   return {
     ...actual,
+    fondoNuevoDia: hoy,
     fondo: FONDO_INICIAL,
     quiebras: actual.quiebras + 1,
     racha: 0,

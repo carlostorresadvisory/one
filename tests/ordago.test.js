@@ -10,23 +10,30 @@ test('fichas: porcentaje, mínimo 1 y nunca más que el fondo', () => {
   assert.equal(O.calcularFicha(5, 0.1), 1);
   assert.equal(O.calcularFicha(1, 0.25), 1);
 });
-test('multiplicador combina nivel, dorada y racha sin aplicar dos veces el ×3', () => {
-  assert.equal(O.multiplicador({ nivel: 1, dorada: false, racha: 0 }), 1);
-  assert.equal(O.multiplicador({ nivel: 5, dorada: false, racha: 0 }), 2);
-  assert.equal(O.multiplicador({ nivel: 1, dorada: true, racha: 0 }), 3);
-  assert.equal(O.multiplicador({ nivel: 3, dorada: true, racha: 3 }), 1.5 * 3 * 1.5);
+test('multiplicador: base 1,5/1,6/1,7 por nivel 3/4/5, dorada ×1,5 y racha ×1,5 sin aplicarse dos veces', () => {
+  assert.equal(O.multiplicador({ nivel: 3, dorada: false, racha: 0 }), 1.5);
+  assert.equal(O.multiplicador({ nivel: 4, dorada: false, racha: 0 }), 1.6);
+  assert.equal(O.multiplicador({ nivel: 5, dorada: false, racha: 0 }), 1.7);
+  assert.equal(O.multiplicador({ nivel: 3, dorada: true, racha: 0 }), 1.5 * 1.5);
+  assert.equal(O.multiplicador({ nivel: 5, dorada: false, racha: 3 }), 1.7 * 1.5);
+  assert.equal(O.multiplicador({ nivel: 3, dorada: true, racha: 3 }), 1.5 * 1.5 * 1.5);
+  assert.equal(O.multiplicador({ nivel: 1, dorada: false, racha: 0 }), 1.5, 'fuera de 3-5 se acota al nivel 3');
 });
-test('acierto cobra ficha × multiplicador y sube la racha', () => {
+test('acierto: la ficha vuelve multiplicada (ganancia neta = ficha × (mult − 1), redondeada hacia arriba) y sube la racha', () => {
   const { estado, delta } = O.resolverRonda(O.crearOrdago(), { ficha: 100, correcta: true, nivel: 3, dorada: false });
-  assert.equal(delta, 150);
-  assert.equal(estado.fondo, 1150);
+  assert.equal(delta, 50);
+  assert.equal(estado.fondo, 1050);
   assert.equal(estado.racha, 1);
-  assert.deepEqual(estado.curva, [1000, 1150]);
+  assert.deepEqual(estado.curva, [1000, 1050]);
+  // Sin ruido de coma flotante: 100 × (1,6 − 1) es 60, no 61.
+  assert.equal(O.resolverRonda(O.crearOrdago(), { ficha: 100, correcta: true, nivel: 4, dorada: false }).delta, 60);
+  // Un fondo de 1 no se atasca: ceil(1 × 0,5) = 1.
+  assert.equal(O.resolverRonda({ ...O.crearOrdago(), fondo: 1 }, { ficha: 1, correcta: true, nivel: 3, dorada: false }).estado.fondo, 2);
 });
 test('racha ≥ 3 multiplica ×1,5 a partir de la cuarta', () => {
   const e = { ...O.crearOrdago(), racha: 3 };
-  const r = O.resolverRonda(e, { ficha: 100, correcta: true, nivel: 1, dorada: false });
-  assert.equal(r.delta, 150);
+  const r = O.resolverRonda(e, { ficha: 100, correcta: true, nivel: 3, dorada: false });
+  assert.equal(r.delta, 125); // 100 × (1,5 × 1,5 − 1)
 });
 test('fallo pierde la ficha y corta la racha', () => {
   const e = { ...O.crearOrdago(), racha: 4 };
@@ -50,7 +57,7 @@ test('órdago fallado = quiebra; fondo nuevo conserva el máximo y cuenta la qui
   assert.equal(nuevo.racha, 0);
 });
 test('nuevo máximo se informa solo al superar el histórico', () => {
-  const e = { ...O.crearOrdago(), fondo: 900, maximo: 1200 };
+  const e = { ...O.crearOrdago(), fondo: 1100, maximo: 1200 };
   assert.equal(O.resolverRonda(e, { ficha: 100, correcta: true, nivel: 3, dorada: false }).nuevoMaximo, false);
   assert.equal(O.resolverRonda(e, { ficha: 400, correcta: true, nivel: 3, dorada: false }).nuevoMaximo, true);
 });
@@ -176,5 +183,56 @@ test('gananciaFicha: lo que se cobra al acertar es EXACTAMENTE lo que resolverRo
       }
     }
   }
-  assert.equal(O.gananciaFicha({ fondo: 1000, pct: 0.25, nivel: 5, dorada: false, racha: 0 }), 500); // 250 × 2
+  assert.equal(O.gananciaFicha({ fondo: 1000, pct: 0.25, nivel: 5, dorada: false, racha: 0 }), 175); // 250 × 0,7
+});
+
+test('elegir ficha compromete: comprometerFicha guarda la ronda pendiente sin tocar el fondo', () => {
+  const e = O.comprometerFicha(O.crearOrdago(), { pregunta: 'p1', ficha: 250 });
+  assert.deepEqual(e.pendiente, { pregunta: 'p1', ficha: 250 });
+  assert.equal(e.fondo, 1000);
+  const guardado = O.normalizarOrdago(JSON.parse(JSON.stringify(e)));
+  assert.deepEqual(guardado.pendiente, { pregunta: 'p1', ficha: 250 });
+});
+test('resolverPendiente: salir o recargar tras elegir ficha es un fallo (pierde la ficha, racha a 0) y se resuelve una sola vez', () => {
+  const e = O.comprometerFicha({ ...O.crearOrdago(), racha: 4 }, { pregunta: 'p1', ficha: 100 });
+  const r = O.resolverPendiente(e);
+  assert.equal(r.estado.fondo, 900);
+  assert.equal(r.estado.racha, 0);
+  assert.equal(r.estado.pendiente, null);
+  assert.equal(r.delta, -100);
+  assert.equal(O.resolverPendiente(r.estado), null, 'sin pendiente no hay nada que cobrar');
+});
+test('responder limpia la ronda pendiente: recargar después de responder no cobra dos veces', () => {
+  const e = O.comprometerFicha(O.crearOrdago(), { pregunta: 'p1', ficha: 100 });
+  const r = O.resolverRonda(e, { ficha: 100, correcta: true, nivel: 3, dorada: false });
+  assert.equal(r.estado.pendiente, null);
+  assert.equal(O.resolverPendiente(r.estado), null);
+});
+test('un fondo nuevo gratis al día (fecha local): hoy no se repite, mañana sí; el primero siempre', () => {
+  const roto = O.resolverRonda(O.crearOrdago(), { ficha: 1000, correcta: false, nivel: 3, dorada: false }).estado;
+  assert.equal(O.puedeFondoNuevo(roto, '2026-10-11'), true);
+  const nuevo = O.abrirFondoNuevo(roto, '2026-10-11');
+  assert.equal(nuevo.fondoNuevoDia, '2026-10-11');
+  assert.equal(nuevo.fondo, 1000);
+  assert.equal(O.puedeFondoNuevo(nuevo, '2026-10-11'), false);
+  assert.equal(O.puedeFondoNuevo(nuevo, '2026-10-12'), true);
+});
+test('un fondo nuevo hoy no se concede si ya se usó (abrirFondoNuevo lo ignora)', () => {
+  const usado = { ...O.crearOrdago(), fondo: 0, fondoNuevoDia: '2026-10-11', quiebras: 1 };
+  const otra = O.abrirFondoNuevo(usado, '2026-10-11');
+  assert.equal(otra.fondo, 0);
+  assert.equal(otra.quiebras, 1);
+});
+test('normalizar: respaldos viejos sin fecha ni pendiente se leen bien; basura se descarta', () => {
+  const viejo = O.normalizarOrdago({ version: 1, fondo: 300, curva: [300], maximo: 1000, quiebras: 2, racha: 0 });
+  assert.equal(viejo.fondoNuevoDia, null);
+  assert.equal(viejo.pendiente, null);
+  const raro = O.normalizarOrdago({ fondo: 300, fondoNuevoDia: 'ayer', pendiente: { pregunta: 5, ficha: -1 } });
+  assert.equal(raro.fondoNuevoDia, null);
+  assert.equal(raro.pendiente, null);
+  assert.equal(O.normalizarOrdago({ fondo: 300, pendiente: { pregunta: 'a', ficha: 50 } }).pendiente.ficha, 50);
+});
+test('fechaLocal da AAAA-MM-DD con la fecha local', () => {
+  assert.equal(O.fechaLocal(new Date(2026, 9, 11, 23, 59)), '2026-10-11');
+  assert.equal(O.fechaLocal(new Date(2026, 0, 5, 0, 1)), '2026-01-05');
 });

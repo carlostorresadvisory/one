@@ -1,46 +1,36 @@
-# Próxima sesión — ONE v0.3: cerrar y publicar las fases 5 a 9 (Órdago, Contrarreloj, imágenes, Más o menos, Tienda), con la 3 y la 4 aún sin publicar
+# Próxima sesión — ONE v0.3 lista para publicar (fases 3 a 9, entrega 1)
 
-## Lo último (11-oct-2026, rama `v0.3-fase-9`, sale de `v0.3-fase-8`)
-- **Fase 9 (Tienda completa) implementada (9.1, 9.2, 9.3), falta el cierre del controlador**: revisión final con Opus **ejecutando la app** (comodines en los cinco modos, Tienda, quiebra → Tienda, 375×812 y 375×667), adversarial gratis (`delegar.mjs --escalera revisar`) y **OK de Carlos** para publicar. Publicar la 9 publica también la 3 a la 8. `CACHE` es `one-v30` (precaché medido 4,12 MB sin fotos).
-- Qué hay: `mochila.js` (`comprar`, `vender`, `puedeUsar`, `usar`), `comodines-ui.js` (barra de comodines; 50/50, Salvavidas y +5 s en Clásico, Repaso, Órdago, Contrarreloj y Más o menos), `tienda-ui.js` (Tienda: fondo de Órdago, por objeto rareza con etiqueta de color, «Tienes N», «Comprar · 300» y «Vender · 150»; solo el épico lleva resplandor dorado), botón «Vender objetos → Tienda» en la quiebra, `conFondo` y copia en memoria del fondo en `ordago.js`.
-- Arreglados dos pendientes: el vigía de «pensando» arranca ya en la primera ronda de Órdago; el récord de Más o menos no se vuelve a celebrar tras recargar a mitad de una racha que ya iba en el récord.
-- Ganchos de test nuevos: `window.__one.sembrarMochila({cincuenta, salvavidas, mas5})`.
-- **⚠️ Carlos:** (1) OK de publicación; (2) prueba en el iPhone: ¿la barra de comodines se lee y se toca bien en cada modo?, ¿la Tienda con la esfinge grande cabe cómoda?, ¿el Salvavidas en Clásico (te da otra pregunta y no cuenta como fallo) es lo que esperabas?; (3) **decisión sobre la fase 10** («Generar» cifras en el servidor): ¿se hace o pasa a la entrega 2? (spec §13; la opción más simple es no hacerla).
+## Estado (11-oct-2026, rama `v0.3-fase-9`, sale de `v0.3-fase-8`)
+- **v0.3 está terminada y lista para publicar** en la entrega 1: esfinge v2 con sonido, Órdago, Contrarreloj, fotos con enunciado, Más o menos, Tienda y comodines. Falta solo el OK de Carlos y su push. Publicar publica también las fases 3 a 8. `CACHE` es `one-v31`.
+- Suites: 1001 unitarias (`node --test tests/*.test.js`) y 232 e2e (`npx playwright test --workers=1`).
+- Fase 10 (generar cifras en el servidor) **pasa a la entrega 2** (decisión de Carlos, 11-oct).
 
-## Decisiones tomadas en la fase 9 (para el revisor)
-- **Cuándo se descuenta un comodín**: el 50/50 y el +5 s, al tocarlos (surten efecto al momento); el Salvavidas queda *armado* y solo se descuenta si de verdad perdona un fallo (si aciertas, no se gasta). Un doble toque es un solo uso (el id entra en la lista de usados de la pregunta antes de llamar al modo).
-- Salvavidas por modo: Contrarreloj, el fallo (o el tiempo agotado) cuenta como pregunta pasada y sigues; Órdago, `resolverRonda({ salvavidas: true })` (pierdes la mitad de la ficha, la racha sigue); Más o menos, `registrarResultado({ salvavidas: true })` (racha intacta ante fallo, Cerca o Lejos; la calificación dice «🛟 racha salvada»).
-- 🔶 Salvavidas en Clásico/Repaso: no llama a `registrarRespuesta`; el hueco recibe otra pregunta (la fallada queda usada en la partida, sin tocar radar ni repaso) y, si el filtro es cerrado y no queda ninguna (p. ej. Repaso), la misma vuelve sin responder. Un bloqueo de 400 ms evita que el segundo toque de un doble toque responda la pregunta nueva.
-- 50/50 en Órdago se puede usar ya con las fichas a la vista (se aplica al elegir ficha); la barra se oculta en el resultado. En Más o menos solo aparece el Salvavidas; con la mochila vacía la barra no existe (cero hueco).
-- La Tienda lee y guarda el estado en el momento de cada operación y tiene antirrebote de 350 ms. El dinero es el fondo de Órdago: `ordago.js` gana copia en memoria (como mochila y récords) para que con el almacenamiento bloqueado Tienda y Órdago vean el mismo fondo. Vender puede subir el máximo histórico de Órdago (el normalizador lo sube al fondo): sin premio asociado, se deja así.
-- Quiebra → «Vender objetos → Tienda» destruye la ronda y abre la Tienda; «←» vuelve al hub y Órdago retoma el fondo que quede (si sigue en 0, vuelve la quiebra).
-- Récord de Más o menos tras recargar: sin dato persistido del récord al empezar la racha, una racha ≥ récord al montar se considera ya celebrada (si fue un empate, no se celebrará al superarlo una vez; el error contrario sería repetirlo).
-- Tests reescritos: Tienda del hub (`Tienes N` en vez de `×N`, sin el «pronto»), sumas de cantidades de la Tienda tras premio, y el e2e del récord (semilla 2/3 en vez de 3/3, que ahora es justo el caso de recarga).
-- Suites: 969 unitarias y 230 e2e (`--workers=1`): 228 en verde y 2 de Más o menos que dependen de la pareja al azar (`Afinar: clavar…` esperaba «Lejos» con ×4 y salió «Muy cerca»; `Afinar con fechas` no vio el zoom de la línea); pasan aislados 9 de 10 veces, la causa es de la fase 8 (casos límite de la pareja aleatoria), no de la 9.
+## Decisiones de Carlos del 11-oct (ya en la spec y en el código)
+- **Órdago en equilibrio estricto** (spec §5.2): al acertar la ficha vuelve multiplicada y se gana `ceil(ficha × (multiplicador − 1))`; `multiplicador = base(nivel) × (dorada ? 1,5 : 1) × (racha ≥ 3 ? 1,5 : 1)`, base 1,5 / 1,6 / 1,7 para nivel 3 / 4 / 5. Las fichas enseñan la ganancia sin el factor dorada.
+- **La dorada se revela después de elegir ficha** (borde y gesto de sorpresa); antes no se ve.
+- **Elegir ficha compromete**: `one.ordago` guarda la ronda pendiente (`pendiente: {pregunta, ficha}`); salir con «←», cambiar de vista o recargar antes de responder cuenta como fallo (pierde la ficha, racha a 0), una sola vez. Aviso «Si sales, la pierdes» bajo las fichas.
+- **Un fondo nuevo gratis al día** (fecha local, `fondoNuevoDia` en `one.ordago`; los respaldos viejos sin fecha se leen bien). Ya usado: «Vuelve mañana» y, con objetos, «Vender objetos → Tienda». El máximo histórico solo sube jugando.
+- **Contrarreloj**: progreso como 10 puntos que se llenan bajo la cabecera (dorados en el doble o nada), con `aria-label` «Pregunta n de 10».
+- **Avatar en partida: 100 px fijos.**
+- **Fotos offline en caché aparte** (`one-fotos`, `sw.js`): expulsa las más antiguas pasadas de 60 fotos o 3 MB, fuera del techo de 5 MB del núcleo (4,13 MiB medidos) y no se borra al subir `CACHE`. Las propias, las WebP del servidor y las de Commons se guardan (las ajenas se vuelven a pedir con CORS para no guardar respuestas opacas; si el origen lo niega, se enseñan sin guardar).
 
-## Decisiones y notas de las fases 5 a 8 (para el revisor)
-- **⚠️ Carlos (fase 8, iPhone):** ¿Afinar con fotos a escala se entiende?, ¿las parejas de Comparar cuestan lo bastante?, ¿se ven bien triste y euforia tras recomprimirlos?; relanzar la puntuación de fotos de las cifras con cuota de visión: `node --env-file=.env tools/mejorar-imagenes.js --cifras [--limite N] [--dry-run]` (361 de 480 con foto sin puntuar, 119 sin foto, 0 de IA).
-- **⚠️ Carlos (fase 7):** (1) OK para publicar; (2) **desplegar el servidor**: poner `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` si la quieres) en `/opt/one/.env` del VPS y `docker compose -f servidor/docker-compose.yml up -d --build` (instala `sharp`); sin eso el servidor viejo sigue mandando `visual` y la app lo ignora; (3) iPhone: ¿las fotos tienen impacto?, ¿se leen los créditos?, ¿«Imagen mala» sustituye la foto?; (4) al marcar imágenes malas, copia `/opt/one-datos/imagenes-malas.json` a `datos/imagenes-malas.json`.
-- **⚠️ Carlos (fases 5 y 6, iPhone):** ¿12 → 6 s con la foto bajo el enunciado se puede jugar?, ¿el cofre y el doble o nada enganchan?, ¿la foto con el enunciado se lee bien?, ¿el suelo de nivel 3 es la dificultad que querías?, ¿se nota el parón de 350 ms? Fase 4 pendiente de OK (esfinge v2; banda de 100 px) y la 3 de sonido en el iPhone.
-- Fase 8: `masomenos.js` (parejas ≤ ×4 o ≤ 300 años, racha), `masomenos-ui.js`, `escala.js`, `datos/cifras.json` (480 cifras; PIB del Banco Mundial en US$ corrientes), récords en `one.masomenos`. Las cifras no tocan el radar. Afinar: barra de alturas recortada a tope, diferencia mínima del 5 %, solo «Listo» revela. Antirrebote de 350 ms en todas las rondas (los e2e esperan 450).
-- Fase 7: nota de imagen con visión (`tools/nota-imagen.js`), bancos libres, IA de último recurso (`servidor/imagen-ia.js`, cupo 100/día, tope 0,10 €/día), la app solo enseña foto real, color del área o fórmula; «Imagen mala» quita la imagen en el servidor. Lote del banco: ~170 preguntas sin tocar (`node --env-file=.env tools/mejorar-imagenes.js --continuar`). Candidato a limpieza: el código de dibujo de `visuales.js`.
-- Fase 6: «corta» se mide con el canvas (`app.js#medirTextoReal`); solo ~27-31 preguntas del banco real son jugables en Contrarreloj (conviene generar tandas de nivel 4 y cortas). Un tiempo agotado no pasa por `registrarRespuesta`. Los objetos pasan a la mochila solo al «Plantarse»/«Recoger». Los e2e con reloj falso usan `page.clock.fastForward`.
-- Fase 5: tras el último fallo se ve el resultado y «Continuar» lleva a la quiebra; el servidor ya acepta `nivelObjetivo` (hay que desplegarlo). Límite previo de Clásico: un test4 con foto y enunciado de 2 líneas desborda 15 px tras responder a 375×667.
-- Flakes conocidos (pasan aislados): «Órdago · doble toque en la ficha», «avatar · acertar pide el gesto», «Termópilas» (carga) y, por pareja al azar, «Afinar: clavar…» y «Afinar con fechas» (revisar sus casos límite).
+## Lo que queda de Carlos (a mano)
+1. **OK de publicación** y el push: `! git checkout main && git merge --ff-only v0.3-fase-9 && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve `one-v31`.
+2. **Sonido en el iPhone** (fase 3): `npm run servir` y abrir `http://192.168.1.137:8765/?depurar=sonido` (iPhone en la wifi `MIWIFI_sHY3`; alternativa Tailscale, PC 100.72.197.51). Capturas del panel con sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` → fase 3.2.
+3. **41 imágenes** pendientes de revisar/sustituir.
+4. **VPS tras publicar**: `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` si la quiere) en `/opt/one/.env` y `docker compose -f servidor/docker-compose.yml up -d --build` (instala `sharp`; ya acepta `nivelObjetivo`). Al marcar imágenes malas, copiar `/opt/one-datos/imagenes-malas.json` a `datos/imagenes-malas.json`.
+5. **Puntuación de fotos de las cifras** cuando haya cuota de visión: `node --env-file=.env tools/mejorar-imagenes.js --cifras [--limite N] [--dry-run]` (361 de 480 con foto sin puntuar, 119 sin foto).
+6. Prueba en el iPhone: Órdago (¿el equilibrio y el «Si sales, la pierdes» se sienten bien?), Contrarreloj (¿12 → 6 s con foto se puede jugar?, ¿los puntos se leen?), Afinar con fotos, Tienda y comodines.
 
-## Siguiente paso
-1. Leer `.superpowers/sdd/2026-10-06-one-v0.3-fases-3-10/progress.md` y `git log --oneline -8`.
-2. Cierres pendientes de las fases 5 a 9 (revisión Opus ejecutando, adversarial, OK de Carlos). Fase 10 solo si Carlos la confirma.
-3. **Sonido (3.1 pasos 4-6 → 3.2)**, lo último por decisión de Carlos: `npm run servir` y Carlos abre en el iPhone `http://192.168.1.137:8765/?depurar=sonido`. Si no carga: iPhone en la wifi `MIWIFI_sHY3` (no en datos 5G); alternativa Tailscale (PC 100.72.197.51). Capturas del panel con el interruptor en sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` → 3.2.
-
-## Aparcado
-- Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar fuera de Órdago; confeti concurrente puede crear dos lienzos.
-- Preexistentes: importar el mismo fichero dos veces no hace nada y no avisa; flakes de tests de servidor en Windows (`servidor-cola.test.js` EPERM / «servir() concurrente» bajo carga, `servidor-generacion.test.js:1150` temporizadores).
+## Notas para el revisor
+- Salvavidas: 50/50 y +5 s se descuentan al usarlos; el Salvavidas queda armado y solo se descuenta si perdona un fallo. En Órdago, `resolverRonda({ salvavidas: true })`; una ronda abandonada se resuelve sin Salvavidas (no se gasta).
+- Quiebra → «Vender objetos → Tienda» destruye la ronda y abre la Tienda; «←» vuelve al hub y Órdago retoma el fondo que quede.
+- Antirrebote de 350 ms en todas las rondas (los e2e esperan 450). Los e2e con reloj falso usan `page.clock.fastForward`.
+- Flakes conocidos (pasan aislados): «Órdago · doble toque en la ficha», «avatar · acertar pide el gesto», «Termópilas» (carga), y por pareja al azar «Afinar: clavar…» y «Afinar con fechas».
+- Aparcado: límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar fuera de Órdago; confeti concurrente puede crear dos lienzos; importar el mismo respaldo dos veces no avisa; flakes de servidor en Windows (`servidor-cola.test.js` EPERM, `servidor-generacion.test.js:1150`).
 
 ## Cómo trabajar
-- Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (969) y `npx playwright test --workers=1` (230). La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
-- Los e2e esperan 450 ms entre paneles por el antirrebote; con varios trabajadores el vídeo de la esfinge los vuelve lentos.
+- Scripts de `tools/`: `node --env-file=.env`. La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
 - Escaleras de `delegar.mjs`: `qwen3.8-27b:free` ya no existe (sustituido por `thinkingmachines/inkling-small:free`); Groq rechaza contextos > 8k tokens/min; para spec + plan ganó `nvidia/nemotron-3-super-120b-a12b:free`.
 - Procesar imágenes/vídeo: Pillow + numpy; ffmpeg vía `python -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"`.
-- Publicar solo con OK de Carlos; el push lo lanza él: `! git checkout main && git merge --ff-only <rama> && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve la caché nueva (`one-v30`).
 - Vídeos nuevos de la esfinge solo si interpolar lo existente no basta (Space Wan `multimodalart/wan-2-2-first-last-frame`, 1 vídeo al día; de pago con cifra exacta y aprobación).

@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v30', () => {
-  assert.match(sw, /const CACHE = 'one-v30';/);
+test('sw: caché one-v31', () => {
+  assert.match(sw, /const CACHE = 'one-v31';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -54,37 +54,114 @@ test('sw: se precachea el reposo, las anclas y las imágenes fijas; los gestos s
   assert.doesNotMatch(sw, /AVATAR_GESTOS\.map|addAll\(\[[^\]]*AVATAR_GESTOS/);
 });
 
-test('sw: las imágenes del banco no se precachean pero se cachean al verlas, con tope', () => {
+test('sw: las fotos no se precachean: van a una caché aparte con tope por entradas y por bytes', () => {
   const precacheadas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')];
-  assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco|hub)\//.test(r)), 'ninguna imagen del banco en el precaché');
+  assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco|hub)\//.test(r)), 'ninguna foto en el precaché');
   assert.ok(lista('SECUNDARIOS').includes('datos/imagenes.json'));
-  assert.match(sw, /cache\.put\(claveCache/, 'el fetch guarda cualquier GET del mismo origen');
-  assert.match(sw, /MAX_BYTES_IMAGENES = /);
-  assert.doesNotMatch(sw, /MAX_IMAGENES_CACHE/, 'el tope ya no cuenta imágenes sino bytes');
+  assert.match(sw, /CACHE_FOTOS = 'one-fotos'/);
+  assert.match(sw, /MAX_FOTOS = 60;/);
+  assert.match(sw, /MAX_BYTES_FOTOS = 3 \* 1024 \* 1024;/);
+  assert.doesNotMatch(sw, /MAX_BYTES_IMAGENES|256 \* 1024|acotarImagenes/, 'el tope de 256 KB y su caché compartida ya no existen');
 });
 
-test('sw: precaché + gestos + tope de imágenes por bytes <= 5 MB (medido)', () => {
-  const tope = Number(sw.match(/MAX_BYTES_IMAGENES = ([\d* ]+);/)[1].split('*').reduce((a, b) => a * Number(b), 1));
-  const rutas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')].filter((r) => r !== './');
-  const total = rutas.reduce((suma, ruta) => suma + statSync(new URL(`../${ruta}`, import.meta.url)).size, 0);
-  assert.ok(total + tope <= 5 * 1024 * 1024, `${((total + tope) / 1048576).toFixed(2)} MB`);
-});
-
-// El tope por bytes se prueba ejecutando el sw.js real con una caché falsa.
-test('sw: acotarImagenes borra las más antiguas hasta que las imágenes caben en el tope de bytes', async () => {
+// Los tests de abajo ejecutan el sw.js real con cachés falsas.
+async function montarSw({ red = async () => new Response(new Uint8Array(10)) } = {}) {
   const vm = await import('node:vm');
-  const almacen = new Map();
-  const cache = {
-    keys: async () => [...almacen.keys()].map((url) => new Request(url)),
-    match: async (r) => { const b = almacen.get(r.url); return b ? new Response(b) : undefined; },
-    delete: async (r) => almacen.delete(r.url),
+  const almacenes = new Map();
+  const abrir = (nombre) => {
+    if (!almacenes.has(nombre)) almacenes.set(nombre, new Map());
+    const datos = almacenes.get(nombre);
+    return {
+      datos,
+      keys: async () => [...datos.keys()].map((url) => new Request(url)),
+      match: async (r) => { const b = datos.get(typeof r === 'string' ? r : r.url); return b ? new Response(b) : undefined; },
+      put: async (r, resp) => { datos.set(typeof r === 'string' ? r : r.url, new Uint8Array(await resp.arrayBuffer())); },
+      delete: async (r) => datos.delete(typeof r === 'string' ? r : r.url),
+    };
   };
-  const contexto = vm.createContext({ self: { addEventListener() {}, location: { origin: 'https://x' } }, URL, Request, Response, caches: {}, fetch() {} });
+  const manejadores = {};
+  const llamadas = [];
+  const caches = {
+    open: async (n) => abrir(n),
+    keys: async () => [...almacenes.keys()],
+    delete: async (n) => almacenes.delete(n),
+  };
+  const contexto = vm.createContext({
+    self: { addEventListener: (t, f) => { manejadores[t] = f; }, location: { origin: 'https://x' }, skipWaiting() {}, clients: { claim() {} } },
+    URL, Request, Response, caches,
+    fetch: async (r, opciones) => { llamadas.push([typeof r === 'string' ? r : r.url, opciones]); return red(r, opciones); },
+  });
   vm.runInContext(sw, contexto);
-  const tope = vm.runInContext('MAX_BYTES_IMAGENES', contexto);
+  const pedir = (url, destination = 'image') => {
+    let promesa = null;
+    const peticion = new Request(url);
+    Object.defineProperty(peticion, 'destination', { value: destination });
+    manejadores.fetch({ request: peticion, respondWith: (p) => { promesa = p; }, waitUntil() {} });
+    return promesa;
+  };
+  const pausa = () => new Promise((r) => setTimeout(r, 20));
+  return { vm, contexto, almacenes, abrir, manejadores, llamadas, pedir, pausa };
+}
+
+test('sw: acotarFotos borra las más antiguas pasadas de 60 entradas', async () => {
+  const { abrir, vm, contexto } = await montarSw();
+  const cache = abrir('x');
+  for (let i = 0; i < 65; i += 1) cache.datos.set(`https://x/imagenes-ia/${i}.webp`, new Uint8Array(10));
+  await vm.runInContext('acotarFotos', contexto)(cache);
+  assert.equal(cache.datos.size, 60);
+  assert.ok(!cache.datos.has('https://x/imagenes-ia/0.webp'), 'la más antigua se fue');
+  assert.ok(cache.datos.has('https://x/imagenes-ia/64.webp'), 'la más nueva se conserva');
+});
+
+test('sw: acotarFotos borra las más antiguas hasta que caben en 3 MB', async () => {
+  const { abrir, vm, contexto } = await montarSw();
+  const cache = abrir('x');
+  const tope = vm.runInContext('MAX_BYTES_FOTOS', contexto);
   const trozo = Math.floor(tope / 3) + 1; // 3 no caben: solo las 2 más nuevas
-  for (const n of ['a', 'b', 'c']) almacen.set(`https://x/imagenes-ia/${n}.webp`, new Uint8Array(trozo));
-  almacen.set('https://x/app.js', new Uint8Array(tope * 4)); // lo que no es imagen no cuenta ni se toca
-  await vm.runInContext('acotarImagenes', contexto)(cache);
-  assert.deepEqual([...almacen.keys()], ['https://x/imagenes-ia/b.webp', 'https://x/imagenes-ia/c.webp', 'https://x/app.js']);
+  for (const n of ['a', 'b', 'c']) cache.datos.set(`https://x/imagenes-ia/${n}.webp`, new Uint8Array(trozo));
+  await vm.runInContext('acotarFotos', contexto)(cache);
+  assert.deepEqual([...cache.datos.keys()], ['https://x/imagenes-ia/b.webp', 'https://x/imagenes-ia/c.webp']);
+});
+
+test('sw: una foto propia va a one-fotos (no a la caché del núcleo) y la segunda vez sale de la caché', async () => {
+  const sim = await montarSw();
+  assert.equal((await sim.pedir('https://x/imagenes-banco/a.webp')).ok, true);
+  await sim.pausa();
+  assert.ok(sim.almacenes.get('one-fotos').has('https://x/imagenes-banco/a.webp'));
+  assert.ok(!sim.almacenes.has('one-v31'), 'nada en la caché del núcleo');
+  const antes = sim.llamadas.length;
+  await sim.pedir('https://x/imagenes-banco/a.webp');
+  assert.equal(sim.llamadas.length, antes, 'sin pedirla otra vez a la red');
+});
+
+test('sw: las fotos de Commons y las WebP del servidor se piden con CORS para guardarlas; si el origen lo niega, se enseñan sin guardar', async () => {
+  const sim = await montarSw();
+  await sim.pedir('https://upload.wikimedia.org/wikipedia/commons/a/ab/Foto.jpg');
+  await sim.pedir('https://servidor.ejemplo/imagenes/abc-1.webp');
+  await sim.pausa();
+  const fotos = sim.almacenes.get('one-fotos');
+  assert.ok(fotos.has('https://upload.wikimedia.org/wikipedia/commons/a/ab/Foto.jpg'));
+  assert.ok(fotos.has('https://servidor.ejemplo/imagenes/abc-1.webp'));
+  assert.ok(sim.llamadas.every(([, opciones]) => opciones?.mode === 'cors'));
+  // Sin CORS: la primera petición falla, la segunda (opaca) se devuelve sin guardar.
+  const sin = await montarSw({ red: async (r, opciones) => { if (opciones?.mode === 'cors') throw new TypeError('cors'); return Object.defineProperty(new Response(null, { status: 200 }), 'type', { value: 'opaque' }); } });
+  const respuesta = await sin.pedir('https://upload.wikimedia.org/wikipedia/commons/b/bc/Otra.jpg');
+  assert.equal(respuesta.status, 200);
+  await sin.pausa();
+  assert.ok(!sin.almacenes.get('one-fotos')?.has('https://upload.wikimedia.org/wikipedia/commons/b/bc/Otra.jpg'));
+});
+
+test('sw: lo de otro origen que no es foto (otro dominio o destino que no es image) no se intercepta', async () => {
+  const sim = await montarSw();
+  assert.equal(sim.pedir('https://otro.com/logo.png'), null);
+  assert.equal(sim.pedir('https://upload.wikimedia.org/x.json', 'empty'), null);
+});
+
+test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fotos', async () => {
+  const sim = await montarSw();
+  sim.abrir('one-v30'); sim.abrir('one-v31'); sim.abrir('one-fotos');
+  let terminado = null;
+  sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
+  await terminado;
+  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v31']);
 });

@@ -6861,12 +6861,15 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
     await expect(page.locator('[data-test="ficha-10"]')).toContainText('100');
     await expect(page.locator('[data-test="ficha-ordago"]')).toContainText('1.000');
-    // Cada ficha enseña lo que cobraría al acertar: apuesta × multiplicador REAL de la pregunta (nivel 3-5, sin dorada ni racha).
+    // Cada ficha enseña lo que GANARÍA al acertar (la ficha vuelve multiplicada): ficha × (base − 1), base 1,5/1,6/1,7
+    // según el nivel 3/4/5, sin el factor dorada (aún no se conoce) ni racha. La dorada no se ve antes de elegir ficha.
     const nivelFicha = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel);
-    const esDoradaFicha = await page.locator('[data-test="ficha-10"]').innerText();
-    expect(esDoradaFicha).toMatch(/→ \+\d/);
-    const ganaFicha = Number((esDoradaFicha.match(/→ \+([\d.]+)/)[1]).replace(/\./g, ''));
-    expect([100 * (1 + (nivelFicha - 1) * 0.25), 100 * (1 + (nivelFicha - 1) * 0.25) * 3].map(Math.floor)).toContain(ganaFicha);
+    const textoFicha = await page.locator('[data-test="ficha-10"]').innerText();
+    expect(textoFicha).toMatch(/→ \+\d/);
+    const ganaFicha = Number((textoFicha.match(/→ \+([\d.]+)/)[1]).replace(/\./g, ''));
+    expect(ganaFicha).toBe({ 3: 50, 4: 60, 5: 70 }[nivelFicha]);
+    await expect(page.locator('[data-test="foto-pregunta"]')).not.toHaveClass(/foto-pregunta--dorada/);
+    await expect(page.locator('[data-test="ordago-fichas"]')).toContainText('Si sales, la pierdes');
     await expect(page.locator('[data-test="nivel-partida"]')).toBeHidden(); // el «Nivel N» de la partida clásica no contradice al de la pregunta
     await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
     expect(await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel)).toBeGreaterThanOrEqual(3);
@@ -6934,7 +6937,7 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     expect(guardado.ordago.curva.length).toBe(2); // una sola ronda resuelta
     const delta = Math.abs(guardado.ordago.fondo - 1000);
     expect(delta).toBeGreaterThan(0);
-    expect(delta).toBeLessThanOrEqual(250 * 2 + 1); // una ficha del 25 %, ×2 como mucho
+    expect(delta).toBeLessThanOrEqual(250 * 1.55 + 1); // una ficha del 25 %: gana como mucho ficha × (1,7 × 1,5 − 1)
     // «Siguiente» con doble toque tampoco se salta una pregunta.
     const antes = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().id);
     await esperarAntirrebote(page);
@@ -6946,19 +6949,100 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas)).toBe(1);
   });
 
-  test('Review Focus 3: recargar con el órdago en el aire y sin responder no pierde ni gana nada', async ({ page }) => {
+  const leerOrdago = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')));
+
+  test('Elegir ficha compromete: recargar antes de responder pierde la ficha (racha a 0) una sola vez', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'ordago');
     await jugarRondaOrdago(page, { ficha: '10', acertar: true });
-    const fondoGuardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo);
+    const antes = await leerOrdago(page);
+    expect(antes.racha).toBe(1);
     await esperarAntirrebote(page);
-    await page.locator('[data-test="ficha-ordago"]').click(); // todo el fondo en el aire
+    await page.locator('[data-test="ficha-25"]').click();
+    const apuesta = Math.floor(antes.fondo * 0.25);
+    expect((await leerOrdago(page)).pendiente).toMatchObject({ ficha: apuesta }); // la ronda queda comprometida en lo guardado
     await page.reload();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo)).toBe(fondoGuardado);
     await entrarEnModo(page, 'ordago');
-    const esperado = String(fondoGuardado).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText(esperado);
+    const despues = await leerOrdago(page);
+    expect(despues.fondo).toBe(antes.fondo - apuesta);
+    expect(despues.racha).toBe(0);
+    expect(despues.pendiente).toBeNull();
+    await page.waitForTimeout(450);
+    await page.reload(); // una segunda recarga no vuelve a cobrar
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect((await leerOrdago(page)).fondo).toBe(antes.fondo - apuesta);
+  });
+
+  test('Elegir ficha compromete: salir con «←» tras elegir ficha la pierde; recargar después de responder no cobra dos veces', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
+    await expect(page.locator('[data-test="ordago-opciones"]')).toBeVisible();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const salida = await leerOrdago(page);
+    expect(salida.fondo).toBe(900);
+    expect(salida.pendiente).toBeNull();
+    // Antes de elegir ficha, salir es gratis.
+    await page.waitForTimeout(450);
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="volver"]').click();
+    expect((await leerOrdago(page)).fondo).toBe(900);
+    // Respondida la ronda, recargar no la cobra otra vez.
+    await page.waitForTimeout(450);
+    await entrarEnModo(page, 'ordago');
+    await jugarRondaOrdago(page, { ficha: '10', acertar: true, siguiente: false });
+    const tras = await leerOrdago(page);
+    expect(tras.pendiente).toBeNull();
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect((await leerOrdago(page)).fondo).toBe(tras.fondo);
+  });
+
+  test('Quiebra: un fondo nuevo gratis al día; ya usado, «Vuelve mañana» (con objetos, también «Vender objetos → Tienda»)', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.evaluate(() => window.__one.sembrarMochila({ cincuenta: 1 }));
+    await entrarEnModo(page, 'ordago');
+    const quebrar = async () => {
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ficha-ordago"]').click();
+      await page.evaluate(() => window.__one.fallarPreguntaOrdago());
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ordago-siguiente"]').click();
+      await expect(page.locator('[data-vista="quiebra"]')).toBeVisible();
+    };
+    await quebrar();
+    await expect(page.locator('[data-test="quiebra-fondo-nuevo"]')).toBeVisible();
+    await expect(page.locator('[data-test="quiebra-manana"]')).toBeHidden();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="quiebra-fondo-nuevo"]').click();
+    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText('1.000');
+    const hoyGuardado = (await leerOrdago(page)).fondoNuevoDia;
+    expect(hoyGuardado).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Segunda quiebra el mismo día: ni fondo nuevo ni nada gratis.
+    await quebrar();
+    await expect(page.locator('[data-test="quiebra-fondo-nuevo"]')).toBeHidden();
+    await expect(page.locator('[data-test="quiebra-manana"]')).toHaveText('Vuelve mañana');
+    await expect(page.locator('[data-test="quiebra-vender"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    // Recargar sigue en quiebra; el máximo histórico no se tocó.
+    await page.reload();
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-test="quiebra-manana"]')).toBeVisible();
+    expect((await leerOrdago(page)).quiebras).toBe(1);
+    // Mañana (la fecha guardada es de ayer): otra vez hay fondo nuevo.
+    await page.evaluate(() => {
+      const o = JSON.parse(localStorage.getItem('one.ordago'));
+      o.fondoNuevoDia = '2000-01-01';
+      localStorage.setItem('one.ordago', JSON.stringify(o));
+    });
+    await page.reload();
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-test="quiebra-fondo-nuevo"]')).toBeVisible();
+    await expect(page.locator('[data-test="quiebra-manana"]')).toBeHidden();
   });
 
   test('Órdago: recargar en plena quiebra vuelve a la pantalla de quiebra al entrar', async ({ page }) => {
@@ -6985,12 +7069,20 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await assertSinScroll(page);
   });
 
-  test('Órdago: la pregunta dorada lleva borde dorado y la esfinge se sorprende', async ({ page }) => {
+  test('Órdago: la pregunta dorada se revela DESPUÉS de elegir ficha (borde dorado y esfinge sorprendida)', async ({ page }) => {
     await page.addInitScript(() => { Math.random = () => 0.01; });
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-test="foto-pregunta"]')).not.toHaveClass(/foto-pregunta--dorada/);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).not.toContain('sorpresa');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
     await expect(page.locator('[data-test="foto-pregunta"]')).toHaveClass(/foto-pregunta--dorada/);
     expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('sorpresa');
+    // La dorada multiplica ×1,5 más: con nivel 3 y ficha 100 se ganan 100 × (1,5 × 1,5 − 1) = 125 (nivel 4: 140; nivel 5: 155).
+    const nivel = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel);
+    await page.evaluate(() => window.__one.acertarPreguntaOrdago());
+    await expect(page.locator('[data-test="ordago-delta"]')).toHaveText(`+${{ 3: 125, 4: 140, 5: 155 }[nivel]}`);
   });
 
   test('Órdago: peor caso (enunciado, opciones y explicación larguísimos) sin scroll y sin recortar el enunciado ni encoger la letra a 375×667', async ({ page }) => {
@@ -7185,7 +7277,8 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'contrarreloj');
     await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 1 de 10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"] > span')).toHaveCount(10); // 10 puntos de progreso, no «n/10»
     await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
     await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
     const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
@@ -7204,7 +7297,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await sinScrollEnAmbos(page);
     await esperarAntirrebote(page);
     await page.locator('[data-test="caida-reintentar"]').click();
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 1 de 10');
     expect(await objetosEnMochila(page)).toBe(0);
     await page.evaluate(() => window.__one.acertarContrarreloj(10));
     await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
@@ -7226,7 +7319,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'contrarreloj');
     await page.evaluate(() => window.__one.acertarContrarreloj(3));
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('4/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 4 de 10');
     await page.evaluate(() => window.__one.fallarContrarreloj());
     await expect(page.locator('[data-vista="caida"]')).toBeVisible();
     await expect(page.locator('[data-test="caida-resumen"]')).toContainText('pregunta 4 de 10');
@@ -7244,7 +7337,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.locator('[data-test="cofre-doble"]').click();
     await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
     await expect(page.locator('[data-test="contrarreloj-fase"]')).toBeVisible();
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 1 de 10');
     // Caer en el doble: se pierde el cofre.
     await page.evaluate(() => window.__one.fallarContrarreloj());
     await expect(page.locator('[data-test="caida-resumen"]')).toContainText('pierdes el cofre');
@@ -7277,7 +7370,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.locator(`[data-test="contrarreloj-opciones"] [data-original="${original}"]`).dblclick();
     await page.waitForTimeout(700);
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas)).toBe(1);
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('2/10'); // no se saltó otra
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 2 de 10'); // no se saltó otra
     await page.evaluate(() => window.__one.acertarContrarreloj(9));
     await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
     await esperarAntirrebote(page);
@@ -7295,7 +7388,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     // Ni récord ni caída guardados: solo existe lo que se guarda al TERMINAR una serie.
     expect(await page.evaluate(() => localStorage.getItem('one.contrarreloj'))).toBeNull();
     await entrarEnModo(page, 'contrarreloj');
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 1 de 10');
   });
 
   test('Contrarreloj en segundo plano: el tiempo se para y al volver es la misma posición con otra pregunta y el tiempo completo', async ({ page }) => {
@@ -7303,7 +7396,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'contrarreloj');
     await page.evaluate(() => window.__one.acertarContrarreloj(2));
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('3/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 3 de 10');
     const antes = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id);
     await page.clock.fastForward(4000);
     const ocultar = (oculto) => page.evaluate((valor) => {
@@ -7314,7 +7407,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.clock.fastForward(30000); // mucho más que el tiempo de la pregunta: no debe caer
     expect(await page.evaluate(() => document.querySelector('[data-vista="contrarreloj"]').hidden)).toBe(false);
     await ocultar(false);
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('3/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 3 de 10');
     const despues = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id);
     expect(despues).not.toBe(antes);
     // Tiempo completo otra vez (≈ 10,7 s en la 3.ª): a los 9,5 s todavía no ha caído; a los 11,5 sí.
@@ -7570,17 +7663,22 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     }
   });
 
-  test('Comparar con fechas: botones «Después» / «Antes», sin scroll y las dos tarjetas con el color del área si no hay foto', async ({ page }) => {
-    await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // todas las fotos rotas: color del área, sin hueco
-    await entrar(page, 'historia');
-    await expect(page.locator('[data-test="mm-mas"]')).toHaveText('Después');
-    await expect(page.locator('[data-test="mm-menos"]')).toHaveText('Antes');
-    await expect(page.locator('.mm-tarjeta[data-area="historia"]')).toHaveCount(2);
-    await expect(page.locator('.mm-tarjeta-img')).toHaveCount(0); // el error de carga quita la foto
-    await sinScrollEnAmbos(page);
-    await responder(page, true);
-    await expect(page.locator('[data-test="mm-diferencia"]')).toContainText(/años? (antes|después)/);
-    await sinScrollEnAmbos(page);
+  // Sin service worker: page.route no ve lo que el SW pide por su cuenta (guarda las fotos de Commons en la caché aparte).
+  test.describe('sin service worker', () => {
+    test.use({ serviceWorkers: 'block' });
+
+    test('Comparar con fechas: botones «Después» / «Antes», sin scroll y las dos tarjetas con el color del área si no hay foto', async ({ page }) => {
+      await page.route('https://upload.wikimedia.org/**', (r) => r.abort()); // todas las fotos rotas: color del área, sin hueco
+      await entrar(page, 'historia');
+      await expect(page.locator('[data-test="mm-mas"]')).toHaveText('Después');
+      await expect(page.locator('[data-test="mm-menos"]')).toHaveText('Antes');
+      await expect(page.locator('.mm-tarjeta[data-area="historia"]')).toHaveCount(2);
+      await expect(page.locator('.mm-tarjeta-img')).toHaveCount(0); // el error de carga quita la foto
+      await sinScrollEnAmbos(page);
+      await responder(page, true);
+      await expect(page.locator('[data-test="mm-diferencia"]')).toContainText(/años? (antes|después)/);
+      await sinScrollEnAmbos(page);
+    });
   });
 
   test('Comparar con tamaños: al responder, las dos fotos pasan a su tamaño real sobre la misma línea de suelo', async ({ page }) => {
@@ -8203,7 +8301,7 @@ test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
     await page.evaluate(() => window.__one.fallarContrarreloj());
     await expect(page.locator('[data-vista="caida"]')).toBeHidden();
     await page.clock.runFor(600);
-    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('2/10');
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 2 de 10');
     expect((await mochila(page)).salvavidas).toBe(1);
     await expect(barraComodines.locator('[data-test="comodin-cantidad-salvavidas"]')).toHaveText('×1');
     await sinScrollEnAmbos(page);

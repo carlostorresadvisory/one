@@ -2928,6 +2928,7 @@ button.punto-servidor::before {
 .ordago-delta--ok { color: var(--ok); }
 .ordago-delta--ko { color: var(--ko); }
 .ordago-siguiente { padding: 10px 24px; }
+.ordago-fichas-aviso { grid-column: 1 / -1; margin: 0; text-align: center; font-size: 12px; line-height: 1.2; color: var(--texto-suave); }
 .ordago-aviso { margin: 0; color: var(--dorado); font-weight: 700; }
 .ordago-aviso[hidden] { display: none; }
 .ordago-explicacion {
@@ -2940,6 +2941,8 @@ button.punto-servidor::before {
 .cabecera-avatar--resplandor { filter: drop-shadow(0 0 10px rgba(242, 193, 78, 0.85)); }
 .vista-quiebra { justify-content: center; align-items: stretch; gap: 16px; text-align: center; }
 .quiebra-titulo { margin: 0; font-size: var(--tam-3); }
+.vista-quiebra [hidden] { display: none; }
+.quiebra-manana { margin: 0; font-size: var(--tam-2); font-weight: 600; color: var(--texto); }
 .quiebra-maximo { margin: 0; font-size: var(--tam-2); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
 /* Minicurva del fondo en la tarjeta Órdago del hub (arriba a la derecha, plana). */
 .hub-modo > .hub-modo-curva { position: absolute; top: 10px; right: 12px; width: 60px; height: 24px; overflow: visible; pointer-events: none; }
@@ -2948,7 +2951,13 @@ button.punto-servidor::before {
    respuestas; «Has caído» y el cofre. Todo plano: el dorado queda para lo dorado (el objeto épico). ===== */
 .vista-contrarreloj { gap: 8px; overflow: hidden; -webkit-user-select: none; user-select: none; } /* el doble toque no selecciona el enunciado */
 .contrarreloj-marcador { display: flex; align-items: center; gap: 8px; min-height: 28px; }
-.contrarreloj-numero { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Progreso de la serie: 10 puntos que se van llenando (dorados durante el doble o nada). */
+.contrarreloj-puntos { display: flex; align-items: center; gap: 6px; }
+.contrarreloj-punto { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #3a4a5a; box-sizing: border-box; }
+.contrarreloj-punto--llena { background: var(--acento); border-color: var(--acento); }
+.contrarreloj-punto--actual { border-color: var(--texto); }
+.contrarreloj-puntos--doble .contrarreloj-punto--llena { background: var(--dorado); border-color: var(--dorado); }
+.contrarreloj-puntos--doble .contrarreloj-punto--actual { border-color: var(--dorado); }
 .contrarreloj-fase { color: var(--acento); font-size: 14px; font-weight: 600; }
 .contrarreloj-fase[hidden] { display: none; }
 .vista-contrarreloj > .contrarreloj-foto { flex: 1 1 0; min-height: 80px; display: flex; }

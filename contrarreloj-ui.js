@@ -43,7 +43,7 @@ const textoRespuesta = (p) => (p.tipo === 'vf' ? (p.respuesta ? 'Verdadero' : 'F
 export function montarContrarreloj(contenedor, deps) {
   const documento = deps.documento ?? contenedor.ownerDocument ?? globalThis.document;
   const nodo = (id, raiz = contenedor) => raiz.querySelector(`[data-test="${id}"]`);
-  const nodoNumero = nodo('contrarreloj-numero');
+  const nodoPuntos = nodo('contrarreloj-puntos');
   const nodoFase = nodo('contrarreloj-fase');
   const nodoFoto = nodo('contrarreloj-foto');
   const nodoBarra = nodo('contrarreloj-barra');
@@ -117,6 +117,17 @@ export function montarContrarreloj(contenedor, deps) {
     guardarRecords(records, deps.almacen);
   }
 
+  /** 10 puntos que se van llenando (las ya superadas), con el de la pregunta actual marcado; dorados en el doble. */
+  function pintarPuntos() {
+    nodoPuntos.setAttribute('aria-label', `Pregunta ${serie.indice + 1} de ${N_SERIE}`);
+    nodoPuntos.classList.toggle('contrarreloj-puntos--doble', serie.fase === 'doble');
+    nodoPuntos.replaceChildren(...Array.from({ length: N_SERIE }, (_, i) => {
+      const punto = crear(documento, 'span', `contrarreloj-punto${i < serie.indice ? ' contrarreloj-punto--llena' : ''}${i === serie.indice ? ' contrarreloj-punto--actual' : ''}`);
+      punto.setAttribute('aria-hidden', 'true');
+      return punto;
+    }));
+  }
+
   function nuevaPregunta(cambiarVista = false) {
     const pregunta = deps.elegirPregunta({ usados, ultima, enSerie });
     if (!pregunta) {
@@ -144,7 +155,7 @@ export function montarContrarreloj(contenedor, deps) {
       boton.addEventListener('click', () => { if (libre()) resolver(valor); });
       return boton;
     }));
-    nodoNumero.textContent = `${serie.indice + 1}/${N_SERIE}`;
+    pintarPuntos();
     nodoFase.hidden = serie.fase !== 'doble';
     const total = tiempoPreguntaMs(serie.indice, serie.fase);
     ronda = { pregunta, total, inicio: ahora(), ultimoTic: null, ocultas: [], salvavidas: false };

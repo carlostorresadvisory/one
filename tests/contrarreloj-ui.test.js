@@ -26,7 +26,7 @@ function montar({ preguntas = 10, ...extra } = {}) {
   const documento = new ElementoFalso('document');
   documento.createElement = (t) => new ElementoFalso(t);
   documento.hidden = false;
-  const juego = contenedorCon(['contrarreloj-numero', 'contrarreloj-fase', 'contrarreloj-foto', 'contrarreloj-barra', 'contrarreloj-opciones']);
+  const juego = contenedorCon(['contrarreloj-puntos', 'contrarreloj-fase', 'contrarreloj-foto', 'contrarreloj-barra', 'contrarreloj-opciones']);
   const caida = contenedorCon(['caida-resumen', 'caida-explicacion', 'caida-reintentar']);
   const cofre = contenedorCon(['cofre-titulo', 'cofre-premio', 'cofre-nota', 'cofre-doble', 'cofre-plantarse', 'cofre-recoger']);
   const banco = Array.from({ length: preguntas }, (_, i) => ({
@@ -137,7 +137,7 @@ function montarSalvavidas(objetos) {
   guardarMochila(Object.entries(objetos).reduce((m, [id, n]) => anadirObjeto(m, id, n), crearMochila()), almacen);
   const comodines = new ElementoFalso('div');
   comodines.querySelector = (sel) => comodines.buscarPorClase(sel.replace('.', ''));
-  const juego = contenedorCon(['contrarreloj-numero', 'contrarreloj-fase', 'contrarreloj-foto', 'contrarreloj-barra', 'contrarreloj-opciones']);
+  const juego = contenedorCon(['contrarreloj-puntos', 'contrarreloj-fase', 'contrarreloj-foto', 'contrarreloj-barra', 'contrarreloj-opciones']);
   const qs = juego.querySelector;
   juego.querySelector = (sel) => (sel.includes('contrarreloj-comodines') ? comodines : qs(sel));
   juego.porId['contrarreloj-comodines'] = comodines;
@@ -166,7 +166,8 @@ test('Salvavidas armado: fallar no te hace caer, se descuenta una sola vez y la 
   assert.equal(instancia.responderParaTest(false), true);
   assert.equal(cargarMochila(almacen).objetos.salvavidas, 1); // gastado una vez, al perdonar el fallo
   assert.ok(!vistas.includes('caida'));
-  assert.equal(juego.porId['contrarreloj-numero'].textContent, '2/10'); // la serie sigue, en la siguiente
+  assert.equal(juego.porId['contrarreloj-puntos'].getAttribute('aria-label'), 'Pregunta 2 de 10'); // la serie sigue, en la siguiente
+  assert.equal(juego.porId['contrarreloj-puntos'].buscarTodosPorClase('contrarreloj-punto--llena').length, 1);
   instancia.responderParaTest(false); // sin armar otro: ahora sí cae
   assert.ok(vistas.includes('caida'));
   assert.equal(cargarMochila(almacen).objetos.salvavidas, 1);
@@ -187,4 +188,22 @@ test('Salvavidas armado pero acertando: no se gasta', () => {
   comodines.children[0].disparar('click');
   instancia.responderParaTest(true);
   assert.equal(cargarMochila(almacen).objetos.salvavidas, 1);
+});
+
+test('progreso: 10 puntos que se van llenando, con aria-label «Pregunta n de 10»', () => {
+  const m = montar();
+  const puntos = m.juego.porId['contrarreloj-puntos'];
+  assert.equal(puntos.children.length, 10);
+  assert.equal(puntos.getAttribute('aria-label'), 'Pregunta 1 de 10');
+  assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 0);
+  assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--actual').length, 1);
+  m.instancia.acertarParaTest(1);
+  assert.equal(puntos.getAttribute('aria-label'), 'Pregunta 2 de 10');
+  assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 1);
+  assert.equal(puntos.classList.contains('contrarreloj-puntos--doble'), false);
+  m.instancia.acertarParaTest(9); // cofre
+  m.avanzarReloj(1000);
+  m.cofre.porId['cofre-doble'].disparar('click');
+  assert.equal(puntos.classList.contains('contrarreloj-puntos--doble'), true, 'dorados durante el doble o nada');
+  assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 0);
 });

@@ -2,12 +2,14 @@
 // ordago.js; app.js solo la monta y le inyecta sus dependencias. Una ronda: la foto con el enunciado
 // encima y las fichas → elegir ficha → respuestas → resultado (+N / −N, explicación, «Siguiente»).
 // Cada paso se cierra con un cerrojo (`fase`): un doble toque rápido no apuesta ni responde dos veces.
-// La ficha solo se descuenta al RESOLVER la ronda (ordago.js#resolverRonda): si iOS mata la app antes,
-// la ronda no existió. Órdago no da objetos: lo que se gana es el fondo (el dinero de la Tienda).
+// Elegir ficha COMPROMETE (spec §5.2): la ronda queda pendiente en `one.ordago`; salir, cambiar de vista o
+// recargar antes de responder la resuelve como fallo (ordago.js#resolverPendiente), una sola vez. La pregunta
+// dorada se revela DESPUÉS de elegir ficha (si no, convendría apostar todo solo a las doradas).
+// Órdago no da objetos: lo que se gana es el fondo (el dinero de la Tienda).
 
 import {
   FICHAS, calcularFicha, gananciaFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, guardarOrdago,
-  formatearCifra, puntosMinicurva,
+  comprometerFicha, resolverPendiente, puedeFondoNuevo, fechaLocal, formatearCifra, puntosMinicurva,
 } from './ordago.js';
 import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
@@ -49,7 +51,8 @@ const textoRespuesta = (p) => (p.tipo === 'vf' ? (p.respuesta ? 'Verdadero' : 'F
  * `contenedorQuiebra`, `mostrarVista(nombre)`, `elegirPregunta({usados, ultima})` → pregunta|null,
  * `registrar(pregunta, correcta, respuesta)`, `celebrarAcierto(nodo, 'monedas')`, `lamentarFallo(nodo)`,
  * `celebrarPremio(evento)`, `resplandorEsfinge()`, `imagenDe(pregunta)`, `pedirGesto(evento)`,
- * `alSinPreguntas()`, `alVenderObjetos()` (quiebra → Tienda), y opcionales `vigia` (el de «pensando»), `almacen`, `rng`, `documento`.
+ * `alSinPreguntas()`, `alVenderObjetos()` (quiebra → Tienda), y opcionales `vigia` (el de «pensando»), `almacen`, `rng`, `documento`,
+ * `hoy()` (fecha local AAAA-MM-DD del fondo nuevo diario).
  */
 export function montarOrdago(contenedor, deps) {
   const documento = deps.documento ?? contenedor.ownerDocument ?? globalThis.document;
@@ -69,9 +72,17 @@ export function montarOrdago(contenedor, deps) {
   const nodoQuiebraMaximo = nodo('quiebra-maximo', quiebra);
   const botonFondoNuevo = nodo('quiebra-fondo-nuevo', quiebra);
   const botonVender = nodo('quiebra-vender', quiebra);
+  const nodoManana = nodo('quiebra-manana', quiebra);
+  const hoy = deps.hoy ?? (() => fechaLocal());
   const nodoComodines = nodo('ordago-comodines');
 
   let estado = cargarOrdago(deps.almacen);
+  // Una ronda comprometida y sin responder (recarga, o iOS mató la app): se resuelve como fallo, una sola vez.
+  const abandonada = resolverPendiente(estado);
+  if (abandonada) {
+    estado = abandonada.estado;
+    guardarOrdago(estado, deps.almacen);
+  }
   let fase = 'inicio'; // 'ficha' | 'opciones' | 'resuelta' | 'quiebra' | 'destruido'
   let ronda = null; // { pregunta, dorada, ficha }
   let foto = null;
@@ -147,19 +158,20 @@ export function montarOrdago(contenedor, deps) {
     }
     usados.add(pregunta.id);
     ultima = pregunta.id;
-    const dorada = esDorada(deps.rng);
+    const dorada = esDorada(deps.rng); // se decide ya, pero no se enseña hasta elegir ficha
     if (foto) foto.destruir();
     foto = montarFotoPregunta(nodoFoto, {
-      enunciado: pregunta.enunciado, imagen: deps.imagenDe(pregunta), area: pregunta.area, dorada, documento,
+      enunciado: pregunta.enunciado, imagen: deps.imagenDe(pregunta), area: pregunta.area, dorada: false, documento,
     });
     ronda = { pregunta, dorada, ficha: 0, ocultas: [], salvavidas: false, orden: pregunta.tipo === 'vf' ? [] : barajarOrden(pregunta.opciones.length, deps.rng) };
     pintarMarcador();
 
     nodoFichas.replaceChildren(...FICHAS.map((f) => {
-      // Cada ficha enseña lo que juega y lo que cobraría al acertar con el multiplicador REAL de esta pregunta
-      // (nivel, dorada y racha: ordago.js#gananciaFicha, el mismo cálculo que resolverRonda).
+      // Cada ficha enseña lo que juega y lo que ganaría al acertar con el multiplicador de esta pregunta
+      // (nivel y racha: ordago.js#gananciaFicha, el mismo cálculo que resolverRonda) SIN el factor dorada,
+      // que aún no se conoce.
       const apuesta = calcularFicha(estado.fondo, f.pct);
-      const gana = gananciaFicha({ fondo: estado.fondo, pct: f.pct, nivel: pregunta.nivel, dorada, racha: estado.racha });
+      const gana = gananciaFicha({ fondo: estado.fondo, pct: f.pct, nivel: pregunta.nivel, dorada: false, racha: estado.racha });
       const boton = crear(documento, 'button', `ordago-ficha${f.id === 'ordago' ? ' ordago-ficha--ordago' : ''}`);
       boton.append(
         crear(documento, 'span', 'ordago-ficha-apuesta', `${f.texto} · ${formatearCifra(apuesta)}`),
@@ -171,13 +183,13 @@ export function montarOrdago(contenedor, deps) {
       boton.addEventListener('click', () => { if (libre()) elegirFicha(f); });
       return boton;
     }));
+    nodoFichas.append(crear(documento, 'p', 'ordago-fichas-aviso', 'Si sales, la pierdes'));
     mostrar('fichas');
     comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [] });
     fase = 'ficha';
     armar();
     if (cambiarVista) deps.mostrarVista('ordago'); // entre rondas la vista no se recarga
     deps.vigia?.reiniciar(); // después de mostrarVista, que lo para: así arranca también en la primera ronda
-    if (dorada) deps.pedirGesto('dorada');
   }
 
   function elegirFicha(ficha) {
@@ -186,6 +198,12 @@ export function montarOrdago(contenedor, deps) {
     armar();
     ronda.ficha = calcularFicha(estado.fondo, ficha.pct);
     const { pregunta } = ronda;
+    estado = comprometerFicha(estado, { pregunta: pregunta.id, ficha: ronda.ficha }); // desde aquí, salir es perder la ficha
+    guardarOrdago(estado, deps.almacen);
+    if (ronda.dorada) { // la dorada se revela ahora
+      foto?.ponerDorada(true);
+      deps.pedirGesto('dorada');
+    }
     const opciones = pregunta.tipo === 'vf'
       ? [['Verdadero', true], ['Falso', false]]
       : ronda.orden.map((original) => [pregunta.opciones[original], original]); // barajadas, con su índice original
@@ -212,7 +230,7 @@ export function montarOrdago(contenedor, deps) {
     const resultado = resolverRonda(estado, { ficha, correcta, nivel: pregunta.nivel, dorada, salvavidas });
     if (salvavidas) gastarComodin('salvavidas', deps.almacen);
     estado = resultado.estado;
-    guardarOrdago(estado, deps.almacen);
+    guardarOrdago(estado, deps.almacen); // resolverRonda ya limpió la ronda pendiente: recargar ahora no cobra dos veces
     deps.registrar(pregunta, correcta, valor);
 
     nodoDelta.textContent = `${resultado.delta >= 0 ? '+' : '−'}${formatearCifra(Math.abs(resultado.delta))}`;
@@ -243,6 +261,9 @@ export function montarOrdago(contenedor, deps) {
     fase = 'quiebra';
     armar();
     nodoQuiebraMaximo.textContent = `Máximo alcanzado: ${formatearCifra(estado.maximo)}`;
+    const hayFondoNuevo = puedeFondoNuevo(estado, hoy());
+    botonFondoNuevo.hidden = !hayFondoNuevo; // un fondo nuevo gratis al día; ya usado, queda «Vuelve mañana»
+    if (nodoManana) nodoManana.hidden = hayFondoNuevo;
     if (botonVender) botonVender.hidden = contarObjetos(cargarMochila(deps.almacen)) < 1; // spec §5.2: con objetos, también se pueden vender
     deps.vigia?.parar();
     deps.mostrarVista('quiebra');
@@ -250,8 +271,8 @@ export function montarOrdago(contenedor, deps) {
   }
 
   function fondoNuevo() {
-    if (fase !== 'quiebra') return;
-    estado = abrirFondoNuevo(estado);
+    if (fase !== 'quiebra' || !puedeFondoNuevo(estado, hoy())) return;
+    estado = abrirFondoNuevo(estado, hoy());
     guardarOrdago(estado, deps.almacen);
     nuevaRonda(true);
   }
@@ -266,6 +287,14 @@ export function montarOrdago(contenedor, deps) {
 
   return {
     destruir() {
+      // Salir («←», otra vista, otra partida) con la ficha elegida y sin responder cuenta como fallo.
+      if (fase === 'opciones' && estado.pendiente) {
+        const perdida = resolverPendiente(estado);
+        if (perdida) {
+          estado = perdida.estado;
+          guardarOrdago(estado, deps.almacen);
+        }
+      }
       fase = 'destruido';
       botonSiguiente.removeEventListener('click', alSiguiente);
       botonFondoNuevo.removeEventListener('click', alFondoNuevo);

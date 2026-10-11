@@ -150,14 +150,15 @@
       <h2 class="quiebra-titulo">Quiebra</h2>
       <p class="quiebra-maximo" data-test="quiebra-maximo"></p>
       <button type="button" class="boton boton-principal" data-test="quiebra-fondo-nuevo">Abrir un fondo nuevo con 1.000</button>
+      <p class="quiebra-manana" data-test="quiebra-manana" hidden>Vuelve mañana</p>
       <button type="button" class="boton" data-test="quiebra-vender" hidden>Vender objetos → Tienda</button>
     </section>
 
-    <!-- CONTRARRELOJ (v0.3 fase 6, spec §5.4): n/10, foto con el enunciado encima (foto-pregunta.js), barra de
+    <!-- CONTRARRELOJ (v0.3 fase 6, spec §5.4): 10 puntos de progreso, foto con el enunciado encima (foto-pregunta.js), barra de
          tiempo y respuestas. Las monta contrarreloj-ui.js; «Has caído» y el cofre son vistas aparte. -->
     <section class="vista vista-contrarreloj" data-vista="contrarreloj" data-test="contrarreloj" hidden>
       <div class="contrarreloj-marcador">
-        <span class="contrarreloj-numero" data-test="contrarreloj-numero">1/10</span>
+        <span class="contrarreloj-puntos" data-test="contrarreloj-puntos" role="img" aria-label="Pregunta 1 de 10"></span>
         <span class="contrarreloj-fase" data-test="contrarreloj-fase" hidden>Doble o nada</span>
       </div>
       <div class="contrarreloj-foto" data-test="contrarreloj-foto"></div>
