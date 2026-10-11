@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   OBJETOS, PROBABILIDADES_COFRE, CLAVE_MOCHILA, crearMochila, normalizarMochila, sortearObjeto,
-  anadirObjeto, contarObjetos, cargarMochila, guardarMochila, ganaPremioTanda,
+  anadirObjeto, contarObjetos, cargarMochila, guardarMochila, ganaPremioTanda, comprar, vender, puedeUsar, usar,
 } from '../mochila.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 
@@ -103,4 +103,53 @@ test('sin almacenamiento la mochila vive en memoria; con almacén sano vuelve a 
   assert.equal(contarObjetos(cargarMochila(roto)), 1);
   assert.equal(guardarMochila(crearMochila(), almacenFalso()), true);
   assert.equal(contarObjetos(cargarMochila(roto)), 0);
+});
+
+// --- Tienda y uso de comodines (spec §6, fase 9) ---------------------------------------------------------------
+
+test('comprar: descuenta el precio, suma uno y es inmutable; con fondo justo deja 0', () => {
+  const vacia = crearMochila();
+  const r = comprar(vacia, 300, 'cincuenta');
+  assert.deepEqual([r.ok, r.fondo, r.mochila.objetos.cincuenta], [true, 0, 1]);
+  assert.equal(vacia.objetos.cincuenta, 0);
+  assert.equal(comprar(vacia, 1000, 'mas5').fondo, 800);
+});
+
+test('comprar: sin fondos o con id desconocido no cambia nada', () => {
+  const m = crearMochila();
+  assert.deepEqual(comprar(m, 299, 'cincuenta'), { ok: false, motivo: 'sin-fondos' });
+  assert.deepEqual(comprar(m, 1000, 'cohete'), { ok: false, motivo: 'objeto-desconocido' });
+  assert.deepEqual(comprar(m, 1000, '__proto__'), { ok: false, motivo: 'objeto-desconocido' });
+  assert.deepEqual(comprar(m, NaN, 'mas5'), { ok: false, motivo: 'sin-fondos' });
+});
+
+test('vender: devuelve la mitad del precio (entera); sin tenerlo → no-tienes', () => {
+  const m = anadirObjeto(crearMochila(), 'cincuenta');
+  const r = vender(m, 10, 'cincuenta');
+  assert.deepEqual([r.ok, r.fondo, r.mochila.objetos.cincuenta], [true, 160, 0]);
+  assert.equal(m.objetos.cincuenta, 1);
+  assert.deepEqual(vender(crearMochila(), 10, 'cincuenta'), { ok: false, motivo: 'no-tienes' });
+  assert.deepEqual(vender(m, 10, 'cohete'), { ok: false, motivo: 'no-tienes' });
+});
+
+test('puedeUsar: lo tienes, el modo lo admite, no repetido en la pregunta, 50/50 solo en test4', () => {
+  const m = anadirObjeto(anadirObjeto(anadirObjeto(crearMochila(), 'cincuenta'), 'salvavidas'), 'mas5');
+  const base = { modo: 'ordago', tipoPregunta: 'test4', usadosEnPregunta: [] };
+  assert.equal(puedeUsar(m, 'cincuenta', base), true);
+  assert.equal(puedeUsar(m, 'cincuenta', { ...base, tipoPregunta: 'vf' }), false);
+  assert.equal(puedeUsar(m, 'mas5', { ...base, modo: 'clasico' }), false);
+  assert.equal(puedeUsar(m, 'mas5', { ...base, modo: 'contrarreloj' }), true);
+  assert.equal(puedeUsar(m, 'cincuenta', { ...base, usadosEnPregunta: ['cincuenta'] }), false);
+  assert.equal(puedeUsar(m, 'salvavidas', { ...base, modo: 'masomenos', tipoPregunta: undefined }), true);
+  assert.equal(puedeUsar(crearMochila(), 'salvavidas', base), false);
+  assert.equal(puedeUsar(m, 'cohete', base), false);
+  assert.equal(puedeUsar(m, 'cincuenta', { modo: 'ordago', tipoPregunta: 'test4' }), true);
+});
+
+test('usar: descuenta uno, nunca baja de 0 y es inmutable', () => {
+  const m = anadirObjeto(crearMochila(), 'mas5', 2);
+  assert.equal(usar(m, 'mas5').objetos.mas5, 1);
+  assert.equal(m.objetos.mas5, 2);
+  assert.equal(usar(crearMochila(), 'mas5').objetos.mas5, 0);
+  assert.equal(usar(m, 'cohete').objetos.mas5, 2);
 });

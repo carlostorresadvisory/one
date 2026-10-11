@@ -92,3 +92,36 @@ export function guardarMochila(mochila, almacen) {
 export function ganaPremioTanda({ respondidas, aciertos }) {
   return respondidas === 10 && aciertos === 10;
 }
+
+// --- Tienda y comodines (spec §6, fase 9) ---------------------------------------------------------------------
+const esObjeto = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(OBJETOS, id);
+
+/** Compra con el fondo de Órdago: nunca lo deja negativo ni cambia nada si no llega. */
+export function comprar(mochila, fondo, id) {
+  if (!esObjeto(id)) return { ok: false, motivo: 'objeto-desconocido' };
+  const { precio } = OBJETOS[id];
+  if (!(fondo >= precio)) return { ok: false, motivo: 'sin-fondos' };
+  return { ok: true, mochila: anadirObjeto(mochila, id), fondo: fondo - precio };
+}
+
+/** Vende uno por el 50 % del precio (redondeado hacia abajo), que se suma al fondo. */
+export function vender(mochila, fondo, id) {
+  const actual = normalizarMochila(mochila);
+  if (!esObjeto(id) || actual.objetos[id] < 1) return { ok: false, motivo: 'no-tienes' };
+  actual.objetos[id] -= 1;
+  return { ok: true, mochila: actual, fondo: fondo + Math.floor(OBJETOS[id].precio / 2) };
+}
+
+/** ¿Se puede usar ahora? Lo tienes, el modo lo admite, no hay otro igual en esta pregunta y el 50/50 solo vale en test4. */
+export function puedeUsar(mochila, id, { modo, tipoPregunta, usadosEnPregunta = [] } = {}) {
+  if (!esObjeto(id) || normalizarMochila(mochila).objetos[id] < 1) return false;
+  if (!OBJETOS[id].modos.includes(modo) || usadosEnPregunta.includes(id)) return false;
+  return id !== 'cincuenta' || tipoPregunta === 'test4';
+}
+
+/** Gasta uno (nunca baja de 0). */
+export function usar(mochila, id) {
+  const actual = normalizarMochila(mochila);
+  if (esObjeto(id)) actual.objetos[id] = Math.max(0, actual.objetos[id] - 1);
+  return actual;
+}
