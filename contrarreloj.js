@@ -72,6 +72,7 @@ export function crearRecords() {
 }
 
 const entero = (n, tope) => Number.isInteger(n) && n >= 0 && n <= tope;
+const MAX_DOBLES = 999; // tope de producto: «Doble ×N» tiene que caber en la tarjeta del hub
 
 export function normalizarRecords(obj) {
   const base = crearRecords();
@@ -83,7 +84,7 @@ export function normalizarRecords(obj) {
       fase: mejor.fase === 'doble' ? 'doble' : 'normal',
       aciertos: entero(mejor.aciertos, N_SERIE) ? mejor.aciertos : 0,
     },
-    doblesGanados: entero(obj.doblesGanados, 1e6) ? obj.doblesGanados : 0,
+    doblesGanados: entero(obj.doblesGanados, MAX_DOBLES) ? obj.doblesGanados : 0,
   };
 }
 
@@ -92,7 +93,7 @@ export function actualizarRecords(records, serie) {
   const actual = normalizarRecords(records);
   if (serie.fase === 'doble') {
     return serie.viva && serie.terminada
-      ? { ...actual, mejor: { fase: 'doble', aciertos: N_SERIE }, doblesGanados: actual.doblesGanados + 1 }
+      ? { ...actual, mejor: { fase: 'doble', aciertos: N_SERIE }, doblesGanados: Math.min(MAX_DOBLES, actual.doblesGanados + 1) }
       : actual;
   }
   const aciertos = Math.min(N_SERIE, Math.max(0, serie.indice));
@@ -106,7 +107,11 @@ export function marcaTexto(records) {
   return r.mejor.aciertos > 0 ? `${r.mejor.aciertos}/${N_SERIE}` : '';
 }
 
+// Copia en memoria (spec §9): con el almacenamiento bloqueado los récords viven aquí hasta recargar.
+let recordsEnMemoria = null;
+
 export function cargarRecords(almacen) {
+  if (recordsEnMemoria) return normalizarRecords(recordsEnMemoria); // la última escritura no llegó al almacén
   try {
     const crudo = (almacen ?? globalThis.localStorage).getItem(CLAVE_CONTRARRELOJ);
     return crudo ? normalizarRecords(JSON.parse(crudo)) : crearRecords();
@@ -116,10 +121,13 @@ export function cargarRecords(almacen) {
 }
 
 export function guardarRecords(records, almacen) {
+  const normal = normalizarRecords(records);
   try {
-    (almacen ?? globalThis.localStorage).setItem(CLAVE_CONTRARRELOJ, JSON.stringify(normalizarRecords(records)));
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_CONTRARRELOJ, JSON.stringify(normal));
+    recordsEnMemoria = null;
     return true;
   } catch {
+    recordsEnMemoria = normal;
     return false;
   }
 }

@@ -95,3 +95,12 @@ test('los comodines nombran ordago, no apuesta', () => {
   assert.ok(!OBJETOS.salvavidas.modos.includes('apuesta'));
   assert.ok(!OBJETOS.cincuenta.modos.includes('apuesta'));
 });
+
+test('sin almacenamiento la mochila vive en memoria; con almacén sano vuelve a mandar el almacén', () => {
+  const roto = almacenRoto();
+  const mochila = anadirObjeto(cargarMochila(roto), 'mas5');
+  assert.equal(guardarMochila(mochila, roto), false); // false = no persistió
+  assert.equal(contarObjetos(cargarMochila(roto)), 1);
+  assert.equal(guardarMochila(crearMochila(), almacenFalso()), true);
+  assert.equal(contarObjetos(cargarMochila(roto)), 0);
+});

@@ -1279,9 +1279,10 @@ function medirTextoReal(texto, tamano) {
 const esJugableContrarrelojReal = (pregunta) => esJugableContrarreloj(pregunta, medirTextoReal);
 
 /** Siguiente pregunta de Contrarreloj: V/F y test4 cortos de nivel 3-5 bajo el filtro del modo. */
-function elegirPreguntaDeContrarreloj({ usados, ultima }) {
+function elegirPreguntaDeContrarreloj({ usados, ultima, enSerie }) {
+  // Dentro de una serie no se repite (los cofres con 3 preguntas repetidas eran un bug); entre series sí puede.
   const candidatas = preguntasDelFiltro(banco, filtroDeModo('contrarreloj'), leerIndiceRutas(), estado.reportadas)
-    .filter(esJugableContrarrelojReal);
+    .filter((p) => esJugableContrarrelojReal(p) && !enSerie.has(p.id));
   return elegirPreguntaOrdago(candidatas, { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
 }
 
@@ -1307,9 +1308,11 @@ function empezarContrarreloj() {
     reproducir: (nombre) => sonido.reproducir(nombre),
     imagenDe: (pregunta) => imagenesPorId.get(pregunta.id) || null,
     darObjetos: darObjetosContrarreloj,
+    vigia: vigiaPensando,
     alSalir: () => {
       // El segundo toque de un doble toque en «Plantarse»/«Recoger» cae sobre una tarjeta del hub.
       bloqueoHubHasta = performance.now() + 400;
+      destruirContrarreloj(); // sin oyentes ni botones vivos tras salir
       irAlHub();
     },
     alSinPreguntas: () => {
@@ -2250,8 +2253,9 @@ function finalizarPartida() {
   let premio = null;
   if (modoActual === 'clasico' && ganaPremioTanda({ respondidas: totalPreguntas, aciertos })) {
     const id = sortearObjeto();
-    // Solo se anuncia el premio si de verdad se guardó (almacenamiento bloqueado → sin premio fantasma).
-    if (guardarMochila(anadirObjeto(cargarMochila(), id))) premio = OBJETOS[id];
+    // Con el almacenamiento bloqueado el objeto vive en memoria (mochila.js, spec §9): el premio es real.
+    guardarMochila(anadirObjeto(cargarMochila(), id));
+    premio = OBJETOS[id];
   }
   mostrarVista('resumen');
   contenedorMazoResumen.innerHTML = '';

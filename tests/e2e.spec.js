@@ -7107,7 +7107,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     expect(await page.evaluate(() => localStorage.getItem('one.mochila'))).toBeNull();
   });
 
-  test('si guardar la mochila falla, el resumen no anuncia premio', async ({ page }) => {
+  test('si guardar la mochila falla, el objeto vive en memoria: el resumen lo anuncia y la Tienda lo cuenta', async ({ page }) => {
     await page.addInitScript(() => {
       const original = Storage.prototype.setItem;
       Storage.prototype.setItem = function (k, v) {
@@ -7118,7 +7118,12 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     await page.goto('/?ejemplo=1&test=1');
     await page.locator('[data-test="modo-clasico"]').click();
     await jugarTandaConFallos(page, await sospechososDelBanco(page), 0);
-    await expect(page.locator('[data-test="premio"]')).toHaveCount(0);
+    await expect(page.locator('[data-test="premio"]')).toHaveCount(1);
+    await page.locator('[data-test="ir-inicio"]').click();
+    await page.waitForTimeout(450);
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    const cantidades = await page.locator('.tienda-objeto-cantidad').allTextContents();
+    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('×', '')), 0)).toBe(1);
   });
 
   test('Repaso 10/10: nunca da premio', async ({ page }) => {
@@ -7911,7 +7916,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     });
   }
 
-  test('Contrarreloj: con < 10 jugables bajo el filtro avisa (Generar PREMIUM / volver a TODOS) y «Jugar las N» sigue sirviendo nivel ≥ 3', async ({ page }) => {
+  test('Contrarreloj: con < 10 jugables bajo el filtro avisa (Generar PREMIUM / volver a TODOS) y sin «Jugar las N» (una serie no repite preguntas)', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('one.filtros', JSON.stringify({ contrarreloj: { area: 'geografia', ruta: [], etiquetas: [] } }));
     });
@@ -7920,13 +7925,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await expect(page.locator('[data-vista="filtro-corto"]')).toBeVisible();
     await expect(page.locator('[data-test="filtro-corto-texto"]')).toContainText('de Geografía');
     await expect(page.locator('[data-test="filtro-corto-generar"] [data-test="insignia-premium"]')).toBeVisible();
-    await page.locator('[data-test="filtro-corto-jugar"]').click();
-    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
-    const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
-    expect(pregunta.area).toBe('geografia');
-    expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
-    await page.locator('[data-test="volver"]').click();
-    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-test="filtro-corto-jugar"]')).toBeHidden(); // una serie no repite: sin «Jugar las N»
     await page.locator('[data-test="filtro-corto-todos"]').click();
     await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
@@ -7962,6 +7961,46 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.locator('[data-test="filtro-corto-generar"]').click();
     await expect.poll(() => peticiones.length).toBe(1);
     expect(peticiones[0]).toMatchObject({ area: 'geografia', nivelObjetivo: 4 });
+  });
+
+  test('Contrarreloj: «←» en la pantalla del cofre es plantarse y el objeto llega a la mochila una sola vez', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect(await objetosEnMochila(page)).toBe(1);
+    await entrarEnModo(page, 'contrarreloj');
+    await page.locator('[data-test="volver"]').click();
+    expect(await objetosEnMochila(page)).toBe(1); // salir de una serie a medias no entrega nada
+  });
+
+  test('Contrarreloj: con el almacenamiento bloqueado el cofre y la marca viven en memoria (Tienda y hub)', async ({ page }) => {
+    await page.addInitScript(() => {
+      const bloqueadas = ['one.mochila', 'one.contrarreloj'];
+      const setItem = Storage.prototype.setItem;
+      const getItem = Storage.prototype.getItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (bloqueadas.includes(k)) throw new Error('SecurityError');
+        return setItem.call(this, k, v);
+      };
+      Storage.prototype.getItem = function (k) {
+        if (bloqueadas.includes(k)) throw new Error('SecurityError');
+        return getItem.call(this, k);
+      };
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-plantarse"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('10/10');
+    await page.waitForTimeout(450);
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    const cantidades = await page.locator('.tienda-objeto-cantidad').allTextContents();
+    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('×', '')), 0)).toBe(1);
   });
 
   test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante Contrarreloj ni en el cofre y sale al volver al hub', async ({ page }) => {

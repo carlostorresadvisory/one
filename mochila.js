@@ -61,7 +61,12 @@ export function contarObjetos(mochila) {
   return Object.values(normalizarMochila(mochila).objetos).reduce((suma, n) => suma + n, 0);
 }
 
+// Copia en memoria (spec §9): si el almacenamiento está bloqueado o lleno, la mochila vive aquí mientras
+// dure la sesión (se pierde al recargar). Solo hay copia desde que una escritura falla hasta que otra tiene éxito.
+let mochilaEnMemoria = null;
+
 export function cargarMochila(almacen) {
+  if (mochilaEnMemoria) return normalizarMochila(mochilaEnMemoria); // la última escritura no llegó al almacén: esta es la buena
   try {
     const crudo = (almacen ?? globalThis.localStorage).getItem(CLAVE_MOCHILA);
     return crudo ? normalizarMochila(JSON.parse(crudo)) : crearMochila();
@@ -70,11 +75,15 @@ export function cargarMochila(almacen) {
   }
 }
 
+/** true si quedó en el almacenamiento; false si solo en memoria (el objeto vale esta sesión). */
 export function guardarMochila(mochila, almacen) {
+  const normal = normalizarMochila(mochila);
   try {
-    (almacen ?? globalThis.localStorage).setItem(CLAVE_MOCHILA, JSON.stringify(normalizarMochila(mochila)));
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_MOCHILA, JSON.stringify(normal));
+    mochilaEnMemoria = null;
     return true;
   } catch {
+    mochilaEnMemoria = normal;
     return false;
   }
 }

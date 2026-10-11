@@ -34,8 +34,9 @@ const textoRespuesta = (p) => (p.tipo === 'vf' ? (p.respuesta ? 'Verdadero' : 'F
  * `contenedorCaida`, `contenedorCofre`, `mostrarVista(nombre)`, `elegirPregunta({usados, ultima})` →
  * pregunta|null, `registrar(pregunta, correcta, respuesta)`, `celebrarAcierto(nodo)`, `lamentarFallo(nodo)`,
  * `celebrarPremio(evento)`, `reproducir(sonido)`, `imagenDe(pregunta)`, `darObjetos(ids)`, `alSalir()`,
- * `alSinPreguntas()`, y opcionales `almacen`, `rng`, `documento`, `ahora`, `raf`, `cancelarRaf`,
- * `temporizador`.
+ * `alSinPreguntas()`, y opcionales `vigia` (el de «pensando»), `almacen`, `rng`, `documento`, `ahora`,
+ * `raf`, `cancelarRaf`, `temporizador`. `elegirPregunta({usados, ultima, enSerie})`: una serie no repite
+ * preguntas (`enSerie` son las ya salidas en ella), así que devuelve null si no queda ninguna distinta.
  */
 export function montarContrarreloj(contenedor, deps) {
   const documento = deps.documento ?? contenedor.ownerDocument ?? globalThis.document;
@@ -71,7 +72,8 @@ export function montarContrarreloj(contenedor, deps) {
   let rafId = null;
   let pausaId = null; // pausa tras un acierto
   let pausadaPor = null; // 'jugando' | 'respondida' si la app se ocultó en mitad
-  const usados = new Set();
+  const usados = new Set(); // vistas en toda la sesión: solo sirven para preferir las nuevas entre series
+  let enSerie = new Set(); // las de la serie en curso: dentro de una serie, nunca se repite
   let ultima = null;
   let desbloqueoEn = 0;
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
@@ -92,13 +94,14 @@ export function montarContrarreloj(contenedor, deps) {
   }
 
   function nuevaPregunta(cambiarVista = false) {
-    const pregunta = deps.elegirPregunta({ usados, ultima });
+    const pregunta = deps.elegirPregunta({ usados, ultima, enSerie });
     if (!pregunta) {
       fase = 'destruido';
       deps.alSinPreguntas();
       return;
     }
     usados.add(pregunta.id);
+    enSerie.add(pregunta.id);
     ultima = pregunta.id;
     if (foto) foto.destruir();
     foto = montarFotoPregunta(nodoFoto, {
@@ -125,6 +128,7 @@ export function montarContrarreloj(contenedor, deps) {
     fase = 'jugando';
     pausadaPor = null;
     if (cambiarVista) deps.mostrarVista('contrarreloj'); // entre preguntas la vista no se recarga
+    deps.vigia?.reiniciar(); // tras mostrarVista, que lo para; a los 8 s sin responder, la esfinge «piensa»
     detenerReloj();
     rafId = raf(latido);
   }
@@ -150,8 +154,11 @@ export function montarContrarreloj(contenedor, deps) {
   /** `valor` undefined = tiempo agotado (no hubo respuesta: no se registra en el radar). */
   function resolver(valor, { tiempo = false, sinPausa = false } = {}) {
     if (fase !== 'jugando') return;
+    // Un toque que llega con el plazo ya vencido (carrera entre el click y el fotograma) es tiempo agotado.
+    if (!tiempo && ahora() - ronda.inicio >= ronda.total) { tiempo = true; valor = undefined; }
     fase = 'respondida';
     detenerReloj();
+    deps.vigia?.parar();
     const { pregunta } = ronda;
     const correcta = !tiempo && evaluar(pregunta, valor);
     serie = responderSerie(serie, { correcta });
@@ -225,6 +232,7 @@ export function montarContrarreloj(contenedor, deps) {
   function reintentar() {
     if (fase !== 'caida') return;
     serie = crearSerie();
+    enSerie = new Set();
     armar();
     nuevaPregunta(true);
   }
@@ -232,6 +240,7 @@ export function montarContrarreloj(contenedor, deps) {
   function dobleONada() {
     if (fase !== 'cofre' || serie.fase !== 'normal') return;
     serie = aceptarDoble(serie);
+    enSerie = new Set();
     armar();
     nuevaPregunta(true);
   }
@@ -266,7 +275,10 @@ export function montarContrarreloj(contenedor, deps) {
     }
     const motivo = pausadaPor;
     pausadaPor = null;
-    if (motivo === 'jugando' && fase === 'jugando') nuevaPregunta();
+    if (motivo === 'jugando' && fase === 'jugando') {
+      enSerie.delete(ronda.pregunta.id); // la abandonada no cuenta como vista de la serie (con 10 válidas no habría 11.ª)
+      nuevaPregunta();
+    }
     else if (motivo === 'respondida') avanzar();
   }
   documento.addEventListener('visibilitychange', alCambiarVisibilidad);
@@ -276,7 +288,14 @@ export function montarContrarreloj(contenedor, deps) {
 
   return {
     destruir() {
+      // Salir del cofre por cualquier camino («←», otra partida…) es plantarse: el premio no se pierde.
+      if (fase === 'cofre') {
+        const ids = serie.fase === 'doble' ? premioDoble : resultadoFinal(serie, deps.rng);
+        fase = 'destruido';
+        deps.darObjetos(ids);
+      }
       fase = 'destruido';
+      deps.vigia?.parar();
       detenerReloj();
       detenerPausa();
       documento.removeEventListener('visibilitychange', alCambiarVisibilidad);

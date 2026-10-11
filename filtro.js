@@ -211,7 +211,8 @@ export function avisoFiltroCorto({ modo, filtro, n, nombreArea = (a) => a }) {
   const texto = n === 0
     ? (esRepaso ? `Nada por repasar de ${etiqueta}` : `Aún no hay preguntas de ${etiqueta}`)
     : `Solo hay ${n} ${cosa} de ${etiqueta}`;
-  const jugar = n === 0 ? null : `${esRepaso ? 'Repasar' : 'Jugar'} ${n === 1 ? 'la' : 'las'} ${n}`;
+  // Contrarreloj: una serie no repite preguntas, así que con menos de 10 no se ofrece «Jugar las N».
+  const jugar = n === 0 || modo === 'contrarreloj' ? null : `${esRepaso ? 'Repasar' : 'Jugar'} ${n === 1 ? 'la' : 'las'} ${n}`;
   return { texto, generar: !esRepaso, jugar };
 }
 

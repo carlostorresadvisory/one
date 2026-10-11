@@ -188,7 +188,7 @@ test('avisoFiltroCorto: Contrarreloj necesita una serie entera (10), el resto 5'
   const f = { area: 'geografia', ruta: [], etiquetas: [] };
   assert.equal(avisoFiltroCorto({ modo: 'contrarreloj', filtro: f, n: 10 }), null);
   assert.deepEqual(avisoFiltroCorto({ modo: 'contrarreloj', filtro: f, n: 7, nombreArea: () => 'Geografía' }),
-    { texto: 'Solo hay 7 preguntas de Geografía', generar: true, jugar: 'Jugar las 7' });
+    { texto: 'Solo hay 7 preguntas de Geografía', generar: true, jugar: null }); // una serie no repite: sin «Jugar las N»
   assert.equal(avisoFiltroCorto({ modo: 'ordago', filtro: f, n: 7 }), null);
 });
 

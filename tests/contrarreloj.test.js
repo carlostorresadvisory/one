@@ -84,3 +84,18 @@ test('la serie no se persiste: solo se guardan los récords', () => {
   assert.deepEqual([...almacen.datos.keys()], ['one.contrarreloj']);
   assert.equal('viva' in JSON.parse(almacen.datos.get('one.contrarreloj')), false);
 });
+test('récords: doblesGanados con tope de producto (999) y sin desbordar al sumar', () => {
+  assert.equal(C.normalizarRecords({ doblesGanados: 999 }).doblesGanados, 999);
+  assert.equal(C.normalizarRecords({ doblesGanados: 1000 }).doblesGanados, 0);
+  const tope = { version: 1, mejor: { fase: 'doble', aciertos: 10 }, doblesGanados: 999 };
+  const serie = { fase: 'doble', indice: 10, viva: true, cofre: [], terminada: true };
+  assert.equal(C.actualizarRecords(tope, serie).doblesGanados, 999);
+});
+test('récords sin almacenamiento: viven en memoria hasta recargar (spec §9)', () => {
+  const r = { version: 1, mejor: { fase: 'normal', aciertos: 10 }, doblesGanados: 0 };
+  assert.equal(C.guardarRecords(r, almacenRoto()), false);
+  assert.equal(C.cargarRecords(almacenRoto()).mejor.aciertos, 10);
+  assert.equal(C.marcaTexto(C.cargarRecords(almacenRoto())), '10/10');
+  C.guardarRecords(C.crearRecords(), almacenFalso()); // un almacén sano vuelve a mandar
+  assert.deepEqual(C.cargarRecords(almacenRoto()), C.crearRecords());
+});
