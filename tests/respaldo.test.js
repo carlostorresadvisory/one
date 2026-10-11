@@ -7,12 +7,13 @@ import { crearEstado, exportar } from '../motor.js';
 import { CLAVE_MOCHILA } from '../mochila.js';
 import { CLAVE_SILENCIO } from '../sonido.js';
 import { CLAVE_ORDAGO, cargarOrdago, crearOrdago } from '../ordago.js';
+import { CLAVE_CONTRARRELOJ, cargarRecords, crearRecords } from '../contrarreloj.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 
 const HOY = '2026-10-05';
 
 test('CLAVES_RESPALDO: las claves de v0.3 de estas fases', () => {
-  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago']);
+  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago', 'one.contrarreloj']);
 });
 
 test('CLAVES_RESPALDO incluye las claves que usan mochila.js y sonido.js (test cruzado)', () => {
@@ -111,6 +112,18 @@ test('Review Focus 4: one.ordago viaja en el respaldo y, con números absurdos, 
   const almacen = almacenFalso();
   aplicarModos(importarRespaldo(json).modos, almacen);
   assert.deepEqual(cargarOrdago(almacen), crearOrdago());
+});
+
+test('Review Focus 4: one.contrarreloj viaja en el respaldo y, con números absurdos, se normaliza sin lanzar', () => {
+  assert.ok(CLAVES_RESPALDO.includes(CLAVE_CONTRARRELOJ));
+  const bueno = JSON.stringify({ version: 1, mejor: { fase: 'normal', aciertos: 8 }, doblesGanados: 1 });
+  const ida = importarRespaldo(exportarRespaldo(crearEstado(HOY), almacenFalso({ 'one.contrarreloj': bueno })));
+  assert.deepEqual(ida.modos, { 'one.contrarreloj': bueno });
+  const absurdo = JSON.stringify({ mejor: { fase: 1, aciertos: 1e99 }, doblesGanados: 'x' });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.contrarreloj': absurdo } });
+  const almacen = almacenFalso();
+  aplicarModos(importarRespaldo(json).modos, almacen);
+  assert.deepEqual(cargarRecords(almacen), crearRecords());
 });
 
 test('Review Focus 4: un respaldo v3 con one.filtros que trae apuesta importa sin lanzar y el filtro sale como ordago', () => {
