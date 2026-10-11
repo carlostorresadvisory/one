@@ -1,0 +1,326 @@
+[
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q142"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "France"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Francia"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Paris%20from%20the%20Arc%20de%20Triomphe%2C%2017%20October%202019.jpg"
+  },
+  "iso3": {
+   "type": "literal",
+   "value": "FRA"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q513"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Mount Everest"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Everest"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Mount%20Everest%20as%20seen%20from%20Drukair2%20PLW%20edit.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q524"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Mount Vesuvius"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Vesubio"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Il%20cratere%20del%20Vulcano%20-%20panoramio.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q39231"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Mount Fuji"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Monte Fuji"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Kodaki%20fuji%20frm%20shojinko%20refurb.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q48314"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Waterloo"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Waterloo"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Battle%20of%20Waterloo%201815.PNG"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q52418"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Attack on Pearl Harbor"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "ataque a Pearl Harbor"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/USS%20SHAW%20exploding%20Pearl%20Harbor%20Nara%2080-G-16871%202.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q83224"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Hastings"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "batalla de Hastings"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Bayeux%20Tapestry%20scene57%20Harold%20death.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q131969"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Thermopylae"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "batalla de las Termópilas"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Battle%20of%20Thermopylae%20and%20movements%20to%20Salamis%2C%20480%20BC.gif"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q131969"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Thermopylae"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "batalla de las Termópilas"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/L%C3%A9onidas%20aux%20Thermopyles%20%28Jacques-Louis%20David%29.PNG"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Balami%20-%20Tarikhnama%20-%20The%20Battle%20of%20Badr%20-%20The%20death%20of%20Abu%20Jahl%2C%20and%20the%20casting%20of%20the%20Meccan%20dead%20into%20dry%20wells%20%28cropped%29.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/%D8%BA%D8%B2%D9%88%D9%87%20%D8%A8%D8%AF%D8%B1.ar.png"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Badr%20Council.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Balami%20-%20Tarikhnama%20-%20The%20Battle%20of%20Badr%20-%20The%20angelic%20host%20is%20sent%20to%20assist%20the%20Muslims.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Battle%20of%20Badr.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Battle%20of%20Badr2.jpg"
+  }
+ },
+ {
+  "e": {
+   "type": "uri",
+   "value": "http://www.wikidata.org/entity/Q486124"
+  },
+  "en": {
+   "xml:lang": "en",
+   "type": "literal",
+   "value": "Battle of Badr"
+  },
+  "es": {
+   "xml:lang": "es",
+   "type": "literal",
+   "value": "Batalla de Badr"
+  },
+  "img": {
+   "type": "uri",
+   "value": "http://commons.wikimedia.org/wiki/Special:FilePath/Muhammad%20at%20Badr.jpg"
+  }
+ }
+]

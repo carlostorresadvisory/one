@@ -1,0 +1,72 @@
+[
+ {
+  "page": 1,
+  "pages": 1,
+  "per_page": 400,
+  "total": 262,
+  "sourceid": null,
+  "lastupdated": "2026-10-08"
+ },
+ [
+  {
+   "indicator": {
+    "id": "NY.GDP.MKTP.CD",
+    "value": "GDP (current US$)"
+   },
+   "country": {
+    "id": "ZH",
+    "value": "Africa Eastern and Southern"
+   },
+   "countryiso3code": "AFE",
+   "date": "2025",
+   "value": 1358694050872.54,
+   "obs_status": "",
+   "decimal": 0
+  },
+  {
+   "indicator": {
+    "id": "NY.GDP.MKTP.CD",
+    "value": "GDP (current US$)"
+   },
+   "country": {
+    "id": "1W",
+    "value": "World"
+   },
+   "countryiso3code": "WLD",
+   "date": "2025",
+   "value": 118350166039396,
+   "obs_status": "",
+   "decimal": 0
+  },
+  {
+   "indicator": {
+    "id": "NY.GDP.MKTP.CD",
+    "value": "GDP (current US$)"
+   },
+   "country": {
+    "id": "ES",
+    "value": "Spain"
+   },
+   "countryiso3code": "ESP",
+   "date": "2025",
+   "value": 1906453309985.88,
+   "obs_status": "",
+   "decimal": 0
+  },
+  {
+   "indicator": {
+    "id": "NY.GDP.MKTP.CD",
+    "value": "GDP (current US$)"
+   },
+   "country": {
+    "id": "US",
+    "value": "United States"
+   },
+   "countryiso3code": "USA",
+   "date": "2025",
+   "value": 30769700000000,
+   "obs_status": "",
+   "decimal": 0
+  }
+ ]
+]
