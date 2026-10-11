@@ -63,7 +63,7 @@ export const MODOS = Object.freeze([
   }),
 ]);
 
-/** Órdago y Contrarreloj no sirven preguntas de nivel 1-2 (spec §4); Clásico y Repaso siguen desde el 1. */
+/** Órdago no sirve preguntas de nivel 1-2 (spec §4; Contrarreloj usa rampa 1-5, v0.3.1 §6); Clásico y Repaso siguen desde el 1. */
 export const NIVEL_MINIMO_DIFICIL = 3;
 
 /** ¿Vale esta pregunta para un modo difícil? Solo V/F y test4 de nivel 3-5; sin `nivel` no vale. */

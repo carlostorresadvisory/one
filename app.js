@@ -47,7 +47,7 @@ import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.j
 import { crearAvatar, gestoParaEvento, crearVigiaPensando, GESTOS, rutaClip } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago, cargarOrdagoResuelto } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
-import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
+import { esJugableContrarreloj, candidatasDeRampa, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
 import { montarContrarreloj } from './contrarreloj-ui.js';
 import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
 import { montarMasomenos } from './masomenos-ui.js';
@@ -1204,7 +1204,7 @@ function prepararModo(id) {
     return { filtro, partida: null, n: Infinity };
   }
   if (id === 'contrarreloj') {
-    // Solo V/F y test4 cortos de nivel 3-5 (spec §4 y §8): el aviso de «menos de 10» cuenta solo esas.
+    // Solo V/F y test4 cortos de nivel 1-5 (spec v0.3.1 §6): el aviso de «menos de 10» cuenta solo esas.
     const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableContrarrelojReal).length;
     return { filtro, partida: null, n };
   }
@@ -1330,12 +1330,13 @@ function medirTextoReal(texto, tamano) {
 }
 const esJugableContrarrelojReal = (pregunta) => esJugableContrarreloj(pregunta, medirTextoReal);
 
-/** Siguiente pregunta de Contrarreloj: V/F y test4 cortos de nivel 3-5 bajo el filtro del modo. */
-function elegirPreguntaDeContrarreloj({ usados, ultima, enSerie }) {
+/** Siguiente pregunta de Contrarreloj: V/F y test4 cortos bajo el filtro del modo, del nivel que toca por rampa
+ * (1-2 → nivel 1 … 9-10 → nivel 5; el doble, 4-5) o, si no hay, del nivel más cercano (spec v0.3.1 §6). */
+function elegirPreguntaDeContrarreloj({ usados, ultima, enSerie, posicion = 1, doble = false }) {
   // Dentro de una serie no se repite (los cofres con 3 preguntas repetidas eran un bug); entre series sí puede.
   const candidatas = preguntasDelFiltro(banco, filtroDeModo('contrarreloj'), leerIndiceRutas(), estado.reportadas)
     .filter((p) => esJugableContrarrelojReal(p) && !enSerie.has(p.id));
-  return elegirPreguntaOrdago(candidatas, { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
+  return elegirPreguntaOrdago(candidatasDeRampa(candidatas, posicion, doble), { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
 }
 
 /** Los objetos del cofre pasan a la mochila solo al plantarse o recoger (la serie no se guarda). */
@@ -1889,9 +1890,10 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   atomoGenerarEnVuelo = true;
   actualizarBotonGenerarAtomo(); // deshabilita YA: nada de esperar al await para que surta efecto.
   if (origen === 'filtro-corto') actualizarGenerarFiltroCorto();
-  // Órdago y Contrarreloj solo juegan nivel 3-5 (spec §4): la tanda se pide concentrada en el central (4).
+  // Órdago solo juega nivel 3-5 (spec §4): la tanda se pide concentrada en el central (4).
   // 🔶 Provisional: el servidor toma un solo número; el cliente descarta igualmente lo de nivel < 3.
-  const nivelObjetivo = modoActual === 'ordago' || modoActual === 'contrarreloj' ? NIVEL_OBJETIVO_DIFICIL : undefined;
+  // Contrarreloj usa todos los niveles (rampa 1-5): sin nivelObjetivo el servidor reparte los 5.
+  const nivelObjetivo = modoActual === 'ordago' ? NIVEL_OBJETIVO_DIFICIL : undefined;
   const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 

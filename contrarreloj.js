@@ -1,10 +1,9 @@
-// ONE · contrarreloj.js — reglas puras de Contrarreloj (spec v0.3 §5.4): preguntas cortas de nivel 3-5,
-// tiempo lineal por pregunta, caída, cofre, «doble o nada» y récords. Sin DOM. La serie NO se persiste
+// ONE · contrarreloj.js — reglas puras de Contrarreloj (spec v0.3 §5.4 y v0.3.1 §6): preguntas cortas de nivel 1-5
+// con rampa de dificultad (1-2 → nivel 1 … 9-10 → nivel 5), tiempo lineal por pregunta, caída, cofre, «doble o nada» y récords. Sin DOM. La serie NO se persiste
 // (spec §11): si iOS mata la app a mitad, se pierde sin contar como caída; solo los récords se guardan.
 
 import { medirAncho } from './visuales.js';
 import { sortearObjeto } from './mochila.js';
-import { esJugableDificil } from './modos.js';
 
 export const N_SERIE = 10;
 export const CLAVE_CONTRARRELOJ = 'one.contrarreloj';
@@ -28,9 +27,37 @@ export function esCorta(pregunta, medir = medirAncho) {
   return Array.isArray(pregunta.opciones) && pregunta.opciones.every((op) => medir(String(op), TAMANO_OPCION) <= ANCHO_OPCION);
 }
 
-/** Nivel 3-5 (como Órdago) y corta. */
+/** V/F o test4 de nivel 1-5 y corta (Contrarreloj sube de nivel por rampa; el suelo de 3 es solo de Órdago). */
 export function esJugableContrarreloj(pregunta, medir = medirAncho) {
-  return esJugableDificil(pregunta) && esCorta(pregunta, medir);
+  return Boolean(pregunta) && Number.isInteger(pregunta.nivel) && pregunta.nivel >= 1 && pregunta.nivel <= 5
+    && esCorta(pregunta, medir);
+}
+
+/** Nivel que toca en la posición `posicion` (1-10) de la serie: 1-2 → 1, 3-4 → 2, 5-6 → 3, 7-8 → 4, 9-10 → 5.
+ * En el doble o nada, solo 4-5 (1-5 → 4, 6-10 → 5). */
+export function nivelObjetivoContrarreloj(posicion, doble = false) {
+  const p = Math.min(N_SERIE, Math.max(1, Math.floor(Number(posicion)) || 1));
+  return doble ? (p <= N_SERIE / 2 ? 4 : 5) : Math.ceil(p / 2);
+}
+
+/** De `candidatas` (con `nivel`), las del nivel `objetivo`; si no hay ninguna, las del nivel más cercano. En empate
+ * de distancia gana el inferior con `preferencia: 'inferior'` y el superior con `'superior'`. [] si no hay candidatas. */
+export function elegirPorNivel(candidatas, objetivo, preferencia = 'inferior') {
+  const niveles = [...new Set(candidatas.map((p) => p.nivel))];
+  if (niveles.length === 0) return [];
+  const mejor = niveles.reduce((a, b) => {
+    const da = Math.abs(a - objetivo);
+    const db = Math.abs(b - objetivo);
+    if (da !== db) return da < db ? a : b;
+    return (preferencia === 'superior') === (a > b) ? a : b;
+  });
+  return candidatas.filter((p) => p.nivel === mejor);
+}
+
+/** Candidatas de la posición `posicion` de la serie según la rampa: preferencia inferior en las preguntas 1-6 y
+ * superior en las 7-10 y en el doble (spec v0.3.1 §6). */
+export function candidatasDeRampa(candidatas, posicion, doble = false) {
+  return elegirPorNivel(candidatas, nivelObjetivoContrarreloj(posicion, doble), doble || posicion >= 7 ? 'superior' : 'inferior');
 }
 
 /** Normal: 12 s → 6 s de la 1 a la 10. Doble: 6 s → 4 s. */

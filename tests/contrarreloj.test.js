@@ -18,11 +18,42 @@ test('corta: V/F y test4 breves sí; ordenar o enunciado largo no', () => {
   assert.equal(C.esCorta({ tipo: 'vf', enunciado: 'x'.repeat(200) }, medir), false);
   assert.equal(C.esCorta({ tipo: 'test4', enunciado: 'x', opciones: ['a', 'b', 'c', 'y'.repeat(80)] }, medir), false);
 });
-test('jugable en Contrarreloj = corta y de nivel 3-5 (nunca nivel 1-2)', () => {
+test('jugable en Contrarreloj = corta y de nivel 1-5 (el suelo de 3 es solo de Órdago)', () => {
   const medir = (t) => t.length * 10;
-  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 3, enunciado: 'Roma se fundó en el 753 a. C.' }, medir), true);
-  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 2, enunciado: 'Roma se fundó en el 753 a. C.' }, medir), false);
-  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 4, enunciado: 'x'.repeat(200) }, medir), false);
+  const corta = 'Roma se fundó en el 753 a. C.';
+  for (const nivel of [1, 2, 3, 4, 5]) assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel, enunciado: corta }, medir), true);
+  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 0, enunciado: corta }, medir), false);
+  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 6, enunciado: corta }, medir), false);
+  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', enunciado: corta }, medir), false); // sin nivel no vale
+  assert.equal(C.esJugableContrarreloj({ tipo: 'vf', nivel: 1, enunciado: 'x'.repeat(200) }, medir), false);
+  assert.equal(C.esJugableContrarreloj({ tipo: 'ordenar', nivel: 1, enunciado: 'x' }, medir), false);
+});
+test('rampa: posición → nivel (1-2→1, 3-4→2, 5-6→3, 7-8→4, 9-10→5) y doble 4-5', () => {
+  const esperado = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5];
+  esperado.forEach((n, i) => assert.equal(C.nivelObjetivoContrarreloj(i + 1), n, `posición ${i + 1}`));
+  [4, 4, 4, 4, 4, 5, 5, 5, 5, 5].forEach((n, i) => assert.equal(C.nivelObjetivoContrarreloj(i + 1, true), n, `doble ${i + 1}`));
+  assert.equal(C.nivelObjetivoContrarreloj(0), 1);
+  assert.equal(C.nivelObjetivoContrarreloj(99), 5);
+});
+test('elegirPorNivel: el nivel pedido, o el más cercano con preferencia en el empate', () => {
+  const q = (id, nivel) => ({ id, nivel });
+  const ids = (l) => l.map((p) => p.id);
+  const todas = [q('a', 1), q('b', 3), q('c', 3), q('d', 5)];
+  assert.deepEqual(ids(C.elegirPorNivel(todas, 3)), ['b', 'c']);
+  assert.deepEqual(ids(C.elegirPorNivel(todas, 2, 'inferior')), ['a']); // 1 y 3 a igual distancia
+  assert.deepEqual(ids(C.elegirPorNivel(todas, 2, 'superior')), ['b', 'c']);
+  assert.deepEqual(ids(C.elegirPorNivel(todas, 4, 'inferior')), ['b', 'c']);
+  assert.deepEqual(ids(C.elegirPorNivel(todas, 4, 'superior')), ['d']);
+  assert.deepEqual(ids(C.elegirPorNivel([q('x', 2)], 5)), ['x']); // solo hay uno: el más cercano aunque lejos
+  assert.deepEqual(C.elegirPorNivel([], 3), []);
+});
+test('candidatasDeRampa: inferior en 1-6, superior en 7-10 y en el doble', () => {
+  const ids = (l) => l.map((p) => p.id);
+  const sinNivel2y4 = [{ id: 'n1', nivel: 1 }, { id: 'n3', nivel: 3 }, { id: 'n5', nivel: 5 }];
+  assert.deepEqual(ids(C.candidatasDeRampa(sinNivel2y4, 3)), ['n1']); // objetivo 2: 1 y 3 empatan → inferior
+  assert.deepEqual(ids(C.candidatasDeRampa(sinNivel2y4, 7)), ['n5']); // objetivo 4: 3 y 5 empatan → superior
+  assert.deepEqual(ids(C.candidatasDeRampa(sinNivel2y4, 1, true)), ['n5']); // doble: objetivo 4 → superior
+  assert.deepEqual(ids(C.candidatasDeRampa(sinNivel2y4, 1)), ['n1']);
 });
 test('fallo = caes; salvavidas te deja seguir', () => {
   const s = C.responder(C.crearSerie(), { correcta: false });

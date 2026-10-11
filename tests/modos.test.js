@@ -52,7 +52,7 @@ test('Contrarreloj enseña su marca o «Sin marca»; Más o menos su récord de 
   assert.equal(marcadorModo('masomenos', { recordMasomenos: 'Récord 12' }), 'Récord 12');
 });
 
-test('suelo de nivel 3: solo V/F y test4 de nivel 3-5 valen para Órdago y Contrarreloj', () => {
+test('suelo de nivel 3: solo V/F y test4 de nivel 3-5 valen para Órdago (Contrarreloj usa rampa 1-5)', () => {
   assert.equal(NIVEL_MINIMO_DIFICIL, 3);
   assert.equal(esJugableDificil({ tipo: 'vf', nivel: 3 }), true);
   assert.equal(esJugableDificil({ tipo: 'test4', nivel: 5 }), true);

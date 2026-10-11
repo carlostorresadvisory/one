@@ -129,7 +129,7 @@ export function montarContrarreloj(contenedor, deps) {
   }
 
   function nuevaPregunta(cambiarVista = false) {
-    const pregunta = deps.elegirPregunta({ usados, ultima, enSerie });
+    const pregunta = deps.elegirPregunta({ usados, ultima, enSerie, posicion: serie.indice + 1, doble: serie.fase === 'doble' });
     if (!pregunta) {
       fase = 'destruido';
       deps.alSinPreguntas();
