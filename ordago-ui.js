@@ -115,6 +115,7 @@ export function montarOrdago(contenedor, deps) {
 
   /** El 50/50 se descuenta al usarlo; el Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo. */
   function usarComodin(id) {
+    if (fase !== 'ficha' && fase !== 'opciones') return false;
     if (id === 'cincuenta') {
       ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
       gastarComodin(id, deps.almacen);
@@ -122,9 +123,11 @@ export function montarOrdago(contenedor, deps) {
     } else if (id === 'salvavidas') {
       ronda.salvavidas = true;
     }
+    return true;
   }
 
   function ocultarDescartadas() {
+    nodoOpciones.classList.toggle('ordago-opciones--dos', ronda.ocultas.length > 0); // las 2 que quedan, en una columna: sin hueco debajo
     if (!ronda.ocultas.length) return;
     for (const boton of nodoOpciones.querySelectorAll('button')) {
       boton.hidden = ronda.ocultas.includes(Number(boton.getAttribute('data-original')));

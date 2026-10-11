@@ -6765,7 +6765,9 @@ test.describe('ONE · v0.3 avatar: la esfinge v2 (fase 4)', () => {
     await entrarEnModo(page, 'clasico');
     await expect(reproductores(page)).toHaveCount(1);
     const lienzo = await page.locator('[data-test="avatar-cabecera"] canvas').elementHandle();
-    await responderPreguntaActual(page);
+    const bancoEjemplo = await page.evaluate(() => fetch('datos/banco.ejemplo.json').then((r) => r.json()));
+    const sospechosoPorTitulo = new Map(bancoEjemplo.filter((p) => p.tipo === 'error').map((p) => [p.tarjeta.titulo, p.sospechoso]));
+    await responderPreguntaActual(page, sospechosoPorTitulo); // las de «error» no tienen la correcta en la fila 0
     const gestos = await page.evaluate(() => window.__one.gestosPedidos);
     expect(gestos).toContain('acierto');
     expect(await lienzo.evaluate((c) => c.isConnected)).toBe(true); // misma esfinge, sin remontar
@@ -7635,7 +7637,7 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).afinar)).toEqual({ racha: 1, record: 1 });
     await siguiente(page);
     await esperarAntirrebote(page);
-    await page.evaluate(() => window.__one.estimarMasomenos({ factor: 4 })); // 300 % de error: lejos
+    await page.evaluate(() => window.__one.estimarMasomenos({ extremo: 'lejos' })); // la punta más alejada de la barra: lejos
     await page.locator('[data-test="mm-listo"]').click();
     await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('Lejos');
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.masomenos')).afinar)).toEqual({ racha: 0, record: 1 });
@@ -7646,15 +7648,18 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     await page.locator('[data-test="mm-var-afinar"]').click();
     await expect(page.locator('[data-test="foto-pregunta"]')).toBeVisible();
     await esperarAntirrebote(page);
+    // Pareja fija (Austerlitz de referencia, Azincourt a estimar): no depende del azar.
+    expect(await page.evaluate(() => window.__one.fijarParejaMasomenos('ah-Q134114', 'ah-Q188495'))).toBe(true);
+    await esperarAntirrebote(page);
     await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toContainText('¿en qué año fue?');
     await expect(page.locator('[data-test="escala-linea"]')).toBeVisible();
     await expect(page.locator('[data-test="escala-marca-ref"]')).toBeAttached();
     await sinScrollEnAmbos(page);
-    const ancho = async () => page.locator('[data-test="escala-linea"] .escala-tic').count();
-    const antes = await ancho();
+    const ticks = async () => page.locator('[data-test="escala-linea"] .escala-tic-texto').allTextContents();
+    const antes = await ticks();
     await page.evaluate(() => window.__one.estimarMasomenos({ anos: 3 })); // cerca: décadas
     await expect(page.locator('[data-test="escala-marca-estimacion"]')).toBeAttached();
-    expect(await ancho()).not.toBe(antes); // la línea hizo zoom
+    expect(await ticks()).not.toEqual(antes); // la línea hizo zoom: otras etiquetas
     await sinScrollEnAmbos(page);
     await page.locator('[data-test="mm-listo"]').click();
     await expect(page.locator('[data-test="mm-resultado-titulo"]')).toHaveText('¡Clavado!');
@@ -7858,6 +7863,7 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     await esperarAntirrebote(page);
     for (let ronda = 0; ronda < 6; ronda += 1) {
       await expect(page.locator('[data-test="escala-linea"]')).toBeVisible();
+      await esperarAntirrebote(page); // un «Listo» en los primeros 350 ms de la ronda no cuenta
       comprobarLinea(await medirLinea(page), `ronda ${ronda} · solo referencia`);
       for (const anos of [0, 4, -20, 150]) {
         await page.evaluate((a) => window.__one.estimarMasomenos({ anos: a }), anos);
@@ -8011,6 +8017,8 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
       ];
       await conBanco(page, banco);
       await entrar(page);
+      expect(await page.evaluate(() => window.__one.fijarParejaMasomenos('ah-2', 'ah-1'))).toBe(true); // Termópilas, la oculta, en la 1.ª
+      await esperarAntirrebote(page);
       const textos = [];
       for (let i = 0; i < 6; i += 1) {
         await page.evaluate(() => window.__one.responderMasomenos(true));
@@ -8146,11 +8154,14 @@ test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
     await esperarAntirrebote(page);
     await page.locator('[data-test="ficha-10"]').click();
     await expect(page.locator('[data-test="ordago-opciones"] button:visible')).toHaveCount(2);
+    const cajas = await page.locator('[data-test="ordago-opciones"] button:visible').evaluateAll((bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { izq: r.left, der: r.right, abajo: r.bottom }; }));
+    expect(cajas[0].izq).toBe(cajas[1].izq); // las 2 que quedan, en una columna: ocupan el hueco de las ocultas
+    expect(cajas[0].der - cajas[0].izq).toBeGreaterThan(250);
     await expect(page.locator('[data-test="ordago-opciones"] [data-original="0"]')).toBeVisible();
     await sinScrollEnAmbos(page);
     await barra.locator('[data-test="comodin-salvavidas"]').click({ clickCount: 2 });
     expect((await mochila(page)).salvavidas).toBe(2); // armado, aún no gastado
-    const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')));
+    const antes = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago'))) ?? { fondo: 1000, racha: 0 }; // sin rondas jugadas aún no hay nada guardado
     await page.evaluate(() => window.__one.fallarPreguntaOrdago());
     const despues = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')));
     const apuesta = Math.max(1, Math.floor(antes.fondo * 0.1));

@@ -90,8 +90,16 @@ export function montarTienda(contenedor, deps) {
     const resultado = que === 'comprar' ? comprar(mochila, estado.fondo, objeto.id) : vender(mochila, estado.fondo, objeto.id);
     if (!resultado.ok) return;
     desbloqueoEn = ahora() + MS_ANTIREBOTE;
-    guardarMochila(resultado.mochila, deps.almacen);
-    guardarOrdago(conFondo(estado, resultado.fondo), deps.almacen);
+    const mochilaGuardada = guardarMochila(resultado.mochila, deps.almacen);
+    const fondoGuardado = guardarOrdago(conFondo(estado, resultado.fondo), deps.almacen);
+    if (mochilaGuardada !== fondoGuardado) {
+      // Una escritura llegó y la otra no: se deshacen las dos para no pagar sin objeto ni cobrar sin vender.
+      guardarMochila(mochila, deps.almacen);
+      guardarOrdago(estado, deps.almacen);
+      avisar('No se pudo guardar. No se ha hecho la operación.');
+      actualizar();
+      return;
+    }
     const delta = Math.abs(resultado.fondo - estado.fondo);
     avisar(que === 'comprar'
       ? `${objeto.icono} ${objeto.nombre} comprado · −${formatearCifra(delta)}`

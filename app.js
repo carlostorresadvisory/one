@@ -2059,6 +2059,9 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     responderMasomenos(correcta) {
       return Boolean(masomenosInstancia) && masomenosInstancia.responderParaTest(correcta);
     },
+    fijarParejaMasomenos(idArriba, idAbajo) {
+      return Boolean(masomenosInstancia) && masomenosInstancia.fijarParejaParaTest(idArriba, idAbajo);
+    },
     estimarMasomenos(desviacion) {
       return masomenosInstancia ? masomenosInstancia.estimarParaTest(desviacion) : null;
     },
@@ -2827,6 +2830,7 @@ function construirBarraComodines(hueco, tarjeta) {
       } else if (id === 'salvavidas') {
         hueco.salvavidas = true;
       }
+      return true;
     },
   });
   return barra;
@@ -2836,6 +2840,7 @@ function construirBarraComodines(hueco, tarjeta) {
  * hueco recibe otra (si el filtro es cerrado y no queda ninguna, la misma, de nuevo sin responder). */
 function salvarConSalvavidas(hueco) {
   gastarComodin('salvavidas');
+  hueco.comodines?.destruir();
   const otra = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
   if (otra) {
     partidaUsados.add(otra.id);

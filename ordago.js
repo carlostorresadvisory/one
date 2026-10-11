@@ -31,7 +31,7 @@ export function normalizarOrdago(obj) {
     version: 1,
     fondo,
     curva: curva.length > 0 ? curva : [fondo],
-    maximo: Math.max(esEntero(obj.maximo) ? obj.maximo : base.maximo, fondo),
+    maximo: esEntero(obj.maximo) ? obj.maximo : Math.max(base.maximo, fondo), // lo alcanzado jugando: no se fuerza ≥ fondo
     quiebras: esEntero(obj.quiebras, 1e6) ? obj.quiebras : 0,
     racha: esEntero(obj.racha, 1e6) ? obj.racha : 0,
   };
@@ -95,12 +95,12 @@ export function abrirFondoNuevo(estado) {
   };
 }
 
-/** Estado con otro fondo (compras y ventas de la Tienda): la curva suma el punto nuevo; no toca racha ni quiebras. */
+/** Estado con otro fondo (compras y ventas de la Tienda): no toca racha, quiebras, máximo ni curva (no son partidas). */
 export function conFondo(estado, fondo) {
   const actual = normalizarOrdago(estado);
   const nuevo = Math.min(MAX_VALOR, Math.max(0, Math.trunc(Number(fondo)) || 0));
   if (nuevo === actual.fondo) return actual;
-  return normalizarOrdago({ ...actual, fondo: nuevo, curva: [...actual.curva, nuevo].slice(-MAX_CURVA) });
+  return { ...actual, fondo: nuevo };
 }
 
 // Copia en memoria (spec §9): con el almacenamiento bloqueado o lleno el fondo vive aquí hasta recargar, así la Tienda

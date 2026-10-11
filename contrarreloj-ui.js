@@ -87,7 +87,7 @@ export function montarContrarreloj(contenedor, deps) {
     modo: 'contrarreloj', mochila: () => cargarMochila(deps.almacen), documento, alUsar: usarComodin,
   });
   function usarComodin(id) {
-    if (fase !== 'jugando') return;
+    if (fase !== 'jugando') return false;
     if (id === 'cincuenta') {
       ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
       gastarComodin(id, deps.almacen);
@@ -100,6 +100,7 @@ export function montarContrarreloj(contenedor, deps) {
     } else if (id === 'salvavidas') {
       ronda.salvavidas = true;
     }
+    return true;
   }
 
   const detenerReloj = () => {

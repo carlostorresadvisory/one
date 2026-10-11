@@ -95,9 +95,10 @@ test('localStorage bloqueado (getter que lanza): cargar y guardar no lanzan', ()
     else delete globalThis.localStorage;
   }
 });
-test('normalizar: números absurdos se acotan, el máximo nunca baja del fondo y la curva se recorta', () => {
+test('normalizar: números absurdos se acotan, el máximo guardado se respeta (si falta, vale el fondo) y la curva se recorta', () => {
   const e = O.normalizarOrdago({ fondo: 5000, maximo: 10, curva: Array.from({ length: 500 }, (_, i) => i), quiebras: 3, racha: 2 });
-  assert.equal(e.maximo, 5000);
+  assert.equal(e.maximo, 10);
+  assert.equal(O.normalizarOrdago({ fondo: 5000 }).maximo, 5000);
   assert.equal(e.curva.length, O.MAX_CURVA);
   assert.equal(O.normalizarOrdago({ fondo: 1e30 }).fondo, O.FONDO_INICIAL);
 });
@@ -139,12 +140,24 @@ test('puntosMinicurva: sube hacia arriba, el máximo marca el techo y un solo pu
   assert.equal(uno.puntos.split(' ').length, 2);
   assert.ok(Number.isFinite(O.puntosMinicurva([], 0).yMaximo));
 });
-test('conFondo (Tienda): cambia el fondo, suma el punto a la curva y no toca racha ni quiebras; sin cambio, igual', () => {
+test('conFondo (Tienda): cambia el fondo sin tocar racha, quiebras, máximo ni curva; sin cambio, igual', () => {
   const base = { ...O.crearOrdago(), racha: 4, quiebras: 2 };
   const n = O.conFondo(base, 700);
-  assert.deepEqual([n.fondo, n.racha, n.quiebras, n.curva.at(-1)], [700, 4, 2, 700]);
+  assert.deepEqual([n.fondo, n.racha, n.quiebras, n.maximo, n.curva.length], [700, 4, 2, 1000, 1]);
   assert.equal(base.fondo, 1000);
   assert.equal(O.conFondo(base, 1000).curva.length, 1);
   assert.equal(O.conFondo(base, -5).fondo, 0);
   assert.equal(O.conFondo(base, 'x').fondo, 0);
+});
+test('vender (subir el fondo con conFondo) no sube el máximo ni la curva; ganar jugando sí', () => {
+  const vendido = O.conFondo(O.crearOrdago(), 1250);
+  assert.equal(vendido.fondo, 1250);
+  assert.equal(vendido.maximo, 1000);
+  assert.deepEqual(vendido.curva, [1000]);
+  const guardado = O.normalizarOrdago(JSON.parse(JSON.stringify(vendido)));
+  assert.equal(guardado.maximo, 1000);
+  const ganada = O.resolverRonda(O.crearOrdago(), { ficha: 500, correcta: true, nivel: 3, dorada: false });
+  assert.ok(ganada.nuevoMaximo);
+  assert.equal(ganada.estado.maximo, ganada.estado.fondo);
+  assert.equal(ganada.estado.curva.length, 2);
 });

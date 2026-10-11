@@ -2902,6 +2902,7 @@ button.punto-servidor::before {
 .ordago-mando { display: grid; min-height: 140px; align-content: start; } /* cabe el resultado con el aviso de nuevo máximo: la foto no salta */
 .ordago-mando > * { grid-area: 1 / 1; }
 .ordago-fichas, .ordago-opciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+.ordago-opciones--dos { grid-template-columns: 1fr; }
 .ordago-fichas[hidden], .ordago-opciones[hidden], .ordago-resultado[hidden] { display: none; }
 .ordago-ficha, .ordago-opcion {
   min-height: 52px;

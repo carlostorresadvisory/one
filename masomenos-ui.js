@@ -144,8 +144,11 @@ export function montarMasomenos(contenedor, deps) {
     contarCifra(nodoCifra, { desde: 0, hasta: cifra.valor, duracionMs: 700, formato, ventana });
   }
 
+  let parejaForzada = null; // solo e2e (`fijarParejaParaTest`): la próxima pareja es esta
   function elegirPar(opciones = {}) {
-    const par = elegirPareja(deps.cifras, { area: deps.area ?? null, variante, rng, excluir: recientes, ...opciones });
+    const forzada = parejaForzada;
+    parejaForzada = null;
+    const par = forzada ?? elegirPareja(deps.cifras, { area: deps.area ?? null, variante, rng, excluir: recientes, ...opciones });
     if (par) {
       for (const c of par) if (!recientes.includes(c.id)) recientes.push(c.id);
       while (recientes.length > RECIENTES) recientes.shift();
@@ -195,7 +198,11 @@ export function montarMasomenos(contenedor, deps) {
     mando.prepend(barra);
     ronda.comodines = montarComodines(barra, {
       modo: 'masomenos', mochila: () => cargarMochila(deps.almacen), documento,
-      alUsar: (id) => { if (id === 'salvavidas') ronda.salvavidas = true; },
+      alUsar: (id) => {
+        if (id !== 'salvavidas') return false;
+        ronda.salvavidas = true;
+        return true;
+      },
     });
   }
 
@@ -527,6 +534,17 @@ export function montarMasomenos(contenedor, deps) {
         ? { variante, arriba: resumir(ronda.cima), abajo: resumir(ronda.fondo) }
         : { variante, arriba: resumir(ronda.ref), abajo: resumir(ronda.mis) };
     },
+    /** Solo para los e2e: arranca una ronda nueva con esa pareja (Comparar: `idArriba` y `idAbajo`, la oculta; Afinar:
+     * la referencia y la misteriosa). `false` si algún id no existe o no hay ronda en juego. */
+    fijarParejaParaTest(idArriba, idAbajo) {
+      const a = deps.cifras.find((c) => c.id === idArriba);
+      const b = deps.cifras.find((c) => c.id === idAbajo);
+      if (!a || !b || (fase !== 'comparar' && fase !== 'afinar' && fase !== 'revelada')) return false;
+      parejaForzada = [a, b];
+      if (variante === 'afinar') nuevaAfinar();
+      else nuevaComparar();
+      return true;
+    },
     /** Solo para los e2e: responde Comparar bien o mal a propósito. */
     responderParaTest(correcta) {
       if (fase !== 'comparar' || !ronda) return false;
@@ -536,10 +554,12 @@ export function montarMasomenos(contenedor, deps) {
     },
     /** Solo para los e2e: coloca la barra para que la estimación sea `factor` × el valor real (fechas: `anos` de
      * diferencia con el año real) y devuelve la estimación. */
-    estimarParaTest({ factor = 1, anos = 0 } = {}) {
+    estimarParaTest({ factor = 1, anos = 0, extremo = null } = {}) {
       if (fase !== 'afinar' || !ronda) return null;
       const objetivo = esFecha(ronda.categoria) ? ronda.mis.valor + anos : ronda.mis.valor * factor;
-      ronda.nodos.barra.value = String(Math.round(posicionDesdeValor(ronda.esc, objetivo) * ronda.pasos));
+      // `extremo: 'lejos'`: la punta de la barra más alejada del valor real (el error más grande posible).
+      const posicion = extremo === 'lejos' ? (posicionDesdeValor(ronda.esc, ronda.mis.valor) < 0.5 ? 1 : 0) : posicionDesdeValor(ronda.esc, objetivo);
+      ronda.nodos.barra.value = String(Math.round(posicion * ronda.pasos));
       ronda.estimar();
       return ronda.estimado;
     },

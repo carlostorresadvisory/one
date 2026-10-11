@@ -27,7 +27,7 @@ export function gastarComodin(id, almacen) {
 
 /**
  * Monta la barra en `nodo`. `mochila` es la mochila o una función que la devuelve (se relee en cada `actualizar`).
- * `alUsar(id)` lo llama la barra una vez por comodín y pregunta. Devuelve `{ actualizar({ tipoPregunta,
+ * `alUsar(id)` lo llama la barra una vez por comodín y pregunta y devuelve `false` si no surtió efecto (entonces el comodín no se marca como usado). Devuelve `{ actualizar({ tipoPregunta,
  * usadosEnPregunta }), visible(si), aviso(texto), destruir() }`.
  */
 export function montarComodines(nodo, { modo, mochila, tipoPregunta, alUsar, documento }) {
@@ -77,7 +77,7 @@ export function montarComodines(nodo, { modo, mochila, tipoPregunta, alUsar, doc
   function usarComodin(id) {
     if (!vivo || !puedeUsar(leer(), id, { modo, tipoPregunta: tipo, usadosEnPregunta: usados })) return;
     usados = [...usados, id]; // síncrono: el segundo toque de un doble toque ya no pasa
-    alUsar(id);
+    if (alUsar(id) === false) usados = usados.filter((u) => u !== id); // el modo no pudo aplicarlo: no se marca ni se descuenta
     pintar();
   }
 

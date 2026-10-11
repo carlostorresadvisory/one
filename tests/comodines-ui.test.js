@@ -81,3 +81,16 @@ test('visible(false) oculta la barra aunque haya comodines y visible(true) la de
   b.visible(true);
   assert.equal(nodo.hidden, false);
 });
+
+test('si alUsar devuelve false el comodín no se marca como usado y se puede volver a intentar', () => {
+  const { nodo, documento } = barra();
+  let surte = false;
+  const b = montarComodines(nodo, { modo: 'contrarreloj', mochila: conObjetos({ mas5: 1 }), tipoPregunta: 'vf', alUsar: () => surte, documento });
+  nodo.children[0].disparar('click');
+  assert.equal(nodo.children[0].getAttribute('aria-pressed'), 'false');
+  assert.equal(nodo.children[0].disabled, false);
+  surte = true;
+  nodo.children[0].disparar('click');
+  assert.equal(nodo.children[0].getAttribute('aria-pressed'), 'true');
+  b.destruir();
+});
