@@ -44,7 +44,7 @@ import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
 import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
-import { montarOrdago } from './ordago-ui.js';
+import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -4243,6 +4243,17 @@ function montarTarjetasHub() {
     marcador.className = 'hub-modo-marcador';
     marcador.dataset.test = `marcador-${modo.id}`;
     boton.append(imagen, icono, nombre, marcador);
+    let curva = null;
+    if (modo.id === 'ordago') {
+      // La minicurva del fondo (cian, con el máximo en línea discontinua dorada) arriba a la derecha de la tarjeta.
+      curva = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      curva.setAttribute('class', 'hub-modo-curva');
+      curva.setAttribute('data-test', 'curva-ordago');
+      curva.setAttribute('viewBox', '0 0 60 24');
+      curva.setAttribute('preserveAspectRatio', 'none');
+      curva.setAttribute('aria-hidden', 'true');
+      boton.appendChild(curva);
+    }
     if (modo.disponible) {
       // Guardia contra el doble toque: solo se arranca desde el hub (una vez en el modo, la tarjeta ya no es tocable).
       boton.addEventListener('click', () => {
@@ -4252,7 +4263,7 @@ function montarTarjetasHub() {
       boton.setAttribute('aria-disabled', 'true'); // «Pronto»: se ve pero no responde
     }
     nodoHubModos.appendChild(boton);
-    nodosTarjetaModo.set(modo.id, { boton, marcador });
+    nodosTarjetaModo.set(modo.id, { boton, marcador, curva });
   }
   const tienda = document.createElement('button');
   tienda.type = 'button';
@@ -4307,13 +4318,17 @@ function abrirTienda() {
 }
 
 function actualizarTarjetasHub(datos) {
-  for (const [id, { marcador }] of nodosTarjetaModo) marcador.textContent = marcadorModo(id, datos);
+  for (const [id, { marcador, curva }] of nodosTarjetaModo) {
+    marcador.textContent = marcadorModo(id, datos);
+    if (curva && datos.ordago) pintarMinicurva(curva, datos.ordago);
+  }
   if (nodoMarcadorTienda) nodoMarcadorTienda.textContent = `🎒 ${datos.objetos}`;
 }
 
 /** El HUB de v0.3 (spec §3): radar + 6 tarjetas (tocar una abre su modo). Ya no genera la misión del día. */
 function renderHub() {
   const resumen = resumenProgreso(estado, banco, hoy());
+  const ordago = cargarOrdago();
   actualizarCabecera();
   renderRadar(resumen.porArea);
   actualizarTarjetasHub({
@@ -4321,7 +4336,8 @@ function renderHub() {
     respondidasHoy: resumen.hoy.respondidas,
     porRepasar: resumen.pendientes,
     objetos: contarObjetos(cargarMochila()),
-    fondo: cargarOrdago().fondo,
+    ordago,
+    fondo: ordago.fondo,
   });
   pintarSilencio();
 }

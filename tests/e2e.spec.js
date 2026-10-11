@@ -7374,6 +7374,7 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
   const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const VIEWPORTS_ORDAGO_HUB = VIEWPORTS;
   const sinScrollEnAmbos = async (page) => {
     for (const vp of VIEWPORTS) {
       await page.setViewportSize(vp);
@@ -7614,6 +7615,30 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await expect.poll(() => peticiones.length).toBe(1);
     expect(peticiones[0]).toMatchObject({ area: 'geografia', nivelObjetivo: 4, urgente: true });
   });
+
+  for (const viewport of VIEWPORTS_ORDAGO_HUB) {
+    test(`Órdago: la tarjeta del hub ya no es «Pronto», enseña el fondo y su minicurva (hub ${viewport.width}×${viewport.height} sin scroll)`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/?ejemplo=1&test=1');
+      const tarjeta = page.locator('[data-test="modo-ordago"]');
+      await expect(tarjeta).not.toHaveAttribute('aria-disabled', 'true');
+      await expect(tarjeta).not.toContainText('Pronto');
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+      await expect(tarjeta.locator('[data-test="curva-ordago"] polyline')).toHaveCount(1);
+      await assertSinScroll(page);
+      // Tras ganar, la tarjeta enseña el fondo nuevo y la curva sigue ahí.
+      await entrarEnModo(page, 'ordago');
+      await page.waitForTimeout(450);
+      await page.locator('[data-test="ficha-10"]').click();
+      await page.evaluate(() => window.__one.acertarPreguntaOrdago());
+      const fondo = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo);
+      await page.locator('[data-test="volver"]').click();
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText(String(fondo).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+      const puntos = await tarjeta.locator('[data-test="curva-ordago"] polyline').getAttribute('points');
+      expect(puntos.split(' ').length).toBe(2); // [1000, fondo]
+      await assertSinScroll(page);
+    });
+  }
 
   test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante la ronda y la tarjeta del hub enseña el fondo', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');

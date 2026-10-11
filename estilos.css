@@ -3104,3 +3104,5 @@ button.punto-servidor::before {
 .vista-quiebra { justify-content: center; align-items: stretch; gap: 16px; text-align: center; }
 .quiebra-titulo { margin: 0; font-size: var(--tam-3); }
 .quiebra-maximo { margin: 0; font-size: var(--tam-2); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+/* Minicurva del fondo en la tarjeta Órdago del hub (arriba a la derecha, plana). */
+.hub-modo > .hub-modo-curva { position: absolute; top: 10px; right: 12px; width: 60px; height: 24px; overflow: visible; pointer-events: none; }

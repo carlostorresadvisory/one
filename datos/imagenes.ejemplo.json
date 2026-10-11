@@ -23,18 +23,6 @@
     "ancho": 1,
     "alto": 1
   },
-  "his-101": {
-    "id": "his-101",
-    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-romulo-augustulo.png",
-    "titulo": "Ejemplo-romulo-augustulo.png",
-    "autor": "Autor de ejemplo",
-    "licencia": "CC BY-SA 4.0",
-    "leyenda": "Rómulo Augústulo (imagen de ejemplo para el e2e)",
-    "termino": "Rómulo Augústulo (imagen de ejemplo para el e2e)",
-    "ancho": 1,
-    "alto": 1
-  },
   "geo-101": {
     "id": "geo-101",
     "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -47,27 +35,39 @@
     "ancho": 1,
     "alto": 1
   },
-  "art-101": {
-    "id": "art-101",
+  "fil-101": {
+    "id": "fil-101",
     "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-jardin-delicias.png",
-    "titulo": "Ejemplo-jardin-delicias.png",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-academia-platon.png",
+    "titulo": "Ejemplo-academia-platon.png",
     "autor": "Autor de ejemplo",
     "licencia": "CC BY-SA 4.0",
-    "leyenda": "El jardín de las delicias (imagen de ejemplo para el e2e)",
-    "termino": "El jardín de las delicias (imagen de ejemplo para el e2e)",
+    "leyenda": "La Academia de Platón (imagen de ejemplo para el e2e)",
+    "termino": "La Academia de Platón (imagen de ejemplo para el e2e)",
     "ancho": 1,
     "alto": 1
   },
-  "cie-102": {
-    "id": "cie-102",
+  "art-103": {
+    "id": "art-103",
     "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-wolframio.png",
-    "titulo": "Ejemplo-wolframio.png",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-velazquez.png",
+    "titulo": "Ejemplo-velazquez.png",
     "autor": "Autor de ejemplo",
     "licencia": "CC BY-SA 4.0",
-    "leyenda": "Wolframio (imagen de ejemplo para el e2e)",
-    "termino": "Wolframio (imagen de ejemplo para el e2e)",
+    "leyenda": "Velázquez (imagen de ejemplo para el e2e)",
+    "termino": "Velázquez (imagen de ejemplo para el e2e)",
+    "ancho": 1,
+    "alto": 1
+  },
+  "tec-101": {
+    "id": "tec-101",
+    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Ejemplo-ipv6.png",
+    "titulo": "Ejemplo-ipv6.png",
+    "autor": "Autor de ejemplo",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "Direcciones IPv6 (imagen de ejemplo para el e2e)",
+    "termino": "Direcciones IPv6 (imagen de ejemplo para el e2e)",
     "ancho": 1,
     "alto": 1
   }
