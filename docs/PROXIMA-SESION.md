@@ -1,8 +1,23 @@
-# Próxima sesión — ONE v0.3: revisar y publicar las fases 5 (Órdago), 6 (Contrarreloj) y 7 (imágenes), con la 3 y la 4 aún sin publicar
+# Próxima sesión — ONE v0.3: revisar y publicar las fases 5 a 8 (Órdago, Contrarreloj, imágenes, Más o menos), con la 3 y la 4 aún sin publicar
 
-## Lo último (11-oct-2026, rama `v0.3-fase-7`, sale de `v0.3-fase-6`)
+## Lo último (11-oct-2026, rama `v0.3-fase-8`, sale de `v0.3-fase-7`)
+- **Fase 8 (banco de cifras + Más o menos) implementada (8.1, 8.1b, 8.2, 8.3, 8.4, 8.5), falta el cierre del controlador**: revisión final con Opus **ejecutando la app** (Comparar, Afinar con tamaños y con fechas, racha/récord/premio a 10, filtro por área, 375×812 y 375×667), adversarial gratis (`delegar.mjs --escalera revisar`) y **OK de Carlos** para publicar. Publicar la 8 publica también la 3 a la 7. `CACHE` ya es `one-v28` (precaché medido 4,29 MB; holgura ~670 KB con 256 KB de fotos).
+- Qué hay: `tools/construir-cifras.js` + `datos/cifras.json` (480 cifras en 4 áreas: población de países 80 y ciudades 45, altitud de montañas 45, altura de edificios 40, longitud de ríos 40, superficie de países 60, año de obras 55, año de hechos 55, PIB 60; 89 con nota curiosa verificada), `masomenos.js` (reglas puras: parejas ≤ ×4 o ≤ 300 años, calificación, racha), `masomenos-ui.js` (pantalla), `escala.js` (fotos a escala sobre la misma línea de suelo y línea temporal con zoom), modo `--cifras` de `tools/mejorar-imagenes.js`, récords en `one.masomenos` (en el respaldo). Fuentes: Wikidata SPARQL y Banco Mundial (`NY.GDP.MKTP.CD`, US$ corrientes), con usuario-agente identificable; fotos de Commons con autor y licencia.
+- **Fotos de las cifras: 361 de 480 con foto de Commons sin puntuar** (la cuota gratis de visión se agotó hoy), 119 sin foto (color del área), 0 de IA (la IA no entra con cifras: son cosas reales con nombre). Relanzar con cuota: `node --env-file=.env tools/mejorar-imagenes.js --cifras [--limite N] [--dry-run]`. Cupo de IA intacto (49/100 hoy).
+- Avatar: `triste.mp4` y `euforia.mp4` recomprimidos (836→367 KB y 852→391 KB, crf 27) para que el precaché quepa.
+- **⚠️ Carlos (prueba en el iPhone):** ¿Afinar con fotos a escala se entiende?, ¿las parejas de Comparar cuestan lo bastante?, ¿se ven bien triste y euforia tras recomprimirlos?; y recuerda relanzar la puntuación de fotos cuando haya cuota de visión.
+
+## Decisiones tomadas en la fase 8 (para el revisor)
+- La barra de Afinar para alturas se recorta a tope (altitud 10.000 m, edificio 1.000 m) en vez de 20× la referencia; en Afinar hay diferencia mínima del 5 %.
+- Soltar la barra no revela: solo «Listo» (soltar sin querer impediría reajustar).
+- Comparar elige categoría primero y evita ids recientes; la tarjeta de abajo sube tras acierto y tras fallo sale pareja nueva; el premio de cada 10 es `sortearObjeto` normal a la mochila.
+- PIB en US$ corrientes del Banco Mundial (la spec decía OWID, que solo ofrece $ internacionales constantes); casado con Wikidata por ISO3. Pinturas limitadas a colecciones de grandes museos (sobre todas da timeout); países = soberanos (Q3624078).
+- Las cifras no son preguntas: no tocan el radar ni `hoy.respondidas`. Las notas que solo repetían la cifra se quitaron.
+- Antirrebote de 350 ms: los toques de los primeros 350 ms de cada ronda no cuentan (los e2e esperan 450).
+- Ganchos de test: `window.__one.parejaMasomenos/responderMasomenos/estimarMasomenos`.
+- Suites: 934 unitarias; e2e de la fase y del hub en verde.
 - **Fase 7 (imágenes con impacto) implementada (7.1-7.7), falta el cierre del controlador**: revisión final con Opus **ejecutando la app** (fotos y créditos en Clásico/Repaso/Órdago/Contrarreloj, color del área cuando no hay foto, botón «Imagen mala», tarjetas del hub con foto), adversarial gratis (`delegar.mjs --escalera revisar`) y **OK de Carlos** para publicar. Publicar la 7 publica también la 3, la 4, la 5 y la 6.
-- Qué hay: nota de imagen con modelo de visión (`tools/nota-imagen.js`), bancos libres Openverse/Met/AIC/NASA (`tools/bancos-libres.js`), imagen IA de último recurso (`servidor/imagen-ia.js`, Cloudflare FLUX schnell, WebP ≤80 KB, cupo 100/día y tope 0,10 €/día, Runware solo en código), lote reanudable `tools/mejorar-imagenes.js`, imagen en las preguntas generadas (`servidor/imagenes.js`), la app solo enseña foto real, color del área o una fórmula dibujada (se acabó la tarjeta tipográfica y los gráficos), crédito real (`Fuente · Autor · Licencia` o «Imagen generada con IA»), botón «Imagen mala» (`one.imagenesMalas`, en el respaldo) y las 6 tarjetas del hub con foto puntuada (`imagenes-hub/`, `datos/imagenes-hub.json`). Caché `one-v27`: las fotos se guardan al verlas (tope de 256 KB en total, por bytes), no se precachean.
+- Qué hay: nota de imagen con modelo de visión (`tools/nota-imagen.js`), bancos libres Openverse/Met/AIC/NASA (`tools/bancos-libres.js`), imagen IA de último recurso (`servidor/imagen-ia.js`, Cloudflare FLUX schnell, WebP ≤80 KB, cupo 100/día y tope 0,10 €/día, Runware solo en código), lote reanudable `tools/mejorar-imagenes.js`, imagen en las preguntas generadas (`servidor/imagenes.js`), la app solo enseña foto real, color del área o una fórmula dibujada (se acabó la tarjeta tipográfica y los gráficos), crédito real (`Fuente · Autor · Licencia` o «Imagen generada con IA»), botón «Imagen mala» (`one.imagenesMalas`, en el respaldo) y las 6 tarjetas del hub con foto puntuada (`imagenes-hub/`, `datos/imagenes-hub.json`). Caché `one-v28`: las fotos se guardan al verlas (tope de 256 KB en total, por bytes), no se precachean.
 - **Lote del banco (pasada 1)**: muestra de 1 de cada 3 preguntas por tiempo (límite de ~11 llamadas de visión/min): 118 puntuadas, 39 mantenidas y 79 sustituidas (47 de IA, 24 Commons, 7 Openverse, 1 Met), 8 sin puntuar; gasto de IA 0 € (49 imágenes hoy de 100). Quedan ~170 preguntas sin tocar: `node --env-file=.env tools/mejorar-imagenes.js --continuar` (varias pasadas o días; las que quedan con foto mediocre se marcan `pendienteMejora`).
 - **⚠️ Carlos:** (1) OK para publicar; (2) **desplegar el servidor**: poner `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` si la quieres) en `/opt/one/.env` del VPS y `docker compose -f servidor/docker-compose.yml up -d --build` (instala `sharp`); sin eso el servidor viejo sigue mandando `visual` y la app lo ignora; (3) prueba en el iPhone: ¿las fotos tienen impacto?, ¿se leen los créditos?, ¿«Imagen mala» sustituye la foto?; (4) cuando marques imágenes malas, copia `/opt/one-datos/imagenes-malas.json` a `datos/imagenes-malas.json` para que el lote las sustituya.
 - Fase 6 sigue pendiente de su cierre (abajo); fase 4 de OK (esfinge v2; banda 100 px) y la 3 de sonido en el iPhone.
@@ -44,18 +59,18 @@
 
 ## Siguiente paso
 1. Leer `.superpowers/sdd/2026-10-06-one-v0.3-fases-3-10/progress.md` y `git log --oneline -8`.
-2. Cierres pendientes de las fases 5, 6 y 7 (revisión Opus ejecutando, adversarial, OK de Carlos); después, fase 8 en rama nueva que sale de la 7.
+2. Cierres pendientes de las fases 5 a 8 (revisión Opus ejecutando, adversarial, OK de Carlos); después, fase 9 en rama nueva que sale de la 8.
 3. **Sonido (3.1 pasos 4-6 → 3.2)**, lo último por decisión de Carlos: `npm run servir` y Carlos abre en el iPhone `http://192.168.1.137:8765/?depurar=sonido`. Si no carga: iPhone en la wifi `MIWIFI_sHY3` (no en datos 5G); alternativa Tailscale (PC 100.72.197.51). Capturas del panel con el interruptor en sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` → 3.2.
-4. Antes de la fase 8: alinear su parte del plan con la spec del 10-oct (fotos de fondo, suelo de nivel 3, Afinar con fotos).
+4. Antes de la fase 9: alinear su parte del plan con la spec del 10-oct.
 
 ## Aparcado
 - Límites de tamaño al importar un respaldo v3 manipulado; RAF de `contarCifra` sin cancelar fuera de Órdago; confeti concurrente puede crear dos lienzos.
 - Preexistentes: importar el mismo fichero dos veces no hace nada y no avisa; flakes de tests de servidor en Windows (`servidor-cola.test.js:888` EPERM, `servidor-generacion.test.js:1150` temporizadores bajo carga).
 
 ## Cómo trabajar
-- Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (836) y `npx playwright test` (187). La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
+- Scripts de `tools/`: `node --env-file=.env`. Verificación: `node --test tests/*.test.js` (934) y `npx playwright test`. La suite e2e regenera `docs/capturas/*.png`: no se commitean (`git checkout -- docs/capturas`).
 - Los e2e de Órdago esperan 450 ms entre paneles por el antirrebote; con varios trabajadores en paralelo el vídeo de la esfinge los vuelve lentos (usar `--workers=1`).
 - Escaleras de `delegar.mjs` al día (6-oct): `qwen3.8-27b:free` ya no existe, sustituido por `thinkingmachines/inkling-small:free`. Groq rechaza contextos > 8k tokens/min (413); para spec + plan ganó `nvidia/nemotron-3-super-120b-a12b:free`.
 - Procesar imágenes/vídeo: Pillow + numpy; ffmpeg vía `python -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"`.
-- Publicar solo con OK de Carlos; el push lo lanza él: `! git checkout main && git merge --ff-only <rama> && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve la caché nueva (`one-v27`).
+- Publicar solo con OK de Carlos; el push lo lanza él: `! git checkout main && git merge --ff-only <rama> && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve la caché nueva (`one-v28`).
 - Vídeos nuevos de la esfinge solo si interpolar lo existente no basta (Space Wan `multimodalart/wan-2-2-first-last-frame`, 1 vídeo al día; de pago con cifra exacta y aprobación).
