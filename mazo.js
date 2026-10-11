@@ -538,7 +538,9 @@ export function ajustarEncaje(tarjetaNodo) {
     // el gap de 4px de "tarjeta--espaciado-minimo" se quedaba pegado aunque el recálculo con más
     // alto (p. ej. al girar a un viewport más generoso) ya no lo necesitara (Ronda de corrección 2,
     // Important).
-    'tarjeta--espaciado-minimo'
+    'tarjeta--espaciado-minimo',
+    // fase 7: el color del área cede antes que el texto (ver el inicio de la cascada revelada).
+    'tarjeta--zona-color-baja'
   );
   const explicacionEl = tarjetaNodo.querySelector('.explicacion');
   if (explicacionEl) explicacionEl.style.webkitLineClamp = '';
@@ -675,6 +677,13 @@ export function ajustarEncaje(tarjetaNodo) {
 
     tarjetaNodo.classList.add('tarjeta--espaciado-minimo');
     if (explicacionEl && contenidoEl) calcularLineasClamp(explicacionEl, contenidoEl, 1);
+    if (cabe()) return;
+
+    //  (i) Fase 7, último recurso solo para el color del área (sin foto, no lleva información): su
+    //      suelo baja del 50 % al 35 % de la tarjeta (estilos.css) y absorbe lo que falta. Con una
+    //      foto el suelo del 50 % sigue siendo fijo. Se da con la línea «Respuesta» visible (ya no la
+    //      cubre una tarjeta tipográfica) y un «Combo» en el feedback a 375×667.
+    if (tarjetaNodo.querySelector('.zona-imagen--color')) tarjetaNodo.classList.add('tarjeta--zona-color-baja');
   }
 }
 

@@ -1562,7 +1562,8 @@ main#app {
 }
 
 /* Zona sin imagen (spec v0.3 §4/§7): el color del área y su nombre en pequeño; sin emoji grande, sin
-   esquemas. Ocupa el mismo 50-60 % que la imagen (.tarjeta--revelada .zona-imagen). */
+   esquemas. Ocupa el mismo 50-60 % que la imagen (.tarjeta--revelada .zona-imagen), y baja hasta el
+   35 % si el texto no cabe. */
 .zona-imagen--color {
   --color-area: #17222d;
   justify-content: flex-start;
@@ -1571,6 +1572,10 @@ main#app {
   border: 1px solid #22303d;
   border-radius: 12px;
   overflow: hidden;
+}
+/* Cuando el texto no cabe, el color cede antes que el texto (mazo.js, cascada revelada). */
+.tarjeta--revelada.tarjeta--zona-color-baja .zona-imagen--color {
+  min-height: calc(var(--alto-tarjeta) * 0.35);
 }
 .zona-imagen--color-economia { --color-area: #1d3b2a; }
 .zona-imagen--color-historia { --color-area: #3b2f1c; }

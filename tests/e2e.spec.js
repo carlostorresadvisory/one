@@ -2478,7 +2478,7 @@ test.describe('ONE · repaso v0.2a', () => {
     actual = tarjetaActual(page);
     await expect(actual.locator('[data-test="nivel-pregunta"]')).toContainText('Economía');
     await expect(actual.locator('.repaso-marca')).toHaveText('✓ acertada · hoy');
-    await expect(actual.locator('[data-test="visual"]')).toBeVisible();
+    await expect(actual.locator('[data-test="zona-color"]')).toBeVisible(); // sin imagen: color del área (fase 7)
 
     // Tramo 2 (sin responder, v0.2a.1 §7): borde neutro (ni verde ni rojo),
     // marca "· sin responder" con su propio data-test, sin "hace N días", sin
@@ -4972,7 +4972,8 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
         if (!tieneAlgo) { problemas.push({ i, motivo: 'zona vacía' }); continue; }
         const ratio = zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
         // Tolerancia de 1px sobre el alto real de la tarjeta, como en el resto de la suite.
-        const suelo = 0.5 - 1 / tarjeta.getBoundingClientRect().height;
+        // El color del área (sin foto) puede bajar hasta el 35 % antes de recortar texto (fase 7).
+        const suelo = (zona.classList.contains('zona-imagen--color') ? 0.35 : 0.5) - 1 / tarjeta.getBoundingClientRect().height;
         const techo = 0.6 + 1 / tarjeta.getBoundingClientRect().height;
         if (ratio < suelo) { problemas.push({ i, motivo: `visual al ${(ratio * 100).toFixed(1)} %` }); continue; }
         // Ronda de corrección 1 (Tarea 7, minor): el barrido original solo miraba el suelo del 50 %;
