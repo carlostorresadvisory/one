@@ -389,6 +389,8 @@ function montarAvatarDeVista(nombreVista) {
 /** Tras el arranque, los 6 gestos a la caché del service worker (su `fetch` guarda todo GET del mismo origen):
  * así «pedir gesto» no espera a la red. En ocioso si hay `requestIdleCallback` (Safari no lo tiene) y si no a los 3 s. */
 function precalentarGestosAvatar() {
+  // Con reducir movimiento la esfinge es una imagen fija: no se descarga ningún vídeo.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const pedir = () => GESTOS.forEach((g) => fetch(rutaClip(g)).catch(() => {}));
   if (window.requestIdleCallback) window.requestIdleCallback(pedir, { timeout: 5000 });
   else setTimeout(pedir, 3000);
@@ -1342,7 +1344,10 @@ function elegirPreguntaDeContrarreloj({ usados, ultima, enSerie, posicion = 1, d
   // Dentro de una serie no se repite (los cofres con 3 preguntas repetidas eran un bug); entre series sí puede.
   const candidatas = preguntasDelFiltro(banco, filtroDeModo('contrarreloj'), leerIndiceRutas(), estado.reportadas)
     .filter((p) => esJugableContrarrelojReal(p) && !enSerie.has(p.id));
-  return elegirPreguntaOrdago(candidatasDeRampa(candidatas, posicion, doble), { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
+  // La que se acaba de enseñar (p. ej. al volver de segundo plano) sale de la rampa si hay otra: si no, la
+  // rampa podría dejar solo esa en su nivel y repetirla.
+  const sinUltima = candidatas.filter((p) => p.id !== ultima);
+  return elegirPreguntaOrdago(candidatasDeRampa(sinUltima.length > 0 ? sinUltima : candidatas, posicion, doble), { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
 }
 
 /** Los objetos del cofre pasan a la mochila solo al plantarse o recoger (la serie no se guarda). */
