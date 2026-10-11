@@ -21,12 +21,12 @@
   },
   "ordago": {
     "url": "imagenes-hub/ordago.webp",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Roulette_-_detail.jpg",
-    "titulo": "Ruleta (detalle)",
-    "autor": "Conor Ogle",
-    "licencia": "CC BY 2.0",
-    "fuente": "Commons",
-    "nota": 5,
+    "pagina": null,
+    "titulo": "Naipes y monedas de oro (ilustración)",
+    "autor": "Cloudflare Workers AI (FLUX.1 schnell)",
+    "licencia": "Generada con IA",
+    "fuente": "IA",
+    "nota": 4,
     "notaModelo": "gemini:gemini-flash-lite-latest"
   },
   "masomenos": {

@@ -1,116 +1,68 @@
-// Genera iconos/180.png (Home Screen de iOS), iconos/192.png e iconos/512.png con un codificador PNG mínimo propio
-// (sin dependencias): fondo oscuro, círculo de acento centrado y un punto oscuro central.
+// Genera los iconos de la app a partir de la esfinge (prototipos/avatares/i-esfinge/neutral.png, 512 px con alfa):
+// iconos/esfinx-180.png (apple-touch-icon), esfinx-192.png, esfinx-512.png y esfinx-512-maskable.png.
+// Fondo #0b0f14 con un leve degradado cian; cabeza y nemes centrados dentro de la zona segura del 80 %
+// (círculo central de diámetro 0,80 del lado; el maskable, con más margen, 0,66).
+// Uso: node tools/generar-iconos.js
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(__dirname, '..');
+const FUENTE = path.join(RAIZ, 'prototipos/avatares/i-esfinge/neutral.png');
 
-const FONDO = [0x0b, 0x0f, 0x14];
-const ACENTO = [0x4c, 0xc9, 0xf0];
+// Cabeza y nemes dentro de la imagen fuente (la caja que los contiene y el punto donde se desvanece el cuerpo).
+const CAJA = { left: 70, top: 20, width: 370, height: 330 };
+const DESVANECER_DESDE = 285;
 
-// --- CRC32 propio (tabla estándar del algoritmo PNG) ---
-const TABLA_CRC = (() => {
-  const tabla = new Uint32Array(256);
-  for (let n = 0; n < 256; n += 1) {
-    let c = n;
-    for (let k = 0; k < 8; k += 1) {
-      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    }
-    tabla[n] = c >>> 0;
+const SALIDAS = [
+  { nombre: 'esfinx-180.png', lado: 180, zona: 0.8 },
+  { nombre: 'esfinx-192.png', lado: 192, zona: 0.8 },
+  { nombre: 'esfinx-512.png', lado: 512, zona: 0.8 },
+  { nombre: 'esfinx-512-maskable.png', lado: 512, zona: 0.66 },
+];
+
+async function cabeza() {
+  const { data, info } = await sharp(FUENTE).ensureAlpha().extract(CAJA).raw().toBuffer({ resolveWithObject: true });
+  for (let y = DESVANECER_DESDE; y < info.height; y += 1) {
+    const f = 1 - (y - DESVANECER_DESDE) / (info.height - DESVANECER_DESDE);
+    for (let x = 0; x < info.width; x += 1) data[(y * info.width + x) * 4 + 3] = Math.round(data[(y * info.width + x) * 4 + 3] * f);
   }
-  return tabla;
-})();
-
-function crc32(buf) {
-  let c = 0xffffffff;
-  for (let i = 0; i < buf.length; i += 1) {
-    c = TABLA_CRC[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
-  }
-  return (c ^ 0xffffffff) >>> 0;
-}
-
-function chunk(tipo, datos) {
-  const tipoBuf = Buffer.from(tipo, 'ascii');
-  const longitud = Buffer.alloc(4);
-  longitud.writeUInt32BE(datos.length, 0);
-  const cuerpo = Buffer.concat([tipoBuf, datos]);
-  const crc = Buffer.alloc(4);
-  crc.writeUInt32BE(crc32(cuerpo), 0);
-  return Buffer.concat([longitud, cuerpo, crc]);
-}
-
-function dibujarPixeles(lado) {
-  const centro = lado / 2;
-  const radioCirculo = lado * 0.35;
-  const radioPunto = lado * 0.08;
-  // 3 bytes por píxel (RGB, sin alfa).
-  const pixeles = Buffer.alloc(lado * lado * 3);
-  for (let y = 0; y < lado; y += 1) {
-    for (let x = 0; x < lado; x += 1) {
-      const dx = x - centro + 0.5;
-      const dy = y - centro + 0.5;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      let color = FONDO;
-      if (dist <= radioPunto) {
-        color = FONDO; // punto oscuro central, sobre el círculo de acento
-      } else if (dist <= radioCirculo) {
-        color = ACENTO;
-      }
-      const i = (y * lado + x) * 3;
-      pixeles[i] = color[0];
-      pixeles[i + 1] = color[1];
-      pixeles[i + 2] = color[2];
+  // Radio real de la figura (píxel opaco más lejano del centro de la caja): es lo que debe caber en la zona segura.
+  let r2 = 0;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (data[(y * info.width + x) * 4 + 3] > 40) r2 = Math.max(r2, (x - info.width / 2) ** 2 + (y - info.height / 2) ** 2);
     }
   }
-  return pixeles;
+  return { data, info, diametro: 2 * Math.sqrt(r2) };
 }
 
-function construirPng(lado) {
-  const firma = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(lado, 0); // width
-  ihdr.writeUInt32BE(lado, 4); // height
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // color type: truecolor RGB
-  ihdr[10] = 0; // compression
-  ihdr[11] = 0; // filter
-  ihdr[12] = 0; // interlace
-
-  const pixeles = dibujarPixeles(lado);
-  // Cada línea de escaneo lleva un byte de filtro (0 = ninguno) delante.
-  const crudo = Buffer.alloc(lado * (1 + lado * 3));
-  for (let y = 0; y < lado; y += 1) {
-    const inicioCrudo = y * (1 + lado * 3);
-    crudo[inicioCrudo] = 0;
-    pixeles.copy(crudo, inicioCrudo + 1, y * lado * 3, (y + 1) * lado * 3);
-  }
-  const comprimido = zlib.deflateSync(crudo);
-
-  return Buffer.concat([
-    firma,
-    chunk('IHDR', ihdr),
-    chunk('IDAT', comprimido),
-    chunk('IEND', Buffer.alloc(0)),
-  ]);
+function fondoSvg(lado) {
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${lado}" height="${lado}"><defs>
+<radialGradient id="g" cx="50%" cy="46%" r="62%"><stop offset="0" stop-color="#4cc9f0" stop-opacity="0.28"/><stop offset="1" stop-color="#4cc9f0" stop-opacity="0"/></radialGradient></defs>
+<rect width="100%" height="100%" fill="#0b0f14"/><rect width="100%" height="100%" fill="url(#g)"/></svg>`);
 }
 
-function generar() {
-  const dirIconos = path.join(RAIZ, 'iconos');
-  fs.mkdirSync(dirIconos, { recursive: true });
-  for (const lado of [180, 192, 512]) {
-    const png = construirPng(lado);
-    const destino = path.join(dirIconos, `${lado}.png`);
-    fs.writeFileSync(destino, png);
-    console.log(`Generado ${path.relative(RAIZ, destino)} (${png.length} bytes)`);
+export async function construirIcono(lado, zona) {
+  const { data, info, diametro } = await cabeza();
+  const ancho = Math.round(((lado * zona) / diametro) * info.width);
+  const figura = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } }).resize({ width: ancho }).png().toBuffer();
+  const m = await sharp(figura).metadata();
+  const left = Math.round((lado - m.width) / 2);
+  const top = Math.round((lado - m.height) / 2);
+  return sharp(fondoSvg(lado)).composite([{ input: figura, left, top }]).flatten({ background: '#0b0f14' }).png({ compressionLevel: 9 }).toBuffer();
+}
+
+async function generar() {
+  const dir = path.join(RAIZ, 'iconos');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const { nombre, lado, zona } of SALIDAS) {
+    const png = await construirIcono(lado, zona);
+    fs.writeFileSync(path.join(dir, nombre), png);
+    console.log(`Generado iconos/${nombre} (${lado}x${lado}, ${png.length} bytes)`);
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  generar();
-}
-
-export { construirPng, crc32 };
+if (process.argv[1] === fileURLToPath(import.meta.url)) await generar();

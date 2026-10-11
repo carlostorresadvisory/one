@@ -1,6 +1,6 @@
 {
-  "name": "ONE",
-  "short_name": "ONE",
+  "name": "Esfinx",
+  "short_name": "Esfinx",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -8,7 +8,8 @@
   "theme_color": "#0b0f14",
   "lang": "es",
   "icons": [
-    { "src": "iconos/192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "iconos/512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "iconos/esfinx-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/esfinx-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "iconos/esfinx-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

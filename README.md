@@ -1,4 +1,6 @@
-# ONE
+# Esfinx
+
+Nombre visible desde v0.3.1 (antes «ONE»). El nombre interno no cambia: repo, URL de Pages, `one.*` en `localStorage`, cachés `one-*` y servidor `one.ctadvisory.es`.
 
 App personal de Carlos Torres para aprender sin leer: un juego de preguntas sin teclado (swipe, tap, ordenar), con memoria, repetición espaciada y dificultad adaptativa. Una pantalla, un botón.
 

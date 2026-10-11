@@ -17,6 +17,11 @@ test('cada imagen del hub (los 5 modos y la Tienda) es una WebP propia con créd
   for (const { imagen } of [...MODOS, TIENDA]) {
     assert.match(imagen.url, /^imagenes-hub\/[\w-]+\.webp$/);
     assert.ok(imagen.titulo && imagen.autor && imagen.licencia && imagen.fuente);
+    if (imagen.fuente === 'IA') {
+      assert.equal(imagen.pagina, null); // una ilustración generada no tiene página de origen
+      assert.equal(imagen.credito, 'IA · Imagen generada con IA');
+      continue;
+    }
     assert.match(imagen.pagina, /^https:\/\//);
     assert.ok(imagen.credito.startsWith(imagen.fuente));
     assert.ok(imagen.credito.includes(imagen.licencia));

@@ -38,9 +38,9 @@ export const MODOS = Object.freeze([
     id: 'ordago', nombre: 'Órdago', icono: '🎲', disponible: true, nivelFiltro: 'arbol',
     imagen: Object.freeze({
       url: 'imagenes-hub/ordago.webp',
-      pagina: 'https://commons.wikimedia.org/wiki/File:Roulette_-_detail.jpg',
-      titulo: 'Ruleta (detalle)', autor: 'Conor Ogle', licencia: 'CC BY 2.0', fuente: 'Commons',
-      credito: 'Commons · Conor Ogle · CC BY 2.0',
+      pagina: null,
+      titulo: 'Naipes y monedas de oro (ilustración)', autor: 'Cloudflare Workers AI (FLUX.1 schnell)', licencia: 'Generada con IA', fuente: 'IA',
+      credito: 'IA · Imagen generada con IA',
     }),
   }),
   Object.freeze({
