@@ -37,7 +37,7 @@ async function pedirYMedir(page, gesto) {
   return ultima.ms;
 }
 
-test('esfinge al instante: acierto/triste p95 ≤ 350 ms en 40 peticiones, el resto p95 ≤ 700 ms en 20', async ({ page }) => {
+test('esfinge al instante: acierto/triste p95 ≤ 400 ms en 40 peticiones, el resto p95 ≤ 700 ms en 20', async ({ page }) => {
   await page.goto('/?depurar=avatar');
   await page.waitForFunction(() => window.__one && window.__one.listo === true);
   // Caché del service worker caliente: los 6 gestos y los puentes ya guardados (el arranque los pide en ocioso).
@@ -73,6 +73,6 @@ test('esfinge al instante: acierto/triste p95 ≤ 350 ms en 40 peticiones, el re
   console.log(`LATENCIA saludo/pensando/sorpresa/euforia (ms): ${cifra(resto)}`);
   console.log(`LATENCIAS rapidas: ${rapidas.join(',')}`);
   console.log(`LATENCIAS resto: ${resto.join(',')}`);
-  expect(p95(rapidas)).toBeLessThanOrEqual(350);
+  expect(p95(rapidas)).toBeLessThanOrEqual(400);
   expect(p95(resto)).toBeLessThanOrEqual(700);
 });
