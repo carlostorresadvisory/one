@@ -80,7 +80,7 @@ export function modoPorId(id) {
 export function marcadorModo(id, { aciertosHoy = 0, respondidasHoy = 0, porRepasar = 0, fondo = 1000, marca = '', recordMasomenos = '' } = {}) {
   if (id === 'clasico') return `Hoy ${aciertosHoy}/${respondidasHoy}`;
   if (id === 'repaso') return porRepasar > 0 ? `${porRepasar} por repasar` : 'Al día';
-  if (id === 'ordago') return formatearCifra(fondo);
+  if (id === 'ordago') return `Fondo ${formatearCifra(fondo)}`;
   if (id === 'contrarreloj') return marca || 'Sin marca';
   if (id === 'masomenos') return recordMasomenos || 'Sin récord';
   return 'Pronto';

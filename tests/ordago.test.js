@@ -161,3 +161,20 @@ test('vender (subir el fondo con conFondo) no sube el máximo ni la curva; ganar
   assert.equal(ganada.estado.maximo, ganada.estado.fondo);
   assert.equal(ganada.estado.curva.length, 2);
 });
+
+test('gananciaFicha: lo que se cobra al acertar es EXACTAMENTE lo que resolverRonda abona', () => {
+  for (const fondo of [1, 7, 250, 1000, 3333]) {
+    for (const f of O.FICHAS) {
+      for (const nivel of [3, 4, 5]) {
+        for (const dorada of [false, true]) {
+          for (const racha of [0, 2, 3, 5]) {
+            const estado = { ...O.crearOrdago(), fondo, racha };
+            const esperado = O.resolverRonda(estado, { ficha: O.calcularFicha(fondo, f.pct), correcta: true, nivel, dorada }).delta;
+            assert.equal(O.gananciaFicha({ fondo, pct: f.pct, nivel, dorada, racha }), esperado, `${fondo} ${f.id} n${nivel} d${dorada} r${racha}`);
+          }
+        }
+      }
+    }
+  }
+  assert.equal(O.gananciaFicha({ fondo: 1000, pct: 0.25, nivel: 5, dorada: false, racha: 0 }), 500); // 250 × 2
+});

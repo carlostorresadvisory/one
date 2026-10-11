@@ -2917,7 +2917,10 @@ button.punto-servidor::before {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+.ordago-ficha-apuesta, .ordago-ficha-gana { display: block; }
+.ordago-ficha-gana { font-size: 13px; font-weight: 500; color: var(--texto-suave); }
 .ordago-ficha--ordago { border-color: var(--acento); color: var(--acento); }
+.ordago-ficha--ordago .ordago-ficha-gana { color: var(--acento); }
 .ordago-ficha:active, .ordago-opcion:active { transform: scale(0.97); }
 .ordago-resultado { display: flex; flex-direction: column; gap: 6px; }
 .ordago-resultado-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -3012,7 +3015,7 @@ button.punto-servidor::before {
 .mm-record { color: var(--texto-suave); font-size: 14px; font-variant-numeric: tabular-nums; }
 .mm-racha { margin-right: 6px; } /* la llama grande (escala 1.3) no se come el texto de al lado */
 .mm-racha:not([hidden]) + .mm-record::before { content: '· '; }
-.mm-interruptor { margin-left: auto; display: flex; border: 1px solid #22303d; border-radius: 999px; overflow: hidden; }
+.mm-interruptor { margin-left: auto; display: flex; border: 1px solid #22303d; border-radius: 999px; }
 .mm-var { min-height: 32px; padding: 4px 14px; border: 0; background: transparent; color: var(--texto-suave); font-size: 14px; font-weight: 600; }
 .mm-var--activa { background: var(--acento); color: #06202b; }
 .vista-masomenos > .mm-cuerpo { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -3148,3 +3151,18 @@ button.punto-servidor::before {
 .comodines-aviso { color: var(--texto-suave); font-size: 12px; }
 .tarjeta-accion:not(:has(> :not([hidden]))) { display: none; } /* la barra de comodines vacía no deja hueco */
 button[hidden] { display: none; } /* las opciones quitadas por el 50/50 no ocupan sitio aunque su clase fije display */
+
+/* ===== Área táctil de 44 px (revisión de expertos, 11-oct-2026). El botón se ve igual: el hueco que le
+   falta hasta 44 px de alto lo pone un ::after invisible, así no cambia la maquetación ni aparece
+   scroll a 375×667. Las extensiones son de 2-7 px: no pisan al vecino (los huecos entre botones son
+   de 8 px o más). ===== */
+.tienda-boton, .mm-var, .comodin { position: relative; }
+.tienda-boton::after { content: ''; position: absolute; inset: -2px 0; }
+.mm-var::after { content: ''; position: absolute; inset: -6px 0; }
+.comodin::after { content: ''; position: absolute; inset: -4px 0; }
+.hub-chip-nuevas::after { content: ''; position: absolute; inset: -6px 0; }
+.indicador-tanda::after { content: ''; position: absolute; inset: -7px 0; }
+/* El interruptor Comparar | Afinar ya no recorta con overflow: hidden (el ::after de arriba sobresale):
+   cada botón redondea su propio extremo. */
+.mm-var:first-child { border-radius: 999px 0 0 999px; }
+.mm-var:last-child { border-radius: 0 999px 999px 0; }

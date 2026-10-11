@@ -143,7 +143,8 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     const clip = { video, liberar: null };
     clips[nombre] = clip;
     cargarClip(`${base}${nombre}.mp4`).then(({ src, liberar }) => {
-      if (!vivo) { liberar(); return; }
+      // Soltado mientras bajaba (gesto sustituido, descartado o reproductor destruido): sin vídeo vivo.
+      if (!vivo || clips[nombre] !== clip) { liberar(); return; }
       clip.liberar = liberar;
       video.src = src;
       video.load();
@@ -153,6 +154,22 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
       if (nombre === 'reposo') fallar();
       else if (pendiente === nombre) pendiente = null;
     });
+  }
+
+  // Solo el reposo y el gesto en curso viven a la vez: un gesto que ya sonó (o que se descartó, o que
+  // otro sustituyó) suelta su <video> y su blob. Si se vuelve a pedir, se baja de nuevo (sale de la caché).
+  function soltarClip(nombre) {
+    const clip = clips[nombre];
+    if (!clip || nombre === 'reposo' || clip.video === actual || clip.video === entrante) return;
+    delete clips[nombre];
+    clip.video.pause();
+    clip.video.removeAttribute('src');
+    clip.video.load();
+    if (clip.liberar) clip.liberar();
+  }
+
+  function soltarGestosInactivos() {
+    Object.keys(clips).forEach((n) => { if (n !== pendiente) soltarClip(n); });
   }
 
   function arrancar(video) {
@@ -171,6 +188,7 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     actual = entrante;
     entrante = null;
     alCambiar(nombreDe(actual));
+    soltarGestosInactivos();
   }
 
   function medir() {
@@ -190,7 +208,11 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
     relevo();
     if (pendiente) {
       const clip = clips[pendiente];
-      if (ahora() - pendienteDesde > MS_DESCARTE && !(clip && clip.video.readyState >= 2)) pendiente = null;
+      if (ahora() - pendienteDesde > MS_DESCARTE && !(clip && clip.video.readyState >= 2)) {
+        const descartado = pendiente;
+        pendiente = null;
+        soltarClip(descartado);
+      }
       else if (clip && clip.video.readyState >= 2 && !entrante && actual === (clips.reposo && clips.reposo.video)
         && esSalida(actual.currentTime, actual.duration, marcas)) {
         arrancar(clip.video);
@@ -203,6 +225,19 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
 
   function contextoPerdido(evento) { evento.preventDefault(); fallar('gl'); }
   lienzo.addEventListener('webglcontextlost', contextoPerdido);
+
+  // iOS pausa los <video> al bloquear la pantalla o cambiar de app y no los reanuda al volver: sin
+  // esto la esfinge se quedaría congelada. Solo toca un vídeo que esté en pausa sin haber terminado.
+  function alVolver() {
+    if (!vivo || (documento.visibilityState && documento.visibilityState !== 'visible')) return;
+    const video = entrante || actual;
+    if (video && video.paused && !video.ended && video.readyState >= 2) {
+      const promesa = video.play();
+      if (promesa && promesa.catch) promesa.catch(() => {});
+    }
+  }
+  documento.addEventListener?.('visibilitychange', alVolver);
+  ventana.addEventListener?.('pageshow', alVolver);
   cargar('reposo');
   actual = clips.reposo.video;
   raf = ventana.requestAnimationFrame(paso);
@@ -210,9 +245,11 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
   return {
     gesto(nombre) {
       if (!vivo || !GESTOS.includes(nombre)) return;
+      const anterior = pendiente;
       cargar(nombre);
       pendiente = nombre;
       pendienteDesde = ahora();
+      if (anterior && anterior !== nombre) soltarClip(anterior);
     },
     // Tras un rechazo de play() (autoplay bloqueado): mismo vídeo y mismo lienzo, solo se pide play() otra vez.
     reanudar() { if (vivo && clips.reposo) arrancar(clips.reposo.video); },
@@ -222,6 +259,8 @@ export function montarReproductorMp4(lienzo, { documento, ventana, base = 'avata
       vivo = false;
       ventana.cancelAnimationFrame(raf);
       lienzo.removeEventListener('webglcontextlost', contextoPerdido);
+      documento.removeEventListener?.('visibilitychange', alVolver);
+      ventana.removeEventListener?.('pageshow', alVolver);
       if (pintar.liberar) pintar.liberar();
       Object.values(clips).forEach(({ video, liberar }) => {
         video.pause();

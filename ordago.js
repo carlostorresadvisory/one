@@ -50,6 +50,11 @@ export function esDorada(rng = Math.random) {
   return rng() < PROB_DORADA;
 }
 
+/** Lo que se ganaría al acertar con esta ficha (mismo cálculo que `resolverRonda`; la pantalla de fichas lo enseña). */
+export function gananciaFicha({ fondo, pct, nivel, dorada, racha }) {
+  return Math.floor(calcularFicha(fondo, pct) * multiplicador({ nivel, dorada, racha }));
+}
+
 /** Una ronda: devuelve el estado nuevo, el cambio del fondo y si hay nuevo máximo o quiebra. */
 export function resolverRonda(estado, { ficha, correcta, nivel, dorada, salvavidas = false }) {
   const actual = normalizarOrdago(estado);

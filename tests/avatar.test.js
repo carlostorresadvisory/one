@@ -161,7 +161,11 @@ function entorno(opciones = {}) {
   const lienzo = new ElementoFalso('canvas');
   lienzo.style = { setProperty() {} };
   lienzo.getContext = () => gl;
+  const oyentes = {};
   const documento = {
+    visibilityState: 'visible',
+    addEventListener: (tipo, fn) => { (oyentes[tipo] = oyentes[tipo] || []).push(fn); },
+    removeEventListener: (tipo, fn) => { oyentes[tipo] = (oyentes[tipo] || []).filter((f) => f !== fn); },
     createElement(tag) {
       const v = new ElementoFalso(tag);
       Object.assign(v, { readyState: 0, currentTime: 0, duration: 127 / 60, reproducciones: 0, pausado: false });
@@ -178,6 +182,8 @@ function entorno(opciones = {}) {
     requestAnimationFrame: (cb) => { siguienteFotograma = cb; return 1; },
     cancelAnimationFrame: () => { siguienteFotograma = null; },
     devicePixelRatio: 1,
+    addEventListener: (tipo, fn) => { (oyentes[`v:${tipo}`] = oyentes[`v:${tipo}`] || []).push(fn); },
+    removeEventListener: (tipo, fn) => { oyentes[`v:${tipo}`] = (oyentes[`v:${tipo}`] || []).filter((f) => f !== fn); },
   };
   const cargarClip = opciones.cargarClip || ((ruta) => Promise.resolve({ src: `blob:${ruta}`, liberar: () => liberados.push(ruta) }));
   const reproductor = montarReproductorMp4(lienzo, { documento, ventana, anclas: ANCLAS, cargarClip });
@@ -187,6 +193,9 @@ function entorno(opciones = {}) {
     fotograma: () => siguienteFotograma && siguienteFotograma(),
     pasarMs: (ms) => { reloj += ms; },
     hayFotograma: () => siguienteFotograma !== null,
+    documento,
+    emitir: (tipo, deVentana = false) => (oyentes[deVentana ? `v:${tipo}` : tipo] || []).forEach((f) => f({})),
+    oyentesVivos: () => Object.values(oyentes).reduce((a, l) => a + l.length, 0),
   };
 }
 
@@ -225,12 +234,11 @@ test('reproductor: un segundo gesto mientras el primero espera lo sustituye', as
   e.reproductor.gesto('acierto');
   e.reproductor.gesto('triste');
   await tick();
-  e.clip('acierto').readyState = 2;
+  assert.equal(e.clip('acierto'), undefined, 'el sustituido ya no tiene vídeo vivo');
   e.clip('triste').readyState = 2;
   e.reposo.currentTime = 2 / 60;
   e.fotograma();
   assert.equal(e.clip('triste').reproducciones, 1);
-  assert.equal(e.clip('acierto').reproducciones, 0);
 });
 test('reproductor: al acabar el gesto vuelve solo al reposo', async () => {
   const e = await conReposo();
@@ -259,10 +267,12 @@ test('reproductor: un clip que no está listo en 4 s se descarta sin lanzar y el
   await tick();
   e.pasarMs(4500);
   e.reposo.currentTime = 2 / 60;
+  const sorpresa = e.creados.find((v) => v.tagName === 'video' && v !== e.reposo);
   e.fotograma(); // descarta
-  e.clip('sorpresa').readyState = 2;
+  sorpresa.readyState = 2;
   e.fotograma();
-  assert.equal(e.clip('sorpresa').reproducciones, 0);
+  assert.equal(sorpresa.reproducciones, 0);
+  assert.equal(sorpresa.src, undefined, 'y suelta su vídeo');
   assert.equal(e.hayFotograma(), true);
 });
 test('reproductor: webglcontextlost avisa del fallo', () => {
@@ -324,4 +334,72 @@ test('reproductor: reanudar repite play() del reposo en el mismo vídeo', async 
   e.reproductor.reanudar();
   assert.equal(e.reposo.reproducciones, antes + 1);
   assert.equal(e.creados.filter((v) => v.tagName === 'video').length, 1);
+});
+
+/** Reproduce el gesto `nombre` entero y deja el reposo otra vez en pantalla. */
+async function jugarGesto(e, nombre) {
+  e.reposo.currentTime = 2 / 60; // salida
+  e.reproductor.gesto(nombre);
+  await tick();
+  const clip = e.clip(nombre);
+  clip.readyState = 2;
+  e.fotograma();
+  clip.currentTime = 0.1;
+  e.fotograma(); // relevo al gesto
+  clip.disparar('ended');
+  e.reposo.currentTime = 0.1;
+  e.fotograma(); // relevo al reposo: el gesto ya no hace falta
+  return clip;
+}
+test('reproductor: al terminar un gesto suelta su vídeo y su blob; solo vive reposo + el gesto en curso', async () => {
+  const e = await conReposo();
+  const saludo = await jugarGesto(e, 'saludo');
+  assert.equal(saludo.src, undefined);
+  assert.deepEqual(e.liberados, ['avatar/saludo.mp4']);
+  await jugarGesto(e, 'acierto');
+  assert.deepEqual(e.liberados, ['avatar/saludo.mp4', 'avatar/acierto.mp4']);
+  assert.equal(e.reposo.src, 'blob:avatar/reposo.mp4', 'el reposo no se suelta');
+});
+test('reproductor: un gesto que se pide otra vez se vuelve a descargar (no queda en memoria)', async () => {
+  const e = await conReposo();
+  await jugarGesto(e, 'saludo');
+  const antes = e.creados.length;
+  e.reproductor.gesto('saludo');
+  await tick();
+  assert.equal(e.creados.length, antes + 1);
+  assert.ok(e.clip('saludo'));
+});
+test('reproductor: un gesto sustituido o descartado por tiempo suelta su blob', async () => {
+  const e = await conReposo();
+  e.reproductor.gesto('acierto');
+  e.reproductor.gesto('triste'); // sustituye a acierto antes de que llegue
+  await tick();
+  assert.deepEqual(e.liberados, ['avatar/acierto.mp4']);
+  e.pasarMs(4500);
+  e.fotograma(); // triste no estaba listo en 4 s: se descarta
+  assert.deepEqual(e.liberados, ['avatar/acierto.mp4', 'avatar/triste.mp4']);
+});
+test('reproductor: al volver a primer plano (visibilitychange visible o pageshow) reanuda un vídeo en pausa', async () => {
+  const e = await conReposo();
+  e.reposo.readyState = 4;
+  e.reposo.paused = true; // iOS lo pausó al bloquear la pantalla
+  const antes = e.reposo.reproducciones;
+  e.documento.visibilityState = 'hidden';
+  e.emitir('visibilitychange');
+  assert.equal(e.reposo.reproducciones, antes, 'oculta: no se toca');
+  e.documento.visibilityState = 'visible';
+  e.emitir('visibilitychange');
+  assert.equal(e.reposo.reproducciones, antes + 1);
+  e.reposo.paused = true;
+  e.emitir('pageshow', true);
+  assert.equal(e.reposo.reproducciones, antes + 2);
+  e.reposo.paused = false;
+  e.emitir('pageshow', true);
+  assert.equal(e.reposo.reproducciones, antes + 2, 'si ya suena, no se repite');
+});
+test('reproductor: destruir quita los oyentes de visibilidad y pageshow', async () => {
+  const e = await conReposo();
+  assert.equal(e.oyentesVivos(), 2);
+  e.reproductor.destruir();
+  assert.equal(e.oyentesVivos(), 0);
 });

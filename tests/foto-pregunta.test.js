@@ -1,7 +1,7 @@
 // Tests de foto-pregunta.js (spec v0.3 §4): crédito real, color del área sin emoji y brillo dorado.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { creditoTexto, montarFotoPregunta, cargarImagenesMalas, guardarImagenesMalas, CLAVE_IMAGENES_MALAS } from '../foto-pregunta.js';
+import { creditoTexto, esImagenValida, esPaginaSegura, montarFotoPregunta, cargarImagenesMalas, guardarImagenesMalas, CLAVE_IMAGENES_MALAS } from '../foto-pregunta.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 import { instalarDomFalso } from './dom-falso.js';
 
@@ -112,4 +112,19 @@ test('imágenes malas: se guardan, se cargan y con basura o almacén roto no lan
   assert.deepEqual([...cargarImagenesMalas(alm)], ['ok']);
   assert.equal(cargarImagenesMalas(almacenRoto()).size, 0);
   assert.equal(guardarImagenesMalas(new Set(['a']), almacenRoto()), false);
+});
+
+test('enlaces de atribución: solo https (nada de javascript:, data: ni http)', () => {
+  assert.equal(esPaginaSegura('https://commons.wikimedia.org/wiki/File:X.jpg'), true);
+  for (const mala of ['javascript:alert(1)', 'data:text/html,x', 'http://commons.wikimedia.org', '//commons.wikimedia.org', '', null, undefined, 5]) {
+    assert.equal(esPaginaSegura(mala), false, String(mala));
+  }
+});
+test('esImagenValida: una página de origen que no es https invalida la imagen; null/ausente vale', () => {
+  const base = { url: 'https://upload.wikimedia.org/a.jpg', fuente: 'Commons' };
+  assert.equal(esImagenValida({ ...base, pagina: 'https://commons.wikimedia.org/wiki/File:A' }), true);
+  assert.equal(esImagenValida({ ...base, pagina: null }), true);
+  assert.equal(esImagenValida(base), true);
+  assert.equal(esImagenValida({ ...base, pagina: 'javascript:alert(1)' }), false);
+  assert.equal(esImagenValida({ ...base, pagina: 'http://x.org' }), false);
 });

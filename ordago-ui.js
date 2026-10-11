@@ -6,7 +6,7 @@
 // la ronda no existió. Órdago no da objetos: lo que se gana es el fondo (el dinero de la Tienda).
 
 import {
-  FICHAS, calcularFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, guardarOrdago,
+  FICHAS, calcularFicha, gananciaFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, guardarOrdago,
   formatearCifra, puntosMinicurva,
 } from './ordago.js';
 import { evaluar, barajarOrden } from './motor.js';
@@ -110,7 +110,7 @@ export function montarOrdago(contenedor, deps) {
     nodoFichas.hidden = cual !== 'fichas';
     nodoOpciones.hidden = cual !== 'opciones';
     nodoResultado.hidden = cual !== 'resultado';
-    comodines?.visible(cual !== 'resultado');
+    comodines?.visible(cual === 'opciones'); // la barra aparece cuando las opciones ya están en pantalla
   };
 
   /** El 50/50 se descuenta al usarlo; el Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo. */
@@ -156,8 +156,16 @@ export function montarOrdago(contenedor, deps) {
     pintarMarcador();
 
     nodoFichas.replaceChildren(...FICHAS.map((f) => {
-      const boton = crear(documento, 'button', `ordago-ficha${f.id === 'ordago' ? ' ordago-ficha--ordago' : ''}`,
-        `${f.texto} · ${formatearCifra(calcularFicha(estado.fondo, f.pct))}`);
+      // Cada ficha enseña lo que juega y lo que cobraría al acertar con el multiplicador REAL de esta pregunta
+      // (nivel, dorada y racha: ordago.js#gananciaFicha, el mismo cálculo que resolverRonda).
+      const apuesta = calcularFicha(estado.fondo, f.pct);
+      const gana = gananciaFicha({ fondo: estado.fondo, pct: f.pct, nivel: pregunta.nivel, dorada, racha: estado.racha });
+      const boton = crear(documento, 'button', `ordago-ficha${f.id === 'ordago' ? ' ordago-ficha--ordago' : ''}`);
+      boton.append(
+        crear(documento, 'span', 'ordago-ficha-apuesta', `${f.texto} · ${formatearCifra(apuesta)}`),
+        crear(documento, 'span', 'ordago-ficha-gana', `→ +${formatearCifra(gana)}`),
+      );
+      boton.setAttribute('aria-label', `Apostar ${formatearCifra(apuesta)} (${f.texto}); si aciertas ganas ${formatearCifra(gana)}`);
       boton.setAttribute('type', 'button');
       boton.setAttribute('data-test', `ficha-${f.id}`);
       boton.addEventListener('click', () => { if (libre()) elegirFicha(f); });

@@ -35,8 +35,8 @@ test('marcadorModo: Hoy a/r, por repasar / Al día, Pronto', () => {
   assert.equal(marcadorModo('repaso', datos), '15 por repasar');
   assert.equal(marcadorModo('repaso', { ...datos, porRepasar: 0 }), 'Al día');
   assert.equal(marcadorModo('masomenos', datos), 'Sin récord');
-  assert.equal(marcadorModo('ordago', { fondo: 1250 }), '1.250');
-  assert.equal(marcadorModo('ordago', {}), '1.000');
+  assert.equal(marcadorModo('ordago', { fondo: 1250 }), 'Fondo 1.250');
+  assert.equal(marcadorModo('ordago', {}), 'Fondo 1.000');
 });
 
 test('Contrarreloj enseña su marca o «Sin marca»; Más o menos su récord de racha o «Sin récord»', () => {

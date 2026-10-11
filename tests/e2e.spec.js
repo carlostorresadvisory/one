@@ -6297,7 +6297,7 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-test="modo-clasico"]')).not.toHaveAttribute('aria-pressed', /.*/);
       await expect(page.locator('[data-test="marcador-clasico"]')).toHaveText('Hoy 0/0');
       await expect(page.locator('[data-test="marcador-repaso"]')).toHaveText('Al día');
-      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Fondo 1.000');
       await expect(page.locator('[data-test="marcador-masomenos"]')).toHaveText('Sin récord');
       await expect(page.locator('[data-test="marcador-contrarreloj"]')).toHaveText('Sin marca');
       await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 0');
@@ -6861,6 +6861,13 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
     await expect(page.locator('[data-test="ficha-10"]')).toContainText('100');
     await expect(page.locator('[data-test="ficha-ordago"]')).toContainText('1.000');
+    // Cada ficha enseña lo que cobraría al acertar: apuesta × multiplicador REAL de la pregunta (nivel 3-5, sin dorada ni racha).
+    const nivelFicha = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel);
+    const esDoradaFicha = await page.locator('[data-test="ficha-10"]').innerText();
+    expect(esDoradaFicha).toMatch(/→ \+\d/);
+    const ganaFicha = Number((esDoradaFicha.match(/→ \+([\d.]+)/)[1]).replace(/\./g, ''));
+    expect([100 * (1 + (nivelFicha - 1) * 0.25), 100 * (1 + (nivelFicha - 1) * 0.25) * 3].map(Math.floor)).toContain(ganaFicha);
+    await expect(page.locator('[data-test="nivel-partida"]')).toBeHidden(); // el «Nivel N» de la partida clásica no contradice al de la pregunta
     await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
     expect(await page.evaluate(() => window.__one.ultimaPreguntaOrdago().nivel)).toBeGreaterThanOrEqual(3);
     await sinScrollEnAmbos(page);
@@ -7131,7 +7138,7 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
       const tarjeta = page.locator('[data-test="modo-ordago"]');
       await expect(tarjeta).not.toHaveAttribute('aria-disabled', 'true');
       await expect(tarjeta).not.toContainText('Pronto');
-      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Fondo 1.000');
       await expect(tarjeta.locator('[data-test="curva-ordago"] polyline')).toHaveCount(1);
       await assertSinScroll(page);
       // Tras ganar, la tarjeta enseña el fondo nuevo y la curva sigue ahí.
@@ -7141,7 +7148,7 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
       await page.evaluate(() => window.__one.acertarPreguntaOrdago());
       const fondo = await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago')).fondo);
       await page.locator('[data-test="volver"]').click();
-      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText(String(fondo).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
+      await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Fondo ' + String(fondo).replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
       const puntos = await tarjeta.locator('[data-test="curva-ordago"] polyline').getAttribute('points');
       expect(puntos.split(' ').length).toBe(2); // [1000, fondo]
       await assertSinScroll(page);
@@ -7150,7 +7157,7 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
 
   test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante la ronda y la tarjeta del hub enseña el fondo', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('1.000');
+    await expect(page.locator('[data-test="marcador-ordago"]')).toHaveText('Fondo 1.000');
     await entrarEnModo(page, 'ordago');
     await page.evaluate(() => window.__one.simularTandaLista({ ids: ['zz-1'], corto: 'Historia' }));
     await expect(page.locator('[data-test="aviso-generadas"]')).toBeHidden();
@@ -8147,12 +8154,13 @@ test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
     }
     expect(await tipoOrdago(page)).toBe('test4');
     const barra = page.locator('[data-test="ordago-comodines"]');
+    await expect(barra).toBeHidden(); // con las fichas en pantalla la barra aún no está: aparece con las opciones
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
     await expect(barra.locator('button')).toHaveCount(2); // 50/50 + Salvavidas
     await sinScrollEnAmbos(page);
     await barra.locator('[data-test="comodin-cincuenta"]').click({ clickCount: 2 });
     expect((await mochila(page)).cincuenta).toBe(0);
-    await esperarAntirrebote(page);
-    await page.locator('[data-test="ficha-10"]').click();
     await expect(page.locator('[data-test="ordago-opciones"] button:visible')).toHaveCount(2);
     const cajas = await page.locator('[data-test="ordago-opciones"] button:visible').evaluateAll((bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return { izq: r.left, der: r.right, abajo: r.bottom }; }));
     expect(cajas[0].izq).toBe(cajas[1].izq); // las 2 que quedan, en una columna: ocupan el hueco de las ocultas

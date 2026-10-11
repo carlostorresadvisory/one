@@ -17,7 +17,7 @@ import {
   AREAS,
 } from './motor.js';
 import { construirVisual, esVisualImprescindible, medirAncho } from './visuales.js';
-import { creditoTexto, cargarImagenesMalas, guardarImagenesMalas, esImagenValida } from './foto-pregunta.js';
+import { creditoTexto, cargarImagenesMalas, guardarImagenesMalas, esImagenValida, esPaginaSegura } from './foto-pregunta.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -269,6 +269,7 @@ const nodoFiltroCortoPista = document.querySelector('[data-test="filtro-corto-pi
 // guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
 let modoActual = 'clasico';
 // El feed de lectura (vista `repaso`) NO es un modo: es la continuación del resumen, sin chip.
+const NIVEL_OCULTO_EN = ['ordago', 'quiebra', 'contrarreloj', 'caida', 'cofre'];
 const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra', 'contrarreloj', 'caida', 'cofre', 'masomenos'];
 // `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
@@ -490,6 +491,9 @@ function actualizarCabecera() {
   nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
   nodoRacha.hidden = vistaActual() === 'masomenos'; // Más o menos lleva su propia llama de racha: una sola en la cabecera
   nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
+  // Órdago y Contrarreloj sirven preguntas de nivel 3-5 por su cuenta: el «Nivel N» de la partida clásica
+  // contradiría al de la pregunta que se ve, así que ahí no se enseña.
+  nodoNivelPartida.hidden = NIVEL_OCULTO_EN.includes(vistaActual());
   const enModo = VISTAS_DE_MODO.includes(vistaActual());
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
   nodoLogo.hidden = enModo;
@@ -3269,7 +3273,7 @@ function construirAtribucionImagen(datos) {
   // con IA»; el mismo texto en Clásico, Repaso y los modos con foto. Con página de origen, el texto
   // es el enlace; una imagen de IA no tiene a dónde enlazar.
   const texto = creditoTexto(datos);
-  if (!datos.pagina) {
+  if (!esPaginaSegura(datos.pagina)) {
     p.textContent = texto;
     return p;
   }
@@ -4661,12 +4665,12 @@ document.querySelector('[data-test="creditos-cerrar"]').addEventListener('click'
 document.addEventListener('keydown', (ev) => {
   if (ev.key === 'Escape') cerrarCreditos();
 });
-// iOS: el AudioContext solo arranca si su resume() se inicia dentro de un gesto. Se reintenta en
-// cada gesto hasta que corre; después los oyentes se quitan solos.
+// iOS: el AudioContext solo arranca si su resume() se inicia dentro de un gesto, y el sistema lo vuelve
+// a dejar en `suspended` o `interrupted` al bloquear la pantalla, cambiar de app o recibir una
+// llamada. Por eso los oyentes NO se quitan nunca: con el contexto corriendo `desbloquear` sale al
+// instante (no cuesta nada) y, si el sistema lo interrumpe, el siguiente gesto lo reanuda.
 function alPrimerGesto(e) {
-  if (sonido.desbloquear(e.type)) {
-    ['pointerdown', 'keydown', 'touchend'].forEach((tipo) => document.removeEventListener(tipo, alPrimerGesto, true));
-  }
+  sonido.desbloquear(e.type);
 }
 ['pointerdown', 'keydown', 'touchend'].forEach((tipo) => document.addEventListener(tipo, alPrimerGesto, true));
 // Chip "N preguntas nuevas · Jugar" (v0.2b4 §3): arranca la partida con ellas. Sin ids utilizables

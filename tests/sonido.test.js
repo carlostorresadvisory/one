@@ -184,3 +184,15 @@ test('diagnostico: sin motor registra el intento (H2), un resume rechazado guard
   d.intentos.length = 0; // es una copia
   assert.equal(sonido.diagnostico().intentos.length, 20);
 });
+
+test('audio iOS: un contexto «interrupted» (pantalla bloqueada, llamada) también se reanuda en el siguiente gesto', async () => {
+  const motor = motorFalso({ estado: 'running' });
+  const sonido = crearSonido({ almacen: almacenFalso(), cargarMotor: async () => motor.modulo });
+  await sonido.precargar();
+  assert.equal(sonido.desbloquear(), true);
+  assert.equal(motor.contexto.reanudaciones, 0, 'corriendo: no se reanuda de nuevo');
+  motor.contexto.state = 'interrupted'; // iOS lo interrumpe al volver de segundo plano
+  assert.equal(sonido.desbloquear('pointerdown'), true);
+  assert.equal(motor.contexto.reanudaciones, 1);
+  assert.equal(sonido.estadoContexto(), 'running');
+});

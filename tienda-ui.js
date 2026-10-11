@@ -50,10 +50,12 @@ export function montarTienda(contenedor, deps) {
     const acciones = crear(documento, 'div', 'tienda-objeto-acciones');
     const botonComprar = crear(documento, 'button', 'boton tienda-boton', `Comprar · ${formatearCifra(objeto.precio)}`);
     botonComprar.setAttribute('type', 'button');
+    botonComprar.setAttribute('aria-label', `Comprar ${objeto.nombre} por ${formatearCifra(objeto.precio)}`);
     botonComprar.setAttribute('data-test', `tienda-comprar-${objeto.id}`);
     botonComprar.addEventListener('click', () => operar('comprar', objeto));
     const botonVender = crear(documento, 'button', 'boton tienda-boton', `Vender · ${formatearCifra(Math.floor(objeto.precio / 2))}`);
     botonVender.setAttribute('type', 'button');
+    botonVender.setAttribute('aria-label', `Vender ${objeto.nombre} por ${formatearCifra(Math.floor(objeto.precio / 2))}`);
     botonVender.setAttribute('data-test', `tienda-vender-${objeto.id}`);
     botonVender.addEventListener('click', () => operar('vender', objeto));
     acciones.append(botonComprar, botonVender);

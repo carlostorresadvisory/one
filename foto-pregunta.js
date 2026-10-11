@@ -126,12 +126,18 @@ export function guardarImagenesMalas(ids, almacen) {
   }
 }
 
+/** ¿Se puede enlazar a esta página de origen? Solo https (nada de javascript:, data: ni http). */
+export function esPaginaSegura(pagina) {
+  return typeof pagina === 'string' && /^https:\/\//.test(pagina);
+}
+
 /** ¿Es una `imagen` que el servidor puede mandar? URL https (Commons y bancos) o una WebP propia del
  * servidor (`/imagenes/<id>.webp`); los demás campos, si están, son texto corto o nota 1-5. */
 export function esImagenValida(imagen) {
   if (!imagen || typeof imagen !== 'object' || Array.isArray(imagen)) return false;
   const urlBuena = typeof imagen.url === 'string' && imagen.url.length <= 600 && (/^https:\/\//.test(imagen.url) || /^\/imagenes\/[\w-]{1,64}\.webp$/.test(imagen.url));
   if (!urlBuena) return false;
+  if (imagen.pagina !== undefined && imagen.pagina !== null && !esPaginaSegura(imagen.pagina)) return false;
   for (const campo of ['pagina', 'titulo', 'autor', 'licencia', 'fuente']) {
     const v = imagen[campo];
     if (v !== undefined && v !== null && (typeof v !== 'string' || v.length > 400)) return false;
