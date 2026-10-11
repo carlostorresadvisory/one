@@ -8,12 +8,13 @@ import { CLAVE_MOCHILA } from '../mochila.js';
 import { CLAVE_SILENCIO } from '../sonido.js';
 import { CLAVE_ORDAGO, cargarOrdago, crearOrdago } from '../ordago.js';
 import { CLAVE_CONTRARRELOJ, cargarRecords, crearRecords } from '../contrarreloj.js';
+import { CLAVE_MASOMENOS, cargarMasomenos, crearEstadoMasomenos, olvidarMemoria } from '../masomenos.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 
 const HOY = '2026-10-05';
 
 test('CLAVES_RESPALDO: las claves de v0.3 de estas fases', () => {
-  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas']);
+  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas', 'one.masomenos']);
 });
 
 test('CLAVES_RESPALDO incluye las claves que usan mochila.js y sonido.js (test cruzado)', () => {
@@ -135,4 +136,17 @@ test('Review Focus 4: un respaldo v3 con one.filtros que trae apuesta importa si
   aplicarModos(r.modos, almacen);
   assert.equal(filtroDeModo('ordago', almacen).area, 'historia');
   assert.ok(!('apuesta' in JSON.parse(almacen.getItem('one.filtros'))));
+});
+
+test('Review Focus 4: one.masomenos viaja en el respaldo y, con números absurdos, se normaliza sin lanzar', () => {
+  assert.ok(CLAVES_RESPALDO.includes(CLAVE_MASOMENOS));
+  const bueno = JSON.stringify({ version: 1, variante: 'afinar', comparar: { racha: 2, record: 9 }, afinar: { racha: 0, record: 4 } });
+  const ida = importarRespaldo(exportarRespaldo(crearEstado(HOY), almacenFalso({ 'one.masomenos': bueno })));
+  assert.deepEqual(ida.modos, { 'one.masomenos': bueno });
+  const absurdo = JSON.stringify({ variante: 'x', comparar: { racha: 1e99, record: -3 }, afinar: 'no' });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.masomenos': absurdo } });
+  const almacen = almacenFalso();
+  aplicarModos(importarRespaldo(json).modos, almacen);
+  olvidarMemoria();
+  assert.deepEqual(cargarMasomenos(almacen), crearEstadoMasomenos());
 });
