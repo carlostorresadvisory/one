@@ -17,6 +17,7 @@ import { montarEscenaFotos, montarLineaTemporal } from './escala.js';
 import { montarFotoPregunta, creditoTexto, reintentarImagen } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
 import { sortearObjeto, OBJETOS, cargarMochila } from './mochila.js';
+import { crearSaberMas, cerrarSaberMas, promptComparar, promptAfinar } from './saber-mas.js';
 import { montarComodines, gastarComodin } from './comodines-ui.js';
 import { MS_ANTIREBOTE } from './ordago-ui.js';
 
@@ -157,6 +158,7 @@ export function montarMasomenos(contenedor, deps) {
   }
 
   function vaciar() {
+    cerrarSaberMas();
     ronda?.comodines?.destruir();
     limpiarRonda();
     limpiarRonda = () => {};
@@ -223,6 +225,13 @@ export function montarMasomenos(contenedor, deps) {
     escuchar(siguiente, 'click', () => { if (libre()) onSiguiente(); });
     fila.append(t, siguiente);
     return fila;
+  }
+
+  /** «Saber +» al pie del panel de resultado, con el prompt de cifras de la ronda. */
+  function huecoSaberMas(prompt) {
+    const hueco = crear(documento, 'div', 'saber-mas-hueco');
+    hueco.appendChild(crearSaberMas({ prompt, documento }).elemento);
+    return hueco;
   }
 
   // --- COMPARAR -----------------------------------------------------------------------------------------------
@@ -326,6 +335,7 @@ export function montarMasomenos(contenedor, deps) {
       n.setAttribute('data-test', 'mm-nota');
       panel.appendChild(n);
     }
+    panel.appendChild(huecoSaberMas(promptComparar(cima, fondo)));
     nodos.mando.replaceChildren(panel);
 
     // Las categorías de tamaño reutilizan la revelación a escala de Afinar: las dos fotos a su tamaño verdadero.
@@ -496,6 +506,7 @@ export function montarMasomenos(contenedor, deps) {
       n.setAttribute('data-test', 'mm-nota');
       panel.appendChild(n);
     }
+    panel.appendChild(huecoSaberMas(promptAfinar(mis, estimado)));
     nodos.mando.replaceChildren(panel);
   }
 

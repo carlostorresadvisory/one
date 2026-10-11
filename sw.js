@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v33';
+const CACHE = 'one-v34';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -18,7 +18,7 @@ const CACHE = 'one-v33';
 // tolerante: que falte un icono no debe tumbar la app.
 const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
-  'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js',
+  'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js', 'saber-mas.js',
   'ordago.js', 'ordago-ui.js', 'foto-pregunta.js', 'contrarreloj.js', 'contrarreloj-ui.js',
   'masomenos.js', 'masomenos-ui.js', 'escala.js', 'comodines-ui.js', 'tienda-ui.js', 'premium.js', 'premium-ui.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',

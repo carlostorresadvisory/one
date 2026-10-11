@@ -51,6 +51,7 @@ import { esJugableContrarreloj, candidatasDeRampa, cargarRecords as cargarRecord
 import { montarContrarreloj } from './contrarreloj-ui.js';
 import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
 import { montarMasomenos } from './masomenos-ui.js';
+import { crearSaberMas, promptPregunta } from './saber-mas.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { montarTienda } from './tienda-ui.js';
 import { montarPremium } from './premium-ui.js';
@@ -3076,74 +3077,6 @@ function formatearFechaCorta(fechaISO) {
   return `${dia} ${MESES_CORTOS[mes - 1]}`;
 }
 
-/** Respuesta correcta como texto (para el repaso del resumen y el prompt de
- * "Preguntar a"). */
-function respuestaCorrectaTexto(pregunta) {
-  switch (pregunta.tipo) {
-    case 'vf':
-      return pregunta.respuesta ? 'Verdadero' : 'Falso';
-    case 'test4':
-      return pregunta.opciones[pregunta.correcta];
-    case 'ordenar':
-      return pregunta.items.join(' → ');
-    case 'error':
-      return pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta;
-    default:
-      return '';
-  }
-}
-
-// ============================================================================
-// --- "Preguntar a" (spec v0.1c §5): fila de 3 enlaces que abren ChatGPT,
-// Claude y Gemini (vía el modo IA de Google, la app gemini.google.com no lee
-// la URL) con el mismo prompt precargado, para profundizar en una pregunta ya
-// respondida. Los tres LEEN el prompt de la URL (probado en vivo el 12-sep):
-// sin plan B de portapapeles. Se inserta en el ancla vacía
-// [data-test="preguntar-a"] de construirTarjetaRespondida (partida y repaso).
-// ============================================================================
-
-const DESTINOS_PREGUNTAR_A = [
-  { clave: 'chatgpt', nombre: 'ChatGPT', url: (q) => `https://chatgpt.com/?q=${q}` },
-  { clave: 'claude', nombre: 'Claude', url: (q) => `https://claude.ai/new?q=${q}` },
-  { clave: 'gemini', nombre: 'Gemini', url: (q) => `https://www.google.com/search?udm=50&q=${q}` },
-];
-
-/** Prompt en español, literal de la spec v0.1d §5 (feedback de Carlos: "el
- * prompt no lo limites tanto, que sea constructivo"): sin tope de palabras,
- * pide mecanismo/porqué, contexto, actualidad, un dato memorable, que
- * corrija la explicación si le falta algo y que proponga 2-3 preguntas más. */
-function construirPromptPreguntarA(pregunta) {
-  return `Estoy aprendiendo con una app de preguntas. Pregunta: «${pregunta.enunciado}». Respuesta correcta: «${respuestaCorrectaTexto(pregunta)}». Explicación que me dio la app: «${pregunta.explicacion}». Ayúdame a entenderlo de verdad: explícame el mecanismo o el porqué de fondo, sitúalo en su contexto (histórico, económico o científico, según toque), dime por qué importa hoy y cómo se relaciona con la actualidad, dame un dato o una anécdota memorable para recordarlo y conversar sobre ello, corrige o matiza la explicación si crees que le falta algo, apóyate en algo visual siempre que ayude (un esquema en texto, una tabla comparativa, una línea de tiempo o una fórmula sencilla), y termina proponiéndome dos o tres preguntas para seguir profundizando. En español.`;
-}
-
-/** Fila "Preguntar a:" (spec v0.2a.2.1 §1.2.2): chips pequeños de SOLO TEXTO. Los iconos SVG de
- * 44×44 con el nombre debajo (v0.1d §5) ocupaban ~64px de alto en una zona de acción que ahora
- * tiene un tope duro del 25 % de la tarjeta para que la visual pueda llegar a su 50 % real. La
- * URL, el `data-test` y el `aria-label` de cada destino no cambian: los e2e que los usan siguen
- * valiendo tal cual. */
-function construirPreguntarA(pregunta) {
-  const frag = document.createDocumentFragment();
-
-  const etiqueta = document.createElement('span');
-  etiqueta.className = 'preguntar-a-etiqueta';
-  etiqueta.textContent = 'Preguntar a:';
-  frag.appendChild(etiqueta);
-
-  const prompt = encodeURIComponent(construirPromptPreguntarA(pregunta));
-  for (const destino of DESTINOS_PREGUNTAR_A) {
-    const enlace = document.createElement('a');
-    enlace.className = 'preguntar-a-chip';
-    enlace.dataset.test = `preguntar-${destino.clave}`;
-    enlace.href = destino.url(prompt);
-    enlace.target = '_blank';
-    enlace.rel = 'noopener';
-    enlace.setAttribute('aria-label', `Preguntar a ${destino.nombre}`);
-    enlace.textContent = destino.nombre;
-    frag.appendChild(enlace);
-  }
-  return frag;
-}
-
 /** Construye (o repinta, si se le pasa un nodo ya existente) el bloque de
  * resultado + chips: resultado ("✓ +N XP" / "✗ Incorrecto"), combo, cambio de
  * nivel, chips (Recuperada/Estabas seguro/Misión completada/Frágil). */
@@ -3787,8 +3720,8 @@ function abrirAbrible(el) {
  * línea (para tarjeta--compacta-1) y feedback (con la explicación). La zona
  * de acción (spec v0.2a.2.1 §1.2, tope duro del 25 % de la tarjeta) vive
  * fuera de `.tarjeta-contenido` y lleva, de arriba abajo: la fila de
- * confianza (salvo soloLectura), "Preguntar a" en chips de texto con la
- * flecha ↓ de 36px pegada a la derecha (construirPreguntarA) y, salvo
+ * confianza (salvo soloLectura), "Saber +" (saber-mas.js) con la
+ * flecha ↓ de 36px pegada a la derecha y, salvo
  * soloLectura, "esta pregunta está mal" en su propia línea. Único toque
  * permitido en esta tarjeta, aparte de esos controles: ninguno — spec v0.1d
  * §3/§4 (Carlos, 13-sep 10:15) quita toda alternancia de despliegue/plegado,
@@ -3869,10 +3802,10 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
 
   if (!soloLectura) zonaAccion.appendChild(construirFilaConfianza(hueco));
 
-  const anclaPreguntarA = document.createElement('div');
-  anclaPreguntarA.className = 'preguntar-a';
-  anclaPreguntarA.dataset.test = 'preguntar-a';
-  anclaPreguntarA.appendChild(construirPreguntarA(pregunta));
+  const filaSaberMas = document.createElement('div');
+  filaSaberMas.className = 'saber-mas-fila';
+  filaSaberMas.dataset.test = 'saber-mas-fila';
+  filaSaberMas.appendChild(crearSaberMas({ prompt: promptPregunta(pregunta) }).elemento);
 
   // Flecha ↓ en vez del botón "Siguiente ›" (spec §1.2.3): apunta hacia ABAJO porque ese es el
   // sentido del desplazamiento del mazo. Conserva `data-test="siguiente"` a propósito, para no
@@ -3885,9 +3818,9 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   flecha.setAttribute('aria-label', 'Siguiente');
   flecha.textContent = '↓';
   flecha.addEventListener('click', soloLectura ? avanzarMazoVisible : irASiguienteHueco);
-  anclaPreguntarA.appendChild(flecha);
+  filaSaberMas.appendChild(flecha);
 
-  zonaAccion.appendChild(anclaPreguntarA);
+  zonaAccion.appendChild(filaSaberMas);
 
   if (!soloLectura) {
     // "esta pregunta está mal" queda como enlace discreto de 12px en su PROPIA línea bajo los
@@ -4240,7 +4173,7 @@ function textoDiasDesde(dias) {
 }
 
 /** Una tarjeta de repaso: la MISMA tarjeta respondida (construirTarjetaRespondida,
- * soloLectura: sin confianza ni Siguiente, con "Preguntar a" ya relleno), con
+ * soloLectura: sin confianza ni Siguiente, con "Saber +" ya relleno), con
  * una marca fundida en la misma línea de la cabecera de área/nivel (spec §8,
  * ver `marca` en construirCabeceraPregunta). Sirve a TRES
  * orígenes, distinguidos por `item.estadoRepaso`:

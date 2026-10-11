@@ -21,6 +21,14 @@ async function esperarAvisoTrasEspera(page, timeout) {
 
 /** Ninguna vista debe hacer scroll (spec "que se note" 12-sep): la .vista activa
  * debe caber entera en su alto visible. */
+/** «Saber +» (v0.3.2): abre el panel del botón dado y devuelve el panel (vive en document.body, no en la tarjeta). */
+async function abrirSaberMas(page, dentro = page) {
+  await dentro.locator('[data-test="saber-mas"]').first().click();
+  const menu = page.locator('[data-test="saber-mas-menu"]');
+  await expect(menu).toBeVisible();
+  return menu;
+}
+
 async function assertSinScroll(page) {
   const medidas = await page.evaluate(() => {
     const vista = document.querySelector('.vista:not([hidden])');
@@ -679,7 +687,7 @@ test.describe('ONE · integración e2e', () => {
     await page.screenshot({ path: `${CAPTURAS}/v0.1c-repaso-cifras.png` });
 
     // v0.1c §5/§6: deslizar (ArrowUp) a la primera tarjeta de repaso y
-    // comprobar sus 3 enlaces "Preguntar a" — contienen el prompt de ESTA
+    // comprobar sus 3 enlaces de «Saber +» — contienen el prompt de ESTA
     // pregunta ya codificado en la URL (se compara contra la explicación
     // mostrada, un campo del banco que no cambia de un tipo de pregunta a
     // otro, a diferencia del enunciado en las de tipo "error" genéricas) y el
@@ -693,9 +701,10 @@ test.describe('ONE · integración e2e', () => {
 
     const explicacionFallada = ((await tarjetaRepaso1.locator('[data-test="explicacion"]').textContent()) || '').trim();
     expect(explicacionFallada.length).toBeGreaterThan(0);
-    const hrefChatgpt = await tarjetaRepaso1.locator('[data-test="preguntar-chatgpt"]').getAttribute('href');
-    const hrefClaude = await tarjetaRepaso1.locator('[data-test="preguntar-claude"]').getAttribute('href');
-    const hrefGemini = await tarjetaRepaso1.locator('[data-test="preguntar-gemini"]').getAttribute('href');
+    const menuRepaso1 = await abrirSaberMas(page, tarjetaRepaso1);
+    const hrefChatgpt = await menuRepaso1.locator('[data-test="preguntar-chatgpt"]').getAttribute('href');
+    const hrefClaude = await menuRepaso1.locator('[data-test="preguntar-claude"]').getAttribute('href');
+    const hrefGemini = await menuRepaso1.locator('[data-test="preguntar-gemini"]').getAttribute('href');
     expect(hrefChatgpt.startsWith('https://chatgpt.com/?q=')).toBe(true);
     expect(hrefClaude.startsWith('https://claude.ai/new?q=')).toBe(true);
     expect(hrefGemini.startsWith('https://www.google.com/search?udm=50&q=')).toBe(true);
@@ -703,9 +712,11 @@ test.describe('ONE · integración e2e', () => {
       expect(decodeURIComponent(href)).toContain(explicacionFallada);
     }
     for (const destino of ['chatgpt', 'claude', 'gemini']) {
-      await expect(tarjetaRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('target', '_blank');
-      await expect(tarjetaRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('rel', 'noopener');
+      await expect(menuRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('target', '_blank');
+      await expect(menuRepaso1.locator(`[data-test="preguntar-${destino}"]`)).toHaveAttribute('rel', 'noopener');
     }
+    await page.keyboard.press('Escape');
+    await expect(menuRepaso1).toHaveCount(0);
     await page.screenshot({ path: `${CAPTURAS}/v0.1c-repaso-tarjeta.png` });
 
     // Seguir deslizando hasta la tarjeta final (spec v0.1c §6): "Otra partida"
@@ -859,9 +870,11 @@ test.describe('ONE · integración e2e', () => {
     await expect(tarjetaRepaso430).toBeVisible();
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
-    await expect(tarjetaRepaso430.locator('[data-test="preguntar-chatgpt"]')).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
-    await expect(tarjetaRepaso430.locator('[data-test="preguntar-claude"]')).toHaveAttribute('href', /^https:\/\/claude\.ai\/new\?q=/);
-    await expect(tarjetaRepaso430.locator('[data-test="preguntar-gemini"]')).toHaveAttribute('href', /udm=50/);
+    const menuRepaso430 = await abrirSaberMas(page, tarjetaRepaso430);
+    await expect(menuRepaso430.locator('[data-test="preguntar-chatgpt"]')).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
+    await expect(menuRepaso430.locator('[data-test="preguntar-claude"]')).toHaveAttribute('href', /^https:\/\/claude\.ai\/new\?q=/);
+    await expect(menuRepaso430.locator('[data-test="preguntar-gemini"]')).toHaveAttribute('href', /udm=50/);
+    await page.keyboard.press('Escape');
 
     const final430 = await recorrerRepasoHastaFinal(page);
     await final430.locator('[data-test="otra-partida"]').click();
@@ -2377,12 +2390,12 @@ test.describe('ONE · repaso v0.2a', () => {
 
     /** Sin resize ni más interacción que la mínima para hacer "actual" la
      * tarjeta a comprobar: la explicación no debe solapar la fila
-     * "Preguntar a" (C1). */
+     * de «Saber +» (C1). */
     async function comprobarSinSolape() {
       await assertTarjetaSinScroll(page);
       const actual = tarjetaActual(page);
       const explicacion = actual.locator('[data-test="explicacion"]');
-      const preguntarA = actual.locator('[data-test="preguntar-a"]');
+      const preguntarA = actual.locator('[data-test="saber-mas-fila"]');
       await expect(explicacion).toBeVisible();
       await expect(preguntarA).toBeVisible();
       const cajaExplicacion = await explicacion.boundingBox();
@@ -2390,7 +2403,7 @@ test.describe('ONE · repaso v0.2a', () => {
       const explicacionAbajo = cajaExplicacion.y + cajaExplicacion.height;
       expect(
         explicacionAbajo,
-        `La explicación (bottom ${explicacionAbajo.toFixed(1)}) solapa "Preguntar a" (top ${cajaPreguntarA.y.toFixed(1)})`
+        `La explicación (bottom ${explicacionAbajo.toFixed(1)}) solapa "Saber +" (top ${cajaPreguntarA.y.toFixed(1)})`
       ).toBeLessThanOrEqual(cajaPreguntarA.y + 1);
     }
 
@@ -5576,18 +5589,17 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     expect(cajaFlecha.height).toBeGreaterThanOrEqual(34);
     expect(cajaFlecha.height).toBeLessThanOrEqual(40);
 
-    // 3. Chips de solo texto, ≤32px de alto, en la MISMA fila que la flecha y a su izquierda.
-    const chip = t.locator('[data-test="preguntar-chatgpt"]');
-    await expect(chip).toHaveText('ChatGPT');
-    await expect(chip).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=/);
+    // 3. «Saber +» (píldora de ≥44px), en la MISMA fila que la flecha y a su izquierda.
+    const chip = t.locator('[data-test="saber-mas"]');
+    await expect(chip).toContainText('Saber +');
     const cajaChip = await chip.boundingBox();
-    expect(cajaChip.height).toBeLessThanOrEqual(32);
+    expect(cajaChip.height).toBeGreaterThanOrEqual(44);
     expect(Math.abs(cajaChip.y + cajaChip.height / 2 - (cajaFlecha.y + cajaFlecha.height / 2))).toBeLessThan(10);
     expect(cajaChip.x).toBeLessThan(cajaFlecha.x);
 
     // 4. La confianza está POR ENCIMA de "Preguntar a" en el eje Y, y dentro de .tarjeta-accion.
     const cajaConfianza = await t.locator('[data-test="confianza"]').boundingBox();
-    const cajaPreguntar = await t.locator('[data-test="preguntar-a"]').boundingBox();
+    const cajaPreguntar = await t.locator('[data-test="saber-mas-fila"]').boundingBox();
     expect(cajaConfianza.y + cajaConfianza.height).toBeLessThanOrEqual(cajaPreguntar.y + 2);
     const confianzaEnAccion = await t.evaluate((tarjeta) => {
       const fila = tarjeta.querySelector('.confianza-fila');
@@ -5627,7 +5639,7 @@ test.describe('ONE · zona de acción v0.2a.2.1 (§1.2)', () => {
     await esperarAsentamientoMazo(page);
 
     const t = tarjetaActual(page);
-    await expect(t.locator('[data-test="preguntar-chatgpt"]')).toBeVisible();
+    await expect(t.locator('[data-test="saber-mas"]')).toBeVisible();
     await expect(t.locator('[data-test="confianza"]')).toHaveCount(0);
     await expect(t.locator('[data-test="esta-mal"]')).toHaveCount(0);
 
@@ -8634,5 +8646,138 @@ test.describe('ONE · v0.3.1 Contrarreloj con rampa y Premium', () => {
     await entrarEnModo(page, 'contrarreloj');
     await page.locator('[data-test="filtro-corto-generar"]').click();
     await expect.poll(() => peticiones.length).toBe(1);
+  });
+});
+
+test.describe('ONE · v0.3.2 «Saber +» en todos los modos', () => {
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+
+  /** Con el botón visible: abrirlo enseña tres enlaces con su href, el panel cabe en la ventana con ≥ 8 px de
+   * margen y no se mueve el scroll; tocar fuera (`fuera`) lo cierra sin hacer lo que hacía ese toque
+   * (`intacto` lo comprueba). `capturas` (opcional) guarda el cerrado y el abierto. */
+  async function comprobarSaberMas(page, { fuera, intacto, capturas = null }) {
+    const boton = page.locator('[data-test="saber-mas"]:visible').first();
+    await expect(boton).toBeVisible();
+    await expect(boton).toContainText('Saber +');
+    expect((await boton.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await expect(page.locator('[data-test="saber-mas-menu"]')).toHaveCount(0);
+    const scrollAntes = await page.evaluate(() => [document.scrollingElement.scrollHeight, document.scrollingElement.scrollTop]);
+    if (capturas) await page.screenshot({ path: `${CAPTURAS}/v0.3.2-saber-mas-${capturas}-cerrado.png` });
+    await boton.click();
+    const menu = page.locator('[data-test="saber-mas-menu"]');
+    await expect(menu).toBeVisible();
+    await expect(boton).toHaveAttribute('aria-expanded', 'true');
+    await expect(menu.locator('a')).toHaveCount(3);
+    await expect(menu.locator('[data-test="preguntar-chatgpt"]')).toHaveAttribute('href', /^https:\/\/chatgpt\.com\/\?q=./);
+    await expect(menu.locator('[data-test="preguntar-claude"]')).toHaveAttribute('href', /^https:\/\/claude\.ai\/new\?q=./);
+    await expect(menu.locator('[data-test="preguntar-gemini"]')).toHaveAttribute('href', /^https:\/\/www\.google\.com\/search\?udm=50&q=./);
+    const caja = await menu.boundingBox();
+    const vp = page.viewportSize();
+    expect(caja.y).toBeGreaterThanOrEqual(8);
+    expect(caja.x).toBeGreaterThanOrEqual(8);
+    expect(caja.y + caja.height).toBeLessThanOrEqual(vp.height - 8);
+    expect(caja.x + caja.width).toBeLessThanOrEqual(vp.width - 8);
+    expect(await page.evaluate(() => [document.scrollingElement.scrollHeight, document.scrollingElement.scrollTop])).toEqual(scrollAntes);
+    if (capturas) await page.screenshot({ path: `${CAPTURAS}/v0.3.2-saber-mas-${capturas}-abierto.png` });
+    await fuera.click();
+    await expect(menu).toHaveCount(0);
+    await expect(boton).toHaveAttribute('aria-expanded', 'false');
+    await intacto();
+    // Escape también cierra y devuelve el foco al botón.
+    await boton.click();
+    await expect(menu).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(boton).toBeFocused();
+  }
+
+  test('Clásico y Repaso: tras responder, «Saber +» abre tres enlaces y el toque fuera no avanza', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.locator('[data-test="modo-clasico"]').click();
+    await responderPreguntaActual(page);
+    await esperarAsentamientoMazo(page);
+    const indice = await tarjetaActual(page).getAttribute('data-indice');
+    await comprobarSaberMas(page, {
+      fuera: tarjetaActual(page).locator('[data-test="siguiente"]'),
+      intacto: async () => { expect(await tarjetaActual(page).getAttribute('data-indice')).toBe(indice); },
+      capturas: 'clasico',
+    });
+    // Repaso (soloLectura): el mismo botón.
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await abrirFeedRepaso(page);
+    await esperarAsentamientoMazo(page);
+    const indiceRepaso = await tarjetaActual(page).getAttribute('data-indice');
+    await comprobarSaberMas(page, {
+      fuera: tarjetaActual(page).locator('[data-test="siguiente"]'),
+      intacto: async () => { expect(await tarjetaActual(page).getAttribute('data-indice')).toBe(indiceRepaso); },
+    });
+  });
+
+  test('Órdago: bajo la explicación de la ronda revelada; el toque fuera no pasa de ronda', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
+    await page.evaluate(() => window.__one.acertarPreguntaOrdago());
+    await expect(page.locator('[data-test="ordago-resultado"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await comprobarSaberMas(page, {
+      fuera: page.locator('[data-test="ordago-siguiente"]'),
+      intacto: async () => { await expect(page.locator('[data-test="ordago-resultado"]')).toBeVisible(); },
+      capturas: 'ordago',
+    });
+  });
+
+  test('Contrarreloj: en «Has caído», no durante la serie', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    await expect(page.locator('[data-test="saber-mas"]:visible')).toHaveCount(0);
+    await esperarAntirrebote(page);
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-vista="caida"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await comprobarSaberMas(page, {
+      fuera: page.locator('[data-test="caida-reintentar"]'),
+      intacto: async () => { await expect(page.locator('[data-vista="caida"]')).toBeVisible(); },
+    });
+  });
+
+  test('Más o menos: Comparar y Afinar, con el prompt de cifras', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'masomenos');
+    await expect(page.locator('[data-test="mm-cuerpo"] > *').first()).toBeVisible();
+    await esperarAntirrebote(page);
+    const p = await page.evaluate(() => window.__one.parejaMasomenos());
+    await page.locator(`[data-test="mm-${p.abajo.valor > p.arriba.valor ? 'mas' : 'menos'}"]`).click();
+    await expect(page.locator('[data-test="mm-resultado-titulo"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await comprobarSaberMas(page, {
+      fuera: page.locator('[data-test="mm-siguiente"]'),
+      intacto: async () => { await expect(page.locator('[data-test="mm-resultado-titulo"]')).toBeVisible(); },
+    });
+    await page.locator('[data-test="saber-mas"]:visible').first().click();
+    const href = await page.locator('[data-test="preguntar-claude"]').getAttribute('href');
+    const prompt = decodeURIComponent(href.split('?q=')[1]);
+    expect(prompt).toContain('Comparación:');
+    expect(prompt).toContain(p.abajo.nombre);
+    await page.keyboard.press('Escape');
+
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await esperarAntirrebote(page);
+    await page.evaluate(() => window.__one.estimarMasomenos({ factor: 1.3 }));
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-real"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await comprobarSaberMas(page, {
+      fuera: page.locator('[data-test="mm-siguiente"]'),
+      intacto: async () => { await expect(page.locator('[data-test="mm-real"]')).toBeVisible(); },
+    });
   });
 });

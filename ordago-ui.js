@@ -15,6 +15,7 @@ import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
 import { cargarMochila, contarObjetos } from './mochila.js';
+import { crearSaberMas, cerrarSaberMas, promptPregunta } from './saber-mas.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -67,6 +68,7 @@ export function montarOrdago(contenedor, deps) {
   const nodoDelta = nodo('ordago-delta');
   const nodoAviso = nodo('ordago-aviso');
   const nodoExplicacion = nodo('ordago-explicacion');
+  const huecoSaberMas = nodo('ordago-saber-mas');
   const botonSiguiente = nodo('ordago-siguiente');
   const quiebra = deps.contenedorQuiebra;
   const nodoQuiebraMaximo = nodo('quiebra-maximo', quiebra);
@@ -141,6 +143,7 @@ export function montarOrdago(contenedor, deps) {
   }
 
   function nuevaRonda(cambiarVista = false) {
+    cerrarSaberMas();
     if (estado.fondo < 1) {
       mostrarQuiebra();
       return;
@@ -236,6 +239,7 @@ export function montarOrdago(contenedor, deps) {
     nodoExplicacion.textContent = `${salvavidas ? '🛟 Salvavidas: pierdes la mitad de la ficha y la racha sigue. ' : ''}Respuesta: ${textoRespuesta(pregunta)}. ${pregunta.explicacion}`;
     botonSiguiente.textContent = resultado.quiebra ? 'Continuar' : 'Siguiente';
     pintarMarcador(antes);
+    huecoSaberMas?.replaceChildren(crearSaberMas({ prompt: promptPregunta(pregunta), documento }).elemento);
     mostrar('resultado');
 
     if (correcta) deps.celebrarAcierto(nodoFoto, 'monedas');
@@ -291,6 +295,7 @@ export function montarOrdago(contenedor, deps) {
         }
       }
       fase = 'destruido';
+      cerrarSaberMas();
       botonSiguiente.removeEventListener('click', alSiguiente);
       botonFondoNuevo.removeEventListener('click', alFondoNuevo);
       botonVender?.removeEventListener('click', alVender);

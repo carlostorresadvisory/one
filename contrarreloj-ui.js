@@ -11,6 +11,7 @@ import {
   tiempoPreguntaMs, actualizarRecords, cargarRecords, guardarRecords,
 } from './contrarreloj.js';
 import { OBJETOS, cargarMochila } from './mochila.js';
+import { crearSaberMas, cerrarSaberMas, promptPregunta } from './saber-mas.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
@@ -52,6 +53,7 @@ export function montarContrarreloj(contenedor, deps) {
   const caida = deps.contenedorCaida;
   const nodoCaidaResumen = nodo('caida-resumen', caida);
   const nodoCaidaExplicacion = nodo('caida-explicacion', caida);
+  const huecoSaberMas = nodo('caida-saber-mas', caida);
   const botonReintentar = nodo('caida-reintentar', caida);
   const cofre = deps.contenedorCofre;
   const nodoCofreTitulo = nodo('cofre-titulo', cofre);
@@ -129,6 +131,7 @@ export function montarContrarreloj(contenedor, deps) {
   }
 
   function nuevaPregunta(cambiarVista = false) {
+    cerrarSaberMas();
     const pregunta = deps.elegirPregunta({ usados, ultima, enSerie, posicion: serie.indice + 1, doble: serie.fase === 'doble' });
     if (!pregunta) {
       fase = 'destruido';
@@ -232,6 +235,7 @@ export function montarContrarreloj(contenedor, deps) {
     const lugar = serie.fase === 'doble' ? 'del doble: pierdes el cofre' : `de ${N_SERIE}`;
     nodoCaidaResumen.textContent = `${tiempo ? 'Se acabó el tiempo. ' : ''}Caíste en la pregunta ${serie.indice + 1} ${lugar}.`;
     nodoCaidaExplicacion.textContent = `Respuesta: ${textoRespuesta(pregunta)}. ${pregunta.explicacion}`;
+    huecoSaberMas?.replaceChildren(crearSaberMas({ prompt: promptPregunta(pregunta), documento }).elemento);
     armar();
     deps.mostrarVista('caida');
   }
@@ -344,6 +348,7 @@ export function montarContrarreloj(contenedor, deps) {
       fase = 'destruido';
       deps.vigia?.parar();
       comodines?.destruir();
+      cerrarSaberMas();
       detenerReloj();
       detenerPausa();
       documento.removeEventListener('visibilitychange', alCambiarVisibilidad);
