@@ -32,18 +32,19 @@ const PREGUNTA_COMPARAR = {
   'superficie-pais': '¿Tiene más o menos superficie?',
   'pib-pais': '¿Tiene más o menos PIB?',
   'ano-obra': '¿Se pintó antes o después?',
-  'ano-hecho': '¿Ocurrió antes o después?',
+  'ano-hecho': '¿Fue antes o después?',
 };
+// El nombre va delante y la pregunta detrás: así no hace falta artículo («el Amur», «la Batalla de…»).
 const PREGUNTA_AFINAR = {
-  'altitud-montana': (n) => `¿Qué altitud tiene ${n}?`,
-  'altura-edificio': (n) => `¿Qué altura tiene ${n}?`,
-  'longitud-rio': (n) => `¿Cuánto mide ${n}?`,
-  'poblacion-pais': (n) => `¿Cuántos habitantes tiene ${n}?`,
-  'poblacion-ciudad': (n) => `¿Cuántos habitantes tiene ${n}?`,
-  'superficie-pais': (n) => `¿Qué superficie tiene ${n}?`,
-  'pib-pais': (n) => `¿Cuál es el PIB de ${n}?`,
-  'ano-obra': (n) => `¿En qué año se pintó ${n}?`,
-  'ano-hecho': (n) => `¿En qué año ocurrió ${n}?`,
+  'altitud-montana': (n) => `${n}: ¿qué altitud tiene?`,
+  'altura-edificio': (n) => `${n}: ¿qué altura tiene?`,
+  'longitud-rio': (n) => `${n}: ¿cuánto mide?`,
+  'poblacion-pais': (n) => `${n}: ¿cuántos habitantes tiene?`,
+  'poblacion-ciudad': (n) => `${n}: ¿cuántos habitantes tiene?`,
+  'superficie-pais': (n) => `${n}: ¿qué superficie tiene?`,
+  'pib-pais': (n) => `${n}: ¿cuál es su PIB?`,
+  'ano-obra': (n) => `${n}: ¿en qué año se pintó?`,
+  'ano-hecho': (n) => `${n}: ¿en qué año fue?`,
 };
 
 function crear(documento, etiqueta, clase, texto) {
@@ -51,6 +52,12 @@ function crear(documento, etiqueta, clase, texto) {
   nodo.className = clase;
   if (texto !== undefined) nodo.textContent = texto;
   return nodo;
+}
+
+/** Tamaño de la cifra de la tarjeta según lo larga que sea ya escrita (la oculta se mide con su valor real): sin partirla ni salirse. */
+export function tamanoValor(texto) {
+  const n = String(texto).length;
+  return n <= 11 ? 'normal' : n <= 17 ? 'medio' : 'largo';
 }
 
 /** Tres cifras significativas: la barra no pide precisión de unidades en un país de millones. */
@@ -68,7 +75,7 @@ export function diferenciaTexto(arriba, abajo) {
     const anos = Math.abs(Math.round(delta));
     return `${formatearValor(anos, 'x')} ${anos === 1 ? 'año' : 'años'} ${delta > 0 ? 'después' : 'antes'}`;
   }
-  return `${formatearValor(Math.abs(delta), abajo.categoria)} ${abajo.unidad} ${delta > 0 ? 'más' : 'menos'}`;
+  return `${valorConUnidad({ ...abajo, valor: Math.abs(delta) })} ${delta > 0 ? 'más' : 'menos'}`;
 }
 
 /**
@@ -98,6 +105,9 @@ export function montarMasomenos(contenedor, deps) {
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
   let generacionCuenta = 0;
+  // El récord se celebra una sola vez por racha: la primera vez que se supera (tras recargar a mitad de una racha en el
+  // récord no se puede saber si ya se celebró, y se celebra una vez más).
+  const recordCelebrado = { comparar: false, afinar: false };
   const oyentes = []; // [nodo, tipo, fn]: se quitan todos al destruir
   const escuchar = (n, tipo, fn) => { n.addEventListener(tipo, fn); oyentes.push([n, tipo, fn]); };
 
@@ -155,15 +165,18 @@ export function montarMasomenos(contenedor, deps) {
     estado = { ...r.estado, variante };
     guardarMasomenos(estado, deps.almacen);
     pintarMarcador();
+    const superaRecord = acierto && antes > 0 && estado[variante].record > antes;
     let premio = '';
     if (r.premio) {
       const id = sortearObjeto(rng, 'normal');
       deps.darObjetos([id]);
       premio = `Premio: ${OBJETOS[id].icono} ${OBJETOS[id].nombre}`;
       deps.celebrarPremio('cofre');
-    } else if (acierto && antes > 0 && estado[variante].record > antes) {
-      deps.pedirGesto('record'); // superar tu propio récord se celebra con la esfinge aunque no toque premio
+    } else if (superaRecord && !recordCelebrado[variante]) {
+      deps.pedirGesto('record'); // superar tu propio récord se celebra con la esfinge (una vez por racha) aunque no toque premio
     }
+    if (superaRecord || (acierto && antes === 0)) recordCelebrado[variante] = true; // sin récord previo no hay nada que superar
+    else if (!acierto) recordCelebrado[variante] = false; // la racha siguiente vuelve a poder celebrarlo
     return premio;
   }
 
@@ -181,7 +194,7 @@ export function montarMasomenos(contenedor, deps) {
     const siguiente = crear(documento, 'button', 'boton boton-principal mm-siguiente', 'Siguiente');
     siguiente.setAttribute('type', 'button');
     siguiente.setAttribute('data-test', 'mm-siguiente');
-    siguiente.addEventListener('click', () => { if (libre()) onSiguiente(); });
+    escuchar(siguiente, 'click', () => { if (libre()) onSiguiente(); });
     fila.append(t, siguiente);
     return fila;
   }
@@ -211,7 +224,7 @@ export function montarMasomenos(contenedor, deps) {
     velo.setAttribute('aria-hidden', 'true');
     const textos = crear(documento, 'div', 'mm-tarjeta-textos');
     const nombre = crear(documento, 'p', 'mm-tarjeta-nombre', cifra.nombre);
-    const valor = crear(documento, 'p', 'mm-tarjeta-valor', oculta ? '?' : valorConUnidad(cifra));
+    const valor = crear(documento, 'p', `mm-tarjeta-valor mm-tarjeta-valor--${tamanoValor(valorConUnidad(cifra))}`, oculta ? '?' : valorConUnidad(cifra));
     valor.setAttribute('data-test', oculta ? 'mm-valor-abajo' : 'mm-valor-arriba');
     textos.append(nombre, valor);
     raiz.append(velo, textos);
@@ -244,7 +257,7 @@ export function montarMasomenos(contenedor, deps) {
       const b = crear(documento, 'button', 'mm-boton', texto);
       b.setAttribute('type', 'button');
       b.setAttribute('data-test', `mm-${eleccion}`);
-      b.addEventListener('click', () => { if (libre()) resolverComparar(eleccion); });
+      escuchar(b, 'click', () => { if (libre()) resolverComparar(eleccion); });
       return b;
     };
     botones.append(crearBoton(textoMas, 'mas'), crearBoton(textoMenos, 'menos'));
@@ -300,7 +313,7 @@ export function montarMasomenos(contenedor, deps) {
     contenedorEscala.setAttribute('data-test', 'mm-escala');
     const formato = (v) => valorConUnidad({ ...fondo, valor: v });
     nodos.tarjetas.replaceChildren(contenedorEscala);
-    const escena = montarEscenaFotos(contenedorEscala, { ref: cima, misteriosa: fondo, modo, maxPx, formato, documento });
+    const escena = montarEscenaFotos(contenedorEscala, { ref: cima, misteriosa: fondo, modo, maxPx, formato, estimacion: false, documento }); // en Comparar nadie ha estimado nada
     escena.revelar(fondo.valor, { duracionMs: 600 });
     limpiarRonda = () => escena.destruir();
   }
@@ -372,7 +385,7 @@ export function montarMasomenos(contenedor, deps) {
     fila.append(barra, listo);
     mando.append(lectura, fila);
     nodoCuerpo.append(zona, mando);
-    ronda.nodos = { zona, mando, barra, listo, valorEnVivo, etiquetaLectura };
+    ronda.nodos = { zona, mando, barra, listo, valorEnVivo };
 
     if (!conFechas) {
       // Hay que medir después de montar (y con la vista visible): el alto disponible es el de la zona de fotos.
@@ -421,8 +434,6 @@ export function montarMasomenos(contenedor, deps) {
     nodos.listo.hidden = true;
     if (escena) escena.revelar(mis.valor, { duracionMs: 700 });
     if (linea) linea.revelar(mis.valor);
-    contar(nodos.valorEnVivo, mis);
-    nodos.etiquetaLectura.textContent = 'Real';
 
     const zonaEfecto = nodos.zona;
     if (calif === 'clavado') deps.celebrarPremio('clavado'); // confeti + fanfarria + esfinge eufórica
@@ -434,9 +445,17 @@ export function montarMasomenos(contenedor, deps) {
     panel.setAttribute('data-calificacion', calif);
     const fila = filaResultado(TEXTO_CALIFICACION[calif], acierto ? 'mm-resultado-titulo--ok' : 'mm-resultado-titulo--ko', () => nuevaAfinar());
     panel.appendChild(fila);
-    const detalle = crear(documento, 'p', 'mm-diferencia', `Tu estimación: ${esFecha(categoria) ? formatearValor(estimado, categoria) : valorConUnidad({ ...mis, valor: estimado })}`);
+    // La cifra real se cuenta en el panel del resultado (la lectura de la barra desaparece al poner el panel).
+    const real = crear(documento, 'p', 'mm-real');
+    real.setAttribute('data-test', 'mm-real');
+    const valorReal = crear(documento, 'span', 'mm-real-valor', valorConUnidad(mis));
+    valorReal.setAttribute('data-test', 'mm-real-valor');
+    real.append('Real: ', valorReal);
+    panel.appendChild(real);
+    const detalle = crear(documento, 'p', 'mm-diferencia', `Tu estimación: ${valorConUnidad({ ...mis, valor: estimado })}`);
     detalle.setAttribute('data-test', 'mm-diferencia');
     panel.appendChild(detalle);
+    contar(valorReal, mis);
     if (premio) {
       const p = crear(documento, 'p', 'mm-premio', premio);
       p.setAttribute('data-test', 'mm-premio');

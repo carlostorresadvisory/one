@@ -216,3 +216,80 @@ test('escena: con `formato`, las etiquetas llevan la cifra (la misteriosa «?» 
   escena.revelar(8848, { duracionMs: 0 });
   assert.match(textos()[1], /Everest · 8848 m/);
 });
+
+// --- etiquetas de la línea temporal (v0.3 fase 8, revisión final) --------------------------------------------------
+
+const solapan = (a, b) => a.centro - a.ancho / 2 < b.centro + b.ancho / 2 && b.centro - b.ancho / 2 < a.centro + a.ancho / 2;
+
+test('cadaCuantosTics: menos años escritos cuanto más estrecho el eje, siempre con hueco para el texto', () => {
+  const ventana = { desde: 0, hasta: 4000, paso: 100 };
+  const ancho = E.anchoTexto('3.000 a. C.', 11);
+  for (const eje of [200, 315, 600]) {
+    const k = E.cadaCuantosTics(ventana, eje);
+    assert.ok(k * 100 * (eje / 4000) >= ancho + 10 || k === 50, `${eje}: k=${k}`);
+  }
+  assert.ok(E.cadaCuantosTics(ventana, 200) >= E.cadaCuantosTics(ventana, 600));
+  assert.equal(typeof E.cadaCuantosTics({ desde: 5, hasta: 5, paso: 10 }, 300), 'number'); // ventana rota: no lanza
+});
+
+test('colocarEtiquetas: ninguna se pisa ni se sale del eje, aunque las marcas estén juntas o en el borde', () => {
+  const eje = 315;
+  const casos = [
+    [{ id: 'ref', x: 157, ancho: 150 }, { id: 'est', x: 160, ancho: 60 }, { id: 'real', x: 163, ancho: 40 }],
+    [{ id: 'ref', x: 0, ancho: 160 }, { id: 'est', x: 4, ancho: 60 }, { id: 'real', x: 8, ancho: 40 }],
+    [{ id: 'ref', x: 315, ancho: 160 }, { id: 'est', x: 312, ancho: 60 }, { id: 'real', x: 300, ancho: 40 }],
+    [{ id: 'ref', x: 20, ancho: 180 }, { id: 'est', x: 260, ancho: 60 }, { id: 'real', x: 262, ancho: 36 }],
+  ];
+  for (const etiquetas of casos) {
+    const sitio = E.colocarEtiquetas(etiquetas, eje);
+    const puestas = etiquetas.map((e) => ({ ...sitio.get(e.id), ancho: e.ancho }));
+    for (const p of puestas) {
+      assert.ok(p.centro - p.ancho / 2 >= -E.MARGEN_ETIQUETA - 0.01, 'no se sale por la izquierda');
+      assert.ok(p.centro + p.ancho / 2 <= eje + E.MARGEN_ETIQUETA + 0.01, 'no se sale por la derecha');
+    }
+    for (let i = 0; i < puestas.length; i += 1) {
+      for (let j = i + 1; j < puestas.length; j += 1) {
+        if (puestas[i].fila === puestas[j].fila) assert.equal(solapan(puestas[i], puestas[j]), false, JSON.stringify(puestas));
+      }
+    }
+  }
+  // separadas, caben todas en la fila de abajo
+  const lejos = E.colocarEtiquetas([{ id: 'a', x: 40, ancho: 60 }, { id: 'b', x: 250, ancho: 60 }], eje);
+  assert.equal(lejos.get('a').fila, 0);
+  assert.equal(lejos.get('b').fila, 0);
+});
+
+test('recortarTexto: lo largo se corta con «…» y lo corto se queda', () => {
+  assert.equal(E.recortarTexto('Waterloo · 1815', 300), 'Waterloo · 1815');
+  const r = E.recortarTexto('Batalla de Las Navas de Tolosa · 1212', 120);
+  assert.ok(r.endsWith('…') && E.anchoTexto(r) <= 120, r);
+});
+
+test('línea temporal: sin ancho medido, las etiquetas de marca y de año no se pisan (referencia, estimación y real juntas)', () => {
+  const contenedor = new ElementoFalso('div');
+  const linea = E.montarLineaTemporal(contenedor, { ref: { nombre: 'Batalla de las Navas de Tolosa', valor: 1212 }, documento: documentoFalso() });
+  linea.arrastrar(1215);
+  linea.revelar(1212);
+  const banda = contenedor.children[0];
+  const marcas = ['escala-marca--ref', 'escala-marca--estimacion', 'escala-marca--real'].map((c) => banda.buscarPorClase(c));
+  const filas = marcas.map((m) => m.buscarPorClase('escala-marca-texto').style.bottom);
+  assert.equal(new Set(filas).size, 3, `tres filas distintas: ${filas}`);
+  // el texto de la referencia se recorta para caber
+  assert.ok(marcas[0].textoPlano.length <= 'Batalla de las Navas de Tolosa · 1212'.length);
+});
+
+test('escena: con `estimacion: false` (Comparar) no hay contorno de «tu estimación» ni rastro al revelar', () => {
+  const contenedor = new ElementoFalso('div');
+  const escena = E.montarEscenaFotos(contenedor, { ref: cifra('A', 1), misteriosa: cifra('B', 2), estimacion: false, documento: documentoFalso() });
+  const raiz = contenedor.children[0];
+  const cajaMis = raiz.buscarPorClase('escala-suelo').children[1].children[0];
+  assert.equal(cajaMis.classList.contains('escala-caja--estimacion'), false);
+  escena.revelar(2, { duracionMs: 0 });
+  assert.equal(raiz.buscarPorClase('escala-fantasma'), null);
+  assert.equal(cajaMis.classList.contains('escala-caja--real'), true);
+  // por defecto (Afinar) sí
+  const otro = new ElementoFalso('div');
+  const afinar = E.montarEscenaFotos(otro, { ref: cifra('A', 1), misteriosa: cifra('B', 2), documento: documentoFalso() });
+  afinar.revelar(2, { duracionMs: 0 });
+  assert.ok(otro.children[0].buscarPorClase('escala-fantasma'));
+});

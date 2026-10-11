@@ -7647,7 +7647,7 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     await page.locator('[data-test="mm-var-afinar"]').click();
     await expect(page.locator('[data-test="foto-pregunta"]')).toBeVisible();
     await esperarAntirrebote(page);
-    await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toContainText('¿En qué año ocurrió');
+    await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toContainText('¿en qué año fue?');
     await expect(page.locator('[data-test="escala-linea"]')).toBeVisible();
     await expect(page.locator('[data-test="escala-marca-ref"]')).toBeAttached();
     await sinScrollEnAmbos(page);
@@ -7675,7 +7675,10 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     const grande = await medir();
     await page.setViewportSize({ width: 375, height: 667 });
     expect(await medir()).toEqual(grande);
-    expect(grande).toEqual({ valor: '28px', nombre: '16px', boton: '20px', pregunta: '14px' });
+    // La cifra se reduce solo si es larga («391.027 millones US$»), nunca por debajo de 11 px; el resto no cambia.
+    expect(Number.parseFloat(grande.valor)).toBeGreaterThanOrEqual(16);
+    expect(Number.parseFloat(grande.valor)).toBeLessThanOrEqual(28);
+    expect({ ...grande, valor: undefined }).toEqual({ nombre: '16px', boton: '20px', pregunta: '14px', valor: undefined });
     await page.locator('[data-test="mm-var-afinar"]').click();
     const afinar = await page.evaluate(() => {
       const f = (s) => getComputedStyle(document.querySelector(s)).fontSize;
@@ -7820,5 +7823,204 @@ test.describe('ONE · v0.3 Más o menos (fase 8)', () => {
     }).catch(() => null);
     if (respaldo) expect(JSON.parse(respaldo).modos['one.masomenos']).toBeTruthy();
     else expect(await page.evaluate(() => localStorage.getItem('one.masomenos'))).toBeTruthy();
+  });
+
+  // --- Revisión final de la fase 8 (verificada ejecutando la app y contrastando con Wikidata) --------------------------
+  /** Pasa a Afinar con fechas y devuelve una función que mide las etiquetas de la línea temporal. */
+  const medirLinea = (page) => page.evaluate(() => {
+    const banda = document.querySelector('[data-test="escala-linea"]').getBoundingClientRect();
+    const cajas = [...document.querySelectorAll('[data-test="escala-linea"] .escala-marca-texto, [data-test="escala-linea"] .escala-tic-texto')]
+      .map((n) => { const r = n.getBoundingClientRect(); return { texto: n.textContent, izq: r.left, der: r.right, arriba: r.top, abajo: r.bottom }; });
+    return { banda: { izq: banda.left, der: banda.right, arriba: banda.top, abajo: banda.bottom }, cajas, ancho: window.innerWidth };
+  });
+  const comprobarLinea = (m, donde) => {
+    for (const c of m.cajas) {
+      expect(c.izq, `${donde}: «${c.texto}» se sale por la izquierda`).toBeGreaterThanOrEqual(m.banda.izq - 0.5);
+      expect(c.der, `${donde}: «${c.texto}» se sale por la derecha`).toBeLessThanOrEqual(m.banda.der + 0.5);
+      expect(c.izq).toBeGreaterThanOrEqual(0);
+      expect(c.der).toBeLessThanOrEqual(m.ancho);
+      expect(c.arriba, `${donde}: «${c.texto}» se sale por arriba`).toBeGreaterThanOrEqual(m.banda.arriba - 0.5);
+      expect(c.abajo, `${donde}: «${c.texto}» se sale por abajo`).toBeLessThanOrEqual(m.banda.abajo + 0.5);
+    }
+    for (let i = 0; i < m.cajas.length; i += 1) {
+      for (let j = i + 1; j < m.cajas.length; j += 1) {
+        const a = m.cajas[i];
+        const b = m.cajas[j];
+        const pisa = a.izq < b.der && b.izq < a.der && a.arriba < b.abajo && b.arriba < a.abajo;
+        expect(pisa, `${donde}: «${a.texto}» pisa a «${b.texto}»`).toBe(false);
+      }
+    }
+  };
+
+  test('línea temporal legible a 375×667: ninguna etiqueta se pisa ni se sale de la banda (referencia, estimación y real, en 6 rondas)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await entrar(page, 'historia');
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await esperarAntirrebote(page);
+    for (let ronda = 0; ronda < 6; ronda += 1) {
+      await expect(page.locator('[data-test="escala-linea"]')).toBeVisible();
+      comprobarLinea(await medirLinea(page), `ronda ${ronda} · solo referencia`);
+      for (const anos of [0, 4, -20, 150]) {
+        await page.evaluate((a) => window.__one.estimarMasomenos({ anos: a }), anos);
+        comprobarLinea(await medirLinea(page), `ronda ${ronda} · estimación a ${anos} años`);
+      }
+      await page.evaluate(() => window.__one.estimarMasomenos({ anos: 4 }));
+      await page.locator('[data-test="mm-listo"]').click();
+      await expect(page.locator('[data-test="escala-marca-real"]')).toBeAttached();
+      comprobarLinea(await medirLinea(page), `ronda ${ronda} · real`);
+      await assertSinScroll(page);
+      await siguiente(page);
+    }
+  });
+
+  test('Afinar enseña la cifra real contando en el panel del resultado («Real: …»)', async ({ page }) => {
+    await entrar(page, 'geografia');
+    await page.locator('[data-test="mm-var-afinar"]').click();
+    await esperarAntirrebote(page);
+    const esperado = await page.evaluate(async () => {
+      const { valorConUnidad } = await import('/masomenos.js');
+      const p = window.__one.parejaMasomenos().abajo;
+      return valorConUnidad(p);
+    });
+    await page.evaluate(() => {
+      window.__cambiosReal = 0;
+      new MutationObserver((lista) => {
+        for (const m of lista) if ([...m.addedNodes].some((n) => n.dataset?.test === 'mm-real' || n.querySelector?.('[data-test="mm-real-valor"]')) || m.target.dataset?.test === 'mm-real-valor' || m.target.parentElement?.dataset?.test === 'mm-real-valor') window.__cambiosReal += 1;
+      }).observe(document.querySelector('[data-test="mm-cuerpo"]'), { childList: true, subtree: true, characterData: true });
+    });
+    await page.evaluate(() => window.__one.estimarMasomenos({ factor: 1.3 }));
+    await page.locator('[data-test="mm-listo"]').click();
+    await expect(page.locator('[data-test="mm-real"]')).toContainText('Real: ');
+    await expect(page.locator('[data-test="mm-real-valor"]')).toHaveText(esperado);
+    // contó (varios cambios de texto) en vez de aparecer de golpe, salvo que el sistema pida menos movimiento
+    const reducido = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (!reducido) expect(await page.evaluate(() => window.__cambiosReal)).toBeGreaterThan(2);
+    await expect(page.locator('[data-test="mm-lectura"], .mm-lectura')).toHaveCount(0); // la lectura de la barra ya no está: la real vive en el panel
+  });
+
+  test('Comparar no pinta el contorno cian de «tu estimación» ni su rastro al revelar a escala', async ({ page }) => {
+    await entrar(page, 'economia');
+    await responder(page, true);
+    await expect(page.locator('[data-test="escala-misteriosa"]')).toBeVisible();
+    await expect(page.locator('.escala-caja--estimacion')).toHaveCount(0);
+    await expect(page.locator('[data-test="escala-fantasma"]')).toHaveCount(0);
+    expect(await page.locator('[data-test="escala-misteriosa"]').evaluate((n) => getComputedStyle(n).outlineStyle)).not.toBe('dashed');
+  });
+
+  test('el récord se celebra una sola vez por racha: la esfinge no se vuelve eufórica en cada acierto de la racha', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 3, record: 3 }, afinar: { racha: 0, record: 0 } }));
+    });
+    await entrar(page);
+    for (let i = 0; i < 4; i += 1) {
+      await responder(page, true);
+      await siguiente(page);
+    }
+    const gestos = await page.evaluate(() => window.__one.gestosPedidos);
+    expect(gestos.filter((g) => g === 'euforia')).toHaveLength(1); // el gesto del récord es la euforia
+    // al fallar y volver a superar el récord (7), se celebra otra vez
+    await responder(page, false);
+    await siguiente(page);
+    for (let i = 0; i < 8; i += 1) {
+      await responder(page, true);
+      await siguiente(page);
+    }
+    expect((await page.evaluate(() => window.__one.gestosPedidos)).filter((g) => g === 'euforia')).toHaveLength(2);
+  });
+
+  test('cabecera del modo: una sola llama (la de racha del modo) y «Récord» separado de ella', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.masomenos', JSON.stringify({ version: 1, variante: 'comparar', comparar: { racha: 5, record: 5 }, afinar: { racha: 0, record: 0 } }));
+    });
+    await entrar(page);
+    await expect(page.locator('[data-test="mm-racha"]')).toHaveText('🔥 5');
+    await expect(page.locator('[data-test="racha"]')).toBeHidden(); // la llama general de la cabecera no duplica
+    await expect(page.locator('[data-test="mm-record"]')).toHaveText('Récord 5');
+    expect(await page.locator('[data-test="mm-record"]').evaluate((n) => getComputedStyle(n, '::before').content)).toBe('"· "');
+    const separacion = await page.evaluate(() => {
+      const a = document.querySelector('[data-test="mm-racha"]').getBoundingClientRect();
+      const b = document.querySelector('[data-test="mm-record"]').getBoundingClientRect();
+      return b.left - a.right;
+    });
+    expect(separacion).toBeGreaterThanOrEqual(6);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="racha"]')).toBeVisible(); // fuera del modo vuelve
+  });
+
+  test.describe('con un banco de cifras a medida', () => {
+    test.use({ serviceWorkers: 'block' }); // el service worker serviría el cifras.json del precaché en vez del de la prueba
+    const cifra = (id, nombre, valor, extra = {}) => ({ id, area: 'economia', categoria: 'pib-pais', unidad: 'US$', nombre, valor, fuente: 'https://data.worldbank.org/indicator/NY.GDP.MKTP.CD', fecha: '2024-12-31', ...extra });
+    const PIB = [
+      cifra('pib-1', 'Austria', 391026962800), cifra('pib-2', 'Bélgica', 644783000000), cifra('pib-3', 'Suecia', 584960000000),
+      cifra('pib-4', 'Noruega', 485500000000), cifra('pib-5', 'Dinamarca', 407090000000), cifra('pib-6', 'Polonia', 809200000000),
+      cifra('pib-7', 'Irlanda', 551400000000), cifra('pib-8', 'Argentina', 633300000000),
+    ];
+    const conBanco = async (page, banco) => {
+      await page.route('**/datos/cifras.json', (r) => r.fulfill({ json: banco }));
+    };
+
+    test('cifras largas en formato compacto y nombres sin partir por letras en las tarjetas (375×667 y 375×812)', async ({ page }) => {
+      await conBanco(page, PIB);
+      await entrar(page);
+      for (const vp of VIEWPORTS) {
+        await page.setViewportSize(vp);
+        for (let i = 0; i < 4; i += 1) {
+          const medidas = await page.evaluate(() => [...document.querySelectorAll('.mm-tarjeta')].map((t) => {
+            const caja = t.getBoundingClientRect();
+            const nombre = t.querySelector('.mm-tarjeta-nombre');
+            const valor = t.querySelector('.mm-tarjeta-valor');
+            const lineaNombre = Number.parseFloat(getComputedStyle(nombre).lineHeight);
+            return {
+              nombre: nombre.textContent, valor: valor.textContent, tamano: Number.parseFloat(getComputedStyle(valor).fontSize),
+              lineasNombre: Math.round(nombre.getBoundingClientRect().height / lineaNombre),
+              valorDentro: valor.getBoundingClientRect().right <= caja.right + 0.5 && valor.getBoundingClientRect().left >= caja.left - 0.5,
+              nombreAnchoCabe: nombre.scrollWidth <= nombre.clientWidth + 1,
+            };
+          }));
+          for (const m of medidas) {
+            expect(m.lineasNombre, `«${m.nombre}» no se parte`).toBe(1);
+            expect(m.valorDentro, `«${m.valor}» cabe en su tarjeta`).toBe(true);
+            expect(m.nombreAnchoCabe).toBe(true);
+            expect(m.tamano).toBeGreaterThanOrEqual(11);
+            expect(m.valor).not.toMatch(/\d{3}\.\d{3}\.\d{3}/); // nada de 391.026.962.800
+          }
+          expect(medidas[0].valor).toMatch(/millones US\$$/);
+          await page.evaluate(() => window.__one.responderMasomenos(true));
+          await siguiente(page);
+        }
+      }
+    });
+
+    test('un banco con menos cifras válidas que el mínimo avisa como si no hubiera cifras; las inválidas se descartan', async ({ page }) => {
+      const malas = [
+        cifra('x-1', 'Una', 1e9), cifra('x-2', 'Dos', 2e9, { unidad: 'euros' }), cifra('x-3', 'Tres', -5), cifra('x-4', 'Cuatro', 4e9, { area: 'arte' }),
+        cifra('pib-1', 'Repetida', 5e9), cifra('pib-1', 'Otra con el mismo id', 6e9),
+      ];
+      await conBanco(page, malas);
+      await page.goto('/?ejemplo=1&test=1');
+      await entrarEnModo(page, 'masomenos');
+      await expect(page.locator('[data-vista="masomenos"]')).toBeHidden();
+      await expect(page.locator('#aviso-hub').first()).toContainText('No se pudieron cargar las cifras');
+    });
+
+    test('años a. C.: las Termópilas se escriben 480 a. C. (sin el año de menos) y todos con el formato «N a. C.»', async ({ page }) => {
+      const hecho = (id, nombre, valor) => ({ id, area: 'historia', categoria: 'ano-hecho', unidad: 'año', nombre, valor, fuente: 'https://www.wikidata.org/wiki/Q1', fecha: '2026-10-11' });
+      const banco = [
+        hecho('ah-1', 'Batalla de las Termópilas', -480), hecho('ah-2', 'Batalla de Salamina', -480 + 1), hecho('ah-3', 'Batalla de Maratón', -490),
+        hecho('ah-4', 'Batalla de Platea', -479), hecho('ah-5', 'Batalla de Gaugamela', -331), hecho('ah-6', 'Batalla de Issos', -333),
+        hecho('ah-7', 'Batalla de Cannas', -216), hecho('ah-8', 'Batalla de Zama', -202),
+      ];
+      await conBanco(page, banco);
+      await entrar(page);
+      const textos = [];
+      for (let i = 0; i < 6; i += 1) {
+        await page.evaluate(() => window.__one.responderMasomenos(true));
+        await page.waitForTimeout(900); // la cuenta termina
+        textos.push(await page.locator('[data-test="mm-valor-abajo"]').textContent());
+        await siguiente(page);
+      }
+      expect(textos.some((t) => t === '480 a. C.')).toBe(true);
+      expect(textos.every((t) => /^\d+ a\. C\.$/.test(t))).toBe(true);
+    });
   });
 });

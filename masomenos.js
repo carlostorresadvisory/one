@@ -23,18 +23,57 @@ const MAX_RACHA = 99999;
  * El PIB se trata como magnitud de área (🔶 Provisional: la spec no dice cómo dibujar dinero a escala).
  */
 export const CATEGORIAS = Object.freeze({
-  'altitud-montana': Object.freeze({ escala: 'lin', foto: 'alto', esFecha: false, tope: 10000 }),
-  'altura-edificio': Object.freeze({ escala: 'lin', foto: 'alto', esFecha: false, tope: 1000 }),
-  'longitud-rio': Object.freeze({ escala: 'log', foto: 'alto', esFecha: false }),
-  'poblacion-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false }),
-  'poblacion-ciudad': Object.freeze({ escala: 'log', foto: 'area', esFecha: false }),
-  'superficie-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false }),
-  'pib-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false }),
-  'ano-obra': Object.freeze({ escala: 'lin', foto: 'linea', esFecha: true }),
-  'ano-hecho': Object.freeze({ escala: 'lin', foto: 'linea', esFecha: true }),
+  'altitud-montana': Object.freeze({ escala: 'lin', foto: 'alto', esFecha: false, tope: 10000, area: 'geografia', unidad: 'm', minValor: 4000, maxValor: 9000 }),
+  'altura-edificio': Object.freeze({ escala: 'lin', foto: 'alto', esFecha: false, tope: 1000, area: 'arte', unidad: 'm', minValor: 150, maxValor: 1000 }),
+  'longitud-rio': Object.freeze({ escala: 'log', foto: 'alto', esFecha: false, area: 'geografia', unidad: 'km', minValor: 1000, maxValor: 8000 }),
+  'poblacion-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false, area: 'geografia', unidad: 'personas', minValor: 1, maxValor: 2e9 }),
+  'poblacion-ciudad': Object.freeze({ escala: 'log', foto: 'area', esFecha: false, area: 'geografia', unidad: 'personas', minValor: 1e6, maxValor: 5e7 }),
+  'superficie-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false, area: 'geografia', unidad: 'km²', minValor: 1, maxValor: 2e7 }),
+  'pib-pais': Object.freeze({ escala: 'log', foto: 'area', esFecha: false, area: 'economia', unidad: 'US$', minValor: 1, maxValor: 1e14 }),
+  'ano-obra': Object.freeze({ escala: 'lin', foto: 'linea', esFecha: true, area: 'arte', unidad: 'año' }),
+  'ano-hecho': Object.freeze({ escala: 'lin', foto: 'linea', esFecha: true, area: 'historia', unidad: 'año' }),
 });
 
 export const esFecha = (categoria) => CATEGORIAS[categoria]?.esFecha === true;
+
+// --- Validación del banco (la usan tools/construir-cifras.js al construir y app.js al cargar) -------------------
+
+export const MIN_CIFRAS_JUGABLES = 8; // con menos cifras válidas el modo avisa como si no hubiera banco
+
+/**
+ * ¿Es una cifra de producción? Categoría conocida con su área y su unidad, id y nombre reales (no un «Q513»
+ * sin etiqueta), valor finito dentro del rango de su categoría (años: enteros entre −3000 y 2026; el resto, > 0)
+ * y fuente https. Los años a. C. son negativos y sin año cero: 480 a. C. = −480.
+ */
+export function validarCifra(c) {
+  if (!c || typeof c !== 'object') return false;
+  const cat = CATEGORIAS[c.categoria];
+  if (!cat || typeof c.id !== 'string' || !c.id) return false;
+  if (typeof c.nombre !== 'string' || c.nombre.trim().length < 2 || c.nombre.length > 80 || /^Q\d+$/.test(c.nombre)) return false;
+  if (c.area !== cat.area || c.unidad !== cat.unidad || !Number.isFinite(c.valor)) return false;
+  if (cat.esFecha) {
+    if (!Number.isInteger(c.valor) || c.valor < ANO_MIN || c.valor > ANO_MAX) return false;
+  } else if (!(c.valor > 0) || c.valor < cat.minValor || c.valor > cat.maxValor) {
+    return false;
+  }
+  return typeof c.fuente === 'string' && /^https:\/\//.test(c.fuente);
+}
+
+/** Las cifras válidas de una lista, sin repetir id ni nombre dentro de su categoría. */
+export function validarBanco(lista) {
+  const ids = new Set();
+  const nombres = new Set();
+  const salida = [];
+  for (const c of Array.isArray(lista) ? lista : []) {
+    if (!validarCifra(c)) continue;
+    const nombre = `${c.categoria}|${c.nombre.trim().toLowerCase()}`;
+    if (ids.has(c.id) || nombres.has(nombre)) continue;
+    ids.add(c.id);
+    nombres.add(nombre);
+    salida.push(c);
+  }
+  return salida;
+}
 
 // --- Parejas ------------------------------------------------------------------------------------------------
 
@@ -177,15 +216,20 @@ export function escalaBarra(ref, categoria) {
 
 const limitar = (t) => Math.min(1, Math.max(0, Number.isFinite(t) ? t : 0));
 
+// Una barra sin recorrido (max <= min) o logarítmica con un extremo <= 0 no se puede recorrer: queda en el centro.
+const barraValida = (e) => Number.isFinite(e?.min) && Number.isFinite(e?.max) && e.max > e.min && (e.tipo !== 'log' || e.min > 0);
+
 export function valorDesdePosicion(escala, t) {
+  if (!barraValida(escala)) return Number.isFinite(escala?.min) ? escala.min : 0;
   const p = limitar(t);
   return escala.tipo === 'log' ? escala.min * (escala.max / escala.min) ** p : escala.min + (escala.max - escala.min) * p;
 }
 
 export function posicionDesdeValor(escala, valor) {
-  if (!Number.isFinite(valor)) return 0;
+  if (!barraValida(escala)) return 0.5;
+  if (!Number.isFinite(valor) || (escala.tipo === 'log' && valor <= 0)) return 0; // un valor imposible va al extremo bajo
   const t = escala.tipo === 'log'
-    ? Math.log(Math.max(valor, Number.MIN_VALUE) / escala.min) / Math.log(escala.max / escala.min)
+    ? Math.log(valor / escala.min) / Math.log(escala.max / escala.min)
     : (valor - escala.min) / (escala.max - escala.min);
   return limitar(t);
 }
@@ -198,6 +242,8 @@ export function calificar(real, estimado, categoria) {
     if (anos <= 15) return 'muy-cerca';
     return anos <= 40 ? 'cerca' : 'lejos';
   }
+  if (!Number.isFinite(real) || !Number.isFinite(estimado)) return 'lejos';
+  if (real === 0) return estimado === 0 ? 'clavado' : 'lejos'; // sin referencia no hay error relativo
   const error = Math.abs(estimado - real) / Math.abs(real);
   if (error < 0.1) return 'clavado';
   if (error < 0.25) return 'muy-cerca';
@@ -219,10 +265,23 @@ export function formatearValor(valor, categoria) {
   return `${redondo < 0 ? '−' : ''}${miles}${decimal ? `,${decimal}` : ''}`;
 }
 
-/** Con unidad: «8.849 m», «67.063.703 personas», «1941». */
+const coma = (n) => String(n).replace('.', ',');
+
+/**
+ * Con unidad: «8.849 m», «1941», y desde un millón en formato compacto para que la cifra quepa en la tarjeta:
+ * «8,98 millones de personas», «17,1 millones de km²», «391.027 millones US$», «29,2 billones US$» (billón = 10¹²,
+ * como en español). Tres cifras significativas por debajo de 1.000 millones.
+ */
 export function valorConUnidad(cifra) {
-  const texto = formatearValor(cifra.valor, cifra.categoria);
-  return esFecha(cifra.categoria) ? texto : `${texto} ${cifra.unidad}`;
+  if (esFecha(cifra.categoria)) return formatearValor(cifra.valor, cifra.categoria);
+  const v = cifra.valor;
+  if (Number.isFinite(v) && Math.abs(v) >= 1e6) {
+    if (cifra.unidad === 'US$' && Math.abs(v) >= 1e12) return `${coma(Number((v / 1e12).toPrecision(3)))} billones US$`;
+    const m = v / 1e6;
+    const texto = Math.abs(m) >= 1000 ? formatearValor(Math.round(m), 'x') : coma(Number(m.toPrecision(3)));
+    return `${texto} ${texto === '1' ? 'millón' : 'millones'}${cifra.unidad === 'US$' ? '' : ' de'} ${cifra.unidad}`;
+  }
+  return `${formatearValor(v, cifra.categoria)} ${cifra.unidad}`;
 }
 
 // --- Persistencia (con el almacenamiento bloqueado nada lanza; spec §9) ------------------------------------------

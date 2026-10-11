@@ -170,6 +170,58 @@ test('formato de cifras y de años', () => {
   assert.equal(M.formatearValor(NaN, 'x'), '');
 });
 
+test('formato compacto: millones desde un millón para que la cifra quepa en la tarjeta', () => {
+  const pais = (valor, categoria = 'poblacion-pais', unidad = 'personas') => M.valorConUnidad({ valor, categoria, unidad });
+  assert.equal(pais(8980000), '8,98 millones de personas');
+  assert.equal(pais(67063703), '67,1 millones de personas');
+  assert.equal(pais(1450000000), '1.450 millones de personas');
+  assert.equal(pais(1000000), '1 millón de personas');
+  assert.equal(pais(950000), '950.000 personas');
+  assert.equal(pais(17098246, 'superficie-pais', 'km²'), '17,1 millones de km²');
+  assert.equal(pais(391026962800, 'pib-pais', 'US$'), '391.027 millones US$');
+  assert.equal(pais(2.92e13, 'pib-pais', 'US$'), '29,2 billones US$');
+  assert.equal(pais(8849, 'altitud-montana', 'm'), '8.849 m');
+});
+
+test('los años a. C. no tienen año cero: −480 se escribe 480 a. C. y −1 es 1 a. C.', () => {
+  assert.equal(M.formatearValor(-480, 'ano-hecho'), '480 a. C.');
+  assert.equal(M.formatearValor(-1, 'ano-hecho'), '1 a. C.');
+});
+
+test('validarCifra: la misma validación en el tool y en la app (unidad, área, rango, id y nombre)', () => {
+  const buena = { id: 'am-Q513', area: 'geografia', categoria: 'altitud-montana', unidad: 'm', nombre: 'Everest', valor: 8849, fuente: 'https://www.wikidata.org/wiki/Q513' };
+  assert.equal(M.validarCifra(buena), true);
+  for (const cambio of [{ unidad: 'km' }, { area: 'arte' }, { valor: 3999 }, { valor: 12000 }, { valor: 0 }, { valor: NaN }, { nombre: 'Q513' }, { nombre: 'x'.repeat(81) }, { id: '' }, { fuente: 'http://x' }, { categoria: 'otra' }]) {
+    assert.equal(M.validarCifra({ ...buena, ...cambio }), false, JSON.stringify(cambio));
+  }
+  const hecho = { id: 'ah-Q1', area: 'historia', categoria: 'ano-hecho', unidad: 'año', nombre: 'Batalla de las Termópilas', valor: -480, fuente: 'https://www.wikidata.org/wiki/Q1' };
+  assert.equal(M.validarCifra(hecho), true);
+  for (const valor of [-3001, 2027, 1492.5, Infinity]) assert.equal(M.validarCifra({ ...hecho, valor }), false);
+  assert.equal(M.validarCifra(null), false);
+});
+
+test('validarBanco: descarta lo roto y repite ni id ni nombre dentro de la categoría', () => {
+  const m = (id, nombre, valor = 5000) => ({ id, area: 'geografia', categoria: 'altitud-montana', unidad: 'm', nombre, valor, fuente: 'https://x.org/' });
+  const banco = M.validarBanco([m('a', 'Uno'), m('a', 'Otro'), m('b', 'uno'), m('c', 'Tres', 10), m('d', 'Cuatro'), null, 'x']);
+  assert.deepEqual(banco.map((x) => x.id), ['a', 'd']);
+  assert.deepEqual(M.validarBanco('no'), []);
+});
+
+test('barras degeneradas: rango sin recorrido → centro; valores ≤ 0 en logarítmica → extremo bajo; real 0 sin división por cero', () => {
+  assert.equal(M.posicionDesdeValor({ tipo: 'lin', min: 5, max: 5 }, 5), 0.5);
+  assert.equal(M.posicionDesdeValor({ tipo: 'log', min: 10, max: 2 }, 5), 0.5);
+  assert.equal(M.posicionDesdeValor({ tipo: 'log', min: 0, max: 100 }, 5), 0.5);
+  assert.equal(M.valorDesdePosicion({ tipo: 'lin', min: 5, max: 5 }, 0.7), 5);
+  assert.equal(M.valorDesdePosicion({ tipo: 'log', min: -1, max: 100 }, 0.5), -1);
+  const log = { tipo: 'log', min: 1, max: 100 };
+  assert.equal(M.posicionDesdeValor(log, 0), 0);
+  assert.equal(M.posicionDesdeValor(log, -7), 0);
+  assert.ok(Number.isFinite(M.valorDesdePosicion(log, 0.5)));
+  assert.equal(M.calificar(0, 0, 'altitud-montana'), 'clavado');
+  assert.equal(M.calificar(0, 3, 'altitud-montana'), 'lejos');
+  assert.equal(M.calificar(100, NaN, 'altitud-montana'), 'lejos');
+});
+
 test('persistencia: ida y vuelta, datos corruptos, números absurdos y almacenamiento bloqueado', () => {
   M.olvidarMemoria();
   const almacen = almacenFalso();

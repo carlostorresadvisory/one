@@ -49,7 +49,7 @@ import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
 import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
 import { montarContrarreloj } from './contrarreloj-ui.js';
-import { elegirPareja, CATEGORIAS as CATEGORIAS_CIFRAS, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
+import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
 import { montarMasomenos } from './masomenos-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
@@ -486,6 +486,7 @@ function capitalizar(texto) {
 
 function actualizarCabecera() {
   nodoRacha.textContent = `🔥 ${estado.racha.dias}`;
+  nodoRacha.hidden = vistaActual() === 'masomenos'; // Más o menos lleva su propia llama de racha: una sola en la cabecera
   nodoNivelPartida.textContent = `Nivel ${estado.nivelPartida}`;
   const enModo = VISTAS_DE_MODO.includes(vistaActual());
   nodoCabecera.classList.toggle('cabecera--modo', enModo);
@@ -1363,18 +1364,18 @@ function destruirMasomenos() {
   masomenosInstancia = null;
 }
 
-/** Banco de cifras (datos/cifras.json), cargado una vez. El service worker lo guarda al verlo (no va en el precaché:
- * ver sw.js); sin red y sin copia, null y el modo avisa. Solo pasan las cifras con forma válida. */
+/** Banco de cifras (datos/cifras.json), cargado una vez. Va en el precaché del service worker (sw.js), así que
+ * funciona sin red; si aun así no hay red ni copia, null y el modo avisa. Cada cifra pasa por la misma validación que
+ * aplica el tool al construir el banco (unidad, área, rango, id y nombre únicos); si quedan menos jugables que
+ * `MIN_CIFRAS_JUGABLES`, es como si no hubiera banco. */
 function cargarCifras() {
   cifrasPromesa ??= fetch('datos/cifras.json')
     .then((respuesta) => (respuesta.ok ? respuesta.json() : null))
-    .then((lista) => (Array.isArray(lista)
-      ? lista.filter((c) => c && typeof c.id === 'string' && typeof c.nombre === 'string' && Number.isFinite(c.valor) && CATEGORIAS_CIFRAS[c.categoria])
-      : null))
+    .then((lista) => (Array.isArray(lista) ? validarBanco(lista) : null))
     .catch(() => null)
     .then((lista) => {
-      if (!lista || lista.length === 0) cifrasPromesa = null; // reintentable al volver a entrar
-      return lista && lista.length > 0 ? lista : null;
+      if (!lista || lista.length < MIN_CIFRAS_JUGABLES) cifrasPromesa = null; // reintentable al volver a entrar
+      return lista && lista.length >= MIN_CIFRAS_JUGABLES ? lista : null;
     });
   return cifrasPromesa;
 }
