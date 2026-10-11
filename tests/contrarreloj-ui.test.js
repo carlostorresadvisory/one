@@ -207,3 +207,11 @@ test('progreso: 10 puntos que se van llenando, con aria-label «Pregunta n de 10
   assert.equal(puntos.classList.contains('contrarreloj-puntos--doble'), true, 'dorados durante el doble o nada');
   assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 0);
 });
+
+test('progreso: al acertar la décima los 10 puntos se ven llenos antes de pasar al cofre', () => {
+  const m = montar();
+  const puntos = m.juego.porId['contrarreloj-puntos'];
+  m.instancia.acertarParaTest(10);
+  assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 10);
+  assert.equal(puntos.getAttribute('aria-label'), 'Pregunta 10 de 10');
+});

@@ -236,3 +236,14 @@ test('fechaLocal da AAAA-MM-DD con la fecha local', () => {
   assert.equal(O.fechaLocal(new Date(2026, 9, 11, 23, 59)), '2026-10-11');
   assert.equal(O.fechaLocal(new Date(2026, 0, 5, 0, 1)), '2026-01-05');
 });
+
+test('cargarOrdagoResuelto: cobra la ficha pendiente una sola vez y deja el estado guardado', () => {
+  O.olvidarMemoria();
+  const a = almacenFalso();
+  O.guardarOrdago(O.comprometerFicha(O.crearOrdago(), { pregunta: 'p1', ficha: 500 }), a);
+  const uno = O.cargarOrdagoResuelto(a);
+  assert.equal(uno.fondo, 500);
+  assert.equal(uno.pendiente, null);
+  assert.equal(O.cargarOrdago(a).fondo, 500); // guardado
+  assert.equal(O.cargarOrdagoResuelto(a).fondo, 500); // idempotente
+});

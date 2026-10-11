@@ -188,6 +188,16 @@ export function guardarOrdago(estado, almacen) {
   }
 }
 
+/** Carga el estado cobrando antes la ficha comprometida y sin responder (si la hay): la guarda y devuelve el estado ya
+ * resuelto. Idempotente: sin pendiente no escribe nada. Así el hub y la Tienda nunca enseñan un fondo sin descontarla. */
+export function cargarOrdagoResuelto(almacen) {
+  const estado = cargarOrdago(almacen);
+  const abandonada = resolverPendiente(estado);
+  if (!abandonada) return estado;
+  guardarOrdago(abandonada.estado, almacen);
+  return abandonada.estado;
+}
+
 /** Cifras con punto de miles también de 4 cifras («1.250»); `toLocaleString('es-ES')` las deja pegadas. */
 export function formatearCifra(n) {
   const entero = Math.trunc(Number(n));

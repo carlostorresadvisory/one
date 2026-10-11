@@ -45,7 +45,7 @@ import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js'
 import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
 import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
-import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
+import { elegirPreguntaOrdago, cargarOrdago, cargarOrdagoResuelto } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
 import { esJugableContrarreloj, cargarRecords as cargarRecordsContrarreloj, marcaTexto as marcaTextoContrarreloj } from './contrarreloj.js';
 import { montarContrarreloj } from './contrarreloj-ui.js';
@@ -1971,6 +1971,7 @@ async function iniciar() {
   idsBancoLocal = new Set(bancoLocal.map((p) => p.id));
   reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
+  cargarOrdagoResuelto(); // la ficha comprometida y sin responder se cobra ya: hub y Tienda ven el fondo real
   montarTarjetasHub(); // antes de cualquier renderHub/actualizarCabecera (p. ej. `?servidor=&token=`)
   actualizarCabecera();
   actualizarPuntoServidor();

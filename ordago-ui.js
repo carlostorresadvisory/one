@@ -8,7 +8,7 @@
 // Órdago no da objetos: lo que se gana es el fondo (el dinero de la Tienda).
 
 import {
-  FICHAS, calcularFicha, gananciaFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, guardarOrdago,
+  FICHAS, calcularFicha, gananciaFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, cargarOrdagoResuelto, guardarOrdago,
   comprometerFicha, resolverPendiente, puedeFondoNuevo, fechaLocal, formatearCifra, puntosMinicurva,
 } from './ordago.js';
 import { evaluar, barajarOrden } from './motor.js';
@@ -76,13 +76,8 @@ export function montarOrdago(contenedor, deps) {
   const hoy = deps.hoy ?? (() => fechaLocal());
   const nodoComodines = nodo('ordago-comodines');
 
-  let estado = cargarOrdago(deps.almacen);
   // Una ronda comprometida y sin responder (recarga, o iOS mató la app): se resuelve como fallo, una sola vez.
-  const abandonada = resolverPendiente(estado);
-  if (abandonada) {
-    estado = abandonada.estado;
-    guardarOrdago(estado, deps.almacen);
-  }
+  let estado = cargarOrdagoResuelto(deps.almacen);
   let fase = 'inicio'; // 'ficha' | 'opciones' | 'resuelta' | 'quiebra' | 'destruido'
   let ronda = null; // { pregunta, dorada, ficha }
   let foto = null;

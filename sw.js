@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v31';
+const CACHE = 'one-v32';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -25,7 +25,12 @@ const NUCLEO = [
   'estilos.css', 'datos/banco.json', 'datos/cifras.json',
 ];
 
-const SECUNDARIOS = ['manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png'];
+// Las 6 fotos del hub (≈ 0,25 MB) van precacheadas aquí: sin conexión el hub las tiene.
+const SECUNDARIOS = [
+  'manifest.json', 'datos/imagenes.json', 'iconos/180.png', 'iconos/192.png', 'iconos/512.png',
+  'imagenes-hub/clasico.webp', 'imagenes-hub/contrarreloj.webp', 'imagenes-hub/masomenos.webp',
+  'imagenes-hub/ordago.webp', 'imagenes-hub/repaso.webp', 'imagenes-hub/tienda.webp',
+];
 
 // Avatar (esfinge v2): el reposo, las anclas y las imágenes fijas se precachean tolerantes (sin un
 // vídeo la app sigue con la imagen fija). Los 6 gestos no se precachean: el `fetch` de abajo guarda
@@ -40,18 +45,17 @@ const AVATAR_GESTOS = [
 ];
 
 // Fotos de las preguntas: NO se precachean ni van en la caché del núcleo. Se guardan al verlas en una caché
-// APARTE (`one-fotos`), fuera del techo de ≈ 5 MB del núcleo (tests/sw.test.js lo vigila: 4,13 MiB medidos el
-// 11-oct-2026), y se acota por entradas o por bytes, lo que antes llegue: al pasarse se borran las más antiguas.
+// APARTE (`one-fotos`), fuera del techo de ≈ 5 MB del núcleo (tests/sw.test.js lo vigila: 4,39 MiB medidos el
+// 11-oct-2026, con las fotos del hub), y se acota por bytes (3 MB): al pasarse se borran las más antiguas.
 // Esa caché NO se borra al subir la versión del núcleo (`activate`): las fotos no cambian con la app.
-// Son fotos las de las carpetas propias (imagenes-ia/, imagenes-banco/, imagenes-hub/), las WebP del servidor
+// Son fotos las de las carpetas propias (imagenes-ia/, imagenes-banco/; las del hub van en el precaché), las WebP del servidor
 // (/imagenes/<id>.webp) y las de Commons (upload.wikimedia.org). Estas dos últimas son de otro origen: un `<img>`
 // las pide sin CORS (respuesta opaca, que el navegador cuenta con ~7 MB de relleno cada una), así que el SW las
 // vuelve a pedir con CORS (Commons lo permite) para guardar una respuesta normal; si el origen no lo permite, la
 // foto se enseña igual pero sin guardarla.
 const CACHE_FOTOS = 'one-fotos';
-const MAX_FOTOS = 60;
 const MAX_BYTES_FOTOS = 3 * 1024 * 1024;
-const CARPETAS_FOTOS = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
+const CARPETAS_FOTOS = ['/imagenes-ia/', '/imagenes-banco/'];
 const HOSTS_FOTOS = ['upload.wikimedia.org'];
 
 function esFoto(url, peticion) {
@@ -64,13 +68,11 @@ function esFoto(url, peticion) {
 async function acotarFotos(cache) {
   const claves = await cache.keys();
   let total = 0;
-  let cuantas = 0;
   // De la más nueva a la más antigua: se conservan las recientes mientras quepan.
   for (const clave of claves.reverse()) {
     const respuesta = await cache.match(clave);
     total += respuesta ? (await respuesta.blob()).size : 0;
-    cuantas += 1;
-    if (cuantas > MAX_FOTOS || total > MAX_BYTES_FOTOS) await cache.delete(clave);
+    if (total > MAX_BYTES_FOTOS) await cache.delete(clave);
   }
 }
 

@@ -119,7 +119,7 @@ export function montarContrarreloj(contenedor, deps) {
 
   /** 10 puntos que se van llenando (las ya superadas), con el de la pregunta actual marcado; dorados en el doble. */
   function pintarPuntos() {
-    nodoPuntos.setAttribute('aria-label', `Pregunta ${serie.indice + 1} de ${N_SERIE}`);
+    nodoPuntos.setAttribute('aria-label', `Pregunta ${Math.min(serie.indice + 1, N_SERIE)} de ${N_SERIE}`);
     nodoPuntos.classList.toggle('contrarreloj-puntos--doble', serie.fase === 'doble');
     nodoPuntos.replaceChildren(...Array.from({ length: N_SERIE }, (_, i) => {
       const punto = crear(documento, 'span', `contrarreloj-punto${i < serie.indice ? ' contrarreloj-punto--llena' : ''}${i === serie.indice ? ' contrarreloj-punto--actual' : ''}`);
@@ -201,6 +201,7 @@ export function montarContrarreloj(contenedor, deps) {
     const salvada = !correcta && ronda.salvavidas; // el Salvavidas perdona el fallo y también el tiempo agotado
     serie = responderSerie(serie, { correcta, salvavidas: salvada });
     if (salvada) gastarComodin('salvavidas', deps.almacen);
+    if (serie.terminada) pintarPuntos(); // el décimo acierto llena los 10 antes del cofre
     if (!tiempo) deps.registrar(pregunta, correcta, valor);
     comodines?.visible(false);
     if (salvada) {

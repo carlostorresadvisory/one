@@ -7002,6 +7002,23 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     expect((await leerOrdago(page)).fondo).toBe(tras.fondo);
   });
 
+  test('Elegir ficha y recargar: la ficha ya está cobrada en el hub y en la Tienda (no se esquiva comprando) y Órdago no la cobra otra vez', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-50"]').click();
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const tras = await leerOrdago(page);
+    expect(tras.fondo).toBe(500); // hub: la ficha se cobró al arrancar, sin entrar en Órdago
+    expect(tras.pendiente).toBeNull();
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('500');
+    await page.locator('[data-test="volver"]').click();
+    await entrarEnModo(page, 'ordago');
+    expect((await leerOrdago(page)).fondo).toBe(500); // Órdago al montarse no la cobra otra vez
+  });
+
   test('Quiebra: un fondo nuevo gratis al día; ya usado, «Vuelve mañana» (con objetos, también «Vender objetos → Tienda»)', async ({ page }) => {
     await page.goto('/?ejemplo=1&test=1');
     await page.evaluate(() => window.__one.sembrarMochila({ cincuenta: 1 }));

@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v31', () => {
-  assert.match(sw, /const CACHE = 'one-v31';/);
+test('sw: caché one-v32', () => {
+  assert.match(sw, /const CACHE = 'one-v32';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -54,12 +54,13 @@ test('sw: se precachea el reposo, las anclas y las imágenes fijas; los gestos s
   assert.doesNotMatch(sw, /AVATAR_GESTOS\.map|addAll\(\[[^\]]*AVATAR_GESTOS/);
 });
 
-test('sw: las fotos no se precachean: van a una caché aparte con tope por entradas y por bytes', () => {
+test('sw: las fotos de preguntas no se precachean (van a una caché aparte con tope por bytes); las 6 del hub sí', () => {
   const precacheadas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')];
-  assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco|hub)\//.test(r)), 'ninguna foto en el precaché');
+  assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco)\//.test(r)), 'ninguna foto de pregunta en el precaché');
+  assert.equal(lista('SECUNDARIOS').filter((r) => r.startsWith('imagenes-hub/')).length, 6, 'las 6 fotos del hub, offline');
   assert.ok(lista('SECUNDARIOS').includes('datos/imagenes.json'));
   assert.match(sw, /CACHE_FOTOS = 'one-fotos'/);
-  assert.match(sw, /MAX_FOTOS = 60;/);
+  assert.doesNotMatch(sw, /MAX_FOTOS/);
   assert.match(sw, /MAX_BYTES_FOTOS = 3 \* 1024 \* 1024;/);
   assert.doesNotMatch(sw, /MAX_BYTES_IMAGENES|256 \* 1024|acotarImagenes/, 'el tope de 256 KB y su caché compartida ya no existen');
 });
@@ -103,16 +104,6 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   return { vm, contexto, almacenes, abrir, manejadores, llamadas, pedir, pausa };
 }
 
-test('sw: acotarFotos borra las más antiguas pasadas de 60 entradas', async () => {
-  const { abrir, vm, contexto } = await montarSw();
-  const cache = abrir('x');
-  for (let i = 0; i < 65; i += 1) cache.datos.set(`https://x/imagenes-ia/${i}.webp`, new Uint8Array(10));
-  await vm.runInContext('acotarFotos', contexto)(cache);
-  assert.equal(cache.datos.size, 60);
-  assert.ok(!cache.datos.has('https://x/imagenes-ia/0.webp'), 'la más antigua se fue');
-  assert.ok(cache.datos.has('https://x/imagenes-ia/64.webp'), 'la más nueva se conserva');
-});
-
 test('sw: acotarFotos borra las más antiguas hasta que caben en 3 MB', async () => {
   const { abrir, vm, contexto } = await montarSw();
   const cache = abrir('x');
@@ -128,7 +119,7 @@ test('sw: una foto propia va a one-fotos (no a la caché del núcleo) y la segun
   assert.equal((await sim.pedir('https://x/imagenes-banco/a.webp')).ok, true);
   await sim.pausa();
   assert.ok(sim.almacenes.get('one-fotos').has('https://x/imagenes-banco/a.webp'));
-  assert.ok(!sim.almacenes.has('one-v31'), 'nada en la caché del núcleo');
+  assert.ok(!sim.almacenes.has('one-v32'), 'nada en la caché del núcleo');
   const antes = sim.llamadas.length;
   await sim.pedir('https://x/imagenes-banco/a.webp');
   assert.equal(sim.llamadas.length, antes, 'sin pedirla otra vez a la red');
@@ -159,9 +150,9 @@ test('sw: lo de otro origen que no es foto (otro dominio o destino que no es ima
 
 test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fotos', async () => {
   const sim = await montarSw();
-  sim.abrir('one-v30'); sim.abrir('one-v31'); sim.abrir('one-fotos');
+  sim.abrir('one-v30'); sim.abrir('one-v32'); sim.abrir('one-fotos');
   let terminado = null;
   sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
   await terminado;
-  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v31']);
+  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v32']);
 });

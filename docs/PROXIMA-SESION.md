@@ -1,7 +1,7 @@
 # Próxima sesión — ONE v0.3 lista para publicar (fases 3 a 9, entrega 1)
 
 ## Estado (11-oct-2026, rama `v0.3-fase-9`, sale de `v0.3-fase-8`)
-- **v0.3 está terminada y lista para publicar** en la entrega 1: esfinge v2 con sonido, Órdago, Contrarreloj, fotos con enunciado, Más o menos, Tienda y comodines. Falta solo el OK de Carlos y su push. Publicar publica también las fases 3 a 8. `CACHE` es `one-v31`.
+- **v0.3 está terminada y lista para publicar** en la entrega 1: esfinge v2 con sonido, Órdago, Contrarreloj, fotos con enunciado, Más o menos, Tienda y comodines. Falta solo el OK de Carlos y su push. Publicar publica también las fases 3 a 8. `CACHE` es `one-v32`.
 - Suites: 1001 unitarias (`node --test tests/*.test.js`) y 232 e2e (`npx playwright test --workers=1`).
 - Fase 10 (generar cifras en el servidor) **pasa a la entrega 2** (decisión de Carlos, 11-oct).
 
@@ -15,7 +15,7 @@
 - **Fotos offline en caché aparte** (`one-fotos`, `sw.js`): expulsa las más antiguas pasadas de 60 fotos o 3 MB, fuera del techo de 5 MB del núcleo (4,13 MiB medidos) y no se borra al subir `CACHE`. Las propias, las WebP del servidor y las de Commons se guardan (las ajenas se vuelven a pedir con CORS para no guardar respuestas opacas; si el origen lo niega, se enseñan sin guardar).
 
 ## Lo que queda de Carlos (a mano)
-1. **OK de publicación** y el push: `! git checkout main && git merge --ff-only v0.3-fase-9 && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve `one-v31`.
+1. **OK de publicación** y el push: `! git checkout main && git merge --ff-only v0.3-fase-9 && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve `one-v32`.
 2. **Sonido en el iPhone** (fase 3): `npm run servir` y abrir `http://192.168.1.137:8765/?depurar=sonido` (iPhone en la wifi `MIWIFI_sHY3`; alternativa Tailscale, PC 100.72.197.51). Capturas del panel con sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` → fase 3.2.
 3. **41 imágenes** pendientes de revisar/sustituir.
 4. **VPS tras publicar**: `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` si la quiere) en `/opt/one/.env` y `docker compose -f servidor/docker-compose.yml up -d --build` (instala `sharp`; ya acepta `nivelObjetivo`). Al marcar imágenes malas, copiar `/opt/one-datos/imagenes-malas.json` a `datos/imagenes-malas.json`.

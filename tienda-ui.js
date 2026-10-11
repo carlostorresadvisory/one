@@ -5,7 +5,7 @@
 // toque en Comprar o Vender es una sola operación.
 
 import { OBJETOS, comprar, vender, cargarMochila, guardarMochila } from './mochila.js';
-import { cargarOrdago, guardarOrdago, conFondo, formatearCifra } from './ordago.js';
+import { cargarOrdagoResuelto, guardarOrdago, conFondo, formatearCifra } from './ordago.js';
 import { MS_ANTIREBOTE } from './ordago-ui.js';
 
 const ETIQUETA_RAREZA = { comun: 'Común', raro: 'Raro', epico: 'Épico' };
@@ -73,7 +73,7 @@ export function montarTienda(contenedor, deps) {
   /** Repinta el fondo, las cantidades y qué botones se pueden pulsar, leyendo lo guardado. */
   function actualizar() {
     if (!vivo) return;
-    const { fondo } = cargarOrdago(deps.almacen);
+    const { fondo } = cargarOrdagoResuelto(deps.almacen);
     const mochila = cargarMochila(deps.almacen);
     nodoFondo.textContent = formatearCifra(fondo);
     for (const objeto of Object.values(OBJETOS)) {
@@ -87,7 +87,7 @@ export function montarTienda(contenedor, deps) {
 
   function operar(que, objeto) {
     if (!vivo || ahora() < desbloqueoEn) return;
-    const estado = cargarOrdago(deps.almacen);
+    const estado = cargarOrdagoResuelto(deps.almacen);
     const mochila = cargarMochila(deps.almacen);
     const resultado = que === 'comprar' ? comprar(mochila, estado.fondo, objeto.id) : vender(mochila, estado.fondo, objeto.id);
     if (!resultado.ok) return;
