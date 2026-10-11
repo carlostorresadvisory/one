@@ -52,6 +52,7 @@ import { montarContrarreloj } from './contrarreloj-ui.js';
 import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recordTexto as recordTextoMasomenos } from './masomenos.js';
 import { montarMasomenos } from './masomenos-ui.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
+import { montarTienda } from './tienda-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -547,6 +548,7 @@ function limpiarPartidaEnCurso() {
   destruirOrdago();
   destruirContrarreloj();
   destruirMasomenos();
+  destruirTienda();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -1278,6 +1280,10 @@ function empezarOrdago() {
     imagenDe,
     pedirGesto,
     vigia: vigiaPensando,
+    alVenderObjetos: () => {
+      destruirOrdago(); // la Tienda no es una ronda: «←» vuelve al hub y Órdago retoma el fondo que quede
+      abrirTienda();
+    },
     alSinPreguntas: () => {
       irAlHub();
       mostrarAvisoHub('Aún no hay preguntas difíciles');
@@ -4536,30 +4542,19 @@ function montarTarjetasHub() {
   nodoHubModos.appendChild(tienda);
 }
 
-/** Vista Tienda mínima (fase 3): el avatar actual en grande y la mochila (icono, nombre, cantidad).
- * Comprar y vender llegan en la fase 9. */
+// --- TIENDA (v0.3 fase 9): la pantalla vive en tienda-ui.js; aquí solo se le inyecta lo de app.js ---
+let tiendaInstancia = null;
+
+function destruirTienda() {
+  if (!tiendaInstancia) return;
+  tiendaInstancia.destruir();
+  tiendaInstancia = null;
+}
+
+/** Abre la Tienda: avatar grande, el fondo de Órdago y comprar/vender por objeto (spec §6). */
 function abrirTienda() {
-  const mochila = cargarMochila();
-  const lista = document.querySelector('[data-test="tienda-mochila"]');
-  lista.innerHTML = '';
-  for (const objeto of Object.values(OBJETOS)) {
-    const fila = document.createElement('li');
-    fila.className = 'tienda-objeto';
-    fila.dataset.test = `tienda-objeto-${objeto.id}`;
-    const icono = document.createElement('span');
-    icono.className = 'tienda-objeto-icono';
-    icono.setAttribute('aria-hidden', 'true');
-    icono.textContent = objeto.icono;
-    const nombre = document.createElement('span');
-    nombre.className = 'tienda-objeto-nombre';
-    nombre.textContent = objeto.nombre;
-    const cantidad = document.createElement('span');
-    cantidad.className = 'tienda-objeto-cantidad';
-    cantidad.dataset.test = `tienda-cantidad-${objeto.id}`;
-    cantidad.textContent = `×${mochila.objetos[objeto.id]}`;
-    fila.append(icono, nombre, cantidad);
-    lista.appendChild(fila);
-  }
+  destruirTienda();
+  tiendaInstancia = montarTienda(document.querySelector('[data-vista="tienda"]'), { pedirGesto });
   mostrarVista('tienda');
 }
 

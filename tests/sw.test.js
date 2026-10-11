@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v29', () => {
-  assert.match(sw, /const CACHE = 'one-v29';/);
+test('sw: caché one-v30', () => {
+  assert.match(sw, /const CACHE = 'one-v30';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {

@@ -73,6 +73,16 @@ test('persistencia: corrupto, absurdo o bloqueado → valores por defecto sin la
   assert.equal(O.guardarOrdago(e, almacen), true);
   assert.equal(O.cargarOrdago(almacen).fondo, 2000);
   assert.equal(O.guardarOrdago(e, almacenRoto()), false);
+  O.olvidarMemoria();
+});
+test('sin almacenamiento el fondo vive en memoria; con un almacén sano vuelve a mandar el almacén', () => {
+  O.olvidarMemoria();
+  const roto = almacenRoto();
+  assert.equal(O.guardarOrdago(O.conFondo(O.cargarOrdago(roto), 700), roto), false);
+  assert.equal(O.cargarOrdago(roto).fondo, 700);
+  assert.equal(O.guardarOrdago(O.crearOrdago(), almacenFalso()), true);
+  assert.equal(O.cargarOrdago(roto).fondo, 1000);
+  O.olvidarMemoria();
 });
 test('localStorage bloqueado (getter que lanza): cargar y guardar no lanzan', () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
@@ -128,4 +138,13 @@ test('puntosMinicurva: sube hacia arriba, el máximo marca el techo y un solo pu
   const uno = O.puntosMinicurva([1000], 1000);
   assert.equal(uno.puntos.split(' ').length, 2);
   assert.ok(Number.isFinite(O.puntosMinicurva([], 0).yMaximo));
+});
+test('conFondo (Tienda): cambia el fondo, suma el punto a la curva y no toca racha ni quiebras; sin cambio, igual', () => {
+  const base = { ...O.crearOrdago(), racha: 4, quiebras: 2 };
+  const n = O.conFondo(base, 700);
+  assert.deepEqual([n.fondo, n.racha, n.quiebras, n.curva.at(-1)], [700, 4, 2, 700]);
+  assert.equal(base.fondo, 1000);
+  assert.equal(O.conFondo(base, 1000).curva.length, 1);
+  assert.equal(O.conFondo(base, -5).fondo, 0);
+  assert.equal(O.conFondo(base, 'x').fondo, 0);
 });

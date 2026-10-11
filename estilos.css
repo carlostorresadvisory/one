@@ -2713,17 +2713,25 @@ button.punto-servidor::before {
 /* La esfinge ocupa la tarjeta entera (a la derecha, del alto de la tarjeta); los textos quedan abajo a la izquierda. */
 .hub-modo--tienda > .hub-avatar-lienzo { position: absolute; inset: 0; z-index: 1; justify-content: flex-end; pointer-events: none; }
 .hub-avatar-textos { display: flex; flex-direction: column; gap: 2px; }
-/* Tienda mínima (fase 3): sin brillos ni sombras luminosas; el dorado queda para lo dorado. */
+/* Tienda (fase 9): sin brillos ni sombras luminosas salvo el objeto épico (dorado); el resto va plano. */
 .vista-tienda { align-items: stretch; gap: 14px; }
 .tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
 /* La esfinge protagonista toma el hueco que deja la lista de objetos (sin scroll). */
 .vista-tienda > .tienda-avatar { flex: 1 1 0; min-height: 96px; }
 .tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.tienda-objeto { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
-.tienda-objeto-icono { font-size: 24px; line-height: 1; }
-.tienda-objeto-nombre { flex: 1 1 auto; font-size: var(--tam-1); font-weight: 600; }
-.tienda-objeto-cantidad { font-size: var(--tam-2); font-weight: 600; }
-.tienda-pronto { margin: 0; text-align: center; color: var(--texto-suave); font-size: 14px; }
+.tienda-fondo-fila { margin: 0; display: flex; align-items: baseline; gap: 8px; min-height: 24px; }
+.tienda-fondo-etiqueta { color: var(--texto-suave); font-size: 14px; }
+.tienda-fondo { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+.tienda-aviso { margin-left: auto; color: var(--texto-suave); font-size: 13px; text-align: right; }
+.tienda-objeto { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
+.tienda-objeto-cabecera { display: flex; align-items: center; gap: 8px; }
+.tienda-objeto-icono { font-size: 22px; line-height: 1; }
+.tienda-objeto-nombre { font-size: var(--tam-1); font-weight: 600; }
+.tienda-objeto-cantidad { margin-left: auto; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.tienda-objeto-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tienda-boton { min-height: 40px; padding: 8px 10px; font-size: 14px; white-space: nowrap; }
+.tienda-boton:disabled { opacity: 0.4; }
+.tienda-objeto .cofre-etiqueta--epico { box-shadow: 0 0 12px rgba(242, 193, 78, 0.55); } /* el único resplandor de la Tienda: el épico, dorado */
 .boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
 .boton-silencio[hidden] { display: none; }
 .hub-pie { gap: 14px; }

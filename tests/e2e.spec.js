@@ -6465,10 +6465,9 @@ test.describe('ONE · v0.3 HUB de modos', () => {
       await expect(page.locator('[data-vista="tienda"]')).toContainText('Tienda');
       await expect(page.locator('[data-test="tienda-avatar"] canvas.avatar-lienzo, [data-test="tienda-avatar"] img.avatar-fijo')).toHaveCount(1);
       for (const id of ['cincuenta', 'salvavidas', 'mas5']) {
-        await expect(page.locator(`[data-test="tienda-cantidad-${id}"]`)).toHaveText('×0');
+        await expect(page.locator(`[data-test="tienda-cantidad-${id}"]`)).toHaveText('Tienes 0');
       }
       await expect(page.locator('[data-test="tienda-objeto-salvavidas"]')).toContainText('🛟');
-      await expect(page.locator('[data-test="tienda-pronto"]')).toHaveText('Comprar y vender: pronto');
       await expect(page.locator('body')).not.toContainText('Apuesta');
       await expect(page.locator('body')).not.toContainText('Esfinge');
       expect(await page.locator('[data-vista="tienda"]').evaluate((n) => getComputedStyle(n).rowGap)).toBe('14px');
@@ -6486,8 +6485,8 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await page.reload();
     await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 3');
     await page.locator('[data-test="tarjeta-tienda"]').click();
-    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('×2');
-    await expect(page.locator('[data-test="tienda-cantidad-salvavidas"]')).toHaveText('×1');
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('Tienes 2');
+    await expect(page.locator('[data-test="tienda-cantidad-salvavidas"]')).toHaveText('Tienes 1');
   });
 });
 
@@ -6571,7 +6570,7 @@ test.describe('ONE · v0.3 Clásico con efectos, sonido y premio', () => {
     await page.waitForTimeout(450);
     await page.locator('[data-test="tarjeta-tienda"]').click();
     const cantidades = await page.locator('.tienda-objeto-cantidad').allTextContents();
-    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('×', '')), 0)).toBe(1);
+    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('Tienes ', '')), 0)).toBe(1);
   });
 
   test('Repaso 10/10: nunca da premio', async ({ page }) => {
@@ -7448,7 +7447,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await page.waitForTimeout(450);
     await page.locator('[data-test="tarjeta-tienda"]').click();
     const cantidades = await page.locator('.tienda-objeto-cantidad').allTextContents();
-    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('×', '')), 0)).toBe(1);
+    expect(cantidades.reduce((suma, t) => suma + Number(t.replace('Tienes ', '')), 0)).toBe(1);
   });
 
   test('Review Focus 5: el aviso «Preguntas generadas» no se enseña durante Contrarreloj ni en el cofre y sale al volver al hub', async ({ page }) => {
@@ -8228,5 +8227,167 @@ test.describe('ONE · v0.3 barra de comodines (fase 9.2)', () => {
     await page.locator('[data-test="mm-listo"]').click();
     await expect(page.locator('[data-test="mm-resultado-titulo"]')).toContainText('racha salvada');
     expect((await mochila(page)).salvavidas).toBe(0);
+  });
+});
+
+test.describe('ONE · v0.3 Tienda completa (fase 9.3)', () => {
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+    }
+  };
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+  const fondoGuardado = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago') ?? '{"fondo":1000}').fondo);
+  const mochila = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.mochila')).objetos);
+  const abrirTienda = async (page) => {
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+  };
+
+  test('comprar y vender: con 1.000, 50/50 → fondo 700 y «Tienes 1»; vender → 850; doble toque = una operación; sin scroll', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('1.000');
+    await expect(page.locator('[data-test="tienda-vender-cincuenta"]')).toBeDisabled(); // no lo tienes
+    await expect(page.locator('[data-test="tienda-comprar-cincuenta"]')).toHaveText('Comprar · 300');
+    await expect(page.locator('[data-test="tienda-vender-cincuenta"]')).toHaveText('Vender · 150');
+    await expect(page.locator('[data-test="tienda-comprar-salvavidas"]')).toHaveText('Comprar · 500');
+    await expect(page.locator('[data-test="tienda-vender-mas5"]')).toHaveText('Vender · 100');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
+    await sinScrollEnAmbos(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator('[data-test="tienda-comprar-cincuenta"]').click({ clickCount: 2 });
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('700');
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('Tienes 1');
+    await expect(page.locator('[data-test="tienda-aviso"]')).toContainText('comprado');
+    expect(await fondoGuardado(page)).toBe(700);
+    expect((await mochila(page)).cincuenta).toBe(1); // el doble toque compró una sola vez
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('acierto');
+    await sinScrollEnAmbos(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-vender-cincuenta"]').click({ clickCount: 2 });
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('850');
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('Tienes 0');
+    await expect(page.locator('[data-test="tienda-vender-cincuenta"]')).toBeDisabled();
+    expect(await fondoGuardado(page)).toBe(850);
+    expect((await mochila(page)).cincuenta).toBe(0);
+    // Lo comprado llega al hub (🎒) y al fondo de su tarjeta.
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-comprar-mas5"]').click();
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 1');
+  });
+
+  test('con fondo 400 el Salvavidas (500) no se puede comprar, el 50/50 (300) sí; con fondo justo queda en 0', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('one.ordago', JSON.stringify({ version: 1, fondo: 400, curva: [400], maximo: 1000, quiebras: 0, racha: 0 }));
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('400');
+    await expect(page.locator('[data-test="tienda-comprar-salvavidas"]')).toBeDisabled();
+    await expect(page.locator('[data-test="tienda-comprar-cincuenta"]')).toBeEnabled();
+    await page.locator('[data-test="tienda-comprar-mas5"]').click(); // 200 → quedan 200
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('200');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-comprar-mas5"]').click(); // fondo justo → 0
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('0');
+    await expect(page.locator('[data-test="tienda-comprar-mas5"]')).toBeDisabled();
+    expect(await fondoGuardado(page)).toBe(0);
+  });
+
+  test('rarezas: etiqueta de color por objeto y solo el épico (dorado) lleva resplandor', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-rareza-mas5"]')).toHaveText('Común');
+    await expect(page.locator('[data-test="tienda-rareza-cincuenta"]')).toHaveText('Raro');
+    await expect(page.locator('[data-test="tienda-rareza-salvavidas"]')).toHaveText('Épico');
+    const sombra = (id) => page.locator(`[data-test="tienda-rareza-${id}"]`).evaluate((n) => getComputedStyle(n).boxShadow);
+    expect(await sombra('mas5')).toBe('none');
+    expect(await sombra('cincuenta')).toBe('none');
+    expect(await sombra('salvavidas')).not.toBe('none');
+    // Letra funcional >= 11 px y relleno >= 8 px en todo lo que tiene borde o fondo.
+    const medidas = await page.evaluate(() => [...document.querySelectorAll('[data-vista="tienda"] .tienda-boton, [data-vista="tienda"] .cofre-etiqueta, [data-vista="tienda"] .tienda-objeto')].map((n) => {
+      const c = getComputedStyle(n);
+      return { letra: parseFloat(c.fontSize), relleno: Math.min(parseFloat(c.paddingTop), parseFloat(c.paddingBottom), parseFloat(c.paddingLeft), parseFloat(c.paddingRight)) };
+    }));
+    for (const m of medidas) {
+      expect(m.letra).toBeGreaterThanOrEqual(11);
+      expect(m.relleno).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  test('quiebra con objetos: «Vender objetos → Tienda» lleva a la Tienda, vender saca del pozo y Órdago sigue con el fondo que queda', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await page.evaluate(() => window.__one.sembrarMochila({ cincuenta: 1 }));
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-ordago"]').click();
+    await page.evaluate(() => window.__one.fallarPreguntaOrdago());
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-siguiente"]').click();
+    await expect(page.locator('[data-vista="quiebra"]')).toBeVisible();
+    await expect(page.locator('[data-test="quiebra-vender"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="quiebra-vender"]').click({ clickCount: 2 });
+    await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('0');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-vender-cincuenta"]').click();
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('150');
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.waitForTimeout(450);
+    await entrarEnModo(page, 'ordago');
+    await expect(page.locator('[data-vista="ordago"]')).toBeVisible(); // ya no está en quiebra
+    await expect(page.locator('[data-test="ordago-fondo"]')).toHaveText('150');
+  });
+
+  test('quiebra sin objetos: no hay botón de vender', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-ordago"]').click();
+    await page.evaluate(() => window.__one.fallarPreguntaOrdago());
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ordago-siguiente"]').click();
+    await expect(page.locator('[data-vista="quiebra"]')).toBeVisible();
+    await expect(page.locator('[data-test="quiebra-vender"]')).toBeHidden();
+  });
+
+  test('con el almacenamiento bloqueado comprar y vender viven en memoria y nada lanza', async ({ page }) => {
+    const errores = [];
+    page.on('pageerror', (e) => errores.push(e.message));
+    await page.addInitScript(() => {
+      const bloqueadas = ['one.mochila', 'one.ordago'];
+      const setItem = Storage.prototype.setItem;
+      const getItem = Storage.prototype.getItem;
+      Storage.prototype.setItem = function (k, v) {
+        if (bloqueadas.includes(k)) throw new Error('SecurityError');
+        return setItem.call(this, k, v);
+      };
+      Storage.prototype.getItem = function (k) {
+        if (bloqueadas.includes(k)) throw new Error('SecurityError');
+        return getItem.call(this, k);
+      };
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    await page.locator('[data-test="tienda-comprar-cincuenta"]').click();
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('700');
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('Tienes 1');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 1');
+    await page.waitForTimeout(450);
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('700');
+    expect(errores).toEqual([]);
   });
 });

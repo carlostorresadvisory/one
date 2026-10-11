@@ -95,7 +95,25 @@ export function abrirFondoNuevo(estado) {
   };
 }
 
+/** Estado con otro fondo (compras y ventas de la Tienda): la curva suma el punto nuevo; no toca racha ni quiebras. */
+export function conFondo(estado, fondo) {
+  const actual = normalizarOrdago(estado);
+  const nuevo = Math.min(MAX_VALOR, Math.max(0, Math.trunc(Number(fondo)) || 0));
+  if (nuevo === actual.fondo) return actual;
+  return normalizarOrdago({ ...actual, fondo: nuevo, curva: [...actual.curva, nuevo].slice(-MAX_CURVA) });
+}
+
+// Copia en memoria (spec §9): con el almacenamiento bloqueado o lleno el fondo vive aquí hasta recargar, así la Tienda
+// y Órdago ven el mismo dinero durante la sesión.
+let ordagoEnMemoria = null;
+
+/** Solo para los tests: olvida la copia en memoria. */
+export function olvidarMemoria() {
+  ordagoEnMemoria = null;
+}
+
 export function cargarOrdago(almacen) {
+  if (ordagoEnMemoria) return normalizarOrdago(ordagoEnMemoria); // la última escritura no llegó al almacén
   try {
     const crudo = (almacen ?? globalThis.localStorage).getItem(CLAVE_ORDAGO);
     return crudo ? normalizarOrdago(JSON.parse(crudo)) : crearOrdago();
@@ -105,10 +123,13 @@ export function cargarOrdago(almacen) {
 }
 
 export function guardarOrdago(estado, almacen) {
+  const normal = normalizarOrdago(estado);
   try {
-    (almacen ?? globalThis.localStorage).setItem(CLAVE_ORDAGO, JSON.stringify(normalizarOrdago(estado)));
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_ORDAGO, JSON.stringify(normal));
+    ordagoEnMemoria = null;
     return true;
   } catch {
+    ordagoEnMemoria = normal;
     return false;
   }
 }

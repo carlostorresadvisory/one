@@ -95,13 +95,17 @@
       </div>
     </section>
 
-    <!-- TIENDA mínima (v0.3 fase 3; la completa llega en la fase 9): avatar grande + mochila. Se abre
-         desde la tarjeta Tienda del hub y la flecha ← de la cabecera vuelve al hub. -->
+    <!-- TIENDA (v0.3 fase 9, spec §6): avatar grande, fondo de Órdago y, por objeto, comprar y vender. La monta
+         tienda-ui.js. Se abre desde la tarjeta Tienda del hub (o desde la quiebra) y la flecha ← vuelve al hub. -->
     <section class="vista vista-tienda" data-vista="tienda" data-test="tienda" hidden>
       <h2 class="tienda-titulo">Tienda</h2>
       <div class="tienda-avatar" data-test="tienda-avatar"></div>
-      <ul class="tienda-mochila" data-test="tienda-mochila" aria-label="Mochila"></ul>
-      <p class="tienda-pronto" data-test="tienda-pronto">Comprar y vender: pronto</p>
+      <p class="tienda-fondo-fila" aria-live="polite">
+        <span class="tienda-fondo-etiqueta">Fondo</span>
+        <span class="tienda-fondo" data-test="tienda-fondo">1.000</span>
+        <span class="tienda-aviso" data-test="tienda-aviso"></span>
+      </p>
+      <ul class="tienda-mochila" data-test="tienda-mochila" aria-label="Objetos"></ul>
     </section>
 
     <!-- v0.3 §4/§11: el filtro del modo deja menos de 5 elementos jugables. -->
@@ -146,6 +150,7 @@
       <h2 class="quiebra-titulo">Quiebra</h2>
       <p class="quiebra-maximo" data-test="quiebra-maximo"></p>
       <button type="button" class="boton boton-principal" data-test="quiebra-fondo-nuevo">Abrir un fondo nuevo con 1.000</button>
+      <button type="button" class="boton" data-test="quiebra-vender" hidden>Vender objetos → Tienda</button>
     </section>
 
     <!-- CONTRARRELOJ (v0.3 fase 6, spec §5.4): n/10, foto con el enunciado encima (foto-pregunta.js), barra de

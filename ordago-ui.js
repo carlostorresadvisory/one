@@ -12,7 +12,7 @@ import {
 import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
-import { cargarMochila } from './mochila.js';
+import { cargarMochila, contarObjetos } from './mochila.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -49,7 +49,7 @@ const textoRespuesta = (p) => (p.tipo === 'vf' ? (p.respuesta ? 'Verdadero' : 'F
  * `contenedorQuiebra`, `mostrarVista(nombre)`, `elegirPregunta({usados, ultima})` → pregunta|null,
  * `registrar(pregunta, correcta, respuesta)`, `celebrarAcierto(nodo, 'monedas')`, `lamentarFallo(nodo)`,
  * `celebrarPremio(evento)`, `resplandorEsfinge()`, `imagenDe(pregunta)`, `pedirGesto(evento)`,
- * `alSinPreguntas()`, y opcionales `vigia` (el de «pensando»), `almacen`, `rng`, `documento`.
+ * `alSinPreguntas()`, `alVenderObjetos()` (quiebra → Tienda), y opcionales `vigia` (el de «pensando»), `almacen`, `rng`, `documento`.
  */
 export function montarOrdago(contenedor, deps) {
   const documento = deps.documento ?? contenedor.ownerDocument ?? globalThis.document;
@@ -68,6 +68,7 @@ export function montarOrdago(contenedor, deps) {
   const quiebra = deps.contenedorQuiebra;
   const nodoQuiebraMaximo = nodo('quiebra-maximo', quiebra);
   const botonFondoNuevo = nodo('quiebra-fondo-nuevo', quiebra);
+  const botonVender = nodo('quiebra-vender', quiebra);
   const nodoComodines = nodo('ordago-comodines');
 
   let estado = cargarOrdago(deps.almacen);
@@ -231,6 +232,7 @@ export function montarOrdago(contenedor, deps) {
     fase = 'quiebra';
     armar();
     nodoQuiebraMaximo.textContent = `Máximo alcanzado: ${formatearCifra(estado.maximo)}`;
+    if (botonVender) botonVender.hidden = contarObjetos(cargarMochila(deps.almacen)) < 1; // spec §5.2: con objetos, también se pueden vender
     deps.vigia?.parar();
     deps.mostrarVista('quiebra');
     deps.pedirGesto('quiebra');
@@ -247,6 +249,8 @@ export function montarOrdago(contenedor, deps) {
   const alFondoNuevo = () => { if (libre()) fondoNuevo(); };
   botonSiguiente.addEventListener('click', alSiguiente);
   botonFondoNuevo.addEventListener('click', alFondoNuevo);
+  const alVender = () => { if (libre() && fase === 'quiebra') deps.alVenderObjetos(); };
+  botonVender?.addEventListener('click', alVender);
   nuevaRonda(true);
 
   return {
@@ -254,6 +258,7 @@ export function montarOrdago(contenedor, deps) {
       fase = 'destruido';
       botonSiguiente.removeEventListener('click', alSiguiente);
       botonFondoNuevo.removeEventListener('click', alFondoNuevo);
+      botonVender?.removeEventListener('click', alVender);
       if (foto) foto.destruir();
       foto = null;
       deps.vigia?.parar();
