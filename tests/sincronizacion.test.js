@@ -448,61 +448,60 @@ test('fusionarBancoExtra: sin idsLocales (parámetro omitido), no lanza y funcio
 
 function bancoExtraDePrueba() {
   return [
-    { id: 'srv-eco-1', area: 'economia', enunciado: 'Uno', explicacion: 'Explicación uno.', visual: null, visualPendiente: true },
-    { id: 'srv-eco-2', area: 'economia', enunciado: 'Dos', explicacion: 'Explicación dos.', visual: { tipo: 'dato' } },
+    { id: 'srv-eco-1', area: 'economia', enunciado: 'Uno', explicacion: 'Explicación uno.', imagen: null, imagenPendiente: true },
+    { id: 'srv-eco-2', area: 'economia', enunciado: 'Dos', explicacion: 'Explicación dos.', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } },
   ];
 }
 
-test('aplicarActualizaciones: sustituye visual y explicación POR ID, sin tocar nada más', () => {
+test('aplicarActualizaciones: sustituye imagen y explicación POR ID, sin tocar nada más', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
 
   const { aplicadas } = aplicarActualizaciones(
-    [{ id: 'srv-eco-1', visual: { tipo: 'formula', texto: 'a = b', leyenda: 'L' }, explicacion: 'Explicación uno.' }],
+    [{ id: 'srv-eco-1', imagen: { url: '/imagenes/srv-eco-1.webp', fuente: 'IA', nota: null }, explicacion: 'Explicación uno.' }],
     crearEstado(),
   );
 
   assert.equal(aplicadas, 1);
   const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
-  assert.deepEqual(guardado[0].visual, { tipo: 'formula', texto: 'a = b', leyenda: 'L' });
-  assert.equal(guardado[0].visualPendiente, false, 'ya no falta: el visual llegó');
+  assert.deepEqual(guardado[0].imagen, { url: '/imagenes/srv-eco-1.webp', fuente: 'IA', nota: null });
+  assert.equal(guardado[0].imagenPendiente, false, 'ya no falta: la imagen llegó');
   assert.equal(guardado[0].enunciado, 'Uno', 'el enunciado NUNCA se toca desde aquí');
   assert.deepEqual(guardado[1], bancoExtraDePrueba()[1], 'la que no venía en la lista queda igual');
 });
 
-// Ronda de corrección 1 (I2): un `visual` truthy pero que NO pasa el esquema completo (aquí, un
-// "dato" sin cifra/texto/fuente/leyenda -- inválido de sobra) antes pisaba el visual bueno que ya
-// había y apagaba `visualPendiente` para siempre. Ahora se ignora el cambio ENTERO para esa
-// pregunta -- ni visual, ni explicación, ni visualPendiente se tocan -- y no cuenta como aplicado.
-test('aplicarActualizaciones: un visual truthy pero INVÁLIDO se ignora entero (I2) -- ni visual ni explicación se tocan, no cuenta como aplicado', () => {
+// Una `imagen` truthy pero que NO pasa el esquema (aquí, una URL http que no es de nuestro servidor
+// ni de Commons por https) no pisa nada ni apaga `imagenPendiente`: se ignora el cambio ENTERO para
+// esa pregunta -- ni imagen, ni explicación, ni imagenPendiente se tocan -- y no cuenta como aplicado.
+test('aplicarActualizaciones: una imagen truthy pero INVÁLIDA se ignora entera -- ni imagen ni explicación se tocan, no cuenta como aplicado', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
   const { aplicadas } = aplicarActualizaciones(
-    [{ id: 'srv-eco-1', visual: { tipo: 'dato' }, explicacion: 'Explicación nueva, que NO debería aplicarse.' }],
+    [{ id: 'srv-eco-1', imagen: { url: 'http://otro.com/x.jpg' }, explicacion: 'Explicación nueva, que NO debería aplicarse.' }],
     crearEstado(),
   );
-  assert.equal(aplicadas, 0, 'un visual inválido no cuenta como aplicado');
+  assert.equal(aplicadas, 0, 'una imagen inválida no cuenta como aplicado');
   const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
-  assert.deepEqual(guardado[0], bancoExtraDePrueba()[0], 'ni visual ni explicación se tocan: se ignora el cambio entero');
+  assert.deepEqual(guardado[0], bancoExtraDePrueba()[0], 'ni imagen ni explicación se tocan: se ignora el cambio entero');
 });
 
-// `null`/ausente sigue siendo un valor válido para `visual` (spec §5): significa "el servidor
-// todavía no tiene ninguno", no un visual mal formado -- no debe pasar por esVisualValido.
-test('aplicarActualizaciones: `visual: null` (el servidor sigue sin tenerlo) se aplica con normalidad -- no es "inválido"', () => {
+// `null`/ausente sigue siendo un valor válido para `imagen`: significa "el servidor todavía no tiene
+// ninguna", no una imagen mal formada -- no debe pasar por esImagenValida.
+test('aplicarActualizaciones: `imagen: null` (el servidor sigue sin tenerlo) se aplica con normalidad -- no es "inválido"', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
-  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', visual: null, explicacion: 'Sigue igual.' }], crearEstado());
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', imagen: null, explicacion: 'Sigue igual.' }], crearEstado());
   assert.equal(aplicadas, 1);
   const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
-  assert.equal(guardado[0].visual, null);
-  assert.equal(guardado[0].visualPendiente, true, 'sigue pendiente: el servidor no mandó nada todavía');
+  assert.equal(guardado[0].imagen, null);
+  assert.equal(guardado[0].imagenPendiente, true, 'sigue pendiente: el servidor no mandó nada todavía');
   assert.equal(guardado[0].explicacion, 'Sigue igual.');
 });
 
 test('aplicarActualizaciones: un id que no está en el banco extendido se ignora en silencio', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
-  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-ajena', visual: { tipo: 'dato' } }], crearEstado());
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-ajena', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } }], crearEstado());
   assert.equal(aplicadas, 0);
   assert.deepEqual(JSON.parse(localStorage.getItem('one.bancoExtra')), bancoExtraDePrueba());
 });
@@ -510,7 +509,7 @@ test('aplicarActualizaciones: un id que no está en el banco extendido se ignora
 test('aplicarActualizaciones: entradas inservibles no rompen ni escriben (lista vacía, sin id, no-array)', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
-  for (const entrada of [[], null, undefined, 'texto', [{ visual: { tipo: 'dato' } }], [null]]) {
+  for (const entrada of [[], null, undefined, 'texto', [{ imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } }], [null]]) {
     assert.equal(aplicarActualizaciones(entrada, crearEstado()).aplicadas, 0);
   }
   assert.deepEqual(JSON.parse(localStorage.getItem('one.bancoExtra')), bancoExtraDePrueba());
@@ -519,7 +518,7 @@ test('aplicarActualizaciones: entradas inservibles no rompen ni escriben (lista 
 test('aplicarActualizaciones: una explicación ausente o vacía NO borra la que ya había', () => {
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
-  aplicarActualizaciones([{ id: 'srv-eco-1', visual: { tipo: 'dato' } }, { id: 'srv-eco-2', explicacion: '  ' }], crearEstado());
+  aplicarActualizaciones([{ id: 'srv-eco-1', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } }, { id: 'srv-eco-2', explicacion: '  ' }], crearEstado());
   const guardado = JSON.parse(localStorage.getItem('one.bancoExtra'));
   assert.equal(guardado[0].explicacion, 'Explicación uno.');
   assert.equal(guardado[1].explicacion, 'Explicación dos.');
@@ -529,7 +528,7 @@ test('aplicarActualizaciones: una pregunta reportada por el jugador no revive po
   prepararGlobales();
   localStorage.setItem('one.bancoExtra', JSON.stringify(bancoExtraDePrueba()));
   const estado = { ...crearEstado(), reportadas: ['srv-eco-1'] };
-  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', visual: { tipo: 'dato' } }], estado);
+  const { aplicadas } = aplicarActualizaciones([{ id: 'srv-eco-1', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } }], estado);
   assert.equal(aplicadas, 0, 'lo que el jugador marcó como malo no se actualiza, se ignora');
 });
 
@@ -588,7 +587,7 @@ test('v0.2b4.1 §5: sincronizarEstado manda `desde` y devuelve `actualizadas`', 
       json: async () => ({
         preguntas: [],
         enCola: 0,
-        actualizadas: [{ id: 'srv-eco-1', visual: { tipo: 'dato' }, explicacion: 'Igual.' }],
+        actualizadas: [{ id: 'srv-eco-1', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: 'Igual.' }],
       }),
     };
   };
@@ -655,7 +654,7 @@ test('v0.2b4.1 §5 (extra): una marca guardada que NO es una fecha ISO válida n
 // cuerpo JSON -- no una cabecera HTTP, que CORS oculta en una petición cross-origin real, ver
 // servidor/index.js), la marca nueva usa ESA hora tal cual, sin tocarla. Evita el desfase entre el
 // reloj de este móvil y el del servidor, que es quien de verdad estampa `actualizadaEn`
-// (servidor/cola.js#completarVisual) y quien compara `actualizadaEn > desde` en la próxima consulta.
+// (servidor/cola.js#completarImagen) y quien compara `actualizadaEn > desde` en la próxima consulta.
 test('v0.2b4.1 §5 (I1): si la respuesta trae `ahora`, la marca nueva usa la hora del SERVIDOR tal cual, no la local', async () => {
   prepararGlobales({ conConfiguracion: true });
   const fetchImpl = async () => ({
@@ -984,7 +983,7 @@ test('reportarAlServidor: error del servidor → null', async () => {
 test('v0.2b4.1 §5: app.js importa aplicarActualizaciones y reconstruye el banco tras aplicarlas', async () => {
   const fuente = await readFile('app.js', 'utf8');
   assert.match(fuente, /aplicarActualizaciones/, 'app.js debe importar y usar aplicarActualizaciones');
-  // El orden importa: aplicar y NO reconstruir dejaría `banco`/`bancoPorId` con el visual viejo en
+  // El orden importa: aplicar y NO reconstruir dejaría `banco`/`bancoPorId` con la imagen vieja en
   // memoria hasta la siguiente recarga, que es exactamente el fallo que este bloque evita.
   const bloque = fuente.slice(fuente.indexOf('async function sincronizarEnSegundoPlano'));
   const posAplicar = bloque.indexOf('aplicarActualizaciones');
@@ -999,4 +998,13 @@ test('v0.2b4.1: el README describe los proveedores nuevos y las variables de ent
   }
   assert.match(readme, /v0\.2b4\.1/, 'el estado debe mencionar la versión');
   assert.match(readme, /actualizadas/, 'el contrato nuevo de POST /estado debe estar documentado');
+});
+
+test('aplicarActualizaciones: migra el antiguo visualPendiente a imagenPendiente y lo retira', () => {
+  prepararGlobales();
+  localStorage.setItem('one.bancoExtra', JSON.stringify([{ id: 'srv-vieja', area: 'economia', enunciado: 'V', explicacion: 'E.', visual: null, visualPendiente: true }]));
+  aplicarActualizaciones([{ id: 'srv-vieja', imagen: null, explicacion: 'E.' }], crearEstado());
+  const [p] = JSON.parse(localStorage.getItem('one.bancoExtra'));
+  assert.equal(p.imagenPendiente, true);
+  assert.equal('visualPendiente' in p, false);
 });

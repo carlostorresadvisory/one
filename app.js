@@ -16,7 +16,8 @@ import {
   listarNoRespondidas,
   AREAS,
 } from './motor.js';
-import { construirVisual, construirVisualClave, medirAncho } from './visuales.js';
+import { construirVisual, esVisualImprescindible, medirAncho } from './visuales.js';
+import { creditoTexto, cargarImagenesMalas, guardarImagenesMalas, esImagenValida } from './foto-pregunta.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -37,7 +38,7 @@ import {
   filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
   avisoFiltroCorto, preguntasDelFiltro,
 } from './filtro.js';
-import { MODOS, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
+import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
 import { OBJETOS, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
@@ -100,6 +101,22 @@ let estadoServidor = 'gris';
 // al banco en iniciar(); si falta el fichero o el fetch falla, queda vacío y
 // la app sigue igual (la imagen es una mejora, no un requisito de la tarjeta).
 let imagenesPorId = new Map();
+// Ids de imágenes marcadas como malas desde la tarjeta («Imagen mala»): no se enseñan más.
+let imagenesMalas = cargarImagenesMalas();
+
+/** Imagen de una pregunta, salvo que esté marcada como mala (entonces, como si no hubiera). Las del
+ * banco salen de datos/imagenes.json; las preguntas `srv-` traen la suya en `pregunta.imagen` (una
+ * WebP del servidor se pide a su dirección: `/imagenes/<id>.webp`). */
+function imagenDe(pregunta) {
+  if (!pregunta || imagenesMalas.has(pregunta.id)) return null;
+  const delBanco = imagenesPorId.get(pregunta.id);
+  if (delBanco) return delBanco;
+  const propia = pregunta.imagen;
+  if (!esImagenValida(propia)) return null;
+  if (!propia.url.startsWith('/imagenes/')) return propia;
+  const configuracion = leerConfiguracion();
+  return configuracion ? { ...propia, url: `${configuracion.url}${propia.url}` } : null;
+}
 
 // --- mazo de la partida en curso (spec v0.1c §2.1) ---
 // `mazo` son los huecos ya alcanzados, en orden; máximo N_PARTIDA. Un hueco se
@@ -1244,7 +1261,7 @@ function empezarOrdago() {
     lamentarFallo,
     celebrarPremio,
     resplandorEsfinge,
-    imagenDe: (pregunta) => imagenesPorId.get(pregunta.id) || null,
+    imagenDe,
     pedirGesto,
     vigia: vigiaPensando,
     alSinPreguntas: () => {
@@ -1306,7 +1323,7 @@ function empezarContrarreloj() {
     lamentarFallo,
     celebrarPremio,
     reproducir: (nombre) => sonido.reproducir(nombre),
-    imagenDe: (pregunta) => imagenesPorId.get(pregunta.id) || null,
+    imagenDe,
     darObjetos: darObjetosContrarreloj,
     vigia: vigiaPensando,
     alSalir: () => {
@@ -2739,15 +2756,10 @@ function construirTarjetaSinResponder(hueco) {
  * TODO mal — p. ej. el orden invertido del todo — marcar cada línea con ✗
  * sobre el propio orden correcto leía como "esto está mal", cuando es
  * justo lo contrario; sin ninguna marca, el rótulo solo, se entiende).
- *
- * `soloFallo` (spec v0.2a.2.1 §1.3): con la tarjeta tipográfica la respuesta correcta ya está
- * escrita en grande en la visual, así que aquí solo sobrevive la línea de LA RESPUESTA DEL
- * JUGADOR cuando falló ("Tu respuesta: X ✗") — con acierto, o sin haber respondido, no queda
- * nada que decir y el contenedor vuelve vacío. */
-function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {}) {
+ */
+function construirRespuestaCompacta(pregunta, hueco) {
   const contenedor = document.createElement('div');
   contenedor.className = 'respuesta-compacta';
-  if (soloFallo && (hueco.correcta === undefined || hueco.correcta || hueco.respuesta === undefined)) return contenedor;
   switch (pregunta.tipo) {
     case 'vf': {
       // Tolerancia a hueco.respuesta === undefined (tarjeta anterior a v0.2,
@@ -2767,11 +2779,7 @@ function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {})
         linea.textContent = `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✓`;
         linea.classList.add('respuesta-compacta-linea--ok');
       } else {
-        // Con `soloFallo` interesa QUÉ marcó el jugador, no cuál era la correcta (eso está en la
-        // visual): "Tu respuesta: Verdadero ✗" en vez de "✗ · Era Falso".
-        linea.textContent = soloFallo
-          ? `Tu respuesta: ${respuestaVf ? 'Verdadero' : 'Falso'} ✗`
-          : `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
+        linea.textContent = `✗ · Era ${pregunta.respuesta ? 'Verdadero' : 'Falso'}`;
         linea.classList.add('respuesta-compacta-linea--tachada');
       }
       contenedor.appendChild(linea);
@@ -2789,7 +2797,6 @@ function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {})
         tuya.textContent = `${pregunta.opciones[hueco.respuesta]} ✗`;
         contenedor.appendChild(tuya);
       }
-      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.opciones[pregunta.correcta]} ✓`;
@@ -2804,7 +2811,6 @@ function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {})
         tuya.textContent = `${pregunta.tarjeta.filas[hueco.respuesta].etiqueta} ✗`;
         contenedor.appendChild(tuya);
       }
-      if (soloFallo) break; // la correcta la enseña la visual
       const correcta = document.createElement('p');
       correcta.className = 'respuesta-compacta-linea respuesta-compacta-linea--ok';
       correcta.textContent = `${pregunta.tarjeta.filas[pregunta.sospechoso].etiqueta} ✓`;
@@ -2812,7 +2818,6 @@ function construirRespuestaCompacta(pregunta, hueco, { soloFallo = false } = {})
       break;
     }
     case 'ordenar': {
-      if (soloFallo) break; // la lista completa ya está en la visual
       const rotulo = document.createElement('p');
       rotulo.className = 'respuesta-compacta-orden-rotulo';
       rotulo.textContent = 'Orden correcto';
@@ -3111,19 +3116,23 @@ function construirBloqueFeedback(pregunta, hueco) {
 function construirAtribucionImagen(datos) {
   const p = document.createElement('p');
   p.className = 'imagen-pie-atribucion';
-  const exigeAutor = datos.licencia !== 'Public domain' && datos.licencia !== 'CC0';
-  const licenciaTexto = datos.licencia === 'Public domain' ? 'Dominio público' : datos.licencia;
-  const prefijo = exigeAutor && datos.autor ? `${datos.autor} · ${licenciaTexto} · ` : `${licenciaTexto} · `;
-  p.appendChild(document.createTextNode(prefijo));
+  // Crédito real (`creditoTexto`, foto-pregunta.js): «Fuente · Autor · Licencia», o «Imagen generada
+  // con IA»; el mismo texto en Clásico, Repaso y los modos con foto. Con página de origen, el texto
+  // es el enlace; una imagen de IA no tiene a dónde enlazar.
+  const texto = creditoTexto(datos);
+  if (!datos.pagina) {
+    p.textContent = texto;
+    return p;
+  }
   const enlace = document.createElement('a');
   enlace.href = datos.pagina;
   enlace.target = '_blank';
   enlace.rel = 'noopener';
-  enlace.textContent = 'Commons';
+  enlace.textContent = texto;
   // Ver a pantalla completa (spec §8, Tarea 3, decisión del controlador): "los enlaces de
   // atribución del pie siguen funcionando" -- sin este stopPropagation, el toque burbujearía hasta
   // el listener delegado del contenedor de tarjetas y abriría la superposición A LA VEZ que este
-  // enlace navega a Commons.
+  // enlace navega a la página de la imagen.
   enlace.addEventListener('click', (ev) => ev.stopPropagation());
   p.appendChild(enlace);
   return p;
@@ -3150,7 +3159,7 @@ function marcarZonaImagenAbrible(zona) {
  * Solo desaparece si la imagen de verdad falla al cargar (ver el `error` de
  * abajo). Devuelve `null` si la pregunta no tiene imagen (nada que pintar). */
 function construirBloqueImagen(pregunta) {
-  const datos = imagenesPorId.get(pregunta.id);
+  const datos = imagenDe(pregunta);
   if (!datos) return null;
 
   const zona = document.createElement('div');
@@ -3166,21 +3175,13 @@ function construirBloqueImagen(pregunta) {
   img.alt = datos.leyenda || '';
   img.referrerPolicy = 'no-referrer';
   img.src = datos.url;
-  // Imagen rota (404, sin red...): antes de dejar el hueco vacío, se intenta
-  // el visual generado como respaldo (hallazgo M2, revisión final v0.1e: la
-  // prioridad fija imagen->visual de construirTarjetaRespondida se decide en
-  // el momento de construir la tarjeta, cuando la imagen "existe" a efectos
-  // de datos aunque su carga real falle después — sin este respaldo, una
-  // imagen rota dejaba la tarjeta sin NINGÚN visual pudiendo haber uno).
-  // Spec §8 (v0.2a.2): el respaldo cae a la CAPA SIGUIENTE, nunca a "sin
-  // visual" — si `construirBloqueVisual` tampoco tiene datos, cae a la
-  // tercera capa, `construirBloqueVisualClave`, que no lanza y nunca
-  // devuelve null (garantiza el 100% con visual). Se recalcula el encaje
-  // porque el alto disponible cambia.
+  // Imagen rota (404, sin red...): nunca un hueco. Cae al color del área (o, si la pregunta lleva
+  // una fórmula imprescindible, a ella: construirBloqueSinImagen) y se recalcula el encaje porque
+  // el alto disponible cambia.
   img.addEventListener('error', () => {
     const tarjeta = zona.closest('.tarjeta');
     const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
-    const respaldo = construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
+    const respaldo = construirBloqueSinImagen(pregunta);
     zona.replaceWith(respaldo);
     if (contenido) contenido.classList.add('tarjeta-contenido--imagen');
     if (tarjeta) ajustarEncaje(tarjeta);
@@ -3263,26 +3264,29 @@ function construirBloqueVisual(pregunta) {
   return zona;
 }
 
-/** Bloque de la TERCERA capa (spec §8, v0.2a.2, Tarea 1: `construirVisualClave`
- * en visuales.js — v0.2a.2.1 §1.3, Tarea 2: HTML por tipo, ya no SVG): la
- * tarjeta tipográfica que garantiza el 100% con visual cuando no hay ni
- * imagen de Commons ni visual de datos — también cubre toda pregunta `srv-`
- * del servidor que llegue sin ninguno de los dos (Ruling R3). Misma caja
- * flexible que la imagen/el visual (`.zona-imagen`, con las clases extra
- * `zona-imagen--visual`/`--clave` para el CSS y el e2e). A diferencia de
- * `construirBloqueImagen`/`construirBloqueVisual`, esta función NUNCA
- * devuelve null: `construirVisualClave` no lanza y siempre entrega un bloque
- * (con solo el área si la pregunta viene rota) — es el fin de la cascada de
- * tres capas, nunca "sin visual". */
-function construirBloqueVisualClave(pregunta) {
-  const bloque = construirVisualClave(pregunta, { nombreArea });
-
+/** Bloque de color del área (spec v0.3 §4/§7): lo que se ve cuando la pregunta no tiene imagen (o no
+ * carga). Solo el color del área y su nombre en pequeño: sin emoji grande, sin esquemas ni texto de
+ * la respuesta. Misma caja flexible que la imagen (.zona-imagen), así el 50-60 % de la tarjeta se
+ * mantiene; no es tocable (no hay nada que ampliar). */
+function construirBloqueColorArea(pregunta) {
   const zona = document.createElement('div');
-  zona.className = 'zona-imagen zona-imagen--visual zona-imagen--clave';
-  zona.appendChild(bloque);
-
-  marcarZonaImagenAbrible(zona);
+  const area = typeof pregunta.area === 'string' ? pregunta.area : '';
+  zona.className = `zona-imagen zona-imagen--color zona-imagen--color-${area}`;
+  zona.dataset.test = 'zona-color';
+  zona.dataset.area = area;
+  if (area) {
+    const etiqueta = document.createElement('p');
+    etiqueta.className = 'zona-color-area';
+    etiqueta.textContent = nombreArea(area).toUpperCase();
+    zona.appendChild(etiqueta);
+  }
   return zona;
+}
+
+/** Qué se enseña en la zona de la tarjeta cuando NO hay imagen que cargar: solo un visual
+ * imprescindible (una fórmula de matemáticas o ciencia) y, si no, el color del área. */
+function construirBloqueSinImagen(pregunta) {
+  return (esVisualImprescindible(pregunta) ? construirBloqueVisual(pregunta) : null) || construirBloqueColorArea(pregunta);
 }
 
 // ============================================================================
@@ -3309,8 +3313,8 @@ function construirBloqueVisualClave(pregunta) {
  * `data-test="imagen-pie"` del clon: con la tarjeta original todavía en el DOM detrás de la
  * superposición, dejarlo duplicaría ese selector mientras la superposición está abierta.
  * Para un visual de datos, solo su leyenda como texto plano (sin atribución que citar en un dibujo
- * generado por la propia app); la tarjeta tipográfica no tiene pie propio (el texto ya vive dentro
- * del propio bloque `.visual-clave`) — devuelve `null` y `abrirVisualCompleta` deja el pie oculto. */
+ * generado por la propia app); el bloque de color no se abre. Sin pie, devuelve `null` y
+ * `abrirVisualCompleta` lo deja oculto. */
 function construirPieVisualCompleta(zona) {
   const pieImagen = zona.querySelector('.imagen-pie');
   if (pieImagen) {
@@ -3386,11 +3390,8 @@ function enfocarTrasCerrarVisualCompleta(zona) {
 // "Conectar", más arriba en este fichero).
 let zonaImagenAbrio = null;
 
-/** Abre `.visual-completa` con un clon de la `img`, el `svg` o el bloque `.visual-clave` de `zona`
- * (spec §8, Tarea 3; v0.2a.2.1 §1.3, Tarea 2: la tercera capa ya no es SVG): imagen primero (misma
- * prioridad fija que la propia tarjeta), luego el visual de datos (`svg`), y por último la tarjeta
- * tipográfica -- su clon lleva su propio degradado de fondo (`.visual-completa-clave`, estilos.css)
- * porque fuera de `.zona-imagen--clave` no hay quien lo pinte. */
+/** Abre `.visual-completa` con un clon de la `img` o del `svg` de `zona` (spec §8, Tarea 3): imagen
+ * primero (misma prioridad fija que la propia tarjeta) y luego el visual imprescindible. */
 function abrirVisualCompleta(zona) {
   // Ronda final de revisión (adversarial A1): una doble apertura (p. ej. dos toques rapidísimos que
   // ambos pasan el filtro de distancia de alClicContenedorTarjetas) se ignora — la superposición ya
@@ -3399,7 +3400,6 @@ function abrirVisualCompleta(zona) {
 
   const imgOriginal = zona.querySelector('img');
   const svgOriginal = zona.querySelector('svg');
-  const claveOriginal = zona.querySelector('.visual-clave');
   nodoVisualCompletaMedio.innerHTML = '';
   if (imgOriginal) {
     const clon = document.createElement('img');
@@ -3419,16 +3419,8 @@ function abrirVisualCompleta(zona) {
     clon.classList.add('visual-completa-media');
     evitarIdsDuplicados(clon); // Minor #4
     nodoVisualCompletaMedio.appendChild(clon);
-  } else if (claveOriginal) {
-    // La tercera capa ya no es un SVG (spec v0.2a.2.1 §1.3): se clona el bloque HTML tal cual.
-    // Se le quita el `data-test` al clon por el mismo motivo que al pie clonado: la tarjeta
-    // original sigue en el DOM detrás de la superposición y el selector quedaría duplicado.
-    const clon = claveOriginal.cloneNode(true);
-    clon.classList.add('visual-completa-media', 'visual-completa-clave');
-    clon.removeAttribute('data-test');
-    nodoVisualCompletaMedio.appendChild(clon);
   } else {
-    return; // no debería pasar: toda .zona-imagen tiene img, svg o .visual-clave
+    return; // la zona de color del área no tiene nada que ampliar
   }
 
   nodoVisualCompletaPie.innerHTML = '';
@@ -3651,19 +3643,9 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   contenido.className = 'tarjeta-contenido tarjeta-contenido--imagen';
   contenido.appendChild(construirCabeceraPregunta(pregunta, contadorTexto, marca));
 
-  // Visual protagonista (spec §8, orden fijo #2, justo bajo la cabecera):
-  // imagen de Commons -> visual de datos -> tarjeta tipográfica
-  // (construirVisualClave, Tarea 1). Las tres "nunca lanzan" y la última
-  // nunca devuelve null, así que SIEMPRE hay un bloque que pintar — el 100%
-  // de las tarjetas reveladas tiene visual, garantizado en código.
-  const bloqueImagen = construirBloqueImagen(pregunta) || construirBloqueVisual(pregunta) || construirBloqueVisualClave(pregunta);
-  contenido.appendChild(bloqueImagen);
-  // spec v0.2a.2.1 §1.3, último punto: con la tarjeta TIPOGRÁFICA la clave ya está escrita en
-  // grande dentro de la visual, así que repetirla justo debajo ("Respuesta: X ✓") es ruido que
-  // además roba el alto que necesita el 50 %. Con imagen o gráfico, la zona de respuesta sigue
-  // igual que hasta ahora.
-  const esClave = bloqueImagen.classList.contains('zona-imagen--clave');
-  if (esClave) tarjeta.classList.add('tarjeta--clave');
+  // Visual protagonista (spec v0.3 §7, orden fijo #2, justo bajo la cabecera): la imagen y, si no
+  // hay (o no carga), el color del área (o una fórmula imprescindible). Nunca un esquema.
+  contenido.appendChild(construirBloqueImagen(pregunta) || construirBloqueSinImagen(pregunta));
 
   contenido.appendChild(construirBloqueEnunciado(pregunta));
 
@@ -3673,17 +3655,10 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // con un toque.
   const zonaRespuesta = document.createElement('div');
   zonaRespuesta.className = 'zona-respuesta';
-  const bloqueRespuestaCompacta = construirRespuestaCompacta(pregunta, hueco, { soloFallo: esClave });
-  // Con `soloFallo` y acierto (o sin responder), `bloqueRespuestaCompacta` vuelve sin ninguna
-  // línea dentro (ver su guarda al principio) -- no se añade vacío, o el `if` de más abajo (que
-  // mira si zonaRespuesta tiene algo real) nunca se cumpliría "vacío de verdad": un `<div>` sin
-  // hijos SIGUE siendo un hijo de zonaRespuesta aunque no pinte nada.
+  const bloqueRespuestaCompacta = construirRespuestaCompacta(pregunta, hueco);
   if (bloqueRespuestaCompacta.children.length > 0) zonaRespuesta.appendChild(bloqueRespuestaCompacta);
-  // El resumen a una línea ("Respuesta: X ✓", tarjeta--compacta-1) también sobra con la clave.
-  if (!esClave) zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
-  // Con clave y acierto no queda NADA que enseñar aquí: no se añade la caja vacía, que si no
-  // seguiría sumando sus dos `gap` de 8px al alto del contenido.
-  if (zonaRespuesta.children.length > 0) contenido.appendChild(zonaRespuesta);
+  zonaRespuesta.appendChild(construirResumenRespuesta(pregunta));
+  contenido.appendChild(zonaRespuesta);
 
   contenido.appendChild(construirBloqueFeedback(pregunta, hueco));
 
@@ -3732,6 +3707,17 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
     botonEstaMal.addEventListener('click', () => manejarClicEstaMal(hueco));
     filaAccion.appendChild(botonEstaMal);
 
+    // «Imagen mala» (spec v0.3 §7): solo si la tarjeta enseña una imagen del banco. La imagen deja de
+    // verse ya (color del área) y el lote de mejora la sustituye en la siguiente pasada.
+    if (imagenDe(pregunta)) {
+      const botonImagenMala = document.createElement('button');
+      botonImagenMala.className = 'enlace-discreto';
+      botonImagenMala.dataset.test = 'imagen-mala';
+      botonImagenMala.textContent = 'imagen mala';
+      botonImagenMala.addEventListener('click', () => manejarClicImagenMala(hueco, botonImagenMala));
+      filaAccion.appendChild(botonImagenMala);
+    }
+
     const reportadaTexto = document.createElement('p');
     reportadaTexto.className = 'reportada';
     reportadaTexto.textContent = 'Anotado';
@@ -3746,6 +3732,20 @@ function construirTarjetaRespondida(pregunta, hueco, { soloLectura = false, cont
   // responder: ninguna tarjeta lo tiene ya): el único plegado de esta tarjeta
   // es la cascada automática de ajustarEncaje, nunca uno manual.
   return tarjeta;
+}
+
+function manejarClicImagenMala(hueco, boton) {
+  const id = hueco.pregunta.id;
+  imagenesMalas.add(id);
+  guardarImagenesMalas(imagenesMalas);
+  // Fuego y olvido (reportarAlServidor nunca lanza; sin servidor configurado no hace nada).
+  reportarAlServidor({ id, motivo: 'imagen-mala', fetchImpl: fetch });
+  boton.hidden = true;
+  const tarjeta = hueco.nodo;
+  const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
+  if (!zona) return;
+  zona.replaceWith(construirBloqueSinImagen(hueco.pregunta));
+  ajustarEncaje(tarjeta);
 }
 
 function manejarClicEstaMal(hueco) {
@@ -4313,6 +4313,18 @@ function abrirRepaso() {
 }
 
 /** Tarjetas del hub (spec §3): se montan UNA vez; `renderHub` solo las actualiza. */
+/** Foto de fondo de una tarjeta del hub; si no carga, se quita y queda el color de la tarjeta. */
+function crearImagenTarjetaHub(imagen) {
+  const nodo = document.createElement('img');
+  nodo.className = 'hub-modo-imagen';
+  nodo.alt = '';
+  nodo.decoding = 'async';
+  nodo.referrerPolicy = 'no-referrer';
+  nodo.src = imagen.url;
+  nodo.addEventListener('error', () => nodo.remove());
+  return nodo;
+}
+
 function montarTarjetasHub() {
   nodoHubModos.innerHTML = '';
   nodosTarjetaModo.clear();
@@ -4322,13 +4334,7 @@ function montarTarjetasHub() {
     boton.className = `hub-modo${modo.disponible ? '' : ' hub-modo--pronto'}`;
     boton.dataset.test = `modo-${modo.id}`;
     boton.dataset.modo = modo.id;
-    const imagen = document.createElement('img');
-    imagen.className = 'hub-modo-imagen';
-    imagen.alt = '';
-    imagen.decoding = 'async';
-    imagen.referrerPolicy = 'no-referrer';
-    imagen.src = modo.imagen.url;
-    imagen.addEventListener('error', () => imagen.remove()); // sin imagen: queda el color del modo
+    const imagen = crearImagenTarjetaHub(modo.imagen);
     const icono = document.createElement('span');
     icono.className = 'hub-modo-icono';
     icono.setAttribute('aria-hidden', 'true');
@@ -4378,7 +4384,7 @@ function montarTarjetasHub() {
   nodoMarcadorTienda.className = 'hub-modo-marcador';
   nodoMarcadorTienda.dataset.test = 'marcador-tienda';
   textos.append(nombre, nodoMarcadorTienda);
-  tienda.append(lienzo, textos);
+  tienda.append(crearImagenTarjetaHub(TIENDA.imagen), lienzo, textos);
   tienda.addEventListener('click', () => {
     // Misma guardia que las tarjetas de modo: un segundo toque rápido no reabre la vista.
     if (vistaActual() !== 'progreso' || performance.now() < bloqueoHubHasta) return;
@@ -4451,10 +4457,10 @@ let nodoCreditosDisparador = null;
 function abrirCreditos() {
   const lista = nodoCreditos.querySelector('[data-test="creditos-lista"]');
   lista.innerHTML = '';
-  for (const modo of MODOS) {
+  for (const { nombre, imagen } of [...MODOS, { nombre: 'Tienda', imagen: TIENDA.imagen }]) {
     const item = document.createElement('li');
-    item.textContent = `${modo.nombre}: ${modo.imagen.titulo} — `;
-    item.appendChild(construirAtribucionImagen({ autor: modo.imagen.autor, licencia: modo.imagen.licencia, pagina: modo.imagen.pagina }));
+    item.textContent = `${nombre}: ${imagen.titulo} — `;
+    item.appendChild(construirAtribucionImagen(imagen));
     lista.appendChild(item);
   }
   nodoCreditosDisparador = document.activeElement;

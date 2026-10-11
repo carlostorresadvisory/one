@@ -101,3 +101,40 @@ export function montarFotoPregunta(contenedor, { enunciado, imagen, area, dorada
     },
   };
 }
+
+// Imágenes que Carlos ha marcado como malas desde la tarjeta («Imagen mala»): dejan de enseñarse al
+// instante y el lote de mejora (tools/mejorar-imagenes.js) las sustituye aunque tuvieran nota 4-5.
+// Con el almacenamiento bloqueado nada lanza (patrón de modos.js).
+export const CLAVE_IMAGENES_MALAS = 'one.imagenesMalas';
+const MAX_IMAGENES_MALAS = 2000;
+
+export function cargarImagenesMalas(almacen) {
+  try {
+    const lista = JSON.parse((almacen ?? globalThis.localStorage).getItem(CLAVE_IMAGENES_MALAS));
+    return new Set(Array.isArray(lista) ? lista.filter((id) => typeof id === 'string' && id.length > 0 && id.length <= 64).slice(-MAX_IMAGENES_MALAS) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+export function guardarImagenesMalas(ids, almacen) {
+  try {
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_IMAGENES_MALAS, JSON.stringify([...ids].slice(-MAX_IMAGENES_MALAS)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** ¿Es una `imagen` que el servidor puede mandar? URL https (Commons y bancos) o una WebP propia del
+ * servidor (`/imagenes/<id>.webp`); los demás campos, si están, son texto corto o nota 1-5. */
+export function esImagenValida(imagen) {
+  if (!imagen || typeof imagen !== 'object' || Array.isArray(imagen)) return false;
+  const urlBuena = typeof imagen.url === 'string' && imagen.url.length <= 600 && (/^https:\/\//.test(imagen.url) || /^\/imagenes\/[\w-]{1,64}\.webp$/.test(imagen.url));
+  if (!urlBuena) return false;
+  for (const campo of ['pagina', 'titulo', 'autor', 'licencia', 'fuente']) {
+    const v = imagen[campo];
+    if (v !== undefined && v !== null && (typeof v !== 'string' || v.length > 400)) return false;
+  }
+  return imagen.nota === undefined || imagen.nota === null || (Number.isInteger(imagen.nota) && imagen.nota >= 1 && imagen.nota <= 5);
+}

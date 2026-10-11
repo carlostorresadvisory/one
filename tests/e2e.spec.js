@@ -1227,7 +1227,7 @@ test.describe('ONE · integración e2e', () => {
       const pie0 = t.locator('[data-test="imagen-pie"]');
       await expect(pie0).toContainText('Autor de ejemplo');
       await expect(pie0).toContainText('CC BY-SA 4.0');
-      await expect(pie0.locator('a')).toHaveText('Commons');
+      await expect(pie0.locator('a')).toHaveText('Commons · Autor de ejemplo · CC BY-SA 4.0');
       await expect(pie0.locator('a')).toHaveAttribute('target', '_blank');
       await expect(pie0.locator('a')).toHaveAttribute('rel', 'noopener');
       await avanzarTrasRespuesta(page);
@@ -1242,9 +1242,9 @@ test.describe('ONE · integración e2e', () => {
       await assertTarjetaSinScroll(page);
       await expect(t.locator('[data-test="imagen"]')).toBeVisible();
       const pie1 = t.locator('[data-test="imagen-pie"]');
-      await expect(pie1).toContainText('Dominio público');
+      await expect(pie1).toContainText('Public domain');
       await expect(pie1).not.toContainText('undefined');
-      await expect(pie1.locator('a')).toHaveText('Commons');
+      await expect(pie1.locator('a')).toHaveText('Commons · Public domain');
     }
 
     await comprobarEnViewport({ width: 375, height: 812 });
@@ -1593,14 +1593,9 @@ test.describe('ONE · integración e2e', () => {
   });
 
   // Reescrito en la Tarea 2 de spec §8/v0.2a.2 (protagonismo visual): antes
-  // (v0.1d §3) una imagen rota sin `visual` de respaldo dejaba la tarjeta SIN
-  // NINGÚN visual, re-centrada como si nunca hubiera tenido imagen. Ahora la
-  // cascada de tres capas garantiza el 100% con visual (spec §8 punto 3):
-  // his-001 (banco de ejemplo) no tiene `visual`, así que el `error` del
-  // <img> cae a la TERCERA capa, la tarjeta tipográfica (construirVisualClave),
-  // nunca a "sin visual" — y `tarjeta-contenido--imagen` ya no se quita nunca
-  // (es incondicional desde esta tarea: la visual siempre está).
-  test('spec §8: imagen rota (404) cae a la tarjeta tipográfica (visual-clave), nunca deja la tarjeta sin visual', async ({
+  // Una imagen rota deja el color del área (fase 7), nunca la tarjeta sin zona de imagen ni un
+  // emoji grande; `tarjeta-contenido--imagen` no se quita nunca.
+  test('imagen rota (404): cae al color del área, nunca deja la tarjeta sin zona de imagen', async ({
     page,
   }) => {
     await page.goto('/?ejemplo=1&test=1');
@@ -1632,70 +1627,7 @@ test.describe('ONE · integración e2e', () => {
     // toHaveCount/toBeVisible reintentan hasta que el respaldo sustituye el bloque.
     await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
     await expect(t.locator('[data-test="imagen-pie"]')).toHaveCount(0);
-    // his-001 no trae `visual` de datos: la capa que aparece es la tercera
-    // (tarjeta tipográfica), con sus clases y su propio data-test.
-    await expect(t.locator('.zona-imagen--clave')).toHaveCount(1);
-    await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
-    // La visual siempre está (spec §8): tarjeta-contenido--imagen es ahora
-    // incondicional, nunca se quita porque una capa haya fallado.
-    await expect(t.locator('.tarjeta-contenido')).toHaveClass(/tarjeta-contenido--imagen/);
-    await assertSinScroll(page);
-    await assertTarjetaSinScroll(page);
-  });
-
-  // Hallazgo M2 (revisión final v0.1e): antes, si la imagen de Commons fallaba al
-  // cargar, el hueco se quedaba vacío del todo aunque la pregunta SÍ tuviera un
-  // visual generado (spec v0.1e §2) -- la prioridad fija imagen->visual de
-  // construirTarjetaRespondida se decide en el momento de construir la tarjeta,
-  // cuando la imagen "existe" a efectos de datos aunque su carga real falle
-  // después de forma asíncrona. Ahora el `error` del <img> intenta
-  // construirBloqueVisual como respaldo antes de rendirse. Mismo patrón que el
-  // test de arriba (URL 404 real vía tools/servir.js), pero con una pregunta
-  // sintética que SÍ trae `visual`.
-  test('M2 (revisión final v0.1e): si la imagen de Commons falla al cargar, el visual de respaldo aparece en su lugar', async ({
-    page,
-  }) => {
-    await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-
-    const idSintetico = 'sintetico-m2-imagen-rota-con-visual';
-    const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
-    const preguntaSintetica = { ...visualesEjemplo.dato, id: idSintetico };
-
-    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
-    await page.evaluate(
-      (id) =>
-        window.__one.forzarImagen(id, {
-          id,
-          url: 'datos/no-existe-m2.png',
-          pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo.png',
-          titulo: 'Ejemplo',
-          autor: 'Autor de ejemplo',
-          licencia: 'CC0',
-          leyenda: 'Imagen rota a propósito (M2)',
-          termino: 'ejemplo',
-          ancho: 1,
-          alto: 1,
-        }),
-      idSintetico
-    );
-    await page.evaluate(
-      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'm2-imagen-rota-visual' }),
-      idSintetico
-    );
-
-    const t = tarjetaActual(page);
-    await t.locator('[data-test="vf-verdadero"]').click();
-    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
-    // El onerror del <img> es asíncrono (espera a la respuesta 404 real): las
-    // aserciones de Playwright reintentan hasta que el respaldo se pinta.
-    await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
-    await expect(t.locator('[data-test="visual"]')).toBeVisible();
-    await expect(t.locator('[data-test="visual-pie"]')).toHaveText(preguntaSintetica.visual.leyenda);
-    // El respaldo cuenta como "hay imagen" a efectos de alineación arriba
-    // (spec v0.1d §3): la marca no debe perderse solo porque la imagen
-    // concreta haya fallado si hay un visual que la sustituya.
+    await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
     await expect(t.locator('.tarjeta-contenido')).toHaveClass(/tarjeta-contenido--imagen/);
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
@@ -1971,15 +1903,16 @@ test.describe('ONE · integración e2e', () => {
 // por la app: inyectarPregunta añade la pregunta sintética al banco YA
 // cargado, así que no importa si viene de /?ejemplo=1 o del banco real).
 // ============================================================================
-test.describe('ONE · visuales v0.1e', () => {
-  const TIPOS_VISUAL = ['formula', 'linea-tiempo', 'barras', 'comparacion', 'flujo', 'dato'];
+// Fase 7 (imágenes con impacto): la app solo enseña foto real, el color del área (nunca un emoji
+// grande ni una tarjeta de texto) o, solo para una fórmula de matemáticas/ciencia, su dibujo. Describe
+// aparte: inyectarPregunta añade la pregunta sintética al banco YA cargado.
+// ============================================================================
+test.describe('ONE · imagen, color del área y fórmula (fase 7)', () => {
+  const TIPOS_SIN_DIBUJO = ['linea-tiempo', 'barras', 'comparacion', 'flujo', 'dato'];
 
-  for (const tipo of TIPOS_VISUAL) {
-    test(`visual v0.1e "${tipo}": se pinta en la tarjeta respondida, cabe sin scroll y muestra su leyenda`, async ({
-      page,
-    }) => {
+  for (const tipo of TIPOS_SIN_DIBUJO) {
+    test(`sin imagen, una pregunta con visual "${tipo}" enseña el color del área y NO dibuja el visual`, async ({ page }) => {
       await page.goto('/?test=1');
-      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
       const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
@@ -1987,69 +1920,58 @@ test.describe('ONE · visuales v0.1e', () => {
       expect(pregunta).toBeTruthy();
 
       await page.evaluate((p) => window.__one.inyectarPregunta(p), pregunta);
-      await page.evaluate(
-        (id) => window.__one.empezarPartida({ ids: [id], etiqueta: `visual-${id}` }),
-        pregunta.id
-      );
+      await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: `color-${id}` }), pregunta.id);
 
       const t = tarjetaActual(page);
-      // Sin responder no debe verse ni dar pistas (mismo contrato que la imagen).
-      await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
       await t.locator('[data-test="vf-verdadero"]').click();
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
 
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
-
-      const visual = t.locator('[data-test="visual"]');
-      await expect(visual).toBeVisible();
-      // assertTarjetaSinScroll ya se ha llamado arriba (con su comprobación
-      // geométrica reforzada, hallazgo C1): en este punto el SVG está
-      // GARANTIZADO contenido en su `.zona-imagen` (no desbordado), así que
-      // `caja.height` mide el dibujo ya encajado -- antes del arreglo C1
-      // (`.visual-svg` con `flex:0 0 auto; max-height:100%`), esta misma
-      // lectura podía devolver un alto mayor de 88 sin que eso dijera nada
-      // sobre si el SVG cabía de verdad (podía desbordar y aun así medir
-      // "suficiente"). Mínimo de la cascada de encaje (spec v0.1d §4): 90px,
-      // con el mismo margen de 2px que ya usa assertTarjetaSinScroll para
-      // redondeos.
-      const caja = await visual.boundingBox();
-      expect(caja.height).toBeGreaterThanOrEqual(88);
-
-      const leyenda = t.locator('[data-test="visual-pie"]');
-      await expect(leyenda).toBeVisible();
-      await expect(leyenda).toHaveText(pregunta.visual.leyenda);
-
-      await page.screenshot({ path: `${CAPTURAS}/v0.1e-${tipo}-375.png` });
+      await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
+      await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+      await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+      await expect(t.locator('.visual-clave')).toHaveCount(0);
     });
   }
 
-  test('visual v0.1e: con imagen Y visual en la misma pregunta, gana la imagen (spec v0.1e §2, prioridad fija)', async ({
-    page,
-  }) => {
+  test('una fórmula de ciencia sin imagen sí se dibuja, con su leyenda y sin scroll', async ({ page }) => {
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
+    const pregunta = { ...visualesEjemplo.formula, area: 'ciencia' };
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), pregunta);
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: `formula-${id}` }), pregunta.id);
+
+    const t = tarjetaActual(page);
+    await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(t.locator('[data-test="visual"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual-pie"]')).toHaveText(pregunta.visual.leyenda);
+    await expect(t.locator('[data-test="zona-color"]')).toHaveCount(0);
+  });
+
+  test('con imagen Y visual en la misma pregunta, gana la imagen', async ({ page }) => {
+    await page.goto('/?test=1');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
     const [visualesEjemplo, imagenesEjemplo] = await Promise.all([
       page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json())),
       page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json())),
     ]);
-    // Id sintético (no reutiliza uno del banco real/de ejemplo): mismo motivo
-    // que el resto de sintéticos de este fichero (ver "cascada de encaje paso
-    // a paso" más arriba) — evita depender de qué traiga el banco en cada
-    // momento y de cómo resuelva un id duplicado la selección por filtro.
     const idSintetico = 'sintetico-visual-e-imagen';
-    const preguntaSintetica = { ...visualesEjemplo.dato, id: idSintetico };
+    const preguntaSintetica = { ...visualesEjemplo.formula, area: 'ciencia', id: idSintetico };
     const imagenForzada = { ...imagenesEjemplo['his-001'], id: idSintetico };
 
     await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaSintetica);
     await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), imagenForzada);
-    await page.evaluate(
-      (id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'visual-y-imagen' }),
-      idSintetico
-    );
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'visual-y-imagen' }), idSintetico);
 
     const t = tarjetaActual(page);
     await t.locator('[data-test="vf-verdadero"]').click();
@@ -2061,247 +1983,82 @@ test.describe('ONE · visuales v0.1e', () => {
     await expect(t.locator('[data-test="imagen"]')).toBeVisible();
     await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
   });
-});
 
-// ============================================================================
-// Tarea 6 (spec v0.2a.2.1 §1.5): los gráficos de datos se escalan al hueco nuevo
-// (construirVisual(visual, { alto })). Con la zona al 50-60 % de la tarjeta, un gráfico dibujado
-// para su alto "natural" (p. ej. 3 barras = 140 unidades) se quedaba pequeño en medio de la caja,
-// con `preserveAspectRatio="xMidYMid meet"` dejando bandas vacías arriba/abajo. Una pregunta real
-// del banco por cada una de las tres plantillas que el criterio exige (barras/comparación/línea
-// temporal -- formula y dato son deuda menor aceptada por el plan, ver task-6-brief.md).
-//
-// Ronda de corrección 1 (Ruling R13 del coordinador, 18-sep): `assertTarjetaSinScroll` volvió
-// (estaba retirado porque desbordaba 9px a 375×667, un hallazgo real de la cascada de encaje de
-// `ajustarEncaje`, mazo.js -- ver el paso (h) nuevo, "tarjeta--espaciado-minimo", y el "Informe de
-// corrección" de task-6-report.md para el diagnóstico medido). Los tres casos se prueban ahora a
-// los DOS viewports que exige el ruling (375×667 y 390×844, mismo array `VIEWPORTS` que ya usa
-// "ONE · visual al 50-60 % real de la tarjeta" más abajo en este fichero, por consistencia).
-// ============================================================================
-test.describe('ONE · gráficos de datos escalados al hueco (v0.2a.2.1 §1.5)', () => {
-  // Una pregunta real del banco por plantilla de las tres que nombra la spec, SIN imagen de Commons
-  // (si la tuviera, la imagen gana por prioridad fija -- spec v0.1e §2 -- y el visual de datos ni se
-  // pinta). Sustituciones sobre los ids sugeridos por el brief, documentadas aquí porque ninguna de
-  // las dos es "el id ya no existe" (la única excepción que el brief prevé explícitamente):
-  //  - comparacion art-048 -> cie-094: art-048 SÍ tiene imagen de Commons en datos/imagenes.json (el
-  //    cuadro de Botticelli), así que con ese id la imagen tapa el visual entero y
-  //    `[data-test="visual"]` nunca aparece -- no es un caso de "elige otro del mismo tipo" por
-  //    gusto, es que ese id no puede probar este test tal como está escrito.
-  //  - linea-tiempo art-006 -> his-062: art-006 desbordaba igual que cie-008/art-048 antes de la
-  //    Ronda de corrección 1 (ver arriba); ya no hacía falta el cambio, pero se deja porque no hay
-  //    motivo para revertirlo y así los tres casos representan los tres tipos de pregunta que puede
-  //    llevar un visual de datos (test4, error, vf).
-  const CASOS = [
-    { id: 'cie-008', tipo: 'barras' },
-    { id: 'cie-094', tipo: 'comparacion' },
-    { id: 'his-062', tipo: 'linea-tiempo' },
-  ];
-
-  const VIEWPORTS_COBERTURA = [
-    { width: 375, height: 667, nombre: '375×667' },
-    { width: 390, height: 844, nombre: '390×844' },
-  ];
-
-  for (const caso of CASOS) {
-    for (const vp of VIEWPORTS_COBERTURA) {
-      test(`${caso.tipo} (${caso.id}) a ${vp.nombre}: el dibujo cubre ≥85 % del alto de la zona, la leyenda va dentro y la tarjeta no desborda`, async ({
-        page,
-      }) => {
-        await page.setViewportSize({ width: vp.width, height: vp.height });
-        await page.emulateMedia({ reducedMotion: 'reduce' });
-        await page.goto('/?test=1');
-        await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-        await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-        await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), caso.id);
-
-        const t = tarjetaActual(page);
-        // Sin `sospechosoPorTitulo`: no hace falta acertar la fila sospechosa de un "error" para que
-        // el visual se pinte (el visual no depende de si la respuesta fue correcta), así que basta
-        // con la firma de un solo argumento de `responderPreguntaActual`.
-        await responderPreguntaActual(page);
-        await esperarAsentamientoMazo(page);
-        await expect(t.locator('[data-test="visual"]')).toBeVisible();
-
-        const medidas = await t.evaluate((tarjeta) => {
-          const zona = tarjeta.querySelector('.zona-imagen');
-          const svg = zona.querySelector('svg');
-          const pie = zona.querySelector('.visual-pie');
-          const rZona = zona.getBoundingClientRect();
-          const rSvg = svg.getBoundingClientRect();
-          // `preserveAspectRatio="xMidYMid meet"` escala el DIBUJO dentro del elemento <svg>: medir
-          // el elemento daría siempre el 100 % y no probaría nada. Lo que se mide es el dibujo real.
-          const vb = svg.viewBox.baseVal;
-          const escala = Math.min(rSvg.width / vb.width, rSvg.height / vb.height);
-          return {
-            cobertura: (vb.height * escala) / rZona.height,
-            pieDentro: pie ? pie.getBoundingClientRect().bottom <= rZona.bottom + 1 : null,
-            piePosicion: pie ? getComputedStyle(pie).position : null,
-          };
-        });
-        expect(
-          medidas.cobertura,
-          `el dibujo cubre el ${(medidas.cobertura * 100).toFixed(1)}% del alto de la zona`
-        ).toBeGreaterThanOrEqual(0.85);
-        if (medidas.piePosicion !== null) {
-          expect(medidas.piePosicion).toBe('absolute');
-          expect(medidas.pieDentro).toBe(true);
-        }
-        await assertTarjetaSinScroll(page);
-      });
-    }
-  }
-
-  // Criterio (2) del Ruling R13: barrido de los ids reales del banco con visual de datos (sin
-  // imagen de Commons, que taparía el visual -- mismo motivo que la sustitución de art-048 de
-  // arriba) a 375×667, el viewport más ajustado de la suite. 44 ids (no 46: de los 46 con
-  // `visual.tipo` en {barras, comparacion, linea-tiempo}, 2 -- art-048 y art-077 -- tienen imagen
-  // real y por tanto nunca pintan el visual, spec v0.1e §2 prioridad fija). Contexto NUEVO por id
-  // (browser.newContext, no reusar `page`): reusar el mismo `page`/localStorage entre preguntas
-  // arrastra racha/nivel/XP de una a la siguiente y puede disparar un "cambio de nivel" que no es
-  // un rasgo de la pregunta sino del orden en que este test las jugó -- un jugador real llegando
-  // fresco a esa pregunta no lo vería siempre así (hallazgo real de la Ronda de corrección 1: con
-  // contexto compartido, algunos ids medían hasta 30px de desborde; en contexto fresco, los mismos
-  // ids miden exactamente 9px, igual que el resto -- ver task-6-report.md). ~39s en vivo, por debajo
-  // del límite de 60s que fija el propio ruling para dejarlo como e2e en vez de script aparte.
-  test('barrido de los ids reales del banco con visual de datos a 375×667: ninguno desborda y la zona sigue en [50,60] %', async ({
-    browser,
-    page,
-  }) => {
-    test.setTimeout(180000);
-    // `page` de este test solo se usa para leer los JSON del banco (fetch necesita un origen ya
-    // navegado); las 44 partidas del barrido, cada una en su propio contexto, más abajo.
-    await page.goto('/?test=1');
-    const [banco, imagenes] = await Promise.all([
-      page.evaluate(() => fetch('datos/banco.json').then((r) => r.json())),
-      page.evaluate(() => fetch('datos/imagenes.json').then((r) => r.json())),
-    ]);
-    const tipos = ['barras', 'comparacion', 'linea-tiempo'];
-    const ids = banco
-      .filter((p) => p.visual && tipos.includes(p.visual.tipo) && !imagenes[p.id])
-      .map((p) => ({ id: p.id, tipo: p.tipo }));
-    expect(ids.length).toBeGreaterThanOrEqual(40); // red de seguridad: que el banco no se haya vaciado
-
-    const fallos = [];
-    for (const { id, tipo } of ids) {
-      const contexto = await browser.newContext({ viewport: { width: 375, height: 667 }, isMobile: true, hasTouch: true });
-      const p2 = await contexto.newPage();
-      await p2.emulateMedia({ reducedMotion: 'reduce' });
-      await p2.goto('/?test=1');
-      // El arranque acaba en el hub: esperarlo evita que su mostrarVista('progreso') tape la partida.
-      await expect(p2.locator('[data-vista="progreso"]')).toBeVisible();
-      await p2.evaluate((idPregunta) => window.__one.empezarPartida({ ids: [idPregunta], etiqueta: 'barrido' }), id);
-      await responderPreguntaActual(p2);
-      await esperarAsentamientoMazo(p2);
-
-      const medidas = await p2.evaluate(() => {
-        const tarjeta = document.querySelector('.tarjeta-mazo--actual');
-        const contenido = tarjeta.querySelector('.tarjeta-contenido');
-        const zona = tarjeta.querySelector('.zona-imagen');
-        return {
-          overflow: contenido.scrollHeight - contenido.clientHeight,
-          ratio: zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height,
-        };
-      });
-      if (medidas.overflow > 2 || medidas.ratio < 0.5 - 0.01 || medidas.ratio > 0.6 + 0.01) {
-        fallos.push({ id, tipo, ...medidas });
-      }
-      await contexto.close();
-    }
-
-    expect(fallos, `ids que desbordan o salen de [50,60] %: ${JSON.stringify(fallos, null, 2)}`).toEqual([]);
-  });
-
-  // Ronda de corrección 2 (Important del coordinador): `tarjeta--espaciado-minimo` (paso h,
-  // mazo.js) no estaba en la lista de limpieza con la que `ajustarEncaje` empieza cada recálculo
-  // -- se quedaba pegada aunque el siguiente recálculo (resize/orientationchange vía
-  // `mazosActivos.forEach(m => m.reajustar())`, o un clic de confianza) ya no la necesitara. cie-008
-  // a 375×667 SÍ necesita el paso (h) (confirmado arriba, en el barrido); a 430×932 no hace falta
-  // ninguno de los pasos de la cascada revelada (medido en vivo: la lista de clases `tarjeta--*` de
-  // la tarjeta queda vacía del todo), así que sirve para demostrar la limpieza sin necesitar un
-  // viewport más alto todavía. v0.3: 655 de alto en vez de 667 -- la cabecera de modo (chip, sin la
-  // tercera línea "Solo ...") es ~16px más baja y a 667 cie-008 ya no necesita el paso (h).
-  test('tarjeta--espaciado-minimo (paso h) se limpia al reajustar: cie-008 la lleva a 375×655 y deja de llevarla al pasar a 430×932, sin desbordar', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 655 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?test=1');
+  test('«Imagen mala»: la zona pasa al color del área, se guarda en el móvil y no vuelve a salir', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'grafico' }), 'cie-008');
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'imagen-mala' }));
 
     const t = tarjetaActual(page);
-    await responderPreguntaActual(page);
-    await esperarAsentamientoMazo(page);
-    await expect(t).toHaveClass(/tarjeta--espaciado-minimo/);
-    await assertTarjetaSinScroll(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await expect(t.locator('[data-test="imagen"]')).toBeVisible();
 
-    await page.setViewportSize({ width: 430, height: 932 });
-    // `expect` reintenta hasta que la clase desaparezca (el resize -> reajustar -> ajustarEncaje es
-    // síncrono una vez que el navegador dispara el evento, pero no hay garantía de que ya haya
-    // corrido en el instante en que `setViewportSize` resuelve).
-    await expect(t).not.toHaveClass(/tarjeta--espaciado-minimo/);
-    await assertTarjetaSinScroll(page);
+    await t.locator('[data-test="imagen-mala"]').click();
+    await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
+    await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
+    const guardadas = await page.evaluate(() => JSON.parse(localStorage.getItem('one.imagenesMalas')));
+    expect(guardadas).toContain('his-001');
+    await assertSinScroll(page);
 
-    const ratio = await t.evaluate((tarjeta) => {
-      const zona = tarjeta.querySelector('.zona-imagen');
-      return zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
-    });
-    expect(ratio, `la zona mide ${(ratio * 100).toFixed(1)}% de la tarjeta (fuera de [50,60])`).toBeGreaterThanOrEqual(0.5 - 0.01);
-    expect(ratio).toBeLessThanOrEqual(0.6 + 0.01);
+    // Al recargar sigue sin salir la imagen.
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'imagen-mala-2' }));
+    const t2 = tarjetaActual(page);
+    await t2.locator('[data-test="vf-verdadero"]').click();
+    await expect(t2.locator('[data-test="siguiente"]')).toBeVisible();
+    await expect(t2.locator('[data-test="imagen"]')).toHaveCount(0);
+    await expect(t2.locator('[data-test="zona-color"]')).toBeVisible();
   });
-});
 
-// ============================================================================
-// C1 (revisión final v0.1e, Critical): el SVG del visual desbordaba su caja y
-// tapaba la respuesta correcta -- `.visual-svg` con `flex:0 0 auto;
-// max-height:100%` mide ese 100% contra `.zona-imagen--visual` ignorando el
-// `gap` y `.visual-pie` (leyenda) que van debajo en la misma caja, y como
-// `.tarjeta-contenido` está en overflow:visible (nunca hidden/scroll), el
-// desborde no aumenta su scrollHeight -- `ajustarEncaje.cabe()` no lo ve. El
-// revisor lo midió en vivo a 393×852 CON las zonas seguras reales de un
-// iPhone (notch/Dynamic Island arriba, home indicator abajo): 72 de 96
-// tarjetas con visual desbordaban, peores casos cie-085/fil-041/fil-055
-// (10px) y eco-065 (8px) -- las 4 preguntas de este bloque, tomadas del banco
-// REAL (no sintéticas), respondidas MAL a propósito (fallarPreguntaActual):
-// la respuesta incorrecta es justo lo que el SVG desbordado tapaba.
-// env(safe-area-inset-*) vale 0 en Chromium headless (no hay notch que
-// simular de por sí), así que se inyecta el mismo padding que aplicaría iOS.
-// ============================================================================
-test.describe('ONE · C1 visual desbordado con zonas seguras del iPhone', () => {
-  const CASOS_PEORES_C1 = ['cie-085', 'fil-041', 'fil-055', 'eco-065'];
+  test('una imagen generada con IA dice «Imagen generada con IA» y no enlaza a ninguna página', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate(() =>
+      window.__one.forzarImagen('his-001', {
+        id: 'his-001',
+        url: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+        pagina: null,
+        titulo: 'Ilustración',
+        autor: null,
+        licencia: null,
+        fuente: 'IA',
+        leyenda: 'Ilustración generada',
+        ancho: 1,
+        alto: 1,
+      })
+    );
+    await page.evaluate(() => window.__one.empezarPartida({ ids: ['his-001'], etiqueta: 'imagen-ia' }));
 
-  for (const id of CASOS_PEORES_C1) {
-    test(`C1 ${id}: a 393×852 con zonas seguras del iPhone, la tarjeta respondida (mal) no desborda su visual`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width: 393, height: 852 });
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    const pie = t.locator('[data-test="imagen-pie"]');
+    await expect(pie).toContainText('Imagen generada con IA');
+    await expect(pie.locator('a')).toHaveCount(0);
+  });
+
+  for (const viewport of [
+    { width: 375, height: 812 },
+    { width: 375, height: 667 },
+  ]) {
+    test(`sin scroll con el color del área a ${viewport.width}×${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
       await page.goto('/?test=1');
       await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-
-      // Zonas seguras reales de un iPhone con notch/Dynamic Island (59px
-      // arriba) y home indicator (34px abajo) -- las mismas que midió el
-      // revisor en vivo para encontrar el desborde de hasta 10px.
-      await page.addStyleTag({
-        content: '.cabecera { padding-top: 59px !important; } body { padding-bottom: 34px !important; }',
-      });
-
-      await page.evaluate((ids) => window.__one.empezarPartida({ ids, etiqueta: 'c1-zonas-seguras' }), [id]);
-
+      const visualesEjemplo = await page.evaluate(() => fetch('datos/visuales.ejemplo.json').then((r) => r.json()));
+      const pregunta = visualesEjemplo.barras;
+      await page.evaluate((p) => window.__one.inyectarPregunta(p), pregunta);
+      await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'color-viewport' }), pregunta.id);
       const t = tarjetaActual(page);
-      await fallarPreguntaActual(page);
+      await assertSinScroll(page);
+      await t.locator('[data-test="vf-verdadero"]').click();
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await esperarAsentamientoMazo(page);
-
+      await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
       await assertSinScroll(page);
-      // Aserción reforzada C1 (ver assertTarjetaSinScroll): ve el desborde
-      // geométrico real del SVG aunque scrollHeight no lo cuente.
       await assertTarjetaSinScroll(page);
-
-      // El visual sigue existiendo y visible (nunca se quita, spec v0.1d §4):
-      // lo que se arregla es que quepa, no que desaparezca.
-      await expect(t.locator('[data-test="visual"]')).toBeVisible();
     });
   }
 });
@@ -2853,10 +2610,10 @@ test.describe('ONE · repaso v0.2a', () => {
     await expect(t).toHaveAttribute('data-test', 'repaso-tarjeta');
     await expect(t.locator('.repaso-marca')).toContainText('✗ fallada'); // pendiente -> tramo "fallada"
 
-    // v0.2a.2.1 §1.3: sin imagen ni `visual`, la tarjeta cae en la tipográfica, que YA muestra la
-    // correcta en grande -- la línea "Respuesta:" no se repite debajo. Lo que se comprueba sigue
-    // siendo lo mismo: la correcta se ve y no hay ninguna línea tachada de "la tuya".
-    await expect(t.locator('[data-test="visual-clave"]')).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
+    // Sin imagen la zona es el color del área; la correcta se ve en la respuesta compacta y no hay
+    // ninguna línea tachada de "la tuya".
+    await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
+    await expect(t.locator('.respuesta-compacta')).toContainText(preguntaTest4.opciones[preguntaTest4.correcta]);
     await expect(t.locator('.respuesta-compacta-linea--tachada')).toHaveCount(0);
   });
 
@@ -3133,15 +2890,15 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
   });
 
-  /** v0.2b4.1 §5: la pregunta llega SIN visual (`visualPendiente: true`) porque la tanda urgente no
-   * lo esperó; en la siguiente sincronización el servidor la manda en `actualizadas` y el banco
+  /** Fase 7: la pregunta llega SIN imagen (`imagenPendiente: true`) porque la tanda urgente no
+   * la esperó; en la siguiente sincronización el servidor la manda en `actualizadas` y el banco
    * extendido la incorpora sin que el jugador tenga que hacer nada. */
-  test('v0.2b4.1 §5: una tarjeta sin visual lo recibe en la siguiente sincronización', async ({ page }) => {
+  test('fase 7: una tarjeta sin imagen la recibe en la siguiente sincronización', async ({ page }) => {
     test.setTimeout(45000);
     let sincronizaciones = 0;
     let desdeRecibido;
     const ID = 'srv-pendiente-1';
-    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+    const IMAGEN = { url: `/imagenes/${ID}.webp`, pagina: null, titulo: null, autor: null, licencia: null, fuente: 'IA', nota: 5 };
 
     await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
       const url = new URL(req.url());
@@ -3156,7 +2913,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
         await route.fulfill({
           status: 200, contentType: 'application/json', headers: CORS,
           body: JSON.stringify({
-            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            preguntas: [{ ...preguntaServidor(ID), imagen: null, imagenPendiente: true }],
             enCola: 0,
             actualizadas: [],
           }),
@@ -3167,7 +2924,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
       desdeRecibido = cuerpo.desde;
       await route.fulfill({
         status: 200, contentType: 'application/json', headers: CORS,
-        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, imagen: IMAGEN, explicacion: '' }] }),
       });
     }));
 
@@ -3179,7 +2936,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
       .poll(() => page.evaluate((id) => {
         const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
         const p = b.find((q) => q.id === id);
-        return p ? `${p.visual === null}|${p.visualPendiente === true}` : null;
+        return p ? `${p.imagen === null}|${p.imagenPendiente === true}` : null;
       }, ID), { timeout: 10000 })
       .toBe('true|true');
 
@@ -3191,9 +2948,9 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
       .poll(() => page.evaluate((id) => {
         const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
         const p = b.find((q) => q.id === id);
-        return p && p.visual ? `${p.visual.tipo}|${p.visualPendiente}` : null;
+        return p && p.imagen ? `${p.imagen.fuente}|${p.imagenPendiente}` : null;
       }, ID), { timeout: 10000 })
-      .toBe('formula|false');
+      .toBe('IA|false');
 
     expect(desdeRecibido).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     await assertSinScroll(page);
@@ -3207,16 +2964,20 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
   // para la tarjeta respondida en partida y para el repaso, así que fallar la pregunta a propósito
   // (aterriza en "para repasar", primera del tramo 1) es el camino más corto y determinista hasta
   // esa pantalla sin depender del orden del banco real (295 preguntas).
-  test('v0.2b4.1 §5 (extra): la tarjeta en el repaso muestra el visual que llegó en la sincronización', async ({
+  test('fase 7 (extra): la tarjeta en el repaso muestra la imagen que llegó en la sincronización', async ({
     page,
   }) => {
     test.setTimeout(45000);
     let sincronizaciones = 0;
     const ID = 'srv-pendiente-repaso-1';
-    const VISUAL = { tipo: 'formula', texto: 'VAN = Σ FC / (1+r)^t', leyenda: 'Valor actual neto' };
+    const IMAGEN = { url: `/imagenes/${ID}.webp`, pagina: null, titulo: null, autor: null, licencia: null, fuente: 'IA', nota: 5 };
 
     await page.route(`${URL_SERVIDOR}/**`, conPreflight(async (route, req) => {
       const url = new URL(req.url());
+      if (url.pathname.startsWith('/imagenes/')) {
+        await route.fulfill({ status: 200, contentType: 'image/gif', headers: CORS, body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') });
+        return;
+      }
       if (url.pathname !== '/estado') {
         await route.fulfill({ status: 404, headers: CORS, body: '{}' });
         return;
@@ -3226,7 +2987,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
         await route.fulfill({
           status: 200, contentType: 'application/json', headers: CORS,
           body: JSON.stringify({
-            preguntas: [{ ...preguntaServidor(ID), visual: null, visualPendiente: true }],
+            preguntas: [{ ...preguntaServidor(ID), imagen: null, imagenPendiente: true }],
             enCola: 0,
             actualizadas: [],
           }),
@@ -3236,7 +2997,7 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
       // Cualquier sincronización posterior (aquí, la que dispara finalizarPartida): el visual ya está.
       await route.fulfill({
         status: 200, contentType: 'application/json', headers: CORS,
-        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, visual: VISUAL, explicacion: '' }] }),
+        body: JSON.stringify({ preguntas: [], enCola: 0, actualizadas: [{ id: ID, imagen: IMAGEN, explicacion: '' }] }),
       });
     }));
 
@@ -3263,9 +3024,9 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
       .poll(() => page.evaluate((id) => {
         const b = JSON.parse(localStorage.getItem('one.bancoExtra') || '[]');
         const p = b.find((q) => q.id === id);
-        return p && p.visual ? p.visual.tipo : null;
+        return p && p.imagen ? p.imagen.fuente : null;
       }, ID), { timeout: 10000 })
-      .toBe('formula');
+      .toBe('IA');
 
     await page.locator('[data-test="volver"]').click();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
@@ -3274,8 +3035,8 @@ test.describe('ONE · servidor de generación v0.2b2 §4 (sincronizacion.js)', (
     await esperarAsentamientoMazo(page);
 
     const tarjetaRepaso = tarjetaActual(page);
-    await expect(tarjetaRepaso.locator('[data-test="visual"]')).toBeVisible();
-    await expect(tarjetaRepaso.locator('[data-test="visual-pie"]')).toHaveText(VISUAL.leyenda);
+    await expect(tarjetaRepaso.locator('[data-test="imagen"]')).toBeVisible();
+    await expect(tarjetaRepaso.locator('[data-test="imagen-pie"]')).toContainText('Imagen generada con IA');
     await assertSinScroll(page);
     await assertTarjetaSinScroll(page);
   });
@@ -4961,8 +4722,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
 // Tarea 2 del plan v0.2a2-protagonismo-visual (spec §8, enmienda 16-sep-2026):
 // estructura fija de la tarjeta REVELADA (partida respondida y repaso, spec
 // §8 punto 1) con la visual como protagonista, garantizada en las tres capas
-// de la Tarea 1 (imagen de Commons -> visual de datos -> tarjeta tipográfica
-// construirVisualClave). Consume el mismo banco de ejemplo que "ONE ·
+// de la Tarea 1 (imagen -> fórmula dibujada -> color del área, fase 7). Consume el mismo banco de ejemplo que "ONE ·
 // visuales v0.1e" (datos/visuales.ejemplo.json + datos/imagenes.ejemplo.json)
 // para tener las tres capas bajo control, sin depender de qué traiga el
 // banco real en cada momento.
@@ -4970,7 +4730,7 @@ test.describe('ONE · Conectar desde la app instalada (v0.2b3 Tarea 4)', () => {
 test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () => {
   /** Inyecta tres preguntas vf sintéticas, una por capa (imagen forzada,
    * visual de datos del banco de ejemplo, y una tercera SIN imagen ni
-   * `visual` para que caiga en la tarjeta tipográfica) — ids sufijados para
+   * `visual` para que caiga en el color del área) — ids sufijados para
    * no chocar entre viewports que comparten el mismo `page` de test en test.
    * Las tres son `respuesta: true`: el test las falla A PROPÓSITO
    * (vf-falso) para que las tres entren en `repasoPartida` (app.js:
@@ -4990,10 +4750,9 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     const idClave = `pv-clave-${sufijo}`;
 
     const preguntaImagen = { ...visualesEjemplo.formula, id: idImagen };
-    const preguntaVisual = { ...visualesEjemplo.barras, id: idVisual };
-    // Copia de "formula" SIN su `visual` (ni imagen forzada): cae en la
-    // tercera capa por las dos primeras faltando de verdad, no porque se
-    // ignoren a propósito.
+    const preguntaVisual = { ...visualesEjemplo.formula, area: 'ciencia', id: idVisual };
+    // Copia de "formula" SIN su `visual` (ni imagen forzada): cae en el color
+    // del área por las dos primeras faltando de verdad, no porque se ignoren.
     const { visual: _visualDescartado, ...preguntaClaveSinVisual } = visualesEjemplo.formula;
     const preguntaClave = { ...preguntaClaveSinVisual, id: idClave };
 
@@ -5051,7 +4810,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     const t = tarjetaActual(page);
     if (capa === 'imagen') await expect(t.locator('[data-test="imagen"]')).toBeVisible();
     else if (capa === 'visual') await expect(t.locator('[data-test="visual"]')).toBeVisible();
-    else await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
+    else await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
   }
 
   const VIEWPORTS = [
@@ -5061,7 +4820,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   ];
 
   for (const vp of VIEWPORTS) {
-    test(`estructura fija a ${vp.nombre}×${vp.height}: imagen/visual/tarjeta tipográfica protagonizan sin scroll, en partida y en repaso`, async ({
+    test(`estructura fija a ${vp.nombre}×${vp.height}: imagen/fórmula/color del área protagonizan sin scroll, en partida y en repaso`, async ({
       page,
     }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
@@ -5185,7 +4944,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
   // este barrido solo NAVEGA por el repaso (irA), que no juega ni acumula
   // progreso -- no hay "cambio de nivel" que colar entre tarjetas. Mismo
   // patrón que ya usaba con éxito el barrido original antes de esta tarea.
-  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene visual, ninguna sale de [50,60] % y ninguna desborda', async ({
+  test('v0.2a.2.1 §3.7: barrido del banco entero en el repaso — el 100 % tiene imagen o color del área, ninguna sale de [50,60] % y ninguna desborda', async ({
     page,
   }) => {
     test.setTimeout(120000);
@@ -5209,7 +4968,7 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
         const zona = tarjeta ? tarjeta.querySelector('.zona-imagen') : null;
         const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
         if (!zona || !contenido) { problemas.push({ i, motivo: 'sin zona o sin contenido' }); continue; }
-        const tieneAlgo = Boolean(zona.querySelector('img, svg, .visual-clave'));
+        const tieneAlgo = Boolean(zona.querySelector('img, svg, .zona-imagen--color')) || zona.classList.contains('zona-imagen--color');
         if (!tieneAlgo) { problemas.push({ i, motivo: 'zona vacía' }); continue; }
         const ratio = zona.getBoundingClientRect().height / tarjeta.getBoundingClientRect().height;
         // Tolerancia de 1px sobre el alto real de la tarjeta, como en el resto de la suite.
@@ -5229,263 +4988,6 @@ test.describe('ONE · protagonismo visual (spec §8, v0.2a.2 — Tarea 2)', () =
     expect(faltantes, `${faltantes.length} de ${total} tarjetas con problema: ${JSON.stringify(faltantes.slice(0, 10))}`).toEqual([]);
   });
 
-  // Ronda 1 de revisión de la Tarea 2 (I1): el SVG de la tarjeta tipográfica de v0.2a.2 solo
-  // llenaba el 56.9% de `.zona-imagen` (43% de hueco oscuro arriba y abajo), medido en vivo por el
-  // revisor con una pregunta sintética sin imagen ni `visual`. Arreglo original en estilos.css
-  // (degradado en la zona, SVG a width/height:100%); v0.2a.2.1 §1.3 sustituye el SVG por un bloque
-  // HTML (`.visual-clave`, flex:1 1 auto) que llena la zona por su cuenta, sin `viewBox` que medir.
-  // Una pregunta de lógica sin imagen ni `visual` (cae en la tercera capa), comprobada en el REPASO
-  // (mismo camino que usa Carlos: partida -> resumen).
-  test('spec v0.2a.2.1 §1.3: en el repaso, la tarjeta tipográfica (HTML) llena `.zona-imagen` — el bloque mide ≥ 95% del alto y del ancho', async ({
-    page,
-  }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-
-    const idClave = 'pv-i1-clave';
-    const preguntaClave = {
-      id: idClave,
-      area: 'logica',
-      tipo: 'vf',
-      nivel: 1,
-      enunciado: 'Si todos los A son B y todos los B son C, entonces todos los A son C.',
-      explicacion: 'Es un silogismo válido: la relación se transmite de A a B y de B a C.',
-      confianza: 1,
-      generador: 'manual',
-      verificador: 'manual',
-      verificado: true,
-      respuesta: true,
-    };
-    await page.evaluate((p) => window.__one.inyectarPregunta(p), preguntaClave);
-    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'i1-clave' }), idClave);
-
-    const t = tarjetaActual(page);
-    // Falla a propósito (respuesta:true): así entra en repasoPartida y
-    // aparece en el carrusel de resumen (mismo motivo que inyectarTresCapas).
-    await t.locator('[data-test="vf-falso"]').click();
-    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
-    await esperarAsentamientoMazo(page);
-    await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
-
-    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
-    await page.keyboard.press('ArrowUp');
-    await esperarAsentamientoMazo(page);
-
-    const medidas = await page.evaluate(() => {
-      const zona = document.querySelector('.tarjeta-mazo--actual .zona-imagen--clave');
-      const bloque = zona ? zona.querySelector('.visual-clave') : null;
-      if (!zona || !bloque) return null;
-      const rectZona = zona.getBoundingClientRect();
-      const rectBloque = bloque.getBoundingClientRect();
-      return { altoRatio: rectBloque.height / rectZona.height, anchoRatio: rectBloque.width / rectZona.width };
-    });
-    expect(medidas, '.zona-imagen--clave o su bloque .visual-clave no están en la tarjeta actual').not.toBeNull();
-    expect(medidas.altoRatio).toBeGreaterThanOrEqual(0.95);
-    expect(medidas.anchoRatio).toBeGreaterThanOrEqual(0.95);
-  });
-});
-
-test.describe('ONE · tarjeta tipográfica por tipo (v0.2a.2.1 §1.3)', () => {
-  test('ordenar (eco-089, la captura del iPhone) muestra la lista COMPLETA y sin la línea "Respuesta:"', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await page.evaluate(() => window.__one.empezarPartida({ ids: ['eco-089'], etiqueta: 'clave-ordenar' }));
-
-    const t = tarjetaActual(page);
-    await responderPreguntaActual(page);
-    await esperarAsentamientoMazo(page);
-
-    await expect(t).toHaveClass(/tarjeta--clave/);
-    const items = t.locator('[data-test="visual-clave"] .visual-clave-item');
-    await expect(items).toHaveCount(4);
-    await expect(items.nth(0)).toHaveText('Salarios nominales');
-    await expect(items.nth(3)).toHaveText('Expectativas de inflación');
-    await expect(t.locator('.respuesta-compacta-linea--ok')).toHaveCount(0);
-    await expect(t.locator('.respuesta-resumen')).toHaveCount(0);
-    await assertTarjetaSinScroll(page);
-  });
-
-  // Ronda de corrección 1 (Tarea 7): el fix de `list-style-position:inside` (estilos.css) no tenía
-  // ningún test que cubriera el caso que lo motivó -- un ítem largo que necesita recortarse con "…"
-  // A DIFERENCIA de eco-089 (ítems cortos, ninguno se recorta). La revisión pidió log-042 (banco
-  // real, tipo `ordenar`, ítem de 69 caracteres, el más largo del banco para este tipo) -- pero
-  // log-042 tiene imagen real en datos/imagenes.json (comprobado en vivo), así que su tarjeta
-  // revelada usa `construirBloqueImagen`, NUNCA llega a `construirBloqueVisualClave` y por tanto
-  // nunca lleva `.visual-clave-item` que medir (falló con `tarjeta--neutra` pero SIN
-  // `tarjeta--clave` al ejecutarlo). Sustituido por una pregunta SINTÉTICA con los MISMOS enunciado
-  // e ítems reales de log-042 (mismo ítem de 69 caracteres) pero sin imagen ni `visual`, para forzar
-  // la tercera capa. A diferencia de "Ronda de corrección 2: en el repaso, una tarjeta NEUTRA..."
-  // más abajo (donde la pregunta inyectada SÍ cae en el índice 0 del repaso), esta pregunta
-  // `ordenar` no queda primera (comprobado en vivo: banco de ejemplo + inyectada = 13 tarjetas,
-  // la nueva cae en el índice 12) -- `ordenarRepaso` reparte por prioridad/área/nivel, no por orden
-  // de inyección, así que se localiza por el texto del enunciado como en el barrido de la Tarea 7.
-  test('Ronda de corrección 1: ordenar con un ítem de 69 caracteres (contenido real de log-042, sin imagen) en el repaso a 375×667 — cada ítem en UNA línea, el marcador se pinta y el texto largo se recorta con "…"', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-
-    await page.evaluate((q) => window.__one.inyectarPregunta(q), {
-      id: 'sintetico-ordenar-item-69',
-      area: 'logica',
-      tipo: 'ordenar',
-      nivel: 2,
-      // Enunciado e ítems calcados de log-042 (banco real), incluido su ítem de 69 caracteres.
-      enunciado: 'Ordena los siguientes eventos aleatorios según su probabilidad de ocurrencia.',
-      criterio: 'de menor a mayor probabilidad',
-      items: [
-        'Ganar el premio gordo de la Lotería Primitiva con un boleto',
-        'Sacar un as al robar una carta de una baraja de póker estándar',
-        'Obtener cara en un lanzamiento de moneda justa',
-        'Que en un grupo de 30 personas al menos dos cumplan años el mismo día',
-      ],
-      explicacion: 'Explicación cualquiera: no es lo que prueba este test.',
-      confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
-    });
-
-    await abrirFeedRepaso(page);
-    await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
-    await esperarAsentamientoMazo(page);
-
-    const total = await page.evaluate(() => window.__one.repasoNodosLength());
-    const indice = await page.evaluate((n) => {
-      for (let i = 0; i < n; i += 1) {
-        window.__one.irA(i);
-        const enun = document.querySelector('.tarjeta-mazo--actual .enunciado');
-        if (enun && enun.textContent.includes('probabilidad de ocurrencia')) return i;
-      }
-      return -1;
-    }, total);
-    expect(indice, 'la pregunta sintética no apareció en el repaso').toBeGreaterThanOrEqual(0);
-    await page.evaluate((i) => window.__one.irA(i), indice);
-    await esperarAsentamientoMazo(page);
-
-    const t = tarjetaActual(page);
-    await expect(t).toHaveClass(/tarjeta--clave/);
-
-    const medidas = await page.evaluate(() => {
-      const items = Array.from(document.querySelectorAll('.tarjeta-mazo--actual .visual-clave-item'));
-      return items.map((item) => {
-        const cs = getComputedStyle(item);
-        const marker = getComputedStyle(item, '::marker');
-        return {
-          texto: item.textContent,
-          alto: item.getBoundingClientRect().height,
-          lineHeight: parseFloat(cs.lineHeight),
-          display: cs.display,
-          listStylePosition: cs.listStylePosition,
-          whiteSpace: cs.whiteSpace,
-          textOverflow: cs.textOverflow,
-          scrollWidth: item.scrollWidth,
-          clientWidth: item.clientWidth,
-          markerDisplay: marker.display,
-          markerColor: marker.color,
-        };
-      });
-    });
-
-    expect(medidas).toHaveLength(4);
-    for (const m of medidas) {
-      // Una sola línea: `white-space:nowrap` ya lo impide por CSS, esto es la comprobación
-      // geométrica -- el alto real no debe superar el line-height con margen de redondeo.
-      expect(m.alto, `"${m.texto}" mide ${m.alto}px (line-height ${m.lineHeight}px): ¿ocupa más de una línea?`).toBeLessThanOrEqual(m.lineHeight * 1.4);
-      // El marcador NO está suprimido (la causa 1 de la Ronda 1: display:flex en el <ol> mataba
-      // el ::marker aunque list-style-type siguiera leyendo "decimal") y sigue "inside" (el fix).
-      expect(m.display).toBe('list-item');
-      expect(m.listStylePosition).toBe('inside');
-      // Señal directa de que el navegador SÍ genera la caja del marcador (color propio, no "none").
-      expect(m.markerDisplay).not.toBe('none');
-      expect(m.markerColor).toBe('rgb(95, 212, 232)'); // #5fd4e8, la regla ::marker de estilos.css.
-    }
-
-    // El ítem de 69 caracteres es el único que de verdad prueba el recorte con "…" (la causa 2 de
-    // la Ronda 1: overflow:hidden en .visual-clave-item se comía el marcador con outside; con
-    // inside, el propio texto -incluido el número- es quien se recorta).
-    const masLargo = medidas.reduce((a, b) => (b.texto.length > a.texto.length ? b : a));
-    expect(masLargo.texto.length).toBeGreaterThanOrEqual(69);
-    expect(masLargo.whiteSpace).toBe('nowrap');
-    expect(masLargo.textOverflow).toBe('ellipsis');
-    expect(
-      masLargo.scrollWidth,
-      `"${masLargo.texto}" no se recorta: scrollWidth ${masLargo.scrollWidth} <= clientWidth ${masLargo.clientWidth}`
-    ).toBeGreaterThan(masLargo.clientWidth);
-
-    await assertTarjetaSinScroll(page);
-  });
-
-  test('error, test4 y vf muestran su layout propio (aserciones por clase)', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-
-    // Tres preguntas sintéticas SIN imagen ni `visual`: las tres caen en la tercera capa.
-    const preguntas = [
-      {
-        id: 'clave-error', area: 'ciencia', tipo: 'error', nivel: 1, sospechoso: 1,
-        enunciado: 'Encuentra el dato erróneo en la tarjeta.',
-        tarjeta: { titulo: 'Planetas', filas: [{ etiqueta: 'Marte', valor: 'Cuarto planeta' }, { etiqueta: 'Venus', valor: 'Octavo planeta' }] },
-        explicacion: 'Venus es el segundo planeta desde el Sol.',
-        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
-      },
-      {
-        id: 'clave-test4', area: 'arte', tipo: 'test4', nivel: 1, correcta: 0,
-        enunciado: '¿Quién pintó Las Meninas?',
-        opciones: ['Velázquez', 'Goya', 'El Greco', 'Murillo'],
-        explicacion: 'Velázquez la pintó en 1656.',
-        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
-      },
-      {
-        id: 'clave-vf', area: 'logica', tipo: 'vf', nivel: 1, respuesta: false,
-        enunciado: 'Todo cuadrado es un círculo. Es una afirmación básica.',
-        explicacion: 'Un cuadrado tiene lados rectos; un círculo, no.',
-        confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
-      },
-    ];
-    for (const p of preguntas) await page.evaluate((q) => window.__one.inyectarPregunta(q), p);
-    await page.evaluate((ids) => window.__one.empezarPartida({ ids, etiqueta: 'clave-tipos' }), preguntas.map((p) => p.id));
-
-    // error
-    let t = tarjetaActual(page);
-    await t.locator('[data-test="fila-1"]').click();
-    await esperarAsentamientoMazo(page);
-    await expect(t.locator('.visual-clave-etiqueta')).toHaveText('Venus');
-    await expect(t.locator('.visual-clave-valor')).toHaveText('Octavo planeta');
-    await expect(t.locator('.visual-clave-titulo')).toHaveText('Dato erróneo');
-    await avanzarTrasRespuesta(page);
-
-    // test4
-    t = tarjetaActual(page);
-    await responderPreguntaActual(page);
-    await esperarAsentamientoMazo(page);
-    await expect(t.locator('.visual-clave-correcta')).toHaveText('Velázquez');
-    await expect(t.locator('.visual-clave-descartada')).toHaveCount(3);
-    await avanzarTrasRespuesta(page);
-
-    // vf
-    t = tarjetaActual(page);
-    await t.locator('[data-test="vf-verdadero"]').click();
-    await esperarAsentamientoMazo(page);
-    await expect(t.locator('.visual-clave-veredicto')).toHaveText('Falso');
-    await expect(t.locator('.visual-clave-veredicto')).toHaveClass(/visual-clave-veredicto--falso/);
-    await expect(t.locator('.visual-clave-frase')).toHaveText('Todo cuadrado es un círculo.');
-    // Falló (respondió Verdadero): SÍ se conserva la línea de su respuesta, y tiene que VERSE de
-    // verdad (I3, ola final): `toHaveText` sola pasa igual con el elemento a `display:none` (lee
-    // `textContent`, no exige visibilidad) -- así fue como C1 se coló sin que este test lo pillara.
-    const lineaRespuestaJugador = t.locator('.respuesta-compacta-linea--tachada');
-    await expect(lineaRespuestaJugador).toHaveText('Tu respuesta: Verdadero ✗');
-    await expect(lineaRespuestaJugador).toBeVisible();
-    const altoLineaRespuesta = await lineaRespuestaJugador.evaluate((el) => el.getBoundingClientRect().height);
-    expect(altoLineaRespuesta).toBeGreaterThan(0);
-    await assertTarjetaSinScroll(page);
-  });
 });
 
 test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.2a.2 — Tarea 3)', () => {
@@ -5567,47 +5069,6 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     const indiceDespues = await page.evaluate(() => document.querySelector('.tarjeta-mazo--actual').dataset.indice);
     expect(indiceDespues, 'el mazo no debe cambiar de tarjeta solo por abrir/cerrar la superposición').toBe(indiceAntes);
     await assertTarjetaSinScroll(page);
-  });
-
-  test('abre desde la tarjeta tipográfica (visual-clave) en el repaso (resumen): el bloque HTML se clona a pantalla completa, cierra con Escape', async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    // Ronda 1 de revisión (Important #1): la captura del brief (docs/capturas/v0.2a2-completa-375.png)
-    // se toma AQUÍ, no desde la imagen -- el fixture de imagen de ?ejemplo=1 es un PNG 1x1 (data:
-    // URI), así que esa captura salía negra sin mostrar ni encaje ni contenido real. La tarjeta
-    // tipográfica es determinista y sin red: SIEMPRE tiene el mismo degradado + texto, sin depender
-    // de qué imagen use el fixture del momento. reducedMotion evita pillar el fundido de 160ms a
-    // mitad de camino (mismo motivo que el resto de la suite de "protagonismo visual" -- Playwright
-    // no espera animaciones CSS por su cuenta y su toBeVisible() no mira `opacity`).
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    const { idClave } = await inyectarImagenYClave(page, 'b');
-    const t = await jugarYRevelar(page, idClave, 'pc-b');
-    await expect(t.locator('[data-test="visual-clave"]')).toBeVisible();
-
-    await avanzarTrasRespuesta(page); // única pregunta de la partida -> resumen.
-    await expect(page.locator('[data-test="resumen"]')).toBeVisible();
-    await page.keyboard.press('ArrowUp');
-    await esperarAsentamientoMazo(page);
-    const tRepaso = tarjetaActual(page);
-    await expect(tRepaso.locator('[data-test="visual-clave"]')).toBeVisible();
-
-    // Dentro de la tarjeta el bloque vive en `.zona-imagen--clave` (que le pone el degradado);
-    // en la superposición se clona con su propio fondo y sin `data-test` duplicado.
-    await expect(tRepaso.locator('[data-test="visual-clave"]')).toHaveCount(1);
-    await tRepaso.locator('[data-test="visual-abrir"]').click();
-    const overlay = page.locator('[data-test="visual-completa"]');
-    await expect(overlay).toBeVisible();
-    await expect(overlay.locator('.visual-completa-clave')).toBeVisible();
-    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1); // el clon NO duplica el selector
-    await expect(overlay.locator('.visual-completa-clave .visual-clave-item, .visual-completa-clave .visual-clave-veredicto, .visual-completa-clave .visual-clave-correcta')).not.toHaveCount(0);
-
-    await page.screenshot({ path: `${CAPTURAS}/v0.2a2-completa-375.png` });
-
-    await page.keyboard.press('Escape');
-    expect(await overlay.evaluate((el) => el.hidden), 'Escape debe cerrar la superposición').toBe(true);
   });
 
   test('cierra deslizando hacia abajo ≥60px (pointerdown/pointerup propios de la superposición): un deslizamiento corto no cierra, uno largo sí', async ({
@@ -5721,6 +5182,24 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
 
+    // Foto forzada en todo el banco de ejemplo: la primera tarjeta del repaso, sea cual sea, la lleva.
+    await page.evaluate(async () => {
+      const banco = await fetch('datos/banco.ejemplo.json').then((r) => r.json());
+      const lista = Array.isArray(banco) ? banco : banco.preguntas;
+      for (const p of lista) {
+        window.__one.forzarImagen(p.id, {
+          id: p.id,
+          url: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+          pagina: 'https://commons.wikimedia.org/wiki/File:Ejemplo.png',
+          titulo: 'Ejemplo',
+          autor: 'Autor de ejemplo',
+          licencia: 'CC0',
+          leyenda: 'Imagen de ejemplo',
+          ancho: 1,
+          alto: 1,
+        });
+      }
+    });
     await abrirFeedRepaso(page);
     await expect(page.locator('[data-vista="repaso"]')).toBeVisible();
     await esperarAsentamientoMazo(page);
@@ -5803,32 +5282,6 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     expect(await focoEsSelector('[data-test="visual-cerrar"]'), 'un segundo Shift+Tab debería devolver el foco al botón').toBe(true);
   });
 
-  // Sin atribución que clonar (tarjeta tipográfica: construirPieVisualCompleta devuelve null, el
-  // pie queda vacío/oculto), el botón de cierre sigue siendo el único enfocable -- mismo
-  // comportamiento que la Ronda 1, verificado explícitamente para que una regresión futura en el
-  // ciclo de dos paradas no se cuele sin test.
-  test('trampa de foco sin atribución (tarjeta tipográfica): Tab se queda en el botón de cierre', async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await page.goto('/?ejemplo=1&test=1');
-    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
-    const { idClave } = await inyectarImagenYClave(page, 'j');
-    const t = await jugarYRevelar(page, idClave, 'pc-j');
-
-    await t.locator('[data-test="visual-abrir"]').click();
-    const overlay = page.locator('[data-test="visual-completa"]');
-    await expect(overlay).toBeVisible();
-    await expect(page.locator('[data-test="visual-completa-pie"] a')).toHaveCount(0);
-
-    const focoEsElBoton = async () =>
-      page.evaluate(() => document.activeElement === document.querySelector('[data-test="visual-cerrar"]'));
-
-    expect(await focoEsElBoton(), 'el foco no empieza en el botón de cierre').toBe(true);
-    await page.keyboard.press('Tab');
-    expect(await focoEsElBoton(), 'Tab debería quedarse en el botón de cierre (sin enlace al que ir)').toBe(true);
-    await page.keyboard.press('Tab');
-    expect(await focoEsElBoton(), 'un segundo Tab debería quedarse en el botón de cierre').toBe(true);
-  });
-
   // Ronda 1 de revisión (Important #4): la atribución (autor/licencia/enlace a Commons) ya no se
   // pierde en pantalla completa -- el pie reutiliza el MISMO figcaption que la tarjeta, con el
   // fixture de e2e (his-001: "Autor de ejemplo", "CC BY-SA 4.0", licencia que SÍ exige atribución).
@@ -5852,7 +5305,7 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await expect(atribucion).toContainText('Autor de ejemplo');
     await expect(atribucion).toContainText('CC BY-SA 4.0');
     const enlace = atribucion.locator('a');
-    await expect(enlace).toHaveText('Commons');
+    await expect(enlace).toHaveText('Commons · Autor de ejemplo · CC BY-SA 4.0');
     await expect(enlace).toHaveAttribute('target', '_blank');
     await expect(enlace).toHaveAttribute('rel', 'noopener');
     await expect(enlace).toHaveAttribute('href', 'https://commons.wikimedia.org/wiki/File:Ejemplo-toma-bastilla.png');
@@ -6070,9 +5523,8 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
   // Ola final de revisión (Minor #1 + Minor #4): el clon de la imagen debe conservar
   // `referrerPolicy="no-referrer"` (si no, un fallo de caché real filtraría el origen de la app a
   // upload.wikimedia.org, justo lo que el <img> de la tarjeta evita a propósito); el clon de la
-  // tarjeta tipográfica no debe duplicar el `data-test="visual-clave"` de la tarjeta que sigue
-  // debajo mientras la superposición está abierta.
-  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); el clon de la tarjeta tipográfica no duplica su data-test', async ({
+  // fase 7: el color del área no se abre a pantalla completa.
+  test('el clon de la imagen conserva referrerPolicy="no-referrer" (M1); la zona de color no se abre', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
@@ -6090,12 +5542,10 @@ test.describe('ONE · pantalla completa (spec §8 "Ver a pantalla completa", v0.
     await expect(overlay).toBeHidden();
 
     t = await jugarYRevelar(page, idClave, 'pc-o2');
-    await t.locator('[data-test="visual-abrir"]').click();
-    await expect(overlay).toBeVisible();
-    // La tercera capa ya no es SVG (v0.2a.2.1 §1.3): no hay id de degradado que renombrar, pero sí
-    // hay que comprobar que el clon no duplica el `data-test` de la tarjeta que sigue debajo.
-    await expect(page.locator('[data-test="visual-clave"]')).toHaveCount(1);
-    await expect(overlay.locator('.visual-completa-clave')).toHaveCount(1);
+    await expect(t.locator('[data-test="zona-color"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual-abrir"]')).toHaveCount(0);
+    await t.locator('[data-test="zona-color"]').click();
+    await expect(overlay).toBeHidden();
   });
 });
 
@@ -6963,14 +6413,17 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
   });
 
-  test('Créditos: las 5 imágenes con autor, licencia y enlace a Commons; cierra con Escape; cabe a 375×667', async ({ page }) => {
+  test('Créditos: las 6 imágenes del hub con fuente, autor, licencia y enlace reales; cierra con Escape; cabe a 375×667', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="abrir-creditos"]').click();
     const hoja = page.locator('[data-test="creditos"]');
     await expect(hoja).toBeVisible();
-    await expect(hoja.locator('a[href^="https://commons.wikimedia.org/wiki/File:"]')).toHaveCount(5);
-    await expect(hoja).toContainText('CC BY-SA 4.0');
+    await expect(hoja.locator('li')).toHaveCount(6);
+    await expect(hoja.locator('a[href^="https://"]')).toHaveCount(6);
+    await expect(hoja.locator('a[href^="https://commons.wikimedia.org/wiki/File:"]').first()).toHaveText('Commons · LitterART · CC BY-SA 4.0');
+    await expect(hoja).toContainText('Openverse');
+    await expect(hoja).toContainText('Tienda');
     const medidas = await hoja.evaluate((h) => ({ alto: h.scrollHeight, visible: h.clientHeight, arriba: h.getBoundingClientRect().top }));
     expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
     expect(medidas.arriba).toBeGreaterThanOrEqual(0);

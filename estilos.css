@@ -850,25 +850,6 @@ main#app {
 .tarjeta--compacta-1 .respuesta-compacta { display: none; }
 .tarjeta--compacta-1 .respuesta-resumen { display: block; }
 
-/* C1 (ola final, regresión de la Tarea 1/§1.3): con `tarjeta--clave` (visual tipográfica),
-   `construirRespuestaCompacta(..., {soloFallo: true})` deja SOLO la línea "Tu respuesta: X ✗"
-   dentro de `.respuesta-compacta` (la correcta y las opciones ya las enseña la propia clave) y
-   `app.js` ya no añade `.respuesta-resumen` para sustituirla (sería ruido duplicado). Pero el
-   paso (a) de arriba esconde `.respuesta-compacta` ENTERA casi siempre en la tarjeta revelada, y
-   sin resumen que la reemplace, esa línea se quedaba con `display:none` para siempre: el jugador
-   que fallaba nunca veía qué había contestado. Alternativa aceptada en la revisión final (coste
-   ~20px, que la cascada absorbe con un paso más de recorte de explicación): más específica que la
-   regla de arriba (3 clases vs. 2), así gana tanto si (a) está activo como si no. */
-.tarjeta--clave.tarjeta--compacta-1 .respuesta-compacta { display: flex; }
-/* I4 (re-verificación de la ola final): esa línea recuperada envolvía a DOS líneas (36px) cuando
-   la opción marcada era larga y a 375×667 desbordaba 7px en tec-047/tec-048 -- la cascada ya había
-   agotado sus pasos. Una sola línea con "…": el texto entero sigue en el DOM y la clave ya enseña
-   la respuesta correcta, así que recortar la del jugador no pierde información. */
-.tarjeta--clave .respuesta-compacta-linea {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .tarjeta--compacta-1 .zona-respuesta { gap: 6px; }
 
 /* Paso (a) de la cascada SIN responder (mazo.js, dataset.respondida==='false'):
@@ -1580,18 +1561,31 @@ main#app {
   overflow: hidden;
 }
 
-/* Ronda 1 de revisión de la Tarea 2 (I1, medido en vivo: el SVG de la
-   tarjeta tipográfica solo llenaba el 56.9% de `.zona-imagen`, con 43% de
-   hueco oscuro arriba/abajo). Arreglo: el degradado radial vive en la ZONA
-   (mismos colores que usaba el `<radialGradient>` del SVG de v0.2a.2), así
-   que llena `.zona-imagen` de borde a borde sea cual sea el alto real que le
-   toque. Desde v0.2a.2.1 §1.3 el bloque de dentro (`.visual-clave`, más
-   abajo) ya es HTML normal, no SVG, así que llena esa caja por su cuenta
-   (flex:1 1 auto) sin necesitar recorte por `viewBox`. Misma especificidad
-   que `.zona-imagen--visual` de arriba (1 clase): declarada DESPUÉS, gana el
-   empate en los elementos que llevan las dos clases a la vez. */
-.zona-imagen--clave {
-  background: radial-gradient(ellipse at 50% 40%, #0b2a33 0%, #07161b 100%);
+/* Zona sin imagen (spec v0.3 §4/§7): el color del área y su nombre en pequeño; sin emoji grande, sin
+   esquemas. Ocupa el mismo 50-60 % que la imagen (.tarjeta--revelada .zona-imagen). */
+.zona-imagen--color {
+  --color-area: #17222d;
+  justify-content: flex-start;
+  align-items: flex-end;
+  background: var(--color-area);
+  border: 1px solid #22303d;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.zona-imagen--color-economia { --color-area: #1d3b2a; }
+.zona-imagen--color-historia { --color-area: #3b2f1c; }
+.zona-imagen--color-ciencia { --color-area: #123a4a; }
+.zona-imagen--color-tecnologia { --color-area: #1c2c4d; }
+.zona-imagen--color-geografia { --color-area: #1f3d33; }
+.zona-imagen--color-filosofia { --color-area: #2b3342; }
+.zona-imagen--color-arte { --color-area: #3d2a22; }
+.zona-imagen--color-logica { --color-area: #28324a; }
+.zona-color-area {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* El SVG ya no se limita a su propio aspect-ratio (`height:auto`, Tarea 1/
@@ -1609,156 +1603,6 @@ main#app {
   height: 100%;
   max-height: none;
   display: block;
-}
-
-/* Tarjeta tipográfica en HTML (spec v0.2a.2.1 §1.3): el degradado sigue viviendo en la ZONA (así
-   llena de borde a borde sea cual sea el alto que le toque) y dentro va un bloque de texto normal,
-   que envuelve y crece solo. Ya no hay SVG ni `viewBox`, así que tampoco hay hueco muerto ni
-   recorte por número de caracteres. */
-.visual-clave {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
-  overflow: hidden;
-  color: #eafbff;
-  text-align: left;
-}
-
-.visual-clave-area {
-  margin: 0;
-  flex: none;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: #5fd4e8;
-}
-
-.visual-clave-titulo {
-  margin: 0;
-  flex: none;
-  font-size: 12px;
-  color: #8fd9e8;
-}
-
-/* El cuerpo centra su contenido en el alto sobrante: con una lista de 4 ítems llena la caja, con
-   un "Cierto" queda centrado en vez de pegado arriba. */
-.visual-clave-cuerpo {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  overflow: hidden;
-}
-
-/* `ordenar`: lista numerada completa, un ítem por línea, con "…" si una línea no cabe (spec §1.3:
-   "cada ítem en una línea (recorte con … si no cabe)"). Tarea 7 (defecto evidente y pequeño, dos
-   causas independientes -- comprobadas en vivo comentando cada una por separado -- que se sumaban
-   para dejar la lista SIN NUMERAR pese a ser un <ol> con list-style-type:decimal correcto):
-   1) esto era `display:flex;flex-direction:column`, y un `<li>` que pasa a ser flex item deja de
-      generar caja de `::marker` en todos los navegadores basados en Chromium/Blink y en Firefox.
-   2) con `display:flex` ya quitado, el marcador SEGUÍA sin pintar: `list-style-position:outside`
-      (el valor por defecto, nunca fijado aquí explícitamente) coloca el marcador FUERA de la caja
-      del propio `<li>`, y `overflow:hidden` en `.visual-clave-item` (imprescindible para el recorte
-      con "…" de una línea) se lo comía por estar fuera de esa caja.
-   Con `list-style-position:inside` el número pasa a ser parte del contenido de la línea (mismo
-   `overflow:hidden`+"…" del ítem, ahora truncando DESPUÉS del número si hace falta, nunca antes) y
-   el resultado visible por fin es el que pedía el comentario de arriba: la lista numerada completa
-   que sustituye a la que Carlos llamó "muy mala" el 17-sep -- no solo "primero → último". */
-.visual-clave-lista {
-  margin: 0;
-  padding-left: 2px;
-  list-style-position: inside;
-}
-
-.visual-clave-item {
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.visual-clave-item + .visual-clave-item {
-  margin-top: 6px;
-}
-
-.visual-clave-lista::marker,
-.visual-clave-item::marker {
-  color: #5fd4e8;
-  font-weight: 600;
-}
-
-/* `error`: etiqueta de la fila + su valor; con corrección, el valor erróneo tachado y el correcto
-   en verde al lado. */
-.visual-clave-etiqueta {
-  margin: 0;
-  font-size: 13px;
-  color: #8fd9e8;
-}
-
-.visual-clave-valor {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-s.visual-clave-valor {
-  color: rgba(234, 251, 255, 0.55);
-}
-
-.visual-clave-correccion {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--ok);
-}
-
-/* `test4`: la correcta grande, las descartadas apagadas y tachadas fino. */
-.visual-clave-correcta {
-  margin: 0;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.25;
-}
-
-.visual-clave-descartada {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.3;
-  opacity: 0.45;
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-/* `vf`: veredicto grande en verde/rojo y la primera frase debajo, máximo 2 líneas. */
-.visual-clave-veredicto {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-.visual-clave-veredicto--cierto { color: var(--ok); }
-.visual-clave-veredicto--falso { color: var(--ko); }
-
-.visual-clave-frase {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.35;
-  color: #8fd9e8;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
 }
 
 /* --- resumen / repaso vertical (spec v0.1c §6) ---
@@ -2490,26 +2334,6 @@ button.punto-servidor::before {
   object-fit: contain;
   display: block;
 }
-
-/* El bloque clonado en pantalla completa (app.js#abrirVisualCompleta) no es una imagen: no puede
-   heredar `object-fit`/`height:100%` de `.visual-completa-media`. Se centra, con su degradado
-   propio (fuera de `.zona-imagen--clave` no hay quien lo pinte) y sin recortar nada. Declarada
-   DESPUÉS de `.visual-completa-media` (misma especificidad, 1 clase): gana el empate en las
-   propiedades que ambas fijan (width/height/object-fit) en el elemento que lleva las dos clases. */
-.visual-completa-clave {
-  width: 100%;
-  max-width: 560px;
-  height: auto;
-  max-height: 100%;
-  object-fit: initial;
-  overflow-y: auto;
-  border-radius: 16px;
-  padding: 20px;
-  background: radial-gradient(ellipse at 50% 40%, #0b2a33 0%, #07161b 100%);
-  touch-action: pan-y; /* el bloque puede desplazarse; el cierre por deslizamiento vive fuera de él */
-}
-
-.visual-completa-clave .visual-clave-item { white-space: normal; }
 
 /* Botón de cierre (Ronda 1 de revisión, Important #2/#3): arriba a la izquierda, `position:fixed`
    (no `absolute`) para que su `top`/`left` midan desde el viewport real y no desde el padding-box

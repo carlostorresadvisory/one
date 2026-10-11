@@ -1,7 +1,8 @@
 // Tests de foto-pregunta.js (spec v0.3 §4): crédito real, color del área sin emoji y brillo dorado.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { creditoTexto, montarFotoPregunta } from '../foto-pregunta.js';
+import { creditoTexto, montarFotoPregunta, cargarImagenesMalas, guardarImagenesMalas, CLAVE_IMAGENES_MALAS } from '../foto-pregunta.js';
+import { almacenFalso, almacenRoto } from './almacen-falso.js';
 import { instalarDomFalso } from './dom-falso.js';
 
 const COMMONS = {
@@ -98,4 +99,17 @@ test('ponerDorada enciende y apaga el borde dorado; dorada inicial; destruir sac
   } finally {
     otra.desinstalar();
   }
+});
+
+test('imágenes malas: se guardan, se cargan y con basura o almacén roto no lanzan', () => {
+  const alm = almacenFalso();
+  assert.equal(cargarImagenesMalas(alm).size, 0);
+  assert.equal(guardarImagenesMalas(new Set(['art-001', 'srv-9']), alm), true);
+  assert.deepEqual([...cargarImagenesMalas(alm)], ['art-001', 'srv-9']);
+  alm.setItem(CLAVE_IMAGENES_MALAS, '{"no":"una lista"}');
+  assert.equal(cargarImagenesMalas(alm).size, 0);
+  alm.setItem(CLAVE_IMAGENES_MALAS, '["ok", 5, "", null]');
+  assert.deepEqual([...cargarImagenesMalas(alm)], ['ok']);
+  assert.equal(cargarImagenesMalas(almacenRoto()).size, 0);
+  assert.equal(guardarImagenesMalas(new Set(['a']), almacenRoto()), false);
 });
