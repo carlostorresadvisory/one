@@ -158,3 +158,17 @@ test('validarBanco avisa de área con menos de 20 preguntas', () => {
   const { avisos } = validarBanco(banco);
   assert.ok(avisos.some((a) => /economia/i.test(a)));
 });
+
+test('validarImagenes acepta WebP locales de imagenes-ia/ e imagenes-banco/ y rechaza otras rutas', async () => {
+  const { validarImagenes } = await import('../tools/validar-banco.js');
+  const banco = [base({ id: 'eco-001' }), base({ id: 'eco-002' }), base({ id: 'eco-003' })];
+  const ok = {
+    'eco-001': { url: 'imagenes-ia/eco-001.webp', fuente: 'IA', licencia: null, titulo: 'x', pagina: null },
+    'eco-002': { url: 'imagenes-banco/eco-002.webp', fuente: 'Met', licencia: 'CC0', titulo: 'x', pagina: 'https://www.metmuseum.org/art/collection/search/1' },
+  };
+  assert.deepEqual(validarImagenes(banco, ok).errores, []);
+  const mal = { 'eco-003': { url: 'http://otro.com/x.jpg', fuente: 'Met', licencia: 'CC0', titulo: 'x', pagina: 'https://a' } };
+  assert.equal(validarImagenes(banco, mal).errores.length, 1);
+  const sinLicencia = { 'eco-003': { url: 'imagenes-banco/eco-003.webp', fuente: 'Met', licencia: 'Todos los derechos', titulo: 'x', pagina: 'https://a' } };
+  assert.equal(validarImagenes(banco, sinLicencia).errores.length, 1);
+});

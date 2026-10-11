@@ -149,10 +149,12 @@ export function validarImagenes(banco, imagenes) {
       errores.push(`imagenes.json[${id}]: no es un objeto`);
       continue;
     }
-    if (!esTexto(img.url) || !img.url.startsWith('https://upload.wikimedia.org/')) {
-      errores.push(`imagenes.json[${id}]: url no es https de upload.wikimedia.org: ${img.url}`);
+    const urlLocal = esTexto(img.url) && /^imagenes-(ia|banco)\/[\w.-]+\.webp$/.test(img.url);
+    if (!esTexto(img.url) || !(urlLocal || img.url.startsWith('https://upload.wikimedia.org/'))) {
+      errores.push(`imagenes.json[${id}]: url no es https de upload.wikimedia.org ni un WebP de imagenes-ia/ o imagenes-banco/: ${img.url}`);
     }
-    if (!licenciaImagenPermitida(img.licencia)) {
+    // Las imágenes generadas con IA no tienen licencia de terceros.
+    if (img.fuente !== 'IA' && !licenciaImagenPermitida(img.licencia)) {
       errores.push(`imagenes.json[${id}]: licencia no permitida: ${img.licencia}`);
     }
     if (!esTexto(img.titulo)) avisos.push(`imagenes.json[${id}]: falta titulo`);

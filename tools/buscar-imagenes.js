@@ -967,4 +967,4 @@ if (esCLI) {
   });
 }
 
-export { licenciaPermitida, elegirImagen, limpiarHtml };
+export { licenciaPermitida, elegirImagen, limpiarHtml, buscarEnCommons };
