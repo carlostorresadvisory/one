@@ -1,10 +1,10 @@
-# Próxima sesión — ONE v0.3.1 (11-oct-2026)
+# Próxima sesión — Esfinx (antes ONE) tras v0.3.1 (12-oct-2026)
 
-v0.3 PUBLICADA el 11-oct (main `8287e5f`, Pages `one-v32`, servidor del VPS reconstruido con las claves de Cloudflare). Carlos: «buena primera versión».
+**v0.3.1 PUBLICADA** el 12-oct (main `ed424c3`, Pages `one-v33`; 426/426 fotos de los datos publicados dan 200 en Pages; servidor sin cambios).
 
-## Estado (11-oct-2026)
-- Rama `v0.3.1` (sale de `main`), `CACHE` `one-v33`: las 7 correcciones de Carlos (spec `docs/superpowers/specs/2026-10-11-one-v0.3.1-correcciones-design.md`, ya reescritas en la spec v0.3) están implementadas: imagen de Órdago, gestos de la esfinge al instante, icono, nombre Esfinx, fotos propias en `imagenes-banco/`, rampa de Contrarreloj y Premium «+» sin cobro real.
-- **Pendiente**: revisión final (Opus ejecutando la app) y OK de Carlos; después push a `main`.
+## Estado (12-oct-2026)
+- Las 7 correcciones de Carlos están publicadas (spec `docs/superpowers/specs/2026-10-11-one-v0.3.1-correcciones-design.md`, reescrita en la spec v0.3). Suites: 1035 unitarios, 233 e2e. La revisión Opus a mano se saltó por orden de desplegar ya.
+- **En curso**: lote de imágenes para las 101 preguntas y 140 cifras sin foto (rama `v0.3.1`, commits por lote). **Regla de Carlos: ninguna pregunta sin imagen** (Commons → Openverse/museos/NASA → Cloudflare, tramo gratis ~230/día, cupo de este lote 200 → Perchance solo con acceso programático estable). Al acabar: `node tools/validar-banco.js`, `node tools/diagnostico-imagenes.js --local`, unitarios, `git push origin v0.3.1:main` y comprobar en Pages.
 - Fase 10 (generar cifras en el servidor) pasa a la entrega 2.
 
 ## Decisiones de Carlos del 11-oct (ya en la spec y en el código)
@@ -17,8 +17,7 @@ v0.3 PUBLICADA el 11-oct (main `8287e5f`, Pages `one-v32`, servidor del VPS reco
 - **Fotos offline en caché aparte** (`one-fotos`, `sw.js`): expulsa las más antiguas pasadas de 120 fotos u 8 MB, fuera del techo de 5 MB del núcleo (4,13 MiB medidos) y no se borra al subir `CACHE`. Las propias, las WebP del servidor y las de Commons se guardan (las ajenas se vuelven a pedir con CORS para no guardar respuestas opacas; si el origen lo niega, se enseñan sin guardar).
 
 ## Lo que queda de Carlos (a mano)
-1. **OK de publicación** y el push: `! git checkout main && git merge --ff-only v0.3.1 && git push origin main`. Tras el push: `gh run list` y comprobar que `https://carlostorresadvisory.github.io/one/sw.js` sirve `one-v33`.
-2. **Probar en el iPhone**: la esfinge al instante (acierto y triste), el icono nuevo (hay que borrar y volver a añadir la app a la pantalla de inicio), Premium («+», Activar, +1.000 en la Tienda) y la rampa de Contrarreloj; una partida de Afinar y de Más o menos para ver que las imágenes cargan.
+1. **Probar en el iPhone**: la esfinge al instante (acierto y triste), el icono nuevo (hay que borrar y volver a añadir la app a la pantalla de inicio), Premium («+», Activar, +1.000 en la Tienda) y la rampa de Contrarreloj; una partida de Afinar y de Más o menos para ver que las imágenes cargan.
 3. **EUIPO para Esfinx** (clases 9 y 41) antes de la App Store.
 4. **Sonido en el iPhone** (fase 3): `npm run servir` y abrir `http://192.168.1.137:8765/?depurar=sonido` (iPhone en la wifi `MIWIFI_sHY3`; alternativa Tailscale, PC 100.72.197.51). Capturas del panel con sonido y en silencio → `docs/diagnostico-sonido-2026-10.md` → fase 3.2.
 5. **VPS tras publicar**: `CLOUDFLARE_AI_TOKEN` y `CLOUDFLARE_ACCOUNT_ID` (y `RUNWARE_API_KEY` si la quiere) en `/opt/one/.env` y `docker compose -f servidor/docker-compose.yml up -d --build` (instala `sharp`; ya acepta `nivelObjetivo`). Al marcar imágenes malas, copiar `/opt/one-datos/imagenes-malas.json` a `datos/imagenes-malas.json`.
