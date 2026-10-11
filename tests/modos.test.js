@@ -1,7 +1,7 @@
 // Tests de modos.js: registro del hub v0.3 (spec §3).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MODOS, modoPorId, marcadorModo, esJugableDificil, NIVEL_MINIMO_DIFICIL } from '../modos.js';
+import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil, NIVEL_MINIMO_DIFICIL } from '../modos.js';
 
 test('MODOS: los cinco modos en el orden de la rejilla; Clásico, Repaso, Órdago y Contrarreloj disponibles', () => {
   assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
@@ -13,12 +13,15 @@ test('Más o menos filtra solo hasta el área; el resto, árbol completo', () =>
   assert.equal(modoPorId('clasico').nivelFiltro, 'arbol');
 });
 
-test('cada imagen es de Commons y lleva autor, licencia y página', () => {
-  for (const { imagen } of MODOS) {
-    assert.match(imagen.url, /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\//);
-    assert.match(imagen.pagina, /^https:\/\/commons\.wikimedia\.org\/wiki\/File:/);
-    assert.ok(imagen.autor && imagen.licencia && imagen.titulo);
+test('cada imagen del hub (los 5 modos y la Tienda) es una WebP propia con crédito real', () => {
+  for (const { imagen } of [...MODOS, TIENDA]) {
+    assert.match(imagen.url, /^imagenes-hub\/[\w-]+\.webp$/);
+    assert.ok(imagen.titulo && imagen.autor && imagen.licencia && imagen.fuente);
+    assert.match(imagen.pagina, /^https:\/\//);
+    assert.ok(imagen.credito.startsWith(imagen.fuente));
+    assert.ok(imagen.credito.includes(imagen.licencia));
   }
+  assert.equal(new Set([...MODOS, TIENDA].map((x) => x.imagen.url)).size, 6);
 });
 
 test('ya no existe el último modo jugado', async () => {

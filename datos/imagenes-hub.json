@@ -1,0 +1,62 @@
+{
+  "clasico": {
+    "url": "imagenes-hub/clasico.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Stiftsbibliothek_Admont.jpg",
+    "titulo": "Biblioteca de la abadía de Admont",
+    "autor": "LitterART",
+    "licencia": "CC BY-SA 4.0",
+    "fuente": "Commons",
+    "nota": 5,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  },
+  "repaso": {
+    "url": "imagenes-hub/repaso.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Celsus_Library,_Ephesus.jpg",
+    "titulo": "Biblioteca de Celso, Éfeso",
+    "autor": "Austrian Archaeological Institute",
+    "licencia": "CC BY-SA 3.0",
+    "fuente": "Commons",
+    "nota": 5,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  },
+  "ordago": {
+    "url": "imagenes-hub/ordago.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Roulette_-_detail.jpg",
+    "titulo": "Ruleta (detalle)",
+    "autor": "Conor Ogle",
+    "licencia": "CC BY 2.0",
+    "fuente": "Commons",
+    "nota": 5,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  },
+  "masomenos": {
+    "url": "imagenes-hub/masomenos.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Everest_North_Face_toward_Base_Camp_Tibet_Luca_Galuzzi_2006.jpg",
+    "titulo": "Cara norte del Everest",
+    "autor": "Luca Galuzzi (Lucag)",
+    "licencia": "CC BY-SA 2.5",
+    "fuente": "Commons",
+    "nota": 4,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  },
+  "contrarreloj": {
+    "url": "imagenes-hub/contrarreloj.webp",
+    "pagina": "https://www.flickr.com/photos/38389073@N04/5640739307",
+    "titulo": "Hourglass",
+    "autor": "Jamiesrabbits",
+    "licencia": "CC BY 2.0",
+    "fuente": "Openverse",
+    "nota": 5,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  },
+  "tienda": {
+    "url": "imagenes-hub/tienda.webp",
+    "pagina": "https://www.flickr.com/photos/56796376@N00/5373673363",
+    "titulo": "Dubai's Spice Souks #3",
+    "autor": "mckaysavage",
+    "licencia": "CC BY 2.0",
+    "fuente": "Openverse",
+    "nota": 5,
+    "notaModelo": "gemini:gemini-flash-lite-latest"
+  }
+}
