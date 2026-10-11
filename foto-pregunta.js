@@ -38,8 +38,10 @@ export function creditoTexto(imagen) {
   if (imagen.ia === true || /^ia$|^ai$/i.test(String(imagen.fuente || ''))) return 'Imagen generada con IA';
   const licencia = typeof imagen.licencia === 'string' ? imagen.licencia.trim() : '';
   const exigeAutor = /^cc[\s-]?by/i.test(licencia);
-  const autor = typeof imagen.autor === 'string' ? imagen.autor.trim() : '';
-  return [nombreFuente(imagen), exigeAutor ? autor : '', licencia].filter(Boolean).join(' · ');
+  const fuente = nombreFuente(imagen);
+  // Algunos autores traen la fuente delante («Wikimedia Commons / Ana»): no se repite.
+  const autor = typeof imagen.autor === 'string' ? imagen.autor.replace(/^\s*(wikimedia\s+)?commons\s*\/\s*/i, '').trim() : '';
+  return [fuente, exigeAutor && autor.toLowerCase() !== fuente.toLowerCase() ? autor : '', licencia].filter(Boolean).join(' · ');
 }
 
 function crear(documento, etiqueta, clase) {

@@ -279,8 +279,8 @@ async function responderPreguntaActual(page, sospechosoPorTitulo) {
   const tipo = await tipoPreguntaActual(page);
   if (tipo === 'vf') {
     await t.locator('[data-test="vf-verdadero"]').click();
-  } else if (tipo === 'test4') {
-    await t.locator('[data-test="opcion-0"]').click();
+  } else if (tipo === 'test4') { // las opciones salen barajadas: se acierta por el índice original (en el banco de ejemplo la correcta es la 0)
+    await t.locator('[data-test^="opcion-"][data-original="0"]').click();
   } else if (tipo === 'ordenar') {
     // Tocar por el índice ORIGINAL (data-original), no por la posición mostrada tras
     // barajar: así siempre se acierta el orden correcto (evaluar() exige [0,1,2,3]).
@@ -303,7 +303,7 @@ async function fallarPreguntaActual(page, sospechosoPorTitulo) {
   if (tipo === 'vf') {
     await t.locator('[data-test="vf-falso"]').click();
   } else if (tipo === 'test4') {
-    await t.locator('[data-test="opcion-3"]').click();
+    await t.locator('[data-test^="opcion-"][data-original="3"]').click(); // una incorrecta (la correcta es la 0)
   } else if (tipo === 'ordenar') {
     for (let i = 3; i >= 0; i--) await t.locator(`[data-original="${i}"]`).click();
   } else {
@@ -1236,7 +1236,7 @@ test.describe('ONE · integración e2e', () => {
       // simplificada, sin autor ni "undefined" colgando.
       await expect(t).toHaveAttribute('data-indice', '1');
       await expect(t.locator('[data-test="imagen"]')).toHaveCount(0);
-      await t.locator('[data-test="opcion-0"]').click();
+      await t.locator('[data-test^="opcion-"][data-original="0"]').click();
       await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
       await assertSinScroll(page);
       await assertTarjetaSinScroll(page);
@@ -7562,6 +7562,59 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await page.locator('[data-test="ordago-opciones"] button').first().click();
     await assertSinScroll(page);
     expect(await medir()).toEqual({ cabe: true, fuente: '20px' });
+    // La explicación (~390 caracteres, más que la más larga del banco) sale ENTERA: la foto cede alto, nada de «…».
+    const explicacion = await page.evaluate(() => {
+      const nodo = document.querySelector('[data-test="ordago-explicacion"]');
+      const caja = nodo.getBoundingClientRect();
+      return { recortada: nodo.scrollHeight > nodo.clientHeight + 1, dentro: caja.bottom <= window.innerHeight, fuente: getComputedStyle(nodo).fontSize };
+    });
+    expect(explicacion).toEqual({ recortada: false, dentro: true, fuente: '14px' });
+  });
+
+  test('Órdago: las opciones salen barajadas y se evalúa por el índice original', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'ordago');
+    const ordenes = new Set();
+    let ronda = 0;
+    while (ordenes.size < 2 && ronda < 12) {
+      ronda += 1;
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ficha-10"]').click();
+      const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaOrdago());
+      if (pregunta.tipo === 'test4') {
+        const originales = await page.locator('[data-test="ordago-opciones"] button').evaluateAll((bs) => bs.map((b) => b.dataset.original));
+        expect([...originales].sort()).toEqual(['0', '1', '2', '3']);
+        ordenes.add(originales.join(''));
+        await esperarAntirrebote(page);
+        await page.locator(`[data-test="ordago-opciones"] [data-original="${pregunta.correcta}"]`).click();
+        await expect(page.locator('[data-test="ordago-delta"]')).toHaveText(/^[+]/); // acertar por el original suma
+      } else {
+        await page.evaluate(() => window.__one.acertarPreguntaOrdago());
+      }
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="ordago-siguiente"]').click();
+    }
+    expect(ordenes.size).toBeGreaterThan(1); // no sale siempre el mismo orden
+  });
+
+  test('Clásico: las opciones de un test4 salen barajadas y el orden no cambia al volver a la tarjeta', async ({ page }) => {
+    await page.goto('/?ejemplo=1');
+    await entrarEnModo(page, 'clasico');
+    const ordenes = new Set();
+    for (let i = 0; i < 10; i += 1) {
+      const t = tarjetaActual(page);
+      if ((await tipoPreguntaActual(page)) === 'test4') {
+        const leer = () => t.locator('[data-test^="opcion-"]').evaluateAll((bs) => bs.map((b) => b.dataset.original).join(''));
+        const antes = await leer();
+        expect([...antes].sort().join('')).toBe('0123');
+        ordenes.add(antes);
+        await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+        expect(await leer()).toBe(antes);
+      }
+      await responderPreguntaActual(page);
+      await avanzarTrasRespuesta(page);
+    }
+    expect(ordenes.size).toBeGreaterThan(1);
   });
 
   test('Órdago: con < 5 jugables difíciles bajo el filtro ofrece Generar (PREMIUM) o volver a TODOS; «Jugar las N» solo sirve nivel ≥ 3', async ({ page }) => {

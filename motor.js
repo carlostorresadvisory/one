@@ -1141,3 +1141,14 @@ function normalizarMision(m) {
     : [];
   return { fecha: m.fecha, ids: m.ids, hechas, completada: m.completada === true };
 }
+
+/** Orden en que se pintan `n` opciones: una permutación de 0..n-1 (Fisher-Yates). Quien pinta guarda el
+ * índice original en cada botón y evalúa con él, así que barajar no cambia qué es correcto. */
+export function barajarOrden(n, rng = Math.random) {
+  const orden = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i -= 1) {
+    const j = Math.floor(rng() * (i + 1));
+    [orden[i], orden[j]] = [orden[j], orden[i]];
+  }
+  return orden;
+}

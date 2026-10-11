@@ -3016,7 +3016,7 @@ button.punto-servidor::before {
 .foto-pregunta--arte { --color-area: #3d2a22; }
 .foto-pregunta--logica { --color-area: #28324a; }
 .foto-pregunta-imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.foto-pregunta-degradado { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 15, 20, 0) 25%, rgba(11, 15, 20, 0.88) 100%); pointer-events: none; }
+.foto-pregunta-degradado { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11, 15, 20, 0) 10%, rgba(11, 15, 20, 0.7) 45%, rgba(11, 15, 20, 0.94) 100%); pointer-events: none; }
 .foto-pregunta-enunciado {
   position: absolute;
   left: 0;
@@ -3053,7 +3053,7 @@ button.punto-servidor::before {
 
 /* ===== v0.3 Órdago (ordago-ui.js, spec §5.2): marcador del fondo + minicurva, foto con el enunciado encima y,
    en el mismo hueco inferior, fichas / respuestas / resultado. Todo plano: el dorado queda para lo dorado. ===== */
-.vista-ordago { gap: 8px; overflow: hidden; }
+.vista-ordago { gap: 8px; overflow: hidden; -webkit-user-select: none; user-select: none; } /* el doble toque no selecciona el enunciado */
 .ordago-marcador { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .ordago-fondo-etiqueta { color: var(--texto-suave); font-size: 14px; }
 .ordago-fondo { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -3094,10 +3094,6 @@ button.punto-servidor::before {
   font-size: 14px;
   line-height: 1.3;
   color: var(--texto-suave);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 /* La esfinge del «¡Nuevo máximo!»: el único brillo que lleva el avatar (dorado). */
 .cabecera-avatar--resplandor { filter: drop-shadow(0 0 10px rgba(242, 193, 78, 0.85)); }

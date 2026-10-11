@@ -21,6 +21,10 @@ test('creditoTexto: Met en dominio público, sin autor obligatorio', () => {
 test('creditoTexto: la fuente explícita manda sobre el dominio; sin autor aunque la licencia lo pida', () => {
   assert.equal(creditoTexto({ ...COMMONS, fuente: 'Openverse', autor: '' }), 'Openverse · CC BY-SA 4.0');
 });
+test('creditoTexto: no repite la fuente cuando el autor la trae delante', () => {
+  assert.equal(creditoTexto({ ...COMMONS, autor: 'Wikimedia Commons / Mu' }), 'Commons · Mu · CC BY-SA 4.0');
+  assert.equal(creditoTexto({ ...COMMONS, autor: 'Commons' }), 'Commons · CC BY-SA 4.0');
+});
 test('creditoTexto: imagen de IA y sin imagen', () => {
   assert.equal(creditoTexto({ url: 'x', ia: true }), 'Imagen generada con IA');
   assert.equal(creditoTexto({ url: 'x', fuente: 'IA' }), 'Imagen generada con IA');

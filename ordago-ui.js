@@ -9,7 +9,7 @@ import {
   FICHAS, calcularFicha, esDorada, resolverRonda, abrirFondoNuevo, cargarOrdago, guardarOrdago,
   formatearCifra, puntosMinicurva,
 } from './ordago.js';
-import { evaluar } from './motor.js';
+import { evaluar, barajarOrden } from './motor.js';
 import { montarFotoPregunta } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
 
@@ -73,7 +73,7 @@ export function montarOrdago(contenedor, deps) {
   let foto = null;
   const usados = new Set();
   let ultima = null;
-  const ahora = deps.ahora ?? (() => Date.now());
+  const ahora = deps.ahora ?? (() => performance.now()); // monótono: un cambio de hora no rompe el antirrebote
   let desbloqueoEn = 0;
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
@@ -122,7 +122,7 @@ export function montarOrdago(contenedor, deps) {
     foto = montarFotoPregunta(nodoFoto, {
       enunciado: pregunta.enunciado, imagen: deps.imagenDe(pregunta), area: pregunta.area, dorada, documento,
     });
-    ronda = { pregunta, dorada, ficha: 0 };
+    ronda = { pregunta, dorada, ficha: 0, orden: pregunta.tipo === 'vf' ? [] : barajarOrden(pregunta.opciones.length, deps.rng) };
     pintarMarcador();
 
     nodoFichas.replaceChildren(...FICHAS.map((f) => {
@@ -149,11 +149,12 @@ export function montarOrdago(contenedor, deps) {
     const { pregunta } = ronda;
     const opciones = pregunta.tipo === 'vf'
       ? [['Verdadero', true], ['Falso', false]]
-      : pregunta.opciones.map((texto, i) => [texto, i]);
+      : ronda.orden.map((original) => [pregunta.opciones[original], original]); // barajadas, con su índice original
     nodoOpciones.replaceChildren(...opciones.map(([texto, valor], i) => {
       const boton = crear(documento, 'button', 'ordago-opcion', texto);
       boton.setAttribute('type', 'button');
       boton.setAttribute('data-test', `ordago-opcion-${i}`);
+      boton.setAttribute('data-original', String(valor));
       boton.addEventListener('click', () => { if (libre()) responder(valor); });
       return boton;
     }));

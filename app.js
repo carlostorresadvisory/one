@@ -11,6 +11,7 @@ import {
   exportar,
   importar,
   evaluar,
+  barajarOrden,
   ordenarRepaso,
   listarNoRespondidas,
   AREAS,
@@ -2346,11 +2347,15 @@ function construirZonaRespuesta(hueco) {
 function construirOpcionesTest4(hueco) {
   const opciones = document.createElement('div');
   opciones.className = 'opciones';
-  hueco.pregunta.opciones.forEach((texto, i) => {
+  // El orden se baraja una vez por hueco (estable si la tarjeta se repinta o se vuelve a ella); cada botón
+  // guarda su índice original (data-original) y es ese el que se evalúa. El e2e clica por data-original.
+  hueco.ordenOpciones ??= barajarOrden(hueco.pregunta.opciones.length);
+  hueco.ordenOpciones.forEach((original, posicion) => {
     const boton = document.createElement('button');
-    boton.dataset.test = `opcion-${i}`;
-    boton.textContent = texto;
-    boton.addEventListener('click', () => manejarRespuesta(hueco, i));
+    boton.dataset.test = `opcion-${posicion}`;
+    boton.dataset.original = String(original);
+    boton.textContent = hueco.pregunta.opciones[original];
+    boton.addEventListener('click', () => manejarRespuesta(hueco, original));
     opciones.appendChild(boton);
   });
   return opciones;
