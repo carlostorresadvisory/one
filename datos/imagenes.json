@@ -71,36 +71,20 @@
     "notaModelo": "gemini:gemini-flash-lite-latest",
     "fuente": "Commons"
   },
-  "art-009": {
-    "id": "art-009",
-    "url": "imagenes-banco/art-009.webp",
-    "pagina": "https://www.metmuseum.org/art/collection/search/283132",
-    "titulo": "[Copy of the head of Christ from Leonardo da Vinci's “The Last Supper”]",
-    "autor": "Léon Gérard",
-    "licencia": "CC0",
-    "fuente": "Met",
-    "leyenda": "[Copy of the head of Christ from Leonardo da Vinci's “The Last Supper”]",
-    "termino": null,
-    "ancho": 462,
-    "alto": 625,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
   "art-011": {
     "id": "art-011",
-    "url": "imagenes-ia/art-011.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Qué artista conceptual creó la obra 'One and Three Chairs' (1965), que presenta una silla",
-    "prompt": "An empty art gallery featuring a single wooden chair placed in front of a white wall, illuminated by a soft spotlight, minimalist interior design, photographic realism, dramatic shadows, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/One_and_Three_Chair.jpg/960px-One_and_Three_Chair.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:One_and_Three_Chair.jpg",
+    "titulo": "One and Three Chair.jpg",
+    "autor": "Gautier Poupeau",
+    "licencia": "CC BY 2.0",
+    "leyenda": "One and Three Chairs de Kosuth",
+    "termino": "One and Three Chairs Joseph Kosuth",
+    "ancho": 900,
+    "alto": 582,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-030": {
     "id": "art-030",
@@ -158,19 +142,18 @@
   },
   "art-036": {
     "id": "art-036",
-    "url": "imagenes-ia/art-036.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "El Guernica de Picasso fue pintado al óleo sobre lienzo en 1936.",
-    "prompt": "A massive empty artist canvas on a wooden easel stands inside a dusty, sunlit Spanish studio, overlooking a desolate cobblestone street shrouded in heavy smoke and dramatic shadows, cinematic photography, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:%22Guernica%22_by_Picasso_at_MOMA,_NYC.jpg",
+    "titulo": "\"Guernica\" by Picasso at MOMA, NYC.jpg",
+    "autor": "Gotfryd, Bernard",
+    "licencia": "Public domain",
+    "leyenda": "Guernica de Picasso",
+    "termino": "Guernica Picasso painting",
+    "ancho": 900,
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-037": {
     "id": "art-037",
@@ -185,7 +168,8 @@
     "ancho": 900,
     "alto": 1851,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-040": {
     "id": "art-040",
@@ -207,19 +191,18 @@
   },
   "art-042": {
     "id": "art-042",
-    "url": "imagenes-ia/art-042.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Cuál de las siguientes obras fue pintada por Diego Velázquez?",
-    "prompt": "A Spanish Baroque painter in a grand 17th-century palace studio stands before a massive canvas, holding a long paintbrush and palette, soft natural light streaming in from a tall window, ornate gold-framed paintings hanging on the dark wood-paneled walls, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg/960px-Las_Meninas%2C_by_Diego_Vel%C3%A1zquez%2C_from_Prado_in_Google_Earth.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Las_Meninas,_by_Diego_Vel%C3%A1zquez,_from_Prado_in_Google_Earth.jpg",
+    "titulo": "Las Meninas, by Diego Velázquez, from Prado in Google Earth.jpg",
+    "autor": "Diego Velázquez",
+    "licencia": "Public domain",
+    "leyenda": "Las Meninas de Velázquez",
+    "termino": "Las Meninas Velázquez painting",
+    "ancho": 900,
+    "alto": 1036,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-044": {
     "id": "art-044",
@@ -241,19 +224,18 @@
   },
   "art-076": {
     "id": "art-076",
-    "url": "imagenes-ia/art-076.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Por qué se considera que la obra 'Guernica' de Pablo Picasso es una pieza fundamental del",
-    "prompt": "A stark, monochrome battlefield ruins with fragmented, anguished human silhouettes and twisted animal forms, swirling smoke and shattered architecture, evoking universal horror and shattered reality in a dramatic, abstract composition, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 2,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:%22Guernica%22_by_Picasso_at_MOMA,_NYC.jpg",
+    "titulo": "\"Guernica\" by Picasso at MOMA, NYC.jpg",
+    "autor": "Gotfryd, Bernard",
+    "licencia": "Public domain",
+    "leyenda": "Guernica de Picasso",
+    "termino": "Guernica Picasso painting",
+    "ancho": 900,
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-091": {
     "id": "art-091",
@@ -359,13 +341,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Ordena estos diseños de estudio según la jerarquía de la evidencia (grado de confianza par",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A towering pyramid made of ancient stone steps ascending into a bright, cloudy sky, viewed from a low angle, dramatic lighting, cinematic composition, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-071": {
     "id": "eco-071",
@@ -441,13 +424,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Quién escribió la obra \"La República\"?",
+    "leyenda": "Imagen generada con IA",
     "prompt": "Ancient Greek stone amphitheater bathed in the warm glow of sunset, towering marble columns casting long shadows, surrounded by rolling hills under a vibrant orange and purple sky, cinematic lighting, highly detailed historical atmosphere, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "fil-019": {
     "id": "fil-019",
@@ -525,7 +509,8 @@
     "ancho": 900,
     "alto": 600,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "geo-057": {
     "id": "geo-057",
@@ -555,7 +540,8 @@
     "ancho": 900,
     "alto": 623,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "his-008": {
     "id": "his-008",
@@ -669,7 +655,8 @@
     "ancho": 768,
     "alto": 683,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-073": {
     "id": "art-073",
@@ -702,22 +689,8 @@
     "ancho": 900,
     "alto": 598,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "cie-002": {
-    "id": "cie-002",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Development_of_Chloroplast.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Development_of_Chloroplast.png",
-    "titulo": "Development of Chloroplast.png",
-    "autor": "",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Reacción de la fotosíntesis en cloroplastos",
-    "termino": "photosynthesis diagram chloroplast",
-    "ancho": 900,
-    "alto": 530,
-    "revalidacionVisual": "ok",
-    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
-    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-034": {
     "id": "cie-034",
@@ -817,19 +790,18 @@
   },
   "geo-038": {
     "id": "geo-038",
-    "url": "imagenes-ia/geo-038.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Cuál es el océano que baña la costa este de África?",
-    "prompt": "A vast African coastal landscape featuring rugged cliffs, endless golden sand beaches, tall palm trees swaying in the wind, and a dramatic cloudy sky reflecting on the shoreline, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Mangoro_River_on_Madagascar%27s_east_coast_leads_to_the_Indian_Ocean_%28iss071e378171%29.jpg/960px-Mangoro_River_on_Madagascar%27s_east_coast_leads_to_the_Indian_Ocean_%28iss071e378171%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Mangoro_River_on_Madagascar%27s_east_coast_leads_to_the_Indian_Ocean_(iss071e378171).jpg",
+    "titulo": "Mangoro River on Madagascar's east coast leads to the Indian Ocean (iss071e378171).jpg",
+    "autor": "NASA Johnson Space Center",
+    "licencia": "Public domain",
+    "leyenda": "El océano Índico baña la costa oriental de África",
+    "termino": "Indian Ocean east Africa coast",
+    "ancho": 900,
+    "alto": 600,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "geo-039": {
     "id": "geo-039",
@@ -878,19 +850,18 @@
   },
   "his-033": {
     "id": "his-033",
-    "url": "imagenes-ia/his-033.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "Encuentra el dato erróneo en la tarjeta.",
-    "prompt": "A dramatic wide shot of a crumbling medieval stone castle under a stormy sky, ancient papal scrolls and tattered imperial maps scattered across a grand wooden negotiation table, cinematic lighting, highly detailed historical atmosphere, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg/960px-Peace_of_Westphalia%2C_Treaty_of_Osnabr%C3%BCck.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Peace_of_Westphalia,_Treaty_of_Osnabr%C3%BCck.jpg",
+    "titulo": "Peace of Westphalia, Treaty of Osnabrück.jpg",
+    "autor": "parties of the Peace of Westphalia",
+    "licencia": "Public domain",
+    "leyenda": "Tratado de Westfalia, 1648: soberanía estatal",
+    "termino": "Treaty of Westphalia 1648 document",
+    "ancho": 900,
+    "alto": 665,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-035": {
     "id": "his-035",
@@ -954,19 +925,18 @@
   },
   "his-049": {
     "id": "his-049",
-    "url": "imagenes-ia/his-049.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Cuál fue el principal resultado territorial de la Guerra de Sucesión Española (1701-1714)",
-    "prompt": "A grand, dusty 18th-century cartography table featuring an ornate quill, an unrolled parchment map of Europe, a glowing brass compass, and a flickering wax candle, set inside a dimly lit royal palace study with towering mahogany bookshelves, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Spanish_Empire_Anachronous_0.PNG/960px-Spanish_Empire_Anachronous_0.PNG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Spanish_Empire_Anachronous_0.PNG",
+    "titulo": "Spanish Empire Anachronous 0.PNG",
+    "autor": "Trasamundo",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "Pérdidas territoriales españolas tras el Tratado de Utrecht ",
+    "termino": "Treaty of Utrecht 1713 map Spanish territories",
+    "ancho": 900,
+    "alto": 457,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-051": {
     "id": "his-051",
@@ -1000,35 +970,33 @@
   },
   "his-057": {
     "id": "his-057",
-    "url": "imagenes-ia/his-057.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Qué tratado puso fin a la Guerra de Sucesión Española y redistribuyó territorios en Europ",
-    "prompt": "A grandiose 18th-century European royal court with diplomats in velvet coats and powdered wigs gathered around a massive map spread across an ornate mahogany table, illuminated by warm candlelight, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Medal_commemorating_25th_Anniversary_of_Treaty_of_Utrecht.png/960px-Medal_commemorating_25th_Anniversary_of_Treaty_of_Utrecht.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Medal_commemorating_25th_Anniversary_of_Treaty_of_Utrecht.png",
+    "titulo": "Medal commemorating 25th Anniversary of Treaty of Utrecht.png",
+    "autor": "Anonymous Unknown author",
+    "licencia": "CC BY 3.0",
+    "leyenda": "Tratado de Utrecht (1713), fin de la Guerra de Sucesión Espa",
+    "termino": "Treaty of Utrecht 1713 document",
+    "ancho": 900,
+    "alto": 475,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "his-060": {
     "id": "his-060",
-    "url": "imagenes-ia/his-060.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "Ordena estos hitos monetarios internacionales desde el más antiguo al más reciente.",
-    "prompt": "A massive ancient stone mint with merchants trading silver coins and silk, dramatic golden hour lighting, intricate historical architecture, cinematic depth of field, hyper-realistic details, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Saenredam_-_Het_oude_stadhuis_te_Amsterdam.jpeg/960px-Saenredam_-_Het_oude_stadhuis_te_Amsterdam.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Saenredam_-_Het_oude_stadhuis_te_Amsterdam.jpeg",
+    "titulo": "Saenredam - Het oude stadhuis te Amsterdam.jpeg",
+    "autor": "Pieter Jansz. Saenredam",
+    "licencia": "Public domain",
+    "leyenda": "Hitos del sistema monetario internacional: 1609-1971",
+    "termino": "Bank of Amsterdam 1609",
+    "ancho": 900,
+    "alto": 698,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "tec-033": {
     "id": "tec-033",
@@ -1047,19 +1015,18 @@
   },
   "art-013": {
     "id": "art-013",
-    "url": "imagenes-ia/art-013.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Cuál de los siguientes artistas es considerado el padre del cubismo junto a Georges Braqu",
-    "prompt": "An artist in a dusty Parisian studio gazes at a wooden tabletop arranged with a simple jug, a sliced fruit, and overlapping geometric sketches, bathed in soft afternoon light, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Portrait_of_Pablo_Picasso_by_Amedeo_Modigliani_%281915%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Portrait_of_Pablo_Picasso_by_Amedeo_Modigliani_(1915).jpg",
+    "titulo": "Portrait of Pablo Picasso by Amedeo Modigliani (1915).jpg",
+    "autor": "Amedeo Modigliani",
+    "licencia": "Public domain",
+    "leyenda": "Picasso, cofundador del cubismo",
+    "termino": "Pablo Picasso portrait 1907",
+    "ancho": 900,
+    "alto": 1182,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
   "art-019": {
     "id": "art-019",
@@ -1120,13 +1087,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "El oxígeno constituye aproximadamente el 21% del volumen del aire seco.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A vivid landscape of tall, swaying green trees under a bright blue sky, with visible shimmering thermal air currents rising from a vast open plain, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-088": {
     "id": "cie-088",
@@ -1425,21 +1393,6 @@
     "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
     "revalidacionFecha": "2026-09-13T10:36:31.407Z"
   },
-  "log-042": {
-    "id": "log-042",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/5/56/Birthday_paradox.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
-    "pagina": "https://commons.wikimedia.org/wiki/File:Birthday_paradox.png",
-    "titulo": "Birthday paradox.png",
-    "autor": "",
-    "licencia": "CC BY-SA 3.0",
-    "leyenda": "Curva de probabilidad de la paradoja del cumpleaños",
-    "termino": "Birthday paradox probability graph",
-    "ancho": 900,
-    "alto": 552,
-    "revalidacionVisual": "ok",
-    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
-    "revalidacionFecha": "2026-09-13T10:36:31.407Z"
-  },
   "tec-041": {
     "id": "tec-041",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Original_iPhone_docked.jpg/960px-Original_iPhone_docked.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -1466,13 +1419,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Encuentra el dato erróneo en la tarjeta.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A dimly lit server room with glowing blue and red fiber optic cables, shadows of anonymous hackers typing on keyboards, cinematic lighting, high-tech security concept art, digital painting, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-002": {
     "id": "art-002",
@@ -1586,23 +1540,23 @@
     "ancho": 900,
     "alto": 1036,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-072": {
     "id": "art-072",
-    "url": "imagenes-ia/art-072.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Qué evento histórico motivó que Picasso pintara su mural 'Guernica'?",
-    "prompt": "A desolate town square under a grey, smoky sky, shattered stone ruins, dramatic chiaroscuro lighting, twisted metallic debris, evoking the solemn atmosphere of a historic mid-20th-century wartime tragedy, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg/960px-%22Guernica%22_by_Picasso_at_MOMA%2C_NYC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:%22Guernica%22_by_Picasso_at_MOMA,_NYC.jpg",
+    "titulo": "\"Guernica\" by Picasso at MOMA, NYC.jpg",
+    "autor": "Gotfryd, Bernard",
+    "licencia": "Public domain",
+    "leyenda": "Guernica de Picasso",
+    "termino": "Guernica Picasso painting",
+    "ancho": 900,
+    "alto": 605,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "google/gemini-2.5-flash-lite",
+    "revalidacionFecha": "2026-09-13T12:10:07.985Z"
   },
   "art-094": {
     "id": "art-094",
@@ -1632,7 +1586,8 @@
     "ancho": 768,
     "alto": 713,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-041": {
     "id": "cie-041",
@@ -1692,7 +1647,8 @@
     "ancho": 900,
     "alto": 685,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-079": {
     "id": "eco-079",
@@ -1774,19 +1730,18 @@
   },
   "geo-028": {
     "id": "geo-028",
-    "url": "imagenes-ia/geo-028.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "El desierto de Gobi está ubicado en América del Sur.",
-    "prompt": "A vast, arid expanse of towering sand dunes under a clear blue sky, with distant rocky mountains shimmering in the extreme desert heat and dry wind swirling sand across the desolate landscape, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/China_edcp_relief_location_map_Gobi_de.jpg/960px-China_edcp_relief_location_map_Gobi_de.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:China_edcp_relief_location_map_Gobi_de.jpg",
+    "titulo": "China edcp relief location map Gobi de.jpg",
+    "autor": "WeHaKa",
+    "licencia": "CC BY-SA 4.0",
+    "leyenda": "El desierto de Gobi está en Asia, no en Sudamérica",
+    "termino": "Gobi Desert map Asia",
+    "ancho": 900,
+    "alto": 717,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:11:19.704Z"
   },
   "geo-032": {
     "id": "geo-032",
@@ -1891,7 +1846,8 @@
     "ancho": 900,
     "alto": 713,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-083": {
     "id": "cie-083",
@@ -1921,23 +1877,23 @@
     "ancho": 900,
     "alto": 600,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "geo-062": {
     "id": "geo-062",
-    "url": "imagenes-ia/geo-062.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "El estrecho de Malaca es el principal paso marítimo para el petróleo que viaja de Oriente ",
-    "prompt": "An aerial view of a massive container ship navigating a narrow tropical maritime passage flanked by dense green rainforest islands under a dramatic sunrise sky, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Strait_of_Malacca_highlighted.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Strait_of_Malacca_highlighted.png",
+    "titulo": "Strait of Malacca highlighted.png",
+    "autor": "Derives from png uploaded by User:Wolrd blank map",
+    "licencia": "CC BY-SA 3.0",
+    "leyenda": "El 80% del petróleo que importa China cruza el estrecho de M",
+    "termino": "Strait of Malacca map",
+    "ancho": 900,
+    "alto": 900,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:12:24.216Z"
   },
   "geo-065": {
     "id": "geo-065",
@@ -1982,23 +1938,23 @@
     "ancho": 900,
     "alto": 880,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "his-040": {
     "id": "his-040",
-    "url": "imagenes-ia/his-040.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "La crisis del siglo III debilitó al Imperio romano y facilitó su fragmentación posterior.",
-    "prompt": "A decaying ancient Roman stone fortress overlooking a misty, fractured landscape at twilight, crumbling marble pillars entwined with ivy, dramatic stormy sky casting long shadows over the desolate landscape, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/GallicEmpire262.png/960px-GallicEmpire262.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:GallicEmpire262.png",
+    "titulo": "GallicEmpire262.png",
+    "autor": "Original - ArdadN ; edit - Wario2.",
+    "licencia": "Public domain",
+    "leyenda": "Diocleciano reorganiza el Imperio tras la crisis del s. III",
+    "termino": "Crisis of the Third Century map",
+    "ancho": 900,
+    "alto": 946,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:13:01.490Z"
   },
   "his-042": {
     "id": "his-042",
@@ -2028,7 +1984,8 @@
     "ancho": 900,
     "alto": 656,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "his-048": {
     "id": "his-048",
@@ -2088,7 +2045,8 @@
     "ancho": 900,
     "alto": 1200,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "fil-009": {
     "id": "fil-009",
@@ -2161,13 +2119,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "En 'Ser y tiempo', Martin Heidegger sostiene que el Dasein es una entidad puramente biológ",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A solitary figure stands on a misty mountain ridge at dawn, looking out over a vast, layered landscape of ancient ruins and distant horizons, cinematic lighting, moody and philosophical atmosphere, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "fil-042": {
     "id": "fil-042",
@@ -2177,13 +2136,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "La 'falacia del motte-and-bailey' (motte y bailey) describe una táctica retórica en la que",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A medieval stone castle standing on a high grassy hill, surrounded by a sprawling, vulnerable wooden village below, dramatic stormy sky, cinematic lighting, highly detailed digital painting, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "fil-057": {
     "id": "fil-057",
@@ -2217,19 +2177,18 @@
   },
   "geo-033": {
     "id": "geo-033",
-    "url": "imagenes-ia/geo-033.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "La línea de Wallace separa la fauna asiática de la australiana y pasa entre las islas de B",
-    "prompt": "A detailed map of Indonesian islands with an invisible boundary line drawn across a deep blue tropical strait, showing lush green jungles on one side and arid, rugged terrain on the other under a bright sun, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 2,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg/960px-Cyrtodactylus_santana_%2810.3897-zookeys.1139.96508.figure1%29_location_map.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "pagina": "https://commons.wikimedia.org/wiki/File:Cyrtodactylus_santana_(10.3897-zookeys.1139.96508.figure1)_location_map.jpg",
+    "titulo": "Cyrtodactylus santana (10.3897-zookeys.1139.96508.figure1) location map.jpg",
+    "autor": "Chan, Kin Onn; Grismer, L. Lee; Santana, Fernando; Pinto, Pedro; Loke, Frances W.; Conaboy, Nathan (11 January 2023). \" Scratching the surface: a new species of Bent-toed gecko (Squamata, Gekkonidae, ",
+    "licencia": "CC BY 4.0",
+    "leyenda": "Línea de Wallace entre Bali y Lombok",
+    "termino": "Wallacea biogeographical boundary map",
+    "ancho": 900,
+    "alto": 584,
+    "revalidacionVisual": "ok",
+    "revalidacionModelo": "inclusionai/ling-3.0-flash-vl:free",
+    "revalidacionFecha": "2026-09-13T12:15:13.798Z"
   },
   "geo-035": {
     "id": "geo-035",
@@ -2337,7 +2296,8 @@
     "ancho": 900,
     "alto": 1258,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-032": {
     "id": "log-032",
@@ -2392,13 +2352,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Encuentra el dato erróneo en la tarjeta.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A massive satellite orbiting in the dark expanse of space, pointing a glowing beam of light down towards a dense, sprawling metropolis illuminated by countless city lights at night, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-020": {
     "id": "art-020",
@@ -2551,7 +2512,8 @@
     "ancho": 900,
     "alto": 744,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "geo-004": {
     "id": "geo-004",
@@ -2643,22 +2605,6 @@
     "revalidacionModelo": "google/gemini-2.5-flash-lite",
     "revalidacionFecha": "2026-09-13T12:19:54.829Z"
   },
-  "art-006": {
-    "id": "art-006",
-    "url": "imagenes-ia/art-006.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "El movimiento artístico conocido como 'Futurismo' surgió en Italia a principios del siglo ",
-    "prompt": "A bustling early‑20th‑century Italian street filled with sleek metallic automobiles, soaring aeroplanes, and abstract geometric sculptures, all blurred by motion under a sunrise of neon‑like light, conveying speed and technological optimism, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
   "art-010": {
     "id": "art-010",
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Fede_Galizia_-_A_Crystal_Fruit_Stand_with_Peaches%2C_Quinces%2C_and_Jasmine_Flowers_004L15033_6Z37X.jpg/960px-Fede_Galizia_-_A_Crystal_Fruit_Stand_with_Peaches%2C_Quinces%2C_and_Jasmine_Flowers_004L15033_6Z37X.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
@@ -2672,39 +2618,8 @@
     "ancho": 900,
     "alto": 662,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "art-082": {
-    "id": "art-082",
-    "url": "imagenes-ia/art-082.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Qué innovación narrativa hizo de \"Ciudadano Kane\" (1941) una referencia obligada en la hi",
-    "prompt": "A dimly lit study with a shattered mirror showing fragmented reflections of a man at different ages, surrounded by swirling film reels and overlapping vintage newspaper clippings, all illuminated by a single flickering spotlight, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "art-084": {
-    "id": "art-084",
-    "url": "imagenes-ia/art-084.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Qué venta en subasta de 2021 llevó el arte digital basado en blockchain (NFT) al centro d",
-    "prompt": "Elegant auction hall with polished wood podium, a golden gavel poised mid‑air, a large illuminated screen displaying a vibrant, abstract digital artwork, surrounded by sharply dressed bidders and subtle glowing blockchain nodes floating in the background, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-085": {
     "id": "art-085",
@@ -2719,7 +2634,8 @@
     "ancho": 768,
     "alto": 511,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-086": {
     "id": "art-086",
@@ -2734,7 +2650,8 @@
     "ancho": 900,
     "alto": 729,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "art-089": {
     "id": "art-089",
@@ -2749,7 +2666,8 @@
     "ancho": 900,
     "alto": 600,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-010": {
     "id": "cie-010",
@@ -2759,13 +2677,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Cuál de las siguientes leyes describe la relación entre la presión y el volumen de un gas",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A seventeenth-century laboratory filled with brass scientific instruments, a glowing glass vacuum pump, and intricate leather-bound books on a heavy wooden desk, illuminated by dramatic candlelight and shadows, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-007": {
     "id": "cie-007",
@@ -2775,29 +2694,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "El principio de incertidumbre de Heisenberg establece que no se pueden conocer simultáneam",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A glowing subatomic particle glowing with dynamic energy inside a dark particle accelerator, surrounded by blurred motion lines representing movement, high contrast, cinematic lighting, vivid colors, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "cie-068": {
-    "id": "cie-068",
-    "url": "imagenes-ia/cie-068.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "El ADN se replica de forma conservativa, es decir, la doble hélice original permanece inta",
-    "prompt": "A glowing antique book in a dusty library, its pages bound shut with an unbroken golden ribbon, resting on a dark wooden desk under a single dramatic shaft of light, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "cie-077": {
     "id": "cie-077",
@@ -2807,29 +2711,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "El cuerpo humano sintetiza la mayor parte de su vitamina D a partir de la radiación UVB de",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A dramatic low winter sun casts long golden rays over a snow-covered Scandinavian pine forest, illuminating a lone person bundled up in warm winter clothing looking up at the sky, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "eco-003": {
-    "id": "eco-003",
-    "url": "imagenes-ia/eco-003.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "La curva de Phillips a largo plazo es vertical, indicando que no existe un trade-off estab",
-    "prompt": "A massive, vertical concrete skyscraper standing alone in an empty desert landscape under a stark midday sun, casting a sharp shadow, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-019": {
     "id": "eco-019",
@@ -2839,13 +2728,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Qué establece el teorema de la imposibilidad de Arrow sobre las funciones de bienestar so",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A crowded grand hall of diverse citizens holding contrasting colorful ballot boxes, all pointing in different directions under a massive, tangled web of glowing strings, dramatic cinematic lighting, surreal conceptual art, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-009": {
     "id": "eco-009",
@@ -2860,7 +2750,8 @@
     "ancho": 768,
     "alto": 512,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-069": {
     "id": "eco-069",
@@ -2870,13 +2761,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Cuando el banco central eleva el tipo de interés oficial, los créditos al consumo y las hi",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A sleek, modern financial skyscraper towers above a bustling city street under a dramatic stormy sky, casting long, imposing shadows over a row of classic suburban homes below, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-072": {
     "id": "eco-072",
@@ -2886,13 +2778,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "El efecto de anclaje desaparece por completo si se muestran al sujeto datos estadísticos o",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A nervous stock trader at a desk stares intently at glowing red and green financial charts on multiple monitors, reflecting a psychological bias in a dimly lit modern office, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-078": {
     "id": "eco-078",
@@ -2902,13 +2795,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Cuál es la justificación económica principal para que un país imponga un arancel a la imp",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A vast, bustling industrial steel mill with glowing molten metal, towering cranes, and sparks flying, set against a dramatic sky, symbolizing heavy manufacturing and trade, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-081": {
     "id": "eco-081",
@@ -2923,23 +2817,8 @@
     "ancho": 900,
     "alto": 675,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "eco-084": {
-    "id": "eco-084",
-    "url": "imagenes-ia/eco-084.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "Cuando un banco central sube los tipos de interés de referencia, ¿cuál es el mecanismo pri",
-    "prompt": "A stressed family looking at bills at a wooden dining table, warm cinematic lighting, realistic photography, dramatic atmosphere, shallow depth of field, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "eco-033": {
     "id": "eco-033",
@@ -2949,28 +2828,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Encuentra el dato erróneo en la tarjeta.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "Two opposing business competitors shaking hands across a polished conference table, casting long dramatic shadows, cinematic lighting, hyper-realistic, rich textures, 8k resolution, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 4,
-    "notaModelo": "gemini:gemini-3.6-flash"
-  },
-  "eco-089": {
-    "id": "eco-089",
-    "url": "imagenes-banco/eco-089.webp",
-    "pagina": "https://www.flickr.com/photos/77742560@N06/15952714062",
-    "titulo": "Friendly shopkeepers",
-    "autor": "shankar s.",
-    "licencia": "CC BY 2.0",
-    "fuente": "Openverse",
-    "leyenda": "Friendly shopkeepers",
-    "termino": null,
-    "ancho": 768,
-    "alto": 509,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-3.6-flash",
+    "origen": "lote"
   },
   "eco-092": {
     "id": "eco-092",
@@ -2980,13 +2845,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Ordena de menor a mayor vulnerabilidad a interrupciones globales en la cadena de suministr",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A massive, deserted automotive assembly plant with rusted robotic arms standing idle under dim emergency lighting, viewed from a wide perspective showing endless rows of half-built car frames, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "fil-001": {
     "id": "fil-001",
@@ -2996,44 +2862,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "El empirismo sostiene que todo conocimiento proviene de la experiencia sensorial.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A curious human hand gently touches the velvety surface of a vibrant green moss-covered stone in a sunlit ancient forest, capturing the direct contact with nature and tactile sensation, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "fil-024": {
-    "id": "fil-024",
-    "url": "imagenes-ia/fil-024.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "Encuentra el dato erróneo en la tarjeta.",
-    "prompt": "A vast, dark cosmic library where massive glowing metaphysical globes float beside glowing empirical scientific instruments in deep space, capturing the tension between reality and discovery, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "fil-056": {
-    "id": "fil-056",
-    "url": "imagenes-banco/fil-056.webp",
-    "pagina": "https://www.flickr.com/photos/44124348109@N01/48800475748",
-    "titulo": "Toronto-rama — Elevate and NBER Economics of AI",
-    "autor": "jurvetson",
-    "licencia": "CC BY 2.0",
-    "fuente": "Openverse",
-    "leyenda": "Toronto-rama — Elevate and NBER Economics of AI",
-    "termino": null,
-    "ancho": 768,
-    "alto": 584,
-    "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "geo-043": {
     "id": "geo-043",
@@ -3048,23 +2884,8 @@
     "ancho": 900,
     "alto": 905,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "geo-066": {
-    "id": "geo-066",
-    "url": "imagenes-ia/geo-066.webp",
-    "pagina": null,
-    "titulo": "",
-    "autor": null,
-    "licencia": null,
-    "fuente": "IA",
-    "leyenda": "¿Cuál es la principal razón del envejecimiento acelerado de la población japonesa?",
-    "prompt": "A high-angle view of a bustling, empty Tokyo intersection at twilight, surrounded by towering neon skyscrapers, symbolizing demographic shift in a massive metropolis without any elderly individuals, numbers, or text, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
-    "proveedor": "cloudflare",
-    "ancho": 768,
-    "alto": 768,
-    "nota": 3,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "his-046": {
     "id": "his-046",
@@ -3079,7 +2900,8 @@
     "ancho": 900,
     "alto": 668,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "his-053": {
     "id": "his-053",
@@ -3094,7 +2916,8 @@
     "ancho": 900,
     "alto": 1128,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-014": {
     "id": "log-014",
@@ -3109,7 +2932,8 @@
     "ancho": 900,
     "alto": 600,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-010": {
     "id": "log-010",
@@ -3119,13 +2943,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Cuál de las siguientes afirmaciones es lógica mente equivalente a 'Si p entonces q'?",
+    "leyenda": "Imagen generada con IA",
     "prompt": "An ancient Greek mathematician studying ancient geometry scrolls in a sunlit marble courtyard, surrounded by stone pillars and intricate mathematical diagrams drawn in the sand, highly detailed, cinematic lighting, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-036": {
     "id": "log-036",
@@ -3140,7 +2965,8 @@
     "ancho": 900,
     "alto": 692,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-033": {
     "id": "log-033",
@@ -3150,13 +2976,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "En el problema de Monty Hall, cambiar de puerta después de que el presentador abra una pue",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A classic game show setting with three numbered wooden doors closed on a brightly lit stage, an expectant contestant standing in the foreground, and a curious elderly mathematician in a tweed jacket observing from the audience, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "log-051": {
     "id": "log-051",
@@ -3171,7 +2998,8 @@
     "ancho": 900,
     "alto": 700,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-010": {
     "id": "tec-010",
@@ -3181,28 +3009,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Cuál de los siguientes protocolos se utiliza para la transferencia segura de archivos?",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A glowing digital padlock floating above a complex network of fiber optic cables and glowing data servers in a dark, high-tech server room, cinematic lighting, ultra-detailed, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
-  },
-  "log-047": {
-    "id": "log-047",
-    "url": "imagenes-banco/log-047.webp",
-    "pagina": "https://www.flickr.com/photos/99453901@N00/1007303289",
-    "titulo": "farmer's market",
-    "autor": "empracht",
-    "licencia": "CC BY 2.0",
-    "fuente": "Openverse",
-    "leyenda": "farmer's market",
-    "termino": null,
-    "ancho": 768,
-    "alto": 576,
-    "nota": 4,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-020": {
     "id": "tec-020",
@@ -3212,13 +3026,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Ordena los siguientes lenguajes de programación según su nivel de abstracción.",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A glowing computer motherboard with intricate circuits and pulsing binary data streams flowing through microchips, viewed from a close-up perspective in a dimly lit cyberpunk workshop, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-037": {
     "id": "tec-037",
@@ -3233,7 +3048,8 @@
     "ancho": 900,
     "alto": 675,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-044": {
     "id": "tec-044",
@@ -3243,13 +3059,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Cuál es el obstáculo físico-químico fundamental que impide usar ánodos de litio metálico ",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A massive futuristic battery manufacturing facility with glowing energy containment fields, dramatic sparks of electricity, metallic textures, and intricate microscopic structures viewed from a macro perspective, cinematic lighting, ultra-detailed industrial design, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-047": {
     "id": "tec-047",
@@ -3259,13 +3076,14 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "¿Por qué la litografía de ultravioleta extremo (EUV) es un cuello de botella estratégico p",
+    "leyenda": "Imagen generada con IA",
     "prompt": "A massive futuristic cleanroom facility housing a complex high-tech machine glowing with faint purple light, surrounded by intricate robotic arms and gleaming metallic vacuum chambers, cinematic lighting, highly detailed industrial design, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   },
   "tec-051": {
     "id": "tec-051",
@@ -3275,12 +3093,13 @@
     "autor": null,
     "licencia": null,
     "fuente": "IA",
-    "leyenda": "Ordena los siguientes nodos de fabricación de semiconductores de menos avanzado a más avan",
+    "leyenda": "Imagen generada con IA",
     "prompt": "Macro photography of a complex silicon microchip glowing under a microscope, intricate microscopic circuits and metallic pathways forming a glowing technological landscape, dramatic blue and orange lighting, high-tech industrial aesthetic, cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters",
     "proveedor": "cloudflare",
     "ancho": 768,
     "alto": 768,
     "nota": 5,
-    "notaModelo": "gemini:gemini-flash-lite-latest"
+    "notaModelo": "gemini:gemini-flash-lite-latest",
+    "origen": "lote"
   }
 }
