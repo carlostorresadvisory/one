@@ -12,6 +12,10 @@
 // Commons se guardan optimizadas (WebP <= 80 KB) en imagenes-banco/<id>.webp y las de IA en
 // imagenes-ia/<id>.webp, para no depender de enlaces externos ni pesar en el móvil.
 //
+// Cifras de Más o menos (`--cifras`): puntúa las fotos de datos/cifras.json (la P18 de Wikidata) con el mismo juez;
+// las de nota < 4 pasan al color del área (la IA no entra: ver más abajo). Es reanudable por sí mismo: solo toca
+// las fotos sin nota. `node --env-file=.env tools/mejorar-imagenes.js --cifras [--limite N] [--dry-run]`.
+//
 // Reanudable (`--continuar`): el progreso va en tmp/mejorar-imagenes.estado.json.
 // Uso: node --env-file=.env tools/mejorar-imagenes.js [--continuar] [--dry-run] [--limite N] [--ids a,b,c]
 //        [--sin-ia] [--area X] [--cada K] [--repuntuar a,b,c]
@@ -61,11 +65,12 @@ export function decidirRama({ actual, marcadaMala = false, candidatasCommons, ca
 }
 
 function parsearArgs(argv) {
-  const a = { continuar: false, dryRun: false, limite: Infinity, ids: null, sinIa: false, area: null, cada: 1, repuntuar: new Set() };
+  const a = { continuar: false, dryRun: false, limite: Infinity, ids: null, sinIa: false, area: null, cada: 1, repuntuar: new Set(), cifras: false };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--continuar') a.continuar = true;
     else if (argv[i] === '--dry-run') a.dryRun = true;
     else if (argv[i] === '--sin-ia') a.sinIa = true;
+    else if (argv[i] === '--cifras') a.cifras = true;
     else if (argv[i] === '--limite') a.limite = Number(argv[++i]);
     else if (argv[i] === '--ids') a.ids = argv[++i].split(',');
     else if (argv[i] === '--area') a.area = argv[++i];
@@ -426,8 +431,144 @@ async function guardarTodo(imagenes, estado) {
   await writeFile(RUTA_ESTADO, JSON.stringify(estado, null, 2), 'utf8');
 }
 
+// --- Cifras de Más o menos (--cifras, spec v0.3 §7 y plan 8.1b) ---------------------------------------------
+// La foto de cada cifra es la P18 de Wikidata (fichero de Commons con autor y licencia ya comprobados por
+// tools/construir-cifras.js). Aquí se puntúa con el mismo juez que las preguntas y se aplica la misma decisión:
+// nota >= 4 se queda; si no, bancos libres (opcional, no se usa: una foto de otro banco no sería «la» foto de
+// esa montaña) y por último la IA, que solo entra si la política lo admite y mejora. Con las cifras la política
+// la bloquea siempre: todas son cosas reales con nombre (países, montañas, cuadros, batallas), y `iaPermitida`
+// no admite arte, ni lugares, ni hechos concretos. Si no hay foto buena, la tarjeta se ve con el color del área.
+
+const ETIQUETA_CATEGORIA = {
+  'altitud-montana': 'altitud de una montaña', 'altura-edificio': 'altura de un edificio', 'longitud-rio': 'longitud de un río',
+  'poblacion-pais': 'población de un país', 'poblacion-ciudad': 'población de una ciudad', 'superficie-pais': 'superficie de un país',
+  'pib-pais': 'PIB de un país', 'ano-obra': 'año de una obra', 'ano-hecho': 'año de un hecho histórico',
+};
+// Las categorías de tamaño (las que se dibujan a escala) se puntúan antes que las de fechas.
+const CATEGORIAS_DE_TAMANO = new Set(['altitud-montana', 'altura-edificio', 'longitud-rio', 'poblacion-pais', 'poblacion-ciudad', 'superficie-pais', 'pib-pais']);
+
+/** La cifra como «pregunta» para el juez de imágenes y para `iaPermitida` (que mira nombres propios). */
+export function preguntaDeCifra(cifra) {
+  return {
+    id: cifra.id, area: cifra.area,
+    enunciado: `foto de ${cifra.nombre} (${ETIQUETA_CATEGORIA[cifra.categoria] ?? cifra.categoria})`,
+    explicacion: `${cifra.valor} ${cifra.unidad}`,
+  };
+}
+
+/**
+ * ¿Puede la IA ilustrar esta cifra? Toda cifra es una cosa real con nombre, sea cual sea su área (el PIB de Brasil
+ * también): se aplica la regla estricta de historia y geografía (ni nombres propios, ni lugares, ni hechos), que
+ * en la práctica la bloquea siempre.
+ */
+export function iaPermitidaCifra(cifra) {
+  return iaPermitida({ ...preguntaDeCifra(cifra), area: cifra.area === 'arte' ? 'arte' : 'geografia' });
+}
+
+/**
+ * Siguiente paso para la foto de una cifra: `'puntuar'` (hay foto de Wikidata sin nota) o lo que decida
+ * `decidirRama` con las fuentes alternativas ya agotadas (Commons es la propia P18; los bancos libres no
+ * aplican). Una imagen con licencia no libre o sin autor no cuenta como foto.
+ */
+export function decidirRamaCifra({ cifra, marcadaMala = false, cupoLibre = false, iaOk = iaPermitidaCifra(cifra) }) {
+  const imagen = cifra.imagen && (cifra.imagen.fuente === 'IA' || creditoCompleto(cifra.imagen)) ? cifra.imagen : null;
+  if (imagen && imagen.nota == null) return 'puntuar';
+  return decidirRama({ actual: imagen, marcadaMala, candidatasCommons: [], candidatasBancos: [], cupoLibre, iaOk });
+}
+
+/** Aplica la decisión a una cifra (muta `cifra`). → `{ rama, ... }`; `sin-puntuar` = fallo técnico, se reintenta. */
+export async function mejorarCifra(cifra, ctx) {
+  const { cupo, args, estado } = ctx;
+  const d = {
+    puntuar: puntuarConReintento, guardarWebp, aWebp, generarImagen,
+    escribirPrompt: (p) => escribirPrompt(p, { llamarModelo: ({ mensajes }) => llamarTexto(mensajes) }),
+    ...(ctx.deps ?? {}),
+  };
+  const pregunta = preguntaDeCifra(cifra);
+  for (let vuelta = 0; vuelta < 3; vuelta += 1) {
+    const iaOk = ctx.iaOk ?? iaPermitidaCifra(cifra);
+    const rama = decidirRamaCifra({ cifra, marcadaMala: ctx.malas?.has(cifra.id) ?? false, cupoLibre: !args.sinIa && cupo.puede(), iaOk });
+    if (rama === 'mantener') return { rama };
+    if (rama === 'puntuar') {
+      const r = await d.puntuar({ url: cifra.imagen.url, pregunta });
+      if (!r) {
+        estado.fallosSeguidos += 1;
+        return { rama: 'sin-puntuar' };
+      }
+      estado.fallosSeguidos = 0;
+      estado.puntuadas += 1;
+      cifra.imagen = { ...cifra.imagen, nota: r.nota, notaModelo: r.modelo };
+      continue;
+    }
+    if (rama === 'ia') {
+      const prompt = await d.escribirPrompt(pregunta);
+      const g = prompt ? await d.generarImagen(prompt, { cupo }) : null;
+      if (!g) return { rama: 'sin-imagen', motivo: 'la IA no devolvió imagen', ...soltarFotoDeCifra(cifra) };
+      const webp = await d.aWebp(g.buffer);
+      const r = await d.puntuar({ url: dataUrlWebp(webp), pregunta });
+      if (!r) {
+        estado.fallosSeguidos += 1;
+        return { rama: 'sin-puntuar' };
+      }
+      if (!iaMejoraActual(r.nota, cifra.imagen?.nota)) return { rama: 'sin-imagen', motivo: `IA descartada (nota ${r.nota})`, ...soltarFotoDeCifra(cifra) };
+      const url = await d.guardarWebp(DIR_IA, `cifra-${cifra.id}`, webp);
+      cifra.imagen = { url, fuente: 'IA', nota: r.nota, notaModelo: r.modelo };
+      return { rama: 'ia', fuente: 'IA' };
+    }
+    return { rama, ...soltarFotoDeCifra(cifra) };
+  }
+  return { rama: 'sin-puntuar' };
+}
+
+/** Sin foto buena: fuera la P18 puntuada por debajo de 4 (la tarjeta usa el color del área). */
+function soltarFotoDeCifra(cifra) {
+  const tenia = Boolean(cifra.imagen);
+  delete cifra.imagen;
+  return { soltada: tenia };
+}
+
+async function mainCifras(args) {
+  const { serializar, RUTA_CIFRAS } = await import('./construir-cifras.js');
+  const cifras = await leerJson(RUTA_CIFRAS, []);
+  const malas = new Set(await leerJson(RUTA_MALAS, []));
+  const cupo = crearCupo({ ruta: RUTA_CUPO });
+  const pendientes = cifras
+    .filter((c) => c.imagen && c.imagen.nota == null && c.imagen.fuente !== 'IA' && (!args.ids || args.ids.includes(c.id)))
+    .sort((a, b) => Number(CATEGORIAS_DE_TAMANO.has(b.categoria)) - Number(CATEGORIAS_DE_TAMANO.has(a.categoria)))
+    .slice(0, args.limite);
+  const resumen = { total: cifras.length, conFoto: cifras.filter((c) => c.imagen).length, puntuadas: cifras.filter((c) => c.imagen?.nota != null).length, pendientes: pendientes.length };
+  if (args.dryRun) {
+    console.log('Dry-run de cifras (sin llamar a ningún modelo):', resumen);
+    console.log(`Cupo IA de hoy: ${JSON.stringify(cupo.estadoHoy())}`);
+    return;
+  }
+  const estado = { fallosSeguidos: 0, puntuadas: 0 };
+  const ctx = { malas, cupo, args, estado };
+  const cuenta = {};
+  let n = 0;
+  console.log(`Cifras con foto pendiente de nota: ${pendientes.length}. Cupo IA de hoy: ${JSON.stringify(cupo.estadoHoy())}`);
+  for (const cifra of pendientes) {
+    if (estado.fallosSeguidos >= 8) {
+      console.log('Los modelos de visión no responden (8 fallos seguidos): se paró; relanza el comando más tarde.');
+      break;
+    }
+    try {
+      const r = await mejorarCifra(cifra, ctx);
+      const clave = r.rama === 'sin-puntuar' ? 'sin puntuar (pendiente)' : r.rama === 'mantener' ? 'mantenida' : r.soltada ? 'foto floja: color del área' : r.rama;
+      cuenta[clave] = (cuenta[clave] ?? 0) + 1;
+      console.log(`${cifra.id} ${cifra.nombre}: ${clave}`);
+    } catch (err) {
+      console.log(`${cifra.id}: ERROR ${err.message.slice(0, 120)}`);
+    }
+    if (++n % 10 === 0) await writeFile(RUTA_CIFRAS, serializar(cifras), 'utf8');
+  }
+  await writeFile(RUTA_CIFRAS, serializar(cifras), 'utf8');
+  console.log('\nResumen:', cuenta, '· cupo IA:', cupo.estadoHoy());
+}
+
 async function main() {
   const args = parsearArgs(process.argv.slice(2));
+  if (args.cifras) return mainCifras(args);
   const banco = await leerJson(RUTA_BANCO, []);
   const preguntas = (Array.isArray(banco) ? banco : banco.preguntas ?? []).filter((p, i) => (!args.area || p.area === args.area) && (!args.ids || args.ids.includes(p.id)) && i % args.cada === 0);
   const imagenes = await leerJson(RUTA_IMAGENES, {});

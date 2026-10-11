@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { decidirRama, mejorarUna, puntuarHastaBuena, limpiarHuerfanos, completarAutores, listaRevision, bajar } from '../tools/mejorar-imagenes.js';
+import { decidirRama, mejorarUna, puntuarHastaBuena, limpiarHuerfanos, completarAutores, listaRevision, bajar, decidirRamaCifra, mejorarCifra, preguntaDeCifra, iaPermitidaCifra } from '../tools/mejorar-imagenes.js';
+import { CATEGORIAS as CATEGORIAS_CIFRAS } from '../tools/construir-cifras.js';
 
 const buena = { nota: 5 };
 const mediocre = { nota: 3 };
@@ -191,4 +192,116 @@ test('C3: limpiarHuerfanos borra los WebP que ninguna entrada usa', async () => 
   const borradas = await limpiarHuerfanos({ a: { url: `${dir}/usada.webp` } }, { carpetas: [dir] });
   assert.equal(borradas.length, 1);
   assert.deepEqual(await readdir(dir), ['usada.webp']);
+});
+
+// --- Cifras de Más o menos (--cifras, plan 8.1b) ---------------------------------------------------------
+
+const foto = (extra = {}) => ({ url: 'https://upload.wikimedia.org/x.jpg', pagina: 'https://commons.wikimedia.org/wiki/File:x.jpg', autor: 'Ana', licencia: 'CC BY-SA 4.0', fuente: 'Commons', ...extra });
+const cifraDe = (imagen, extra = {}) => ({ id: 'am-Q513', area: 'geografia', categoria: 'altitud-montana', unidad: 'm', nombre: 'Everest', valor: 8849, ...(imagen ? { imagen } : {}), ...extra });
+
+test('cifras: P18 buena (nota 5) se mantiene; sin nota, primero se puntúa', () => {
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(foto({ nota: 5 })) }), 'mantener');
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(foto({ nota: 4 })) }), 'mantener');
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(foto()) }), 'puntuar');
+});
+
+test('cifras: P18 mala con cupo → IA solo si la política la admite; si no, color del área', () => {
+  const mala = cifraDe(foto({ nota: 2 }));
+  assert.equal(decidirRamaCifra({ cifra: mala, cupoLibre: true, iaOk: true }), 'ia');
+  assert.equal(decidirRamaCifra({ cifra: mala, cupoLibre: true }), 'sin-imagen'); // Everest es un lugar con nombre: iaPermitida lo bloquea
+  assert.equal(decidirRamaCifra({ cifra: mala, cupoLibre: false, iaOk: true }), 'sin-imagen');
+});
+
+test('cifras: sin P18 y sin cupo → sin imagen (color del área); con cupo y política abierta → IA', () => {
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(null), cupoLibre: false, iaOk: true }), 'sin-imagen');
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(null), cupoLibre: true, iaOk: true }), 'ia');
+});
+
+test('cifras: una licencia no libre (o CC BY sin autor) no cuenta como foto', () => {
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(foto({ licencia: 'CC BY-NC 2.0', nota: 5 })) }), 'sin-imagen');
+  assert.equal(decidirRamaCifra({ cifra: cifraDe(foto({ autor: '', nota: 5 })) }), 'sin-imagen');
+});
+
+test('cifras: la IA no puede ilustrar ninguna categoría (todas son cosas reales con nombre)', () => {
+  const ejemplos = {
+    'poblacion-pais': 'Francia', 'poblacion-ciudad': 'Tokio', 'altitud-montana': 'Everest', 'altura-edificio': 'Burj Khalifa',
+    'longitud-rio': 'Nilo', 'superficie-pais': 'Rusia', 'ano-obra': 'La Gioconda', 'ano-hecho': 'Batalla de Waterloo', 'pib-pais': 'Brasil',
+  };
+  assert.deepEqual(Object.keys(ejemplos).sort(), Object.keys(CATEGORIAS_CIFRAS).sort());
+  for (const [categoria, nombre] of Object.entries(ejemplos)) {
+    const area = CATEGORIAS_CIFRAS[categoria].area;
+    assert.equal(iaPermitidaCifra({ id: 'x', area, categoria, nombre, valor: 5, unidad: 'm' }), false, categoria);
+  }
+});
+
+function ctxCifra({ nota, iaOk = false, cupo = true, generar = async () => ({ buffer: Buffer.from('x'), proveedor: 'cloudflare' }) } = {}) {
+  const llamadas = { puntuar: 0, guardar: [], generar: 0 };
+  return {
+    llamadas,
+    ctx: {
+      iaOk, malas: new Set(), cupo: { puede: () => cupo }, args: { sinIa: false }, estado: { fallosSeguidos: 0, puntuadas: 0 },
+      deps: {
+        puntuar: async () => { llamadas.puntuar += 1; return nota === null ? null : { nota, modelo: 'm' }; },
+        escribirPrompt: async () => 'prompt',
+        generarImagen: async (...a) => { llamadas.generar += 1; return generar(...a); },
+        aWebp: async (b) => b,
+        guardarWebp: async (carpeta, id) => { llamadas.guardar.push(`${carpeta}/${id}`); return `${carpeta}/${id}.webp`; },
+      },
+    },
+  };
+}
+
+test('cifras: mejorarCifra puntúa la P18 y la mantiene con nota 4+', async () => {
+  const { ctx, llamadas } = ctxCifra({ nota: 4 });
+  const c = cifraDe(foto());
+  const r = await mejorarCifra(c, ctx);
+  assert.equal(r.rama, 'mantener');
+  assert.equal(c.imagen.nota, 4);
+  assert.equal(c.imagen.notaModelo, 'm');
+  assert.equal(llamadas.puntuar, 1);
+  assert.equal(ctx.estado.puntuadas, 1);
+});
+
+test('cifras: nota baja → fuera la foto (color del área) y sin llamar a la IA', async () => {
+  const { ctx, llamadas } = ctxCifra({ nota: 2, cupo: true });
+  const c = cifraDe(foto());
+  const r = await mejorarCifra(c, ctx);
+  assert.equal(r.rama, 'sin-imagen');
+  assert.equal(r.soltada, true);
+  assert.equal(c.imagen, undefined);
+  assert.equal(llamadas.generar, 0);
+});
+
+test('cifras: la visión sin respuesta deja la foto como estaba (pendiente) y cuenta como fallo técnico', async () => {
+  const { ctx } = ctxCifra({ nota: null });
+  const c = cifraDe(foto());
+  const r = await mejorarCifra(c, ctx);
+  assert.equal(r.rama, 'sin-puntuar');
+  assert.ok(c.imagen && c.imagen.nota === undefined);
+  assert.equal(ctx.estado.fallosSeguidos, 1);
+});
+
+test('cifras: con la política abierta la IA entra solo con nota 4+ y mejora; con 3 se descarta', async () => {
+  const bueno = ctxCifra({ nota: 4, iaOk: true });
+  const c1 = cifraDe(null);
+  const r1 = await mejorarCifra(c1, bueno.ctx);
+  assert.equal(r1.rama, 'ia');
+  assert.deepEqual(bueno.llamadas.guardar, ['imagenes-ia/cifra-am-Q513']);
+  assert.equal(c1.imagen.fuente, 'IA');
+  assert.equal(c1.imagen.nota, 4);
+  const flojo = ctxCifra({ nota: 3, iaOk: true });
+  const c2 = cifraDe(null);
+  const r2 = await mejorarCifra(c2, flojo.ctx);
+  assert.equal(r2.rama, 'sin-imagen');
+  assert.equal(c2.imagen, undefined);
+  assert.deepEqual(flojo.llamadas.guardar, []);
+});
+
+test('cifras: una cifra marcada como mala se sustituye aunque la foto tuviera nota 5', async () => {
+  const { ctx } = ctxCifra({ nota: 5 });
+  ctx.malas = new Set(['am-Q513']);
+  const c = cifraDe(foto({ nota: 5 }));
+  const r = await mejorarCifra(c, ctx);
+  assert.equal(r.rama, 'sin-imagen');
+  assert.equal(c.imagen, undefined);
 });
