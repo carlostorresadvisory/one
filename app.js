@@ -53,6 +53,8 @@ import { elegirPareja, validarBanco, MIN_CIFRAS_JUGABLES, cargarMasomenos, recor
 import { montarMasomenos } from './masomenos-ui.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { montarTienda } from './tienda-ui.js';
+import { montarPremium } from './premium-ui.js';
+import { cargarPremium, cargarGeneradas, guardarGeneradas, puedeGenerar, contarGenerada, aplicarRecargaMensual } from './premium.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -283,6 +285,7 @@ const avisoHub = document.getElementById('aviso-hub');
 const registroSonidos = new URLSearchParams(location.search).get('test') === '1' ? [] : null;
 const sonido = crearSonido({ registro: registroSonidos });
 const nodoSilencio = document.querySelector('[data-test="silencio"]');
+const nodoPremiumBoton = document.querySelector('[data-test="premium-boton"]');
 const nodoHubModos = document.querySelector('[data-test="hub-modos"]');
 const nodoCreditos = document.querySelector('[data-test="creditos"]');
 const nodoAvatarCabecera = document.querySelector('[data-test="avatar-cabecera"]');
@@ -363,6 +366,7 @@ function mostrarVista(nombre) {
 function destinoAvatar(nombreVista) {
   if (nombreVista === 'progreso') return nodoAvatarTarjetaTienda && { contenedor: nodoAvatarTarjetaTienda, tamano: 'tarjeta' };
   if (nombreVista === 'tienda') return { contenedor: document.querySelector('[data-test="tienda-avatar"]'), tamano: 'protagonista' };
+  if (nombreVista === 'premium') return { contenedor: document.querySelector('[data-test="premium-avatar"]'), tamano: 'protagonista' };
   if (VISTAS_DE_MODO.includes(nombreVista)) return { contenedor: nodoAvatarCabecera, tamano: 'cabecera' };
   return null;
 }
@@ -510,6 +514,7 @@ function actualizarCabecera() {
   nodoLogo.hidden = enModo;
   nodoChipFiltro.hidden = !enModo;
   nodoAvatarCabecera.hidden = !enModo;
+  pintarBotonPremium();
   if (enModo) pintarChip(nodoChipFiltro, textoChipFiltro());
   // Ronda de corrección 1 (Plan B, segunda fila bajo la cabecera): mostrar/ocultar `modoArea` puede
   // cambiar la ALTURA de la cabecera (tercera línea en `.cabecera-estado`) -- si el indicador de
@@ -564,6 +569,7 @@ function limpiarPartidaEnCurso() {
   destruirContrarreloj();
   destruirMasomenos();
   destruirTienda();
+  destruirPremium();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -1880,6 +1886,13 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
  * función dos veces con la guarda todavía en `null` las dos, y salían dos `POST /generar`. */
 async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'atomo' } = {}) {
   if (atomoGenerarEnVuelo || atomoTrabajoId || !leerConfiguracion() || !area) return;
+  // Plan gratis: 1 tanda al día. La fecha local se recalcula en cada toque (no al abrir la app); agotada, el botón
+  // lleva a la pantalla Premium en vez de generar (spec v0.3.1 §7).
+  const diaDelToque = hoy();
+  if (!puedeGenerar(cargarPremium(), cargarGeneradas(), diaDelToque)) {
+    abrirPremium('Hoy ya usaste tu tanda gratis. Con Premium, sin límite.');
+    return;
+  }
   const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
   const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
   guardarRutaAtomo(area, ruta);
@@ -1897,6 +1910,7 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
+  if (resultado) guardarGeneradas(contarGenerada(cargarGeneradas(), diaDelToque)); // las que fallan en el servidor no cuentan
   if (!resultado) {
     actualizarBotonGenerarAtomo(); // reactiva Generar: sin trabajo en curso, puede volver a intentarlo.
     if (origen === 'filtro-corto') {
@@ -1992,6 +2006,7 @@ async function iniciar() {
   reconstruirBanco();
   imagenesPorId = await cargarImagenes(esEjemplo);
   cargarOrdagoResuelto(); // la ficha comprometida y sin responder se cobra ya: hub y Tienda ven el fondo real
+  aplicarRecargaMensual(hoy()); // Premium activo: +500 para la Tienda una vez por mes natural (sin acumular)
   montarTarjetasHub(); // antes de cualquier renderHub/actualizarCabecera (p. ej. `?servidor=&token=`)
   actualizarCabecera();
   actualizarPuntoServidor();
@@ -4583,6 +4598,34 @@ function destruirTienda() {
   tiendaInstancia = null;
 }
 
+// --- PREMIUM (v0.3.1 §7): la pantalla vive en premium-ui.js; sin cobro real ---
+let premiumInstancia = null;
+
+function destruirPremium() {
+  if (!premiumInstancia) return;
+  premiumInstancia.destruir();
+  premiumInstancia = null;
+}
+
+/** «+» dorado con PREMIUM en la cabecera del hub; con el plan activo, una corona sin «+». Solo se ve en el hub. */
+function pintarBotonPremium() {
+  const activo = cargarPremium().activo;
+  nodoPremiumBoton.hidden = vistaActual() !== 'progreso';
+  nodoPremiumBoton.classList.toggle('boton-premium--activo', activo);
+  nodoPremiumBoton.querySelector('[data-test="premium-signo"]').textContent = activo ? '👑' : '+';
+  nodoPremiumBoton.setAttribute('aria-label', activo ? 'Premium activo' : 'Premium');
+}
+
+/** Abre la pantalla Premium (desde el «+» del hub o al agotar la tanda gratis del día, con su `motivo`). */
+function abrirPremium(motivo) {
+  cerrarHojaFiltro();
+  limpiarPartidaEnCurso();
+  premiumInstancia = montarPremium(document.querySelector('[data-vista="premium"]'), {
+    hoy, pedirGesto, motivo, alCambiar: () => { pintarBotonPremium(); renderHub(); },
+  });
+  mostrarVista('premium');
+}
+
 /** Abre la Tienda: avatar grande, el fondo de Órdago y comprar/vender por objeto (spec §6). */
 function abrirTienda() {
   destruirTienda();
@@ -4679,6 +4722,7 @@ function importarEstadoDesdeArchivo(archivo) {
 // Tocar una tarjeta del HUB arranca su modo con el filtro guardado de ese modo (ver
 // montarTarjetasHub); "Otra" en el resumen SÍ respeta el filtro vigente, para poder repetir la misma
 // área varias veces seguidas.
+nodoPremiumBoton.addEventListener('click', () => abrirPremium());
 nodoSilencio.addEventListener('click', () => {
   sonido.alternarSilencio();
   pintarSilencio();

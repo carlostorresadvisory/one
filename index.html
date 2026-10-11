@@ -23,6 +23,10 @@
       <span class="cabecera-racha" data-test="racha">🔥 0</span>
       <span class="cabecera-nivel" data-test="nivel-partida">Nivel 1</span>
     </div>
+    <button type="button" class="boton-premium" data-test="premium-boton" aria-label="Premium" hidden>
+      <span class="boton-premium-signo" data-test="premium-signo" aria-hidden="true">+</span>
+      <span class="boton-premium-texto" aria-hidden="true">PREMIUM</span>
+    </button>
     <button type="button" class="boton-silencio" data-test="silencio" aria-pressed="false" aria-label="Silenciar sonidos">🔊</button>
   </header>
 
@@ -107,6 +111,28 @@
         <span class="tienda-aviso" data-test="tienda-aviso"></span>
       </p>
       <ul class="tienda-mochila" data-test="tienda-mochila" aria-label="Objetos"></ul>
+    </section>
+
+    <!-- PREMIUM (v0.3.1 §7): plan de prueba, activar no cobra nada. La esfinge protagonista arriba (como la Tienda);
+         premium-ui.js alterna «Activar» y «Activo desde…». El «←» vuelve al hub. -->
+    <section class="vista vista-premium" data-vista="premium" data-test="premium" hidden>
+      <h2 class="premium-titulo">Esfinx Premium</h2>
+      <div class="premium-avatar" data-test="premium-avatar"></div>
+      <p class="premium-motivo" data-test="premium-motivo" aria-live="polite" hidden></p>
+      <ul class="premium-ventajas" aria-label="Ventajas">
+        <li><span class="premium-icono" aria-hidden="true">♾️</span><span><strong>Preguntas infinitas</strong> Genera tandas de cualquier tema sin límite</span></li>
+        <li><span class="premium-icono" aria-hidden="true">🪙</span><span><strong>+1.000 puntos</strong> para la Tienda al activar</span></li>
+        <li><span class="premium-icono" aria-hidden="true">🔁</span><span><strong>+500 puntos</strong> para la Tienda cada mes</span></li>
+      </ul>
+      <p class="premium-estado" data-test="premium-estado" aria-live="polite" hidden></p>
+      <div class="premium-precios" data-test="premium-precios">
+        <span class="premium-precio"><strong>3,99 €</strong>/mes</span>
+        <span class="premium-precio premium-precio--anual"><strong>24,99 €</strong>/año <em>ahorra 48 %</em></span>
+      </div>
+      <button type="button" class="boton boton-principal premium-activar" data-test="premium-activar" aria-label="Activar Premium">Activar</button>
+      <button type="button" class="boton premium-desactivar" data-test="premium-desactivar" aria-label="Desactivar Premium" hidden>Desactivar</button>
+      <p class="premium-aviso" data-test="premium-aviso" aria-live="polite"></p>
+      <p class="premium-prueba">Versión de prueba: activar no cobra nada</p>
     </section>
 
     <!-- v0.3 §4/§11: el filtro del modo deja menos de 5 elementos jugables. -->

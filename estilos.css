@@ -3175,3 +3175,34 @@ button[hidden] { display: none; } /* las opciones quitadas por el 50/50 no ocupa
    cada botón redondea su propio extremo. */
 .mm-var:first-child { border-radius: 999px 0 0 999px; }
 .mm-var:last-child { border-radius: 0 999px 999px 0; }
+
+/* ===== v0.3.1 Premium: botón «+» de la cabecera del hub y pantalla «Esfinx Premium» (oscuro, cian y dorado) ===== */
+.boton-premium {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  min-width: 44px; min-height: 44px; padding: 2px 6px; border-radius: 12px;
+  border: 1px solid var(--dorado); background: rgba(242, 193, 78, 0.1); color: var(--dorado);
+}
+.boton-premium[hidden] { display: none; }
+.boton-premium-signo { font-size: 22px; font-weight: 700; line-height: 1; }
+.boton-premium-texto { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; line-height: 1.1; }
+.boton-premium--activo .boton-premium-signo { font-size: 20px; }
+.cabecera--modo .boton-premium { display: none; }
+.vista-premium { align-items: stretch; gap: 10px; }
+.premium-titulo { margin: 0; font-size: var(--tam-3); text-align: center; color: var(--dorado); }
+.vista-premium > .premium-avatar { flex: 1 1 0; min-height: 80px; }
+.premium-motivo { margin: 0; text-align: center; color: var(--acento); font-size: 14px; }
+.premium-motivo[hidden], .premium-estado[hidden], .premium-precios[hidden], .premium-activar[hidden], .premium-desactivar[hidden] { display: none; }
+.premium-ventajas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.premium-ventajas li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; border: 1px solid #22303d; background: var(--tarjeta); font-size: 14px; line-height: 1.25; }
+.premium-ventajas strong { display: block; font-size: var(--tam-1); color: var(--texto); }
+.premium-icono { font-size: 22px; line-height: 1; flex: 0 0 auto; }
+.premium-estado { margin: 0; text-align: center; color: var(--dorado); font-weight: 700; font-size: var(--tam-1); }
+.premium-precios { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.premium-precio { padding: 8px 10px; border-radius: 12px; border: 1px solid #22303d; background: var(--tarjeta); text-align: center; font-size: 13px; color: var(--texto-suave); }
+.premium-precio strong { font-size: var(--tam-2); color: var(--texto); }
+.premium-precio em { display: block; font-style: normal; font-weight: 700; color: var(--dorado); }
+.premium-precio--anual { border-color: var(--dorado); }
+.premium-activar { min-height: 56px; width: 100%; background: var(--dorado); color: #1a1405; box-shadow: 0 0 18px rgba(242, 193, 78, 0.4); }
+.premium-desactivar { min-height: 44px; width: 100%; }
+.premium-aviso { margin: 0; min-height: 18px; text-align: center; color: var(--acento); font-size: 13px; }
+.premium-prueba { margin: 0; text-align: center; color: var(--texto-suave); font-size: 12px; }

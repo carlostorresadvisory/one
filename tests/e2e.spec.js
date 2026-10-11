@@ -7292,7 +7292,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     return crudo ? Object.values(JSON.parse(crudo).objetos).reduce((a, b) => a + b, 0) : 0;
   });
 
-  test('Contrarreloj: nivel ≥ 3, tiempo agotado = caída con explicación, cofre a la 10 y plantarse (sin scroll a 375×812 y 375×667)', async ({ page }) => {
+  test('Contrarreloj: rampa desde el nivel 1, tiempo agotado = caída con explicación, cofre a la 10 y plantarse (sin scroll a 375×812 y 375×667)', async ({ page }) => {
     await page.clock.install();
     await page.goto('/?ejemplo=1&test=1');
     await entrarEnModo(page, 'contrarreloj');
@@ -7302,7 +7302,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
     await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
     const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
-    expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
+    expect(pregunta.nivel).toBe(1); // la rampa empieza en el nivel 1
     expect(['vf', 'test4']).toContain(pregunta.tipo);
     await sinScrollEnAmbos(page);
     // El reloj es por tiempo transcurrido (no por fotogramas): se salta en bloques para no pintar 700 fotogramas.
@@ -7445,7 +7445,8 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     const larga = 'Pregunta deliberadamente larga para comprobar que el enunciado cabe entero sobre la foto';
     await page.evaluate((texto) => {
       window.__one.inyectarPregunta({
-        id: 'zz-larga-cr', area: 'historia', tipo: 'test4', nivel: 5, enunciado: texto,
+        id: 'zz-larga-cr', area: 'historia', tipo: 'test4', nivel: 1, // la rampa empieza en el nivel 1
+        enunciado: texto,
         explicacion: texto, confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
         opciones: ['Una opción bastante larga pero válida', 'Otra opción igual de larga que la 1', 'Tercera opción', 'Cuarta opción'], correcta: 0,
       });
@@ -7500,7 +7501,7 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('TODOS');
   });
 
-  test('Contrarreloj: «Generar preguntas» desde el aviso pide la tanda con nivelObjetivo 4', async ({ page }) => {
+  test('Contrarreloj: «Generar preguntas» desde el aviso pide la tanda sin nivelObjetivo (rampa 1-5, a diferencia de Órdago)', async ({ page }) => {
     const peticiones = [];
     const cors = {
       'Access-Control-Allow-Origin': 'http://localhost:8765',
@@ -7529,7 +7530,8 @@ test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
     await expect(page.locator('[data-test="filtro-corto-generar"]')).toBeEnabled();
     await page.locator('[data-test="filtro-corto-generar"]').click();
     await expect.poll(() => peticiones.length).toBe(1);
-    expect(peticiones[0]).toMatchObject({ area: 'geografia', nivelObjetivo: 4 });
+    expect(peticiones[0]).toMatchObject({ area: 'geografia' });
+    expect(peticiones[0].nivelObjetivo).toBeUndefined();
   });
 
   test('Contrarreloj: «←» en la pantalla del cofre es plantarse y el objeto llega a la mochila una sola vez', async ({ page }) => {
@@ -8533,5 +8535,103 @@ test.describe('ONE · v0.3 Tienda completa (fase 9.3)', () => {
     await abrirTienda(page);
     await expect(page.locator('[data-test="tienda-fondo"]')).toHaveText('700');
     expect(errores).toEqual([]);
+  });
+});
+
+test.describe('ONE · v0.3.1 Contrarreloj con rampa y Premium', () => {
+  test('Contrarreloj, banco completo: preguntas 1-2 de nivel 1, 3-4 de nivel 2 y la 10 de nivel ≥ 4', async ({ page }) => {
+    await page.goto('/?test=1');
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    const niveles = [];
+    for (let i = 0; i < 10; i += 1) {
+      niveles.push((await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj())).nivel);
+      if (i < 9) await page.evaluate(() => window.__one.acertarContrarreloj(1));
+    }
+    expect(niveles.slice(0, 2)).toEqual([1, 1]);
+    expect(niveles.slice(2, 4)).toEqual([2, 2]);
+    expect(niveles[9]).toBeGreaterThanOrEqual(4);
+  });
+
+  test('Premium: hub → «+» → Activar → fondo +1.000 → «Activo desde…», sin scroll a 375×667 (captura)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.waitForFunction(() => window.__one?.listo === true);
+    const boton = page.locator('[data-test="premium-boton"]');
+    await expect(boton).toBeVisible();
+    await expect(boton).toHaveAttribute('aria-label', 'Premium');
+    expect((await boton.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await boton.click();
+    await expect(page.locator('[data-vista="premium"]')).toBeVisible();
+    await expect(page.locator('[data-test="premium-boton"]')).toBeHidden();
+    await expect(page.locator('h2.premium-titulo')).toHaveText('Esfinx Premium');
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // la esfinge protagonista, un solo reproductor
+    await assertSinScroll(page);
+    const activar = page.locator('[data-test="premium-activar"]');
+    expect((await activar.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await page.waitForTimeout(600); // deja que la esfinge pinte su primer fotograma antes de la captura
+    await page.screenshot({ path: 'docs/capturas/v0.3.1-premium-375x667.png' });
+    const fondo = () => page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago') ?? '{"fondo":1000}').fondo);
+    expect(await fondo()).toBe(1000);
+    await activar.click({ clickCount: 2 }); // el doble toque es una sola activación
+    await expect(page.locator('[data-test="premium-estado"]')).toContainText('Activo desde');
+    await expect(activar).toBeHidden();
+    expect(await fondo()).toBe(2000);
+    const guardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.premium')));
+    expect(guardado).toMatchObject({ activo: true, bonificado: true });
+    await assertSinScroll(page);
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-test="premium-boton"]')).toHaveAttribute('aria-label', 'Premium activo');
+    await page.locator('[data-test="premium-boton"]').click();
+    await page.locator('[data-test="premium-desactivar"]').click();
+    await page.waitForTimeout(450); // antirrebote
+    await page.locator('[data-test="premium-activar"]').click(); // reactivar no regala más
+    await expect(page.locator('[data-test="premium-estado"]')).toContainText('Activo desde');
+    expect(await fondo()).toBe(2000);
+  });
+
+  test('Premium: con la tanda gratis del día gastada, «Generar preguntas» abre Premium sin pedir nada; con Premium activo genera', async ({ page }) => {
+    const peticiones = [];
+    const cors = {
+      'Access-Control-Allow-Origin': 'http://localhost:8765',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    };
+    await page.route('https://servidor.prueba/**', async (ruta) => {
+      const peticion = ruta.request();
+      if (peticion.method() === 'OPTIONS') {
+        await ruta.fulfill({ status: 204, headers: cors });
+        return;
+      }
+      const cabeceras = { ...cors, 'Content-Type': 'application/json' };
+      if (new URL(peticion.url()).pathname === '/generar') {
+        peticiones.push(peticion.postDataJSON());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ trabajoId: 't-1', enCola: 1, estimadoSeg: 40 }) });
+      } else {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [], motivo: null, estado_servidor: 'ok' }) });
+      }
+    });
+    await page.addInitScript(() => {
+      const d = new Date();
+      const dos = (n) => String(n).padStart(2, '0');
+      if (!sessionStorage.getItem('sembrado')) {
+        sessionStorage.setItem('sembrado', '1');
+        localStorage.setItem('one.filtros', JSON.stringify({ contrarreloj: { area: 'geografia', ruta: [], etiquetas: [] } }));
+        localStorage.setItem('one.premium.generadas', JSON.stringify({ dia: `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`, n: 1 }));
+      }
+    });
+    await page.goto('/?ejemplo=1&test=1&servidor=https%3A%2F%2Fservidor.prueba&token=token-de-prueba-e2e-1234567890');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect(page.locator('[data-vista="premium"]')).toBeVisible();
+    await expect(page.locator('[data-test="premium-motivo"]')).toContainText('tanda gratis');
+    expect(peticiones).toHaveLength(0);
+    await page.locator('[data-test="premium-activar"]').click();
+    await expect(page.locator('[data-test="premium-estado"]')).toContainText('Activo desde');
+    await page.locator('[data-test="volver"]').click();
+    await entrarEnModo(page, 'contrarreloj');
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect.poll(() => peticiones.length).toBe(1);
   });
 });
