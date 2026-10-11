@@ -16,7 +16,7 @@ import {
   listarNoRespondidas,
   AREAS,
 } from './motor.js';
-import { construirVisual, construirVisualClave } from './visuales.js';
+import { construirVisual, construirVisualClave, medirAncho } from './visuales.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -46,6 +46,8 @@ import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.j
 import { crearAvatar, gestoParaEvento, crearVigiaPensando } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
+import { esJugableContrarreloj } from './contrarreloj.js';
+import { montarContrarreloj } from './contrarreloj-ui.js';
 import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
@@ -246,7 +248,7 @@ const nodoFiltroCortoPista = document.querySelector('[data-test="filtro-corto-pi
 // guardado enseña el chip y a qué modo se relanza al elegir otro filtro.
 let modoActual = 'clasico';
 // El feed de lectura (vista `repaso`) NO es un modo: es la continuación del resumen, sin chip.
-const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra'];
+const VISTAS_DE_MODO = ['pregunta', 'resumen', 'filtro-corto', 'ordago', 'quiebra', 'contrarreloj', 'caida', 'cofre'];
 // `<main>`: `reservarHuecoIndicadorTanda` le añade un padding-top mientras el indicador está
 // visible, para que ninguna vista quede tapada bajo él (ver esa función).
 const nodoContenidoApp = document.querySelector('main#app');
@@ -522,6 +524,7 @@ function limpiarRepasoMazo() {
 function limpiarPartidaEnCurso() {
   cerrarHojaFiltro();
   destruirOrdago();
+  destruirContrarreloj();
   filtroPartida = null;
   if (mazoControlador) {
     mazoControlador.destruir();
@@ -1156,6 +1159,11 @@ function prepararModo(id) {
     const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableDificil).length;
     return { filtro, partida: null, n };
   }
+  if (id === 'contrarreloj') {
+    // Solo V/F y test4 cortos de nivel 3-5 (spec §4 y §8): el aviso de «menos de 10» cuenta solo esas.
+    const n = preguntasDelFiltro(banco, filtro, indice, estado.reportadas).filter(esJugableContrarrelojReal).length;
+    return { filtro, partida: null, n };
+  }
   return {
     filtro,
     partida: filtroParaPartida(filtro, banco, indice, estado, nombreArea, hoy()),
@@ -1194,6 +1202,10 @@ function arrancarModoSinComprobar(id, preparado = prepararModo(id)) {
     empezarOrdago();
     return;
   }
+  if (id === 'contrarreloj') {
+    empezarContrarreloj();
+    return;
+  }
   empezarPartida(preparado.partida, 'clasico');
 }
 
@@ -1214,7 +1226,7 @@ function elegirPreguntaDeOrdago({ usados, ultima }) {
 }
 
 /** Toda respuesta a una pregunta del banco pasa por `registrarRespuesta` (radar, nivel, repaso). */
-function registrarRespuestaOrdago(pregunta, correcta, respuesta) {
+function registrarRespuestaDeModo(pregunta, correcta, respuesta) {
   estado = registrarRespuesta(estado, pregunta, correcta, hoy(), { confianza: 'media', respuesta }).estado;
   guardarEstado(estado);
   actualizarCabecera();
@@ -1227,7 +1239,7 @@ function empezarOrdago() {
     contenedorQuiebra: document.querySelector('[data-vista="quiebra"]'),
     mostrarVista,
     elegirPregunta: elegirPreguntaDeOrdago,
-    registrar: registrarRespuestaOrdago,
+    registrar: registrarRespuestaDeModo,
     celebrarAcierto,
     lamentarFallo,
     celebrarPremio,
@@ -1238,6 +1250,71 @@ function empezarOrdago() {
     alSinPreguntas: () => {
       irAlHub();
       mostrarAvisoHub('Aún no hay preguntas difíciles');
+    },
+  });
+}
+
+// --- CONTRARRELOJ (v0.3 fase 6): la pantalla vive en contrarreloj-ui.js; aquí solo se le inyecta lo de app.js ---
+let contrarrelojInstancia = null;
+let bloqueoHubHasta = 0; // las tarjetas del hub ignoran toques hasta este instante (performance.now)
+
+function destruirContrarreloj() {
+  if (!contrarrelojInstancia) return;
+  contrarrelojInstancia.destruir();
+  contrarrelojInstancia = null;
+}
+
+let contextoMedida;
+/** Ancho real de un texto en negrita con la tipografía de la app (canvas): `esCorta` lo usa en vez de la
+ * estimación conservadora de `visuales.js`, que descartaría 2 de cada 3 preguntas válidas. */
+function medirTextoReal(texto, tamano) {
+  try {
+    contextoMedida ??= document.createElement('canvas').getContext('2d');
+    contextoMedida.font = `700 ${tamano}px -apple-system, system-ui, sans-serif`;
+    return contextoMedida.measureText(texto).width;
+  } catch {
+    return medirAncho(texto, tamano);
+  }
+}
+const esJugableContrarrelojReal = (pregunta) => esJugableContrarreloj(pregunta, medirTextoReal);
+
+/** Siguiente pregunta de Contrarreloj: V/F y test4 cortos de nivel 3-5 bajo el filtro del modo. */
+function elegirPreguntaDeContrarreloj({ usados, ultima }) {
+  const candidatas = preguntasDelFiltro(banco, filtroDeModo('contrarreloj'), leerIndiceRutas(), estado.reportadas)
+    .filter(esJugableContrarrelojReal);
+  return elegirPreguntaOrdago(candidatas, { usados, ultima, vistas: new Set(Object.keys(estado.tarjetas)) });
+}
+
+/** Los objetos del cofre pasan a la mochila solo al plantarse o recoger (la serie no se guarda). */
+function darObjetosContrarreloj(ids) {
+  let mochila = cargarMochila();
+  for (const id of ids) mochila = anadirObjeto(mochila, id);
+  guardarMochila(mochila);
+}
+
+function empezarContrarreloj() {
+  destruirContrarreloj();
+  modoActual = 'contrarreloj';
+  contrarrelojInstancia = montarContrarreloj(document.querySelector('[data-vista="contrarreloj"]'), {
+    contenedorCaida: document.querySelector('[data-vista="caida"]'),
+    contenedorCofre: document.querySelector('[data-vista="cofre"]'),
+    mostrarVista,
+    elegirPregunta: elegirPreguntaDeContrarreloj,
+    registrar: registrarRespuestaDeModo, // toda respuesta del banco pasa por registrarRespuesta
+    celebrarAcierto,
+    lamentarFallo,
+    celebrarPremio,
+    reproducir: (nombre) => sonido.reproducir(nombre),
+    imagenDe: (pregunta) => imagenesPorId.get(pregunta.id) || null,
+    darObjetos: darObjetosContrarreloj,
+    alSalir: () => {
+      // El segundo toque de un doble toque en «Plantarse»/«Recoger» cae sobre una tarjeta del hub.
+      bloqueoHubHasta = performance.now() + 400;
+      irAlHub();
+    },
+    alSinPreguntas: () => {
+      irAlHub();
+      mostrarAvisoHub('Aún no hay preguntas cortas y difíciles');
     },
   });
 }
@@ -1697,7 +1774,7 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   if (origen === 'filtro-corto') actualizarGenerarFiltroCorto();
   // Órdago y Contrarreloj solo juegan nivel 3-5 (spec §4): la tanda se pide concentrada en el central (4).
   // 🔶 Provisional: el servidor toma un solo número; el cliente descarta igualmente lo de nivel < 3.
-  const nivelObjetivo = modoActual === 'ordago' ? NIVEL_OBJETIVO_DIFICIL : undefined;
+  const nivelObjetivo = modoActual === 'ordago' || modoActual === 'contrarreloj' ? NIVEL_OBJETIVO_DIFICIL : undefined;
   const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
@@ -1857,6 +1934,16 @@ if (new URLSearchParams(location.search).get('test') === '1') {
     acertarPreguntaOrdago() {
       return Boolean(ordagoInstancia) && ordagoInstancia.responderParaTest(true);
     },
+    // v0.3 fase 6: ganchos de Contrarreloj para los e2e (la pregunta en juego y responderla a propósito).
+    ultimaPreguntaContrarreloj() {
+      return contrarrelojInstancia ? contrarrelojInstancia.preguntaActual() : null;
+    },
+    acertarContrarreloj(n = 1) {
+      return contrarrelojInstancia ? contrarrelojInstancia.acertarParaTest(n) : 0;
+    },
+    fallarContrarreloj() {
+      return Boolean(contrarrelojInstancia) && contrarrelojInstancia.responderParaTest(false);
+    },
     // v0.3: abre el átomo de un área desde el HUB, sin partida debajo (sustituye al "+" retirado de
     // las tarjetas de área). El filtro que se elija es el de Clásico.
     abrirAtomo(area) {
@@ -1919,6 +2006,7 @@ if (new URLSearchParams(location.search).get('test') === '1') {
 function empezarPartida(filtro = null, modo = 'clasico') {
   modoActual = modo;
   destruirOrdago();
+  destruirContrarreloj();
   if (filtro && filtro.area) {
     filtroPartida = { area: filtro.area };
   } else if (filtro && Array.isArray(filtro.ids)) {
@@ -4262,7 +4350,7 @@ function montarTarjetasHub() {
     if (modo.disponible) {
       // Guardia contra el doble toque: solo se arranca desde el hub (una vez en el modo, la tarjeta ya no es tocable).
       boton.addEventListener('click', () => {
-        if (vistaActual() === 'progreso') arrancarModo(modo.id);
+        if (vistaActual() === 'progreso' && performance.now() >= bloqueoHubHasta) arrancarModo(modo.id);
       });
     } else {
       boton.setAttribute('aria-disabled', 'true'); // «Pronto»: se ve pero no responde
@@ -4289,7 +4377,7 @@ function montarTarjetasHub() {
   tienda.append(lienzo, textos);
   tienda.addEventListener('click', () => {
     // Misma guardia que las tarjetas de modo: un segundo toque rápido no reabre la vista.
-    if (vistaActual() !== 'progreso') return;
+    if (vistaActual() !== 'progreso' || performance.now() < bloqueoHubHasta) return;
     abrirTienda();
   });
   nodoHubModos.appendChild(tienda);

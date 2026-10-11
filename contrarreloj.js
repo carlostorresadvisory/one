@@ -8,15 +8,19 @@ import { esJugableDificil } from './modos.js';
 
 export const N_SERIE = 10;
 export const CLAVE_CONTRARRELOJ = 'one.contrarreloj';
-// Medidos en el DOM real (foto-pregunta a 390 px de ancho): el enunciado va sobre la foto con su relleno
-// lateral; criterio de la spec §8: enunciado de ≤ 3 líneas y opciones de 1 línea.
+// Medidos en el DOM real (foto-pregunta a 390 px: el enunciado, en negrita de 20 px, tiene 328 px de ancho
+// útil entre el relleno de la foto; el texto de un botón de respuesta, de 16 px, 332 px). Al ancho del
+// enunciado se le resta ~8 % por el salto de palabra, que añade líneas: con 300 px, sobre el banco real
+// y medido con el canvas, solo 1 de 218 enunciados sale con 4 líneas en lugar de 3.
 export const TAMANO_ENUNCIADO = 20;
-export const ANCHO_ENUNCIADO = 342;
-export const TAMANO_OPCION = 17;
-export const ANCHO_OPCION = 300;
+export const ANCHO_ENUNCIADO = 300;
+export const TAMANO_OPCION = 16;
+export const ANCHO_OPCION = 330;
 const MAX_LINEAS_ENUNCIADO = 3;
 
-/** V/F y test4 con enunciado de ≤ 3 líneas y opciones de 1 línea (`medir` inyectable para los tests). */
+/** V/F y test4 con enunciado de ≤ 3 líneas y opciones de 1 línea. `medir(texto, tamano)` es inyectable: por
+ * defecto la estimación conservadora de `visuales.js` (nunca deja pasar una larga); la app inyecta una
+ * medida real con el canvas y los tests una a medida. */
 export function esCorta(pregunta, medir = medirAncho) {
   if (!pregunta || (pregunta.tipo !== 'vf' && pregunta.tipo !== 'test4')) return false;
   if (Math.ceil(medir(String(pregunta.enunciado ?? ''), TAMANO_ENUNCIADO) / ANCHO_ENUNCIADO) > MAX_LINEAS_ENUNCIADO) return false;

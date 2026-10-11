@@ -7703,3 +7703,193 @@ test.describe('ONE · v0.3 Órdago (fase 5)', () => {
     await expect(page.locator('[data-test="aviso-generadas"]')).toBeVisible();
   });
 });
+
+test.describe('ONE · v0.3 Contrarreloj (fase 6)', () => {
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+    }
+  };
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+  const objetosEnMochila = (page) => page.evaluate(() => {
+    const crudo = localStorage.getItem('one.mochila');
+    return crudo ? Object.values(JSON.parse(crudo).objetos).reduce((a, b) => a + b, 0) : 0;
+  });
+
+  test('Contrarreloj: nivel ≥ 3, tiempo agotado = caída con explicación, cofre a la 10 y plantarse (sin scroll a 375×812 y 375×667)', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    await expect(page.locator('[data-test="foto-pregunta-enunciado"]')).toBeVisible(); // enunciado encima de la foto
+    await expect(page.locator('canvas.avatar-lienzo, img.avatar-fijo')).toHaveCount(1); // un solo reproductor por pantalla
+    const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
+    expect(pregunta.nivel).toBeGreaterThanOrEqual(3);
+    expect(['vf', 'test4']).toContain(pregunta.tipo);
+    await sinScrollEnAmbos(page);
+    // El reloj es por tiempo transcurrido (no por fotogramas): se salta en bloques para no pintar 700 fotogramas.
+    await page.clock.fastForward(9200); // quedan ~2,8 s: empieza el tictac
+    await page.clock.runFor(1000);
+    await page.clock.fastForward(5000);
+    await expect(page.locator('[data-vista="caida"]')).toBeVisible();
+    expect(await page.evaluate(() => window.__one.sonidos())).toContain('tictac'); // los 3 últimos segundos
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('triste');
+    await expect(page.locator('[data-test="caida-explicacion"]')).toContainText('Respuesta:');
+    await expect(page.locator('[data-test="caida-resumen"]')).toContainText('Se acabó el tiempo');
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="caida-reintentar"]').click();
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    expect(await objetosEnMochila(page)).toBe(0);
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
+    await expect(page.locator('[data-test="cofre-objeto-0"]')).toHaveCount(1);
+    expect(await page.evaluate(() => window.__one.gestosPedidos)).toContain('euforia');
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-plantarse"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect(await objetosEnMochila(page)).toBe(1);
+    await expect(page.locator('[data-test="marcador-tienda"]')).toContainText('1');
+    // Se guardaron los récords: 10/10 y ningún doble; la serie no se guarda.
+    const guardado = await page.evaluate(() => JSON.parse(localStorage.getItem('one.contrarreloj')));
+    expect(guardado.mejor.aciertos).toBe(10);
+    expect(guardado.doblesGanados).toBe(0);
+  });
+
+  test('Contrarreloj: un fallo te tumba con la explicación y cada respuesta pasa por registrarRespuesta', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(3));
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('4/10');
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-vista="caida"]')).toBeVisible();
+    await expect(page.locator('[data-test="caida-resumen"]')).toContainText('pregunta 4 de 10');
+    await expect(page.locator('[data-test="caida-explicacion"]')).toContainText('Respuesta:');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas)).toBe(4);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.contrarreloj')).mejor.aciertos)).toBe(3);
+  });
+
+  test('Contrarreloj: doble o nada — 6→4 s, superarlo da 2 objetos y caer en él, ninguno', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await expect(page.locator('[data-test="cofre-doble"]')).toContainText('6→4 s');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-doble"]').click();
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    await expect(page.locator('[data-test="contrarreloj-fase"]')).toBeVisible();
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+    // Caer en el doble: se pierde el cofre.
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-test="caida-resumen"]')).toContainText('pierdes el cofre');
+    expect(await objetosEnMochila(page)).toBe(0);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="caida-reintentar"]').click();
+    await expect(page.locator('[data-test="contrarreloj-fase"]')).toBeHidden(); // vuelve a la serie normal
+    // Superar el doble: 2 objetos.
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-doble"]').click();
+    await page.evaluate(() => window.__one.acertarContrarreloj(10));
+    await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
+    await expect(page.locator('[data-test="cofre-objeto-1"]')).toHaveCount(1);
+    await expect(page.locator('[data-test="cofre-doble"]')).toBeHidden();
+    await sinScrollEnAmbos(page);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-recoger"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect(await objetosEnMochila(page)).toBe(2);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.contrarreloj')).doblesGanados)).toBe(1);
+  });
+
+  test('Review Focus 2: doble toque en una respuesta responde una sola vez y en «Plantarse» da un solo cofre', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await esperarAntirrebote(page);
+    const pregunta = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj());
+    const original = pregunta.tipo === 'vf' ? String(pregunta.respuesta) : String(pregunta.correcta);
+    await page.locator(`[data-test="contrarreloj-opciones"] [data-original="${original}"]`).dblclick();
+    await page.waitForTimeout(700);
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.estado')).hoy.respondidas)).toBe(1);
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('2/10'); // no se saltó otra
+    await page.evaluate(() => window.__one.acertarContrarreloj(9));
+    await expect(page.locator('[data-vista="cofre"]')).toBeVisible();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="cofre-plantarse"]').dblclick();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    expect(await objetosEnMochila(page)).toBe(1);
+  });
+
+  test('Review Focus 3: recargar a mitad de la serie la pierde sin contar como caída', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(5));
+    await page.reload();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    // Ni récord ni caída guardados: solo existe lo que se guarda al TERMINAR una serie.
+    expect(await page.evaluate(() => localStorage.getItem('one.contrarreloj'))).toBeNull();
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('1/10');
+  });
+
+  test('Contrarreloj en segundo plano: el tiempo se para y al volver es la misma posición con otra pregunta y el tiempo completo', async ({ page }) => {
+    await page.clock.install();
+    await page.goto('/?ejemplo=1&test=1');
+    await entrarEnModo(page, 'contrarreloj');
+    await page.evaluate(() => window.__one.acertarContrarreloj(2));
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('3/10');
+    const antes = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id);
+    await page.clock.fastForward(4000);
+    const ocultar = (oculto) => page.evaluate((valor) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => valor });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, oculto);
+    await ocultar(true);
+    await page.clock.fastForward(30000); // mucho más que el tiempo de la pregunta: no debe caer
+    expect(await page.evaluate(() => document.querySelector('[data-vista="contrarreloj"]').hidden)).toBe(false);
+    await ocultar(false);
+    await expect(page.locator('[data-test="contrarreloj-numero"]')).toHaveText('3/10');
+    const despues = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id);
+    expect(despues).not.toBe(antes);
+    // Tiempo completo otra vez (≈ 10,7 s en la 3.ª): a los 9,5 s todavía no ha caído; a los 11,5 sí.
+    await page.clock.fastForward(9500);
+    expect(await page.evaluate(() => document.querySelector('[data-vista="contrarreloj"]').hidden)).toBe(false);
+    await page.clock.fastForward(2000);
+    await expect(page.locator('[data-vista="caida"]')).toBeVisible();
+  });
+
+  test('Contrarreloj: peor caso (enunciado largo) sin scroll y sin encoger la letra a 375×667', async ({ page }) => {
+    await page.addInitScript(() => { Math.random = () => 0.9999; }); // elige la última candidata (la inyectada)
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.setViewportSize({ width: 375, height: 667 });
+    const larga = 'Pregunta deliberadamente larga para comprobar que el enunciado cabe entero sobre la foto';
+    await page.evaluate((texto) => {
+      window.__one.inyectarPregunta({
+        id: 'zz-larga-cr', area: 'historia', tipo: 'test4', nivel: 5, enunciado: texto,
+        explicacion: texto, confianza: 1, generador: 'manual', verificador: 'manual', verificado: true,
+        opciones: ['Una opción bastante larga pero válida', 'Otra opción igual de larga que la 1', 'Tercera opción', 'Cuarta opción'], correcta: 0,
+      });
+      window.__one.arrancarModo('contrarreloj');
+    }, larga);
+    expect((await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj())).id).toBe('zz-larga-cr');
+    await assertSinScroll(page);
+    const medidas = await page.evaluate(() => {
+      const foto = document.querySelector('[data-test="foto-pregunta"]').getBoundingClientRect();
+      const nodo = document.querySelector('[data-test="foto-pregunta-enunciado"]');
+      const texto = nodo.getBoundingClientRect();
+      return {
+        cabe: texto.top >= foto.top - 1 && texto.bottom <= foto.bottom + 1,
+        fuente: getComputedStyle(nodo).fontSize,
+        opcion: getComputedStyle(document.querySelector('[data-test="contrarreloj-opcion-0"]')).fontSize,
+        fotoAlto: foto.height,
+      };
+    });
+    expect(medidas).toMatchObject({ cabe: true, fuente: '20px', opcion: '16px' });
+    expect(medidas.fotoAlto).toBeGreaterThan(100);
+  });
+});

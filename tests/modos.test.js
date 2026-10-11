@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MODOS, modoPorId, marcadorModo, esJugableDificil, NIVEL_MINIMO_DIFICIL } from '../modos.js';
 
-test('MODOS: los cinco modos en el orden de la rejilla; Clásico, Repaso y Órdago disponibles', () => {
+test('MODOS: los cinco modos en el orden de la rejilla; Clásico, Repaso, Órdago y Contrarreloj disponibles', () => {
   assert.deepEqual(MODOS.map((m) => m.id), ['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']);
-  assert.deepEqual(MODOS.filter((m) => m.disponible).map((m) => m.id), ['clasico', 'repaso', 'ordago']);
+  assert.deepEqual(MODOS.filter((m) => m.disponible).map((m) => m.id), ['clasico', 'repaso', 'ordago', 'contrarreloj']);
 });
 
 test('Más o menos filtra solo hasta el área; el resto, árbol completo', () => {

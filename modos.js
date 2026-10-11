@@ -40,7 +40,7 @@ export const MODOS = Object.freeze([
     }),
   }),
   Object.freeze({
-    id: 'contrarreloj', nombre: 'Contrarreloj', icono: '⏱️', disponible: false, nivelFiltro: 'arbol',
+    id: 'contrarreloj', nombre: 'Contrarreloj', icono: '⏱️', disponible: true, nivelFiltro: 'arbol',
     imagen: Object.freeze({
       url: `${COMMONS}/7/70/Wooden_hourglass_3.jpg/500px-Wooden_hourglass_3.jpg`,
       pagina: 'https://commons.wikimedia.org/wiki/File:Wooden_hourglass_3.jpg',

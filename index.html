@@ -147,6 +147,38 @@
       <button type="button" class="boton boton-principal" data-test="quiebra-fondo-nuevo">Abrir un fondo nuevo con 1.000</button>
     </section>
 
+    <!-- CONTRARRELOJ (v0.3 fase 6, spec §5.4): n/10, foto con el enunciado encima (foto-pregunta.js), barra de
+         tiempo y respuestas. Las monta contrarreloj-ui.js; «Has caído» y el cofre son vistas aparte. -->
+    <section class="vista vista-contrarreloj" data-vista="contrarreloj" data-test="contrarreloj" hidden>
+      <div class="contrarreloj-marcador">
+        <span class="contrarreloj-numero" data-test="contrarreloj-numero">1/10</span>
+        <span class="contrarreloj-fase" data-test="contrarreloj-fase" hidden>Doble o nada</span>
+      </div>
+      <div class="contrarreloj-foto" data-test="contrarreloj-foto"></div>
+      <div class="contrarreloj-pista" aria-hidden="true"><div class="barra-tiempo" data-test="contrarreloj-barra"></div></div>
+      <div class="contrarreloj-opciones" data-test="contrarreloj-opciones" role="group" aria-label="Respuestas"></div>
+    </section>
+
+    <!-- HAS CAÍDO (Contrarreloj, spec §5.4): la explicación de la pregunta que te tumbó. La esfinge triste va en la banda. -->
+    <section class="vista vista-caida" data-vista="caida" data-test="caida" hidden>
+      <h2 class="caida-titulo">Has caído</h2>
+      <p class="caida-resumen" data-test="caida-resumen"></p>
+      <p class="caida-explicacion" data-test="caida-explicacion"></p>
+      <button type="button" class="boton boton-principal" data-test="caida-reintentar">Volver a empezar</button>
+    </section>
+
+    <!-- COFRE (Contrarreloj, spec §5.4/§6): el objeto ganado con su rareza; doble o nada, plantarse o (tras el doble) recoger. -->
+    <section class="vista vista-cofre" data-vista="cofre" data-test="cofre" hidden>
+      <h2 class="cofre-titulo" data-test="cofre-titulo"></h2>
+      <div class="cofre-premio" data-test="cofre-premio"></div>
+      <p class="cofre-nota" data-test="cofre-nota"></p>
+      <div class="cofre-acciones">
+        <button type="button" class="boton boton-principal" data-test="cofre-doble">Doble o nada (6→4 s)</button>
+        <button type="button" class="boton" data-test="cofre-plantarse">Plantarse</button>
+        <button type="button" class="boton boton-principal" data-test="cofre-recoger" hidden>Recoger</button>
+      </div>
+    </section>
+
     <!-- ESPERA del Átomo (spec v0.2b2 §4): tarjeta a pantalla completa tras pulsar Generar, con el
          sondeo de /trabajo/:id corriendo en segundo plano (cada 5s, ver app.js) mientras el
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->
