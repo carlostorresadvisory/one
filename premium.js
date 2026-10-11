@@ -11,8 +11,8 @@ export const CLAVE_GENERADAS = 'one.premium.generadas';
 export const PUNTOS_BIENVENIDA = 1000;
 export const PUNTOS_MENSUALES = 500;
 export const TANDAS_GRATIS_AL_DIA = 1;
-export const PRECIO_MES = '3,99 €';
-export const PRECIO_ANIO = '24,99 €';
+export const PRECIO_MES = '2 €';
+export const PRECIO_ANIO = '15 €';
 
 const RE_DIA = /^\d{4}-\d{2}-\d{2}$/;
 const RE_MES = /^\d{4}-\d{2}$/;
