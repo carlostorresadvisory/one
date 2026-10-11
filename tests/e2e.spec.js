@@ -6408,17 +6408,18 @@ test.describe('ONE · v0.3 HUB de modos', () => {
     await expect(page.locator('[data-test="hub-modos"] > .hub-modo')).toHaveCount(6);
   });
 
-  test('Créditos: las 6 imágenes del hub con fuente, autor, licencia y enlace reales; cierra con Escape; cabe a 375×667', async ({ page }) => {
+  test('Créditos: las 6 imágenes del hub con fuente, autor y licencia (5 con enlace; Órdago es IA); cierra con Escape; cabe a 375×667', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto('/?ejemplo=1');
     await page.locator('[data-test="abrir-creditos"]').click();
     const hoja = page.locator('[data-test="creditos"]');
     await expect(hoja).toBeVisible();
     await expect(hoja.locator('li')).toHaveCount(6);
-    await expect(hoja.locator('a[href^="https://"]')).toHaveCount(6);
+    await expect(hoja.locator('a[href^="https://"]')).toHaveCount(5);
     await expect(hoja.locator('a[href^="https://commons.wikimedia.org/wiki/File:"]').first()).toHaveText('Commons · LitterART · CC BY-SA 4.0');
     await expect(hoja).toContainText('Openverse');
     await expect(hoja).toContainText('Tienda');
+    await expect(hoja).toContainText('Imagen generada con IA');
     const medidas = await hoja.evaluate((h) => ({ alto: h.scrollHeight, visible: h.clientHeight, arriba: h.getBoundingClientRect().top }));
     expect(medidas.alto).toBeLessThanOrEqual(medidas.visible + 2);
     expect(medidas.arriba).toBeGreaterThanOrEqual(0);
