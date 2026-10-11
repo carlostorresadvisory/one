@@ -10,6 +10,7 @@ const USER_AGENT = 'ONE-app/0.3 (aprendizaje personal; contacto via GitHub)';
 // OpenRouter con visión (catálogo del 6-oct; ver tools/buscar-imagenes.js para los descartados).
 export const MODELOS_VISION = [
   'gemini:gemini-flash-lite-latest',
+  'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
   'thinkingmachines/inkling-small:free',

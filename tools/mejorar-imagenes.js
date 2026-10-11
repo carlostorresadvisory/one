@@ -10,7 +10,7 @@
 //
 // Reanudable (`--continuar`): el progreso va en tmp/mejorar-imagenes.estado.json.
 // Uso: node --env-file=.env tools/mejorar-imagenes.js [--continuar] [--dry-run] [--limite N] [--ids a,b,c]
-//        [--sin-ia] [--area X]
+//        [--sin-ia] [--area X] [--cada K]   (--cada K: muestra representativa, una de cada K preguntas)
 // Solo datos públicos (cultura general + imágenes libres). Nunca lee ni imprime claves.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -50,7 +50,7 @@ export function decidirRama({ actual, marcadaMala = false, candidatasCommons, ca
 }
 
 function parsearArgs(argv) {
-  const a = { continuar: false, dryRun: false, limite: Infinity, ids: null, sinIa: false, area: null };
+  const a = { continuar: false, dryRun: false, limite: Infinity, ids: null, sinIa: false, area: null, cada: 1 };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--continuar') a.continuar = true;
     else if (argv[i] === '--dry-run') a.dryRun = true;
@@ -58,6 +58,7 @@ function parsearArgs(argv) {
     else if (argv[i] === '--limite') a.limite = Number(argv[++i]);
     else if (argv[i] === '--ids') a.ids = argv[++i].split(',');
     else if (argv[i] === '--area') a.area = argv[++i];
+    else if (argv[i] === '--cada') a.cada = Math.max(1, Number(argv[++i]) || 1);
   }
   return a;
 }
@@ -70,15 +71,15 @@ async function leerJson(ruta, defecto) {
   }
 }
 
-async function bajar(url) {
+export async function bajar(url) {
   const r = await fetch(url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(40000) });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return Buffer.from(await r.arrayBuffer());
 }
 
-const dataUrlWebp = (buffer) => `data:image/webp;base64,${buffer.toString('base64')}`;
+export const dataUrlWebp = (buffer) => `data:image/webp;base64,${buffer.toString('base64')}`;
 
-async function llamarTexto(mensajes, json = false) {
+export async function llamarTexto(mensajes, json = false) {
   const salida = await llamar({ modelos: MODELOS_TEXTO, mensajes, json, temperatura: 0.4, maxTokens: 1500, timeoutMs: 60000, reintentoMs: 2000 });
   return salida.texto;
 }
@@ -112,7 +113,7 @@ function sinRepetirUrls(lista, usadas) {
 }
 
 /** Candidatas de Commons (hasta 3 distintas) para los términos dados. */
-async function candidatasCommons(terminos, pregunta, usadas) {
+export async function candidatasCommons(terminos, pregunta, usadas) {
   const lista = [];
   for (const termino of terminos) {
     await esperar(PAUSA_COMMONS_MS);
@@ -125,14 +126,14 @@ async function candidatasCommons(terminos, pregunta, usadas) {
   return sinRepetirUrls(lista, usadas).slice(0, MAX_CANDIDATAS_POR_FUENTE);
 }
 
-async function candidatasBancos(terminos, pregunta, usadas) {
+export async function candidatasBancos(terminos, pregunta, usadas) {
   const lista = [];
   for (const termino of terminos) lista.push(...(await buscarEnBancos(termino, { area: pregunta.area })));
   return sinRepetirUrls(lista, usadas).slice(0, MAX_CANDIDATAS_POR_FUENTE);
 }
 
 /** Puntúa candidatas en orden y devuelve las que llegan a 4 (se detiene en la primera buena). */
-async function puntuarHastaBuena(candidatas, pregunta, estado) {
+export async function puntuarHastaBuena(candidatas, pregunta, estado) {
   const buenas = [];
   for (const c of candidatas) {
     let urlParaModelo = c.url;
@@ -150,7 +151,7 @@ async function puntuarHastaBuena(candidatas, pregunta, estado) {
         continue;
       }
     }
-    const r = await puntuarImagen({ url: urlParaModelo, pregunta });
+    const r = await puntuarConReintento({ url: urlParaModelo, pregunta });
     if (!r) {
       estado.fallosSeguidos += 1;
       continue;
@@ -169,7 +170,17 @@ async function puntuarHastaBuena(candidatas, pregunta, estado) {
   return buenas;
 }
 
-async function guardarWebp(carpeta, id, buffer) {
+export async function puntuarConReintento(datos) {
+  // Los modelos gratis limitan las peticiones por minuto: si todos fallan a la vez, se espera y se repite.
+  for (let ronda = 0; ronda < 3; ronda++) {
+    const r = await puntuarImagen(datos);
+    if (r) return r;
+    await esperar(20000);
+  }
+  return null;
+}
+
+export async function guardarWebp(carpeta, id, buffer) {
   await mkdir(carpeta, { recursive: true });
   await writeFile(`${carpeta}/${id}.webp`, buffer);
   return `${carpeta}/${id}.webp`;
@@ -203,7 +214,7 @@ async function mejorarUna(pregunta, ctx) {
 
   // Una imagen existente sin nota se puntúa primero.
   if (actual && actual.nota == null) {
-    const r = await puntuarImagen({ url: actual.url, pregunta });
+    const r = await puntuarConReintento({ url: actual.url, pregunta });
     if (!r) {
       estado.fallosSeguidos += 1;
       return { rama: 'sin-puntuar' };
@@ -247,7 +258,7 @@ async function mejorarUna(pregunta, ctx) {
       if (!g) return { rama: 'sin-imagen', motivo: 'la IA no devolvió imagen' };
       const webp = await aWebp(g.buffer);
       const url = await guardarWebp(DIR_IA, id, webp);
-      const r = await puntuarImagen({ url: dataUrlWebp(webp), pregunta });
+      const r = await puntuarConReintento({ url: dataUrlWebp(webp), pregunta });
       imagenes[id] = {
         id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA',
         leyenda: String(pregunta.enunciado).slice(0, 90), prompt, proveedor: g.proveedor,
@@ -274,7 +285,7 @@ async function guardarTodo(imagenes, estado) {
 async function main() {
   const args = parsearArgs(process.argv.slice(2));
   const banco = await leerJson(RUTA_BANCO, []);
-  const preguntas = (Array.isArray(banco) ? banco : banco.preguntas ?? []).filter((p) => (!args.area || p.area === args.area) && (!args.ids || args.ids.includes(p.id)));
+  const preguntas = (Array.isArray(banco) ? banco : banco.preguntas ?? []).filter((p, i) => (!args.area || p.area === args.area) && (!args.ids || args.ids.includes(p.id)) && i % args.cada === 0);
   const imagenes = await leerJson(RUTA_IMAGENES, {});
   const malas = new Set(await leerJson(RUTA_MALAS, []));
 
@@ -308,22 +319,25 @@ async function main() {
   await guardarTodo(imagenes, e);
 
   let n = 0;
-  for (const p of pendientes) {
-    if (e.fallosSeguidos >= 8) {
-      console.log('Los modelos de visión no responden (8 fallos seguidos): se para; lanza de nuevo con --continuar.');
-      break;
+  let siguiente = 0;
+  // Dos preguntas a la vez (los modelos gratis limitan las peticiones por minuto): el cuello de botella son las esperas de red, no la CPU.
+  async function trabajador() {
+    while (siguiente < pendientes.length && e.fallosSeguidos < 8) {
+      const p = pendientes[siguiente++];
+      try {
+        const r = await mejorarUna(p, ctx);
+        if (r.rama !== 'sin-puntuar') e.hechas[p.id] = { rama: r.rama, fuente: r.fuente ?? null, fecha: new Date().toISOString().slice(0, 10) };
+        const clave = r.rama === 'sin-puntuar' ? 'sin puntuar (se reintenta)' : r.rama === 'sin-imagen' ? (r.conservada ? 'pendiente (se queda la mediocre)' : 'sin imagen') : r.rama === 'mantener' ? 'mantenida' : `sustituida/nueva: ${r.fuente}`;
+        e.resumen[clave] = (e.resumen[clave] ?? 0) + 1;
+        console.log(`${p.id}: ${clave}`);
+      } catch (err) {
+        console.log(`${p.id}: ERROR ${err.message.slice(0, 120)}`);
+      }
+      if (++n % 10 === 0) await guardarTodo(imagenes, e);
     }
-    try {
-      const r = await mejorarUna(p, ctx);
-      if (r.rama !== 'sin-puntuar') e.hechas[p.id] = { rama: r.rama, fuente: r.fuente ?? null, fecha: new Date().toISOString().slice(0, 10) };
-      const clave = r.rama === 'sin-imagen' ? (r.conservada ? 'pendiente (se queda la mediocre)' : 'sin imagen') : r.rama === 'mantener' ? 'mantenida' : `sustituida/nueva: ${r.fuente}`;
-      e.resumen[clave] = (e.resumen[clave] ?? 0) + 1;
-      console.log(`${p.id}: ${clave}`);
-    } catch (err) {
-      console.log(`${p.id}: ERROR ${err.message.slice(0, 120)}`);
-    }
-    if (++n % 10 === 0) await guardarTodo(imagenes, e);
   }
+  await Promise.all([trabajador(), trabajador()]);
+  if (e.fallosSeguidos >= 8) console.log('Los modelos de visión no responden (8 fallos seguidos): se paró; lanza de nuevo con --continuar.');
   await guardarTodo(imagenes, e);
   console.log('\nResumen de esta ejecución (acumulado):', e.resumen);
   console.log('Cupo IA:', cupo.estadoHoy());
