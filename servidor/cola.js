@@ -24,6 +24,7 @@ const RETENCION_TERMINADOS_MS = 60 * 60 * 1000; // spec v0.2b4 §1: al menos 1 h
 const TERMINADOS_MAX = 500; // tope duro de memoria; solo entra en juego con 500 tandas en una hora
 const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
+export const TOPE_COLA_URGENTE = 4; // tandas urgentes en espera (sin contar la que corre): evita acaparar la cola
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
 const CERROJO_COLCHON = 'colchon.json';
 // v0.2b4.1 §5: cuántas preguntas se intentan completar en UNA pasada del trabajo de fondo. Un tope
@@ -649,6 +650,11 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
     // fondo se descartan (no se crean) si ya está llena. No afecta a los urgentes (un usuario
     // esperando su tanda no debería toparse con este límite).
     if (!urgente && colaFondo.length >= TOPE_COLA_FONDO) {
+      return null;
+    }
+    // Los urgentes tampoco son infinitos: sin tope, un cliente (o un bucle) podía llenar la cola de
+    // tandas que se saltan a las de fondo. `razonRechazo()` dice por qué se devolvió null.
+    if (urgente && colaUrgente.length >= TOPE_COLA_URGENTE) {
       return null;
     }
 

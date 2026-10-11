@@ -35,32 +35,70 @@ export async function escribirPrompt(pregunta, { llamarModelo }) {
 
 const diaDe = (fecha) => fecha.toISOString().slice(0, 10);
 
-/** Cupo diario persistido en `ruta` (JSON `{dia, n, gastoEur}`). El día lo da `ahora()`. */
+/**
+ * Cupo diario persistido en `ruta` (JSON `{dia, n, gastoEur}`). El día lo da `ahora()`.
+ * Nunca falla abierto: el contador vive también en memoria y `puede()` usa el mayor entre memoria y
+ * disco, así que si no se puede escribir (disco lleno, solo lectura) el tope se sigue respetando
+ * mientras el proceso viva. `reservar()` ocupa un hueco ANTES de llamar al proveedor (dos peticiones
+ * a la vez no pueden pasarse del tope) y `liberar()` lo devuelve si la llamada falla.
+ */
 export function crearCupo({ ruta, maxDia = 100, ahora = () => new Date() }) {
+  let mem = { dia: null, n: 0, gastoEur: 0 };
   function leer() {
     const hoy = diaDe(ahora());
+    if (mem.dia !== hoy) mem = { dia: hoy, n: 0, gastoEur: 0 };
     try {
       const e = JSON.parse(readFileSync(ruta, 'utf8'));
-      if (e && e.dia === hoy) return { dia: hoy, n: Number(e.n) || 0, gastoEur: Number(e.gastoEur) || 0 };
+      if (e && e.dia === hoy) {
+        mem.n = Math.max(mem.n, Number(e.n) || 0);
+        mem.gastoEur = Math.max(mem.gastoEur, Number(e.gastoEur) || 0);
+      }
     } catch {
-      // ausente o corrupto: se empieza de cero
+      // ausente o corrupto: manda lo que hay en memoria
     }
-    return { dia: hoy, n: 0, gastoEur: 0 };
+    return mem;
   }
+  function guardar(e, proveedor) {
+    try {
+      mkdirSync(dirname(ruta), { recursive: true });
+      writeFileSync(ruta, JSON.stringify({ dia: e.dia, n: e.n, gastoEur: e.gastoEur, ultimo: proveedor }));
+    } catch {
+      // sin disco no se persiste, pero el contador en memoria sigue mandando
+    }
+  }
+  const redondear = (x) => Math.round(x * 1e6) / 1e6;
   return {
     puede() {
       return leer().n < maxDia;
     },
+    /** Ocupa un hueco del cupo; `false` si ya no queda. */
+    reservar() {
+      const e = leer();
+      if (e.n >= maxDia) return false;
+      e.n += 1;
+      guardar(e, 'reserva');
+      return true;
+    },
+    /** Devuelve un hueco reservado (y el gasto cargado) cuando la llamada al proveedor falla. */
+    liberar(costeEur = 0) {
+      const e = leer();
+      e.n = Math.max(0, e.n - 1);
+      e.gastoEur = Math.max(0, redondear(e.gastoEur - Number(costeEur || 0)));
+      guardar(e, 'liberado');
+    },
+    /** Carga un gasto antes de llamar a un proveedor de pago; `false` si pasaría de `tope`. */
+    cargarGasto(costeEur, tope) {
+      const e = leer();
+      if (e.gastoEur + costeEur > tope) return false;
+      e.gastoEur = redondear(e.gastoEur + costeEur);
+      guardar(e, 'gasto');
+      return true;
+    },
     apuntar(proveedor, costeEur = 0) {
       const e = leer();
       e.n += 1;
-      e.gastoEur = Math.round((e.gastoEur + Number(costeEur || 0)) * 1e6) / 1e6;
-      try {
-        mkdirSync(dirname(ruta), { recursive: true });
-        writeFileSync(ruta, JSON.stringify({ ...e, ultimo: proveedor }));
-      } catch {
-        // sin disco no se persiste, pero tampoco se rompe la generación
-      }
+      e.gastoEur = redondear(e.gastoEur + Number(costeEur || 0));
+      guardar(e, proveedor);
     },
     estadoHoy() {
       const e = leer();
@@ -122,21 +160,24 @@ async function viaRunware(prompt, { fetchImpl, entorno }) {
   }
 }
 
-/** `{ buffer, proveedor } | null`. Nunca lanza. */
+/** `{ buffer, proveedor } | null`. Nunca lanza. Reserva el cupo antes de llamar y lo libera si falla. */
 export async function generarImagen(prompt, { fetchImpl = fetch, entorno = process.env, cupo, ahora = () => new Date() } = {}) {
   void ahora;
-  if (!prompt || !cupo.puede()) return null;
-  const cf = await viaCloudflare(prompt, { fetchImpl, entorno });
-  if (cf.estado === 'ok') {
-    cupo.apuntar('cloudflare', 0);
-    return { buffer: cf.buffer, proveedor: 'cloudflare' };
+  if (!prompt || !cupo.reservar()) return null;
+  try {
+    const cf = await viaCloudflare(prompt, { fetchImpl, entorno });
+    if (cf.estado === 'ok') return { buffer: cf.buffer, proveedor: 'cloudflare' };
+    if (cf.estado === 'cuota' && entorno.RUNWARE_API_KEY && cupo.cargarGasto(COSTE_RUNWARE_EUR, TOPE_DIA_EUR)) {
+      const buffer = await viaRunware(prompt, { fetchImpl, entorno });
+      if (buffer) return { buffer, proveedor: 'runware' };
+      cupo.liberar(COSTE_RUNWARE_EUR);
+      return null;
+    }
+  } catch {
+    // cae a liberar
   }
-  if (cf.estado !== 'cuota' || !entorno.RUNWARE_API_KEY) return null;
-  if (cupo.estadoHoy().gastoHoyEur + COSTE_RUNWARE_EUR > TOPE_DIA_EUR) return null;
-  const buffer = await viaRunware(prompt, { fetchImpl, entorno });
-  if (!buffer) return null;
-  cupo.apuntar('runware', COSTE_RUNWARE_EUR);
-  return { buffer, proveedor: 'runware' };
+  cupo.liberar();
+  return null;
 }
 
 /** WebP de como mucho 768 px y 80 KB (calidad 80 -> 50; si aún no cabe, baja el ancho). */

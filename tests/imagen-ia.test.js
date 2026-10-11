@@ -1,7 +1,7 @@
 // Imagen IA de último recurso (servidor/imagen-ia.js): sin red; fetch simulado.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -145,4 +145,41 @@ test('escribirPrompt: en arte (o historia/geografía con algo concreto) devuelve
   assert.equal(await escribirPrompt({ area: 'geografia', enunciado: 'El río Nilo desemboca en el Mediterráneo.', explicacion: '' }, { llamarModelo }), null);
   assert.equal(llamadas, 0);
   assert.equal(await generarImagen(null, { cupo: cupoEnMemoria({ maxDia: 5 }) }), null);
+});
+
+test('cupo: si no se puede escribir en disco, el contador sigue en memoria y puede() lo respeta', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cupo-'));
+  // la "ruta" cuelga de un fichero normal: mkdir/write fallan siempre
+  const ruta = join(dir, 'fichero', 'cupo.json');
+  writeFileSync(join(dir, 'fichero'), 'x');
+  const cupo = crearCupo({ ruta, maxDia: 2, ahora: () => DIA });
+  cupo.apuntar('cloudflare', 0);
+  cupo.apuntar('cloudflare', 0);
+  assert.equal(cupo.puede(), false);
+  assert.equal(cupo.reservar(), false);
+});
+
+test('generarImagen: reserva el cupo antes de llamar al proveedor (dos a la vez no pasan del tope)', async () => {
+  const cupo = cupoEnMemoria({ maxDia: 1 });
+  let enVuelo = 0;
+  const fetchImpl = async () => { enVuelo++; await new Promise((r) => setTimeout(r, 10)); return json(200, { result: { image: PNG_B64 } }); };
+  const [a, b] = await Promise.all([
+    generarImagen('p', { entorno: ENTORNO_CF, cupo, fetchImpl }),
+    generarImagen('p', { entorno: ENTORNO_CF, cupo, fetchImpl }),
+  ]);
+  assert.equal(enVuelo, 1);
+  assert.equal([a, b].filter(Boolean).length, 1);
+  assert.equal(cupo.estadoHoy().n, 1);
+});
+
+test('generarImagen: si la llamada falla, libera la reserva (y el gasto de Runware)', async () => {
+  const cupo = cupoEnMemoria();
+  assert.equal(await generarImagen('p', { entorno: ENTORNO_CF, cupo, fetchImpl: async () => json(500, {}) }), null);
+  assert.deepEqual(cupo.estadoHoy(), { dia: '2026-10-11', n: 0, gastoHoyEur: 0 });
+  const r = await generarImagen('p', {
+    entorno: ENTORNO_TODO, cupo,
+    fetchImpl: async (url) => (String(url).includes('cloudflare') ? json(429, {}) : json(500, {})),
+  });
+  assert.equal(r, null);
+  assert.deepEqual(cupo.estadoHoy(), { dia: '2026-10-11', n: 0, gastoHoyEur: 0 });
 });

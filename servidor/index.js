@@ -33,6 +33,7 @@ const HORA_NOCTURNA_INICIO = 2;
 const HORA_NOCTURNA_FIN = 7; // exclusivo: 7:00 en punto ya no cuenta como nocturno.
 const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
 const MAX_ESTADO_DEFECTO = 10;
+const N_MAX_GENERAR = 10; // preguntas máximas por POST /generar (el cliente pide 10: app.js#N_TANDA_ATOMO)
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
 const RUTA_MAX_ELEMENTOS = 6;
@@ -576,6 +577,11 @@ export function crearServidor({
       responderError(res, 400, 'Ruta inválida');
       return;
     }
+    // `n` lo pide el cliente (app.js#N_TANDA_ATOMO = 10): más de eso es un abuso, no una tanda.
+    if (Number.isInteger(cuerpo.n) && cuerpo.n > N_MAX_GENERAR) {
+      responderError(res, 400, `n no puede pasar de ${N_MAX_GENERAR}`);
+      return;
+    }
     const n = Number.isInteger(cuerpo.n) && cuerpo.n > 0 ? cuerpo.n : undefined;
     const urgente = !!cuerpo.urgente;
     const nivelObjetivo = Number.isInteger(cuerpo.nivelObjetivo) && cuerpo.nivelObjetivo >= 1 && cuerpo.nivelObjetivo <= 5
@@ -584,6 +590,10 @@ export function crearServidor({
 
     const resultado = cola.encolar({ area: cuerpo.area, ruta, n, urgente, nivelObjetivo });
     if (!resultado) {
+      if (urgente) {
+        responderError(res, 429, 'Hay demasiadas tandas en espera, inténtalo en un momento');
+        return;
+      }
       responderError(res, 503, 'La cola de fondo está llena, inténtalo más tarde');
       return;
     }
@@ -776,7 +786,11 @@ export function crearServidor({
       return;
     }
 
-    if (superaLimite(ipDePeticion(req))) {
+    // Las WebP públicas (/imagenes/*.webp) no cuentan para el límite por IP: una pantalla con fotos
+    // pide varias a la vez y agotaba el cupo de las peticiones de verdad. Su ruta ya está acotada
+    // (solo [\w-]{1,64}.webp, ver más abajo) y se sirve con caché.
+    const esImagenPublica = req.method === 'GET' && /^\/imagenes\/[\w-]{1,64}\.webp$/.test((req.url || '').split('?')[0]);
+    if (!esImagenPublica && superaLimite(ipDePeticion(req))) {
       responderError(res, 429, 'Demasiadas peticiones, inténtalo dentro de un minuto');
       return;
     }
@@ -822,7 +836,13 @@ export function crearServidor({
       return;
     }
     if (req.method === 'GET' && ruta.startsWith('/trabajo/')) {
-      const id = decodeURIComponent(ruta.slice('/trabajo/'.length));
+      let id;
+      try {
+        id = decodeURIComponent(ruta.slice('/trabajo/'.length));
+      } catch {
+        responderError(res, 400, 'Identificador de trabajo inválido');
+        return;
+      }
       if (!id) {
         responderError(res, 404, 'Trabajo no encontrado');
         return;

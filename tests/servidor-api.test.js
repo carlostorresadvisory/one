@@ -1438,3 +1438,61 @@ test('GET /imagenes/<id>.webp es público (sin token), sirve la WebP y rechaza n
     await cerrar();
   }
 });
+
+// === Revisión de expertos (11-oct-2026): topes y entradas malformadas ==========================
+
+test('POST /generar: n por encima del máximo responde 400', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 11 }) });
+    assert.equal(resp.status, 400);
+    const ok = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 10 }) });
+    assert.equal(ok.status, 200);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('POST /generar: más de 4 urgentes en espera responde 429', async () => {
+  let soltar;
+  const bloqueo = new Promise((r) => { soltar = r; });
+  const { base, cerrar } = await crearServidorDePrueba({ producirTanda: async ({ area, n }) => { await bloqueo; return resultadoOk(area, n, n); } });
+  try {
+    const estados = [];
+    for (let i = 0; i < 7; i++) {
+      const r = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 1, urgente: true }) });
+      estados.push(r.status);
+      await r.text();
+    }
+    assert.ok(estados.includes(429), `estados: ${estados}`);
+    assert.equal(estados.filter((e) => e === 200).length, 5, 'una en curso + 4 en espera');
+  } finally {
+    soltar();
+    await cerrar();
+  }
+});
+
+test('GET /trabajo/%: URI malformada responde 400, no 500', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    const resp = await fetch(`${base}/trabajo/%E0%A4%A`, { headers: cabeceras() });
+    assert.equal(resp.status, 400);
+  } finally {
+    await cerrar();
+  }
+});
+
+test('las imágenes públicas /imagenes/*.webp no cuentan para el límite de 60 peticiones por IP', async () => {
+  const { base, cerrar } = await crearServidorDePrueba();
+  try {
+    for (let i = 0; i < 80; i++) {
+      const r = await fetch(`${base}/imagenes/abc.webp`);
+      await r.text();
+      assert.equal(r.status, 404, `petición ${i}`);
+    }
+    const r = await fetch(`${base}/salud`);
+    assert.equal(r.status, 200, 'el límite de las demás rutas sigue intacto');
+  } finally {
+    await cerrar();
+  }
+});
