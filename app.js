@@ -17,7 +17,7 @@ import {
   AREAS,
 } from './motor.js';
 import { construirVisual, esVisualImprescindible, medirAncho } from './visuales.js';
-import { creditoTexto, cargarImagenesMalas, guardarImagenesMalas, esImagenValida, esPaginaSegura } from './foto-pregunta.js';
+import { creditoTexto, reintentarImagen, cargarImagenesMalas, guardarImagenesMalas, esImagenValida, esPaginaSegura } from './foto-pregunta.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
   guardarConfiguracionDesdeUrl,
@@ -3369,7 +3369,7 @@ function construirBloqueImagen(pregunta) {
   // Imagen rota (404, sin red...): nunca un hueco. Cae al color del área (o, si la pregunta lleva
   // una fórmula imprescindible, a ella: construirBloqueSinImagen) y se recalcula el encaje porque
   // el alto disponible cambia.
-  img.addEventListener('error', () => {
+  reintentarImagen(img, () => {
     const tarjeta = zona.closest('.tarjeta');
     const contenido = tarjeta ? tarjeta.querySelector('.tarjeta-contenido') : null;
     const respaldo = construirBloqueSinImagen(pregunta);

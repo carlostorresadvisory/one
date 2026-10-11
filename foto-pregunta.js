@@ -44,6 +44,25 @@ export function creditoTexto(imagen) {
   return [fuente, exigeAutor && autor.toLowerCase() !== fuente.toLowerCase() ? autor : '', licencia].filter(Boolean).join(' · ');
 }
 
+export const ESPERA_REINTENTO_IMAGEN_MS = 1500;
+
+/** Ante el primer `error` de una imagen (429/503 de un origen ajeno, red que parpadea) reintenta UNA vez a los
+ * 1,5 s con un parámetro de caché distinto (el navegador no reutiliza el fallo); si falla otra vez, `alFallar()`. */
+export function reintentarImagen(img, alFallar, programar = (fn, ms) => globalThis.setTimeout(fn, ms)) {
+  let reintentada = false;
+  img.addEventListener('error', () => {
+    if (reintentada) {
+      alFallar();
+      return;
+    }
+    reintentada = true;
+    const url = String(img.src);
+    programar(() => {
+      img.src = `${url}${url.includes('?') ? '&' : '?'}reintento=1`;
+    }, ESPERA_REINTENTO_IMAGEN_MS);
+  });
+}
+
 function crear(documento, etiqueta, clase) {
   const nodo = documento.createElement(etiqueta);
   nodo.className = clase;
@@ -68,7 +87,7 @@ export function montarFotoPregunta(contenedor, { enunciado, imagen, area, dorada
     img.referrerPolicy = 'no-referrer';
     img.src = imagen.url;
     // Si no carga, se quita (y con ella su crédito): queda el color del área, nunca un hueco.
-    img.addEventListener('error', () => {
+    reintentarImagen(img, () => {
       img.remove();
       if (credito) credito.remove();
     });

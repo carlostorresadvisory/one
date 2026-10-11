@@ -48,15 +48,20 @@ const AVATAR_GESTOS = [
 
 // Fotos de las preguntas: NO se precachean ni van en la caché del núcleo. Se guardan al verlas en una caché
 // APARTE (`one-fotos`), fuera del techo de ≈ 5 MB del núcleo (tests/sw.test.js lo vigila: 4,39 MiB medidos el
-// 11-oct-2026, con las fotos del hub), y se acota por bytes (3 MB): al pasarse se borran las más antiguas.
+// 11-oct-2026, con las fotos del hub), y se acota (120 fotos u 8 MB): al pasarse se borran las más antiguas.
 // Esa caché NO se borra al subir la versión del núcleo (`activate`): las fotos no cambian con la app.
 // Son fotos las de las carpetas propias (imagenes-ia/, imagenes-banco/; las del hub van en el precaché), las WebP del servidor
 // (/imagenes/<id>.webp) y las de Commons (upload.wikimedia.org). Estas dos últimas son de otro origen: un `<img>`
 // las pide sin CORS (respuesta opaca, que el navegador cuenta con ~7 MB de relleno cada una), así que el SW las
 // vuelve a pedir con CORS (Commons lo permite) para guardar una respuesta normal; si el origen no lo permite, la
-// foto se enseña igual pero sin guardarla.
+// foto se enseña igual pero sin guardarla. Ante un 429/503 de un origen ajeno se reintenta UNA vez tras `Retry-After`
+// (máx. 2 s; sin cabecera, 1 s) y las peticiones a Commons van en cola de 2 a la vez (límite de ritmo de Wikimedia).
 const CACHE_FOTOS = 'one-fotos';
-const MAX_BYTES_FOTOS = 3 * 1024 * 1024;
+const MAX_BYTES_FOTOS = 8 * 1024 * 1024;
+const MAX_NUM_FOTOS = 120;
+const MAX_ESPERA_REINTENTO_MS = 2000;
+const ESPERA_REINTENTO_DEFECTO_MS = 1000;
+const MAX_SIMULTANEAS_COMMONS = 2;
 const CARPETAS_FOTOS = ['/imagenes-ia/', '/imagenes-banco/'];
 const HOSTS_FOTOS = ['upload.wikimedia.org'];
 
@@ -70,11 +75,46 @@ function esFoto(url, peticion) {
 async function acotarFotos(cache) {
   const claves = await cache.keys();
   let total = 0;
+  let cuenta = 0;
   // De la más nueva a la más antigua: se conservan las recientes mientras quepan.
   for (const clave of claves.reverse()) {
     const respuesta = await cache.match(clave);
     total += respuesta ? (await respuesta.blob()).size : 0;
-    if (total > MAX_BYTES_FOTOS) await cache.delete(clave);
+    cuenta += 1;
+    if (total > MAX_BYTES_FOTOS || cuenta > MAX_NUM_FOTOS) await cache.delete(clave);
+  }
+}
+
+function esperaReintento(respuesta) {
+  const segundos = Number(respuesta.headers.get('Retry-After'));
+  const ms = Number.isFinite(segundos) && respuesta.headers.get('Retry-After') !== null && respuesta.headers.get('Retry-After') !== ''
+    ? segundos * 1000
+    : ESPERA_REINTENTO_DEFECTO_MS;
+  return Math.min(Math.max(ms, 0), MAX_ESPERA_REINTENTO_MS);
+}
+
+// Un 429/503 de un origen ajeno suele ser pasajero: una sola repetición tras la espera que pida el servidor.
+async function conReintento(pedir) {
+  const respuesta = await pedir();
+  if (respuesta && (respuesta.status === 429 || respuesta.status === 503)) {
+    await new Promise((resolver) => setTimeout(resolver, esperaReintento(respuesta)));
+    return pedir();
+  }
+  return respuesta;
+}
+
+// Cola de como mucho 2 peticiones a la vez para Commons.
+let activasCommons = 0;
+const esperandoCommons = [];
+async function enColaCommons(tarea) {
+  if (activasCommons >= MAX_SIMULTANEAS_COMMONS) await new Promise((resolver) => esperandoCommons.push(resolver));
+  activasCommons += 1;
+  try {
+    return await tarea();
+  } finally {
+    activasCommons -= 1;
+    const siguiente = esperandoCommons.shift();
+    if (siguiente) siguiente();
   }
 }
 
@@ -84,19 +124,23 @@ async function responderFoto(peticion, url) {
   const guardada = await fotos.match(peticion.url);
   if (guardada) return guardada;
   const propia = url.origin === self.location.origin;
-  let respuesta = null;
-  try {
-    respuesta = await (propia ? fetch(peticion) : fetch(peticion.url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' }));
-  } catch {
-    respuesta = null;
-  }
-  if (!respuesta && !propia) {
+  const traer = async () => {
+    let r = null;
     try {
-      respuesta = await fetch(peticion); // CORS denegado o red caída: se enseña (opaca) sin guardar
+      r = await (propia ? fetch(peticion) : conReintento(() => fetch(peticion.url, { mode: 'cors', credentials: 'omit', referrerPolicy: 'no-referrer' })));
     } catch {
-      respuesta = null;
+      r = null;
     }
-  }
+    if (!r && !propia) {
+      try {
+        r = await fetch(peticion); // CORS denegado o red caída: se enseña (opaca) sin guardar
+      } catch {
+        r = null;
+      }
+    }
+    return r;
+  };
+  const respuesta = HOSTS_FOTOS.includes(url.hostname) ? await enColaCommons(traer) : await traer();
   if (!respuesta) return new Response('Sin conexión y sin copia local', { status: 503, statusText: 'Sin conexión' });
   if (respuesta.ok && respuesta.type !== 'opaque') {
     fotos.put(peticion.url, respuesta.clone()).then(() => acotarFotos(fotos)).catch(() => {});

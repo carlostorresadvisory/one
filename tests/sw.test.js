@@ -71,7 +71,8 @@ test('sw: las fotos de preguntas no se precachean (van a una caché aparte con t
   assert.ok(lista('SECUNDARIOS').includes('datos/imagenes.json'));
   assert.match(sw, /CACHE_FOTOS = 'one-fotos'/);
   assert.doesNotMatch(sw, /MAX_FOTOS/);
-  assert.match(sw, /MAX_BYTES_FOTOS = 3 \* 1024 \* 1024;/);
+  assert.match(sw, /MAX_BYTES_FOTOS = 8 \* 1024 \* 1024;/);
+  assert.match(sw, /MAX_NUM_FOTOS = 120;/);
   assert.doesNotMatch(sw, /MAX_BYTES_IMAGENES|256 \* 1024|acotarImagenes/, 'el tope de 256 KB y su caché compartida ya no existen');
 });
 
@@ -92,6 +93,7 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   };
   const manejadores = {};
   const llamadas = [];
+  const esperas = [];
   const caches = {
     open: async (n) => abrir(n),
     keys: async () => [...almacenes.keys()],
@@ -100,6 +102,7 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   const contexto = vm.createContext({
     self: { addEventListener: (t, f) => { manejadores[t] = f; }, location: { origin: 'https://x' }, skipWaiting() {}, clients: { claim() {} } },
     URL, Request, Response, caches,
+    setTimeout: (fn, ms) => { esperas.push(ms); return setTimeout(fn, 0); },
     fetch: async (r, opciones) => { llamadas.push([typeof r === 'string' ? r : r.url, opciones]); return red(r, opciones); },
   });
   vm.runInContext(sw, contexto);
@@ -111,10 +114,10 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
     return promesa;
   };
   const pausa = () => new Promise((r) => setTimeout(r, 20));
-  return { vm, contexto, almacenes, abrir, manejadores, llamadas, pedir, pausa };
+  return { vm, contexto, almacenes, abrir, manejadores, llamadas, esperas, pedir, pausa };
 }
 
-test('sw: acotarFotos borra las más antiguas hasta que caben en 3 MB', async () => {
+test('sw: acotarFotos borra las más antiguas hasta que caben en el tope de bytes', async () => {
   const { abrir, vm, contexto } = await montarSw();
   const cache = abrir('x');
   const tope = vm.runInContext('MAX_BYTES_FOTOS', contexto);
@@ -165,4 +168,55 @@ test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fot
   sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
   await terminado;
   assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v32']);
+});
+
+test('sw: acotarFotos conserva como mucho 120 fotos (las más nuevas)', async () => {
+  const { abrir, vm, contexto } = await montarSw();
+  const cache = abrir('x');
+  for (let n = 0; n < 125; n += 1) cache.datos.set(`https://x/imagenes-banco/${n}.webp`, new Uint8Array(10));
+  await vm.runInContext('acotarFotos', contexto)(cache);
+  assert.equal(cache.datos.size, 120);
+  assert.ok(!cache.datos.has('https://x/imagenes-banco/0.webp') && cache.datos.has('https://x/imagenes-banco/124.webp'));
+});
+
+const COMMONS_URL = 'https://upload.wikimedia.org/wikipedia/commons/a/ab/Foto.jpg';
+
+test('sw: un 429 de Commons espera el Retry-After (máx. 2 s) y la segunda respuesta 200 se sirve y se guarda', async () => {
+  let n = 0;
+  const sim = await montarSw({ red: async () => (++n === 1 ? new Response('x', { status: 429, headers: { 'Retry-After': '1' } }) : new Response(new Uint8Array(10))) });
+  const respuesta = await sim.pedir(COMMONS_URL);
+  assert.equal(respuesta.status, 200);
+  assert.deepEqual(sim.esperas, [1000]);
+  await sim.pausa();
+  assert.ok(sim.almacenes.get('one-fotos').has(COMMONS_URL));
+});
+
+test('sw: un 503 sin Retry-After espera 1 s; un Retry-After enorme se acota a 2 s', async () => {
+  let n = 0;
+  const sin = await montarSw({ red: async () => (++n === 1 ? new Response('x', { status: 503 }) : new Response(new Uint8Array(10))) });
+  assert.equal((await sin.pedir('https://servidor.ejemplo/imagenes/a-1.webp')).status, 200);
+  assert.deepEqual(sin.esperas, [1000]);
+  let m = 0;
+  const larga = await montarSw({ red: async () => (++m === 1 ? new Response('x', { status: 429, headers: { 'Retry-After': '120' } }) : new Response(new Uint8Array(10))) });
+  await larga.pedir(COMMONS_URL);
+  assert.deepEqual(larga.esperas, [2000]);
+});
+
+test('sw: dos 429 seguidos devuelven el error (un solo reintento) y no se guarda', async () => {
+  const sim = await montarSw({ red: async () => new Response('x', { status: 429, headers: { 'Retry-After': '0' } }) });
+  const respuesta = await sim.pedir(COMMONS_URL);
+  assert.equal(respuesta.status, 429);
+  assert.equal(sim.llamadas.length, 2);
+  await sim.pausa();
+  assert.ok(!sim.almacenes.get('one-fotos')?.has(COMMONS_URL));
+});
+
+test('sw: las peticiones a Commons van en cola de 2 a la vez', async () => {
+  let activas = 0;
+  let maximo = 0;
+  const sim = await montarSw({ red: async () => { activas += 1; maximo = Math.max(maximo, activas); await new Promise((r) => setTimeout(r, 10)); activas -= 1; return new Response(new Uint8Array(10)); } });
+  const respuestas = await Promise.all([1, 2, 3, 4, 5].map((i) => sim.pedir(`https://upload.wikimedia.org/wikipedia/commons/a/ab/F${i}.jpg`)));
+  assert.ok(respuestas.every((r) => r.status === 200));
+  assert.equal(maximo, 2);
+  assert.equal(sim.llamadas.length, 5);
 });

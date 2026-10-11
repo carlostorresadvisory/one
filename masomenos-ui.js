@@ -14,7 +14,7 @@ import {
   cargarMasomenos, guardarMasomenos,
 } from './masomenos.js';
 import { montarEscenaFotos, montarLineaTemporal } from './escala.js';
-import { montarFotoPregunta, creditoTexto } from './foto-pregunta.js';
+import { montarFotoPregunta, creditoTexto, reintentarImagen } from './foto-pregunta.js';
 import { contarCifra, pintarLlama } from './efectos.js';
 import { sortearObjeto, OBJETOS, cargarMochila } from './mochila.js';
 import { montarComodines, gastarComodin } from './comodines-ui.js';
@@ -238,7 +238,7 @@ export function montarMasomenos(contenedor, deps) {
       img.decoding = 'async';
       img.referrerPolicy = 'no-referrer';
       img.src = cifra.imagen.url;
-      img.addEventListener('error', () => { img.remove(); if (credito) credito.remove(); });
+      reintentarImagen(img, () => { img.remove(); if (credito) credito.remove(); });
       raiz.appendChild(img);
       const texto = creditoTexto(cifra.imagen);
       if (texto) {

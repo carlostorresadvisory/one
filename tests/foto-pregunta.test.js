@@ -1,7 +1,7 @@
 // Tests de foto-pregunta.js (spec v0.3 §4): crédito real, color del área sin emoji y brillo dorado.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { creditoTexto, esImagenValida, esPaginaSegura, montarFotoPregunta, cargarImagenesMalas, guardarImagenesMalas, CLAVE_IMAGENES_MALAS } from '../foto-pregunta.js';
+import { reintentarImagen, creditoTexto, esImagenValida, esPaginaSegura, montarFotoPregunta, cargarImagenesMalas, guardarImagenesMalas, CLAVE_IMAGENES_MALAS } from '../foto-pregunta.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 import { instalarDomFalso } from './dom-falso.js';
 
@@ -58,7 +58,21 @@ test('el enunciado va encima de la foto, con su crédito', () => {
 test('una imagen que no carga se quita con su crédito; queda el color del área y ningún emoji', () => {
   const { contenedor, raiz, desinstalar } = montar({ imagen: COMMONS });
   try {
-    raiz.buscarPorClase('foto-pregunta-imagen').disparar('error');
+    const img = raiz.buscarPorClase('foto-pregunta-imagen');
+    const original = globalThis.setTimeout;
+    const pendientes = [];
+    globalThis.setTimeout = (fn, ms) => { pendientes.push([fn, ms]); return 0; };
+    try {
+      img.disparar('error');
+      assert.equal(pendientes.length, 1, 'primer fallo: reintento programado, la imagen sigue');
+      assert.equal(pendientes[0][1], 1500);
+      assert.ok(raiz.buscarPorClase('foto-pregunta-imagen'));
+      pendientes[0][0]();
+      assert.match(img.src, /\?reintento=1$/);
+    } finally {
+      globalThis.setTimeout = original;
+    }
+    img.disparar('error');
     assert.equal(raiz.buscarPorClase('foto-pregunta-imagen'), null);
     assert.equal(raiz.buscarPorClase('foto-pregunta-credito'), null);
     assert.equal(contenedor.children.length, 1);
@@ -67,6 +81,21 @@ test('una imagen que no carga se quita con su crédito; queda el color del área
   } finally {
     desinstalar();
   }
+});
+
+test('reintentarImagen: un solo reintento con parámetro nuevo (& si ya hay query) y luego alFallar', () => {
+  const img = { src: 'https://h/a.webp?x=1', _o: [], addEventListener(t, f) { this._o.push(f); } };
+  const cola = [];
+  let fallos = 0;
+  reintentarImagen(img, () => { fallos += 1; }, (fn, ms) => cola.push([fn, ms]));
+  img._o[0]();
+  assert.deepEqual(cola.map((c) => c[1]), [1500]);
+  assert.equal(fallos, 0);
+  cola[0][0]();
+  assert.equal(img.src, 'https://h/a.webp?x=1&reintento=1');
+  img._o[0]();
+  assert.equal(fallos, 1);
+  assert.equal(cola.length, 1, 'no hay segundo reintento');
 });
 
 test('sin imagen no hay <img> ni crédito, y tampoco emoji', () => {
