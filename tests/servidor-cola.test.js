@@ -1199,13 +1199,13 @@ test('v0.2b4.1 §5: la cola completa las imágenes pendientes del colchón y mar
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
     { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
-    { ...aprobada('historia', 2, { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, imagenPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('historia', 2, { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 }, imagenPendiente: false }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
 
   const pedidas = [];
   const completarImagenFalso = async (pregunta) => {
     pedidas.push(pregunta.id);
-    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
 
   const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0), completarImagen: completarImagenFalso });
@@ -1255,7 +1255,7 @@ test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const base = { servida: '2026-09-15T09:00:00.000Z', creada: '2026-09-15T08:00:00.000Z' };
-  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 } };
+  const conocida = { ...aprobada('economia', 1), ...base, id: 'srv-eco-conocida', actualizadaEn: '2026-09-15T10:00:00.000Z', imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 } };
   const vieja = { ...aprobada('economia', 2), ...base, id: 'srv-eco-vieja', actualizadaEn: '2026-09-15T08:30:00.000Z' };
   const desconocida = { ...aprobada('economia', 3), ...base, id: 'srv-eco-ajena', actualizadaEn: '2026-09-15T10:00:00.000Z' };
   const sinMarca = { ...aprobada('economia', 4), ...base, id: 'srv-eco-sinmarca' };
@@ -1268,7 +1268,7 @@ test('v0.2b4.1 §5: `actualizadas` devuelve solo lo que el móvil YA conoce y ha
   });
 
   assert.deepEqual(salida.map((p) => p.id), ['srv-eco-conocida']);
-  assert.deepEqual(salida[0].imagen, { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 });
+  assert.deepEqual(salida[0].imagen, { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 });
   assert.equal(typeof salida[0].explicacion, 'string');
   assert.equal(salida[0].enunciado, undefined, 'solo lo que puede haber cambiado, no la pregunta entera');
 });
@@ -1332,7 +1332,7 @@ test('v0.2b4.1 §5: un trabajo que llega MIENTRAS se completan imágenes pendien
   const completarImagenFalso = async (pregunta) => {
     empezoCompletar = true;
     await enEspera;
-    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
 
   const cola = crearCola({
@@ -1386,7 +1386,7 @@ test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de imágenes se 
       cola.encolar({ area: 'historia', n: 1, urgente: true });
       await enEspera; // no deja avanzar a la 2ª pendiente hasta que el test lo permita
     }
-    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
+    return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 }, explicacion: pregunta.explicacion, coste: 0 };
   };
   const producirTandaFalso = async ({ area, n }) => {
     if (area === 'historia') eventos.push('urgente:historia');
@@ -1442,6 +1442,41 @@ test('v0.2b4.1 §5 (I2): tras 3 pasadas fallidas, la pregunta deja de estar pend
   assert.equal(resultado.completadas, 0);
   assert.equal(resultado.pendientes, 0);
   assert.deepEqual(await almacen.leerColchon(), antes);
+});
+
+// I1/I4 (fase 7): un fallo técnico no gasta intento; una imagen sin licencia/autor válidos no se guarda.
+test('fase 7 (I1): un fallo técnico de la imagen no gasta intentos: tras 5 pasadas sigue pendiente', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async (p) => ({ imagen: null, tecnico: true, explicacion: p.explicacion, coste: 0 }),
+  });
+  for (let i = 0; i < 5; i++) await cola.completarImagenesPendientes();
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagenPendiente, true);
+  assert.ok(!p.intentosImagen);
+});
+
+test('fase 7 (I4): una imagen CC BY sin autor no se guarda en la pregunta (cuenta como intento fallido)', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+  ]);
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async (p) => ({ imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'CC BY 4.0', autor: '', nota: 5 }, explicacion: p.explicacion, coste: 0 }),
+  });
+  await cola.completarImagenesPendientes();
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagen, null);
+  assert.equal(p.intentosImagen, 1);
 });
 
 // I2 (rotación): con más pendientes que el tope de una pasada, las que se quedaron fuera (y las
@@ -1500,7 +1535,7 @@ test('v0.2b4.1 §5 (Minor): completarImagenesPendientes() reentrante devuelve un
     completarImagen: async (p) => {
       entro = true;
       await enEspera;
-      return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 }, explicacion: p.explicacion, coste: 0 };
+      return { imagen: { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 }, explicacion: p.explicacion, coste: 0 };
     },
   });
 
@@ -1521,7 +1556,7 @@ test('reportarImagenMala: la pregunta se queda, sin imagen, pendiente, con la im
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(5) });
-  const imagen = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', nota: 5 };
+  const imagen = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 };
   await almacen.guardarColchon([{ id: 'srv-eco-1', area: 'economia', imagen, creada: '2026-01-01T00:00:00.000Z', servida: null, intentosImagen: 2 }]);
 
   await cola.reportarImagenMala('srv-eco-1');

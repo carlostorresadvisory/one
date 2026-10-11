@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v26';
+const CACHE = 'one-v27';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -39,14 +39,22 @@ const AVATAR_GESTOS = [
 ];
 
 // Imágenes del banco (imagenes-ia/, imagenes-banco/, imagenes-hub/): NO se precachean; el `fetch` de
-// abajo las guarda al verlas (cualquier GET del mismo origen) y esto acota cuántas se conservan para
-// que la caché no crezca sin fin: al pasar de MAX_IMAGENES_CACHE se borran las más antiguas.
+// abajo las guarda al verlas (cualquier GET del mismo origen) y esto acota cuántos BYTES se conservan
+// (no cuántas son): al pasarse de MAX_BYTES_IMAGENES se borran las más antiguas. Tope medido el
+// 11-oct-2026: núcleo + secundarios + avatar con sus 6 gestos = 4,72 MB y la app se compromete a no
+// pasar de 5 MB en total, así que a las imágenes les quedan 256 KB (tests/sw.test.js lo vigila).
 const CARPETAS_IMAGENES = ['/imagenes-ia/', '/imagenes-banco/', '/imagenes-hub/'];
-const MAX_IMAGENES_CACHE = 120;
+const MAX_BYTES_IMAGENES = 256 * 1024;
 
 async function acotarImagenes(cache) {
   const claves = (await cache.keys()).filter((r) => CARPETAS_IMAGENES.some((c) => new URL(r.url).pathname.includes(c)));
-  for (const clave of claves.slice(0, Math.max(0, claves.length - MAX_IMAGENES_CACHE))) await cache.delete(clave);
+  let total = 0;
+  // De la más nueva a la más antigua: se conservan las recientes mientras quepan.
+  for (const clave of claves.reverse()) {
+    const respuesta = await cache.match(clave);
+    total += respuesta ? (await respuesta.blob()).size : 0;
+    if (total > MAX_BYTES_IMAGENES) await cache.delete(clave);
+  }
 }
 
 self.addEventListener('install', (evento) => {

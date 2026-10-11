@@ -157,6 +157,10 @@ export function validarImagenes(banco, imagenes) {
     if (img.fuente !== 'IA' && !licenciaImagenPermitida(img.licencia)) {
       errores.push(`imagenes.json[${id}]: licencia no permitida: ${img.licencia}`);
     }
+    // CC BY y CC BY-SA obligan a nombrar al autor: sin él la imagen no se puede enseñar.
+    if (img.fuente !== 'IA' && /^cc[\s-]?by/i.test(String(img.licencia ?? '').trim()) && !esTexto(img.autor)) {
+      errores.push(`imagenes.json[${id}]: licencia ${img.licencia} sin autor`);
+    }
     if (!esTexto(img.titulo)) avisos.push(`imagenes.json[${id}]: falta titulo`);
     if (!esTexto(img.pagina)) avisos.push(`imagenes.json[${id}]: falta pagina (enlace a Commons)`);
   }

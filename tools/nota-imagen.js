@@ -3,6 +3,7 @@
 // Datos públicos (imágenes con licencia libre y preguntas de cultura general): se pueden mandar a
 // modelos gratis. Nunca lee ni imprime claves.
 import { llamar, extraerJson } from './openrouter.js';
+import { descargarAcotado } from '../servidor/politica-imagen.js';
 
 const USER_AGENT = 'ONE-app/0.3 (aprendizaje personal; contacto via GitHub)';
 
@@ -21,7 +22,10 @@ export const PROMPT_NOTA =
   'al ojo (protagonista claro, mucho color, encuadre cercano) y tiene que ver con la pregunta; ' +
   '4 = buena; 3 = correcta pero sosa; 2 = mapa descolorido, documento escaneado, foto pequeña o borrosa, ' +
   'esquema; 1 = irrelevante o inservible. Importa que la imagen NO revele la respuesta (texto, ' +
-  'rótulos o etiqueta que la digan = nota 1-2). Responde SOLO JSON: {"nota": 1-5, "motivo": "frase corta"}.';
+  'rótulos o etiqueta que la digan = nota 1-2). Nota MÁXIMA 2 para: capturas de pantalla o de una web, ' +
+  'imágenes con texto, rótulos o logotipos protagonistas, y toda imagen que MUESTRE la respuesta ' +
+  '(si la pregunta pide identificar una obra, persona, lugar u objeto y la imagen es justo eso). ' +
+  'Sé exigente: ante la duda, una nota menos. Responde SOLO JSON: {"nota": 1-5, "motivo": "frase corta"}.';
 
 export function esBuena(nota) {
   return Number.isFinite(nota) && nota >= 4;
@@ -56,6 +60,13 @@ function textoPregunta(pregunta) {
     .join('\n');
 }
 
+function tipoPorBytes(buf) {
+  if (buf[0] === 0x89 && buf[1] === 0x50) return 'image/png';
+  if (buf[0] === 0x52 && buf[1] === 0x49) return 'image/webp';
+  if (buf[0] === 0x47 && buf[1] === 0x49) return 'image/gif';
+  return 'image/jpeg';
+}
+
 // Llamada real a un único modelo. Gemini no baja imágenes por URL: se le manda en base64.
 async function llamarModeloReal({ modelo, mensajes }) {
   let enviados = mensajes;
@@ -66,10 +77,9 @@ async function llamarModeloReal({ modelo, mensajes }) {
         const content = await Promise.all(
           m.content.map(async (parte) => {
             if (parte.type !== 'image_url' || parte.image_url.url.startsWith('data:')) return parte;
-            const r = await fetch(parte.image_url.url, { headers: { 'User-Agent': USER_AGENT } });
-            if (!r.ok) throw new Error(`no se pudo bajar la imagen (HTTP ${r.status})`);
-            const tipo = (r.headers.get('content-type') || 'image/jpeg').split(';')[0];
-            return { type: 'image_url', image_url: { url: `data:${tipo};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}` } };
+            const buf = await descargarAcotado(parte.image_url.url, { userAgent: USER_AGENT, timeoutMs: 40000 });
+            const tipo = tipoPorBytes(buf);
+            return { type: 'image_url', image_url: { url: `data:${tipo};base64,${buf.toString('base64')}` } };
           }),
         );
         return { ...m, content };

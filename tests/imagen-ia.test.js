@@ -131,3 +131,18 @@ test('aWebp: una imagen de 1024 px con ruido queda en WebP <= 80 KB y <= 768 px'
   assert.equal(meta.format, 'webp');
   assert.ok(meta.width <= 768);
 });
+
+test('escribirPrompt: prohíbe mapas, personas reales, obras concretas, escenas históricas, texto y logos', async () => {
+  let visto;
+  await escribirPrompt({ area: 'ciencia', enunciado: 'x', explicacion: 'y' }, { llamarModelo: async ({ mensajes }) => { visto = mensajes[0].content; return 'a scene'; } });
+  for (const palabra of [/maps/, /real or identifiable people/, /artworks/, /historical scenes/, /logos/]) assert.match(visto, palabra);
+});
+
+test('escribirPrompt: en arte (o historia/geografía con algo concreto) devuelve null sin llamar al modelo', async () => {
+  let llamadas = 0;
+  const llamarModelo = async () => { llamadas += 1; return 'x'; };
+  assert.equal(await escribirPrompt({ area: 'arte', enunciado: 'Guernica', explicacion: '' }, { llamarModelo }), null);
+  assert.equal(await escribirPrompt({ area: 'geografia', enunciado: 'El río Nilo desemboca en el Mediterráneo.', explicacion: '' }, { llamarModelo }), null);
+  assert.equal(llamadas, 0);
+  assert.equal(await generarImagen(null, { cupo: cupoEnMemoria({ maxDia: 5 }) }), null);
+});

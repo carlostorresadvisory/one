@@ -4,6 +4,7 @@
 // Las claves llegan por `entorno` (nunca se leen de disco ni se imprimen).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { iaPermitida, MAX_PIXELES } from './politica-imagen.js';
 
 export const ESTILO_ONE = 'cinematic illustration, dark background, cyan and gold accents, dramatic lighting, no text, no letters';
 export const CREDITO_IA = { fuente: 'IA', autor: null, licencia: null, texto: 'Imagen generada con IA' };
@@ -15,11 +16,17 @@ const TIMEOUT_MS = 60000;
 const PROMPT_SISTEMA =
   'You write one image-generation prompt in English (max 40 words) that illustrates the TOPIC of a quiz question ' +
   'with a striking, concrete scene. You receive the question and its answer ONLY so you can avoid it: do NOT draw, ' +
-  'name or hint at the answer, and never include text, letters, numbers or captions in the scene. ' +
-  'Reply with just the prompt, no quotes.';
+  'name or hint at the answer, and never include text, letters, numbers, logos or captions in the scene. ' +
+  'NEVER depict: maps, real or identifiable people (no portraits, no famous faces), specific artworks or ' +
+  'paintings, or historical scenes presented as real. Prefer an atmospheric, symbolic or abstract scene ' +
+  '(objects, landscapes, anonymous silhouettes). Reply with just the prompt, no quotes.';
 
-/** Prompt en inglés para el generador; el modelo gratis ve enunciado y respuesta solo para evitarla. */
+/**
+ * Prompt en inglés para el generador; el modelo gratis ve enunciado y respuesta solo para evitarla.
+ * `null` si esta pregunta no admite IA (arte; historia o geografía con mapa, persona o hecho concreto).
+ */
 export async function escribirPrompt(pregunta, { llamarModelo }) {
+  if (!iaPermitida(pregunta)) return null;
   const usuario = `Question: ${pregunta?.enunciado ?? ''}\nAnswer (do NOT depict it): ${pregunta?.explicacion ?? pregunta?.respuesta ?? ''}`;
   const texto = await llamarModelo({ mensajes: [{ role: 'system', content: PROMPT_SISTEMA }, { role: 'user', content: usuario }] });
   const limpio = String(texto ?? '').replace(/\s+/g, ' ').replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.,;\s]+$/, '');
@@ -118,7 +125,7 @@ async function viaRunware(prompt, { fetchImpl, entorno }) {
 /** `{ buffer, proveedor } | null`. Nunca lanza. */
 export async function generarImagen(prompt, { fetchImpl = fetch, entorno = process.env, cupo, ahora = () => new Date() } = {}) {
   void ahora;
-  if (!cupo.puede()) return null;
+  if (!prompt || !cupo.puede()) return null;
   const cf = await viaCloudflare(prompt, { fetchImpl, entorno });
   if (cf.estado === 'ok') {
     cupo.apuntar('cloudflare', 0);
@@ -138,7 +145,7 @@ export async function aWebp(buffer) {
   let ultimo = null;
   for (const ancho of [768, 640, 512]) {
     for (let calidad = 80; calidad >= 50; calidad -= 10) {
-      ultimo = await sharp(buffer).resize({ width: ancho, height: ancho, fit: 'inside', withoutEnlargement: true }).webp({ quality: calidad }).toBuffer();
+      ultimo = await sharp(buffer, { limitInputPixels: MAX_PIXELES }).resize({ width: ancho, height: ancho, fit: 'inside', withoutEnlargement: true }).webp({ quality: calidad }).toBuffer();
       if (ultimo.length <= MAX_WEBP_BYTES) return ultimo;
     }
   }

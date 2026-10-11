@@ -172,3 +172,17 @@ test('validarImagenes acepta WebP locales de imagenes-ia/ e imagenes-banco/ y re
   const sinLicencia = { 'eco-003': { url: 'imagenes-banco/eco-003.webp', fuente: 'Met', licencia: 'Todos los derechos', titulo: 'x', pagina: 'https://a' } };
   assert.equal(validarImagenes(banco, sinLicencia).errores.length, 1);
 });
+
+test('validarImagenes: CC BY / CC BY-SA sin autor es un error; con autor, CC0 o IA no', async () => {
+  const { validarImagenes } = await import('../tools/validar-banco.js');
+  const banco = [base({ id: 'eco-001' }), base({ id: 'eco-002' }), base({ id: 'eco-003' }), base({ id: 'eco-004' })];
+  const u = 'https://upload.wikimedia.org/x.jpg';
+  const resultado = validarImagenes(banco, {
+    'eco-001': { url: u, licencia: 'CC BY-SA 3.0', autor: '', titulo: 'x', pagina: 'https://a' },
+    'eco-002': { url: u, licencia: 'CC BY 4.0', autor: 'Ana', titulo: 'x', pagina: 'https://a' },
+    'eco-003': { url: u, licencia: 'CC0', autor: '', titulo: 'x', pagina: 'https://a' },
+    'eco-004': { url: 'imagenes-ia/eco-004.webp', fuente: 'IA', licencia: null, titulo: 'x', pagina: null },
+  });
+  assert.equal(resultado.errores.length, 1);
+  assert.match(resultado.errores[0], /eco-001.*sin autor/);
+});

@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v26', () => {
-  assert.match(sw, /const CACHE = 'one-v26';/);
+test('sw: caché one-v27', () => {
+  assert.match(sw, /const CACHE = 'one-v27';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -59,5 +59,32 @@ test('sw: las imágenes del banco no se precachean pero se cachean al verlas, co
   assert.ok(!precacheadas.some((r) => /imagenes-(ia|banco|hub)\//.test(r)), 'ninguna imagen del banco en el precaché');
   assert.ok(lista('SECUNDARIOS').includes('datos/imagenes.json'));
   assert.match(sw, /cache\.put\(claveCache/, 'el fetch guarda cualquier GET del mismo origen');
-  assert.match(sw, /MAX_IMAGENES_CACHE = \d+/);
+  assert.match(sw, /MAX_BYTES_IMAGENES = /);
+  assert.doesNotMatch(sw, /MAX_IMAGENES_CACHE/, 'el tope ya no cuenta imágenes sino bytes');
+});
+
+test('sw: precaché + gestos + tope de imágenes por bytes <= 5 MB (medido)', () => {
+  const tope = Number(sw.match(/MAX_BYTES_IMAGENES = ([\d* ]+);/)[1].split('*').reduce((a, b) => a * Number(b), 1));
+  const rutas = [...lista('NUCLEO'), ...lista('SECUNDARIOS'), ...lista('AVATAR'), ...lista('AVATAR_GESTOS')].filter((r) => r !== './');
+  const total = rutas.reduce((suma, ruta) => suma + statSync(new URL(`../${ruta}`, import.meta.url)).size, 0);
+  assert.ok(total + tope <= 5 * 1024 * 1024, `${((total + tope) / 1048576).toFixed(2)} MB`);
+});
+
+// El tope por bytes se prueba ejecutando el sw.js real con una caché falsa.
+test('sw: acotarImagenes borra las más antiguas hasta que las imágenes caben en el tope de bytes', async () => {
+  const vm = await import('node:vm');
+  const almacen = new Map();
+  const cache = {
+    keys: async () => [...almacen.keys()].map((url) => new Request(url)),
+    match: async (r) => { const b = almacen.get(r.url); return b ? new Response(b) : undefined; },
+    delete: async (r) => almacen.delete(r.url),
+  };
+  const contexto = vm.createContext({ self: { addEventListener() {}, location: { origin: 'https://x' } }, URL, Request, Response, caches: {}, fetch() {} });
+  vm.runInContext(sw, contexto);
+  const tope = vm.runInContext('MAX_BYTES_IMAGENES', contexto);
+  const trozo = Math.floor(tope / 3) + 1; // 3 no caben: solo las 2 más nuevas
+  for (const n of ['a', 'b', 'c']) almacen.set(`https://x/imagenes-ia/${n}.webp`, new Uint8Array(trozo));
+  almacen.set('https://x/app.js', new Uint8Array(tope * 4)); // lo que no es imagen no cuenta ni se toca
+  await vm.runInContext('acotarImagenes', contexto)(cache);
+  assert.deepEqual([...almacen.keys()], ['https://x/imagenes-ia/b.webp', 'https://x/imagenes-ia/c.webp', 'https://x/app.js']);
 });

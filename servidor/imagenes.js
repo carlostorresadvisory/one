@@ -10,15 +10,19 @@ import { buscarEnBancos } from '../tools/bancos-libres.js';
 import { puntuarImagen, esBuena } from '../tools/nota-imagen.js';
 import { llamar, extraerJson } from '../tools/openrouter.js';
 import { escribirPrompt, generarImagen, crearCupo, aWebp, CREDITO_IA } from './imagen-ia.js';
+import { iaPermitida, iaMejoraActual, imagenPublicable, creditoCompleto, descargarAcotado } from './politica-imagen.js';
 
-export const MAX_CANDIDATAS_POR_FUENTE = 3;
+export const MAX_CANDIDATAS_POR_FUENTE = 6;
 const MODELOS_TEXTO = ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'];
 const USER_AGENT = 'ONE-app/0.3 (aprendizaje personal; contacto via GitHub)';
 
 /**
  * Busca la mejor imagen para `pregunta`. Todas las dependencias van inyectadas (los tests no tocan
  * la red). Nunca lanza.
- * @returns {Promise<{imagen: object|null}>} `imagen` = `{url, pagina, titulo, autor, licencia, fuente, nota}`
+ * Distingue «fuente agotada» (todas las candidatas se puntuaron y ninguna llegó a 4) de un fallo
+ * técnico (visión que no responde, descarga fallida, búsqueda caída): un fallo técnico NO baja a la
+ * IA y devuelve `tecnico: true` para que la pregunta siga pendiente sin gastar un intento.
+ * @returns {Promise<{imagen: object|null, tecnico?: boolean}>} `imagen` = `{url, pagina, titulo, autor, licencia, fuente, nota}`
  */
 export async function resolverImagen(pregunta, deps) {
   const {
@@ -35,42 +39,72 @@ export async function resolverImagen(pregunta, deps) {
   } = deps;
   const cortada = () => signal?.aborted === true;
   const vistas = new Set(descartadas);
+  let tecnico = false;
   try {
-    const terminos = (await proponerTerminos(pregunta)).filter(Boolean).slice(0, 2);
+    const terminos = [...new Set((await proponerTerminos(pregunta)).filter(Boolean))].slice(0, 3);
     const probar = async (candidatas, guardar) => {
       let n = 0;
       for (const c of candidatas) {
         if (cortada()) return null;
         if (!c?.url || vistas.has(c.url)) continue;
+        // Lo que acabaría publicado: una imagen de otro banco se sirve desde /imagenes/, la de Commons tal cual.
+        if (!(guardar ? creditoCompleto(c) : imagenPublicable(c))) continue;
         vistas.add(c.url);
         if (++n > MAX_CANDIDATAS_POR_FUENTE) break;
-        const r = await puntuar({ url: c.url, pregunta });
-        if (r && esBuena(r.nota)) {
+        let r = null;
+        try {
+          r = await puntuar({ url: c.url, pregunta });
+        } catch {
+          r = null;
+        }
+        if (!r) {
+          tecnico = true;
+          continue;
+        }
+        if (!esBuena(r.nota)) continue;
+        try {
           const url = guardar ? await guardarArchivo(c, pregunta) : c.url;
           return { url, pagina: c.pagina ?? null, titulo: c.titulo ?? '', autor: c.autor ?? null, licencia: c.licencia ?? null, fuente: c.fuente, nota: r.nota };
+        } catch {
+          tecnico = true;
         }
       }
       return null;
     };
+    const buscar = async (fuente, termino) => {
+      try {
+        return await fuente(termino, pregunta);
+      } catch {
+        tecnico = true;
+        return [];
+      }
+    };
 
     for (const t of terminos) {
-      const c = await probar(await buscarCommons(t, pregunta), false);
+      const c = await probar(await buscar(buscarCommons, t), false);
       if (c) return { imagen: c };
       if (cortada()) return { imagen: null };
     }
     for (const t of terminos) {
-      const c = await probar(await buscarBancos(t, pregunta.area), true);
+      const c = await probar(await buscar((x, p) => buscarBancos(x, p.area), t), true);
       if (c) return { imagen: c };
       if (cortada()) return { imagen: null };
     }
-    if (permitirIA && !cortada() && cupo.puede()) {
+    if (permitirIA && !tecnico && !cortada() && cupo.puede() && iaPermitida(pregunta)) {
       const g = await generarIA(pregunta);
-      if (g) return { imagen: { ...g, pagina: null, titulo: '', autor: CREDITO_IA.autor, licencia: CREDITO_IA.licencia, fuente: CREDITO_IA.fuente, nota: null } };
+      if (g) {
+        const r = await puntuar({ url: g.dataUrl, pregunta });
+        if (!r) tecnico = true;
+        else if (iaMejoraActual(r.nota, null)) {
+          const url = await g.guardar();
+          return { imagen: { url, pagina: null, titulo: '', autor: CREDITO_IA.autor, licencia: CREDITO_IA.licencia, fuente: CREDITO_IA.fuente, nota: r.nota } };
+        }
+      }
     }
   } catch {
-    // Cualquier fallo de red o de modelo: la pregunta se queda sin imagen por ahora (pendiente).
+    tecnico = true; // cualquier fallo de red o de modelo: la pregunta queda pendiente
   }
-  return { imagen: null };
+  return tecnico ? { imagen: null, tecnico: true } : { imagen: null };
 }
 
 /**
@@ -83,15 +117,18 @@ export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImp
   const llamarModelo = async ({ mensajes }) =>
     (await llamar({ modelos: MODELOS_TEXTO, mensajes, temperatura: 0.4, maxTokens: 400, timeoutMs: 30000, reintentoMs: 1000 })).texto;
 
-  async function guardarWebp(id, buffer) {
+  async function guardarWebp(id, webp) {
     await mkdir(carpeta, { recursive: true });
-    await writeFile(path.join(carpeta, `${id}.webp`), await aWebp(buffer));
+    await writeFile(path.join(carpeta, `${id}.webp`), webp);
     return `/imagenes/${id}.webp`;
   }
 
   const deps = {
     cupo: cupoIA,
+    // Términos en inglés del modelo y, además, el enunciado (por si el banco lo describe mejor).
     async proponerTerminos(pregunta) {
+      const enunciado = String(pregunta.enunciado).slice(0, 60);
+      const ingles = [];
       try {
         const texto = await llamarModelo({
           mensajes: [
@@ -100,14 +137,15 @@ export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImp
           ],
         });
         const t = extraerJson(texto)?.terminos;
-        if (Array.isArray(t) && t.length > 0) return t.filter((x) => typeof x === 'string');
+        if (Array.isArray(t)) ingles.push(...t.filter((x) => typeof x === 'string').slice(0, 2));
       } catch {
         // sin modelo: se busca con el enunciado
       }
-      return [String(pregunta.enunciado).slice(0, 60)];
+      return [...ingles, enunciado];
     },
     async buscarCommons(termino, pregunta) {
-      const { paginas } = await buscarEnCommons(termino, fetchImpl);
+      const { paginas, error } = await buscarEnCommons(termino, fetchImpl);
+      if (error && paginas.length === 0) throw new Error(error); // fallo de Commons, no «sin resultados»
       const lista = [];
       for (const pagina of paginas) {
         const c = elegirImagen([pagina], pregunta);
@@ -118,19 +156,20 @@ export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImp
     buscarBancos: (termino, area) => buscarEnBancos(termino, { area, fetchImpl }),
     puntuar: (datos) => puntuarImagen(datos),
     async guardarArchivo(candidata, pregunta) {
-      const r = await fetchImpl(candidata.url, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(40000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return guardarWebp(pregunta.id, Buffer.from(await r.arrayBuffer()));
+      const bruto = await descargarAcotado(candidata.url, { fetchImpl, userAgent: USER_AGENT });
+      return guardarWebp(pregunta.id, await aWebp(bruto));
     },
+    // La imagen se puntúa ANTES de guardarla: `guardar()` solo se llama si entra.
     async generarIA(pregunta) {
       const prompt = await escribirPrompt(pregunta, { llamarModelo });
       const g = await generarImagen(prompt, { fetchImpl, entorno, cupo: cupoIA });
       if (!g) return null;
-      return { url: await guardarWebp(pregunta.id, g.buffer) };
+      const webp = await aWebp(g.buffer);
+      return { dataUrl: `data:image/webp;base64,${webp.toString('base64')}`, guardar: () => guardarWebp(pregunta.id, webp) };
     },
   };
 
-  /** `(pregunta, { permitirIA, signal }) -> { imagen }`; recuerda las imágenes ya descartadas. */
+  /** `(pregunta, { permitirIA, signal }) -> { imagen, tecnico? }`; recuerda las imágenes ya descartadas. */
   return (pregunta, { permitirIA = false, signal = null } = {}) =>
     resolverImagen(pregunta, { ...deps, permitirIA, signal, descartadas: pregunta.imagenesDescartadas ?? [] });
 }

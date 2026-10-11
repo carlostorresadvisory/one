@@ -57,3 +57,9 @@ test('puntuarImagen: el mensaje lleva la imagen y el enunciado', async () => {
   assert.ok(partes.some((p) => p.type === 'image_url' && p.image_url.url === 'https://x/y.jpg'));
   assert.ok(partes.some((p) => p.type === 'text' && p.text.includes('Mona Lisa')));
 });
+
+test('PROMPT_NOTA penaliza capturas de web, texto/logos e imágenes que muestran la respuesta (máx. 2)', () => {
+  for (const clave of [/MÁXIMA 2/, /capturas de pantalla o de una web/i, /texto, rótulos o logotipos/i, /MUESTRE la respuesta/]) {
+    assert.match(PROMPT_NOTA, clave);
+  }
+});

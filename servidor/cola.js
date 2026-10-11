@@ -11,6 +11,7 @@
 // -- así los tests no hacen red ni llaman a ningún modelo real. Este fichero no importa
 // tools/openrouter.js ni lee OPENROUTER_API_KEY en ningún momento.
 import { AREAS } from '../tools/validar-banco.js';
+import { imagenPublicable } from './politica-imagen.js';
 
 const TAMANO_LOTE = 5;
 const PEDIDAS_DEFECTO = 10;
@@ -80,6 +81,8 @@ function paraCliente(pregunta) {
   }
   // Migración: una pregunta vieja del colchón con `visualPendiente` se trata como `imagenPendiente`.
   if (limpio.imagenPendiente === undefined && pregunta.visualPendiente === true) limpio.imagenPendiente = true;
+  // Nunca se enseña una imagen sin licencia libre, sin autor cuando la licencia lo exige o de un origen desconocido.
+  if (limpio.imagen && !imagenPublicable(limpio.imagen)) delete limpio.imagen;
   return limpio;
 }
 
@@ -494,8 +497,10 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
       for (const pregunta of elegidas) {
         try {
           const salida = await completarImagen(pregunta, opciones);
-          if (salida && salida.imagen) {
+          if (salida && salida.imagen && imagenPublicable(salida.imagen)) {
             resueltas.set(pregunta.id, salida.imagen);
+          } else if (salida?.tecnico) {
+            // Fallo técnico (visión caída, descarga fallida): no es «no hay imagen buena», no gasta intento.
           } else {
             intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1);
           }
