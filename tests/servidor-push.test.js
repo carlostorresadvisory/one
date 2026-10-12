@@ -202,14 +202,14 @@ test('cola: una tanda que termina «parcial» (algún lote falló pero hay pregu
   const avisos = [];
   let lote = 0;
   const cola = await colaConAvisos({
-    producirTanda: async ({ n }) => (++lote === 1 ? resultado(n, n) : resultado(n, 2, [{ tipo: 'vf', motivo: 'cascada agotada' }])),
+    producirTanda: async ({ n }) => (++lote === 1 ? resultado(n, n) : resultado(n, Math.min(n, 2), [{ tipo: 'vf', motivo: 'cascada agotada' }])),
     alTerminar: async (info) => { avisos.push(info); },
   });
   const { trabajoId } = cola.encolar({ area: 'economia', n: 10, urgente: true });
   cola.suscribirATrabajo(trabajoId, 'https://fcm.googleapis.com/a', { tema: 'Roma' });
   await hastaQue(() => avisos.length > 0);
   assert.equal(avisos[0].estado, 'parcial');
-  assert.equal(avisos[0].n, 7);
+  assert.equal(avisos[0].n, 10, 'se siguió pidiendo hasta completar las 10 aprobadas');
   assert.equal(avisos.length, 1);
 });
 

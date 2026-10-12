@@ -317,7 +317,7 @@ test('cola: un trabajo urgente encolado después de uno de fondo se procesa ante
       return new Promise((resolver) => pendientesBloqueo.push(resolver));
     }
     ordenProcesado.push(params.area);
-    return resultadoOk(params.area, params.n, 1);
+    return resultadoOk(params.area, params.n, params.n);
   };
   const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
 
@@ -763,7 +763,7 @@ test('rellenarHaciaObjetivo (C2): no encola nada de fondo mientras hay un urgent
   assert.equal(pendientes.length, 1, 'no ha arrancado ningún trabajo de fondo');
 
   // En cuanto el urgente termina, el siguiente /estado sí rellena.
-  pendientes[0].resolver(resultadoVacio(5));
+  pendientes[0].resolver(resultadoOk('historia', 5, 5));
   await hastaQue(() => cola.estadisticas().enCola === 0 && cola.estadisticas().activo === 0);
   const despues = await cola.rellenarHaciaObjetivo(resumen, []);
   assert.ok(despues.length > 0, 'sin urgentes, el relleno vuelve a funcionar como siempre');
@@ -1779,4 +1779,98 @@ test('v0.3.5 servir: el área con peor acierto sigue yendo primero aunque la otr
   const resumen = { areas: { economia: { aciertoReciente: 0.2 }, historia: { aciertoReciente: 0.9 } } };
   const [primera] = await cola.servir({ resumen, max: 1 });
   assert.equal(primera.id, 'eco-sin', 'nunca se cambia de tema por tener imagen');
+});
+
+// === v0.3.5: una tanda urgente de n acaba con n APROBADAS, no con n intentos =====================
+// Datos reales del VPS (12-oct): el verificador rechaza entre el 50 % y el 80 %; una tanda de 10 salía con 2.
+
+/** Lo que el cliente da por terminal: 'lista', 'fallida' o ya todas hechas (un 'parcial' a medias sigue en marcha). */
+function terminada(cola, id) {
+  const t = cola.estadoTrabajo(id);
+  return t.estado === 'lista' || t.estado === 'fallida' || t.hechas >= t.pedidas;
+}
+
+/** Generador simulado: de cada `n` preguntas pedidas aprueba `aprueba(n)` (el resto las «rechaza»). */
+function generadorQueRechaza(aprueba, pedidas = []) {
+  return async ({ area, n }) => {
+    pedidas.push(n);
+    return resultadoOk(area, n, aprueba(n));
+  };
+}
+
+test('v0.3.5: con un generador que rechaza el 50 %, una tanda urgente de 10 acaba con 10 aprobadas', async () => {
+  const almacen = crearAlmacen(await carpetaTmp());
+  const pedidas = [];
+  const cola = crearCola({ almacen, producirTanda: generadorQueRechaza((n) => Math.ceil(n / 2), pedidas) });
+  const { trabajoId } = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+  await hastaQue(() => terminada(cola, trabajoId));
+  const t = cola.estadoTrabajo(trabajoId);
+  assert.equal(t.estado, 'lista');
+  assert.equal(t.preguntas.length, 10);
+  assert.equal(t.hechas, 10);
+  assert.ok(pedidas.reduce((a, b) => a + b, 0) <= 30, 'nunca se piden más de 3·n');
+  assert.ok(pedidas.every((n) => n >= 1 && n <= 5));
+  assert.equal((await almacen.leerColchon()).length, 10, 'y las 10 están en el colchón');
+});
+
+test('v0.3.5: con un generador que rechaza el 80 %, la tanda se para en el tope de 3·n y termina «lista» con lo que haya (y avisa)', async () => {
+  const almacen = crearAlmacen(await carpetaTmp());
+  const pedidas = [];
+  const avisos = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: generadorQueRechaza((n) => Math.floor(n / 5), pedidas), // 1 de cada 5
+    alTerminar: async (info) => { avisos.push(info); },
+  });
+  const { trabajoId } = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+  cola.suscribirATrabajo(trabajoId, 'https://fcm.googleapis.com/a', { tema: 'Roma' });
+  await hastaQue(() => terminada(cola, trabajoId));
+  const t = cola.estadoTrabajo(trabajoId);
+  assert.equal(pedidas.reduce((a, b) => a + b, 0), 30, 'tope exacto: 3·10');
+  assert.equal(t.estado, 'lista', 'terminal para el cliente aunque no lleguen a 10');
+  assert.equal(t.preguntas.length, 6);
+  assert.equal(t.hechas, 6, 'el progreso cuenta aprobadas');
+  await hastaQue(() => avisos.length > 0);
+  assert.equal(avisos[0].n, 6);
+  assert.equal(avisos[0].estado, 'lista');
+});
+
+test('v0.3.5: el progreso («23 de 100») cuenta aprobadas y una tanda de 100 sigue cediendo el turno a las de 10', async () => {
+  const almacen = crearAlmacen(await carpetaTmp());
+  const orden = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async ({ area, n }) => { orden.push(`${area}:${n}`); return resultadoOk(area, n, Math.ceil(n * 0.4)); },
+  });
+  const grande = cola.encolar({ area: 'historia', ruta: [], n: 100, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(grande.trabajoId).hechas > 0);
+  const hecho = cola.estadoTrabajo(grande.trabajoId).hechas;
+  assert.ok(hecho <= cola.estadoTrabajo(grande.trabajoId).preguntas.length + 5, 'hechas = aprobadas, no pedidas');
+  const pequena = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(pequena.trabajoId).estado === 'lista');
+  const antes = orden.indexOf('economia:5');
+  assert.ok(antes >= 0 && orden.slice(0, antes).filter((x) => x.startsWith('historia')).length <= 3, 'la de 10 espera como mucho un lote de la grande por turno, no la tanda entera');
+  await hastaQue(() => terminada(cola, grande.trabajoId), { intentos: 2000 });
+  const t = cola.estadoTrabajo(grande.trabajoId);
+  assert.equal(t.preguntas.length, 100);
+  assert.equal(t.hechas, 100);
+});
+
+test('v0.3.5: dos lotes seguidos que fallan sin aprobar nada cortan la tanda (no se agota el tope entero)', async () => {
+  const almacen = crearAlmacen(await carpetaTmp());
+  let llamadas = 0;
+  const cola = crearCola({ almacen, producirTanda: async () => { llamadas += 1; throw new Error('proveedores caídos'); } });
+  const { trabajoId } = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+  await hastaQue(() => cola.estadoTrabajo(trabajoId).estado === 'fallida');
+  assert.equal(llamadas, 2);
+});
+
+test('v0.3.5: las tandas de FONDO conservan su cuenta de siempre (n pedidas, no n aprobadas)', async () => {
+  const almacen = crearAlmacen(await carpetaTmp());
+  const pedidas = [];
+  const cola = crearCola({ almacen, producirTanda: generadorQueRechaza(() => 1, pedidas) });
+  const { trabajoId } = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: false });
+  await hastaQue(() => terminada(cola, trabajoId));
+  assert.deepEqual(pedidas, [5, 5]);
+  assert.equal(cola.estadoTrabajo(trabajoId).preguntas.length, 2);
 });

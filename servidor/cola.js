@@ -14,6 +14,12 @@ import { AREAS } from '../tools/validar-banco.js';
 import { imagenPublicable } from './politica-imagen.js';
 
 const TAMANO_LOTE = 5;
+// v0.3.5: una tanda URGENTE de n acaba con n preguntas APROBADAS, no con n intentos (el verificador rechaza
+// entre el 50 % y el 80 %): se siguen pidiendo sublotes hasta completarlas, con este tope de preguntas pedidas
+// al generador (FACTOR_TOPE_INTENTOS · n: 30 para 10, 300 para 100). Al llegar al tope termina con lo que haya.
+const FACTOR_TOPE_INTENTOS = 3;
+// Dos lotes seguidos que lanzan error y no aprueban nada (proveedores caídos): no se agota el tope entero.
+const MAX_LOTES_FALLIDOS_SEGUIDOS = 2;
 // v0.3.4: una tanda de 100 (Premium) son 20 lotes seguidos; por encima de este tamaño un urgente es «grande»
 // y cede el turno entre lotes a los urgentes que esperan (ver procesarCola), para no bloquear a las de 10.
 const PEDIDAS_TANDA_NORMAL = 10;
@@ -370,12 +376,15 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
   // lote se cuenta como "consumido" hacia `pedidas` en el `finally` (evita bucles infinitos, y
   // garantiza que `hechas` avanza pase lo que pase, sea cual sea el punto exacto del fallo).
   async function ejecutarUnLote(trabajo) {
-    const tamanoLote = Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
+    // v0.3.5: en una urgente, lo que falta son aprobadas (no intentos) y el lote nunca pasa del tope de pedidas.
+    const tamanoLote = trabajo.urgente
+      ? Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.preguntas.length, trabajo.topeIntentos - trabajo.intentadas)
+      : Math.min(TAMANO_LOTE, trabajo.pedidas - trabajo.hechas);
     // v0.2b4.1 §6: `hechas` al empezar el lote. El progreso DENTRO del lote se pinta sobre esta
     // base y el `finally` la cierra sumando el lote entero -- así el indicador puede enseñar
     // 1..10 sin que un fallo a mitad deje el contador a medias y el trabajo reintentando siempre
     // el mismo lote (que es justo lo que garantizaba el `hechas += tamanoLote` de antes).
-    const hechasAlEmpezar = trabajo.hechas;
+    const hechasAlEmpezar = trabajo.urgente ? trabajo.preguntas.length : trabajo.hechas;
     // Ronda de corrección 1 (revisión Opus, Important #2): tiempo de PARED de ESTE lote en
     // concreto, no de punta a punta del trabajo -- un trabajo de fondo que cede el turno (ver
     // procesarCola) puede pasar minutos aparcado en colaFondo mientras otro trabajo ocupa al
@@ -462,7 +471,16 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
       // El lote se cuenta SIEMPRE entero, haya ido bien o mal: es lo que evita que un trabajo se
       // quede reintentando el mismo lote para siempre. `onProgreso` solo puede adelantar el
       // contador dentro de este mismo tramo, nunca pasarse ni quedarse corto al cerrar.
-      trabajo.hechas = Math.min(hechasAlEmpezar + tamanoLote, trabajo.pedidas);
+      if (trabajo.urgente) {
+        // v0.3.5: `hechas` es lo APROBADO (lo que el cliente pinta como «23 de 100»); lo pedido va aparte.
+        trabajo.intentadas += tamanoLote;
+        trabajo.hechas = Math.min(trabajo.preguntas.length, trabajo.pedidas);
+        const sinNada = falloEsteLote && trabajo.preguntas.length === hechasAlEmpezar;
+        trabajo.lotesFallidosSeguidos = sinNada ? trabajo.lotesFallidosSeguidos + 1 : 0;
+        if (trabajo.lotesFallidosSeguidos >= MAX_LOTES_FALLIDOS_SEGUIDOS) trabajo.intentadas = trabajo.topeIntentos;
+      } else {
+        trabajo.hechas = Math.min(hechasAlEmpezar + tamanoLote, trabajo.pedidas);
+      }
       // Solo el tiempo de ESTE lote (desde que el trabajador lo cogió hasta que lo suelta), nunca
       // el tiempo aparcado entre cesiones -- ver comentario de `inicioLote` arriba.
       trabajo.msActivos = (trabajo.msActivos || 0) + (reloj() - inicioLote);
@@ -509,8 +527,17 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
     return true;
   }
 
+  /** ¿No quedan más lotes? Urgente: ya hay las n aprobadas o se agotó el tope de pedidas; fondo: lotes consumidos. */
+  function trabajoTerminado(trabajo) {
+    if (!trabajo.urgente) return trabajo.hechas >= trabajo.pedidas;
+    return trabajo.preguntas.length >= trabajo.pedidas || trabajo.intentadas >= trabajo.topeIntentos;
+  }
+
   function finalizarTrabajo(trabajo) {
-    trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo ? 'parcial' : 'lista') : 'fallida';
+    // Una urgente que agotó el tope sin completar termina 'lista' con lo que haya: el cliente solo da por
+    // terminal 'lista'/'fallida' o `hechas >= pedidas`, y un 'parcial' corto lo dejaría sondeando para siempre.
+    const corta = trabajo.urgente && trabajo.preguntas.length < trabajo.pedidas;
+    trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo && !corta ? 'parcial' : 'lista') : 'fallida';
     trabajo.terminoYa = true;
     // v0.2b4 §6c: media móvil de segundos por pregunta. Solo cuentan las tandas que de verdad
     // produjeron algo: una 'fallida' mide el tiempo de un fallo (429 en cadena, red caída), no el de
@@ -711,7 +738,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
           activo = null;
         }
 
-        if (siguiente.hechas >= siguiente.pedidas) {
+        if (trabajoTerminado(siguiente)) {
           finalizarTrabajo(siguiente);
           guardarTerminado(siguiente);
           continue;
@@ -791,6 +818,9 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
       nivelObjetivo: Number.isInteger(nivelObjetivo) && nivelObjetivo >= 1 && nivelObjetivo <= 5 ? nivelObjetivo : undefined,
       pedidas: n,
       hechas: 0,
+      intentadas: 0, // preguntas pedidas al generador (solo cuenta en las urgentes, ver FACTOR_TOPE_INTENTOS)
+      topeIntentos: n * FACTOR_TOPE_INTENTOS,
+      lotesFallidosSeguidos: 0,
       estado: 'en-cola',
       preguntas: [],
       huboFallo: false,

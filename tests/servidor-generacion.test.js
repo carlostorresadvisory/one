@@ -1514,3 +1514,33 @@ test('v0.3.5: completarImagen pasa a la cola las señales del resolvedor (tecnic
   }
   assert.deepEqual(await completarImagen({ ...borradorVF() }, { resolverImagen: async () => ({ imagen: null }) }), { imagen: null });
 });
+
+// v0.3.5: causas baratas de rechazo de formato (VPS, 12-oct): «ordenar» sin orden válido y respuestas test4 leídas como 1-based.
+test('v0.3.5: al verificador, test4 le llega con la opción marcada en texto y ordenar con la nota de que items va en el orden correcto propuesto', async () => {
+  const borradores = [
+    borradorVF({ id: 't4', tipo: 'test4', opciones: ['Madrid', 'París', 'Roma', 'Berlín'], correcta: 1, respuesta: undefined }),
+    borradorVF({ id: 'or', tipo: 'ordenar', criterio: 'de menor a mayor', items: ['1', '10', '100', '1000'], respuesta: undefined }),
+  ];
+  let sistema = '';
+  let lote = [];
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    sistema = mensajes[0].content;
+    lote = JSON.parse(mensajes[1].content.slice(mensajes[1].content.indexOf('[')));
+    return { texto: JSON.stringify({ resultados: lote.map((p) => ({ id: p.id, ...VEREDICTO_OK_POR_DEFECTO })) }), modelo: modelos[0], coste: 0, usage: {} };
+  };
+  await verificarBorradores(borradores, { llamar: llamarFalso });
+  assert.equal(lote.find((p) => p.id === 't4').respuestaMarcada, 'París');
+  assert.match(lote.find((p) => p.id === 'or').nota, /orden que el generador propone como correcto/);
+  assert.match(sistema, /EMPIEZA EN 0/);
+});
+
+test('v0.3.5: el prompt del generador de «ordenar» exige los items ya en el orden correcto y un único orden posible', async () => {
+  let prompt = '';
+  const llamarFalso = async ({ modelos, mensajes }) => {
+    prompt = mensajes.map((m) => m.content).join('\n');
+    return respuestaVF([], modelos[0]);
+  };
+  await generarBorradores({ area: 'economia', ruta: [], n: 2, tipo: 'ordenar' }, { llamar: llamarFalso });
+  assert.match(prompt, /YA en el orden CORRECTO/);
+  assert.match(prompt, /único orden posible/);
+});

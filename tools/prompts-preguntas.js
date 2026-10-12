@@ -141,5 +141,7 @@ export const PROMPT_SISTEMA_VERIFICADOR =
   'las cumple, pon "cumpleUtilidad": true.\n' +
   'Evalúa también el NIVEL (1-5) de la pregunta con la escala de arriba: tu "nivel" sustituye ' +
   'siempre al que haya propuesto quien la generó.\n' +
+  'En test4, "correcta" es un índice que EMPIEZA EN 0 ("respuestaMarcada" es el texto de la opción marcada). En ordenar, ' +
+  '"items" ya viene en el orden que el generador propone como correcto según "criterio": rechaza solo si ese orden es falso o ambiguo.\n' +
   'Devuelve SOLO JSON con la forma {"resultados":[{"id":"…","correcta":true,"unica":true,' +
   '"inequivoca":true,"cumpleUtilidad":true,"nivel":1,"confianza":0.9,"motivo":"…"}]}';

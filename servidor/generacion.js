@@ -353,7 +353,11 @@ function esquemaTipo(tipo, numHilos) {
     case 'test4':
       return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "opciones": ["s","s","s","s"], "correcta": 0..3${hilo} }`;
     case 'ordenar':
-      return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "criterio": "de menor a mayor …", "items": ["s","s","s","s"]${hilo} }`;
+      return (
+        `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "criterio": "de menor a mayor …", "items": ["s","s","s","s"]${hilo} }. ` +
+        'OBLIGATORIO: "items" van YA en el orden CORRECTO según "criterio" (la app los baraja sola); el criterio debe dar ' +
+        'un único orden posible: cuatro elementos con valores claramente distintos y comprobables, sin empates ni ambigüedad.'
+      );
     case 'error':
       return `{ "enunciado": "string", "explicacion": "string", "nivel": 1..5, "tarjeta": { "titulo": "s", "filas": [{"etiqueta":"s","valor":"s"}, …3..5] }, "sospechoso": índice${hilo} }`;
     default:
@@ -506,10 +510,13 @@ function promptUsuarioVerificador(lote) {
     if (p.tipo === 'test4') {
       base.opciones = p.opciones;
       base.correcta = p.correcta;
+      // `correcta` es un índice que EMPIEZA EN 0: se da también el texto marcado para que no se lea como 1-based.
+      base.respuestaMarcada = Array.isArray(p.opciones) ? p.opciones[p.correcta] : undefined;
     }
     if (p.tipo === 'ordenar') {
       base.criterio = p.criterio;
-      base.items = p.items;
+      base.items = p.items; // el orden propuesto como CORRECTO, de primero a último (la app los baraja después)
+      base.nota = 'items está en el orden que el generador propone como correcto según criterio; verifica ese orden.';
     }
     if (p.tipo === 'error') {
       base.tarjeta = p.tarjeta;
