@@ -129,6 +129,7 @@ export function montarOrdago(contenedor, deps) {
     if (id === 'saltar') {
       // Otra pregunta, sin ficha ni registro. Si no hay otra, no se gasta; el antirrebote evita saltar dos veces de un doble toque.
       if (fase !== 'ficha' || !libre() || !nuevaRonda(false, { saltar: true })) return false;
+      armar(); // la barra nueva olvida los usados: sin esto, el segundo toque saltaría otra vez
       gastarComodin(id, deps.almacen);
       return true;
     }
