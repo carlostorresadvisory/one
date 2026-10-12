@@ -9281,3 +9281,230 @@ test.describe('ONE · v0.3.3 Tienda ampliada', () => {
     expect(m.objetos).toEqual({ cincuenta: 2, salvavidas: 1, mas5: 3, saltar: 1, segunda: 0, escudo: 0 });
   });
 });
+
+test.describe('ONE · v0.3.4 B tanda de 10 o 100', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-1234567890';
+  const URL_APP = `/?ejemplo=1&test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+  const PREMIUM_ACTIVO = { activo: true, desde: '2026-10-12', ultimaRecarga: '2026-10', bonificado: true };
+
+  const preguntaServidor = (i) => ({
+    id: `srv-t100-${i}`,
+    area: 'economia',
+    tipo: 'vf',
+    nivel: 1,
+    enunciado: `Enunciado de la tanda grande (${i}).`,
+    explicacion: 'Explicación corta de prueba, del servidor falso.',
+    respuesta: true,
+  });
+  const preguntas = (desde, hasta) => Array.from({ length: hasta - desde + 1 }, (_, k) => preguntaServidor(desde + k));
+
+  /** Servidor simulado: /generar apunta el cuerpo; /trabajo/:id responde `respuestas[i]` (la última se repite). */
+  async function servidorFalso(page, { respuestas, generar = [], trabajos = [] }) {
+    await page.route(`${URL_SERVIDOR}/**`, async (ruta) => {
+      const peticion = ruta.request();
+      if (peticion.method() === 'OPTIONS') {
+        await ruta.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      const cabeceras = { ...CORS, 'Content-Type': 'application/json' };
+      const camino = new URL(peticion.url()).pathname;
+      if (camino === '/estado') {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: '{"preguntas":[],"enCola":0}' });
+      } else if (camino === '/subtemas') {
+        const subtemas = [{ indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' }];
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ subtemas }) });
+      } else if (camino === '/generar') {
+        const cuerpo = peticion.postDataJSON();
+        generar.push(cuerpo);
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ trabajoId: 't-100', enCola: 1, estimadoSeg: cuerpo.n * 20 }) });
+      } else if (camino.startsWith('/trabajo/')) {
+        const respuesta = respuestas[Math.min(trabajos.length, respuestas.length - 1)];
+        trabajos.push(Date.now());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ motivo: null, segundosPorPregunta: 20, ...respuesta }) });
+      } else {
+        await ruta.fulfill({ status: 404, headers: cabeceras, body: '{}' });
+      }
+    });
+  }
+
+  const conPremium = (page) => page.addInitScript((premium) => {
+    if (!localStorage.getItem('premium-sembrado')) {
+      localStorage.setItem('premium-sembrado', '1');
+      localStorage.setItem('one.premium', JSON.stringify(premium));
+    }
+  }, PREMIUM_ACTIVO);
+
+  const opcion = (selector, n) => selector.locator(`[data-test="tanda-${n}"]`);
+
+  test('selector «10 · 100» en la hoja del filtro: 10 por defecto, el 100 lleva insignia dorada y sin Premium abre la pantalla Premium sin pedir nada', async ({ page }) => {
+    const generar = [];
+    await servidorFalso(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }], generar });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(URL_APP);
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await abrirAtomoDesdeHub(page, 'economia');
+    const selector = page.locator('[data-test="selector-tanda-atomo"]');
+    await expect(selector).toBeVisible();
+    await expect(opcion(selector, 10)).toHaveAttribute('aria-checked', 'true');
+    await expect(opcion(selector, 100)).toHaveAttribute('aria-checked', 'false');
+    await expect(opcion(selector, 100).locator('[data-test="insignia-tanda-100"]')).toHaveText('PREMIUM');
+    const color = await opcion(selector, 100).locator('[data-test="insignia-tanda-100"]').evaluate((n) => getComputedStyle(n).color);
+    expect(color).toBe('rgb(242, 193, 78)'); // --dorado
+    for (const n of [10, 100]) expect((await opcion(selector, n).boundingBox()).height).toBeGreaterThanOrEqual(44);
+    await assertHojaSinScroll(page);
+
+    await opcion(selector, 100).click();
+    await expect(page.locator('[data-vista="premium"]')).toBeVisible();
+    await expect(page.locator('[data-test="premium-motivo"]')).toContainText('100 preguntas');
+    expect(generar).toHaveLength(0);
+
+    // Sin plan, el 100 no queda elegido: al volver sigue el 10 y Generar pide 10.
+    await page.locator('[data-test="volver"]').click();
+    await abrirAtomoDesdeHub(page, 'economia');
+    await expect(opcion(page.locator('[data-test="selector-tanda-atomo"]'), 10)).toHaveAttribute('aria-checked', 'true');
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect.poll(() => generar.length).toBe(1);
+    expect(generar[0].n).toBe(10);
+  });
+
+  test('con Premium activo el 100 se elige, se ve elegido en las dos pantallas y Generar pide n = 100', async ({ page }) => {
+    const generar = [];
+    await servidorFalso(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 100, preguntas: [] }], generar });
+    await conPremium(page);
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('sembrado')) {
+        sessionStorage.setItem('sembrado', '1');
+        localStorage.setItem('one.filtros', JSON.stringify({ contrarreloj: { area: 'geografia', ruta: [], etiquetas: [] } }));
+      }
+    });
+    await page.goto(URL_APP);
+    await page.waitForFunction(() => window.__one?.listo === true);
+
+    // Aviso de «menos de 5» (Contrarreloj con un filtro sin jugables).
+    await entrarEnModo(page, 'contrarreloj');
+    const corto = page.locator('[data-test="selector-tanda-corto"]');
+    await expect(corto).toBeVisible();
+    await expect(opcion(corto, 100).locator('[data-test="insignia-tanda-100"]')).toBeVisible();
+    await opcion(corto, 100).click();
+    await expect(opcion(corto, 100)).toHaveAttribute('aria-checked', 'true');
+    await expect(opcion(corto, 10)).toHaveAttribute('aria-checked', 'false');
+    await expect(page.locator('[data-vista="premium"]')).toBeHidden();
+
+    // La elección se ve también en la hoja del filtro (misma elección en los dos sitios).
+    await page.evaluate(() => window.__one.abrirAtomo('economia'));
+    await expect(opcion(page.locator('[data-test="selector-tanda-atomo"]'), 100)).toHaveAttribute('aria-checked', 'true');
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect.poll(() => generar.length).toBe(1);
+    expect(generar[0]).toMatchObject({ area: 'economia', n: 100, urgente: true });
+    await expect(page.locator('[data-test="atomo-espera-texto"]')).toContainText('Generando 100 preguntas de Economía');
+    await expect(page.locator('[data-test="atomo-espera-progreso-texto"]')).toHaveText('0 de 100');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.atomoTrabajo')).pedidas)).toBe(100);
+  });
+
+  test('«23 de 100» en la espera y en el indicador; las 20 listas se juegan antes de que acabe y el aviso llega con las 100 (captura 375×667)', async ({ page }) => {
+    test.setTimeout(60000);
+    const trabajos = [];
+    await servidorFalso(page, {
+      trabajos,
+      respuestas: [
+        { estado: 'generando', hechas: 0, pedidas: 100, preguntas: [] },
+        { estado: 'parcial', hechas: 23, pedidas: 100, preguntas: preguntas(1, 20) },
+        { estado: 'parcial', hechas: 23, pedidas: 100, preguntas: preguntas(1, 20) },
+        { estado: 'lista', hechas: 100, pedidas: 100, preguntas: preguntas(1, 100) },
+      ],
+    });
+    await conPremium(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(URL_APP);
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await abrirAtomoDesdeHub(page, 'economia');
+    const selector = page.locator('[data-test="selector-tanda-atomo"]');
+    await opcion(selector, 100).click();
+    await assertHojaSinScroll(page);
+    const capturaSelector = await page.screenshot();
+    await page.locator('[data-test="atomo-generar"]').click();
+
+    const progreso = page.locator('[data-test="atomo-espera-progreso-texto"]');
+    await expect(progreso).toHaveText('0 de 100');
+    await expect(page.locator('[data-test="atomo-jugar-listas"]')).toBeHidden();
+    await expect(progreso).toHaveText('23 de 100', { timeout: 9000 });
+    await expect(page.locator('[data-test="indicador-tanda-texto"]')).toHaveText(/^23 de 100/);
+    const jugarListas = page.locator('[data-test="atomo-jugar-listas"]');
+    await expect(jugarListas).toHaveText('Jugar las 20 listas');
+    await assertSinScroll(page);
+    await assertSinSolapeCabecera(page);
+    const capturaProgreso = await page.screenshot();
+
+    // Una sola imagen con el selector (izquierda) y el progreso (derecha).
+    const lienzo = await page.context().newPage();
+    await lienzo.setViewportSize({ width: 750, height: 667 });
+    await lienzo.setContent(`<body style="margin:0;display:flex;background:#0b0f14"><img width="375" height="667" src="data:image/png;base64,${capturaSelector.toString('base64')}"><img width="375" height="667" src="data:image/png;base64,${capturaProgreso.toString('base64')}"></body>`);
+    await lienzo.screenshot({ path: `${CAPTURAS}/v0.3.4-tanda-100-375x667.png` });
+    await lienzo.close();
+
+    // Se juegan ya las 20 que hay, sin esperar a las otras 80.
+    await jugarListas.click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/20');
+    expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo') !== null)).toBe(true); // la tanda sigue en marcha
+
+    // La tanda termina mientras se juega: al volver al hub, el aviso trae las 100.
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(avisoGeneradas(page)).toContainText('· 100', { timeout: 20000 });
+    expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
+    await assertSinScroll(page);
+  });
+
+  test('sondeo de la tanda de 100: 5 s, 5 s, 10 s, 10 s... hasta 30 s sin preguntas nuevas; con preguntas nuevas vuelve a 5 s', async ({ page }) => {
+    const trabajos = [];
+    // Los sondeos 1 a 9 no traen nada; el 10 trae 5 preguntas; después, otra vez nada.
+    const vacio = { estado: 'generando', hechas: 0, pedidas: 100, preguntas: [] };
+    const cinco = { estado: 'parcial', hechas: 5, pedidas: 100, preguntas: preguntas(1, 5) };
+    await servidorFalso(page, { trabajos, respuestas: [...Array(9).fill(vacio), cinco] });
+    await conPremium(page);
+    await page.clock.install();
+    await page.goto(URL_APP);
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await abrirAtomoDesdeHub(page, 'economia');
+    await opcion(page.locator('[data-test="selector-tanda-atomo"]'), 100).click();
+    await page.locator('[data-test="atomo-generar"]').click();
+    await expect(page.locator('[data-vista="atomo-espera"]')).toBeVisible();
+
+    /** Avanza el reloj de la página y espera a que la petición que dispare (si hay) llegue y se procese. */
+    const pasar = async (ms, esperados) => {
+      await page.clock.runFor(ms);
+      await expect.poll(() => trabajos.length).toBe(esperados);
+      await page.waitForTimeout(150); // la respuesta se procesa y se programa el siguiente sondeo
+    };
+    await expect.poll(() => trabajos.length).toBe(1); // el sondeo inmediato
+    await page.waitForTimeout(150);
+    // Esperas previstas: 5, 5, 10, 10, 15, 15, 20, 20, 25 (sondeos 2 a 10); el 10 trae preguntas nuevas.
+    const esperas = [5000, 5000, 10000, 10000, 15000, 15000, 20000, 20000, 25000];
+    let total = 1;
+    for (const espera of esperas) {
+      await pasar(espera - 1000, total); // todavía no toca
+      total += 1;
+      await pasar(1000, total);
+    }
+    // El sondeo 10 trajo 5 preguntas nuevas: el siguiente vuelve a los 5 s (y no a los 25-30 s).
+    await pasar(4000, total);
+    total += 1;
+    await pasar(1000, total);
+    await expect(page.locator('[data-test="atomo-jugar-listas"]')).toHaveText('Jugar las 5 listas');
+    // Y sin más novedades se vuelve a espaciar: tras los 5 s siguen 5, luego 10.
+    await pasar(4000, total);
+    total += 1;
+    await pasar(1000, total);
+    await pasar(9000, total);
+    total += 1;
+    await pasar(1000, total);
+  });
+});

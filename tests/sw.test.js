@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v37', () => {
-  assert.match(sw, /const CACHE = 'one-v37';/);
+test('sw: caché one-v38', () => {
+  assert.match(sw, /const CACHE = 'one-v38';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -138,7 +138,7 @@ test('sw: una foto propia va a one-fotos (no a la caché del núcleo) y la segun
   assert.equal((await sim.pedir('https://x/imagenes-banco/a.webp')).ok, true);
   await sim.pausa();
   assert.ok(sim.almacenes.get('one-fotos').has('https://x/imagenes-banco/a.webp'));
-  assert.ok(!sim.almacenes.has('one-v37'), 'nada en la caché del núcleo');
+  assert.ok(!sim.almacenes.has('one-v38'), 'nada en la caché del núcleo');
   const antes = sim.llamadas.length;
   await sim.pedir('https://x/imagenes-banco/a.webp');
   assert.equal(sim.llamadas.length, antes, 'sin pedirla otra vez a la red');
@@ -169,11 +169,11 @@ test('sw: lo de otro origen que no es foto (otro dominio o destino que no es ima
 
 test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fotos', async () => {
   const sim = await montarSw();
-  sim.abrir('one-v30'); sim.abrir('one-v37'); sim.abrir('one-fotos');
+  sim.abrir('one-v30'); sim.abrir('one-v38'); sim.abrir('one-fotos');
   let terminado = null;
   sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
   await terminado;
-  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v37']);
+  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v38']);
 });
 
 test('sw: acotarFotos conserva como mucho 120 fotos (las más nuevas)', async () => {
