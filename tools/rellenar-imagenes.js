@@ -72,6 +72,13 @@ async function llamarJuezPago({ modelo, mensajes }) {
 `, 'utf8').catch(() => {});
   return d?.choices?.[0]?.message?.content ?? '';
 }
+/** Texto (prompts de IA, filtro de títulos): con --juez va por el mismo modelo barato de pago (cascada gratis agotada); si falla, la gratis. */
+async function textoLLM(mensajes, json = false) {
+  if (JUEZ_PAGO && !gasto.tope) {
+    try { return await llamarJuezPago({ modelo: JUEZ_PAGO, mensajes }); } catch { /* cae a la cascada gratis */ }
+  }
+  return llamarTexto(mensajes, json);
+}
 async function gastoPrevio() {
   try {
     const t = await readFile(RUTA_USO, 'utf8');
@@ -119,7 +126,7 @@ async function proponerTerminos(items, estado, prompt, lineaDe) {
   for (let i = 0; i < faltan.length; i += 10) {
     const lote = faltan.slice(i, i + 10);
     try {
-      const texto = await llamarTexto([{ role: 'system', content: prompt }, { role: 'user', content: lote.map(lineaDe).join('\n') }], true);
+      const texto = await textoLLM([{ role: 'system', content: prompt }, { role: 'user', content: lote.map(lineaDe).join('\n') }], true);
       const datos = extraerJson(texto);
       for (const x of lote) {
         const t = (Array.isArray(datos[x.id]) ? datos[x.id] : []).filter((s) => typeof s === 'string' && s.trim()).slice(0, 2);
@@ -187,7 +194,7 @@ async function filtrarRelevantes(cands, pregunta) {
   if (cands.length === 0) return cands;
   const lista = cands.map((c, i) => `${i}: «${String(c.titulo).slice(0, 110)}» (${c.fuente})`).join('\n');
   try {
-    const texto = await llamarTexto([
+    const texto = await textoLLM([
       { role: 'system', content: 'Filtras fotos candidatas para ilustrar la pregunta de un quiz. Te doy la pregunta y una lista de títulos de fotos. Marca como válida SOLO la foto cuyo título indica claramente que muestra el tema de la pregunta o algo muy ligado a él (el lugar, la obra, el objeto, el fenómeno, la escena o el elemento que la pregunta trata). Descarta también la foto cuyo título nombra o identifica directamente la RESPUESTA correcta cuando la pregunta pide identificarla (no puede regalarla). Descarta lo genérico, lo de otro tema, diagramas, tablas, mapas, banderas, logotipos, carteles, documentos y retratos sin relación. Devuelve SOLO JSON {"validas": [índices]}.' },
       { role: 'user', content: `Pregunta: ${pregunta.enunciado}\nTema (la foto NO debe mostrar la respuesta como texto): ${String(pregunta.explicacion ?? '').slice(0, 250)}\n\nCandidatas:\n${lista}` },
     ], true);
@@ -254,7 +261,7 @@ async function rellenarPregunta(p, ctx) {
 // SIMBÓLICO: escena atmosférica del tema, sin personas reales, sin obras, sin mapas, sin banderas, sin texto.
 const PROMPT_SIMBOLICO = 'You write one image-generation prompt in English (max 40 words) for a striking, ATMOSPHERIC and SYMBOLIC scene that evokes the general theme of a quiz item (e.g. a typical landscape of a region, an emblematic object of the field, an abstract metaphor). NEVER depict real or identifiable people, specific artworks, maps, flags, logos, or any text, letters or numbers; do not depict or hint at the answer. Reply with just the prompt, no quotes.';
 async function promptSimbolico(pregunta) {
-  const t = await llamarTexto([{ role: 'system', content: PROMPT_SIMBOLICO }, { role: 'user', content: `Item: ${pregunta.enunciado}
+  const t = await textoLLM([{ role: 'system', content: PROMPT_SIMBOLICO }, { role: 'user', content: `Item: ${pregunta.enunciado}
 Answer (do NOT depict it): ${pregunta.explicacion ?? ''}` }]);
   const limpio = String(t ?? '').replace(/\s+/g, ' ').replace(/^["'\s]+|["'\s]+$/g, '').replace(/[.,;\s]+$/, '');
   return limpio ? `${limpio}, ${ESTILO_ONE}` : null;
@@ -262,18 +269,24 @@ Answer (do NOT depict it): ${pregunta.explicacion ?? ''}` }]);
 
 async function viaIA(item, pregunta, ctx, nombre, id) {
   const { imagenes, cupo } = ctx;
-  if (SIN_IA || ctx.iaCaida >= 3 || !cupo.puede()) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
+  if (SIN_IA || !cupo.puede()) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
   const normal = iaPermitida(pregunta) && !ctx.esCifra?.(item);
   // Hasta 3 intentos con prompts distintos (normal/simbólico/simbólico). Si ninguno llega a 4 se queda el mejor,
   // marcado `revisar: true` (regla de Carlos: ninguna pregunta ni cifra sin imagen).
   let mejor = null;
   for (let intento = 0; intento < 3; intento++) {
     if (!cupo.puede()) break;
-    const llamarModelo = ({ mensajes }) => llamarTexto(mensajes);
+    const llamarModelo = ({ mensajes }) => textoLLM(mensajes);
     const prompt = normal && intento === 0 ? await escribirPrompt(pregunta, { llamarModelo }) : await promptSimbolico(pregunta);
-    const g = prompt ? await generarImagen(prompt, { cupo }) : null;
-    if (!g) { if (mejor) break; ctx.iaCaida = (ctx.iaCaida ?? 0) + 1; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen (¿tramo gratis diario agotado?)' }; }
-    ctx.iaCaida = 0;
+    let g = null;
+    // Cloudflare recarga a las 00:00 UTC: si responde agotado se espera 10 min y se reintenta (hasta 9 veces por imagen).
+    for (let espera = 0; espera < 9 && prompt; espera++) {
+      g = await generarImagen(prompt, { cupo });
+      if (g) break;
+      console.log('  IA agotada o sin respuesta: espero 10 min');
+      await dormir(600000);
+    }
+    if (!g) { if (mejor) break; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen tras esperar (tramo diario agotado)' }; }
     const webp = await aWebpIA(g.buffer);
     const r = await juzgar(webp, pregunta, ctx.estado);
     if (!r) { if (mejor) break; return { rama: 'tecnico' }; }
