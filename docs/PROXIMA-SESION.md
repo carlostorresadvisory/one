@@ -1,6 +1,11 @@
-# Próxima sesión — Esfinx (antes ONE) tras v0.3.2 (12-oct-2026)
+# Próxima sesión — Esfinx (antes ONE) tras v0.3.3 (12-oct-2026)
 
-**v0.3.1 PUBLICADA** el 12-oct (main `ed424c3`, Pages `one-v33`; 426/426 fotos de los datos publicados dan 200 en Pages; servidor sin cambios).
+**v0.3.3 PUBLICADA** el 12-oct (main `88f495a`, Pages `one-v36`): Tienda ampliada (Saltar, Segunda oportunidad, Escudo de racha, Cofre, 5 Títulos; spec v0.3 §6; plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.3-tienda.md`) y esfinge a 100 px en Tienda y Premium. Comprobado en Pages: sin scroll a 375 × 667, sin errores.
+
+## Fluidez de la esfinge (abierto)
+- Carlos ve a pocos fps la esfinge en los modos, en los gestos y el confeti (iPhone, sin ahorro de batería). Causa probable: `texImage2D` de un vídeo 480×960 a WebGL en cada fotograma es lento en Safari iOS (WebKit bug 216250). Con gráfica por software: entero 41 fps, a mitad 61 fps.
+- Medidor publicado: `https://carlostorresadvisory.github.io/one/?depurar=fps` y `…&subida=media` (`depurar-fps.js`). **Esperando capturas de Carlos**. Si la mitad va mejor: reescalar los clips de `avatar/` (p. ej. 320×640) con ffmpeg y comprobar la tarjeta del hub.
+- e2e «Comparar con fechas» (`tests/e2e.spec.js` ~7706) falla también en `v0.3.1`: espera 0 tarjetas sin foto y ve 2 (datos de imágenes de cifras); revisar la prueba.
 
 ## Estado (12-oct-2026, 11:10)
 - **Publicado** (main `0ae2d3c`, Pages `one-v34`): v0.3.1 (las 7 correcciones) + v0.3.2 (botón «Saber +» con ChatGPT/Claude/Gemini en todos los modos, descrito en la spec v0.3 §4) + 223 imágenes nuevas.
