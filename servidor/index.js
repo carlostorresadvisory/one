@@ -33,6 +33,9 @@ const ORIGENES_DEFECTO = ['https://carlostorresadvisory.github.io', 'http://loca
 const HORA_NOCTURNA_INICIO = 2;
 const HORA_NOCTURNA_FIN = 7; // exclusivo: 7:00 en punto ya no cuenta como nocturno.
 const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
+// v0.3.5: el colchón tenía 836 de 872 preguntas sin imagen y el fondo solo corría al usarse la app: cada 15 min
+// una pasada de imágenes pendientes (máx. 10, y ninguna si ya hay otra en marcha; ver cola.completarImagenesPendientes).
+const INTERVALO_IMAGENES_MS = 15 * 60 * 1000;
 const MAX_ESTADO_DEFECTO = 10;
 // v0.3.4: POST /generar acepta SOLO tandas de 10 (gratis y Premium) o de 100 (Premium: el cliente solo
 // la ofrece con el plan activo, premium.js#TANDAS_PREMIUM); cualquier otro n da 400. Sin n: 10.
@@ -439,6 +442,13 @@ export function crearServidor({
     });
   }, INTERVALO_NOCTURNO_MS);
   idNocturno.unref?.();
+
+  const idImagenes = setInterval(() => {
+    cola.completarImagenesPendientes?.().catch((err) => {
+      console.error(`servidor: fallo completando imágenes: ${err?.message || err}`);
+    });
+  }, INTERVALO_IMAGENES_MS);
+  idImagenes.unref?.();
 
   // === Manejadores de ruta, uno por endpoint de la spec §3.3 =====================================
 
@@ -921,6 +931,7 @@ export function crearServidor({
   servidor.on('close', () => {
     clearInterval(idLimpiezaLimites);
     clearInterval(idNocturno);
+    clearInterval(idImagenes);
   });
 
   return servidor;
