@@ -12,6 +12,8 @@
 //   node --env-file=.env tools/rellenar-imagenes.js [--que preguntas|cifras|ambas] [--limite N] [--ids a,b]
 //        [--sin-ia] [--pausa 1200] [--candidatas 4] [--dry-run]
 //        [--juez <modelo de OpenRouter con visión>] [--tope-usd 0.5]   (juez de PAGO ultrabarato; ver abajo)
+//        [--liston 3] [--reintentar]   galerías con listón más bajo (nota >= 3 -> `revisar: true`), 4 términos por ítem; --reintentar ignora lo ya intentado
+//        [--flux] [--ia-max N]          IA GRATIS con el Space público de Hugging Face FLUX.1-schnell (tools/flux-space.py) en vez de Cloudflare
 import { mkdir, readFile, writeFile, appendFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -42,6 +44,9 @@ const QUE = arg('que', 'ambas');
 const LIMITE = Number(arg('limite', Infinity));
 const IDS = arg('ids', null)?.split(',') ?? null;
 const SIN_IA = process.argv.includes('--sin-ia');
+const FLUX = process.argv.includes('--flux');
+const REINTENTAR = process.argv.includes('--reintentar');
+const LISTON = Number(arg('liston', 4)); // nota mínima aceptada de galerías; < 4 => se guarda con revisar: true
 const MAX_IA = Number(arg('ia-max', 200)); // cupo propio de IA de hoy (Carlos, 12-oct: 200 para este lote único)
 const DRY = process.argv.includes('--dry-run');
 const PAUSA = Math.max(1000, Number(arg('pausa', 1200)));
@@ -206,7 +211,7 @@ async function filtrarRelevantes(cands, pregunta) {
 
 /** Recorre las candidatas hasta la primera con nota >= 4. → { buena, tecnico } */
 async function primeraBuena(cands, pregunta, estado, notas) {
-  let tecnico = false;
+  let tecnico = false, floja = null;
   for (const c of cands) {
     const t = await traer(c);
     if (t === 'pequena') continue;
@@ -216,24 +221,27 @@ async function primeraBuena(cands, pregunta, estado, notas) {
     if (!r) { tecnico = true; if (estado.fallosSeguidos >= 40) break; continue; }
     notas.push(r.nota);
     if (esBuena(r.nota)) return { buena: { ...c, ...t, nota: r.nota, notaModelo: r.modelo }, tecnico };
+    if (r.nota >= LISTON && (!floja || r.nota > floja.nota)) floja = { ...c, ...t, nota: r.nota, notaModelo: r.modelo };
   }
-  return { buena: null, tecnico };
+  return { buena: null, tecnico, floja };
 }
 
 // --- Una pregunta / una cifra ------------------------------------------------------------------------------
 async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
   const claveB = JUEZ_PAGO ? 'buscadasPago' : 'buscadas';
-  if (estado[claveB]?.[pregunta.id]) return { buena: null, notas: [], tecnico: false }; // ya se buscó sin éxito: solo queda la IA
+  if (!REINTENTAR && estado[claveB]?.[pregunta.id]) return { buena: null, notas: [], tecnico: false }; // ya se buscó sin éxito: solo queda la IA
   const notas = [];
-  const q = [...new Set([...(terminos ?? []), String(pregunta.enunciado).slice(0, 60)])].slice(0, 3);
-  let tecnico = false;
+  const q = [...new Set([...(terminos ?? []), String(pregunta.enunciado).slice(0, 60)])].slice(0, LISTON < 4 ? 5 : 3);
+  let tecnico = false, floja = null;
   for (const fuente of ['commons', 'bancos']) {
-    const cands = fuente === 'commons' ? await candidatasCommons(q, usadas) : await candidatasBancos(q.slice(0, 2), area, usadas);
-    const r = await primeraBuena((await filtrarRelevantes(cands, pregunta)).slice(0, MAX_CAND), pregunta, estado, notas);
+    const cands = fuente === 'commons' ? await candidatasCommons(q, usadas) : await candidatasBancos(q.slice(0, LISTON < 4 ? 4 : 2), area, usadas);
+    const r = await primeraBuena((await filtrarRelevantes(cands, pregunta)).slice(0, LISTON < 4 ? Math.max(MAX_CAND, 6) : MAX_CAND), pregunta, estado, notas);
     tecnico ||= r.tecnico;
     if (r.buena) return { buena: r.buena, notas };
+    if (r.floja && (!floja || r.floja.nota > floja.nota)) floja = r.floja;
     if (estado.fallosSeguidos >= 40) break;
   }
+  if (floja) return { buena: { ...floja, revisar: true }, notas };
   if (!tecnico && estado.fallosSeguidos < 40) (estado[claveB] ??= {})[pregunta.id] = true;
   return { buena: null, notas, tecnico };
 }
@@ -247,14 +255,35 @@ async function rellenarPregunta(p, ctx) {
       id: p.id, url, pagina: buena.pagina ?? null, titulo: buena.titulo ?? '', autor: buena.autor ?? '', licencia: buena.licencia ?? null, fuente: buena.fuente,
       leyenda: (buena.titulo ? String(buena.titulo).replace(/\.[a-z]{3,4}$/i, '') : String(p.enunciado)).slice(0, 90),
       termino: buena.termino ?? null, ancho: buena.ancho, alto: buena.alto, nota: buena.nota, notaModelo: buena.notaModelo, origen: 'lote',
+      ...(buena.revisar ? { revisar: true } : {}),
     };
     usadas.add(buena.pagina);
-    return { rama: 'nueva', fuente: buena.fuente, nota: buena.nota };
+    return { rama: 'nueva', fuente: buena.fuente + (buena.revisar ? ' (revisar)' : ''), nota: buena.nota };
   }
   if (tecnico || estado.fallosSeguidos >= 40) return { rama: 'tecnico' };
   return viaIA(p, p, ctx, p.id, p.id);
 }
 
+
+/** IA gratis: Space público de Hugging Face FLUX.1-schnell vía tools/flux-space.py (cupo anónimo ZeroGPU). Cupo agotado => espera y reintenta. */
+async function generarFlux(prompt) {
+  const { spawn } = await import('node:child_process');
+  const { tmpdir } = await import('node:os');
+  for (let intento = 0; intento < 6; intento++) {
+    const salida = join(tmpdir(), `flux-${process.pid}-${Date.now()}.img`);
+    const rc = await new Promise((res) => {
+      let err = '';
+      const h = spawn('python', ['-I', 'tools/flux-space.py', prompt, salida], { stdio: ['ignore', 'ignore', 'pipe'] });
+      h.stderr.on('data', (d) => { err += d; });
+      h.on('close', (c) => res({ c, err }));
+      h.on('error', () => res({ c: 4, err: 'sin python' }));
+    });
+    if (rc.c === 0 && existsSync(salida)) { const b = await readFile(salida); await (await import('node:fs/promises')).unlink(salida).catch(() => {}); return { buffer: b, proveedor: 'huggingface-flux-schnell' }; }
+    console.log(`  FLUX Space: ${rc.err.replace(/\s+/g, ' ').slice(0, 160)} · espero ${rc.c === 3 ? 5 : 1} min`);
+    await dormir((rc.c === 3 ? 5 : 1) * 60000);
+  }
+  return null;
+}
 
 // --- Último recurso: IA (Cloudflare FLUX, cupo propio). Regla de Carlos (12-oct): ninguna pregunta ni cifra sin imagen.
 // Si la política normal no admite IA (arte, hechos o lugares concretos, cifras de cosas reales), se usa un prompt
@@ -269,25 +298,25 @@ Answer (do NOT depict it): ${pregunta.explicacion ?? ''}` }]);
 
 async function viaIA(item, pregunta, ctx, nombre, id) {
   const { imagenes, cupo } = ctx;
-  if (SIN_IA || !cupo.puede()) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
+  if (SIN_IA || (!FLUX && !cupo.puede())) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
   const normal = iaPermitida(pregunta) && !ctx.esCifra?.(item);
   // Hasta 3 intentos con prompts distintos (normal/simbólico/simbólico). Si ninguno llega a 4 se queda el mejor,
   // marcado `revisar: true` (regla de Carlos: ninguna pregunta ni cifra sin imagen).
   let mejor = null;
   for (let intento = 0; intento < 3; intento++) {
-    if (!cupo.puede()) break;
+    if (!FLUX && !cupo.puede()) break;
     const llamarModelo = ({ mensajes }) => textoLLM(mensajes);
     const prompt = normal && intento === 0 ? await escribirPrompt(pregunta, { llamarModelo }) : await promptSimbolico(pregunta);
     let g = null;
     // Cloudflare recarga a las 00:00 UTC: si responde agotado se espera 10 min y se reintenta (hasta 9 veces por imagen).
-    for (let espera = 0; espera < 9 && prompt; espera++) {
-      g = await generarImagen(prompt, { cupo });
+    for (let espera = 0; espera < (FLUX ? 1 : 9) && prompt; espera++) {
+      g = FLUX ? await generarFlux(prompt) : await generarImagen(prompt, { cupo });
       if (g) break;
       console.log('  IA agotada o sin respuesta: espero 10 min');
       await dormir(600000);
     }
     if (!g) { if (mejor) break; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen tras esperar (tramo diario agotado)' }; }
-    const webp = await aWebpIA(g.buffer);
+    const webp = FLUX ? await aWebp500(g.buffer) : await aWebpIA(g.buffer);
     const r = await juzgar(webp, pregunta, ctx.estado);
     if (!r) { if (mejor) break; return { rama: 'tecnico' }; }
     if (!mejor || r.nota > mejor.nota) mejor = { webp, prompt, g, nota: r.nota, modelo: r.modelo };
@@ -297,7 +326,7 @@ async function viaIA(item, pregunta, ctx, nombre, id) {
   const revisar = !iaMejoraActual(mejor.nota, undefined);
   const url = await guardarWebp(DIR_IA, nombre, mejor.webp);
   if (ctx.esCifra?.(item)) item.imagen = { url, fuente: 'IA', nota: mejor.nota, notaModelo: mejor.modelo, ...(revisar ? { revisar: true } : {}) };
-  else imagenes[id] = { id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt: mejor.prompt, proveedor: mejor.g.proveedor, ancho: 768, alto: 768, nota: mejor.nota, notaModelo: mejor.modelo, origen: 'lote', ...(revisar ? { revisar: true } : {}) };
+  else imagenes[id] = { id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt: mejor.prompt, proveedor: mejor.g.proveedor, ancho: FLUX ? ANCHO : 768, alto: FLUX ? ANCHO : 768, nota: mejor.nota, notaModelo: mejor.modelo, origen: 'lote', ...(revisar ? { revisar: true } : {}) };
   return { rama: 'nueva', fuente: revisar ? 'IA (revisar)' : 'IA', nota: mejor.nota };
 }
 
@@ -309,9 +338,9 @@ async function rellenarCifra(c, ctx) {
     return viaIA(c, preguntaDeCifra(c), ctx, `cifra-${c.id}`, c.id);
   }
   const url = await guardarWebp(DIR_BANCO, `cifra-${c.id}`, buena.webp);
-  c.imagen = { url, pagina: buena.pagina, autor: buena.autor, licencia: buena.licencia, fuente: buena.fuente, nota: buena.nota, notaModelo: buena.notaModelo };
+  c.imagen = { url, pagina: buena.pagina, autor: buena.autor, licencia: buena.licencia, fuente: buena.fuente, nota: buena.nota, notaModelo: buena.notaModelo, ...(buena.revisar ? { revisar: true } : {}) };
   usadas.add(buena.pagina);
-  return { rama: 'nueva', fuente: buena.fuente, nota: buena.nota };
+  return { rama: 'nueva', fuente: buena.fuente + (buena.revisar ? ' (revisar)' : ''), nota: buena.nota };
 }
 
 // --- Principal ---------------------------------------------------------------------------------------------
@@ -329,8 +358,8 @@ async function principal() {
   const cupo = crearCupo({ ruta: RUTA_CUPO, maxDia: MAX_IA });
   const usadas = new Set([...Object.values(imagenes).map((e) => e.pagina), ...cifras.map((c) => c.imagen?.pagina)].filter(Boolean));
 
-  const pendP = QUE === 'cifras' ? [] : preguntas.filter((p) => !imagenes[p.id] && !estado.intentadas[p.id] && (!IDS || IDS.includes(p.id))).slice(0, LIMITE);
-  const pendC = QUE === 'preguntas' ? [] : cifras.filter((c) => !c.imagen && !estado.intentadas[c.id] && (!IDS || IDS.includes(c.id))).slice(0, LIMITE);
+  const pendP = QUE === 'cifras' ? [] : preguntas.filter((p) => !imagenes[p.id] && (REINTENTAR || !estado.intentadas[p.id]) && (!IDS || IDS.includes(p.id))).slice(0, LIMITE);
+  const pendC = QUE === 'preguntas' ? [] : cifras.filter((c) => !c.imagen && (REINTENTAR || !estado.intentadas[c.id]) && (!IDS || IDS.includes(c.id))).slice(0, LIMITE);
   console.log(`Pendientes: ${pendP.length} preguntas, ${pendC.length} cifras. Cupo IA de hoy: ${JSON.stringify(cupo.estadoHoy())}`);
   if (DRY) return;
   await mkdir('tmp', { recursive: true });
