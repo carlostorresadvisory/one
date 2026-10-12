@@ -1,7 +1,7 @@
 // ONE · service worker — stale-while-revalidate: responde con la caché al instante y la
 // actualiza en segundo plano, así un despliegue nuevo llega en la siguiente apertura sin
 // tener que cambiar el nombre de la caché. Sin caché y sin red, respuesta de error controlada.
-const CACHE = 'one-v38';
+const CACHE = 'one-v39';
 
 // Hallazgo M1 (revisión final v0.1e): con un único `ESTATICOS` y
 // `cache.add(ruta).catch(()=>{})` por recurso, la instalación "tenía éxito"
@@ -19,7 +19,7 @@ const CACHE = 'one-v38';
 const NUCLEO = [
   './', 'index.html', 'app.js', 'mazo.js', 'motor.js', 'visuales.js', 'sincronizacion.js', 'atomo.js', 'tanda.js',
   'sonido.js', 'efectos.js', 'avatar.js', 'mochila.js', 'respaldo.js', 'modos.js', 'filtro.js', 'aviso-generadas.js', 'saber-mas.js',
-  'ordago.js', 'ordago-ui.js', 'foto-pregunta.js', 'contrarreloj.js', 'contrarreloj-ui.js',
+  'avisos.js', 'ordago.js', 'ordago-ui.js', 'foto-pregunta.js', 'contrarreloj.js', 'contrarreloj-ui.js',
   'masomenos.js', 'masomenos-ui.js', 'escala.js', 'comodines-ui.js', 'tienda-ui.js', 'premium.js', 'premium-ui.js',
   'vendor/zzfx.js', 'vendor/canvas-confetti.js',
   'estilos.css', 'datos/banco.json', 'datos/cifras.json',
@@ -218,5 +218,63 @@ self.addEventListener('fetch', (evento) => {
       const deRed = await actualizacion;
       return deRed || new Response('Sin conexión y sin copia local', { status: 503, statusText: 'Sin conexión' });
     })
+  );
+});
+
+// v0.3.4 C: aviso Web Push de «Preguntas listas · Roma · 100 ▶» (servidor/push.js). iOS exige que TODO push se
+// muestre como notificación (sin avisos silenciosos), así que siempre se enseña; la `etiqueta` (id de la tanda)
+// evita duplicados si llega repetido. `data.url` es `./?tema=...` (avisos.js#urlDeTema), relativa a la app.
+self.addEventListener('push', (evento) => {
+  let datos = {};
+  try {
+    datos = evento.data ? evento.data.json() : {};
+  } catch {
+    datos = {};
+  }
+  const texto = (valor, defecto) => (typeof valor === 'string' && valor ? valor.slice(0, 200) : defecto);
+  evento.waitUntil(
+    self.registration.showNotification(texto(datos.titulo, 'Preguntas listas ▶'), {
+      body: texto(datos.cuerpo, ''),
+      icon: 'iconos/esfinx-192.png',
+      tag: texto(datos.etiqueta, 'esfinx-tanda'),
+      data: { url: texto(datos.url, './') },
+    })
+  );
+});
+
+// Tocar el aviso: si Esfinx ya está abierta se enfoca y se le dice qué tema abrir (postMessage; app.js lo recoge);
+// si no, se abre una ventana con la URL del tema. Una URL que no sea de esta misma app (o un fallo al abrirla) cae
+// al inicio de la app (`registration.scope`, «/» en el origen propio).
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const alcance = self.registration.scope;
+  let destino = alcance;
+  try {
+    const url = new URL((evento.notification.data && evento.notification.data.url) || './', alcance);
+    if (url.origin === new URL(alcance).origin && url.href.startsWith(alcance)) destino = url.href;
+  } catch {
+    destino = alcance;
+  }
+  evento.waitUntil(
+    (async () => {
+      const ventanas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      const abierta = ventanas.find((ventana) => ventana.url.startsWith(alcance));
+      if (abierta) {
+        try {
+          await abierta.focus();
+        } catch {
+          /* enfocar puede rechazarse; el mensaje se envía igualmente */
+        }
+        abierta.postMessage({ tipo: 'abrir-tema', url: destino });
+        return;
+      }
+      try {
+        const nueva = await self.clients.openWindow(destino);
+        if (nueva) return;
+      } catch {
+        /* se prueba con el inicio */
+      }
+      if (destino !== alcance) await self.clients.openWindow(alcance).catch(() => {});
+    })()
   );
 });

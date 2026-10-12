@@ -23,8 +23,8 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v38', () => {
-  assert.match(sw, /const CACHE = 'one-v38';/);
+test('sw: caché one-v39', () => {
+  assert.match(sw, /const CACHE = 'one-v39';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
@@ -77,7 +77,7 @@ test('sw: las fotos de preguntas no se precachean (van a una caché aparte con t
 });
 
 // Los tests de abajo ejecutan el sw.js real con cachés falsas.
-async function montarSw({ red = async () => new Response(new Uint8Array(10)) } = {}) {
+async function montarSw({ red = async () => new Response(new Uint8Array(10)), ventanas = [], abrirVentana = async () => ({}) } = {}) {
   const vm = await import('node:vm');
   const almacenes = new Map();
   const abrir = (nombre) => {
@@ -95,13 +95,25 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
   const llamadas = [];
   const esperas = [];
   const plazos = []; // temporizadores de plazo de petición: no corren solos, el test los dispara
+  const notificaciones = []; // showNotification(titulo, opciones)
+  const ventanasAbiertas = []; // clients.openWindow(url)
   const caches = {
     open: async (n) => abrir(n),
     keys: async () => [...almacenes.keys()],
     delete: async (n) => almacenes.delete(n),
   };
   const contexto = vm.createContext({
-    self: { addEventListener: (t, f) => { manejadores[t] = f; }, location: { origin: 'https://x' }, skipWaiting() {}, clients: { claim() {} } },
+    self: {
+      addEventListener: (t, f) => { manejadores[t] = f; },
+      location: { origin: 'https://x' },
+      skipWaiting() {},
+      registration: { scope: 'https://x/', showNotification: async (titulo, opciones) => { notificaciones.push({ titulo, opciones }); } },
+      clients: {
+        claim() {},
+        matchAll: async () => ventanas,
+        openWindow: async (url) => { ventanasAbiertas.push(url); return abrirVentana(url); },
+      },
+    },
     URL, Request, Response, caches,
     AbortController,
     clearTimeout: (id) => { const i = plazos.findIndex((p) => p.id === id); if (i >= 0) plazos.splice(i, 1); else clearTimeout(id); },
@@ -120,7 +132,7 @@ async function montarSw({ red = async () => new Response(new Uint8Array(10)) } =
     return promesa;
   };
   const pausa = () => new Promise((r) => setTimeout(r, 20));
-  return { vm, contexto, almacenes, abrir, manejadores, llamadas, esperas, plazos, pedir, pausa };
+  return { vm, contexto, almacenes, abrir, manejadores, llamadas, esperas, plazos, pedir, pausa, notificaciones, ventanasAbiertas };
 }
 
 test('sw: acotarFotos borra las más antiguas hasta que caben en el tope de bytes', async () => {
@@ -138,7 +150,7 @@ test('sw: una foto propia va a one-fotos (no a la caché del núcleo) y la segun
   assert.equal((await sim.pedir('https://x/imagenes-banco/a.webp')).ok, true);
   await sim.pausa();
   assert.ok(sim.almacenes.get('one-fotos').has('https://x/imagenes-banco/a.webp'));
-  assert.ok(!sim.almacenes.has('one-v38'), 'nada en la caché del núcleo');
+  assert.ok(!sim.almacenes.has('one-v39'), 'nada en la caché del núcleo');
   const antes = sim.llamadas.length;
   await sim.pedir('https://x/imagenes-banco/a.webp');
   assert.equal(sim.llamadas.length, antes, 'sin pedirla otra vez a la red');
@@ -169,11 +181,11 @@ test('sw: lo de otro origen que no es foto (otro dominio o destino que no es ima
 
 test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fotos', async () => {
   const sim = await montarSw();
-  sim.abrir('one-v30'); sim.abrir('one-v38'); sim.abrir('one-fotos');
+  sim.abrir('one-v30'); sim.abrir('one-v38'); sim.abrir('one-v39'); sim.abrir('one-fotos');
   let terminado = null;
   sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
   await terminado;
-  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v38']);
+  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v39']);
 });
 
 test('sw: acotarFotos conserva como mucho 120 fotos (las más nuevas)', async () => {
@@ -241,4 +253,88 @@ test('sw: una petición a Commons colgada se aborta al vencer su plazo (15 s), l
   assert.equal((await tercera).status, 200, 'la tercera sale al liberarse una plaza');
   const resueltas = await Promise.all(colgadas); // las colgadas terminan (con la reserva opaca), no se quedan para siempre
   assert.equal(resueltas.length, 2);
+});
+
+// === Avisos Web Push (v0.3.4 C) ===================================================================
+
+function eventoPush(datos) {
+  let espera = null;
+  const evento = { data: datos === undefined ? null : { json: () => (typeof datos === 'string' ? JSON.parse(datos) : datos) }, waitUntil: (p) => { espera = p; } };
+  return { evento, terminado: () => espera };
+}
+
+test('sw: push muestra la notificación con el icono de la app, el título del servidor y la URL del tema', async () => {
+  const sim = await montarSw();
+  const url = './?tema=%5B%22historia%22%2C%5B%5D%2C%5B%5D%5D';
+  const { evento, terminado } = eventoPush({ titulo: 'Preguntas listas · Roma · 100 ▶', cuerpo: 'Toca para jugarlas', url, etiqueta: 't-7' });
+  sim.manejadores.push(evento);
+  await terminado();
+  assert.equal(sim.notificaciones.length, 1);
+  const { titulo, opciones } = sim.notificaciones[0];
+  assert.equal(titulo, 'Preguntas listas · Roma · 100 ▶');
+  assert.equal(opciones.body, 'Toca para jugarlas');
+  assert.equal(opciones.icon, 'iconos/esfinx-192.png');
+  assert.equal(opciones.tag, 't-7');
+  assert.deepEqual({ ...opciones.data }, { url });
+  assert.ok(statSync(new URL(`../${opciones.icon}`, import.meta.url)).size > 0, 'el icono existe');
+});
+
+test('sw: push sin datos o con un cuerpo roto muestra igualmente una notificación (iOS no admite avisos silenciosos)', async () => {
+  const sim = await montarSw();
+  for (const datos of [undefined, '{no es json']) {
+    const { evento, terminado } = eventoPush(datos);
+    sim.manejadores.push(evento);
+    await terminado();
+  }
+  assert.equal(sim.notificaciones.length, 2);
+  assert.ok(sim.notificaciones.every((n) => n.titulo.length > 0 && n.opciones.data.url === './'));
+});
+
+function eventoClic(url) {
+  let espera = null;
+  let cerrada = false;
+  const evento = { notification: { data: url === undefined ? undefined : { url }, close: () => { cerrada = true; } }, waitUntil: (p) => { espera = p; } };
+  return { evento, terminado: () => espera, cerrada: () => cerrada };
+}
+
+test('sw: tocar el aviso con Esfinx abierta enfoca esa ventana y le manda el tema (sin abrir otra)', async () => {
+  const mensajes = [];
+  let enfocada = 0;
+  const ventana = { url: 'https://x/', focus: async () => { enfocada += 1; }, postMessage: (m) => mensajes.push(m) };
+  const otra = { url: 'https://otro.com/', focus: async () => { throw new Error('no es nuestra'); }, postMessage: () => { throw new Error('no es nuestra'); } };
+  const sim = await montarSw({ ventanas: [otra, ventana] });
+  const clic = eventoClic('./?tema=%5B%22historia%22%5D');
+  sim.manejadores.notificationclick(clic.evento);
+  await clic.terminado();
+  assert.equal(clic.cerrada(), true);
+  assert.equal(enfocada, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(mensajes)), [{ tipo: 'abrir-tema', url: 'https://x/?tema=%5B%22historia%22%5D' }]);
+  assert.equal(sim.ventanasAbiertas.length, 0);
+});
+
+test('sw: tocar el aviso con la app cerrada abre una ventana en la URL del tema', async () => {
+  const sim = await montarSw({ ventanas: [] });
+  const clic = eventoClic('./?tema=%5B%22historia%22%5D');
+  sim.manejadores.notificationclick(clic.evento);
+  await clic.terminado();
+  assert.deepEqual([...sim.ventanasAbiertas], ['https://x/?tema=%5B%22historia%22%5D']);
+});
+
+test('sw: una URL ajena o ausente en el aviso abre el inicio de la app (respaldo), nunca otro sitio', async () => {
+  for (const url of ['https://evil.example.com/robar', undefined, '//evil.example.com/']) {
+    const sim = await montarSw();
+    const clic = eventoClic(url);
+    sim.manejadores.notificationclick(clic.evento);
+    await clic.terminado();
+    assert.deepEqual([...sim.ventanasAbiertas], ['https://x/'], String(url));
+  }
+});
+
+test('sw: si openWindow falla con la URL del tema, se prueba con el inicio', async () => {
+  let intentos = 0;
+  const sim = await montarSw({ abrirVentana: async () => { intentos += 1; if (intentos === 1) throw new Error('bloqueado'); return {}; } });
+  const clic = eventoClic('./?tema=%5B%22historia%22%5D');
+  sim.manejadores.notificationclick(clic.evento);
+  await clic.terminado();
+  assert.deepEqual([...sim.ventanasAbiertas], ['https://x/?tema=%5B%22historia%22%5D', 'https://x/']);
 });
