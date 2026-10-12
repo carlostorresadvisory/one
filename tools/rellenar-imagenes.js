@@ -5,11 +5,16 @@
 //     visión recibe la miniatura de 500 px YA DESCARGADA (data URL base64), nunca la URL de Commons.
 //   - Una candidata solo entra con nota >= 4 del juez gratis; se guarda como WebP de 500 px <= 80 KB en
 //     imagenes-banco/ (preguntas: <id>.webp; cifras: cifra-<id>.webp) con credito/autor/licencia/pagina.
-//   - Nunca modelos de pago. Si los modelos de visión dejan de responder (8 fallos seguidos) se para.
+//   - Por defecto nunca modelos de pago. Con --juez <modelo> el juez es ese modelo de OpenRouter (de pago, autorizado por Carlos
+//     con tope duro --tope-usd, 0,50 $ por defecto): el coste real (usage.cost) se acumula, se apunta en ~/.claude/openrouter-uso.log
+//     (origen=rellenar-imagenes) y al llegar al tope la herramienta se para. Si los modelos de visión dejan de responder (8 fallos seguidos) se para.
 // Reanudable: tmp/rellenar-estado.json guarda términos y lo ya intentado. Uso:
 //   node --env-file=.env tools/rellenar-imagenes.js [--que preguntas|cifras|ambas] [--limite N] [--ids a,b]
 //        [--sin-ia] [--pausa 1200] [--candidatas 4] [--dry-run]
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+//        [--juez <modelo de OpenRouter con visión>] [--tope-usd 0.5]   (juez de PAGO ultrabarato; ver abajo)
+import { mkdir, readFile, writeFile, appendFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import sharp from 'sharp';
 import { extraerJson } from './openrouter.js';
@@ -43,8 +48,36 @@ const PAUSA = Math.max(1000, Number(arg('pausa', 1200)));
 const MAX_CAND = Number(arg('candidatas', 4));
 const MAX_BRUTAS = 10; // candidatas antes del filtro de títulos
 // Juez: Groq (Qwen con visión, gratis y rápido) primero; los de Gemini y NVIDIA (gratis) como respaldo. Nunca de pago.
-const MODELOS_JUEZ = ['groq:qwen/qwen3.8-27b', 'gemini:gemini-flash-lite-latest', 'gemini:gemini-3.6-flash', 'nvidia:meta/llama-3.2-11b-vision-instruct'];
+const JUEZ_PAGO = arg('juez', null);
+const TOPE_USD = Number(arg('tope-usd', 0.5));
+const RUTA_USO = join(homedir(), '.claude', 'openrouter-uso.log');
+const gasto = { usd: 0, llamadas: 0, tope: false };
+const MODELOS_JUEZ = JUEZ_PAGO ? [JUEZ_PAGO] : ['groq:qwen/qwen3.8-27b', 'gemini:gemini-flash-lite-latest', 'gemini:gemini-3.6-flash', 'nvidia:meta/llama-3.2-11b-vision-instruct'];
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Juez de pago: llama a OpenRouter con la imagen en base64, suma el coste real y respeta el tope duro. */
+async function llamarJuezPago({ modelo, mensajes }) {
+  if (gasto.usd >= TOPE_USD) { gasto.tope = true; throw new Error('tope de gasto'); }
+  const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'Content-Type': 'application/json', 'X-Title': 'ONE rellenar-imagenes' },
+    body: JSON.stringify({ model: modelo, messages: mensajes, temperature: 0.2, max_tokens: 400, usage: { include: true } }),
+    signal: AbortSignal.timeout(60000),
+  });
+  if (!r.ok) { await r.arrayBuffer().catch(() => {}); throw new Error(`HTTP ${r.status}`); }
+  const d = await r.json();
+  const coste = Number(d?.usage?.cost) || 0;
+  gasto.usd += coste; gasto.llamadas += 1;
+  await appendFile(RUTA_USO, `${new Date().toISOString().replace('T', ' ').slice(0, 19)} | modelo=${modelo} | coste_usd=${coste} | tarea=juez de imagen (quiz publico) | origen=rellenar-imagenes
+`, 'utf8').catch(() => {});
+  return d?.choices?.[0]?.message?.content ?? '';
+}
+async function gastoPrevio() {
+  try {
+    const t = await readFile(RUTA_USO, 'utf8');
+    return t.split(String.fromCharCode(10)).filter((l) => l.includes('origen=rellenar-imagenes')).reduce((a, l) => a + (Number(l.match(/coste_usd=(-?[\d.e-]+)/)?.[1]) || 0), 0);
+  } catch { return 0; }
+}
 
 // --- Cola en serie para Commons (y pausa mínima entre peticiones) -------------------------------------------
 let cola = Promise.resolve();
@@ -138,7 +171,9 @@ async function traer(c) {
 async function juzgar(webp, pregunta, estado) {
   // Los jueces gratis tienen tope diario/por minuto de tokens: si ninguno responde, se espera (10 min) y se reintenta.
   for (let ronda = 0; ronda < 8; ronda++) {
-    const r = await puntuarImagen({ url: dataUrlWebp(webp), pregunta }, { modelos: MODELOS_JUEZ });
+    if (gasto.tope) { estado.fallosSeguidos = 99; return null; }
+    const r = await puntuarImagen({ url: dataUrlWebp(webp), pregunta }, JUEZ_PAGO ? { modelos: MODELOS_JUEZ, llamarModelo: llamarJuezPago } : { modelos: MODELOS_JUEZ });
+    if (gasto.tope) { estado.fallosSeguidos = 99; return null; }
     if (r) { estado.fallosSeguidos = 0; estado.esperas = 0; return r; }
     estado.fallosSeguidos += 1;
     if (ronda >= 1) { console.log('  juez sin cupo: espero 10 min'); await dormir(600000); }
@@ -180,7 +215,8 @@ async function primeraBuena(cands, pregunta, estado, notas) {
 
 // --- Una pregunta / una cifra ------------------------------------------------------------------------------
 async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
-  if (estado.buscadas?.[pregunta.id]) return { buena: null, notas: [], tecnico: false }; // ya se buscó sin éxito: solo queda la IA
+  const claveB = JUEZ_PAGO ? 'buscadasPago' : 'buscadas';
+  if (estado[claveB]?.[pregunta.id]) return { buena: null, notas: [], tecnico: false }; // ya se buscó sin éxito: solo queda la IA
   const notas = [];
   const q = [...new Set([...(terminos ?? []), String(pregunta.enunciado).slice(0, 60)])].slice(0, 3);
   let tecnico = false;
@@ -191,7 +227,7 @@ async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
     if (r.buena) return { buena: r.buena, notas };
     if (estado.fallosSeguidos >= 40) break;
   }
-  if (!tecnico && estado.fallosSeguidos < 40) (estado.buscadas ??= {})[pregunta.id] = true;
+  if (!tecnico && estado.fallosSeguidos < 40) (estado[claveB] ??= {})[pregunta.id] = true;
   return { buena: null, notas, tecnico };
 }
 
@@ -228,22 +264,28 @@ async function viaIA(item, pregunta, ctx, nombre, id) {
   const { imagenes, cupo } = ctx;
   if (SIN_IA || ctx.iaCaida >= 3 || !cupo.puede()) return { rama: 'pendiente-ia', motivo: 'IA no disponible ahora (desactivada, cupo o tramo diario agotado)' };
   const normal = iaPermitida(pregunta) && !ctx.esCifra?.(item);
-  for (let intento = 0; intento < 2; intento++) {
+  // Hasta 3 intentos con prompts distintos (normal/simbólico/simbólico). Si ninguno llega a 4 se queda el mejor,
+  // marcado `revisar: true` (regla de Carlos: ninguna pregunta ni cifra sin imagen).
+  let mejor = null;
+  for (let intento = 0; intento < 3; intento++) {
+    if (!cupo.puede()) break;
     const llamarModelo = ({ mensajes }) => llamarTexto(mensajes);
     const prompt = normal && intento === 0 ? await escribirPrompt(pregunta, { llamarModelo }) : await promptSimbolico(pregunta);
     const g = prompt ? await generarImagen(prompt, { cupo }) : null;
-    if (!g) { ctx.iaCaida = (ctx.iaCaida ?? 0) + 1; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen (¿tramo gratis diario agotado?)' }; }
+    if (!g) { if (mejor) break; ctx.iaCaida = (ctx.iaCaida ?? 0) + 1; return { rama: 'pendiente-ia', motivo: 'la IA no devolvió imagen (¿tramo gratis diario agotado?)' }; }
     ctx.iaCaida = 0;
     const webp = await aWebpIA(g.buffer);
     const r = await juzgar(webp, pregunta, ctx.estado);
-    if (!r) return { rama: 'tecnico' };
-    if (!iaMejoraActual(r.nota, undefined)) { if (intento === 1) return { rama: 'sin-imagen', motivo: `IA descartada (nota ${r.nota})` }; continue; }
-    const url = await guardarWebp(DIR_IA, nombre, webp);
-    if (ctx.esCifra?.(item)) item.imagen = { url, fuente: 'IA', nota: r.nota, notaModelo: r.modelo };
-    else imagenes[id] = { id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt, proveedor: g.proveedor, ancho: 768, alto: 768, nota: r.nota, notaModelo: r.modelo, origen: 'lote' };
-    return { rama: 'nueva', fuente: 'IA', nota: r.nota };
+    if (!r) { if (mejor) break; return { rama: 'tecnico' }; }
+    if (!mejor || r.nota > mejor.nota) mejor = { webp, prompt, g, nota: r.nota, modelo: r.modelo };
+    if (iaMejoraActual(r.nota, undefined)) break;
   }
-  return { rama: 'sin-imagen', motivo: 'IA descartada' };
+  if (!mejor) return { rama: 'sin-imagen', motivo: 'IA sin intentos' };
+  const revisar = !iaMejoraActual(mejor.nota, undefined);
+  const url = await guardarWebp(DIR_IA, nombre, mejor.webp);
+  if (ctx.esCifra?.(item)) item.imagen = { url, fuente: 'IA', nota: mejor.nota, notaModelo: mejor.modelo, ...(revisar ? { revisar: true } : {}) };
+  else imagenes[id] = { id, url, pagina: null, titulo: '', autor: null, licencia: null, fuente: 'IA', leyenda: CREDITO_IA.texto, prompt: mejor.prompt, proveedor: mejor.g.proveedor, ancho: 768, alto: 768, nota: mejor.nota, notaModelo: mejor.modelo, origen: 'lote', ...(revisar ? { revisar: true } : {}) };
+  return { rama: 'nueva', fuente: revisar ? 'IA (revisar)' : 'IA', nota: mejor.nota };
 }
 
 async function rellenarCifra(c, ctx) {
@@ -269,6 +311,8 @@ async function principal() {
   const cifras = await leer(RUTA_CIFRAS, []);
   const estado = (await leer(RUTA_ESTADO, null)) ?? { terminos: {}, intentadas: {}, resumen: {} };
   estado.fallosSeguidos = 0;
+  gasto.usd = await gastoPrevio();
+  if (JUEZ_PAGO) console.log(`Juez de pago: ${JUEZ_PAGO} · tope ${TOPE_USD} $ · gastado antes en esta herramienta: ${gasto.usd.toFixed(4)} $`);
   const cupo = crearCupo({ ruta: RUTA_CUPO, maxDia: MAX_IA });
   const usadas = new Set([...Object.values(imagenes).map((e) => e.pagina), ...cifras.map((c) => c.imagen?.pagina)].filter(Boolean));
 

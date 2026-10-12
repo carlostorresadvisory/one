@@ -3899,5 +3899,21 @@
     "nota": 4,
     "notaModelo": "nvidia:meta/llama-3.2-11b-vision-instruct",
     "origen": "lote"
+  },
+  "cie-094": {
+    "id": "cie-094",
+    "url": "imagenes-banco/cie-094.webp",
+    "pagina": "https://commons.wikimedia.org/wiki/File:REM-s%C3%B8vn.jpg",
+    "titulo": "REM-søvn.jpg",
+    "autor": "Lorenza Walker",
+    "licencia": "CC BY-SA 4.0",
+    "fuente": "Commons",
+    "leyenda": "REM-søvn",
+    "termino": "REM sleep illustration",
+    "ancho": 500,
+    "alto": 663,
+    "nota": 4,
+    "notaModelo": "google/gemini-2.5-flash-lite",
+    "origen": "lote"
   }
 }
