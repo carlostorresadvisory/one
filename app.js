@@ -2000,6 +2000,7 @@ async function iniciar() {
   } // sin await: el AudioContext de ZzFX existe ya cuando llega el primer toque (iOS)
   const params = new URLSearchParams(location.search);
   if (params.get('depurar') === 'sonido') import('./depurar-sonido.js').then((m) => m.montarPanelSonido(sonido));
+  if (params.get('depurar') === 'fps') import('./depurar-fps.js').then((m) => m.montarPanelFps());
   const esEjemplo = params.get('ejemplo') === '1';
   const rutaBanco = esEjemplo ? 'datos/banco.ejemplo.json' : 'datos/banco.json';
   // Antes de nada: si el enlace trae `?servidor=&token=` (Carlos lo abre una vez desde el chat,

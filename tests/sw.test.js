@@ -23,14 +23,14 @@ function modulosLocales(fichero, vistos = new Set()) {
   return vistos;
 }
 
-test('sw: caché one-v34', () => {
-  assert.match(sw, /const CACHE = 'one-v34';/);
+test('sw: caché one-v35', () => {
+  assert.match(sw, /const CACHE = 'one-v35';/);
 });
 
 test('sw: todo módulo que app.js carga está en NUCLEO', () => {
   const nucleo = new Set(lista('NUCLEO'));
-  // depurar-sonido.js es una herramienta de diagnóstico (?depurar=sonido) que se usa con red: no se precachea a propósito.
-  const sinPrecache = new Set(['depurar-sonido.js']);
+  // depurar-sonido.js y depurar-fps.js son herramientas de diagnóstico (?depurar=sonido|fps) que se usan con red: no se precachean a propósito.
+  const sinPrecache = new Set(['depurar-sonido.js', 'depurar-fps.js']);
   for (const fichero of modulosLocales('app.js')) {
     if (sinPrecache.has(fichero)) continue;
     assert.ok(nucleo.has(fichero), `${fichero} falta en NUCLEO de sw.js`);
@@ -138,7 +138,7 @@ test('sw: una foto propia va a one-fotos (no a la caché del núcleo) y la segun
   assert.equal((await sim.pedir('https://x/imagenes-banco/a.webp')).ok, true);
   await sim.pausa();
   assert.ok(sim.almacenes.get('one-fotos').has('https://x/imagenes-banco/a.webp'));
-  assert.ok(!sim.almacenes.has('one-v34'), 'nada en la caché del núcleo');
+  assert.ok(!sim.almacenes.has('one-v35'), 'nada en la caché del núcleo');
   const antes = sim.llamadas.length;
   await sim.pedir('https://x/imagenes-banco/a.webp');
   assert.equal(sim.llamadas.length, antes, 'sin pedirla otra vez a la red');
@@ -169,11 +169,11 @@ test('sw: lo de otro origen que no es foto (otro dominio o destino que no es ima
 
 test('sw: al activar se borran las cachés viejas del núcleo pero nunca one-fotos', async () => {
   const sim = await montarSw();
-  sim.abrir('one-v30'); sim.abrir('one-v34'); sim.abrir('one-fotos');
+  sim.abrir('one-v30'); sim.abrir('one-v35'); sim.abrir('one-fotos');
   let terminado = null;
   sim.manejadores.activate({ waitUntil: (p) => { terminado = p; } });
   await terminado;
-  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v34']);
+  assert.deepEqual([...sim.almacenes.keys()].sort(), ['one-fotos', 'one-v35']);
 });
 
 test('sw: acotarFotos conserva como mucho 120 fotos (las más nuevas)', async () => {
