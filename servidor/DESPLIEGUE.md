@@ -88,6 +88,14 @@ repo ni se manda a nadie más):
   Los ids de las imágenes que el jugador marque como malas quedan en `/opt/one-datos/imagenes-malas.json` (el lote
   `tools/mejorar-imagenes.js` los lee de `datos/imagenes-malas.json`).
 
+- **Avisos del iPhone (Web Push, v0.3.4 C)**: en el VPS, tras construir con `--build`,
+  `docker compose -f servidor/docker-compose.yml run --rm --no-deps one-servidor node tools/generar-vapid.js` (o
+  `node tools/generar-vapid.js` si el VPS tiene Node 22; no instala nada) imprime `VAPID_PUBLICA`, `VAPID_PRIVADA` y `VAPID_CONTACTO`; se pegan en `/opt/one/.env` y se
+  recrea el contenedor (el `--build` ya instala `web-push` con `npm ci`). **Se generan una vez y no se rotan**:
+  un par nuevo invalida todas las suscripciones. Sin ellas el servidor arranca igual y el log dice «avisos Web Push
+  desactivados». Comprobación: `curl -H "Authorization: Bearer $TOKEN_ONE" https://<servidor>/vapid` devuelve
+  `{"activa":true,"publica":"..."}`. Las suscripciones quedan en `/opt/one-datos/suscripciones.json`.
+
 ## Verificación rápida
 
 - `GET /salud` sin token debe devolver `{"ok": true, ...}` con el estado del colchón y el gasto de
