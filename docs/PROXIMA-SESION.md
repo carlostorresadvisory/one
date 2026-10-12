@@ -3,7 +3,9 @@
 **v0.3.3 PUBLICADA** el 12-oct (main `88f495a`, Pages `one-v36`): Tienda ampliada (Saltar, Segunda oportunidad, Escudo de racha, Cofre, 5 Títulos; spec v0.3 §6; plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.3-tienda.md`) y esfinge a 100 px en Tienda y Premium. Comprobado en Pages: sin scroll a 375 × 667, sin errores.
 
 ## v0.3.4 en curso (plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.4-tandas.md`)
-- **A** (fila «Tus temas» en el hub + «Generados» en el filtro): implementador Sonnet en el worktree `.claude/worktrees/v0.3.4a` (rama `v0.3.4a`); al terminar: revisar ejecutando, adversarial, e2e por mitades (`--shard=1/2 --workers=2`), fusionar en `v0.3.1`, `CACHE` `one-v37`, publicar.
+- **A** PUBLICADO (main `efe267c`, Pages `one-v37`): fila «Tus temas» en el hub y «Generados» en el filtro; clave nueva `one.etiquetasRutas` (en el respaldo). Adversarial de Nemotron: 2 hallazgos, ambos falsos.
+- **B** en marcha: implementador Sonnet en `.claude/worktrees/v0.3.4b` (rama `v0.3.4b`), `CACHE` `one-v38`; cambia el servidor (`N_MAX_GENERAR` 100): desplegar en el VPS solo con OK de Carlos.
+- e2e «tanda de 10 con 10 aciertos (375×667)» falla también en la base (tarjeta 3 px más alta con el banco real): revisar junto con «Comparar con fechas».
 - **D** hecho y fusionado (`8c3dd50`): `HF_TOKEN` en `.env` (verificado, genera imágenes); Pollinations descartado (marca de agua, API de pago), Pexels sin claves nuevas, Pixabay prohíbe peticiones automáticas. Queda por borrar el worktree `.claude/worktrees/v0.3.4d` (el borrado lo bloqueó el clasificador por el `.env` de dentro: lo borra Carlos o se aprueba).
 - **B** (tandas de 10 o 100, Premium) tras A; **C** (Web Push al iPhone) tras B: el despliegue en el VPS se confirma con Carlos.
 - El token de HF se mandó a la sesión E- ELOY (dueña del cazador), a petición de Carlos.
