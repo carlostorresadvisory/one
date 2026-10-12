@@ -234,7 +234,7 @@ async function buscarFuentes({ pregunta, area, terminos, usadas, estado }) {
   const q = [...new Set([...(terminos ?? []), String(pregunta.enunciado).slice(0, 60)])].slice(0, LISTON < 4 ? 5 : 3);
   let tecnico = false, floja = null;
   for (const fuente of ['commons', 'bancos']) {
-    const cands = fuente === 'commons' ? await candidatasCommons(q, usadas) : await candidatasBancos(q.slice(0, LISTON < 4 ? 4 : 2), area, usadas);
+    const cands = fuente === 'commons' ? await candidatasCommons(q, usadas).catch(() => { tecnico = true; return []; }) : await candidatasBancos(q.slice(0, LISTON < 4 ? 4 : 2), area, usadas);
     const r = await primeraBuena((await filtrarRelevantes(cands, pregunta)).slice(0, LISTON < 4 ? Math.max(MAX_CAND, 6) : MAX_CAND), pregunta, estado, notas);
     tecnico ||= r.tecnico;
     if (r.buena) return { buena: r.buena, notas };
