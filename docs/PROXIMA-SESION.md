@@ -2,6 +2,12 @@
 
 **v0.3.3 PUBLICADA** el 12-oct (main `88f495a`, Pages `one-v36`): Tienda ampliada (Saltar, Segunda oportunidad, Escudo de racha, Cofre, 5 Títulos; spec v0.3 §6; plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.3-tienda.md`) y esfinge a 100 px en Tienda y Premium. Comprobado en Pages: sin scroll a 375 × 667, sin errores.
 
+## v0.3.4 en curso (plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.4-tandas.md`)
+- **A** (fila «Tus temas» en el hub + «Generados» en el filtro): implementador Sonnet en el worktree `.claude/worktrees/v0.3.4a` (rama `v0.3.4a`); al terminar: revisar ejecutando, adversarial, e2e por mitades (`--shard=1/2 --workers=2`), fusionar en `v0.3.1`, `CACHE` `one-v37`, publicar.
+- **D** hecho y fusionado (`8c3dd50`): `HF_TOKEN` en `.env` (verificado, genera imágenes); Pollinations descartado (marca de agua, API de pago), Pexels sin claves nuevas, Pixabay prohíbe peticiones automáticas. Queda por borrar el worktree `.claude/worktrees/v0.3.4d` (el borrado lo bloqueó el clasificador por el `.env` de dentro: lo borra Carlos o se aprueba).
+- **B** (tandas de 10 o 100, Premium) tras A; **C** (Web Push al iPhone) tras B: el despliegue en el VPS se confirma con Carlos.
+- El token de HF se mandó a la sesión E- ELOY (dueña del cazador), a petición de Carlos.
+
 ## Fluidez de la esfinge (abierto)
 - Carlos ve a pocos fps la esfinge en los modos, en los gestos y el confeti (iPhone, sin ahorro de batería). Causa probable: `texImage2D` de un vídeo 480×960 a WebGL en cada fotograma es lento en Safari iOS (WebKit bug 216250). Con gráfica por software: entero 41 fps, a mitad 61 fps.
 - Medidor publicado: `https://carlostorresadvisory.github.io/one/?depurar=fps` y `…&subida=media` (`depurar-fps.js`). **Esperando capturas de Carlos**. Si la mitad va mejor: reescalar los clips de `avatar/` (p. ej. 320×640) con ffmpeg y comprobar la tarjeta del hub.
