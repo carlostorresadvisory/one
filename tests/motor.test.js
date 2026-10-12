@@ -1206,37 +1206,88 @@ describe('listarNoRespondidas', () => {
 
 // ---------------------------------------------------------------------------
 describe('actualizarRacha', () => {
+  const racha = (estado, hoy, escudos) => actualizarRacha(estado, hoy, escudos).estado;
+
   test('estado nuevo -> racha 1', () => {
-    const estado = actualizarRacha(crearEstado(HOY), HOY);
+    const estado = racha(crearEstado(HOY), HOY);
     assert.equal(estado.racha.dias, 1);
     assert.equal(estado.racha.ultimaFecha, HOY);
   });
 
   test('jugó ayer -> +1', () => {
-    let estado = actualizarRacha(crearEstado(HOY), HOY); // dias 1
+    let estado = racha(crearEstado(HOY), HOY); // dias 1
     const manana = sumarDias(HOY, 1);
-    estado = actualizarRacha(estado, manana);
+    estado = racha(estado, manana);
     assert.equal(estado.racha.dias, 2);
   });
 
   test('hueco de 2 días -> vuelve a 1', () => {
-    let estado = actualizarRacha(crearEstado(HOY), HOY); // dias 1
+    let estado = racha(crearEstado(HOY), HOY); // dias 1
     const dosDiasDespues = sumarDias(HOY, 2);
-    estado = actualizarRacha(estado, dosDiasDespues);
+    estado = racha(estado, dosDiasDespues);
     assert.equal(estado.racha.dias, 1);
   });
 
   test('mismo día dos veces no cambia la racha', () => {
-    let estado = actualizarRacha(crearEstado(HOY), HOY); // dias 1
-    estado = actualizarRacha(estado, HOY);
+    let estado = racha(crearEstado(HOY), HOY); // dias 1
+    estado = racha(estado, HOY);
     assert.equal(estado.racha.dias, 1);
   });
 
   test('resetea el combo', () => {
     const estado = crearEstado(HOY);
     estado.combo = 5;
-    const nuevo = actualizarRacha(estado, HOY);
+    const nuevo = racha(estado, HOY);
     assert.equal(nuevo.combo, 0);
+  });
+
+  // Escudo de racha (plan v0.3.3): 1 escudo por día perdido; si no alcanzan, vuelve a 1 y no se gasta ninguno.
+  describe('con escudos', () => {
+    const conRacha = (dias) => {
+      const e = crearEstado(HOY);
+      e.racha = { dias, ultimaFecha: HOY };
+      return e;
+    };
+
+    test('1 día perdido con 1 escudo: la racha sigue (+1) y gasta 1', () => {
+      const r = actualizarRacha(conRacha(5), sumarDias(HOY, 2), 1); // falló el día HOY+1
+      assert.deepEqual([r.estado.racha.dias, r.gastados, r.estado.racha.ultimaFecha], [6, 1, sumarDias(HOY, 2)]);
+    });
+
+    test('2 días perdidos con 2 escudos: sigue y gasta 2', () => {
+      const r = actualizarRacha(conRacha(5), sumarDias(HOY, 3), 2);
+      assert.deepEqual([r.estado.racha.dias, r.gastados], [6, 2]);
+    });
+
+    test('2 días perdidos con 1 escudo: vuelve a 1 y no gasta ninguno', () => {
+      const r = actualizarRacha(conRacha(5), sumarDias(HOY, 3), 1);
+      assert.deepEqual([r.estado.racha.dias, r.gastados], [1, 0]);
+    });
+
+    test('sin escudos o con un valor raro: como antes (vuelve a 1)', () => {
+      assert.equal(actualizarRacha(conRacha(5), sumarDias(HOY, 2)).estado.racha.dias, 1);
+      assert.equal(actualizarRacha(conRacha(5), sumarDias(HOY, 2), 0).gastados, 0);
+      assert.equal(actualizarRacha(conRacha(5), sumarDias(HOY, 2), 1.5).estado.racha.dias, 1);
+    });
+
+    test('mismo día o jugó ayer: no se gasta ningún escudo', () => {
+      assert.deepEqual([actualizarRacha(conRacha(5), HOY, 2).gastados, actualizarRacha(conRacha(5), HOY, 2).estado.racha.dias], [0, 5]);
+      const r = actualizarRacha(conRacha(5), sumarDias(HOY, 1), 2);
+      assert.deepEqual([r.estado.racha.dias, r.gastados], [6, 0]);
+    });
+
+    test('sin racha previa (primera partida) o racha 0: empieza en 1 sin gastar', () => {
+      assert.deepEqual([actualizarRacha(crearEstado(HOY), HOY, 2).estado.racha.dias, actualizarRacha(crearEstado(HOY), HOY, 2).gastados], [1, 0]);
+      const e = crearEstado(HOY);
+      e.racha = { dias: 0, ultimaFecha: HOY };
+      assert.deepEqual([actualizarRacha(e, sumarDias(HOY, 3), 2).estado.racha.dias, actualizarRacha(e, sumarDias(HOY, 3), 2).gastados], [1, 0]);
+    });
+
+    test('no muta el estado de entrada', () => {
+      const e = conRacha(5);
+      actualizarRacha(e, sumarDias(HOY, 2), 1);
+      assert.deepEqual(e.racha, { dias: 5, ultimaFecha: HOY });
+    });
   });
 });
 

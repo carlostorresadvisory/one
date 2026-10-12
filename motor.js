@@ -788,20 +788,31 @@ export function listarNoRespondidas(estado, banco) {
   return resultado;
 }
 
-/** Actualiza la racha de días al completar la primera partida del día. Resetea el combo. */
-export function actualizarRacha(estado, hoy) {
+/**
+ * Actualiza la racha de días al completar la primera partida del día. Resetea el combo. Devuelve `{ estado, gastados }`.
+ * Escudo de racha (plan v0.3.3): si faltan días por medio, se gasta 1 de los `escudos` por cada día perdido y la
+ * racha sigue; si no alcanzan, vuelve a 1 como siempre y no se gasta ninguno. Quien llama descuenta `gastados` de la mochila.
+ */
+export function actualizarRacha(estado, hoy, escudos = 0) {
   const nuevo = structuredClone(estado);
   const { ultimaFecha } = nuevo.racha;
+  let gastados = 0;
   if (ultimaFecha === hoy) {
     // no cambia
   } else if (ultimaFecha === sumarDias(hoy, -1)) {
     nuevo.racha.dias += 1;
   } else {
-    nuevo.racha.dias = 1;
+    const perdidos = ultimaFecha ? diferenciaDias(ultimaFecha, hoy) - 1 : 0;
+    if (perdidos >= 1 && Number.isInteger(escudos) && escudos >= perdidos && nuevo.racha.dias > 0) {
+      nuevo.racha.dias += 1;
+      gastados = perdidos;
+    } else {
+      nuevo.racha.dias = 1;
+    }
   }
   nuevo.racha.ultimaFecha = hoy;
   nuevo.combo = 0;
-  return nuevo;
+  return { estado: nuevo, gastados };
 }
 
 /**
