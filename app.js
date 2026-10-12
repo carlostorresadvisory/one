@@ -36,7 +36,7 @@ import { crearEstadoAtomo, avanzar, retroceder, crearAtomo } from './atomo.js';
 import {
   FILTRO_TODOS, filtroDeModo, guardarFiltroDeModo, etiquetaFiltro, esTodos, filtroParaPartida,
   filtroParaRepaso, leerIndiceRutas, pintarChip, construirListaAreas, registrarIdsRuta, contarJugables,
-  avisoFiltroCorto, preguntasDelFiltro,
+  avisoFiltroCorto, preguntasDelFiltro, agruparTemasGenerados, construirFilaTemas, leerEtiquetasRutas, registrarEtiquetasRuta,
 } from './filtro.js';
 import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
 import { OBJETOS, TITULOS, crearMochila, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos, usar } from './mochila.js';
@@ -198,7 +198,7 @@ let atomoEstado = null; // {area, ruta, etiquetas} (atomo.js#crearEstadoAtomo); 
 let atomoInstancia = null; // devuelto por crearAtomo(): {actualizar, destruir}.
 let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas ya obsoletas.
 let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
-let atomoTrabajoInfo = null; // {corto, rutaTexto, area, ruta} de lo que se pidió: texto de espera/chip e índice de rutas.
+let atomoTrabajoInfo = null; // {corto, rutaTexto, area, ruta, etiquetas} de lo que se pidió: texto de espera/chip e índice de rutas.
 let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
 let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin tanda parcial que ofrecer.
 // Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
@@ -288,6 +288,7 @@ const sonido = crearSonido({ registro: registroSonidos });
 const nodoSilencio = document.querySelector('[data-test="silencio"]');
 const nodoPremiumBoton = document.querySelector('[data-test="premium-boton"]');
 const nodoHubModos = document.querySelector('[data-test="hub-modos"]');
+const nodoTusTemas = document.querySelector('[data-test="tus-temas"]'); // fila «Tus temas» del hub (v0.3.4)
 const nodoCreditos = document.querySelector('[data-test="creditos"]');
 const nodoAvatarCabecera = document.querySelector('[data-test="avatar-cabecera"]');
 let nodoAvatarTarjetaTienda = null;
@@ -1144,6 +1145,23 @@ function mostrarNivelAreasFiltro() {
   nodoFiltroAtomo.hidden = true;
   nodoFiltroAreas.hidden = false;
   nodoFiltroAreas.innerHTML = '';
+  // «Generados» arriba (spec v0.3 §4): los temas con tandas generadas, para fijarlos sin recorrer el árbol. Más o menos
+  // filtra por área y juega cifras, no preguntas: ahí no hay temas que fijar.
+  const modo = modoPorId(modoActual);
+  const temas = modo && modo.nivelFiltro === 'area' ? [] : temasGenerados();
+  if (temas.length > 0) {
+    const seccion = document.createElement('section');
+    seccion.className = 'filtro-generados';
+    seccion.dataset.test = 'filtro-generados';
+    const titulo = document.createElement('h3');
+    titulo.className = 'filtro-generados-titulo';
+    titulo.textContent = 'Generados';
+    seccion.append(
+      titulo,
+      construirFilaTemas({ temas, nombreArea, filtroActual: filtroDeModo(modoActual), alElegir: (tema) => aplicarFiltro(tema.filtro) })
+    );
+    nodoFiltroAreas.appendChild(seccion);
+  }
   nodoFiltroAreas.appendChild(
     construirListaAreas({
       areas: AREAS,
@@ -1757,6 +1775,8 @@ function actualizarEsperaAtomoConResultado({ ok, ids, corto, mensaje }) {
 function registrarTandaEnIndice(ids) {
   if (!atomoTrabajoInfo || !atomoTrabajoInfo.area || ids.length === 0) return;
   registrarIdsRuta(atomoTrabajoInfo.area, atomoTrabajoInfo.ruta || [], ids);
+  registrarEtiquetasRuta(atomoTrabajoInfo.area, atomoTrabajoInfo.ruta || [], atomoTrabajoInfo.etiquetas || []);
+  if (vistaActual() === 'progreso') pintarTusTemas(); // el hub ya abierto enseña el tema nuevo sin esperar a volver a entrar
 }
 
 async function sondearTrabajoAtomo() {
@@ -1929,7 +1949,7 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
     return;
   }
   atomoTrabajoId = resultado.trabajoId;
-  atomoTrabajoInfo = { corto, rutaTexto, area, ruta: [...ruta] };
+  atomoTrabajoInfo = { corto, rutaTexto, area, ruta: [...ruta], etiquetas: [...etiquetas] };
   atomoTandaInicio = Date.now();
   atomoTandaPedidas = N_TANDA_ATOMO;
   // Estimación inicial por pregunta a partir de lo que dijo /generar, hasta que /trabajo/:id mande
@@ -1938,7 +1958,7 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
     Number.isInteger(resultado.estimadoSeg) && resultado.estimadoSeg > 0
       ? resultado.estimadoSeg / N_TANDA_ATOMO
       : null;
-  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO, area, ruta });
+  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO, area, ruta, etiquetas });
   atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
   actualizarBotonGenerarAtomo();
   actualizarIndicadorTanda({ hechas: 0, pedidas: N_TANDA_ATOMO });
@@ -1978,7 +1998,7 @@ function reanudarTandaGuardada() {
   atomoTrabajoId = guardada.id;
   // Tras una recarga no queda la ruta completa, solo el `corto` guardado: sirve igual para el
   // indicador, para el chip de la partida y para el texto de la vista de espera.
-  atomoTrabajoInfo = { corto: guardada.corto, rutaTexto: guardada.corto, area: guardada.area || null, ruta: guardada.ruta || [] };
+  atomoTrabajoInfo = { corto: guardada.corto, rutaTexto: guardada.corto, area: guardada.area || null, ruta: guardada.ruta || [], etiquetas: guardada.etiquetas || [] };
   atomoTandaInicio = guardada.inicio;
   atomoTandaPedidas = guardada.pedidas;
   atomoTandaSegPorPregunta = null;
@@ -4538,6 +4558,37 @@ function crearImagenTarjetaHub(imagen) {
   return nodo;
 }
 
+/** Temas con preguntas generadas en este dispositivo, los más recientes primero (filtro.js#agruparTemasGenerados;
+ * el índice de rutas es la misma fuente que usa el filtro). */
+function temasGenerados() {
+  return agruparTemasGenerados({
+    indice: leerIndiceRutas(), etiquetas: leerEtiquetasRutas(), banco, reportadas: estado.reportadas, nombreArea,
+  });
+}
+
+/** Fila «Tus temas» bajo las tarjetas del hub (spec v0.3 §3): un chip por tema generado, «Roma · 37», con scroll
+ * horizontal. Tocar uno abre Clásico con ese tema de filtro. Sin temas la fila está oculta y no ocupa sitio. */
+function pintarTusTemas() {
+  const temas = temasGenerados();
+  nodoTusTemas.hidden = temas.length === 0;
+  nodoTusTemas.closest('.vista-hub').classList.toggle('vista-hub--con-temas', temas.length > 0);
+  const fila = nodoTusTemas.querySelector('.temas-fila');
+  if (fila) fila.remove();
+  if (temas.length === 0) return;
+  nodoTusTemas.appendChild(
+    construirFilaTemas({
+      temas,
+      nombreArea,
+      alElegir: (tema) => {
+        // Misma guardia que las tarjetas de modo: un segundo toque rápido no relanza el modo.
+        if (vistaActual() !== 'progreso' || performance.now() < bloqueoHubHasta) return;
+        guardarFiltroDeModo('clasico', tema.filtro);
+        arrancarModo('clasico');
+      },
+    })
+  );
+}
+
 function montarTarjetasHub() {
   nodoHubModos.innerHTML = '';
   nodosTarjetaModo.clear();
@@ -4684,6 +4735,7 @@ function renderHub() {
     marca: marcaTextoContrarreloj(cargarRecordsContrarreloj()),
     recordMasomenos: recordTextoMasomenos(cargarMasomenos()),
   });
+  pintarTusTemas();
   pintarSilencio();
 }
 

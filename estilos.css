@@ -2711,6 +2711,42 @@ button.punto-servidor::before {
   min-height: calc(3 * 84px + 2 * 8px);
   max-height: calc(3 * 124px + 2 * 8px);
 }
+/* v0.3.4 «Tus temas»: fila de chips con scroll horizontal bajo las tarjetas. Oculta no ocupa sitio. Con la fila, las
+   tarjetas ceden esa altura (su mínimo baja de 84 a 76 px) para que el hub siga sin scroll en 375 × 667. */
+.hub-temas { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; min-width: 0; }
+.hub-temas[hidden] { display: none; }
+.hub-temas-titulo { flex: none; font-size: 13px; color: var(--texto-suave); white-space: nowrap; }
+.vista-hub--con-temas .hub-modos { grid-auto-rows: minmax(76px, 1fr); min-height: calc(3 * 76px + 2 * 8px); }
+.temas-fila {
+  display: flex;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.temas-fila::-webkit-scrollbar { display: none; }
+.tema-chip {
+  flex: none;
+  max-width: 220px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid #22303d;
+  background: var(--tarjeta);
+  color: var(--texto);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tema-chip--activo { border-color: var(--acento); color: var(--acento); }
+/* «Generados» arriba de la hoja del filtro (spec §4): la misma fila de chips con su título. */
+.filtro-generados { margin: 0 0 12px; }
+.filtro-generados-titulo { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--texto-suave); }
+
 .hub-modo {
   position: relative;
   overflow: hidden;

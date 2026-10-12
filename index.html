@@ -81,6 +81,11 @@
       <!-- HUB v0.3 (spec §3): radar + 5 modos + tarjeta Tienda (las monta app.js#montarTarjetasHub)
            + pie (Exportar / Importar / Créditos / punto del servidor). -->
       <div class="hub-modos" data-test="hub-modos" role="group" aria-label="Modos de juego"></div>
+      <!-- v0.3.4 (spec §3): «Tus temas», una fila de chips «Roma · 37» con los temas que tienen preguntas generadas
+           (app.js#pintarTusTemas). Oculta, sin ocupar sitio, mientras no haya ninguno. -->
+      <div class="hub-temas" data-test="tus-temas" role="group" aria-label="Tus temas" hidden>
+        <span class="hub-temas-titulo">Tus temas</span>
+      </div>
       <div class="hub-pie">
         <button class="hub-pie-enlace" data-test="exportar">Exportar</button>
         <label class="hub-pie-enlace boton-archivo">
