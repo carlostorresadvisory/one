@@ -4,7 +4,8 @@
 
 ## v0.3.4 en curso (plan `docs/superpowers/plans/2026-10-12-esfinx-v0.3.4-tandas.md`)
 - **A** PUBLICADO (main `efe267c`, Pages `one-v37`): fila «Tus temas» en el hub y «Generados» en el filtro; clave nueva `one.etiquetasRutas` (en el respaldo). Adversarial de Nemotron: 2 hallazgos, ambos falsos.
-- **B** en marcha: implementador Sonnet en `.claude/worktrees/v0.3.4b` (rama `v0.3.4b`), `CACHE` `one-v38`; cambia el servidor (`N_MAX_GENERAR` 100): desplegar en el VPS solo con OK de Carlos.
+- **B** PUBLICADO (main `7616e15`, Pages `one-v38`) y servidor DESPLEGADO en el VPS (19:13, `/opt/one` en `7616e15` desacoplado, solo se recreó `servidor-one-servidor-1`, coordinado con E- ELOY y CRM). Prueba real: n=7 → 400; tanda de 10 (Geografía · Volcanes) «lista» en ~9 min con **5 aprobadas de 10** (el verificador rechaza ~50 %: «10» rinde 5-7 preguntas; valorar pedir de más hasta llegar a n). Ojo: en el servidor «parcial» = en marcha con alguna lista, no final.
+- **C** (Web Push) pendiente: implementador Sonnet en worktree nuevo; desplegar coordinando con E- ELOY y CRM y con OK de Carlos.
 - e2e «tanda de 10 con 10 aciertos (375×667)» falla también en la base (tarjeta 3 px más alta con el banco real): revisar junto con «Comparar con fechas».
 - **D** hecho y fusionado (`8c3dd50`): `HF_TOKEN` en `.env` (verificado, genera imágenes); Pollinations descartado (marca de agua, API de pago), Pexels sin claves nuevas, Pixabay prohíbe peticiones automáticas. Queda por borrar el worktree `.claude/worktrees/v0.3.4d` (el borrado lo bloqueó el clasificador por el `.env` de dentro: lo borra Carlos o se aprueba).
 - **B** (tandas de 10 o 100, Premium) tras A; **C** (Web Push al iPhone) tras B: el despliegue en el VPS se confirma con Carlos.
