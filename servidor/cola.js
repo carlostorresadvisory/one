@@ -36,12 +36,15 @@ const CERROJO_COLCHON = 'colchon.json';
 // seguido), y cada imagen es una llamada de red de segundos; no tiene sentido intentar de golpe
 // todo lo que haya pendiente en el colchón.
 const MAX_IMAGENES_PENDIENTES_POR_PASADA = 10;
-// v0.2b4.1 §5 (I2, ronda de corrección 1): a partir de este número de intentos fallidos, una
-// pregunta con la imagen pendiente se rinde -- deja de reintentarse para siempre en vez de ocupar
-// un hueco de cada pasada sin avanzar nunca (antes no había ningún límite: una imagen que nunca sale
-// se reintentaba indefinidamente y, con `pendientes.slice(0, max)` siempre desde el principio,
-// también bloqueaba a las que iban detrás -- ver la rotación por `intentosImagen` más abajo).
+// v0.3.5: ninguna pregunta del servidor se queda sin imagen por rendirse. Una pregunta pendiente sigue
+// pendiente (galerías -> IA con cupo y tope de pago; si hoy no se puede, mañana) y SOLO se rinde cuando la
+// política no admite IA para ella (arte; historia o geografía con algo concreto) y las galerías ya fallaron
+// este número de veces: ahí el cliente cae a su visual o al color del área. `intentosImagen` sirve además
+// para rotar (las menos intentadas entran antes), de modo que ninguna acapara los 10 huecos de una pasada.
 const MAX_INTENTOS_IMAGEN = 3;
+// Sin IA hoy (cupo diario agotado o proveedor sin respuesta), las galerías de esa pregunta ya se
+// recorrieron: no se repite el recorrido hasta pasado este tiempo (el cupo se renueva a las 00:00 UTC).
+const ESPERA_SIN_IA_MS = 6 * 60 * 60 * 1000;
 // Ola final v0.2b4.1 (M1): tope de lo que `actualizadas` puede devolver en UNA respuesta de
 // `POST /estado`. Un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y cada
 // elemento lleva una imagen entero: sin tope, esa respuesta se dispara de tamaño justo en la
@@ -94,6 +97,41 @@ function paraCliente(pregunta) {
 /** Pendiente de imagen: `imagenPendiente` o, por migración, el antiguo `visualPendiente`. */
 function esPendienteDeImagen(p) {
   return p.imagenPendiente === true || p.visualPendiente === true;
+}
+
+/**
+ * v0.3.5 (migración al cargar): toda pregunta sin imagen que no esté ya pendiente vuelve a estarlo. Son las
+ * anteriores al sistema de imágenes (solo `visual`) y las que la versión anterior dio por rendidas a los 3
+ * intentos. Las que esta versión rinde con motivo llevan `imagenRendida` y no se tocan.
+ * @returns {{lista: object[], cambiadas: number}}
+ */
+function marcarPendientesDeImagen(lista) {
+  let cambiadas = 0;
+  const marcada = lista.map((p) => {
+    if (p.imagen || esPendienteDeImagen(p) || p.imagenRendida === true) return p;
+    cambiadas += 1;
+    const { visualPendiente: _vieja, ...resto } = p;
+    return { ...resto, imagenPendiente: true, intentosImagen: 0 };
+  });
+  return { lista: marcada, cambiadas };
+}
+
+/** Dentro de cada área, las preguntas con imagen antes que las pendientes; el reparto entre áreas no cambia. */
+function conImagenPrimeroPorArea(ordenadas) {
+  const porArea = new Map();
+  for (const p of ordenadas) {
+    if (!porArea.has(p.area)) porArea.set(p.area, []);
+    porArea.get(p.area).push(p);
+  }
+  for (const [area, lista] of porArea) {
+    porArea.set(area, [...lista.filter((p) => p.imagen), ...lista.filter((p) => !p.imagen)]);
+  }
+  const siguiente = new Map([...porArea.keys()].map((area) => [area, 0]));
+  return ordenadas.map((p) => {
+    const i = siguiente.get(p.area);
+    siguiente.set(p.area, i + 1);
+    return porArea.get(p.area)[i];
+  });
 }
 
 function mismaRuta(a = [], b = []) {
@@ -185,6 +223,8 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
   // completarImagenesPendientes -- uno desde procesarCola al vaciarse, otro desde POST /estado -- no
   // se solapen pidiendo el mismo imagen pendiente dos veces a la vez.
   let completandoImagenes = false;
+  // v0.3.5: la migración de «sin imagen» a «pendiente» se hace una vez por proceso, al primer uso del colchón.
+  let migracionImagenes = null;
   // Ronda final (revisión, 14-sep-2026) -- Critical (C2): señal de salud del trabajador, para que
   // /salud pueda decir algo más que "el proceso sigue vivo". `ultimoError` es el motivo (corto, sin
   // trazas) del último lote que falló de cualquier forma; `ultimaGeneracionOk` es el ISO del último
@@ -490,6 +530,26 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
   }
 
   /**
+   * v0.3.5: marca como pendientes las preguntas del colchón que siguen sin imagen (ver
+   * `marcarPendientesDeImagen`). Una sola vez por proceso y solo si hay quien las complete.
+   */
+  function asegurarMigracionImagenes() {
+    if (typeof completarImagen !== 'function') return Promise.resolve();
+    if (!migracionImagenes) {
+      migracionImagenes = almacen
+        .conCerrojo(CERROJO_COLCHON, async () => {
+          const { lista, cambiadas } = marcarPendientesDeImagen(await almacen.leerColchon());
+          if (cambiadas > 0) await almacen.guardarColchon(lista);
+        })
+        .catch((err) => {
+          migracionImagenes = null; // se reintenta en el siguiente uso
+          console.error(`servidor/cola: fallo al marcar las preguntas sin imagen como pendientes: ${err?.message || err}`);
+        });
+    }
+    return migracionImagenes;
+  }
+
+  /**
    * v0.2b4.1 §5: el trabajo de fondo que completa los imágenes que la tanda urgente no esperó.
    * Se dispara cuando el trabajador se queda sin trabajos (ver procesarCola, debajo) -- la
    * prioridad más baja, detrás de todo urgente y de todo fondo. Ronda de corrección 1 (I1): NO
@@ -498,14 +558,12 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
    * bucle exterior; así un urgente nunca espera más que UN imagen ya en curso, nunca la pasada
    * completa. Cada pregunta completada queda marcada con `actualizadaEn` para que `POST /estado`
    * pueda contársela al móvil que ya tiene esa pregunta (ver `actualizadas`).
-   * Ronda de corrección 1 (I2): cada intento fallido incrementa `intentosImagen` en la propia
-   * entrada del colchón; al llegar a `MAX_INTENTOS_IMAGEN` la pregunta se rinde (`imagenPendiente:
-   * false` sin imagen, igual criterio que una rechazada por el verificador) y deja de elegirse. Las
-   * pendientes se ordenan por `intentosImagen` ascendente y luego por antigüedad -- así una que
-   * nunca se ha intentado (o se ha intentado menos veces) siempre entra antes que una que ya viene
-   * fallando, lo que rota de forma natural: lo que quedó fuera de `max` esta vez (o lo que cortó
-   * I1 a mitad) entra con prioridad la próxima pasada, en vez de quedarse siempre detrás de las
-   * primeras `max` por orden de creación.
+   * v0.3.5: una pregunta sin imagen nunca se rinde por cansancio. Cada intento fallido incrementa
+   * `intentosImagen` y las pendientes se ordenan por él (ascendente) y luego por antigüedad -- lo
+   * que quedó fuera de `max` esta vez, o lo que cortó I1 a mitad, entra con prioridad la próxima
+   * pasada. Si la IA no pudo hoy (`sinIAHoy`: cupo o proveedor), la pregunta espera
+   * `ESPERA_SIN_IA_MS` antes de repetir el recorrido de galerías. Solo se rinde (`imagenRendida`)
+   * la que la política no deja ilustrar con IA (`iaNoAplica`) tras `MAX_INTENTOS_IMAGEN` intentos.
    * Sin `completarImagen` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
    * necesitan el trabajo de fondo no tienen que simularla.
    * @param {{max?: number}} [params]
@@ -519,11 +577,15 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
     if (completandoImagenes) return { completadas: 0, pendientes: null, enCurso: true };
     completandoImagenes = true;
     try {
+      await asegurarMigracionImagenes();
       const colchon = await almacen.leerColchon();
+      const ahoraMs = Date.now();
       // I2: intentosImagen ascendente primero (nunca intentada, o menos veces, entra antes),
-      // antigüedad como desempate -- ver el JSDoc de arriba.
-      const pendientes = colchon
-        .filter((p) => esPendienteDeImagen(p))
+      // antigüedad como desempate -- ver el JSDoc de arriba. Las que están en espera (sin IA hoy) no cuentan
+      // para esta pasada, pero siguen pendientes.
+      const pendientes = colchon.filter((p) => esPendienteDeImagen(p));
+      const elegibles = pendientes
+        .filter((p) => !(Date.parse(p.imagenReintentarDesde) > ahoraMs))
         .sort((a, b) => {
           const ia = Number.isFinite(a.intentosImagen) ? a.intentosImagen : 0;
           const ib = Number.isFinite(b.intentosImagen) ? b.intentosImagen : 0;
@@ -536,9 +598,9 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
       // colchón bloqueado ese rato pararía servir() y el guardado de cualquier lote en curso) y
       // después se aplica el cambio dentro del cerrojo, releyendo -- el colchón puede haber
       // cambiado mientras tanto (una tanda nueva, un reportar...).
-      const elegidas = pendientes.slice(0, Math.max(0, max));
+      const elegidas = elegibles.slice(0, Math.max(0, max));
       const resueltas = new Map();
-      const intentosFallidos = new Map();
+      const intentosFallidos = new Map(); // id -> { intentos, sinIAHoy, iaNoAplica }
       for (const pregunta of elegidas) {
         try {
           const salida = await completarImagen(pregunta, opciones);
@@ -547,12 +609,20 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
           } else if (salida?.tecnico) {
             // Fallo técnico (visión caída, descarga fallida): no es «no hay imagen buena», no gasta intento.
           } else {
-            intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1);
+            intentosFallidos.set(pregunta.id, {
+              intentos: (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1,
+              sinIAHoy: salida?.sinIAHoy === true,
+              iaNoAplica: salida?.iaNoAplica === true,
+            });
           }
         } catch (err) {
           // Igual criterio que ejecutarUnLote: un fallo aquí nunca puede tumbar al trabajador.
           ultimoError = String(err?.message || err).slice(0, 300);
-          intentosFallidos.set(pregunta.id, (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1);
+          intentosFallidos.set(pregunta.id, {
+            intentos: (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1,
+            sinIAHoy: false,
+            iaNoAplica: false,
+          });
         }
         // I1: un urgente que llegó DURANTE esta pasada -- un jugador esperando -- no debe esperar
         // a que termine el resto de pendientes. Se corta aquí, ENTRE preguntas (nunca a mitad de
@@ -571,17 +641,20 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         const actualizado = actual.map((p) => {
           if (!esPendienteDeImagen(p)) return p;
           if (resueltas.has(p.id)) {
-            const { visualPendiente: _vieja, ...resto } = p;
+            const { visualPendiente: _vieja, imagenReintentarDesde: _espera, ...resto } = p;
             return { ...resto, imagen: resueltas.get(p.id), imagenPendiente: false, actualizadaEn: ahora };
           }
           if (intentosFallidos.has(p.id)) {
-            const intentos = intentosFallidos.get(p.id);
-            // I2: agotados los intentos, se rinde -- mismo criterio que una imagen rechazado por el
-            // verificador: se queda sin él y `imagenPendiente:false` lo saca de la lista de
-            // pendientes para siempre (nada cambió de cara al cliente -- sigue sin imagen --, así
-            // que no se marca `actualizadaEn`, igual que cuando un intento simplemente no llega).
-            return intentos >= MAX_INTENTOS_IMAGEN
-              ? { ...p, imagenPendiente: false, intentosImagen: intentos }
+            const { intentos, sinIAHoy, iaNoAplica } = intentosFallidos.get(p.id);
+            // v0.3.5: solo se rinde la que la política no deja ilustrar con IA y ya agotó las galerías
+            // varias veces; el cliente le pinta su visual o el color del área. Nada cambió de cara al
+            // cliente, así que no se marca `actualizadaEn`.
+            if (iaNoAplica && intentos >= MAX_INTENTOS_IMAGEN) {
+              return { ...p, imagenPendiente: false, imagenRendida: true, intentosImagen: intentos };
+            }
+            // Sin IA hoy: sigue pendiente y no se vuelve a recorrer hasta dentro de un rato.
+            return sinIAHoy
+              ? { ...p, intentosImagen: intentos, imagenReintentarDesde: new Date(Date.now() + ESPERA_SIN_IA_MS).toISOString() }
               : { ...p, intentosImagen: intentos };
           }
           return p;
@@ -835,6 +908,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
   // veces o perder aprobadas recién guardadas. Con el cerrojo, cada llamada ve siempre el colchón
   // ya actualizado por la anterior.
   async function servir({ idsConocidos = [], resumen = {}, max = 10 } = {}) {
+    await asegurarMigracionImagenes();
     return almacen.conCerrojo(CERROJO_COLCHON, async () => {
       const colchon = await almacen.leerColchon();
       const reportadas = await almacen.leerReportadas();
@@ -857,7 +931,9 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         return new Date(a.creada).getTime() - new Date(b.creada).getTime();
       });
 
-      const elegidas = candidatas.slice(0, Math.max(0, max));
+      // v0.3.5: dentro de cada tema, primero las que ya tienen imagen. Nunca se cambia de tema por tener
+      // imagen: cada área conserva los huecos que le tocaban, solo se reordena lo de dentro.
+      const elegidas = conImagenPrimeroPorArea(candidatas).slice(0, Math.max(0, max));
 
       // Ronda final (revisión, 14-sep-2026) -- Critical (C3): una pregunta que el móvil ya conoce
       // (viene en `idsConocidos`) puede no haber pasado nunca por AQUÍ -- llegó por /trabajo/:id
@@ -944,7 +1020,8 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         if (p.id !== id) return p;
         cambiado = true;
         const descartadas = [...(p.imagenesDescartadas ?? []), ...(p.imagen?.url ? [p.imagen.url] : [])].slice(-20);
-        return { ...p, imagen: null, imagenPendiente: true, intentosImagen: 0, imagenesDescartadas: descartadas, actualizadaEn: new Date().toISOString() };
+        const { imagenRendida: _rendida, imagenReintentarDesde: _espera, ...resto } = p;
+        return { ...resto, imagen: null, imagenPendiente: true, intentosImagen: 0, imagenesDescartadas: descartadas, actualizadaEn: new Date().toISOString() };
       });
       if (cambiado) await almacen.guardarColchon(actualizado);
     });

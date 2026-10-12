@@ -22,7 +22,10 @@ const USER_AGENT = 'ONE-app/0.3 (aprendizaje personal; contacto via GitHub)';
  * Distingue «fuente agotada» (todas las candidatas se puntuaron y ninguna llegó a 4) de un fallo
  * técnico (visión que no responde, descarga fallida, búsqueda caída): un fallo técnico NO baja a la
  * IA y devuelve `tecnico: true` para que la pregunta siga pendiente sin gastar un intento.
- * @returns {Promise<{imagen: object|null, tecnico?: boolean}>} `imagen` = `{url, pagina, titulo, autor, licencia, fuente, nota}`
+ * Con `permitirIA` y galerías agotadas, `imagen: null` lleva además `iaNoAplica: true` (la política no admite IA para
+ * esta pregunta: arte, o historia/geografía con algo concreto) o `sinIAHoy: true` (cupo diario o proveedor sin
+ * respuesta: mañana puede). Sin ninguna de las dos, la IA generó y el juez la rechazó.
+ * @returns {Promise<{imagen: object|null, tecnico?: boolean, iaNoAplica?: boolean, sinIAHoy?: boolean}>} `imagen` = `{url, pagina, titulo, autor, licencia, fuente, nota}`
  */
 export async function resolverImagen(pregunta, deps) {
   const {
@@ -90,15 +93,18 @@ export async function resolverImagen(pregunta, deps) {
       if (c) return { imagen: c };
       if (cortada()) return { imagen: null };
     }
-    if (permitirIA && !tecnico && !cortada() && cupo.puede() && iaPermitida(pregunta)) {
+    if (permitirIA && !tecnico && !cortada()) {
+      // Galerías agotadas de verdad. Tres salidas distintas, para que la cola sepa si hay algo que esperar:
+      // esta pregunta no admite IA (política), hoy no se puede generar (cupo o proveedor) o se generó y no valió.
+      if (!iaPermitida(pregunta)) return { imagen: null, iaNoAplica: true };
+      if (!cupo.puede()) return { imagen: null, sinIAHoy: true };
       const g = await generarIA(pregunta);
-      if (g) {
-        const r = await puntuar({ url: g.dataUrl, pregunta });
-        if (!r) tecnico = true;
-        else if (iaMejoraActual(r.nota, null)) {
-          const url = await g.guardar();
-          return { imagen: { url, pagina: null, titulo: '', autor: CREDITO_IA.autor, licencia: CREDITO_IA.licencia, fuente: CREDITO_IA.fuente, nota: r.nota } };
-        }
+      if (!g) return { imagen: null, sinIAHoy: true };
+      const r = await puntuar({ url: g.dataUrl, pregunta });
+      if (!r) tecnico = true;
+      else if (iaMejoraActual(r.nota, null)) {
+        const url = await g.guardar();
+        return { imagen: { url, pagina: null, titulo: '', autor: CREDITO_IA.autor, licencia: CREDITO_IA.licencia, fuente: CREDITO_IA.fuente, nota: r.nota } };
       }
     }
   } catch {

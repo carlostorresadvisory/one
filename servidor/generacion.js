@@ -946,7 +946,8 @@ export async function producirTanda(params, opciones = {}) {
  * v0.3 §7: completa la imagen de UNA pregunta que salió sin ella (`imagenPendiente: true`). Es el
  * "produce" testeable del trabajo de fondo de servidor/cola.js (`completarImagenesPendientes`): sin
  * timeout corto (nadie espera) y CON la IA como último recurso (cupo diario). Nunca lanza: si no hay
- * imagen buena devuelve `imagen: null` y el trabajo de fondo lo volverá a intentar más tarde.
+ * imagen buena devuelve `imagen: null` (más las señales `tecnico`, `iaNoAplica`, `sinIAHoy` de
+ * `resolverImagen`) y el trabajo de fondo lo volverá a intentar más tarde.
  * @param {object} pregunta pregunta del colchón
  * @param {object} [opciones] `resolverImagen` (servidor/imagenes.js)
  * @returns {Promise<{imagen: object|null}>}
@@ -956,8 +957,10 @@ export async function completarImagen(pregunta, opciones = {}) {
   if (typeof resolverImagen !== 'function') return { imagen: null };
   try {
     const salida = await resolverImagen(pregunta, { permitirIA: true });
-    return { imagen: salida?.imagen ?? null };
+    const { tecnico, iaNoAplica, sinIAHoy } = salida ?? {};
+    // Se pasan tal cual las señales que la cola necesita para decidir si espera, reintenta o se rinde.
+    return { imagen: salida?.imagen ?? null, ...(tecnico && { tecnico: true }), ...(iaNoAplica && { iaNoAplica: true }), ...(sinIAHoy && { sinIAHoy: true }) };
   } catch {
-    return { imagen: null };
+    return { imagen: null, tecnico: true }; // un fallo inesperado no es «no hay imagen»: no gasta intento
   }
 }

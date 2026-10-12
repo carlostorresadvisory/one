@@ -1504,5 +1504,13 @@ test('v0.3 §7: completarImagen pide la imagen CON la IA permitida (el trabajo d
 test('v0.3 §7: completarImagen devuelve imagen null si no hay resolvedor o este lanza, sin lanzar', async () => {
   assert.deepEqual(await completarImagen({ ...borradorVF() }, {}), { imagen: null });
   const salida = await completarImagen({ ...borradorVF() }, { resolverImagen: async () => { throw new Error('cupo agotado'); } });
-  assert.deepEqual(salida, { imagen: null });
+  assert.deepEqual(salida, { imagen: null, tecnico: true }, 'un fallo inesperado no gasta intento');
+});
+
+test('v0.3.5: completarImagen pasa a la cola las señales del resolvedor (tecnico, iaNoAplica, sinIAHoy)', async () => {
+  for (const senal of ['tecnico', 'iaNoAplica', 'sinIAHoy']) {
+    const salida = await completarImagen({ ...borradorVF() }, { resolverImagen: async () => ({ imagen: null, [senal]: true }) });
+    assert.deepEqual(salida, { imagen: null, [senal]: true });
+  }
+  assert.deepEqual(await completarImagen({ ...borradorVF() }, { resolverImagen: async () => ({ imagen: null }) }), { imagen: null });
 });

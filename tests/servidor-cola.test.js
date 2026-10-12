@@ -1471,37 +1471,91 @@ test('v0.2b4.1 §5 (I1): un urgente que llega durante la pasada de imágenes se 
   assert.ok(indiceUrgente >= 0, 'el urgente sí debe procesarse');
 });
 
-// I2: sin límite de reintentos, un imagen que nunca sale se reintentaba para siempre. A partir de
-// MAX_INTENTOS_VISUAL (3) intentos fallidos, la pregunta se rinde: deja de estar pendiente (se
-// queda sin imagen, igual que una rechazada por el verificador) y deja de elegirse.
-test('v0.2b4.1 §5 (I2): tras 3 pasadas fallidas, la pregunta deja de estar pendiente (se rinde)', async () => {
+// v0.3.5: ninguna pregunta del servidor se queda sin imagen por rendirse. Una pregunta pendiente sigue
+// pendiente pasada tras pasada (galerías -> IA; si hoy no hay IA, mañana). Solo se rinde la que la política
+// no deja ilustrar con IA, y tras 3 intentos con las galerías agotadas.
+async function colchonConUna(extra = {}) {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);
   await almacen.guardarColchon([
-    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
+    { ...aprobada('economia', 1, { imagen: null, imagenPendiente: true, ...extra }), servida: null, creada: '2026-09-15T10:00:00.000Z' },
   ]);
+  return almacen;
+}
+
+test('v0.3.5: sin imagen buena (la IA generó y el juez la rechazó), la pregunta NO se rinde: 6 pasadas y sigue pendiente', async () => {
+  const almacen = await colchonConUna();
   const cola = crearCola({
     almacen,
     producirTanda: async () => resultadoVacio(0),
     completarImagen: async (p) => ({ imagen: null, explicacion: p.explicacion, coste: 0 }),
   });
-
-  for (let i = 0; i < 3; i++) {
-    // eslint-disable-next-line no-await-in-loop
-    await cola.completarImagenesPendientes();
-  }
-
+  for (let i = 0; i < 6; i++) await cola.completarImagenesPendientes();
   const [p] = await almacen.leerColchon();
-  assert.equal(p.imagenPendiente, false, 'se rinde tras agotar los intentos');
-  assert.equal(p.imagen, null, 'nunca llegó a tener imagen');
+  assert.equal(p.imagenPendiente, true, 'sigue en la lista de pendientes');
+  assert.equal(p.imagenRendida, undefined);
+  assert.equal(p.intentosImagen, 6, 'los intentos solo sirven para rotar');
+  assert.equal(p.imagenReintentarDesde, undefined, 'sin espera: el juez rechazó, otro prompt puede salir mejor');
+});
+
+test('v0.3.5: sin IA hoy (cupo o proveedor) la pregunta sigue pendiente y espera antes de repetir las galerías', async () => {
+  const almacen = await colchonConUna();
+  let llamadas = 0;
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async () => {
+      llamadas += 1;
+      return { imagen: null, sinIAHoy: true };
+    },
+  });
+  await cola.completarImagenesPendientes();
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagenPendiente, true);
+  assert.ok(Date.parse(p.imagenReintentarDesde) > Date.now() + 60 * 60 * 1000, 'espera de horas');
+
+  const r = await cola.completarImagenesPendientes();
+  assert.equal(llamadas, 1, 'en espera: no se vuelve a recorrer');
+  assert.equal(r.pendientes, 1, 'pero sigue contando como pendiente');
+
+  // Pasado el tiempo de espera, vuelve a entrar.
+  await almacen.guardarColchon([{ ...p, imagenReintentarDesde: new Date(Date.now() - 1000).toISOString() }]);
+  await cola.completarImagenesPendientes();
+  assert.equal(llamadas, 2);
+});
+
+test('v0.3.5: si la IA consigue imagen, la espera desaparece', async () => {
+  const almacen = await colchonConUna({ intentosImagen: 4, imagenReintentarDesde: '2020-01-01T00:00:00.000Z' });
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async () => ({ imagen: { url: '/imagenes/x.webp', fuente: 'IA', nota: 4 } }),
+  });
+  await cola.completarImagenesPendientes();
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagenPendiente, false);
+  assert.equal(p.imagen.fuente, 'IA');
+  assert.equal(p.imagenReintentarDesde, undefined);
+});
+
+test('v0.3.5: la que la política no deja ilustrar con IA se rinde a los 3 intentos, y la migración no la vuelve a marcar', async () => {
+  const almacen = await colchonConUna();
+  const crear = () => crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async () => ({ imagen: null, iaNoAplica: true }),
+  });
+  const cola = crear();
+  for (let i = 0; i < 3; i++) await cola.completarImagenesPendientes();
+  const [p] = await almacen.leerColchon();
+  assert.equal(p.imagenPendiente, false);
+  assert.equal(p.imagenRendida, true);
   assert.equal(p.intentosImagen, 3);
 
-  // Una pasada más no la vuelve a tocar (ya no es "pendiente": el filtro de arriba la descarta).
-  const antes = await almacen.leerColchon();
-  const resultado = await cola.completarImagenesPendientes();
-  assert.equal(resultado.completadas, 0);
-  assert.equal(resultado.pendientes, 0);
-  assert.deepEqual(await almacen.leerColchon(), antes);
+  // Un arranque nuevo (proceso nuevo) no la resucita.
+  const nueva = crear();
+  await nueva.completarImagenesPendientes();
+  assert.deepEqual((await almacen.leerColchon())[0], p);
 });
 
 // I1/I4 (fase 7): un fallo técnico no gasta intento; una imagen sin licencia/autor válidos no se guarda.
@@ -1649,4 +1703,80 @@ test('migración: una pregunta vieja con visualPendiente se sirve como imagenPen
   assert.equal(p.imagenPendiente, false);
   assert.equal('visualPendiente' in p, false);
   assert.equal(p.imagen.fuente, 'IA');
+});
+
+// === v0.3.5: migración de las preguntas viejas sin imagen =========================================
+
+test('v0.3.5 migración: las preguntas sin imagen (viejas con solo `visual`, o rendidas por la versión anterior) vuelven a estar pendientes', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const conImagen = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 };
+  await almacen.guardarColchon([
+    { id: 'srv-vieja', area: 'economia', visual: { tipo: 'dato', cifra: '1' }, creada: '2026-01-01T00:00:00.000Z', servida: null },
+    { id: 'srv-rendida-antes', area: 'economia', imagen: null, imagenPendiente: false, intentosImagen: 3, creada: '2026-01-02T00:00:00.000Z', servida: null },
+    { id: 'srv-rendida-ahora', area: 'ciencia', imagen: null, imagenPendiente: false, imagenRendida: true, creada: '2026-01-03T00:00:00.000Z', servida: null },
+    { id: 'srv-buena', area: 'historia', imagen: conImagen, imagenPendiente: false, creada: '2026-01-04T00:00:00.000Z', servida: null },
+  ]);
+  const pedidas = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async (p) => { pedidas.push(p.id); return { imagen: null, sinIAHoy: true }; },
+  });
+
+  const servidas = await cola.servir({ idsConocidos: [], resumen: {}, max: 10 });
+  const porId = Object.fromEntries(servidas.map((p) => [p.id, p]));
+  assert.equal(porId['srv-vieja'].imagenPendiente, true, 'el cliente sabe que la imagen puede llegar');
+  assert.deepEqual(porId['srv-vieja'].visual, { tipo: 'dato', cifra: '1' }, 'y conserva su visual para mientras tanto');
+  assert.equal(porId['srv-rendida-antes'].imagenPendiente, true);
+  assert.equal(porId['srv-rendida-ahora'].imagenPendiente, false);
+  assert.equal(porId['srv-buena'].imagenPendiente, false);
+
+  await cola.completarImagenesPendientes();
+  assert.deepEqual(pedidas.sort(), ['srv-rendida-antes', 'srv-vieja']);
+});
+
+test('v0.3.5 migración: sin quien complete imágenes (completarImagen no inyectado) el colchón no se toca', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  await almacen.guardarColchon([{ id: 'srv-a', area: 'economia', imagen: null, creada: '2026-01-01T00:00:00.000Z', servida: null }]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  const [p] = await cola.servir({ max: 1 });
+  assert.equal(p.imagenPendiente, undefined);
+});
+
+// === v0.3.5: al servir, dentro de cada tema van primero las que tienen imagen ====================
+
+test('v0.3.5 servir: dentro del MISMO tema, primero las que tienen imagen; el reparto entre temas no cambia', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const img = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 };
+  const q = (id, area, creada, imagen = null) => ({ id, area, imagen, creada, servida: null });
+  await almacen.guardarColchon([
+    q('eco-vieja-sin', 'economia', '2026-01-01T00:00:00.000Z'),
+    q('hist-sin', 'historia', '2026-01-02T00:00:00.000Z'),
+    q('eco-nueva-con', 'economia', '2026-01-03T00:00:00.000Z', img),
+    q('hist-con', 'historia', '2026-01-04T00:00:00.000Z', img),
+    q('eco-media-sin', 'economia', '2026-01-05T00:00:00.000Z'),
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) }); // sin completarImagen: nada se migra
+
+  // Sin datos de aciertos las dos áreas empatan: cada una conserva los huecos que le tocaban por antigüedad
+  // (eco, hist, eco, hist, eco) y dentro de cada una la que tiene imagen pasa delante.
+  const ids = (await cola.servir({ max: 5 })).map((p) => p.id);
+  assert.deepEqual(ids, ['eco-nueva-con', 'hist-con', 'eco-vieja-sin', 'hist-sin', 'eco-media-sin']);
+});
+
+test('v0.3.5 servir: el área con peor acierto sigue yendo primero aunque la otra tenga imagen', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const img = { url: 'https://upload.wikimedia.org/x.jpg', fuente: 'Commons', licencia: 'Public domain', nota: 5 };
+  await almacen.guardarColchon([
+    { id: 'eco-sin', area: 'economia', imagen: null, creada: '2026-01-02T00:00:00.000Z', servida: null },
+    { id: 'hist-con', area: 'historia', imagen: img, creada: '2026-01-01T00:00:00.000Z', servida: null },
+  ]);
+  const cola = crearCola({ almacen, producirTanda: async () => resultadoVacio(0) });
+  const resumen = { areas: { economia: { aciertoReciente: 0.2 }, historia: { aciertoReciente: 0.9 } } };
+  const [primera] = await cola.servir({ resumen, max: 1 });
+  assert.equal(primera.id, 'eco-sin', 'nunca se cambia de tema por tener imagen');
 });

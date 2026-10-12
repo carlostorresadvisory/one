@@ -63,10 +63,17 @@ test('trabajo de fondo (permitirIA): sin buena en los bancos, genera con IA, la 
 });
 
 test('trabajo de fondo con el cupo de IA agotado: sigue sin imagen (pendiente) y no falla', async () => {
-  const { llamadas, d } = deps({ puntuar: async () => null, permitirIA: true, cupo: { puede: () => false } });
-  const { imagen } = await resolverImagen(PREGUNTA, d);
-  assert.equal(imagen, null);
+  const { llamadas, d } = deps({ puntuar: async () => ({ nota: 1, motivo: '', modelo: 'm' }), permitirIA: true, cupo: { puede: () => false } });
+  const salida = await resolverImagen(CIENCIA, d);
+  assert.deepEqual(salida, { imagen: null, sinIAHoy: true }, 'la cola sabe que hoy no hay IA y que mañana sí puede haberla');
   assert.equal(llamadas.ia, 0);
+});
+
+test('v0.3.5: el proveedor de IA no responde (cuota de Cloudflare, sin clave...): sinIAHoy, sin guardar nada', async () => {
+  const { llamadas, d } = deps({ puntuar: puntuaIA(5), permitirIA: true, generarIA: async () => null });
+  const salida = await resolverImagen(CIENCIA, d);
+  assert.deepEqual(salida, { imagen: null, sinIAHoy: true });
+  assert.equal(llamadas.guardar, 0);
 });
 
 test('las imágenes descartadas («imagen mala») no se vuelven a elegir', async () => {
@@ -93,8 +100,8 @@ test('si una dependencia lanza, no se propaga: imagen null y fallo técnico', as
 // C1: la IA solo entra con nota >= 4; si el juez la puntúa por debajo, no se guarda.
 test('IA con nota 3: se descarta sin guardarla', async () => {
   const { llamadas, d } = deps({ puntuar: puntuaIA(3), permitirIA: true });
-  const { imagen } = await resolverImagen(CIENCIA, d);
-  assert.equal(imagen, null);
+  const salida = await resolverImagen(CIENCIA, d);
+  assert.deepEqual(salida, { imagen: null }, 'generó y el juez la rechazó: ni «no aplica» ni «sin IA hoy»');
   assert.equal(llamadas.ia, 1);
   assert.equal(llamadas.guardar, 0);
 });
@@ -103,8 +110,8 @@ test('IA con nota 3: se descarta sin guardarla', async () => {
 test('arte y geografía con lugar concreto: la IA ni se pide', async () => {
   for (const p of [{ id: 'a', area: 'arte', enunciado: 'Obra de Goya', explicacion: '' }, { id: 'g', area: 'geografia', enunciado: 'El río Nilo.', explicacion: '' }]) {
     const { llamadas, d } = deps({ puntuar: puntuaIA(5), permitirIA: true });
-    const { imagen } = await resolverImagen(p, d);
-    assert.equal(imagen, null);
+    const salida = await resolverImagen(p, d);
+    assert.deepEqual(salida, { imagen: null, iaNoAplica: true });
     assert.equal(llamadas.ia, 0);
   }
 });
