@@ -16,7 +16,7 @@ import {
   listarNoRespondidas,
   AREAS,
 } from './motor.js';
-import { construirVisual, esVisualImprescindible, medirAncho } from './visuales.js';
+import { construirVisual, esVisualDeRespaldo, medirAncho } from './visuales.js';
 import { creditoTexto, reintentarImagen, cargarImagenesMalas, guardarImagenesMalas, esImagenValida, esPaginaSegura } from './foto-pregunta.js';
 import { montarMazo, ajustarEncaje, mazosActivos } from './mazo.js';
 import {
@@ -3616,10 +3616,11 @@ function construirBloqueColorArea(pregunta) {
   return zona;
 }
 
-/** Qué se enseña en la zona de la tarjeta cuando NO hay imagen que cargar: solo un visual
- * imprescindible (una fórmula de matemáticas o ciencia) y, si no, el color del área. */
+/** Qué se enseña en la zona de la tarjeta cuando NO hay imagen que cargar: su visual si es de respaldo
+ * (una fórmula de matemáticas o ciencia, o cualquier visual de una pregunta del servidor mientras llega su
+ * imagen: visuales.js#esVisualDeRespaldo) y, si no, el color del área. */
 function construirBloqueSinImagen(pregunta) {
-  return (esVisualImprescindible(pregunta) ? construirBloqueVisual(pregunta) : null) || construirBloqueColorArea(pregunta);
+  return (esVisualDeRespaldo(pregunta) ? construirBloqueVisual(pregunta) : null) || construirBloqueColorArea(pregunta);
 }
 
 // ============================================================================

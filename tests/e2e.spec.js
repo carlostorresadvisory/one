@@ -1970,6 +1970,54 @@ test.describe('ONE · imagen, color del área y fórmula (fase 7)', () => {
     await expect(t.locator('[data-test="zona-color"]')).toHaveCount(0);
   });
 
+  // v0.3.5: la captura de Carlos (12-oct) era una pregunta generada de Economía · Finanzas (Enterprise Value) con el
+  // recuadro del área vacío. Mientras el servidor busca su imagen, una pregunta `srv-` con `visual` lo dibuja.
+  const PREGUNTA_EV = {
+    id: 'srv-eco-ev-1', area: 'economia', tipo: 'vf', nivel: 2,
+    enunciado: 'El Enterprise Value suma a la capitalización bursátil la deuda neta de la empresa.',
+    explicacion: 'EV = capitalización + deuda neta: lo que costaría comprar la empresa entera.',
+    respuesta: true, imagen: null, imagenPendiente: true,
+    visual: { tipo: 'formula', texto: 'EV = Cap. Bursátil + Deuda Neta', leyenda: 'Suma deuda y resta caja a la capitalización' },
+  };
+
+  test('v0.3.5: una pregunta del servidor sin imagen pero con visual (Enterprise Value) dibuja su visual, nunca el recuadro vacío', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), PREGUNTA_EV);
+    await page.evaluate((id) => window.__one.empezarPartida({ ids: [id], etiqueta: 'ev-sin-imagen' }), PREGUNTA_EV.id);
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+
+    await assertSinScroll(page);
+    await assertTarjetaSinScroll(page);
+    await expect(t.locator('[data-test="visual"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual-pie"]')).toHaveText(PREGUNTA_EV.visual.leyenda);
+    await expect(t.locator('[data-test="zona-color"]')).toHaveCount(0);
+    await page.screenshot({ path: `${CAPTURAS}/v0.3.5-visual-sin-imagen-375x667.png` });
+  });
+
+  test('v0.3.5: la misma pregunta del servidor, cuando su imagen llega, enseña la imagen y no el visual', async ({ page }) => {
+    await page.goto('/?test=1');
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const imagenesEjemplo = await page.evaluate(() => fetch('datos/imagenes.ejemplo.json').then((r) => r.json()));
+    const id = 'srv-eco-ev-2';
+    await page.evaluate((p) => window.__one.inyectarPregunta(p), { ...PREGUNTA_EV, id });
+    await page.evaluate((datos) => window.__one.forzarImagen(datos.id, datos), { ...imagenesEjemplo['his-001'], id });
+    await page.evaluate((i) => window.__one.empezarPartida({ ids: [i], etiqueta: 'ev-con-imagen' }), id);
+
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="vf-verdadero"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    await esperarAsentamientoMazo(page);
+    await expect(t.locator('[data-test="imagen"]')).toBeVisible();
+    await expect(t.locator('[data-test="visual"]')).toHaveCount(0);
+  });
+
   test('con imagen Y visual en la misma pregunta, gana la imagen', async ({ page }) => {
     await page.goto('/?test=1');
     await expect(page.locator('[data-vista="progreso"]')).toBeVisible();

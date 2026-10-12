@@ -1,7 +1,8 @@
 // ONE · visuales.js — construirVisual(visual): dibuja el campo `visual` de una
 // pregunta (spec v0.1e §2) como SVG inline. Desde v0.3 (§7) la app solo enseña IMÁGENES: este
-// visual solo se pinta cuando es imprescindible (esVisualImprescindible, al final: una fórmula de
-// matemáticas o ciencia); el resto de preguntas, imagen o el color del área (ver app.js).
+// visual solo se pinta cuando es de respaldo (esVisualDeRespaldo, al final: una fórmula de matemáticas
+// o ciencia, o el visual de una pregunta del servidor que aún no tiene imagen); el resto de preguntas,
+// imagen o el color del área (ver app.js).
 //
 // `visual` es SIEMPRE datos, nunca dibujo (spec v0.1e §2): esta es la única
 // pieza que sabe convertir esos datos en trazos. Sin dependencias, sin canvas:
@@ -586,11 +587,23 @@ export function construirVisual(visual, { alto } = {}) {
 // === Solo imágenes (spec v0.3 §7) ===================================================================
 // La ayuda visual de cualquier tarjeta es una imagen. Los visuales dibujados de arriba solo se
 // enseñan cuando la idea no se puede ver de otra forma: una fórmula en una pregunta de matemáticas
-// o de ciencia. Todo lo demás: imagen o, si no la hay, el color del área (app.js).
+// o de ciencia, y, mientras el servidor busca su imagen, el visual de una pregunta `srv-`. Todo lo
+// demás: imagen o, si no la hay, el color del área (app.js).
 
 const AREAS_CON_FORMULA = new Set(['matematicas', 'ciencia', 'logica']);
 
 /** `true` solo para un visual `formula` en una pregunta de matemáticas/ciencia. */
 export function esVisualImprescindible(pregunta) {
   return pregunta?.visual?.tipo === 'formula' && AREAS_CON_FORMULA.has(pregunta.area);
+}
+
+/**
+ * v0.3.5: ¿se dibuja el visual de esta pregunta cuando no hay imagen? Sí si es imprescindible (arriba) y
+ * también en toda pregunta del servidor (`srv-`) que lo trae: «ninguna pregunta sin imagen» y, mientras
+ * la imagen llega (el servidor la sigue buscando), un esquema o una fórmula valen más que un recuadro
+ * vacío. En cuanto llega la imagen, gana la imagen.
+ */
+export function esVisualDeRespaldo(pregunta) {
+  if (esVisualImprescindible(pregunta)) return true;
+  return typeof pregunta?.id === 'string' && pregunta.id.startsWith('srv-') && Boolean(pregunta.visual) && typeof pregunta.visual === 'object';
 }
