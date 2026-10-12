@@ -28,6 +28,7 @@ const TERMINADOS_MAX = 500; // tope duro de memoria; solo entra en juego con 500
 const UN_MES_MS = 30 * 24 * 60 * 60 * 1000;
 const TOPE_COLCHON = 2000;
 export const TOPE_COLA_URGENTE = 4; // tandas urgentes en espera (sin contar la que corre): evita acaparar la cola
+const MAX_SUSCRIPTORES_POR_TRABAJO = 5; // v0.3.4 C: dispositivos que pueden pedir el aviso de una misma tanda
 const TOPE_COLA_FONDO = 32; // Ronda 2 (revisión), punto 3 (Minor): las nuevas se descartan si está llena.
 const CERROJO_COLCHON = 'colchon.json';
 // v0.2b4.1 §5: cuántas preguntas se intentan completar en UNA pasada del trabajo de fondo. Un tope
@@ -156,8 +157,11 @@ function purgarColchon(lista) {
  *   inyectarla.
  * @param {object} [params.opciones] opciones base pasadas a producirTanda en cada lote (llamar,
  *   permitirPago, topeEur, rutaLog); `urgente` se añade/sobrescribe por trabajo.
+ * @param {Function} [params.alTerminar] v0.3.4 C: `({trabajoId, estado, n, aviso, endpoints}) => Promise` cuando una
+ *   tanda URGENTE llega a su estado FINAL con alguna pregunta (`lista`, o `parcial` ya sin lotes pendientes) y
+ *   algún dispositivo se suscribió a ella (`suscribirATrabajo`); es el gancho del aviso Web Push (servidor/push.js).
  */
-export function crearCola({ almacen, producirTanda, completarImagen = null, opciones = {}, reloj = () => Date.now() } = {}) {
+export function crearCola({ almacen, producirTanda, completarImagen = null, opciones = {}, reloj = () => Date.now(), alTerminar = null } = {}) {
   if (!almacen) throw new Error('crearCola: falta almacen');
   if (typeof producirTanda !== 'function') throw new Error('crearCola: falta producirTanda');
 
@@ -430,8 +434,44 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
     }
   }
 
+  /** Manda el aviso de fin de tanda a los dispositivos suscritos que aún no lo han recibido. Nunca lanza: un fallo
+   * del envío no puede tocar la cola. `parcial` sin ser final NO llega aquí (solo se llama desde finalizarTrabajo
+   * y desde suscribirATrabajo cuando el trabajo ya `terminó`). */
+  function avisarFinDeTanda(trabajo) {
+    if (!alTerminar || !trabajo.terminoYa || trabajo.preguntas.length === 0 || !trabajo.suscriptores) return;
+    const pendientes = [...trabajo.suscriptores].filter((endpoint) => !trabajo.avisados.has(endpoint));
+    if (pendientes.length === 0) return;
+    for (const endpoint of pendientes) trabajo.avisados.add(endpoint);
+    Promise.resolve()
+      .then(() => alTerminar({ trabajoId: trabajo.id, estado: trabajo.estado, n: trabajo.preguntas.length, aviso: trabajo.aviso || {}, endpoints: pendientes }))
+      .catch((err) => {
+        console.error(`servidor/cola: fallo al avisar del fin de la tanda: ${err?.message || err}`);
+      });
+  }
+
+  /**
+   * v0.3.4 C: apunta un dispositivo (su `endpoint` de Web Push) para que se le avise cuando esta tanda urgente
+   * termine. `aviso` = `{tema, url}` para el texto y el destino de la notificación (el último que llegue manda).
+   * Si la tanda ya terminó, el aviso sale ahora. `false` si el trabajo no existe, no es urgente o ya tiene el
+   * tope de dispositivos.
+   */
+  function suscribirATrabajo(id, endpoint, aviso = {}) {
+    const trabajo = registro.get(id) || terminados.get(id);
+    if (!trabajo || !trabajo.urgente || typeof endpoint !== 'string' || !endpoint) return false;
+    if (!trabajo.suscriptores) {
+      trabajo.suscriptores = new Set();
+      trabajo.avisados = new Set();
+    }
+    if (!trabajo.suscriptores.has(endpoint) && trabajo.suscriptores.size >= MAX_SUSCRIPTORES_POR_TRABAJO) return false;
+    trabajo.suscriptores.add(endpoint);
+    trabajo.aviso = { ...trabajo.aviso, ...aviso };
+    avisarFinDeTanda(trabajo);
+    return true;
+  }
+
   function finalizarTrabajo(trabajo) {
     trabajo.estado = trabajo.preguntas.length > 0 ? (trabajo.huboFallo ? 'parcial' : 'lista') : 'fallida';
+    trabajo.terminoYa = true;
     // v0.2b4 §6c: media móvil de segundos por pregunta. Solo cuentan las tandas que de verdad
     // produjeron algo: una 'fallida' mide el tiempo de un fallo (429 en cadena, red caída), no el de
     // generar, y contaminaría la estimación. Ronda de corrección 1: usa `msActivos` (tiempo activo
@@ -446,6 +486,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         if (muestras.length > MUESTRAS_SEG_POR_PREGUNTA) muestras.shift();
       }
     }
+    avisarFinDeTanda(trabajo);
   }
 
   /**
@@ -929,6 +970,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
 
   return {
     encolar,
+    suscribirATrabajo,
     estadoTrabajo,
     calcularObjetivo,
     rellenarHaciaObjetivo,

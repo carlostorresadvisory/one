@@ -22,6 +22,7 @@ import { crearAlmacen } from './almacen.js';
 import { crearCola } from './cola.js';
 import { producirTanda, completarImagen } from './generacion.js';
 import { crearResolvedorReal } from './imagenes.js';
+import { crearPush, crearEnvioReal } from './push.js';
 
 const require = createRequire(import.meta.url);
 
@@ -383,6 +384,8 @@ async function leerJsonCuerpo(req, limite) {
  *   directamente, pasan por `cola`/`almacen`.
  * @param {boolean} [params.permitirPago] igual semántica que en servidor/generacion.js.
  * @param {number} [params.topeEur] tope de gasto diario, pasado tal cual a `llamar`.
+ * @param {ReturnType<import('./push.js').crearPush>} [params.push] avisos Web Push (v0.3.4 C); sin él, `/vapid`
+ *   dice que no hay avisos y `/suscribir` no guarda nada.
  * @returns {import('node:http').Server}
  */
 export function crearServidor({
@@ -395,6 +398,7 @@ export function crearServidor({
   llamar: llamarFn = llamarReal,
   permitirPago = false,
   topeEur = 0,
+  push = null,
 } = {}) {
   if (!cola) throw new Error('crearServidor: falta cola');
   if (!almacen) throw new Error('crearServidor: falta almacen');
@@ -761,6 +765,36 @@ export function crearServidor({
     responderJson(res, 200, resultado);
   }
 
+  // v0.3.4 C: clave pública VAPID para que el navegador cree su suscripción. Sin claves en el servidor: 200 con
+  // `activa: false` (no es un error, el cliente simplemente no pide permiso).
+  function manejarVapid(req, res) {
+    if (!push?.activo) {
+      responderJson(res, 200, { activa: false });
+      return;
+    }
+    responderJson(res, 200, { activa: true, publica: push.vapidPublica });
+  }
+
+  // v0.3.4 C: guarda la suscripción Web Push del dispositivo y, si trae el id de la tanda, la apunta a ella para
+  // que el aviso de fin de tanda llegue a ese dispositivo (y solo a los de esa tanda).
+  async function manejarSuscribir(req, res) {
+    const cuerpo = await leerJsonCuerpo(req, LIMITE_CUERPO_BYTES);
+    if (!push?.activo) {
+      responderJson(res, 200, { ok: false, activa: false });
+      return;
+    }
+    const endpoint = await push.suscribir(cuerpo.suscripcion);
+    if (!endpoint) {
+      responderError(res, 400, 'Suscripción inválida');
+      return;
+    }
+    let trabajo = false;
+    if (typeof cuerpo.trabajoId === 'string' && cuerpo.trabajoId) {
+      trabajo = cola.suscribirATrabajo(cuerpo.trabajoId, endpoint, { tema: cuerpo.tema, url: cuerpo.url });
+    }
+    responderJson(res, 200, { ok: true, trabajo });
+  }
+
   // === Enrutado + capas transversales (CORS, rate limit, auth) ===================================
 
   async function manejarPeticion(req, res) {
@@ -861,6 +895,14 @@ export function crearServidor({
       await manejarReportar(req, res);
       return;
     }
+    if (req.method === 'GET' && ruta === '/vapid') {
+      manejarVapid(req, res);
+      return;
+    }
+    if (req.method === 'POST' && ruta === '/suscribir') {
+      await manejarSuscribir(req, res);
+      return;
+    }
 
     responderError(res, 404, 'Ruta no encontrada');
   }
@@ -926,6 +968,16 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
 
   const almacenReal = crearAlmacen(rutaDatos);
+  // v0.3.4 C: avisos Web Push al terminar una tanda. Las claves VAPID (tools/generar-vapid.js) solo viajan por
+  // entorno: sin VAPID_PUBLICA y VAPID_PRIVADA el servidor funciona igual y no envía nada.
+  const vapidPublica = process.env.VAPID_PUBLICA || '';
+  const enviarPush = await crearEnvioReal({
+    vapidPublica,
+    vapidPrivada: process.env.VAPID_PRIVADA || '',
+    contacto: process.env.VAPID_CONTACTO || 'https://carlostorresadvisory.github.io/one/',
+  });
+  const push = crearPush({ almacen: almacenReal, vapidPublica, enviar: enviarPush });
+  console.log(`ONE servidor: avisos Web Push ${push.activo ? 'activos' : 'desactivados (faltan VAPID_PUBLICA/VAPID_PRIVADA o web-push)'}.`);
   // v0.3 §7: búsqueda de imagen (Commons -> bancos libres -> IA) con las WebP en <RUTA_DATOS>/imagenes.
   const resolverImagen = crearResolvedorReal({ rutaDatos });
   const colaReal = crearCola({
@@ -933,6 +985,8 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     producirTanda: (params, opcionesTanda) => producirTanda(params, { ...opcionesTanda, resolverImagen }),
     completarImagen: (pregunta, opcionesFondo) => completarImagen(pregunta, { ...opcionesFondo, resolverImagen }),
     opciones: { permitirPago, topeEur, rutaLog: path.join(rutaDatos, 'llamadas.log') },
+    alTerminar: ({ trabajoId, n, aviso, endpoints }) =>
+      push.avisarTanda({ endpoints, tema: aviso.tema, n, url: aviso.url, etiqueta: trabajoId }),
   });
 
   let version = '0.2b1';
@@ -951,6 +1005,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     permitirPago,
     topeEur,
     version,
+    push,
   });
 
   servidor.listen(puerto, () => {

@@ -160,6 +160,14 @@ export function crearAlmacen(rutaDatos) {
     async leerMotivosReportados() {
       return leerJson(rutaDatos, 'reportadas-motivos.json', {});
     },
+    // v0.3.4 C: suscripciones Web Push de los dispositivos, {endpoint: {subscription, creada}}. Quien las
+    // modifica (servidor/push.js) envuelve leer->modificar->guardar en `conCerrojo('suscripciones.json', ...)`.
+    async leerSuscripciones() {
+      return leerJson(rutaDatos, 'suscripciones.json', {});
+    },
+    async guardarSuscripciones(objeto) {
+      await escribirAtomico('suscripciones.json', objeto);
+    },
     // Ronda final (I4, revisión 14-sep-2026): log de trazabilidad por lote (servidor.log), una
     // línea JSON por llamada -- mismo formato de "append" que ya usa tools/openrouter.js para
     // llamadas.log. Un fallo al escribir (disco lleno, carpeta borrada...) NUNCA debe tumbar la
