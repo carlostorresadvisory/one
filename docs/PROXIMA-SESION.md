@@ -1,10 +1,14 @@
-# Próxima sesión — Esfinx (antes ONE) tras v0.3.1 (12-oct-2026)
+# Próxima sesión — Esfinx (antes ONE) tras v0.3.2 (12-oct-2026)
 
 **v0.3.1 PUBLICADA** el 12-oct (main `ed424c3`, Pages `one-v33`; 426/426 fotos de los datos publicados dan 200 en Pages; servidor sin cambios).
 
-## Estado (12-oct-2026)
-- Las 7 correcciones de Carlos están publicadas (spec `docs/superpowers/specs/2026-10-11-one-v0.3.1-correcciones-design.md`, reescrita en la spec v0.3). Suites: 1035 unitarios, 233 e2e. La revisión Opus a mano se saltó por orden de desplegar ya.
-- **En curso**: lote de imágenes para las 101 preguntas y 140 cifras sin foto (rama `v0.3.1`, commits por lote). **Regla de Carlos: ninguna pregunta sin imagen** (Commons → Openverse/museos/NASA → Cloudflare, tramo gratis ~230/día, cupo de este lote 200 → Perchance solo con acceso programático estable). Al acabar: `node tools/validar-banco.js`, `node tools/diagnostico-imagenes.js --local`, unitarios, `git push origin v0.3.1:main` y comprobar en Pages.
+## Estado (12-oct-2026, 11:10)
+- **Publicado** (main `0ae2d3c`, Pages `one-v34`): v0.3.1 (las 7 correcciones) + v0.3.2 (botón «Saber +» con ChatGPT/Claude/Gemini en todos los modos, spec `docs/superpowers/specs/2026-10-12-esfinx-v0.3.2-saber-mas-design.md`, pendiente reescribirla en la spec v0.3 §4) + 223 imágenes nuevas.
+- **Regla de Carlos: ninguna pregunta sin imagen**, solo fuentes gratis o hiperbaratas (no generadores de pago). Quedan **9 preguntas** (art-082, cie-090, eco-083, eco-091, fil-055, log-013, log-042, tec-015, tec-053) y **2 cifras** (ah-Q244356, ah-Q203681). Completar tras las 00:00 UTC: `node --env-file=.env tools/rellenar-imagenes.js --que ambas --flux --liston 3 --reintentar --juez google/gemini-2.5-flash-lite --tope-usd 0.30` (Cloudflare gratis; Space FLUX.1-schnell de HF anónimo con cupo diario). Luego validar (`tools/validar-banco.js`, `tools/diagnostico-imagenes.js --local`, unitarios) y `git push origin v0.3.1:main` (Carlos autorizó «publica tú»).
+- **Carlos debe revisar a ojo** las imágenes con `revisar: true` (≈ 77: galerías con nota 3 e IA que no llegó a 4) y la tanda de arte.
+- Cupo de Cloudflare: lo agota nuestro propio relleno (~61 imágenes con reintentos); el VPS comparte cuenta si lleva `CLOUDFLARE_AI_TOKEN` (sin comprobar).
+- Perchance descartado para automatizar: sin API, solo su web. Runware sin clave.
+- Gasto OpenRouter del juez barato en este lote: ~0,28 $ (mes ~0,42 $ de 5 $).
 - Fase 10 (generar cifras en el servidor) pasa a la entrega 2.
 
 ## Decisiones de Carlos del 11-oct (ya en la spec y en el código)
