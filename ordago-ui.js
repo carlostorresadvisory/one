@@ -90,7 +90,10 @@ export function montarOrdago(contenedor, deps) {
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
   let generacionFondo = 0;
-  // Comodines (spec §6): 50/50 y Salvavidas valen (y se descuentan) solo para la ronda en curso.
+  // Comodines (spec §6): 50/50 y Salvavidas valen (y se descuentan) solo para la ronda en curso. Saltar solo antes de
+  // elegir ficha (después la ficha está comprometida, spec §5.2); el resto, solo después.
+  const soloAntesDeFicha = (id) => id === 'saltar';
+  const soloConFicha = (id) => id !== 'saltar';
   const comodines = nodoComodines && montarComodines(nodoComodines, {
     modo: 'ordago', mochila: () => cargarMochila(deps.almacen), documento, alUsar: usarComodin,
   });
@@ -118,11 +121,17 @@ export function montarOrdago(contenedor, deps) {
     nodoFichas.hidden = cual !== 'fichas';
     nodoOpciones.hidden = cual !== 'opciones';
     nodoResultado.hidden = cual !== 'resultado';
-    comodines?.visible(cual === 'opciones'); // la barra aparece cuando las opciones ya están en pantalla
+    comodines?.visible(cual === 'fichas' || cual === 'opciones'); // con las fichas, solo Saltar; con las opciones, los demás
   };
 
-  /** El 50/50 se descuenta al usarlo; el Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo. */
+  /** El 50/50 y Saltar se descuentan al usarlos; el Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo. */
   function usarComodin(id) {
+    if (id === 'saltar') {
+      // Otra pregunta, sin ficha ni registro. Si no hay otra, no se gasta; el antirrebote evita saltar dos veces de un doble toque.
+      if (fase !== 'ficha' || !libre() || !nuevaRonda(false, { saltar: true })) return false;
+      gastarComodin(id, deps.almacen);
+      return true;
+    }
     if (fase !== 'ficha' && fase !== 'opciones') return false;
     if (id === 'cincuenta') {
       ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
@@ -142,18 +151,22 @@ export function montarOrdago(contenedor, deps) {
     }
   }
 
-  function nuevaRonda(cambiarVista = false) {
-    cerrarSaberMas();
+  /** Prepara la ronda siguiente. Con `saltar` (comodín) y sin otra pregunta no se acaba la partida: devuelve false y nada cambia. */
+  function nuevaRonda(cambiarVista = false, { saltar = false } = {}) {
     if (estado.fondo < 1) {
+      cerrarSaberMas();
       mostrarQuiebra();
-      return;
+      return false;
     }
     const pregunta = deps.elegirPregunta({ usados, ultima });
     if (!pregunta) {
+      if (saltar) return false;
+      cerrarSaberMas();
       fase = 'destruido';
       deps.alSinPreguntas();
-      return;
+      return false;
     }
+    cerrarSaberMas();
     usados.add(pregunta.id);
     ultima = pregunta.id;
     const dorada = esDorada(deps.rng); // se decide ya, pero no se enseña hasta elegir ficha
@@ -183,11 +196,12 @@ export function montarOrdago(contenedor, deps) {
     }));
     nodoFichas.append(crear(documento, 'p', 'ordago-fichas-aviso', 'Si sales, la pierdes'));
     mostrar('fichas');
-    comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [] });
+    comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [], filtro: soloAntesDeFicha });
     fase = 'ficha';
     armar();
     if (cambiarVista) deps.mostrarVista('ordago'); // entre rondas la vista no se recarga
     deps.vigia?.reiniciar(); // después de mostrarVista, que lo para: así arranca también en la primera ronda
+    return true;
   }
 
   function elegirFicha(ficha) {
@@ -215,6 +229,7 @@ export function montarOrdago(contenedor, deps) {
     }));
     ocultarDescartadas();
     mostrar('opciones');
+    comodines?.actualizar({ filtro: soloConFicha });
   }
 
   function responder(valor) {

@@ -84,12 +84,19 @@ export function montarContrarreloj(contenedor, deps) {
   const armar = () => { desbloqueoEn = ahora() + MS_ANTIREBOTE; };
   const libre = () => ahora() >= desbloqueoEn;
 
-  // Comodines (spec §6): el 50/50 y el +5 s se descuentan al usarlos; el Salvavidas, solo si de verdad te salva.
+  // Comodines (spec §6): el 50/50, el +5 s y Saltar se descuentan al usarlos; el Salvavidas y la Segunda oportunidad, solo si de verdad actúan.
   const comodines = nodoComodines && montarComodines(nodoComodines, {
     modo: 'contrarreloj', mochila: () => cargarMochila(deps.almacen), documento, alUsar: usarComodin,
   });
   function usarComodin(id) {
     if (fase !== 'jugando') return false;
+    if (id === 'saltar') {
+      // Otra pregunta de la misma posición con el reloj de nuevo completo; el contador no avanza. Sin otra distinta, no se gasta.
+      if (!libre() || !nuevaPregunta(false, { saltar: true })) return false;
+      armar(); // el segundo toque de un doble toque no salta otra vez ni responde la nueva
+      gastarComodin(id, deps.almacen);
+      return true;
+    }
     if (id === 'cincuenta') {
       ronda.ocultas = descartesCincuenta(ronda.pregunta, deps.rng);
       gastarComodin(id, deps.almacen);
@@ -101,8 +108,28 @@ export function montarContrarreloj(contenedor, deps) {
       gastarComodin(id, deps.almacen);
     } else if (id === 'salvavidas') {
       ronda.salvavidas = true;
+    } else if (id === 'segunda') {
+      ronda.segunda = true;
     }
     return true;
+  }
+
+  /** Fallo en un test4 con la Segunda oportunidad armada: el radar anota el fallo, la opción se tacha y se elige otra vez
+   * (el reloj no se para). El segundo intento es el que cuenta en la serie; no se vuelve a registrar en el radar. */
+  function usarSegundaOportunidad(valor) {
+    ronda.segunda = false;
+    ronda.yaRegistrada = true;
+    deps.registrar(ronda.pregunta, false, valor);
+    gastarComodin('segunda', deps.almacen);
+    for (const boton of nodoOpciones.querySelectorAll('button')) {
+      if (boton.getAttribute('data-original') !== String(valor)) continue;
+      boton.classList.add('opcion-tachada');
+      boton.disabled = true;
+      boton.setAttribute('aria-label', `${boton.textContent} (descartada)`);
+    }
+    comodines?.aviso('🔁 Segunda oportunidad: elige otra');
+    deps.lamentarFallo(nodoFoto);
+    armar();
   }
 
   const detenerReloj = () => {
@@ -130,14 +157,17 @@ export function montarContrarreloj(contenedor, deps) {
     }));
   }
 
-  function nuevaPregunta(cambiarVista = false) {
-    cerrarSaberMas();
+  /** Saca la pregunta siguiente de la posición actual. Con `saltar` (comodín) y sin otra distinta no se acaba la partida: devuelve false y nada cambia. */
+  function nuevaPregunta(cambiarVista = false, { saltar = false } = {}) {
     const pregunta = deps.elegirPregunta({ usados, ultima, enSerie, posicion: serie.indice + 1, doble: serie.fase === 'doble' });
     if (!pregunta) {
+      if (saltar) return false;
+      cerrarSaberMas();
       fase = 'destruido';
       deps.alSinPreguntas();
-      return;
+      return false;
     }
+    cerrarSaberMas();
     usados.add(pregunta.id);
     enSerie.add(pregunta.id);
     ultima = pregunta.id;
@@ -161,7 +191,7 @@ export function montarContrarreloj(contenedor, deps) {
     pintarPuntos();
     nodoFase.hidden = serie.fase !== 'doble';
     const total = tiempoPreguntaMs(serie.indice, serie.fase);
-    ronda = { pregunta, total, inicio: ahora(), ultimoTic: null, ocultas: [], salvavidas: false };
+    ronda = { pregunta, total, inicio: ahora(), ultimoTic: null, ocultas: [], salvavidas: false, segunda: false, yaRegistrada: false };
     comodines?.actualizar({ tipoPregunta: pregunta.tipo, usadosEnPregunta: [] });
     comodines?.visible(true);
     pintarBarraTiempo(nodoBarra, total, total);
@@ -171,6 +201,7 @@ export function montarContrarreloj(contenedor, deps) {
     deps.vigia?.reiniciar(); // tras mostrarVista, que lo para; a los 8 s sin responder, la esfinge «piensa»
     detenerReloj();
     rafId = raf(latido);
+    return true;
   }
 
   /** Un fotograma del reloj: pinta la barra, suena el tictac en los 3 últimos segundos y agota el tiempo. */
@@ -196,6 +227,11 @@ export function montarContrarreloj(contenedor, deps) {
     if (fase !== 'jugando') return;
     // Un toque que llega con el plazo ya vencido (carrera entre el click y el fotograma) es tiempo agotado.
     if (!tiempo && ahora() - ronda.inicio >= ronda.total) { tiempo = true; valor = undefined; }
+    // Combinación (plan v0.3.3): primero actúa la Segunda oportunidad; el Salvavidas solo si el segundo intento también falla.
+    if (!tiempo && ronda.segunda && !evaluar(ronda.pregunta, valor)) {
+      usarSegundaOportunidad(valor);
+      return;
+    }
     fase = 'respondida';
     detenerReloj();
     deps.vigia?.parar();
@@ -205,7 +241,7 @@ export function montarContrarreloj(contenedor, deps) {
     serie = responderSerie(serie, { correcta, salvavidas: salvada });
     if (salvada) gastarComodin('salvavidas', deps.almacen);
     if (serie.terminada) pintarPuntos(); // el décimo acierto llena los 10 antes del cofre
-    if (!tiempo) deps.registrar(pregunta, correcta, valor);
+    if (!tiempo && !ronda.yaRegistrada) deps.registrar(pregunta, correcta, valor); // tras una Segunda oportunidad el radar ya tiene el primer fallo
     comodines?.visible(false);
     if (salvada) {
       deps.lamentarFallo(nodoFoto);

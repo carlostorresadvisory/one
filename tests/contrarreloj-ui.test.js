@@ -215,3 +215,130 @@ test('progreso: al acertar la décima los 10 puntos se ven llenos antes de pasar
   assert.equal(puntos.buscarTodosPorClase('contrarreloj-punto--llena').length, 10);
   assert.equal(puntos.getAttribute('aria-label'), 'Pregunta 10 de 10');
 });
+
+// --- Saltar y Segunda oportunidad (plan v0.3.3) ---------------------------------------------------------------------
+
+/** Contrarreloj con test4 de respuesta correcta 0 (el fallo de responderParaTest es la opción 1) y la mochila indicada. */
+function montarConComodines(objetos, { preguntas = 10, tipo = 'test4' } = {}) {
+  const base = montarSalvavidas(objetos);
+  const { almacen, comodines, juego } = base;
+  const opciones = juego.porId['contrarreloj-opciones'];
+  opciones.querySelectorAll = () => opciones.children;
+  const documento = new ElementoFalso('document');
+  documento.createElement = (t) => new ElementoFalso(t);
+  documento.hidden = false;
+  const caida = contenedorCon(['caida-resumen', 'caida-explicacion', 'caida-reintentar']);
+  const banco = Array.from({ length: preguntas }, (_, i) => (tipo === 'test4'
+    ? { id: `p${i}`, tipo, nivel: 4, area: 'historia', enunciado: `E${i}`, opciones: ['a', 'b', 'c', 'd'], correcta: 0, explicacion: 'e' }
+    : { id: `p${i}`, tipo, nivel: 4, area: 'historia', enunciado: `E${i}`, respuesta: true, explicacion: 'e' }));
+  let reloj = 0;
+  const registro = { registrados: [], vistas: [], sinPreguntas: 0 };
+  const instancia = montarContrarreloj(juego, {
+    documento, contenedorCaida: caida,
+    contenedorCofre: contenedorCon(['cofre-titulo', 'cofre-premio', 'cofre-nota', 'cofre-doble', 'cofre-plantarse', 'cofre-recoger']),
+    mostrarVista: (v) => registro.vistas.push(v),
+    elegirPregunta: ({ enSerie }) => banco.find((p) => !enSerie.has(p.id)) ?? null,
+    registrar: (p, correcta, valor) => registro.registrados.push([p.id, correcta, valor]),
+    celebrarAcierto() {}, lamentarFallo() {}, celebrarPremio() {}, reproducir() {}, imagenDe: () => null,
+    darObjetos() {}, alSalir() {}, alSinPreguntas: () => { registro.sinPreguntas += 1; },
+    almacen, rng, ahora: () => reloj, raf: () => 1, cancelarRaf() {}, temporizador: temporizadorFalso(),
+  });
+  const boton = (id) => comodines.children.find((c) => c.getAttribute('data-test') === `comodin-${id}`);
+  const mochila = (id) => cargarMochila(almacen).objetos[id];
+  const puntos = () => juego.porId['contrarreloj-puntos'].getAttribute('aria-label');
+  return { instancia, boton, mochila, registro, puntos, opciones, caida, avanzarReloj: (ms) => { reloj += ms; } };
+}
+
+test('Saltar: otra pregunta de la misma posición sin registrar nada, el contador no avanza, se gasta uno y el doble toque es un solo uso', () => {
+  const { instancia, boton, mochila, registro, puntos, avanzarReloj } = montarConComodines({ saltar: 3 });
+  assert.equal(instancia.preguntaActual().id, 'p0');
+  avanzarReloj(2000);
+  const saltar = boton('saltar');
+  saltar.disparar('click');
+  assert.equal(instancia.preguntaActual().id, 'p1');
+  saltar.disparar('click'); // doble toque dentro del antirrebote: no salta otra vez
+  boton('saltar')?.disparar('click');
+  assert.equal(instancia.preguntaActual().id, 'p1');
+  assert.equal(mochila('saltar'), 2);
+  assert.equal(puntos(), 'Pregunta 1 de 10');
+  assert.deepEqual(registro.registrados, []);
+  assert.equal(registro.sinPreguntas, 0);
+  avanzarReloj(400); // pasado el antirrebote, otro Saltar sí vale
+  boton('saltar').disparar('click');
+  assert.equal(instancia.preguntaActual().id, 'p2');
+  assert.equal(mochila('saltar'), 1);
+});
+
+test('Saltar desarma el Salvavidas armado sin gastarlo', () => {
+  const { instancia, boton, mochila, registro, avanzarReloj } = montarConComodines({ saltar: 1, salvavidas: 1 });
+  boton('salvavidas').disparar('click');
+  avanzarReloj(400);
+  boton('saltar').disparar('click');
+  avanzarReloj(400);
+  instancia.responderParaTest(false); // sin Salvavidas armado: cae
+  assert.ok(registro.vistas.includes('caida'));
+  assert.equal(mochila('salvavidas'), 1);
+});
+
+test('Saltar sin otra pregunta distinta: no se gasta ni se acaba la partida', () => {
+  const { instancia, boton, mochila, registro, avanzarReloj } = montarConComodines({ saltar: 1 }, { preguntas: 1 });
+  avanzarReloj(400);
+  boton('saltar').disparar('click');
+  assert.equal(instancia.preguntaActual().id, 'p0');
+  assert.equal(mochila('saltar'), 1);
+  assert.equal(registro.sinPreguntas, 0);
+});
+
+test('Segunda oportunidad: el fallo se anota una vez, la opción se tacha y el segundo intento acertado cuenta sin volver a registrarse', () => {
+  const { instancia, boton, mochila, registro, puntos, opciones, avanzarReloj } = montarConComodines({ segunda: 2 });
+  boton('segunda').disparar('click');
+  assert.equal(mochila('segunda'), 2); // armada, aún sin gastar
+  avanzarReloj(400);
+  instancia.responderParaTest(false); // opción 1
+  assert.ok(!registro.vistas.includes('caida'));
+  assert.equal(mochila('segunda'), 1);
+  assert.deepEqual(registro.registrados, [['p0', false, 1]]);
+  const tachada = opciones.children.find((o) => o.getAttribute('data-original') === '1');
+  assert.equal(tachada.disabled, true);
+  assert.equal(tachada.classList.contains('opcion-tachada'), true);
+  assert.equal(puntos(), 'Pregunta 1 de 10'); // la serie no ha avanzado aún
+  avanzarReloj(400);
+  instancia.responderParaTest(true);
+  assert.equal(puntos(), 'Pregunta 2 de 10'); // el segundo intento cuenta como acierto
+  assert.deepEqual(registro.registrados, [['p0', false, 1]]); // y no se vuelve a registrar
+});
+
+test('Segunda oportunidad: si el segundo intento también falla (sin Salvavidas) caes y el radar solo tiene el primer fallo', () => {
+  const { instancia, boton, registro, avanzarReloj } = montarConComodines({ segunda: 1 });
+  boton('segunda').disparar('click');
+  avanzarReloj(400);
+  instancia.responderParaTest(false);
+  avanzarReloj(400);
+  instancia.responderParaTest(false);
+  assert.ok(registro.vistas.includes('caida'));
+  assert.equal(registro.registrados.length, 1);
+});
+
+test('Segunda oportunidad + Salvavidas: primero actúa la Segunda; el Salvavidas solo se gasta si el segundo intento también falla', () => {
+  const { instancia, boton, mochila, registro, puntos, avanzarReloj } = montarConComodines({ segunda: 1, salvavidas: 1 });
+  boton('segunda').disparar('click');
+  boton('salvavidas').disparar('click');
+  avanzarReloj(400);
+  instancia.responderParaTest(false); // primer fallo: actúa la Segunda
+  assert.equal(mochila('segunda'), 0);
+  assert.equal(mochila('salvavidas'), 1);
+  avanzarReloj(400);
+  instancia.responderParaTest(false); // segundo fallo: ahora el Salvavidas
+  assert.equal(mochila('salvavidas'), 0);
+  assert.ok(!registro.vistas.includes('caida'));
+  assert.equal(puntos(), 'Pregunta 2 de 10');
+});
+
+test('Segunda oportunidad armada y acierto a la primera: no se gasta; en V/F ni siquiera aparece', () => {
+  const a = montarConComodines({ segunda: 1 });
+  a.boton('segunda').disparar('click');
+  a.instancia.responderParaTest(true);
+  assert.equal(a.mochila('segunda'), 1);
+  const b = montarConComodines({ segunda: 1 }, { tipo: 'vf' });
+  assert.equal(b.boton('segunda'), undefined);
+});
