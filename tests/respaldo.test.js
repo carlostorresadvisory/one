@@ -14,7 +14,7 @@ import { almacenFalso, almacenRoto } from './almacen-falso.js';
 const HOY = '2026-10-05';
 
 test('CLAVES_RESPALDO: las claves de v0.3 de estas fases', () => {
-  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas', 'one.masomenos', 'one.premium']);
+  assert.deepEqual([...CLAVES_RESPALDO], ['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.etiquetasRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas', 'one.masomenos', 'one.premium']);
 });
 
 test('CLAVES_RESPALDO incluye las claves que usan mochila.js y sonido.js (test cruzado)', () => {

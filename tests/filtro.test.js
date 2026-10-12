@@ -6,6 +6,7 @@ import {
   FILTRO_TODOS, MIN_JUGABLES, CLAVE_FILTROS, CLAVE_INDICE_RUTAS, normalizarFiltro, esTodos, etiquetaFiltro,
   claveRuta, filtroDeModo, guardarFiltroDeModo, leerIndiceRutas, registrarIdsRuta, idsDeRuta, crearPredicado,
   preguntasDelFiltro, contarJugables, filtroParaPartida, filtroParaRepaso, avisoFiltroCorto, pintarChip, construirListaAreas,
+  CLAVE_ETIQUETAS_RUTAS, MAX_TEMAS_GENERADOS, leerEtiquetasRutas, registrarEtiquetasRuta, agruparTemasGenerados, construirFilaTemas,
 } from '../filtro.js';
 import { almacenFalso, almacenRoto } from './almacen-falso.js';
 import { ElementoFalso, instalarDomFalso } from './dom-falso.js';
@@ -249,4 +250,84 @@ test('migración de apuesta: lee bien pero setItem lanza → no lanza y devuelve
   const almacen = { getItem: (c) => base.getItem(c), setItem: () => { throw new Error('cuota llena'); } };
   assert.equal(filtroDeModo('ordago', almacen).area, 'historia');
   assert.equal(guardarFiltroDeModo('ordago', { area: 'ciencia' }, almacen), false);
+});
+
+// --- Temas generados (v0.3.4 A: la fila «Tus temas» del inicio y la sección «Generados» del filtro) ---
+
+const GRECIA = { area: 'historia', ruta: ['Grecia clásica'], etiquetas: ['Grecia'] };
+const PUNICAS = { area: 'historia', ruta: ['Roma antigua y su imperio', 'Las guerras púnicas'], etiquetas: ['Roma', 'Púnicas'] };
+
+test('etiquetas de ruta: se guardan por clave, se releen y lo roto se descarta; ruta vacía o desigual no se guarda', () => {
+  const almacen = almacenFalso();
+  assert.equal(registrarEtiquetasRuta('historia', ROMA.ruta, ROMA.etiquetas, almacen), true);
+  assert.deepEqual(leerEtiquetasRutas(almacen)[claveRuta('historia', ROMA.ruta)], ['Roma']);
+  assert.equal(registrarEtiquetasRuta('historia', [], [], almacen), false);
+  assert.equal(registrarEtiquetasRuta('historia', ['a', 'b'], ['a'], almacen), false);
+  assert.equal(registrarEtiquetasRuta('cocina', ['a'], ['a'], almacen), false);
+  assert.deepEqual(leerEtiquetasRutas(almacenFalso({ [CLAVE_ETIQUETAS_RUTAS]: JSON.stringify({ a: 'no', b: [1], c: ['ok'] }) })), { c: ['ok'] });
+  assert.deepEqual(leerEtiquetasRutas(almacenFalso({ [CLAVE_ETIQUETAS_RUTAS]: '{roto' })), {});
+  assert.equal(registrarEtiquetasRuta('historia', ROMA.ruta, ROMA.etiquetas, almacenRoto()), false);
+});
+
+test('agruparTemasGenerados: recientes primero, n = ids del banco sin reportadas (con subnodos), sin tema vacío', () => {
+  const almacen = almacenFalso();
+  registrarIdsRuta('historia', ROMA.ruta, ['srv-1', 'srv-2'], almacen);
+  registrarIdsRuta('historia', GRECIA.ruta, ['h1'], almacen);
+  registrarIdsRuta('ciencia', ['Física cuántica'], ['id-que-ya-no-esta'], almacen); // sin ninguna en el banco: se omite
+  registrarIdsRuta('historia', ROMA.ruta, ['srv-3'], almacen); // Roma recibe otra tanda: pasa a ser la más reciente
+  const bancoTemas = [...banco, { id: 'srv-3', area: 'historia' }];
+  const temas = agruparTemasGenerados({ indice: leerIndiceRutas(almacen), banco: bancoTemas, reportadas: ['srv-2'], nombreArea });
+  assert.deepEqual(temas.map((t) => [t.texto, t.n]), [['Roma antigua y su imperio', 2], ['Grecia clásica', 1]]);
+  assert.deepEqual(temas[0].filtro, { area: 'historia', ruta: ROMA.ruta, etiquetas: ROMA.ruta });
+});
+
+test('agruparTemasGenerados: usa las etiquetas guardadas, cuenta los subnodos en el padre y rotula el área si la ruta es vacía', () => {
+  const almacen = almacenFalso();
+  registrarIdsRuta('historia', ROMA.ruta, ['h1'], almacen);
+  registrarIdsRuta('historia', PUNICAS.ruta, ['h2'], almacen);
+  registrarIdsRuta('ciencia', [], ['c1'], almacen);
+  registrarEtiquetasRuta('historia', ROMA.ruta, ROMA.etiquetas, almacen);
+  registrarEtiquetasRuta('historia', PUNICAS.ruta, PUNICAS.etiquetas, almacen);
+  const temas = agruparTemasGenerados({ indice: leerIndiceRutas(almacen), etiquetas: leerEtiquetasRutas(almacen), banco, nombreArea });
+  assert.deepEqual(temas.map((t) => [t.texto, t.n]), [['Ciencia', 1], ['Púnicas', 1], ['Roma', 2]]);
+  assert.deepEqual(temas[1].filtro, PUNICAS); // lo que se pasa a guardarFiltroDeModo, ya normalizado
+  assert.deepEqual(normalizarFiltro(temas[1].filtro), PUNICAS);
+  assert.deepEqual(temas[0].filtro, { area: 'ciencia', ruta: [], etiquetas: [] });
+});
+
+test('agruparTemasGenerados: sin etiquetas guardadas corta el tramo largo; etiquetas de otra longitud se ignoran; respeta max', () => {
+  const largo = 'Una ruta larguísima con muchas palabras que no cabe en un chip';
+  const almacen = almacenFalso();
+  registrarIdsRuta('historia', [largo], ['h1'], almacen);
+  const temas = agruparTemasGenerados({ indice: leerIndiceRutas(almacen), etiquetas: { [claveRuta('historia', [largo])]: ['a', 'b'] }, banco });
+  assert.equal(temas[0].texto.length <= 28, true);
+  assert.equal(temas[0].texto.endsWith('…'), true);
+  assert.deepEqual(normalizarFiltro(temas[0].filtro).ruta, [largo]); // coherente: se puede fijar como filtro
+  for (let i = 0; i < 5; i += 1) registrarIdsRuta('historia', [`Tema ${i}`], ['h2'], almacen);
+  assert.equal(agruparTemasGenerados({ indice: leerIndiceRutas(almacen), banco, max: 3 }).length, 3);
+  assert.equal(MAX_TEMAS_GENERADOS >= 12, true);
+  assert.deepEqual(agruparTemasGenerados({ indice: {}, banco }), []);
+});
+
+test('construirFilaTemas: un botón por tema con «Texto · n», título completo, marca el filtro puesto y avisa al tocar', () => {
+  const desinstalar = instalarDomFalso();
+  try {
+    const almacen = almacenFalso();
+    registrarIdsRuta('historia', ROMA.ruta, ['h1', 'h2'], almacen);
+    registrarIdsRuta('historia', GRECIA.ruta, ['srv-1'], almacen);
+    registrarEtiquetasRuta('historia', ROMA.ruta, ROMA.etiquetas, almacen);
+    registrarEtiquetasRuta('historia', GRECIA.ruta, GRECIA.etiquetas, almacen);
+    const temas = agruparTemasGenerados({ indice: leerIndiceRutas(almacen), etiquetas: leerEtiquetasRutas(almacen), banco, nombreArea });
+    const elegidos = [];
+    const fila = construirFilaTemas({ temas, nombreArea, filtroActual: ROMA, alElegir: (t) => elegidos.push(t.filtro) });
+    assert.equal(fila.children.length, 2);
+    assert.deepEqual(fila.children.map((b) => b.textContent), ['Grecia · 1', 'Roma · 2']);
+    assert.equal(fila.children[1].title, 'Historia · Roma');
+    assert.deepEqual(fila.children.map((b) => b.getAttribute('aria-pressed')), ['false', 'true']);
+    assert.equal(fila.children[1].classList.contains('tema-chip--activo'), true);
+    fila.children[0].disparar('click');
+    assert.deepEqual(elegidos, [GRECIA]);
+  } finally {
+    desinstalar();
+  }
 });

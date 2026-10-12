@@ -42,6 +42,8 @@ export function leerTanda() {
     if (AREAS.includes(datos.area) && esRutaValida(datos.ruta)) {
       tanda.area = datos.area;
       tanda.ruta = [...datos.ruta];
+      // v0.3.4: cómo se llamaba cada tramo en pantalla, para rotular el tema generado aunque iOS recargue la app.
+      if (esRutaValida(datos.etiquetas) && datos.etiquetas.length === datos.ruta.length) tanda.etiquetas = [...datos.etiquetas];
     }
     return tanda;
   } catch {
@@ -51,12 +53,13 @@ export function leerTanda() {
 
 /** Guarda la tanda en curso. `false` si los datos no valen o si localStorage no admite escritura
  * (llena, modo privado): la sesión sigue funcionando en memoria, igual que guardarEstado. */
-export function guardarTanda({ id, corto, inicio, pedidas, area, ruta } = {}) {
+export function guardarTanda({ id, corto, inicio, pedidas, area, ruta, etiquetas } = {}) {
   if (!esTandaValida({ id, corto, inicio, pedidas })) return false;
   const datos = { id, corto, inicio, pedidas };
   if (AREAS.includes(area) && esRutaValida(ruta)) {
     datos.area = area;
     datos.ruta = [...ruta];
+    if (esRutaValida(etiquetas) && etiquetas.length === ruta.length) datos.etiquetas = [...etiquetas];
   }
   try {
     localStorage.setItem(CLAVE_TANDA, JSON.stringify(datos));

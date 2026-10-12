@@ -6,7 +6,7 @@
 import { exportar, importar } from './motor.js';
 
 export const VERSION_RESPALDO = 3;
-export const CLAVES_RESPALDO = Object.freeze(['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas', 'one.masomenos', 'one.premium']);
+export const CLAVES_RESPALDO = Object.freeze(['one.mochila', 'one.filtros', 'one.silencio', 'one.indiceRutas', 'one.etiquetasRutas', 'one.ordago', 'one.contrarreloj', 'one.imagenesMalas', 'one.masomenos', 'one.premium']);
 const MAX_LONGITUD_VALOR = 500000;
 
 export function exportarRespaldo(estado, almacen) {

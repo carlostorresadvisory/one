@@ -153,6 +153,17 @@ test('v0.3: guardarTanda/leerTanda conservan área y ruta cuando vienen y son v�
   assert.deepEqual(leerTanda(), { id: 't1', corto: 'Roma', inicio: 1, pedidas: 10, area: 'historia', ruta: ['Roma antigua'] });
 });
 
+test('v0.3.4: la tanda conserva las etiquetas cortas de la ruta si coinciden en longitud; si no, se descartan', (t) => {
+  const anterior = globalThis.localStorage;
+  const datos = new Map();
+  globalThis.localStorage = { getItem: (k) => (datos.has(k) ? datos.get(k) : null), setItem: (k, v) => datos.set(k, String(v)), removeItem: (k) => datos.delete(k) };
+  t.after(() => { globalThis.localStorage = anterior; });
+  assert.equal(guardarTanda({ id: 't6', corto: 'Roma', inicio: 1, pedidas: 10, area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma'] }), true);
+  assert.deepEqual(leerTanda().etiquetas, ['Roma']);
+  assert.equal(guardarTanda({ id: 't7', corto: 'Roma', inicio: 1, pedidas: 10, area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma', 'sobra'] }), true);
+  assert.equal('etiquetas' in leerTanda(), false);
+});
+
 test('v0.3: una tanda guardada por v0.2 (sin área ni ruta) se sigue leyendo igual', (t) => {
   const anterior = globalThis.localStorage;
   const datos = new Map([[CLAVE_TANDA, JSON.stringify({ id: 't2', corto: 'Economía', inicio: 5, pedidas: 10 })]]);

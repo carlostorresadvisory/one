@@ -24,6 +24,9 @@ export const MIN_JUGABLES_CONTRARRELOJ = 10; // una serie entera: con menos, las
 export const MAX_PARTIDA_FILTRO = 10;
 export const CLAVE_FILTROS = 'one.filtros';
 export const CLAVE_INDICE_RUTAS = 'one.indiceRutas';
+export const CLAVE_ETIQUETAS_RUTAS = 'one.etiquetasRutas'; // {clave de ruta: etiquetas cortas}: rotulan los temas generados
+export const MAX_TEMAS_GENERADOS = 30; // chips que se pintan como mucho (el índice guarda hasta MAX_RUTAS)
+const MAX_LARGO_ETIQUETA = 28; // sin etiquetas guardadas, el tramo largo de la ruta se corta aquí
 const MAX_ANILLOS = 6;
 const MAX_IDS_POR_RUTA = 500;
 const MAX_RUTAS = 200;
@@ -139,6 +142,65 @@ export function idsDeRuta(indice, area, ruta) {
   return ids;
 }
 
+/** Etiquetas cortas guardadas por ruta (`one.etiquetasRutas`). Mismo criterio que el índice: lo roto se descarta. */
+export function leerEtiquetasRutas(almacen) {
+  const crudo = leerJson(almacen, CLAVE_ETIQUETAS_RUTAS);
+  const etiquetas = {};
+  if (!esObjetoPlano(crudo)) return etiquetas;
+  for (const [clave, lista] of Object.entries(crudo)) {
+    if (Array.isArray(lista) && lista.every(esTexto)) etiquetas[clave] = [...lista];
+  }
+  return etiquetas;
+}
+
+/** Apunta cómo se llamaba cada tramo de la ruta al generarla: `atomo.js` manda `completo` en la ruta y `corto`
+ * en pantalla, y el índice solo guarda el primero. Sin esto el chip «Roma · 37» diría el hilo largo entero. */
+export function registrarEtiquetasRuta(area, ruta, etiquetas, almacen) {
+  if (!AREAS.includes(area) || !Array.isArray(ruta) || !Array.isArray(etiquetas)) return false;
+  if (ruta.length === 0 || etiquetas.length !== ruta.length || !etiquetas.every(esTexto)) return false;
+  const guardadas = leerEtiquetasRutas(almacen);
+  const clave = claveRuta(area, ruta);
+  delete guardadas[clave];
+  guardadas[clave] = [...etiquetas];
+  const claves = Object.keys(guardadas);
+  for (const vieja of claves.slice(0, Math.max(0, claves.length - MAX_RUTAS))) delete guardadas[vieja];
+  try {
+    (almacen ?? globalThis.localStorage).setItem(CLAVE_ETIQUETAS_RUTAS, JSON.stringify(guardadas));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const acortarTramo = (t) => (t.length > MAX_LARGO_ETIQUETA ? `${t.slice(0, MAX_LARGO_ETIQUETA - 1).trimEnd()}…` : t);
+
+/**
+ * Temas con preguntas generadas en este dispositivo (spec v0.3 §3 y §4): una entrada por ruta del índice
+ * (la misma clave que usa el filtro), los más recientes primero (el índice reinserta al final la ruta que
+ * acaba de recibir una tanda). `n` = preguntas del banco de esa ruta y sus subnodos, sin las reportadas;
+ * un tema sin ninguna se omite. `etiquetas` = las guardadas por `registrarEtiquetasRuta` o, si faltan
+ * (datos anteriores a v0.3.4), cada tramo acortado. `filtro` se pasa tal cual a `guardarFiltroDeModo`.
+ * Pura: no lee almacenamiento.
+ */
+export function agruparTemasGenerados({ indice, etiquetas = {}, banco, reportadas = [], nombreArea = (a) => a, max = MAX_TEMAS_GENERADOS }) {
+  const fuera = new Set(reportadas);
+  const areaDe = new Map();
+  for (const p of banco) if (!fuera.has(p.id)) areaDe.set(p.id, p.area);
+  const temas = [];
+  for (const clave of Object.keys(indice).reverse()) {
+    const [area, ruta] = JSON.parse(clave);
+    let n = 0;
+    for (const id of idsDeRuta(indice, area, ruta)) if (areaDe.get(id) === area) n += 1;
+    if (n === 0) continue;
+    const guardadas = etiquetas[clave];
+    const rotulos = Array.isArray(guardadas) && guardadas.length === ruta.length ? guardadas : ruta.map((t) => acortarTramo(String(t)));
+    const texto = rotulos.length > 0 ? rotulos[rotulos.length - 1] : nombreArea(area);
+    temas.push({ clave, area, ruta: [...ruta], etiquetas: [...rotulos], texto, n, filtro: { area, ruta: [...ruta], etiquetas: [...rotulos] } });
+    if (temas.length >= max) break;
+  }
+  return temas;
+}
+
 export function crearPredicado(filtro, indice) {
   const f = normalizarFiltro(filtro);
   if (!f.area) return () => true;
@@ -244,4 +306,33 @@ export function construirListaAreas({ areas, nombreArea, emojiArea, filtroActual
     lista.appendChild(boton);
   }
   return lista;
+}
+
+/**
+ * Fila de chips «Roma · 37» con scroll horizontal (el inicio y la hoja del filtro, spec v0.3 §3 y §4).
+ * `temas` = `agruparTemasGenerados`; `filtroActual` marca (aria-pressed) el que ya está puesto;
+ * `alElegir(tema)` recibe la entrada entera. El nombre completo («Historia · Roma») va en el título
+ * y en el aria-label: el chip solo enseña el tramo final.
+ */
+export function construirFilaTemas({ temas, nombreArea = (a) => a, filtroActual = null, alElegir }) {
+  const actual = filtroActual ? normalizarFiltro(filtroActual) : null;
+  const fila = document.createElement('div');
+  fila.className = 'temas-fila';
+  for (const tema of temas) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'tema-chip';
+    boton.dataset.test = 'tema-generado';
+    boton.dataset.area = tema.area;
+    const completo = etiquetaFiltro(tema.filtro, nombreArea);
+    boton.textContent = `${tema.texto} · ${tema.n}`;
+    boton.title = completo;
+    boton.setAttribute('aria-label', `${completo}, ${tema.n} preguntas generadas`);
+    const puesto = Boolean(actual) && actual.area === tema.area && JSON.stringify(actual.ruta) === JSON.stringify(tema.ruta);
+    boton.setAttribute('aria-pressed', String(puesto));
+    if (puesto) boton.classList.add('tema-chip--activo');
+    boton.addEventListener('click', () => alElegir(tema));
+    fila.appendChild(boton);
+  }
+  return fila;
 }
