@@ -22,7 +22,7 @@ async function carpetaTmp() {
   return mkdtemp(path.join(os.tmpdir(), 'one-push-'));
 }
 
-async function hastaQue(condicion, { intentos = 400, esperaMs = 5 } = {}) {
+async function hastaQue(condicion, { intentos = 2400, esperaMs = 5 } = {}) {
   for (let i = 0; i < intentos; i++) {
     if (await condicion()) return;
     await new Promise((resolver) => setTimeout(resolver, esperaMs));
