@@ -1116,6 +1116,38 @@ test('v0.3 §7: las imágenes se resuelven en PARALELO, con tope de 5 en vuelo y
   assert.ok(duracion < 2000, `una tanda de 10 con dobles de 15 ms no puede tardar ${duracion} ms`);
 });
 
+// v0.3.4: una tanda de 100 (Premium) pasa por el mismo pipeline: mismos sublotes de generación (5), mismo tope de lotes
+// en vuelo y 100 verificadas. (En producción la cola la parte en lotes de 5 y cede turno: tests/servidor-cola.test.js.)
+test('v0.3.4: producirTanda con n = 100 reparte por tipo, genera en sublotes de 5, no pasa del tope de concurrencia y devuelve 100', async () => {
+  let enVuelo = 0;
+  let maxEnVuelo = 0;
+  const { llamar: llamarBase, registro } = crearLlamarPipeline({});
+  const llamar = async (params) => {
+    enVuelo += 1;
+    maxEnVuelo = Math.max(maxEnVuelo, enVuelo);
+    try {
+      await new Promise((r) => setTimeout(r, 2));
+      return await llamarBase(params);
+    } finally {
+      enVuelo -= 1;
+    }
+  };
+
+  const resultado = await producirTanda({ area: 'economia', ruta: [], n: 100 }, { llamar, urgente: true });
+
+  assert.equal(resultado.pedidas, 100);
+  assert.equal(resultado.aprobadas.length, 100);
+  assert.equal(resultado.fallos.length, 0);
+  const generaciones = registro.filter((r) => r.sistema.includes('autor de preguntas')).map((r) => detectarTipoYCantidad(r.usuario));
+  assert.ok(generaciones.every((g) => g.cantidad <= 5), 'ninguna llamada de generación pide más de 5 (TAMANO_LOTE_GENERACION)');
+  assert.equal(generaciones.reduce((a, g) => a + g.cantidad, 0), 100);
+  const porTipo = {};
+  for (const p of resultado.aprobadas) porTipo[p.tipo] = (porTipo[p.tipo] || 0) + 1;
+  assert.deepEqual(porTipo, repartoPorTipo(100));
+  assert.ok(maxEnVuelo <= Math.max(MAX_LOTES_EN_VUELO, 1), `como mucho ${MAX_LOTES_EN_VUELO} llamadas a la vez, hubo ${maxEnVuelo}`);
+  assert.equal(new Set(resultado.aprobadas.map((p) => p.id)).size, 100, 'ids únicos');
+});
+
 // Actualizado en la ronda de corrección 1 (I2): la versión original solo comprobaba la forma final
 // de `avisos` (contador 1..n, `pedidas` correcto), que seguía en verde aunque los avisos llegaran
 // TODOS juntos al terminar el lote entero -- el bug real que encontró la revisión. Ahora también se

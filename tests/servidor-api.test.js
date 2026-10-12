@@ -541,7 +541,7 @@ test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con 
     const resp = await fetch(`${base}/generar`, {
       method: 'POST',
       headers: cabeceras(),
-      body: JSON.stringify({ area: 'economia', ruta: [], n: 3, urgente: true }),
+      body: JSON.stringify({ area: 'economia', ruta: [], n: 10, urgente: true }),
     });
     assert.equal(resp.status, 200);
     const cuerpo = await resp.json();
@@ -556,7 +556,7 @@ test('POST /generar encola una tanda; GET /trabajo/:id progresa hasta lista con 
       return ultimoEstado.hechas >= ultimoEstado.pedidas;
     });
     assert.equal(ultimoEstado.estado, 'lista');
-    assert.equal(ultimoEstado.preguntas.length, 3);
+    assert.equal(ultimoEstado.preguntas.length, 10);
   } finally {
     await cerrar();
   }
@@ -574,7 +574,7 @@ test('v0.3 §4: /generar pasa nivelObjetivo (1-5) hasta producirTanda y descarta
       const resp = await fetch(`${base}/generar`, {
         method: 'POST',
         headers: cabeceras(),
-        body: JSON.stringify({ area: 'economia', ruta: [], n: 1, urgente: true, nivelObjetivo }),
+        body: JSON.stringify({ area: 'economia', ruta: [], n: 10, urgente: true, nivelObjetivo }),
       });
       assert.equal(resp.status, 200);
       const { trabajoId } = await resp.json();
@@ -583,7 +583,9 @@ test('v0.3 §4: /generar pasa nivelObjetivo (1-5) hasta producirTanda y descarta
         return (await r.json()).estado === 'lista';
       });
     }
-    assert.deepEqual(vistos, [4, undefined, undefined, undefined]);
+    // Cada tanda de 10 son 2 lotes de 5: el nivel llega a los dos.
+    assert.deepEqual(vistos.filter((_, i) => i % 2 === 0), [4, undefined, undefined, undefined]);
+    assert.deepEqual(vistos.filter((_, i) => i % 2 === 1), [4, undefined, undefined, undefined]);
   } finally {
     await cerrar();
   }
@@ -596,12 +598,12 @@ test('v0.2b4 §6c: /generar estima con la media móvil x (por delante + pedidas)
     const respuesta = await fetch(`${base}/generar`, {
       method: 'POST',
       headers: cabeceras(),
-      body: JSON.stringify({ area: 'economia', ruta: [], n: 5, urgente: true }),
+      body: JSON.stringify({ area: 'economia', ruta: [], n: 10, urgente: true }),
     });
     const cuerpo = await respuesta.json();
     assert.equal(respuesta.status, 200);
     assert.equal(cuerpo.segundosPorPregunta, 20); // sin tandas medidas todavía
-    assert.equal(cuerpo.estimadoSeg, 100); // 20 s x (0 por delante + 5 pedidas)
+    assert.equal(cuerpo.estimadoSeg, 200); // 20 s x (0 por delante + 10 pedidas)
 
     const trabajo = await fetch(`${base}/trabajo/${cuerpo.trabajoId}`, { headers: cabeceras() });
     const estado = await trabajo.json();
@@ -661,7 +663,7 @@ test('POST /generar: enCola cuenta también el trabajo activo (M3)', async () =>
     await fetch(`${base}/generar`, {
       method: 'POST',
       headers: cabeceras(),
-      body: JSON.stringify({ area: 'economia', n: 3, urgente: true }),
+      body: JSON.stringify({ area: 'economia', n: 10, urgente: true }),
     });
     await hastaQue(() => pendientes.length === 1);
     assert.equal(cola.estadisticas().activo, 1, 'el primero ya está activo');
@@ -669,7 +671,7 @@ test('POST /generar: enCola cuenta también el trabajo activo (M3)', async () =>
     const resp2 = await fetch(`${base}/generar`, {
       method: 'POST',
       headers: cabeceras(),
-      body: JSON.stringify({ area: 'historia', n: 3, urgente: true }),
+      body: JSON.stringify({ area: 'historia', n: 10, urgente: true }),
     });
     const datos2 = await resp2.json();
     assert.equal(datos2.enCola, 2, '1 en espera (el propio) + 1 activo (el primero)');
@@ -704,7 +706,7 @@ test('POST /generar con la cola de fondo llena responde 503', async () => {
     const resp = await fetch(`${base}/generar`, {
       method: 'POST',
       headers: cabeceras(),
-      body: JSON.stringify({ area: 'economia', n: 5, urgente: false }),
+      body: JSON.stringify({ area: 'economia', n: 10, urgente: false }),
     });
     assert.equal(resp.status, 503);
     assert.equal(typeof (await resp.json()).error, 'string');
@@ -1441,14 +1443,60 @@ test('GET /imagenes/<id>.webp es público (sin token), sirve la WebP y rechaza n
 
 // === Revisión de expertos (11-oct-2026): topes y entradas malformadas ==========================
 
-test('POST /generar: n por encima del máximo responde 400', async () => {
+// v0.3.4: solo hay tandas de 10 o de 100 (Premium); cualquier otro n (incluido un texto o un decimal) da 400.
+test('POST /generar: solo acepta n = 10 o 100 (y sin n, 10); cualquier otro valor responde 400', async () => {
   const { base, cerrar } = await crearServidorDePrueba();
   try {
-    const resp = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 11 }) });
-    assert.equal(resp.status, 400);
-    const ok = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 10 }) });
-    assert.equal(ok.status, 200);
+    for (const n of [0, 1, 5, 11, 50, 99, 101, 1000, -10, 10.5, '10', '100', null, true, [10]]) {
+      const resp = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n }) });
+      assert.equal(resp.status, 400, `n = ${JSON.stringify(n)} debe dar 400`);
+      await resp.text();
+    }
+    for (const n of [10, 100, undefined]) {
+      const ok = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n }) });
+      assert.equal(ok.status, 200, `n = ${n} debe dar 200`);
+      await ok.text();
+    }
   } finally {
+    await cerrar();
+  }
+});
+
+test('v0.3.4: POST /generar con n = 100 responde al momento con el id y sale en 20 lotes de 5, con progreso visible en /trabajo/:id', async () => {
+  const lotes = [];
+  let soltar;
+  const bloqueo = new Promise((r) => { soltar = r; });
+  const producirTandaFake = async ({ area, n }) => {
+    lotes.push(n);
+    if (lotes.length === 3) await bloqueo; // a medias: el cliente ve el avance y las preguntas ya listas
+    return resultadoOk(area, n, n);
+  };
+  const { base, cola, cerrar } = await crearServidorDePrueba({ producirTanda: producirTandaFake });
+  try {
+    const inicio = Date.now();
+    const resp = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 100, urgente: true }) });
+    assert.equal(resp.status, 200);
+    const cuerpo = await resp.json();
+    assert.ok(Date.now() - inicio < 2000, 'la petición no espera a la tanda: devuelve el id');
+    assert.ok(cuerpo.trabajoId);
+    assert.equal(cuerpo.estimadoSeg, 20 * 100, '20 s x (0 por delante + 100 pedidas)');
+
+    // Se espera sobre la cola (no sobre HTTP: 60 peticiones por minuto) y se lee UNA vez por la API.
+    await hastaQue(() => lotes.length === 3);
+    let estado = await (await fetch(`${base}/trabajo/${cuerpo.trabajoId}`, { headers: cabeceras() })).json();
+    assert.equal(estado.pedidas, 100);
+    assert.ok(estado.hechas >= 10 && estado.hechas < 100, `avance parcial: ${estado.hechas}`);
+    assert.ok(estado.preguntas.length >= 10, 'las preguntas de los lotes ya hechos se pueden jugar antes de que acabe');
+
+    soltar();
+    await hastaQue(() => cola.estadoTrabajo(cuerpo.trabajoId).hechas >= 100, { intentos: 4000 });
+    estado = await (await fetch(`${base}/trabajo/${cuerpo.trabajoId}`, { headers: cabeceras() })).json();
+    assert.equal(estado.estado, 'lista');
+    assert.equal(estado.preguntas.length, 100);
+    assert.equal(lotes.length, 20);
+    assert.ok(lotes.every((n) => n === 5));
+  } finally {
+    soltar();
     await cerrar();
   }
 });
@@ -1460,7 +1508,7 @@ test('POST /generar: más de 4 urgentes en espera responde 429', async () => {
   try {
     const estados = [];
     for (let i = 0; i < 7; i++) {
-      const r = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 1, urgente: true }) });
+      const r = await fetch(`${base}/generar`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ area: 'economia', ruta: [], n: 10, urgente: true }) });
       estados.push(r.status);
       await r.text();
     }

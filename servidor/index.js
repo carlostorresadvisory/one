@@ -33,7 +33,10 @@ const HORA_NOCTURNA_INICIO = 2;
 const HORA_NOCTURNA_FIN = 7; // exclusivo: 7:00 en punto ya no cuenta como nocturno.
 const INTERVALO_NOCTURNO_MS = 60 * 60 * 1000;
 const MAX_ESTADO_DEFECTO = 10;
-const N_MAX_GENERAR = 10; // preguntas máximas por POST /generar (el cliente pide 10: app.js#N_TANDA_ATOMO)
+// v0.3.4: POST /generar acepta SOLO tandas de 10 (gratis y Premium) o de 100 (Premium: el cliente solo
+// la ofrece con el plan activo, premium.js#TANDAS_PREMIUM); cualquier otro n da 400. Sin n: 10.
+const TANDAS_PERMITIDAS = [10, 100];
+const N_DEFECTO_GENERAR = 10;
 const SUBTEMAS_MAX = 6;
 const LONGITUD_MAX_SUBTEMA = 40;
 const RUTA_MAX_ELEMENTOS = 6;
@@ -577,12 +580,12 @@ export function crearServidor({
       responderError(res, 400, 'Ruta inválida');
       return;
     }
-    // `n` lo pide el cliente (app.js#N_TANDA_ATOMO = 10): más de eso es un abuso, no una tanda.
-    if (Number.isInteger(cuerpo.n) && cuerpo.n > N_MAX_GENERAR) {
-      responderError(res, 400, `n no puede pasar de ${N_MAX_GENERAR}`);
+    // `n` lo pide el cliente (app.js: 10 o 100): cualquier otro valor es un abuso, no una tanda. Ausente: 10.
+    if (cuerpo.n !== undefined && !TANDAS_PERMITIDAS.includes(cuerpo.n)) {
+      responderError(res, 400, `n debe ser ${TANDAS_PERMITIDAS.join(' o ')}`);
       return;
     }
-    const n = Number.isInteger(cuerpo.n) && cuerpo.n > 0 ? cuerpo.n : undefined;
+    const n = cuerpo.n ?? N_DEFECTO_GENERAR;
     const urgente = !!cuerpo.urgente;
     const nivelObjetivo = Number.isInteger(cuerpo.nivelObjetivo) && cuerpo.nivelObjetivo >= 1 && cuerpo.nivelObjetivo <= 5
       ? cuerpo.nivelObjetivo

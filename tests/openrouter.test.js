@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, rm } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import {
   llamar,
   extraerJson,
@@ -350,6 +350,29 @@ test('con permitirPago y topeEur suficiente, sí llama al modelo de pago', async
   });
   assert.equal(r.modelo, 'openai/gpt-5-mini');
   assert.deepEqual(invocados, ['x/gratis:free', 'openai/gpt-5-mini']);
+  await limpiarLog();
+});
+
+// v0.3.4 (tanda de 100): lo que se agota del tope de pago del día sigue por los modelos gratis, sin fallar.
+test('con permitirPago pero el tope del día ya gastado, salta el modelo de pago y sigue por el siguiente gratis', async () => {
+  await limpiarLog();
+  await writeFile(RUTA_LOG, JSON.stringify({ fecha: new Date().toISOString(), modelo: 'openai/gpt-5-mini', coste: 0.1 }) + '\n');
+  const invocados = [];
+  const fetchImpl = async (url, opts) => {
+    const body = JSON.parse(opts.body);
+    invocados.push(body.model);
+    return respuestaOk(body.model);
+  };
+  const r = await llamar({
+    modelos: ['openai/gpt-5-mini', 'x/gratis:free'],
+    mensajes: [{ role: 'user', content: 'hola' }],
+    fetchImpl,
+    permitirPago: true,
+    topeEur: 0.1,
+    rutaLog: RUTA_LOG,
+  });
+  assert.equal(r.modelo, 'x/gratis:free');
+  assert.deepEqual(invocados, ['x/gratis:free'], 'el de pago ni se llama');
   await limpiarLog();
 });
 

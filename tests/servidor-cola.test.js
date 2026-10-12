@@ -378,6 +378,66 @@ test('cola (Ronda 1): un urgente se cuela ENTRE LOTES de un fondo ya en marcha; 
   assert.equal(final.preguntas.length, 10);
 });
 
+// v0.3.4: una tanda urgente de 100 (20 lotes) cede el turno entre lotes a otros urgentes que esperan.
+test('cola (v0.3.4): una tanda urgente de 100 NO bloquea a una de 10 que llega detrás: la de 10 espera como mucho un lote', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const llamadas = []; // 'g<n>' = lote de la grande, 'p<n>' = lote de la pequeña, en orden real
+  let lotesGrande = 0;
+  let lotesPequena = 0;
+  const producirTandaFalso = async (params) => {
+    if (params.area === 'historia') {
+      lotesGrande++;
+      llamadas.push(`g${lotesGrande}`);
+      await new Promise((r) => setTimeout(r, 5));
+    } else {
+      lotesPequena++;
+      llamadas.push(`p${lotesPequena}`);
+    }
+    return resultadoOk(params.area, params.n, params.n);
+  };
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+
+  const grande = cola.encolar({ area: 'historia', ruta: [], n: 100, urgente: true });
+  await hastaQue(() => llamadas.includes('g1'));
+  const pequena = cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+
+  await hastaQue(() => cola.estadoTrabajo(pequena.trabajoId)?.estado === 'lista');
+  const tiempoDeLaGrande = cola.estadoTrabajo(grande.trabajoId);
+  assert.notEqual(tiempoDeLaGrande.estado, 'lista', 'la de 100 sigue a medias cuando la de 10 ya acabó');
+  assert.ok(tiempoDeLaGrande.hechas < 100);
+  const posicionP1 = llamadas.indexOf('p1');
+  assert.ok(posicionP1 <= 2, `la de 10 empieza tras UN lote de la grande como mucho: ${llamadas.slice(0, 6)}`);
+  assert.equal(cola.estadoTrabajo(pequena.trabajoId).preguntas.length, 10);
+
+  await hastaQue(() => cola.estadoTrabajo(grande.trabajoId)?.estado === 'lista', { intentos: 2000 });
+  const final = cola.estadoTrabajo(grande.trabajoId);
+  assert.equal(final.hechas, 100);
+  assert.equal(final.preguntas.length, 100);
+  assert.equal(llamadas.filter((l) => l.startsWith('g')).length, 20, 'sin perder ni repetir ningún lote');
+});
+
+test('cola (v0.3.4): una tanda urgente de 10 sigue sin ceder: corre sus dos lotes seguidos aunque llegue otra urgente', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const llamadas = [];
+  const pendientes = [];
+  const producirTandaFalso = async (params) => {
+    llamadas.push(params.area);
+    if (params.area === 'historia') return new Promise((resolver) => pendientes.push(resolver));
+    return resultadoOk(params.area, params.n, params.n);
+  };
+  const cola = crearCola({ almacen, producirTanda: producirTandaFalso });
+  cola.encolar({ area: 'historia', ruta: [], n: 10, urgente: true });
+  await hastaQue(() => pendientes.length === 1);
+  cola.encolar({ area: 'economia', ruta: [], n: 10, urgente: true });
+  pendientes[0](resultadoOk('historia', 5, 5));
+  await hastaQue(() => pendientes.length === 2);
+  assert.deepEqual(llamadas, ['historia', 'historia'], 'el segundo lote de la de 10 va antes que la otra urgente');
+  pendientes[1](resultadoOk('historia', 5, 5));
+  await hastaQue(() => llamadas.length === 4);
+});
+
 test('cola: dos encolar seguidos nunca dejan a producirTanda con más de 1 llamada en curso a la vez', async () => {
   const dir = await carpetaTmp();
   const almacen = crearAlmacen(dir);

@@ -14,6 +14,9 @@ import { AREAS } from '../tools/validar-banco.js';
 import { imagenPublicable } from './politica-imagen.js';
 
 const TAMANO_LOTE = 5;
+// v0.3.4: una tanda de 100 (Premium) son 20 lotes seguidos; por encima de este tamaño un urgente es «grande»
+// y cede el turno entre lotes a los urgentes que esperan (ver procesarCola), para no bloquear a las de 10.
+const PEDIDAS_TANDA_NORMAL = 10;
 const PEDIDAS_DEFECTO = 10;
 const OBJETIVO_TOTAL_COLCHON = 30;
 const PARTE_AREAS = Math.round(OBJETIVO_TOTAL_COLCHON * 0.6); // 18 (60 %)
@@ -601,9 +604,16 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         }
 
         const debeCeder = !siguiente.urgente && colaUrgente.length > 0;
+        // v0.3.4: un urgente GRANDE (tanda de 100) cede turno entre lotes a los urgentes que esperan, pero
+        // se pone al FINAL de la cola de urgentes (round-robin por lotes): una tanda de 10 que llegue
+        // detrás espera como mucho un lote de cada grande que tenga delante, no los 20 lotes.
+        const cedeUrgenteGrande = siguiente.urgente && siguiente.pedidas > PEDIDAS_TANDA_NORMAL && colaUrgente.length > 0;
         if (debeCeder) {
           siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
           colaFondo.unshift(siguiente);
+        } else if (cedeUrgenteGrande) {
+          siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'en-cola';
+          colaUrgente.push(siguiente);
         } else {
           siguiente.estado = siguiente.preguntas.length > 0 ? 'parcial' : 'generando';
           if (siguiente.urgente) colaUrgente.unshift(siguiente);
