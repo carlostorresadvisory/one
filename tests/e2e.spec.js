@@ -4136,6 +4136,145 @@ test.describe('ONE · Átomo v0.2b2 §4 (atomo.js + app.js)', () => {
     await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
   });
 
+  // --- v0.3.4 A: acceso a lo generado (fila «Tus temas» del hub y sección «Generados» de la hoja del filtro) ---
+
+  /** Siembra 9 temas generados (de 3 en 3 preguntas, en 4 áreas) en el índice, sus etiquetas y el banco extra. El último
+   * del índice (el 9.º) es el más reciente. Con 9 chips la fila no cabe en 375 px: obliga al scroll horizontal. */
+  const TEMAS_SEMBRADOS = [
+    ['economia', 'Mercados y crisis financieras', 'Mercados'], ['historia', 'Roma antigua y su imperio', 'Roma'],
+    ['ciencia', 'Física cuántica y relatividad', 'Cuántica'], ['geografia', 'Ríos y cuencas del mundo', 'Ríos'],
+    ['economia', 'Comercio internacional y aranceles', 'Comercio'], ['historia', 'Grecia clásica', 'Grecia'],
+    ['ciencia', 'Genética y evolución', 'Genética'], ['geografia', 'Cordilleras y volcanes', 'Volcanes'],
+    ['historia', 'Las guerras mundiales', 'Guerras mundiales'],
+  ];
+  async function sembrarTemasGenerados(page) {
+    await page.addInitScript((temas) => {
+      const indice = {};
+      const etiquetas = {};
+      const extra = [];
+      temas.forEach(([area, completo, corto], i) => {
+        const clave = JSON.stringify([area, [completo]]);
+        const ids = [0, 1, 2].map((j) => `srv-tema-${i}-${j}`);
+        indice[clave] = ids;
+        etiquetas[clave] = [corto];
+        ids.forEach((id) => extra.push({ id, area, tipo: 'vf', nivel: 1, enunciado: `Enunciado de prueba (${id}).`, explicacion: 'Explicación de prueba.', respuesta: true }));
+      });
+      localStorage.setItem('one.indiceRutas', JSON.stringify(indice));
+      localStorage.setItem('one.etiquetasRutas', JSON.stringify(etiquetas));
+      localStorage.setItem('one.bancoExtra', JSON.stringify(extra));
+    }, TEMAS_SEMBRADOS);
+  }
+
+  test('v0.3.4: sin temas generados la fila «Tus temas» no ocupa sitio; tras una tanda aparece en el hub y tocar el chip abre Clásico con ese filtro', async ({ page }) => {
+    const servidor = servidorAtomoFalso();
+    await page.route(`${URL_SERVIDOR}/**`, servidor);
+    await page.addInitScript(() => {
+      localStorage.setItem('one.filtros', JSON.stringify({ clasico: { area: 'economia', ruta: ['Mercados y crisis financieras'], etiquetas: ['Mercados y crisis'] } }));
+    });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await expect(page.locator('[data-test="tus-temas"]')).toBeHidden();
+    expect(await page.locator('[data-test="tus-temas"]').evaluate((n) => n.getBoundingClientRect().height)).toBe(0);
+
+    await page.locator('[data-test="modo-clasico"]').click();
+    await page.locator('[data-test="filtro-corto-generar"]').click();
+    await expect(page.locator('[data-test="atomo-espera-resultado"]')).toHaveText('Jugar la tanda', { timeout: 13000 });
+    await page.locator('[data-test="volver"]').click();
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    const chips = page.locator('[data-test="tus-temas"] [data-test="tema-generado"]');
+    await expect(chips).toHaveCount(1);
+    await expect(chips.first()).toHaveText('Mercados y crisis · 10');
+    await expect(chips.first()).toHaveAttribute('title', 'Economía · Mercados y crisis');
+    await expect(avisoGeneradas(page)).toBeVisible(); // el aviso grande de la tanda tapa la parte baja del hub hasta que se cierra (✕ o 20 s)
+    await page.locator('[data-test="aviso-generadas-cerrar"]').click();
+    await expect(avisoGeneradas(page)).toBeHidden();
+    for (const vp of [{ width: 375, height: 667 }, { width: 430, height: 932 }]) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+    }
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.3.4-tus-temas-375x667.png` });
+
+    await chips.first().click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Economía · Mercados y crisis');
+    await esperarAsentamientoMazo(page);
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText('0/10');
+  });
+
+  test('v0.3.4: con 9 temas la fila hace scroll horizontal, el más reciente va primero y el hub no scrollea en 375×667 ni 430×932', async ({ page }) => {
+    await sembrarTemasGenerados(page);
+    await page.goto('/?test=1');
+    const chips = page.locator('[data-test="tus-temas"] [data-test="tema-generado"]');
+    await expect(chips).toHaveCount(9);
+    await expect(chips.first()).toHaveText('Guerras mundiales · 3');
+    await expect(chips.last()).toHaveText('Mercados · 3');
+    for (const vp of [{ width: 375, height: 667 }, { width: 430, height: 932 }, { width: 375, height: 812 }]) {
+      await page.setViewportSize(vp);
+      await assertSinScroll(page);
+      const fila = await page.locator('[data-test="tus-temas"] .temas-fila').evaluate((n) => ({ ancho: n.scrollWidth, visible: n.clientWidth, alto: n.scrollHeight, altoVisible: n.clientHeight }));
+      expect(fila.ancho).toBeGreaterThan(fila.visible); // la fila no cabe: se desliza
+      expect(fila.alto).toBeLessThanOrEqual(fila.altoVisible + 1); // y nunca en vertical
+      const cajas = await page.evaluate(() => ({
+        modosAbajo: document.querySelector('[data-test="hub-modos"]').getBoundingClientRect().bottom,
+        temasArriba: document.querySelector('[data-test="tus-temas"]').getBoundingClientRect().top,
+        temasAbajo: document.querySelector('[data-test="tus-temas"]').getBoundingClientRect().bottom,
+        pieArriba: document.querySelector('.hub-pie').getBoundingClientRect().top,
+      }));
+      expect(cajas.temasArriba).toBeGreaterThanOrEqual(cajas.modosAbajo - 1); // la fila va bajo las tarjetas
+      expect(cajas.temasAbajo).toBeLessThanOrEqual(cajas.pieArriba + 1); // y sobre el pie, sin pisarlo
+    }
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.screenshot({ path: `${CAPTURAS}/v0.3.4-tus-temas-9-375x667.png` });
+    await chips.nth(6).click(); // el 7.º más reciente es el 3.º sembrado: Cuántica
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Ciencia · Cuántica');
+  });
+
+  test('v0.3.4: «Generados» abre la hoja del filtro de Clásico y de Órdago, fija el filtro del modo y no sale en Más o menos', async ({ page }) => {
+    await sembrarTemasGenerados(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?test=1');
+    await page.locator('[data-test="modo-clasico"]').click();
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    await abrirHojaFiltro(page);
+    const generados = page.locator('[data-test="filtro-generados"]');
+    await expect(generados).toBeVisible();
+    await expect(generados.locator('[data-test="tema-generado"]')).toHaveCount(9);
+    const cajas = await page.evaluate(() => ({
+      generados: document.querySelector('[data-test="filtro-generados"]').getBoundingClientRect().bottom,
+      todos: document.querySelector('[data-test="filtro-todos"]').getBoundingClientRect().top,
+    }));
+    expect(cajas.generados).toBeLessThanOrEqual(cajas.todos); // «Generados» arriba, TODOS y las áreas debajo
+    await assertHojaSinScroll(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.3.4-filtro-generados-375x667.png` });
+    await generados.locator('[data-test="tema-generado"]', { hasText: 'Roma' }).click();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    await expect(page.locator('[data-test="chip-filtro"]')).toHaveText('Historia · Roma');
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.filtros')).clasico)).toEqual({ area: 'historia', ruta: ['Roma antigua y su imperio'], etiquetas: ['Roma'] });
+    await abrirHojaFiltro(page); // reabrir: el tema puesto sale marcado
+    await expect(generados.locator('[data-test="tema-generado"][aria-pressed="true"]')).toHaveText('Roma · 3');
+    await page.locator('[data-test="filtro-cerrar"]').click();
+
+    // Órdago: otra hoja, otro filtro (el de Clásico no se toca).
+    await page.locator('[data-test="volver"]').click();
+    await page.locator('[data-test="modo-ordago"]').click();
+    await abrirHojaFiltro(page);
+    await expect(generados.locator('[data-test="tema-generado"][aria-pressed="true"]')).toHaveCount(0);
+    await generados.locator('[data-test="tema-generado"]', { hasText: 'Volcanes' }).click();
+    await expect(page.locator('[data-test="hoja-filtro"]')).toBeHidden();
+    const filtros = await page.evaluate(() => JSON.parse(localStorage.getItem('one.filtros')));
+    expect(filtros.ordago).toEqual({ area: 'geografia', ruta: ['Cordilleras y volcanes'], etiquetas: ['Volcanes'] });
+    expect(filtros.clasico.etiquetas).toEqual(['Roma']);
+
+    // Más o menos filtra por área y juega cifras: ahí no hay temas que fijar.
+    await page.locator('[data-test="volver"]').click();
+    await page.locator('[data-test="modo-masomenos"]').click();
+    await abrirHojaFiltro(page);
+    await expect(page.locator('[data-test="filtro-todos"]')).toBeVisible();
+    await expect(generados).toHaveCount(0);
+  });
+
   test('v0.3: chip → Economía → nodo del anillo → Elegir: hoja cerrada y chip con el nodo (listeners vivos en la superposición)', async ({ page }) => {
     await page.route(`${URL_SERVIDOR}/**`, servidorAtomoFalso());
     await page.goto(`/?test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`);
