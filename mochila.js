@@ -1,7 +1,6 @@
-// ONE · mochila.js — núcleo puro de la mochila (spec v0.3 §6). En las fases 1-2 solo hace falta
-// guardar objetos ganados (premio de tanda en Clásico) y contarlos (tarjeta Tienda del hub).
-// Usar comodines, cofres, tienda (comprar/canjear) llegan en las fases 4 y 6 sobre esta base.
-// Precios en UNA sola tabla para retocarlos.
+// ONE · mochila.js — núcleo puro de la mochila y de la Tienda (spec v0.3 §6): objetos, cofre de la Tienda y títulos.
+// Precios en UNA sola tabla (esta) para retocarlos. La mochila v2 añade `titulos` y `titulo` (el equipado) y lee la v1
+// sin perder nada.
 
 export const OBJETOS = Object.freeze({
   cincuenta: Object.freeze({
@@ -16,27 +15,64 @@ export const OBJETOS = Object.freeze({
     id: 'mas5', nombre: '+5 s', icono: '⏱️', precio: 200, rareza: 'comun',
     modos: Object.freeze(['contrarreloj']),
   }),
+  // Cambia la pregunta en curso por otra sin registrar nada; en Órdago, solo antes de elegir ficha.
+  saltar: Object.freeze({
+    id: 'saltar', nombre: 'Saltar', icono: '⏭️', precio: 250, rareza: 'comun',
+    modos: Object.freeze(['clasico', 'repaso', 'ordago', 'contrarreloj']),
+  }),
+  // Se arma antes de responder; si fallas un test4, tachas la opción y eliges otra vez (el radar anota el fallo).
+  segunda: Object.freeze({
+    id: 'segunda', nombre: 'Segunda oportunidad', icono: '🔁', precio: 400, rareza: 'raro',
+    modos: Object.freeze(['clasico', 'repaso', 'contrarreloj']),
+  }),
+  // Pasivo (sin modos: no va en la barra). Salva la racha de días: 1 escudo por día sin jugar (motor.js#actualizarRacha).
+  escudo: Object.freeze({
+    id: 'escudo', nombre: 'Escudo de racha', icono: '🧊', precio: 600, rareza: 'raro',
+    modos: Object.freeze([]),
+  }),
 });
+
+/** El cofre de la Tienda no se guarda: se abre al comprarlo y da un objeto con las probabilidades de PROBABILIDADES_COFRE.tienda. */
+export const COFRE_TIENDA = Object.freeze({ id: 'cofre', nombre: 'Cofre', icono: '🏺', precio: 250, rareza: 'comun' });
+
+/** Títulos: se compran una vez, no se venden y uno equipado se ve bajo «Tienda» en el hub. Leyenda es el único dorado. */
+export const TITULOS = Object.freeze([
+  Object.freeze({ id: 'aprendiz', nombre: 'Aprendiz', icono: '📜', precio: 150, rareza: 'comun' }),
+  Object.freeze({ id: 'curioso', nombre: 'Curioso', icono: '📜', precio: 300, rareza: 'comun' }),
+  Object.freeze({ id: 'erudito', nombre: 'Erudito', icono: '📜', precio: 500, rareza: 'raro' }),
+  Object.freeze({ id: 'oraculo', nombre: 'Oráculo', icono: '📜', precio: 750, rareza: 'raro' }),
+  Object.freeze({ id: 'leyenda', nombre: 'Leyenda', icono: '📜', precio: 1000, rareza: 'epico' }),
+]);
 
 export const PROBABILIDADES_COFRE = Object.freeze({
   normal: Object.freeze([['mas5', 0.45], ['cincuenta', 0.35], ['salvavidas', 0.2]]),
   doble: Object.freeze([['mas5', 0.3], ['cincuenta', 0.35], ['salvavidas', 0.35]]),
+  // Cofre comprado en la Tienda: valor esperado ≈ 292 > 250, así que no es una trampa. Los cofres de partida no cambian.
+  tienda: Object.freeze([['mas5', 0.3], ['saltar', 0.25], ['cincuenta', 0.2], ['segunda', 0.15], ['salvavidas', 0.1]]),
 });
 
 export const CLAVE_MOCHILA = 'one.mochila';
 const MAX_POR_OBJETO = 9999;
+export const MAX_ESCUDOS = 2;
+const tope = (id) => (id === 'escudo' ? MAX_ESCUDOS : MAX_POR_OBJETO);
+const esTitulo = (id) => typeof id === 'string' && TITULOS.some((t) => t.id === id);
 
 export function crearMochila() {
-  return { version: 1, objetos: { cincuenta: 0, salvavidas: 0, mas5: 0 } };
+  const objetos = {};
+  for (const id of Object.keys(OBJETOS)) objetos[id] = 0;
+  return { version: 2, objetos, titulos: [], titulo: null };
 }
 
+/** Lee una mochila v1 o v2 (de la v1 solo faltan `titulos` y los objetos nuevos, que empiezan en 0); descarta lo inválido. */
 export function normalizarMochila(obj) {
   const mochila = crearMochila();
   if (!obj || typeof obj !== 'object' || !obj.objetos || typeof obj.objetos !== 'object') return mochila;
   for (const id of Object.keys(mochila.objetos)) {
     const n = obj.objetos[id];
-    if (Number.isInteger(n) && n >= 0 && n <= MAX_POR_OBJETO) mochila.objetos[id] = n;
+    if (Number.isInteger(n) && n >= 0 && n <= MAX_POR_OBJETO) mochila.objetos[id] = Math.min(n, tope(id));
   }
+  if (Array.isArray(obj.titulos)) mochila.titulos = TITULOS.map((t) => t.id).filter((id) => obj.titulos.includes(id));
+  if (esTitulo(obj.titulo) && mochila.titulos.includes(obj.titulo)) mochila.titulo = obj.titulo;
   return mochila;
 }
 
@@ -53,7 +89,7 @@ export function sortearObjeto(rng = Math.random, tipo = 'normal') {
 export function anadirObjeto(mochila, id, n = 1) {
   if (!Object.prototype.hasOwnProperty.call(OBJETOS, id) || !Number.isInteger(n) || n < 1) return mochila;
   const nueva = normalizarMochila(mochila);
-  nueva.objetos[id] = Math.min(MAX_POR_OBJETO, nueva.objetos[id] + n);
+  nueva.objetos[id] = Math.min(tope(id), nueva.objetos[id] + n);
   return nueva;
 }
 
@@ -96,12 +132,37 @@ export function ganaPremioTanda({ respondidas, aciertos }) {
 // --- Tienda y comodines (spec §6, fase 9) ---------------------------------------------------------------------
 const esObjeto = (id) => typeof id === 'string' && Object.prototype.hasOwnProperty.call(OBJETOS, id);
 
-/** Compra con el fondo de Órdago: nunca lo deja negativo ni cambia nada si no llega. */
+/** Compra con el fondo de Órdago: nunca lo deja negativo ni cambia nada si no llega. Con 2 escudos ya no se compra otro (`tope`). */
 export function comprar(mochila, fondo, id) {
   if (!esObjeto(id)) return { ok: false, motivo: 'objeto-desconocido' };
   const { precio } = OBJETOS[id];
+  if (normalizarMochila(mochila).objetos[id] >= tope(id)) return { ok: false, motivo: 'tope' };
   if (!(fondo >= precio)) return { ok: false, motivo: 'sin-fondos' };
   return { ok: true, mochila: anadirObjeto(mochila, id), fondo: fondo - precio };
+}
+
+/** Cofre de la Tienda: cobra su precio y el objeto sorteado entra en la mochila (el cofre no se guarda). `rng` inyectable. */
+export function comprarCofre(mochila, fondo, rng = Math.random) {
+  if (!(fondo >= COFRE_TIENDA.precio)) return { ok: false, motivo: 'sin-fondos' };
+  const objeto = sortearObjeto(rng, 'tienda');
+  return { ok: true, mochila: anadirObjeto(mochila, objeto), fondo: fondo - COFRE_TIENDA.precio, objeto };
+}
+
+/** Compra un título (una vez en la vida, no se vende). No lo equipa: eso lo hace `equiparTitulo`. */
+export function comprarTitulo(mochila, fondo, id) {
+  if (!esTitulo(id)) return { ok: false, motivo: 'titulo-desconocido' };
+  const actual = normalizarMochila(mochila);
+  if (actual.titulos.includes(id)) return { ok: false, motivo: 'ya-lo-tienes' };
+  const { precio } = TITULOS.find((t) => t.id === id);
+  if (!(fondo >= precio)) return { ok: false, motivo: 'sin-fondos' };
+  return { ok: true, mochila: normalizarMochila({ ...actual, titulos: [...actual.titulos, id] }), fondo: fondo - precio };
+}
+
+/** Equipa un título ya comprado (el anterior sigue siendo tuyo). */
+export function equiparTitulo(mochila, id) {
+  const actual = normalizarMochila(mochila);
+  if (!esTitulo(id) || !actual.titulos.includes(id)) return { ok: false, motivo: 'no-lo-tienes' };
+  return { ok: true, mochila: { ...actual, titulo: id } };
 }
 
 /** Vende uno por el 50 % del precio (redondeado hacia abajo), que se suma al fondo. */
@@ -112,11 +173,12 @@ export function vender(mochila, fondo, id) {
   return { ok: true, mochila: actual, fondo: fondo + Math.floor(OBJETOS[id].precio / 2) };
 }
 
-/** ¿Se puede usar ahora? Lo tienes, el modo lo admite, no hay otro igual en esta pregunta y el 50/50 solo vale en test4. */
+/** ¿Se puede usar ahora? Lo tienes, el modo lo admite, no hay otro igual en esta pregunta y el 50/50 y la Segunda
+ * oportunidad solo valen en test4 (con dos opciones, en V/F o cifras, regalaría el acierto). */
 export function puedeUsar(mochila, id, { modo, tipoPregunta, usadosEnPregunta = [] } = {}) {
   if (!esObjeto(id) || normalizarMochila(mochila).objetos[id] < 1) return false;
   if (!OBJETOS[id].modos.includes(modo) || usadosEnPregunta.includes(id)) return false;
-  return id !== 'cincuenta' || tipoPregunta === 'test4';
+  return (id !== 'cincuenta' && id !== 'segunda') || tipoPregunta === 'test4';
 }
 
 /** Gasta uno (nunca baja de 0). */
