@@ -2743,17 +2743,34 @@ button.punto-servidor::before {
 /* La esfinge ocupa la tarjeta entera (a la derecha, del alto de la tarjeta); los textos quedan abajo a la izquierda. */
 .hub-modo--tienda > .hub-avatar-lienzo { position: absolute; inset: 0; z-index: 1; justify-content: flex-end; pointer-events: none; }
 .hub-avatar-textos { display: flex; flex-direction: column; gap: 2px; }
+.hub-modo-titulo { font-size: 12px; font-weight: 600; color: var(--texto-suave); white-space: nowrap; }
+.hub-modo-titulo[hidden] { display: none; }
 /* Tienda (fase 9): sin brillos ni sombras luminosas salvo el objeto épico (dorado); el resto va plano. */
 .vista-tienda { align-items: stretch; gap: 14px; }
 .tienda-titulo { margin: 0; font-size: var(--tam-3); text-align: center; }
-/* La esfinge protagonista toma el hueco que deja la lista de objetos (sin scroll). */
-.vista-tienda > .tienda-avatar { flex: 1 1 0; min-height: 96px; }
-.tienda-mochila { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.tienda-titulo-equipado { margin: -8px 0 0; text-align: center; color: var(--texto-suave); font-size: 14px; font-weight: 600; }
+.tienda-titulo-equipado[hidden] { display: none; }
+.titulo-equipado--leyenda, .hub-modo-titulo--leyenda { color: var(--dorado); text-shadow: 0 0 10px rgba(242, 193, 78, 0.55); } /* el título Leyenda, dorado: lo épico es lo único que brilla */
+/* La esfinge mide 100 px fijos, como en la banda de los modos (.cabecera-avatar) y en Premium; el resto del alto es de la
+   lista, que hace scroll por dentro: la página no se desplaza. */
+.vista-tienda > .tienda-avatar, .vista-premium > .premium-avatar { flex: none; width: 100px; height: 100px; margin-block: -14px; align-self: center; pointer-events: none; } /* margen negativo como .cabecera-avatar: los bordes transparentes del lienzo asoman sin gastar alto */
+.vista-tienda > .tienda-mochila { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin: 0; padding: 0 0 4px; display: flex; flex-direction: column; gap: 12px; }
+.tienda-grupo { flex: none; display: flex; flex-direction: column; gap: 6px; }
+.tienda-grupo-titulo { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-suave); }
+.tienda-grupo-lista { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .tienda-fondo-fila { margin: 0; display: flex; align-items: baseline; gap: 8px; min-height: 24px; }
 .tienda-fondo-etiqueta { color: var(--texto-suave); font-size: 14px; }
 .tienda-fondo { font-size: var(--tam-2); font-weight: 700; font-variant-numeric: tabular-nums; }
 .tienda-aviso { margin-left: auto; color: var(--texto-suave); font-size: 13px; text-align: right; }
-.tienda-objeto { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
+.tienda-objeto { flex: none; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 14px; border: 1px solid #22303d; background: var(--tarjeta); }
+.tienda-objeto-desc { margin: 0; font-size: 12px; line-height: 1.25; color: var(--texto-suave); }
+/* Cofre y títulos: una sola línea (nombre a la izquierda, botón a la derecha); el cofre baja sus probabilidades debajo. */
+.tienda-objeto--simple { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 8px; }
+.tienda-objeto--simple .tienda-objeto-cabecera { flex: 1 1 0; min-width: 0; }
+.tienda-objeto-acciones.tienda-objeto-acciones--una { display: flex; flex: none; }
+.tienda-objeto-acciones--una .tienda-boton { flex: none; }
+.tienda-objeto--simple .tienda-boton { min-width: 104px; }
+.tienda-cofre-probabilidades { flex: 1 0 100%; order: 3; }
 .tienda-objeto-cabecera { display: flex; align-items: center; gap: 8px; }
 .tienda-objeto-icono { font-size: 22px; line-height: 1; }
 .tienda-objeto-nombre { font-size: var(--tam-1); font-weight: 600; }
@@ -2761,6 +2778,7 @@ button.punto-servidor::before {
 .tienda-objeto-acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .tienda-boton { min-height: 40px; padding: 8px 10px; font-size: 14px; white-space: nowrap; }
 .tienda-boton:disabled { opacity: 0.4; }
+.tienda-boton[aria-pressed="true"] { opacity: 1; border-color: var(--acento); color: var(--acento); } /* título equipado */
 .tienda-objeto .cofre-etiqueta--epico { box-shadow: 0 0 12px rgba(242, 193, 78, 0.55); } /* el único resplandor de la Tienda: el épico, dorado */
 .boton-silencio { min-width: 44px; min-height: 44px; background: none; border: none; font-size: 20px; }
 .boton-silencio[hidden] { display: none; }
@@ -3176,7 +3194,10 @@ button.punto-servidor::before {
 
 /* ===== v0.3 Comodines (comodines-ui.js, spec §4 y §6): barra bajo la tarjeta, o entre la foto y las respuestas en los
    modos con foto. Botones planos (sin resplandor); con la mochila vacía la barra no existe (hidden). ===== */
-.comodines { display: flex; align-items: center; justify-content: center; gap: 8px; flex: none; }
+.comodines { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; flex: none; }
+.comodines--compacta { gap: 6px; }
+.comodines--compacta .comodin { gap: 4px; padding: 8px; }
+.comodines--compacta .comodin-nombre { display: none; } /* con 4 o 5 comodines solo icono y cantidad: caben en una fila */
 .comodines[hidden] { display: none; }
 .comodin {
   display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 8px 10px; border-radius: 12px;
@@ -3190,6 +3211,7 @@ button.punto-servidor::before {
 .comodines-aviso { color: var(--texto-suave); font-size: 12px; }
 .tarjeta-accion:not(:has(> :not([hidden]))) { display: none; } /* la barra de comodines vacía no deja hueco */
 button[hidden] { display: none; } /* las opciones quitadas por el 50/50 no ocupan sitio aunque su clase fije display */
+button.opcion-tachada { text-decoration: line-through; opacity: 0.4; } /* la opción fallada con la Segunda oportunidad */
 
 /* ===== Área táctil de 44 px (revisión de expertos, 11-oct-2026). El botón se ve igual: el hueco que le
    falta hasta 44 px de alto lo pone un ::after invisible, así no cambia la maquetación ni aparece
@@ -3219,7 +3241,6 @@ button[hidden] { display: none; } /* las opciones quitadas por el 50/50 no ocupa
 .cabecera--modo .boton-premium { display: none; }
 .vista-premium { align-items: stretch; gap: 10px; }
 .premium-titulo { margin: 0; font-size: var(--tam-3); text-align: center; color: var(--dorado); }
-.vista-premium > .premium-avatar { flex: 1 1 0; min-height: 80px; }
 .premium-motivo { margin: 0; text-align: center; color: var(--acento); font-size: 14px; }
 .premium-motivo[hidden], .premium-estado[hidden], .premium-precios[hidden], .premium-activar[hidden], .premium-desactivar[hidden] { display: none; }
 .premium-ventajas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }

@@ -4,30 +4,30 @@
 
 export const OBJETOS = Object.freeze({
   cincuenta: Object.freeze({
-    id: 'cincuenta', nombre: '50/50', icono: '✂️', precio: 300, rareza: 'raro',
+    id: 'cincuenta', nombre: '50/50', icono: '✂️', precio: 300, rareza: 'raro', descripcion: 'Quita 2 respuestas malas de un test',
     modos: Object.freeze(['clasico', 'repaso', 'ordago', 'contrarreloj']),
   }),
   salvavidas: Object.freeze({
-    id: 'salvavidas', nombre: 'Salvavidas', icono: '🛟', precio: 500, rareza: 'epico',
+    id: 'salvavidas', nombre: 'Salvavidas', icono: '🛟', precio: 500, rareza: 'epico', descripcion: 'Perdona un fallo: no cuenta',
     modos: Object.freeze(['clasico', 'repaso', 'ordago', 'masomenos', 'contrarreloj']),
   }),
   mas5: Object.freeze({
-    id: 'mas5', nombre: '+5 s', icono: '⏱️', precio: 200, rareza: 'comun',
+    id: 'mas5', nombre: '+5 s', icono: '⏱️', precio: 200, rareza: 'comun', descripcion: 'Suma 5 segundos en Contrarreloj',
     modos: Object.freeze(['contrarreloj']),
   }),
   // Cambia la pregunta en curso por otra sin registrar nada; en Órdago, solo antes de elegir ficha.
   saltar: Object.freeze({
-    id: 'saltar', nombre: 'Saltar', icono: '⏭️', precio: 250, rareza: 'comun',
+    id: 'saltar', nombre: 'Saltar', icono: '⏭️', precio: 250, rareza: 'comun', descripcion: 'Cambia la pregunta por otra',
     modos: Object.freeze(['clasico', 'repaso', 'ordago', 'contrarreloj']),
   }),
   // Se arma antes de responder; si fallas un test4, tachas la opción y eliges otra vez (el radar anota el fallo).
   segunda: Object.freeze({
-    id: 'segunda', nombre: 'Segunda oportunidad', icono: '🔁', precio: 400, rareza: 'raro',
+    id: 'segunda', nombre: 'Segunda oportunidad', icono: '🔁', precio: 400, rareza: 'raro', descripcion: 'Si fallas un test, eliges otra vez',
     modos: Object.freeze(['clasico', 'repaso', 'contrarreloj']),
   }),
   // Pasivo (sin modos: no va en la barra). Salva la racha de días: 1 escudo por día sin jugar (motor.js#actualizarRacha).
   escudo: Object.freeze({
-    id: 'escudo', nombre: 'Escudo de racha', icono: '🧊', precio: 600, rareza: 'raro',
+    id: 'escudo', nombre: 'Escudo de racha', icono: '🧊', precio: 600, rareza: 'raro', descripcion: 'Salva tu racha 1 día sin jugar (máx. 2)',
     modos: Object.freeze([]),
   }),
 });

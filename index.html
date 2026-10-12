@@ -100,20 +100,22 @@
       </div>
     </section>
 
-    <!-- TIENDA (v0.3 fase 9, spec §6): avatar grande, fondo de Órdago y, por objeto, comprar y vender. La monta
-         tienda-ui.js. Se abre desde la tarjeta Tienda del hub (o desde la quiebra) y la flecha ← vuelve al hub. -->
+    <!-- TIENDA (v0.3 fase 9 y v0.3.3, spec §6): esfinge de 100 px, fondo de Órdago y una lista con scroll propio en tres grupos
+         (comodines, cofre, títulos). La monta tienda-ui.js. Se abre desde la tarjeta Tienda del hub (o desde la quiebra) y la
+         flecha ← vuelve al hub. -->
     <section class="vista vista-tienda" data-vista="tienda" data-test="tienda" hidden>
       <h2 class="tienda-titulo">Tienda</h2>
+      <p class="tienda-titulo-equipado" data-test="tienda-titulo-equipado" hidden></p>
       <div class="tienda-avatar" data-test="tienda-avatar"></div>
       <p class="tienda-fondo-fila" aria-live="polite">
         <span class="tienda-fondo-etiqueta">Fondo</span>
         <span class="tienda-fondo" data-test="tienda-fondo">1.000</span>
         <span class="tienda-aviso" data-test="tienda-aviso"></span>
       </p>
-      <ul class="tienda-mochila" data-test="tienda-mochila" aria-label="Objetos"></ul>
+      <div class="tienda-mochila" data-test="tienda-mochila" role="group" aria-label="Objetos"></div>
     </section>
 
-    <!-- PREMIUM (v0.3.1 §7): plan de prueba, activar no cobra nada. La esfinge protagonista arriba (como la Tienda);
+    <!-- PREMIUM (v0.3.1 §7): plan de prueba, activar no cobra nada. La esfinge de 100 px arriba (como la Tienda);
          premium-ui.js alterna «Activar» y «Activo desde…». El «←» vuelve al hub. -->
     <section class="vista vista-premium" data-vista="premium" data-test="premium" hidden>
       <h2 class="premium-titulo">Esfinx Premium</h2>
