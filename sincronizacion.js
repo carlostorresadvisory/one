@@ -581,6 +581,7 @@ export async function sincronizarEstado({ estado, banco, hoy, fetchImpl = fetch 
  * @returns {Promise<{trabajoId: string, estimadoSeg: number} | null>}
  */
 const N_TANDA_DEFECTO = 10;
+const N_TANDA_PREMIUM = 100; // v0.3.4: la otra tanda que acepta el servidor (premium.js#TANDA_PREMIUM)
 
 export async function pedirTanda({ area, ruta = [], n, nivelObjetivo, fetchImpl = fetch } = {}) {
   const configuracion = leerConfiguracion();
@@ -589,7 +590,7 @@ export async function pedirTanda({ area, ruta = [], n, nivelObjetivo, fetchImpl 
   // se sanea aquí a 10 en vez de mandarlo tal cual -- el servidor ya lo saneaba a su vez
   // (servidor/index.js#manejarGenerar), pero es una petición más clara de leer en el log/red, y no
   // depende de que el saneado del servidor no cambie nunca.
-  const nValido = Number.isInteger(n) && n > 0 ? n : N_TANDA_DEFECTO;
+  const nValido = n === N_TANDA_PREMIUM ? N_TANDA_PREMIUM : N_TANDA_DEFECTO;
   const datos = await peticionJson(fetchImpl, `${configuracion.url}/generar`, {
     method: 'POST',
     headers: cabeceras(configuracion.token),

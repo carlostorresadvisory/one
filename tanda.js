@@ -14,6 +14,27 @@ export const CLAVE_TANDA = 'one.atomoTrabajo';
 // mandado su propio `segundosPorPregunta` (Tarea 3): misma cifra de arranque que usa el servidor.
 export const SEG_POR_PREGUNTA_DEFECTO = 20;
 
+// Sondeo del trabajo (v0.3.4). Una tanda normal (10) se sondea cada 5 s con un tope de 120 sondeos (10 min).
+// Una grande (100, Premium) espacia el sondeo de 5 s hasta 30 s mientras no llegan preguntas nuevas y vuelve a 5 s
+// cuando llegan, con un tope proporcional a n (4 por pregunta: 400 sondeos). Cada petición trae todas las preguntas
+// ya hechas, así que 100 preguntas cada 5 s durante media hora serían cientos de MB sin necesidad.
+export const TANDA_NORMAL = 10;
+export const SONDEO_BASE_MS = 5000;
+export const SONDEO_MAX_MS = 30000;
+
+/** Milisegundos hasta el siguiente sondeo. `sinNovedades` = sondeos seguidos sin preguntas nuevas. 5, 5, 10, 10, 15, 15 ... 30 s. */
+export function esperaSondeoMs({ pedidas, sinNovedades = 0 } = {}) {
+  if (!(pedidas > TANDA_NORMAL)) return SONDEO_BASE_MS;
+  const k = Number.isFinite(sinNovedades) && sinNovedades > 0 ? Math.floor(sinNovedades) : 0;
+  return Math.min(SONDEO_MAX_MS, SONDEO_BASE_MS * (1 + Math.floor(k / 2)));
+}
+
+/** Sondeos máximos de una tanda de `pedidas` preguntas: 120 la normal, 4 por pregunta la grande (400 con 100). */
+export function topeSondeos(pedidas) {
+  if (!(pedidas > TANDA_NORMAL)) return 120;
+  return 4 * Math.floor(pedidas);
+}
+
 function esTextoNoVacio(v) {
   return typeof v === 'string' && v.trim().length > 0;
 }

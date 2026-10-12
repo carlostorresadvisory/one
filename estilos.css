@@ -2214,6 +2214,14 @@ button.punto-servidor::before {
   line-height: 1.4;
 }
 
+/* v0.3.4: «23 de 100» y barra fina del avance de la tanda en la espera. */
+.atomo-espera-progreso { width: 100%; font-size: var(--tam-2); font-weight: 600; color: var(--acento); }
+.atomo-espera-progreso[hidden] { display: none; }
+.atomo-espera-progreso-barra { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: #22303d; overflow: hidden; }
+.atomo-espera-progreso-barra > span { display: block; height: 100%; background: var(--acento); transition: width 0.4s ease; }
+@media (prefers-reduced-motion: reduce) { .atomo-espera-progreso-barra > span { transition: none; } }
+.atomo-jugar-listas[hidden] { display: none; }
+
 .atomo-espera-acciones {
   width: 100%;
   display: flex;
@@ -2675,6 +2683,14 @@ button.punto-servidor::before {
 .filtro-nivel-atomo { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
 .filtro-nivel-atomo .atomo-acciones { display: grid; grid-template-columns: auto auto 1fr; gap: 8px; }
 .filtro-nivel-atomo .atomo-acciones .boton { padding-left: 10px; padding-right: 10px; white-space: nowrap; }
+
+/* ===== v0.3.4 selector de tanda «10 · 100» (hoja del filtro y aviso de «menos de 5») ===== */
+.selector-tanda { display: flex; gap: 0; flex: 0 0 auto; border: 1px solid #22303d; border-radius: 12px; overflow: hidden; background: var(--tarjeta); }
+.selector-tanda-opcion { flex: 1 1 0; min-height: 44px; padding: 0 10px; border: none; background: transparent; color: var(--texto-suave); font-size: var(--tam-1); font-weight: 600; white-space: nowrap; }
+.selector-tanda-opcion + .selector-tanda-opcion { border-left: 1px solid #22303d; }
+.selector-tanda-opcion[aria-checked="true"] { background: rgba(76, 201, 240, 0.16); color: var(--acento); box-shadow: inset 0 0 0 2px var(--acento); }
+.selector-tanda-opcion .insignia-premium { margin-left: 4px; padding: 1px 6px; font-size: 10px; }
+.selector-tanda-opcion:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
 
 /* ===== v0.3 aviso de "menos de 5" ===== */
 .vista-filtro-corto { justify-content: center; align-items: stretch; gap: 16px; text-align: center; }

@@ -127,7 +127,7 @@
       <div class="premium-avatar" data-test="premium-avatar"></div>
       <p class="premium-motivo" data-test="premium-motivo" aria-live="polite" hidden></p>
       <ul class="premium-ventajas" aria-label="Ventajas">
-        <li><span class="premium-icono" aria-hidden="true">♾️</span><span><strong>Preguntas infinitas</strong> Genera tandas de cualquier tema sin límite</span></li>
+        <li><span class="premium-icono" aria-hidden="true">♾️</span><span><strong>Preguntas infinitas</strong> Genera tandas de cualquier tema sin límite, también de 100</span></li>
         <li><span class="premium-icono" aria-hidden="true">🪙</span><span><strong>+1.000 puntos</strong> para la Tienda al activar</span></li>
         <li><span class="premium-icono" aria-hidden="true">🔁</span><span><strong>+500 puntos</strong> para la Tienda cada mes</span></li>
       </ul>
@@ -146,6 +146,10 @@
     <section class="vista vista-filtro-corto" data-vista="filtro-corto" data-test="filtro-corto" hidden>
       <p class="filtro-corto-texto" data-test="filtro-corto-texto" aria-live="polite"></p>
       <div class="filtro-corto-acciones">
+      <div class="selector-tanda" role="radiogroup" aria-label="Preguntas por tanda" data-test="selector-tanda-corto">
+        <button type="button" class="selector-tanda-opcion" role="radio" aria-checked="true" data-n="10" data-test="tanda-10">10</button>
+        <button type="button" class="selector-tanda-opcion" role="radio" aria-checked="false" data-n="100" data-test="tanda-100">100 <span class="insignia-premium" data-test="insignia-tanda-100">PREMIUM</span></button>
+      </div>
         <button type="button" class="boton boton-principal" data-test="filtro-corto-generar">Generar preguntas <span class="insignia-premium" data-test="insignia-premium">PREMIUM</span></button>
         <button type="button" class="boton" data-test="filtro-corto-jugar"></button>
         <button type="button" class="boton" data-test="filtro-corto-todos">Volver a TODOS</button>
@@ -242,8 +246,14 @@
          jugador sigue con otra cosa -- no hace falta quedarse en esta pantalla esperando. -->
     <section class="vista vista-atomo-espera" data-vista="atomo-espera" data-test="atomo-espera" hidden>
       <p class="atomo-espera-texto" data-test="atomo-espera-texto" aria-live="polite"></p>
+      <!-- v0.3.4: avance «23 de 100» de la tanda en curso y barra; las preguntas ya listas se pueden jugar sin esperar al final. -->
+      <div class="atomo-espera-progreso" data-test="atomo-espera-progreso" hidden>
+        <span data-test="atomo-espera-progreso-texto"></span>
+        <span class="atomo-espera-progreso-barra" aria-hidden="true"><span data-test="atomo-espera-progreso-barra"></span></span>
+      </div>
       <div class="atomo-espera-acciones" data-test="atomo-espera-acciones">
-        <button type="button" class="boton boton-principal" data-test="atomo-jugar-mientras">Jugar mientras</button>
+        <button type="button" class="boton boton-principal atomo-jugar-listas" data-test="atomo-jugar-listas" hidden></button>
+        <button type="button" class="boton" data-test="atomo-jugar-mientras">Jugar mientras</button>
         <button type="button" class="boton" data-test="atomo-repasar-mientras">Repasar mientras</button>
       </div>
       <!-- Ronda final de revisión (Critical #2): al llegar el resultado final (lista/fallida/tope
@@ -296,6 +306,11 @@
       <p class="atomo-aviso" data-test="atomo-aviso" hidden aria-live="polite"></p>
       <button type="button" class="boton atomo-reintentar" data-test="atomo-reintentar" hidden>Reintentar</button>
     </div>
+      <!-- v0.3.4: tanda de 10 (por defecto) o de 100 (Premium: sin plan activo, el 100 lleva a la pantalla Premium). -->
+      <div class="selector-tanda" role="radiogroup" aria-label="Preguntas por tanda" data-test="selector-tanda-atomo">
+        <button type="button" class="selector-tanda-opcion" role="radio" aria-checked="true" data-n="10" data-test="tanda-10">10</button>
+        <button type="button" class="selector-tanda-opcion" role="radio" aria-checked="false" data-n="100" data-test="tanda-100">100 <span class="insignia-premium" data-test="insignia-tanda-100">PREMIUM</span></button>
+      </div>
       <div class="atomo-acciones">
         <button type="button" class="boton" data-test="atomo-atras">Atrás</button>
         <button type="button" class="boton" data-test="filtro-elegir">Elegir</button>

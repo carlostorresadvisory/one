@@ -83,6 +83,16 @@ test('cupo diario gratis: 1 tanda al día, se reinicia al cambiar de día, Premi
   assert.equal(P.puedeGenerar({ ...gratis, activo: true }, { dia: '2026-10-11', n: 50 }, '2026-10-11'), true);
 });
 
+test('tamanoTandaPermitido: 100 solo con Premium activo; lo demás, 10', () => {
+  const gratis = P.crearPremium();
+  const premium = { ...gratis, activo: true };
+  assert.equal(P.tamanoTandaPermitido(gratis, 100), 10, 'sin plan: 100 no se concede');
+  assert.equal(P.tamanoTandaPermitido(premium, 100), 100);
+  assert.equal(P.tamanoTandaPermitido(premium, 10), 10);
+  for (const raro of [undefined, null, 0, 50, 101, '100', NaN]) assert.equal(P.tamanoTandaPermitido(premium, raro), 10, `${raro}`);
+  assert.equal(P.tamanoTandaPermitido(undefined, 100), 10, 'estado ausente = plan gratis');
+});
+
 test('generadas se persiste y una clave corrupta cuenta como 0', () => {
   const almacen = almacenFalso();
   P.guardarGeneradas({ dia: '2026-10-11', n: 1 }, almacen);

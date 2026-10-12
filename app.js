@@ -55,8 +55,8 @@ import { crearSaberMas, promptPregunta } from './saber-mas.js';
 import { montarComodines, descartesCincuenta, gastarComodin } from './comodines-ui.js';
 import { montarTienda } from './tienda-ui.js';
 import { montarPremium } from './premium-ui.js';
-import { cargarPremium, cargarGeneradas, guardarGeneradas, puedeGenerar, contarGenerada, aplicarRecargaMensual } from './premium.js';
-import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante } from './tanda.js';
+import { cargarPremium, cargarGeneradas, guardarGeneradas, puedeGenerar, contarGenerada, aplicarRecargaMensual, tamanoTandaPermitido, TANDA_GRATIS } from './premium.js';
+import { leerTanda, guardarTanda, borrarTanda, calcularRestanteSeg, formatearRestante, esperaSondeoMs, topeSondeos } from './tanda.js';
 
 const CLAVE_ESTADO = 'one.estado';
 const N_PARTIDA = 10;
@@ -199,7 +199,10 @@ let atomoInstancia = null; // devuelto por crearAtomo(): {actualizar, destruir}.
 let atomoPeticionId = 0; // contador para descartar respuestas de pedirSubtemas ya obsoletas.
 let atomoTrabajoId = null; // id del trabajo en curso (Generar); null = no hay ninguno activo.
 let atomoTrabajoInfo = null; // {corto, rutaTexto, area, ruta, etiquetas} de lo que se pidió: texto de espera/chip e índice de rutas.
-let atomoSondeoId = null; // setInterval de consultarTrabajo (cada 5s).
+let atomoSondeoId = null; // setTimeout encadenado de consultarTrabajo (cada 5 s; en tandas de 100 se espacia hasta 30 s, ver tanda.js#esperaSondeoMs).
+let atomoSinNovedades = 0; // v0.3.4: sondeos SEGUIDOS sin preguntas nuevas (decide cuánto espera el siguiente; -1 al arrancar, el primero no cuenta).
+let atomoPreguntasVistas = 0; // v0.3.4: cuántas preguntas traía el último sondeo (para saber si llegan nuevas).
+let atomoTandaHechas = 0; // v0.3.4: «23» de «23 de 100», para repintar la tarjeta de espera.
 let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin tanda parcial que ofrecer.
 // Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
 // -- `atomoTrabajoId` no sirve de guarda ahí porque solo se fija DESPUÉS del await, así que dos
@@ -322,6 +325,10 @@ const nodoAtomoAyuda = document.querySelector('[data-test="atomo-ayuda"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
+const nodoAtomoEsperaProgreso = document.querySelector('[data-test="atomo-espera-progreso"]');
+const nodoAtomoEsperaProgresoTexto = document.querySelector('[data-test="atomo-espera-progreso-texto"]');
+const nodoAtomoEsperaProgresoBarra = document.querySelector('[data-test="atomo-espera-progreso-barra"]');
+const nodoAtomoJugarListas = document.querySelector('[data-test="atomo-jugar-listas"]');
 // Hoja "Conectar" (v0.2b3 Tarea 4, "Conectar desde la app instalada"): en iOS la app añadida a la
 // pantalla de inicio tiene almacenamiento SEPARADO de Safari, así que el enlace de conexión
 // abierto en Safari no llega aquí -- esta hoja deja pegar el enlace (o "servidor token") a mano.
@@ -1530,17 +1537,18 @@ function limpiarAtomo() {
   ocultarAvisoAtomo(); // adversarial A7: barato, aunque la vista oculta ya lo impide visualmente.
 }
 
-const TOPE_SONDEOS_ATOMO = 120; // Ronda final (Important #8): ~10 min a 5s/sondeo.
+// Tope de sondeos por tanda: tanda.js#topeSondeos (Ronda final, Important #8: 120 = ~10 min a 5 s con 10 preguntas; v0.3.4: proporcional a n).
 // Ola final v0.2b4 (Critical C2): fallos de red SEGUIDOS que se aguantan antes de parar el sondeo
 // -- 5 x 5 s ≈ 25 s, de sobra para un túnel, un cambio de wifi a datos o un servidor reiniciándose.
 const MAX_SONDEOS_FALLIDOS = 5;
 const UMBRAL_ANTICIPADO_ATOMO = 5; // chip adelantado MIENTRAS sigue en curso (no detiene el sondeo).
 const NIVEL_OBJETIVO_DIFICIL = 4; // nivel que se pide al generar desde Órdago (el central de 3-5)
-const N_TANDA_ATOMO = 10; // preguntas por tanda del Átomo (lo que se pide y lo que cuenta el indicador)
+// Tamaño de la próxima tanda (v0.3.4, selector «10 · 100»): 10 por defecto; 100 solo con Premium. Solo en memoria.
+let tamanoTandaElegido = TANDA_GRATIS;
 
 function detenerSondeoAtomo() {
   if (atomoSondeoId !== null) {
-    clearInterval(atomoSondeoId);
+    clearTimeout(atomoSondeoId);
     atomoSondeoId = null;
   }
 }
@@ -1550,7 +1558,10 @@ function finalizarTrabajoAtomo() {
   atomoTrabajoInfo = null;
   atomoTandaInicio = null;
   atomoTandaPedidas = 0;
+  atomoTandaHechas = 0;
+  atomoTandaLista = null;
   atomoTandaSegPorPregunta = null;
+  pintarProgresoEspera(); // sin tanda en curso: se esconden «23 de 100» y «Jugar las N listas»
   actualizarBotonGenerarAtomo();
   if (vistaActual() === 'filtro-corto') actualizarGenerarFiltroCorto();
 }
@@ -1646,6 +1657,8 @@ function actualizarIndicadorTanda({ hechas = 0, pedidas } = {}) {
     })
   );
   atomoTandaEstado = 'en-curso';
+  atomoTandaHechas = Math.min(hechasValidas, total);
+  pintarProgresoEspera();
   nodoIndicadorTandaTexto.textContent = restante
     ? `${hechasValidas} de ${total} · ${restante}`
     : `${hechasValidas} de ${total}`;
@@ -1839,8 +1852,17 @@ async function sondearTrabajoAtomo() {
       registrarTandaEnIndice(ids);
       if (ids.length > 0) atomoTandaLista = { ids, corto: atomoTrabajoInfo.corto };
     }
+    // v0.3.4: ¿llegaron preguntas nuevas desde el sondeo anterior? Si sí, el siguiente vuelve a 5 s; si no, se espacia.
+    const preguntasAhora = Array.isArray(trabajo.preguntas) ? trabajo.preguntas.length : 0;
+    if (preguntasAhora > atomoPreguntasVistas) {
+      atomoPreguntasVistas = preguntasAhora;
+      atomoSinNovedades = 0;
+    } else {
+      atomoSinNovedades += 1;
+    }
+    pintarProgresoEspera(); // incluye «Jugar las N listas» (atomoTandaLista acaba de actualizarse arriba)
     atomoConsultas += 1;
-    if (atomoConsultas >= TOPE_SONDEOS_ATOMO) {
+    if (atomoConsultas >= topeSondeos(atomoTandaPedidas)) {
       detenerSondeoAtomo();
       const parcial = atomoTandaLista;
       finalizarTrabajoAtomo();
@@ -1875,8 +1897,20 @@ async function sondearTrabajoAtomo() {
 function iniciarSondeoAtomo() {
   detenerSondeoAtomo(); // por si quedara uno de un trabajo anterior sin limpiar
   atomoSondeosFallidos = 0; // C2: cada arranque/reanudación empieza con la tolerancia entera.
+  atomoSinNovedades = -1; // v0.3.4: el sondeo inmediato de arranque no cuenta como «sin novedades» (esperas 5, 5, 10, 10, 15...)
   sondearTrabajoAtomo(); // Minor #11: primer sondeo inmediato, no a ciegas 5s.
-  atomoSondeoId = setInterval(sondearTrabajoAtomo, 5000);
+  programarSiguienteSondeoAtomo();
+}
+
+/** v0.3.4: sondeo encadenado en vez de `setInterval`: cada espera depende de si llegaron preguntas (tanda.js#esperaSondeoMs).
+ * Si el sondeo se detuvo mientras estaba en vuelo (terminal, sin conexión, pestaña oculta) no se reprograma. */
+function programarSiguienteSondeoAtomo() {
+  const id = setTimeout(async () => {
+    if (atomoSondeoId !== id) return;
+    await sondearTrabajoAtomo();
+    if (atomoSondeoId === id) programarSiguienteSondeoAtomo();
+  }, esperaSondeoMs({ pedidas: atomoTandaPedidas, sinNovedades: atomoSinNovedades }));
+  atomoSondeoId = id;
 }
 
 /** Reanuda el sondeo tras pausarlo (pestaña oculta) o al restaurar la página (bfcache) -- Ronda
@@ -1898,7 +1932,38 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
   const restante = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? formatearRestante(estimadoSeg) : '';
   const sufijoSeg = restante ? ` · ${restante}` : '';
   nodoAtomoEsperaTexto.textContent = `Generando ${atomoTandaPedidas} preguntas de ${rutaTexto}${sufijoSeg}`;
+  pintarProgresoEspera();
   mostrarVista('atomo-espera');
+}
+
+/** v0.3.4: «23 de 100» con su barra y, si ya hay preguntas listas, «Jugar las 23 listas» (se juegan sin esperar al final). */
+function pintarProgresoEspera() {
+  const en = atomoTandaPedidas > 0 && Boolean(atomoTrabajoId);
+  nodoAtomoEsperaProgreso.hidden = !en;
+  if (en) {
+    nodoAtomoEsperaProgresoTexto.textContent = `${atomoTandaHechas} de ${atomoTandaPedidas}`;
+    nodoAtomoEsperaProgresoBarra.style.width = `${Math.round((100 * atomoTandaHechas) / atomoTandaPedidas)}%`;
+  }
+  const listas = en && atomoTandaLista ? atomoTandaLista.ids.length : 0;
+  nodoAtomoJugarListas.hidden = listas === 0;
+  if (listas > 0) nodoAtomoJugarListas.textContent = `Jugar las ${listas} listas`;
+}
+
+/** Selector «10 · 100»: pinta la opción elegida en los dos sitios donde sale (hoja del filtro y aviso de «menos de 5»). */
+function pintarSelectorTanda() {
+  for (const opcion of document.querySelectorAll('.selector-tanda [role="radio"]')) {
+    opcion.setAttribute('aria-checked', String(Number(opcion.dataset.n) === tamanoTandaElegido));
+  }
+}
+
+/** Elige el tamaño de la próxima tanda. 100 sin Premium activo no se elige: lleva a la pantalla Premium. */
+function elegirTamanoTanda(n) {
+  if (n !== TANDA_GRATIS && tamanoTandaPermitido(cargarPremium(), n) !== n) {
+    abrirPremium('Las tandas de 100 preguntas son Premium. Con Premium, sin límite.');
+    return;
+  }
+  tamanoTandaElegido = n;
+  pintarSelectorTanda();
 }
 
 /** Pide una tanda para un nodo del árbol (spec §4; botón Generar del Átomo o del aviso de menos
@@ -1920,6 +1985,12 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
     abrirPremium('Hoy ya usaste tu tanda gratis. Con Premium, sin límite.');
     return;
   }
+  // v0.3.4: 10 o 100. Si el plan se desactivó con el 100 elegido, vuelve a 10 (el servidor no distingue planes).
+  const n = tamanoTandaPermitido(cargarPremium(), tamanoTandaElegido);
+  if (n !== tamanoTandaElegido) {
+    tamanoTandaElegido = n;
+    pintarSelectorTanda();
+  }
   const corto = etiquetas.length > 0 ? etiquetas[etiquetas.length - 1] : nombreArea(area);
   const rutaTexto = [nombreArea(area), ...etiquetas].join(' › ');
   guardarRutaAtomo(area, ruta);
@@ -1934,7 +2005,7 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   // 🔶 Provisional: el servidor toma un solo número; el cliente descarta igualmente lo de nivel < 3.
   // Contrarreloj usa todos los niveles (rampa 1-5): sin nivelObjetivo el servidor reparte los 5.
   const nivelObjetivo = modoActual === 'ordago' ? NIVEL_OBJETIVO_DIFICIL : undefined;
-  const resultado = await pedirTanda({ area, ruta, n: N_TANDA_ATOMO, nivelObjetivo, fetchImpl: fetch });
+  const resultado = await pedirTanda({ area, ruta, n, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
   if (resultado) guardarGeneradas(contarGenerada(cargarGeneradas(), diaDelToque)); // las que fallan en el servidor no cuentan
@@ -1951,17 +2022,19 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   atomoTrabajoId = resultado.trabajoId;
   atomoTrabajoInfo = { corto, rutaTexto, area, ruta: [...ruta], etiquetas: [...etiquetas] };
   atomoTandaInicio = Date.now();
-  atomoTandaPedidas = N_TANDA_ATOMO;
+  atomoTandaPedidas = n;
+  atomoTandaLista = null;
+  atomoPreguntasVistas = 0;
   // Estimación inicial por pregunta a partir de lo que dijo /generar, hasta que /trabajo/:id mande
   // su `segundosPorPregunta` propio (Tarea 3).
   atomoTandaSegPorPregunta =
     Number.isInteger(resultado.estimadoSeg) && resultado.estimadoSeg > 0
-      ? resultado.estimadoSeg / N_TANDA_ATOMO
+      ? resultado.estimadoSeg / n
       : null;
-  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: N_TANDA_ATOMO, area, ruta, etiquetas });
-  atomoConsultas = 0; // trabajo nuevo: el tope de 120 sondeos empieza de cero.
+  guardarTanda({ id: atomoTrabajoId, corto, inicio: atomoTandaInicio, pedidas: n, area, ruta, etiquetas });
+  atomoConsultas = 0; // trabajo nuevo: el tope de sondeos (tanda.js#topeSondeos) empieza de cero.
   actualizarBotonGenerarAtomo();
-  actualizarIndicadorTanda({ hechas: 0, pedidas: N_TANDA_ATOMO });
+  actualizarIndicadorTanda({ hechas: 0, pedidas: n });
   cerrarHojaFiltro();
   mostrarEsperaAtomo(rutaTexto, resultado.estimadoSeg);
   iniciarSondeoAtomo();
@@ -2002,6 +2075,8 @@ function reanudarTandaGuardada() {
   atomoTandaInicio = guardada.inicio;
   atomoTandaPedidas = guardada.pedidas;
   atomoTandaSegPorPregunta = null;
+  atomoTandaLista = null;
+  atomoPreguntasVistas = 0;
   atomoConsultas = 0;
   actualizarIndicadorTanda({ hechas: 0, pedidas: guardada.pedidas });
   // iniciarSondeoAtomo hace un primer sondeo INMEDIATO: si el servidor ya terminó mientras la app
@@ -4693,7 +4768,12 @@ function abrirPremium(motivo) {
   cerrarHojaFiltro();
   limpiarPartidaEnCurso();
   premiumInstancia = montarPremium(document.querySelector('[data-vista="premium"]'), {
-    hoy, pedirGesto, motivo, alCambiar: () => { pintarBotonPremium(); renderHub(); },
+    hoy, pedirGesto, motivo, alCambiar: () => {
+      tamanoTandaElegido = tamanoTandaPermitido(cargarPremium(), tamanoTandaElegido); // sin plan, el 100 vuelve a 10
+      pintarSelectorTanda();
+      pintarBotonPremium();
+      renderHub();
+    },
   });
   mostrarVista('premium');
 }
@@ -4963,6 +5043,14 @@ nodoVisualCompleta.addEventListener('keydown', (ev) => {
 // Tarjeta de espera: "Jugar mientras"/"Repasar mientras" (el sondeo sigue en segundo plano, no
 // depende de qué vista esté abierta -- ver iniciarSondeoAtomo/sondearTrabajoAtomo).
 document.querySelector('[data-test="atomo-jugar-mientras"]').addEventListener('click', () => empezarPartida(null));
+// v0.3.4: las preguntas de la tanda que ya llegaron se juegan sin esperar a que acabe (el aviso grande llega al final con todas).
+nodoAtomoJugarListas.addEventListener('click', () => {
+  if (atomoTandaLista) empezarPartida({ ids: atomoTandaLista.ids, etiqueta: atomoTandaLista.corto });
+});
+// v0.3.4: selector «10 · 100» de las dos pantallas donde se genera.
+for (const opcion of document.querySelectorAll('.selector-tanda [role="radio"]')) {
+  opcion.addEventListener('click', () => elegirTamanoTanda(Number(opcion.dataset.n)));
+}
 document.querySelector('[data-test="atomo-repasar-mientras"]').addEventListener('click', () => abrirRepaso());
 // Botón único de la tarjeta de espera una vez resuelto el trabajo (Ronda final, Critical #2):
 // "Jugar la tanda" o "Volver", según `atomoEsperaResultado` (lo fija actualizarEsperaAtomoConResultado).

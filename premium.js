@@ -11,6 +11,8 @@ export const CLAVE_GENERADAS = 'one.premium.generadas';
 export const PUNTOS_BIENVENIDA = 1000;
 export const PUNTOS_MENSUALES = 500;
 export const TANDAS_GRATIS_AL_DIA = 1;
+export const TANDA_GRATIS = 10; // preguntas por tanda del plan gratis (y la elegida por defecto)
+export const TANDA_PREMIUM = 100; // la tanda grande: solo con Premium activo (v0.3.4)
 export const PRECIO_MES = '2 €';
 export const PRECIO_ANIO = '15 €';
 
@@ -69,6 +71,11 @@ export function puedeGenerar(estado, generadas, hoy) {
   if (normalizarPremium(estado).activo) return true;
   const g = normalizarGeneradas(generadas);
   return g.dia !== hoy || g.n < TANDAS_GRATIS_AL_DIA;
+}
+
+/** Tamaño de tanda que se puede pedir (v0.3.4): 100 solo con Premium activo; cualquier otro valor, o 100 sin el plan, vale 10. */
+export function tamanoTandaPermitido(estado, n) {
+  return n === TANDA_PREMIUM && normalizarPremium(estado).activo ? TANDA_PREMIUM : TANDA_GRATIS;
 }
 
 /** Cuenta una tanda más hoy (el contador de otro día se reinicia). */

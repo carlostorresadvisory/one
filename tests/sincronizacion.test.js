@@ -768,8 +768,12 @@ test('pedirTanda: error del servidor → null', async () => {
   assert.equal(resultado, null);
 });
 
-test('pedirTanda: n inválido (ausente, negativo o decimal) se sanea a 10 (adversarial A12)', async () => {
-  for (const nInvalido of [undefined, -1, 0, 3.5, 'diez']) {
+test('pedirTanda: n inválido (ausente, negativo, decimal o ni 10 ni 100) se sanea a 10 (adversarial A12); 100 viaja tal cual', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchCien = crearFetchFalso([{ ok: true, cuerpo: { trabajoId: 't-100', estimadoSeg: 900 } }]);
+  await pedirTanda({ area: 'economia', n: 100, fetchImpl: fetchCien });
+  assert.equal(JSON.parse(fetchCien.llamadas[0].opciones.body).n, 100);
+  for (const nInvalido of [undefined, -1, 0, 3.5, 'diez', 5, 11, 50, 101]) {
     prepararGlobales({ conConfiguracion: true });
     const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { trabajoId: 't-1', estimadoSeg: 10 } }]);
     // eslint-disable-next-line no-await-in-loop -- test secuencial, sin solape de llamadas.

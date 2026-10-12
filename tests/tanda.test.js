@@ -12,6 +12,8 @@ import {
   borrarTanda,
   calcularRestanteSeg,
   formatearRestante,
+  esperaSondeoMs,
+  topeSondeos,
 } from '../tanda.js';
 
 // === calcularRestanteSeg ==========================================================================
@@ -189,4 +191,37 @@ test('v0.3: un área que no está en AREAS se descarta al leer y al guardar (la 
   assert.deepEqual(leerTanda(), { id: 't4', corto: 'X', inicio: 1, pedidas: 10 });
   assert.equal(guardarTanda({ id: 't5', corto: 'X', inicio: 1, pedidas: 10, area: 'cocina', ruta: ['a'] }), true);
   assert.deepEqual(leerTanda(), { id: 't5', corto: 'X', inicio: 1, pedidas: 10 });
+});
+
+// === sondeo con espera creciente y tope proporcional (v0.3.4) ======================================
+
+test('esperaSondeoMs: la tanda normal (10) sondea siempre cada 5 s', () => {
+  for (const sinNovedades of [0, 1, 5, 40]) assert.equal(esperaSondeoMs({ pedidas: 10, sinNovedades }), 5000);
+  assert.equal(esperaSondeoMs({ pedidas: 3, sinNovedades: 20 }), 5000);
+  assert.equal(esperaSondeoMs(), 5000);
+});
+
+test('esperaSondeoMs: la de 100 se espacia de 5 s a 30 s mientras no llegan preguntas y no pasa de 30 s', () => {
+  const serie = Array.from({ length: 12 }, (_, k) => esperaSondeoMs({ pedidas: 100, sinNovedades: k }));
+  assert.deepEqual(serie, [5000, 5000, 10000, 10000, 15000, 15000, 20000, 20000, 25000, 25000, 30000, 30000]);
+  assert.equal(esperaSondeoMs({ pedidas: 100, sinNovedades: 1000 }), 30000);
+});
+
+test('esperaSondeoMs: al llegar preguntas nuevas (sinNovedades vuelve a 0) la espera vuelve a 5 s', () => {
+  assert.equal(esperaSondeoMs({ pedidas: 100, sinNovedades: 9 }), 25000);
+  assert.equal(esperaSondeoMs({ pedidas: 100, sinNovedades: 0 }), 5000);
+});
+
+test('esperaSondeoMs: un contador inservible cuenta como 0', () => {
+  for (const raro of [-3, NaN, undefined, 'x', Infinity]) assert.ok(esperaSondeoMs({ pedidas: 100, sinNovedades: raro }) <= 30000);
+  assert.equal(esperaSondeoMs({ pedidas: 100, sinNovedades: -3 }), 5000);
+  assert.equal(esperaSondeoMs({ pedidas: 100, sinNovedades: NaN }), 5000);
+});
+
+test('topeSondeos: 120 para la de 10 (como siempre) y proporcional a n para la grande (400 con 100)', () => {
+  assert.equal(topeSondeos(10), 120);
+  assert.equal(topeSondeos(5), 120);
+  assert.equal(topeSondeos(undefined), 120);
+  assert.equal(topeSondeos(100), 400);
+  assert.equal(topeSondeos(200), 800);
 });
