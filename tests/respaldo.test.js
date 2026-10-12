@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { filtroDeModo } from '../filtro.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos, VERSION_RESPALDO, CLAVES_RESPALDO } from '../respaldo.js';
 import { crearEstado, exportar } from '../motor.js';
-import { CLAVE_MOCHILA } from '../mochila.js';
+import { CLAVE_MOCHILA, cargarMochila, guardarMochila, comprarTitulo, equiparTitulo, anadirObjeto, crearMochila } from '../mochila.js';
 import { CLAVE_SILENCIO } from '../sonido.js';
 import { CLAVE_ORDAGO, cargarOrdago, crearOrdago } from '../ordago.js';
 import { CLAVE_CONTRARRELOJ, cargarRecords, crearRecords } from '../contrarreloj.js';
@@ -149,4 +149,35 @@ test('Review Focus 4: one.masomenos viaja en el respaldo y, con números absurdo
   aplicarModos(importarRespaldo(json).modos, almacen);
   olvidarMemoria();
   assert.deepEqual(cargarMasomenos(almacen), crearEstadoMasomenos());
+});
+
+test('plan v0.3.3: la mochila v2 (objetos nuevos, títulos y el equipado) entra y sale de Exportar/Importar', () => {
+  let m = anadirObjeto(anadirObjeto(crearMochila(), 'escudo', 2), 'segunda', 3);
+  m = equiparTitulo(comprarTitulo(m, 1000, 'erudito').mochila, 'erudito').mochila;
+  const origen = almacenFalso();
+  guardarMochila(m, origen);
+  const { modos } = importarRespaldo(exportarRespaldo(crearEstado(HOY), origen));
+  const destino = almacenFalso();
+  aplicarModos(modos, destino);
+  assert.deepEqual(cargarMochila(destino), m);
+  assert.deepEqual([cargarMochila(destino).objetos.escudo, cargarMochila(destino).titulo, cargarMochila(destino).titulos], [2, 'erudito', ['erudito']]);
+});
+
+test('plan v0.3.3: un respaldo con la mochila v1 se lee bien (los objetos nuevos empiezan en 0, sin títulos)', () => {
+  const v1 = JSON.stringify({ version: 1, objetos: { cincuenta: 2, salvavidas: 1, mas5: 4 } });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.mochila': v1 } });
+  const destino = almacenFalso();
+  aplicarModos(importarRespaldo(json).modos, destino);
+  assert.deepEqual(cargarMochila(destino), {
+    version: 2, objetos: { cincuenta: 2, salvavidas: 1, mas5: 4, saltar: 0, segunda: 0, escudo: 0 }, titulos: [], titulo: null,
+  });
+});
+
+test('plan v0.3.3: una mochila v2 con basura (escudos de más, título sin comprar) se normaliza al importar', () => {
+  const sucia = JSON.stringify({ version: 2, objetos: { escudo: 50, saltar: -3 }, titulos: ['rey', 'curioso'], titulo: 'leyenda' });
+  const json = JSON.stringify({ version: 3, estado: JSON.parse(exportar(crearEstado(HOY))), modos: { 'one.mochila': sucia } });
+  const destino = almacenFalso();
+  aplicarModos(importarRespaldo(json).modos, destino);
+  const m = cargarMochila(destino);
+  assert.deepEqual([m.objetos.escudo, m.objetos.saltar, m.titulos, m.titulo], [2, 0, ['curioso'], null]);
 });

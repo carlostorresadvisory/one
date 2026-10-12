@@ -6745,6 +6745,7 @@ test.describe('ONE · v0.3 avatar: la esfinge v2 (fase 4)', () => {
       await assertSinScroll(page);
       const lado = await page.locator('[data-test="tienda-avatar"] .avatar-lienzo').evaluate((c) => c.getBoundingClientRect().height);
       expect(lado).toBeGreaterThanOrEqual(96);
+      expect(lado).toBeLessThanOrEqual(100); // v0.3.3: la esfinge de la Tienda es de 100 px fijos, no llena el hueco
     }
   });
 
@@ -8779,5 +8780,365 @@ test.describe('ONE · v0.3.2 «Saber +» en todos los modos', () => {
       fuera: page.locator('[data-test="mm-siguiente"]'),
       intacto: async () => { await expect(page.locator('[data-test="mm-real"]')).toBeVisible(); },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// v0.3.3: Tienda ampliada (Saltar, Segunda oportunidad, Escudo de racha, Cofre, Títulos) y esfinge a 100 px
+// ---------------------------------------------------------------------------------------------------------------
+test.describe('ONE · v0.3.3 Tienda ampliada', () => {
+  const VIEWPORTS = [{ width: 375, height: 812 }, { width: 375, height: 667 }];
+  const sinScrollEnAmbos = async (page, conTarjeta = false) => {
+    for (const vp of VIEWPORTS) {
+      await page.setViewportSize(vp);
+      if (conTarjeta) await esperarAsentamientoMazo(page);
+      await assertSinScroll(page);
+      if (conTarjeta) await assertTarjetaSinScroll(page);
+    }
+  };
+  const esperarAntirrebote = (page) => page.waitForTimeout(450);
+  const mochila = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.mochila')));
+  const objetos = async (page) => (await mochila(page)).objetos;
+  const fondoGuardado = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago') ?? '{"fondo":1000}').fondo);
+  const sembrar = async (page, o) => {
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await page.evaluate((x) => window.__one.sembrarMochila(x), o);
+  };
+  const conFondo = (page, fondo) => page.addInitScript((f) => {
+    localStorage.setItem('one.ordago', JSON.stringify({ version: 1, fondo: f, curva: [f], maximo: Math.max(1000, f), quiebras: 0, racha: 0 }));
+  }, fondo);
+  const abrirTienda = async (page) => {
+    await page.locator('[data-test="tarjeta-tienda"]').click();
+    await expect(page.locator('[data-vista="tienda"]')).toBeVisible();
+  };
+  const empezar = (page, ids) => page.evaluate((i) => window.__one.empezarPartida({ ids: i, etiqueta: 'comodines' }), ids);
+  const textoTarjeta = (page) => tarjetaActual(page).locator('.tarjeta-contenido').innerText();
+  const ultimasCiencia = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('one.estado') ?? '{}').areas?.ciencia?.ultimas ?? []);
+
+  test('Tienda a 375×667: esfinge de 100 px, tres grupos, la lista hace scroll por dentro y la página no (capturas)', async ({ page }) => {
+    await conFondo(page, 5000);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    const caja = await page.locator('[data-test="tienda-avatar"]').boundingBox();
+    expect([caja.width, caja.height]).toEqual([100, 100]);
+    await expect(page.locator('[data-test="tienda-avatar"] canvas.avatar-lienzo, [data-test="tienda-avatar"] img.avatar-fijo')).toHaveCount(1);
+    const lado = await page.locator('[data-test="tienda-avatar"] .avatar-lienzo, [data-test="tienda-avatar"] .avatar-fijo').first().evaluate((c) => c.getBoundingClientRect().height);
+    expect(lado).toBeGreaterThanOrEqual(96);
+    expect(lado).toBeLessThanOrEqual(100);
+    await expect(page.locator('.tienda-grupo-titulo')).toHaveText(['Comodines', 'Cofre', 'Títulos']);
+    await expect(page.locator('[data-test="tienda-grupo-comodines"] .tienda-objeto')).toHaveCount(6);
+    await expect(page.locator('[data-test="tienda-grupo-titulos"] .tienda-objeto')).toHaveCount(5);
+    await assertSinScroll(page); // la página no se desplaza
+    const lista = page.locator('[data-test="tienda-mochila"]');
+    const medidas = await lista.evaluate((n) => ({ alto: n.scrollHeight, visible: n.clientHeight, overflow: getComputedStyle(n).overflowY }));
+    expect(medidas.overflow).toBe('auto');
+    expect(medidas.alto).toBeGreaterThan(medidas.visible + 40); // hay más de lo que cabe: el scroll es de la lista
+    const cajaLista = await lista.boundingBox();
+    expect(cajaLista.y + cajaLista.height).toBeLessThanOrEqual(667); // la lista termina dentro de la pantalla
+    await page.waitForTimeout(700); // deja que la esfinge pinte su primer fotograma
+    await page.screenshot({ path: 'docs/capturas/v0.3.3-tienda-375x667.png' });
+    await lista.evaluate((n) => { n.scrollTop = n.scrollHeight; });
+    await expect.poll(() => lista.evaluate((n) => n.scrollTop)).toBeGreaterThan(100);
+    await assertSinScroll(page);
+    await page.screenshot({ path: 'docs/capturas/v0.3.3-tienda-scroll-375x667.png' });
+    await page.setViewportSize({ width: 430, height: 932 });
+    await lista.evaluate((n) => { n.scrollTop = 0; });
+    await assertSinScroll(page);
+    await page.screenshot({ path: 'docs/capturas/v0.3.3-tienda-430x932.png' });
+  });
+
+  test('Premium a 375×667: esfinge de 100 px y sin scroll (captura)', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/?ejemplo=1&test=1');
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await page.locator('[data-test="premium-boton"]').click();
+    await expect(page.locator('[data-vista="premium"]')).toBeVisible();
+    const caja = await page.locator('[data-test="premium-avatar"]').boundingBox();
+    expect([caja.width, caja.height]).toEqual([100, 100]);
+    await assertSinScroll(page);
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: 'docs/capturas/v0.3.3-premium-375x667.png' });
+    await page.locator('[data-test="premium-activar"]').click();
+    await expect(page.locator('[data-test="premium-estado"]')).toContainText('Activo desde');
+    await assertSinScroll(page);
+  });
+
+  test('comprar cada tipo: Saltar, Segunda oportunidad, Escudo (tope de 2), Cofre y Título; sin scroll en la página', async ({ page }) => {
+    await conFondo(page, 5000);
+    await page.goto('/?ejemplo=1&test=1');
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-comprar-saltar"]')).toHaveText('Comprar · 250');
+    await expect(page.locator('[data-test="tienda-comprar-segunda"]')).toHaveText('Comprar · 400');
+    await expect(page.locator('[data-test="tienda-comprar-escudo"]')).toHaveText('Comprar · 600');
+    await expect(page.locator('[data-test="tienda-comprar-cofre"]')).toHaveText('Comprar · 250');
+    await page.locator('[data-test="tienda-comprar-saltar"]').click({ clickCount: 2 }); // doble toque = una compra
+    await expect(page.locator('[data-test="tienda-cantidad-saltar"]')).toHaveText('Tienes 1');
+    expect(await fondoGuardado(page)).toBe(4750);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-comprar-segunda"]').click();
+    await expect(page.locator('[data-test="tienda-cantidad-segunda"]')).toHaveText('Tienes 1');
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-comprar-escudo"]').click();
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="tienda-comprar-escudo"]').click();
+    await expect(page.locator('[data-test="tienda-cantidad-escudo"]')).toHaveText('Tienes 2');
+    await expect(page.locator('[data-test="tienda-comprar-escudo"]')).toBeDisabled(); // tope de 2
+    expect((await objetos(page)).escudo).toBe(2);
+    expect(await fondoGuardado(page)).toBe(4750 - 400 - 600 - 600);
+    // Cofre: cobra 250, anuncia el objeto y lo mete en la mochila; sus probabilidades están a la vista.
+    await expect(page.locator('[data-test="tienda-cofre-probabilidades"]')).toContainText('+5 s 30 % · Saltar 25 % · 50/50 20 % · Segunda oportunidad 15 % · Salvavidas 10 %');
+    await esperarAntirrebote(page);
+    const antes = Object.values(await objetos(page)).reduce((a, b) => a + b, 0);
+    const fondoAntes = await fondoGuardado(page);
+    const aciertosAntes = await page.evaluate(() => window.__one.gestosPedidos.filter((g) => g === 'acierto').length);
+    await page.locator('[data-test="tienda-comprar-cofre"]').click({ clickCount: 2 });
+    await expect(page.locator('[data-test="tienda-aviso"]')).toContainText('Cofre abierto');
+    expect(await fondoGuardado(page)).toBe(fondoAntes - 250);
+    expect(Object.values(await objetos(page)).reduce((a, b) => a + b, 0)).toBe(antes + 1); // un solo objeto, el cofre no se guarda
+    expect(await page.evaluate(() => window.__one.gestosPedidos.filter((g) => g === 'acierto').length)).toBe(aciertosAntes + 1); // un solo gesto de acierto
+    // Títulos: se compran, se equipan y no se venden.
+    await esperarAntirrebote(page);
+    const boton = page.locator('[data-test="tienda-titulo-erudito"]');
+    await expect(boton).toHaveText('Comprar · 500');
+    await boton.click();
+    await expect(boton).toHaveText('Equipar');
+    expect((await mochila(page)).titulos).toEqual(['erudito']);
+    await esperarAntirrebote(page);
+    await boton.click();
+    await expect(boton).toHaveText('Equipado');
+    await expect(page.locator('[data-test="tienda-titulo-equipado"]')).toHaveText('📜 Erudito');
+    await expect(page.locator('[data-test="tienda-vender-erudito"]')).toHaveCount(0);
+    expect((await mochila(page)).titulo).toBe('erudito');
+    await sinScrollEnAmbos(page);
+  });
+
+  test('el título equipado se ve bajo «Tienda» en el hub; Leyenda va en dorado y es lo único con resplandor', async ({ page }) => {
+    await conFondo(page, 5000);
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-test="titulo-tienda"]')).toBeHidden();
+    await abrirTienda(page);
+    for (const id of ['curioso', 'leyenda']) {
+      await esperarAntirrebote(page);
+      await page.locator(`[data-test="tienda-titulo-${id}"]`).click(); // comprar
+      await esperarAntirrebote(page);
+      await page.locator(`[data-test="tienda-titulo-${id}"]`).click(); // equipar
+      await expect(page.locator(`[data-test="tienda-titulo-${id}"]`)).toHaveText('Equipado');
+      const sombra = await page.locator('[data-test="tienda-titulo-equipado"]').evaluate((n) => getComputedStyle(n).textShadow);
+      if (id === 'leyenda') expect(sombra).not.toBe('none');
+      else expect(sombra).toBe('none');
+      await esperarAntirrebote(page);
+      await page.locator('[data-test="volver"]').click();
+      const titulo = page.locator('[data-test="titulo-tienda"]');
+      await expect(titulo).toBeVisible();
+      await expect(titulo).toHaveText(id === 'curioso' ? '📜 Curioso' : '📜 Leyenda');
+      const [cNombre, cTitulo, cMarcador] = await Promise.all([
+        page.locator('[data-test="tarjeta-tienda"] .hub-modo-nombre').boundingBox(),
+        titulo.boundingBox(),
+        page.locator('[data-test="marcador-tienda"]').boundingBox(),
+      ]);
+      expect(cTitulo.y).toBeGreaterThanOrEqual(cNombre.y + cNombre.height - 1); // bajo «Tienda»
+      expect(cMarcador.y).toBeGreaterThanOrEqual(cTitulo.y + cTitulo.height - 1);
+      const sombraHub = await titulo.evaluate((n) => getComputedStyle(n).textShadow);
+      if (id === 'leyenda') expect(sombraHub).not.toBe('none');
+      else expect(sombraHub).toBe('none');
+      await esperarAntirrebote(page);
+      if (id === 'curioso') await abrirTienda(page);
+    }
+  });
+
+  test('Clásico · Saltar: otra pregunta sin tocar el radar ni el contador, se gasta uno y el doble toque es un solo uso', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { saltar: 2 });
+    await empezar(page, ['cie-001', 'art-001', 'tec-001']);
+    const antes = await textoTarjeta(page);
+    const contador = await tarjetaActual(page).locator('[data-test="mazo-contador"]').innerText();
+    const estadoAntes = await page.evaluate(() => localStorage.getItem('one.estado'));
+    await tarjetaActual(page).locator('[data-test="comodin-saltar"]').click({ clickCount: 2 });
+    await expect.poll(() => textoTarjeta(page)).not.toBe(antes);
+    expect((await objetos(page)).saltar).toBe(1);
+    expect(await page.evaluate(() => localStorage.getItem('one.estado'))).toBe(estadoAntes); // ni radar ni repaso
+    await expect(tarjetaActual(page).locator('[data-test="mazo-contador"]')).toHaveText(contador);
+    await expect(tarjetaActual(page).locator('[data-test="comodin-cantidad-saltar"]')).toHaveText('×1');
+    await sinScrollEnAmbos(page, true);
+  });
+
+  test('Clásico · Saltar desarma el Salvavidas armado sin gastarlo; también vale en V/F', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { saltar: 1, salvavidas: 1 });
+    await empezar(page, ['cie-001', 'art-001', 'tec-001']);
+    await tarjetaActual(page).locator('[data-test="comodin-salvavidas"]').click();
+    await esperarAntirrebote(page);
+    await tarjetaActual(page).locator('[data-test="comodin-saltar"]').click();
+    await esperarAntirrebote(page);
+    await expect(tarjetaActual(page).locator('[data-test="comodin-salvavidas"]')).toHaveAttribute('aria-pressed', 'false'); // desarmado
+    expect(await objetos(page)).toMatchObject({ salvavidas: 1, saltar: 0 });
+  });
+
+  test('Clásico · Segunda oportunidad: tacha la fallada, el radar anota el fallo una sola vez y el segundo intento cuenta como acierto', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { segunda: 1 });
+    await empezar(page, ['cie-001']);
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="comodin-segunda"]').click({ clickCount: 2 });
+    expect((await objetos(page)).segunda).toBe(1); // armada, aún no gastada
+    await t.locator('[data-test^="opcion-"][data-original="3"]').click();
+    await expect(t.locator('[data-test^="opcion-"][data-original="3"]')).toBeDisabled();
+    await expect(t.locator('[data-test^="opcion-"][data-original="3"]')).toHaveClass(/opcion-tachada/);
+    await expect(t.locator('[data-test="comodines-aviso"]')).toContainText('Segunda oportunidad');
+    await expect(t.locator('[data-test="siguiente"]')).toHaveCount(0); // sigue sin responder
+    expect((await objetos(page)).segunda).toBe(0);
+    expect(await ultimasCiencia(page)).toEqual([false]); // el fallo está en el radar
+    await sinScrollEnAmbos(page, true);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await esperarAntirrebote(page);
+    await t.locator('[data-test^="opcion-"][data-original="0"]').click();
+    await expect(t.locator('[data-test="siguiente"]')).toBeVisible();
+    expect(await ultimasCiencia(page)).toEqual([false]); // el acierto del segundo intento no se vuelve a registrar
+    await avanzarTrasRespuesta(page);
+    await expect(page.locator('[data-test="resumen-cifras"]')).toContainText('1/1'); // pero en la partida cuenta como acierto
+  });
+
+  test('Clásico · Segunda oportunidad + Salvavidas: primero actúa la Segunda; el Salvavidas solo si el segundo intento también falla', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { segunda: 1, salvavidas: 1 });
+    await empezar(page, ['cie-001']);
+    const t = tarjetaActual(page);
+    await t.locator('[data-test="comodin-segunda"]').click();
+    await t.locator('[data-test="comodin-salvavidas"]').click();
+    await t.locator('[data-test^="opcion-"][data-original="3"]').click();
+    await expect(t.locator('[data-test="comodines-aviso"]')).toContainText('Segunda oportunidad');
+    expect(await objetos(page)).toMatchObject({ segunda: 0, salvavidas: 1 });
+    await esperarAntirrebote(page);
+    await t.locator('[data-test^="opcion-"][data-original="2"]').click(); // el segundo intento también falla
+    await expect(tarjetaActual(page).locator('[data-test="comodines-aviso"]')).toContainText('no cuenta como fallo');
+    expect(await objetos(page)).toMatchObject({ segunda: 0, salvavidas: 0 });
+  });
+
+  test('Segunda oportunidad no aparece en verdadero/falso ni en cifras', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { segunda: 1 });
+    await empezar(page, ['eco-001']);
+    await expect(tarjetaActual(page).locator('[data-test="comodin-segunda"]')).toHaveCount(0);
+  });
+
+  test('Órdago · Saltar solo antes de elegir ficha: cambia la pregunta sin tocar el fondo y desaparece al apostar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { saltar: 2, salvavidas: 1 });
+    await entrarEnModo(page, 'ordago');
+    const barra = page.locator('[data-test="ordago-comodines"]');
+    await expect(barra.locator('button')).toHaveCount(1); // con las fichas, solo Saltar
+    await expect(barra.locator('[data-test="comodin-saltar"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+    const idAntes = await page.evaluate(() => window.__one.ultimaPreguntaOrdago().id);
+    await esperarAntirrebote(page);
+    await barra.locator('[data-test="comodin-saltar"]').click({ clickCount: 2 });
+    await expect.poll(() => page.evaluate(() => window.__one.ultimaPreguntaOrdago().id)).not.toBe(idAntes);
+    expect((await objetos(page)).saltar).toBe(1); // el doble toque gastó uno solo
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.ordago') ?? '{}').pendiente ?? null)).toBeNull(); // nada comprometido
+    expect(await fondoGuardado(page)).toBe(1000);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="ficha-10"]').click();
+    await expect(barra.locator('[data-test="comodin-saltar"]')).toHaveCount(0); // con la ficha puesta ya no se puede saltar
+    await expect(barra.locator('[data-test="comodin-salvavidas"]')).toBeVisible();
+    await sinScrollEnAmbos(page);
+  });
+
+  test('Contrarreloj · Saltar: otra pregunta con el reloj de nuevo y el contador sin avanzar', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { saltar: 1 });
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    const idAntes = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id);
+    await esperarAntirrebote(page);
+    await page.locator('[data-test="contrarreloj-comodines"] [data-test="comodin-saltar"]').click({ clickCount: 2 });
+    await expect.poll(() => page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().id)).not.toBe(idAntes);
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', 'Pregunta 1 de 10');
+    expect((await objetos(page)).saltar).toBe(0);
+    await sinScrollEnAmbos(page);
+  });
+
+  test('Contrarreloj · Segunda oportunidad en un test4: tacha la fallada y el segundo intento acertado hace avanzar la serie', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { segunda: 1 });
+    await entrarEnModo(page, 'contrarreloj');
+    await expect(page.locator('[data-vista="contrarreloj"]')).toBeVisible();
+    let tipo = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().tipo);
+    for (let i = 0; i < 8 && tipo !== 'test4'; i += 1) {
+      await page.evaluate(() => window.__one.acertarContrarreloj(1));
+      tipo = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().tipo);
+    }
+    expect(tipo).toBe('test4');
+    const puntos = await page.locator('[data-test="contrarreloj-puntos"]').getAttribute('aria-label');
+    await page.locator('[data-test="contrarreloj-comodines"] [data-test="comodin-segunda"]').click();
+    await page.evaluate(() => window.__one.fallarContrarreloj());
+    await expect(page.locator('[data-vista="caida"]')).toBeHidden();
+    await expect(page.locator('[data-test="contrarreloj-opciones"] .opcion-tachada')).toHaveCount(1);
+    expect((await objetos(page)).segunda).toBe(0);
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).toHaveAttribute('aria-label', puntos);
+    await page.evaluate(() => window.__one.acertarContrarreloj(1));
+    await expect(page.locator('[data-test="contrarreloj-puntos"]')).not.toHaveAttribute('aria-label', puntos);
+    await sinScrollEnAmbos(page);
+  });
+
+  test('con 5 comodines la barra se queda en una fila (icono y cantidad) y sin scroll en 375×667', async ({ page }) => {
+    await page.goto('/?ejemplo=1&test=1');
+    await sembrar(page, { cincuenta: 1, segunda: 1, saltar: 1, mas5: 1, salvavidas: 1 });
+    await entrarEnModo(page, 'contrarreloj');
+    let tipo = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().tipo);
+    for (let i = 0; i < 8 && tipo !== 'test4'; i += 1) {
+      await page.evaluate(() => window.__one.acertarContrarreloj(1));
+      tipo = await page.evaluate(() => window.__one.ultimaPreguntaContrarreloj().tipo);
+    }
+    const barra = page.locator('[data-test="contrarreloj-comodines"]');
+    await expect(barra.locator('button')).toHaveCount(5);
+    const ys = await barra.locator('button').evaluateAll((bs) => bs.map((b) => Math.round(b.getBoundingClientRect().top)));
+    expect(new Set(ys).size).toBe(1); // una sola fila
+    await sinScrollEnAmbos(page);
+  });
+
+  for (const [escudos, racha, gastados] of [[2, 6, 2], [1, 1, 0]]) {
+    test(`Escudo de racha: 3 días sin jugar con ${escudos} escudo(s) → racha ${racha}, ${gastados} gastado(s)`, async ({ page }) => {
+      await page.goto('/?ejemplo=1&test=1');
+      await sembrar(page, { escudo: escudos });
+      await page.evaluate(() => import('./motor.js').then((m) => { // racha de 5 días cuya última partida fue hace 3 días (2 días perdidos)
+        const f = (atras) => {
+          const d = new Date();
+          d.setDate(d.getDate() - atras);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+        const e = m.crearEstado(f(3));
+        e.racha = { dias: 5, ultimaFecha: f(3) };
+        localStorage.setItem('one.estado', m.exportar(e));
+      }));
+      await page.reload();
+      await page.waitForFunction(() => window.__one?.listo === true);
+      await expect(page.locator('[data-test="racha"]')).toHaveText('🔥 5');
+      await empezar(page, ['cie-001']);
+      await responderPreguntaActual(page);
+      await avanzarTrasRespuesta(page);
+      await expect(page.locator('[data-test="racha"]')).toHaveText(`🔥 ${racha}`);
+      expect((await objetos(page)).escudo).toBe(escudos - gastados);
+      if (gastados > 0) await expect(page.locator('[data-test="escudo-gastado"]')).toContainText(`−${gastados}`);
+      else await expect(page.locator('[data-test="escudo-gastado"]')).toHaveCount(0);
+    });
+  }
+
+  test('una mochila v1 guardada se lee al arrancar sin perder nada y se reescribe como v2 al comprar', async ({ page }) => {
+    await conFondo(page, 2000);
+    await page.addInitScript(() => {
+      if (!localStorage.getItem('v1-sembrada')) {
+        localStorage.setItem('v1-sembrada', '1');
+        localStorage.setItem('one.mochila', JSON.stringify({ version: 1, objetos: { cincuenta: 2, salvavidas: 1, mas5: 3 } }));
+      }
+    });
+    await page.goto('/?ejemplo=1&test=1');
+    await expect(page.locator('[data-test="marcador-tienda"]')).toHaveText('🎒 6');
+    await abrirTienda(page);
+    await expect(page.locator('[data-test="tienda-cantidad-cincuenta"]')).toHaveText('Tienes 2');
+    await page.locator('[data-test="tienda-comprar-saltar"]').click();
+    const m = await mochila(page);
+    expect(m.version).toBe(2);
+    expect(m.objetos).toEqual({ cincuenta: 2, salvavidas: 1, mas5: 3, saltar: 1, segunda: 0, escudo: 0 });
   });
 });

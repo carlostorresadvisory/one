@@ -39,7 +39,7 @@ import {
   avisoFiltroCorto, preguntasDelFiltro,
 } from './filtro.js';
 import { MODOS, TIENDA, modoPorId, marcadorModo, esJugableDificil } from './modos.js';
-import { OBJETOS, crearMochila, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos } from './mochila.js';
+import { OBJETOS, TITULOS, crearMochila, cargarMochila, guardarMochila, anadirObjeto, sortearObjeto, ganaPremioTanda, contarObjetos, usar } from './mochila.js';
 import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfeti } from './efectos.js';
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
@@ -297,6 +297,7 @@ const gestosPedidos = registroSonidos ? [] : null; // solo con ?test=1: los e2e 
 const vigiaPensando = crearVigiaPensando({ alPensar: () => pedirGesto('inactivo') });
 const nodosTarjetaModo = new Map(); // id -> {boton, marcador}
 let nodoMarcadorTienda = null;
+let nodoTituloTienda = null;
 // Radar del HUB (tipo Tekken 8: un eje por área) y los 3 KPI debajo.
 const radarSvg = document.querySelector('[data-test="radar"]');
 const radarVacio = document.getElementById('radar-vacio');
@@ -362,7 +363,7 @@ function mostrarVista(nombre) {
   intentarMostrarAviso();
 }
 
-/** Dónde vive la esfinge en cada vista (spec §7): la tarjeta Tienda en el hub, grande en la Tienda y en
+/** Dónde vive la esfinge en cada vista (spec §7): la tarjeta Tienda en el hub, 100 px en la Tienda y en Premium y en
  * la banda de la cabecera en los modos. El resto de vistas no lleva ninguna. */
 function destinoAvatar(nombreVista) {
   if (nombreVista === 'progreso') return nodoAvatarTarjetaTienda && { contenedor: nodoAvatarTarjetaTienda, tamano: 'tarjeta' };
@@ -2386,9 +2387,18 @@ function finalizarPartida() {
   // que jugar (ver la comprobación en empezarPartida; esto es además una red
   // de seguridad por si algún otro camino llegara aquí con `mazo` vacío) subía
   // el 🔥 igual que una partida jugada de verdad.
+  // Escudo de racha (plan v0.3.3): si faltaron días y hay escudos de sobra, gasta 1 por día perdido y la racha sigue.
+  let escudosGastados = 0;
   if (respondidas.length > 0) {
-    estado = actualizarRacha(estado, hoy());
+    const racha = actualizarRacha(estado, hoy(), cargarMochila().objetos.escudo);
+    estado = racha.estado;
+    escudosGastados = racha.gastados;
     guardarEstado(estado);
+    if (escudosGastados > 0) {
+      let mochila = cargarMochila();
+      for (let i = 0; i < escudosGastados; i += 1) mochila = usar(mochila, 'escudo');
+      guardarMochila(mochila);
+    }
   }
   actualizarCabecera();
   // "Modo normal" (spec v0.2b2 §4): también al terminar cada partida, en segundo plano.
@@ -2428,7 +2438,7 @@ function finalizarPartida() {
   contenedorMazoResumen.innerHTML = '';
   mazoResumenControlador = montarMazo(
     contenedorMazoResumen,
-    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas, premio }),
+    construirMazoResumen({ aciertos, totalPreguntas, xpTotal, areas, premio, escudosGastados }),
     // contarPista: false (B4) — navegar el repaso no gasta del presupuesto de
     // 5 vistas de la pista vertical, que es de la PARTIDA. puntosNeutros: true
     // (B3) — la semántica respondida/sin responder no aplica a la tarjeta de
@@ -2858,12 +2868,16 @@ function activarSwipeVf(tarjeta, hueco) {
   tarjeta.addEventListener('pointercancel', soltar);
 }
 
-/** Barra de comodines de una tarjeta sin responder (spec §6): 50/50 quita 2 opciones incorrectas de un test4; el
- * Salvavidas queda armado y solo se descuenta si de verdad perdona un fallo (ver `salvarConSalvavidas`). */
+/** Barra de comodines de una tarjeta sin responder (spec §6): 50/50 quita 2 opciones incorrectas de un test4; Saltar
+ * cambia la pregunta al momento; el Salvavidas y la Segunda oportunidad quedan armados y solo se descuentan si de verdad
+ * actúan (ver `salvarConSalvavidas` y `usarSegundaOportunidad`). Una tarjeta nueva empieza siempre sin nada armado. */
 function construirBarraComodines(hueco, tarjeta) {
   const barra = document.createElement('div');
   barra.dataset.test = 'comodines';
   hueco.salvavidas = false;
+  hueco.segunda = false;
+  hueco.tachadas = [];
+  hueco.primerFallo = null;
   hueco.ocultas = null;
   hueco.comodines = montarComodines(barra, {
     modo: modoActual,
@@ -2878,6 +2892,10 @@ function construirBarraComodines(hueco, tarjeta) {
         }
       } else if (id === 'salvavidas') {
         hueco.salvavidas = true;
+      } else if (id === 'segunda') {
+        hueco.segunda = true;
+      } else if (id === 'saltar') {
+        return saltarPregunta(hueco);
       }
       return true;
     },
@@ -2885,12 +2903,9 @@ function construirBarraComodines(hueco, tarjeta) {
   return barra;
 }
 
-/** Fallo con el Salvavidas armado: no se registra (ni radar ni nivel ni repaso), la pregunta queda sin contar y el
- * hueco recibe otra (si el filtro es cerrado y no queda ninguna, la misma, de nuevo sin responder). */
-function salvarConSalvavidas(hueco) {
-  gastarComodin('salvavidas');
+/** Cambia la pregunta de un hueco sin responder por `otra` (si hay) y le pinta una tarjeta nueva y limpia. */
+function reemplazarPregunta(hueco, otra, aviso) {
   hueco.comodines?.destruir();
-  const otra = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
   if (otra) {
     partidaUsados.add(otra.id);
     hueco.pregunta = otra;
@@ -2899,8 +2914,53 @@ function salvarConSalvavidas(hueco) {
   hueco.confianza = 'media';
   hueco.bloqueoHasta = performance.now() + 400; // el segundo toque de un doble toque cae en la tarjeta nueva
   hueco.nodo = construirTarjetaSinResponder(hueco);
-  hueco.comodines.aviso('🛟 Salvavidas: no cuenta como fallo');
+  if (aviso) hueco.comodines.aviso(aviso);
   mazoControlador.actualizarTarjetas(listaActual());
+  vigiaPensando.reiniciar();
+}
+
+/** Fallo con el Salvavidas armado: no se registra (ni radar ni nivel ni repaso), la pregunta queda sin contar y el
+ * hueco recibe otra (si el filtro es cerrado y no queda ninguna, la misma, de nuevo sin responder). */
+function salvarConSalvavidas(hueco) {
+  gastarComodin('salvavidas');
+  const otra = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
+  reemplazarPregunta(hueco, otra, '🛟 Salvavidas: no cuenta como fallo');
+}
+
+/** Saltar: la pregunta en curso se cambia por otra sin registrar nada (ni radar ni repaso) y lo que hubiera armado se
+ * desarma sin gastarse. Devuelve false (y no se gasta) si el filtro es cerrado y no queda otra, o si es un doble toque. */
+function saltarPregunta(hueco) {
+  if (hueco.bloqueoHasta && performance.now() < hueco.bloqueoHasta) return false;
+  const otra = siguientePregunta(estado, banco, hoy(), partidaUsados, Math.random, partidaUltima, filtroPartida);
+  if (!otra) {
+    hueco.comodines?.aviso('No hay otra pregunta para saltar');
+    return false;
+  }
+  gastarComodin('saltar');
+  reemplazarPregunta(hueco, otra);
+  return true;
+}
+
+/** Fallo en un test4 con la Segunda oportunidad armada: el radar anota el fallo (aprendizaje honesto), la opción fallada
+ * se tacha y se elige otra vez. El segundo intento es el que cuenta en la partida; no se vuelve a registrar en el radar. */
+function usarSegundaOportunidad(hueco, respuesta) {
+  const resultado = registrarRespuesta(estado, hueco.pregunta, false, diaPartida, { confianza: hueco.confianza, respuesta });
+  estado = resultado.estado;
+  guardarEstado(estado);
+  actualizarCabecera();
+  gastarComodin('segunda');
+  hueco.segunda = false;
+  hueco.primerFallo = { delta: resultado.delta };
+  hueco.tachadas = [...hueco.tachadas, respuesta];
+  hueco.bloqueoHasta = performance.now() + 400; // el segundo toque de un doble toque no responde la nueva elección
+  for (const boton of hueco.nodo.querySelectorAll('[data-test^="opcion-"]')) {
+    if (!hueco.tachadas.includes(Number(boton.dataset.original))) continue;
+    boton.classList.add('opcion-tachada');
+    boton.disabled = true;
+    boton.setAttribute('aria-label', `${boton.textContent} (descartada)`);
+  }
+  hueco.comodines.aviso('🔁 Segunda oportunidad: elige otra');
+  lamentarFallo(hueco.nodo);
   vigiaPensando.reiniciar();
 }
 
@@ -3963,6 +4023,11 @@ function manejarRespuesta(hueco, respuesta) {
   if (hueco.bloqueoHasta && performance.now() < hueco.bloqueoHasta) return;
   const pregunta = hueco.pregunta;
   const correcta = evaluar(pregunta, respuesta);
+  // Combinación (plan v0.3.3): primero actúa la Segunda oportunidad; el Salvavidas solo si el segundo intento también falla.
+  if (!correcta && hueco.segunda) {
+    usarSegundaOportunidad(hueco, respuesta);
+    return;
+  }
   if (!correcta && hueco.salvavidas) {
     salvarConSalvavidas(hueco);
     return;
@@ -3970,18 +4035,24 @@ function manejarRespuesta(hueco, respuesta) {
   // diaPartida (hallazgo B5), no hoy(): el día se fija una vez al arrancar la
   // partida, así una partida que cruce la medianoche no reparte sus
   // respuestas entre dos días de calendario distintos.
-  const resultado = registrarRespuesta(estado, pregunta, correcta, diaPartida, {
-    confianza: hueco.confianza,
-    respuesta,
-  });
-  estado = resultado.estado;
-  guardarEstado(estado);
-  actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo.
+  // Tras una Segunda oportunidad el radar ya anotó el primer fallo: el segundo intento cuenta en la partida pero no
+  // se registra otra vez (ni acierto ni segundo fallo).
+  let delta = hueco.primerFallo?.delta;
+  if (!hueco.primerFallo) {
+    const resultado = registrarRespuesta(estado, pregunta, correcta, diaPartida, {
+      confianza: hueco.confianza,
+      respuesta,
+    });
+    estado = resultado.estado;
+    guardarEstado(estado);
+    actualizarCabecera(); // el "Nivel N" de la cabecera se ve moverse en vivo.
+    delta = resultado.delta;
+  }
 
   hueco.respondida = true;
   hueco.respuesta = respuesta;
   hueco.correcta = correcta;
-  hueco.delta = resultado.delta;
+  hueco.delta = delta;
   hueco.nodo = construirTarjetaRespondida(pregunta, hueco, { soloLectura: false, contadorTexto: contadorTextoPartida() });
 
   // Un solo actualizarTarjetas() con el nodo nuevo Y (si aplica) el hueco
@@ -4095,7 +4166,7 @@ function construirCifraDestacada(etiquetaTexto) {
  * en ese caso esta es también la última tarjeta del mazo). Todo centrado como
  * un solo bloque (ronda de corrección 1: antes eran dos líneas de texto
  * planas, sin jerarquía, y las áreas salían con su id sin traducir). */
-function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas, premio }) {
+function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas, premio, escudosGastados = 0 }) {
   const tarjeta = document.createElement('div');
   tarjeta.className = 'tarjeta';
   tarjeta.dataset.test = 'resumen-cifras';
@@ -4126,6 +4197,13 @@ function construirTarjetaCifras({ aciertos, totalPreguntas, xpTotal, areas, prem
     lineaPremio.dataset.test = 'premio';
     lineaPremio.textContent = `¡Premio! +1 ${premio.icono} ${premio.nombre}`;
     nodos.push(lineaPremio);
+  }
+  if (escudosGastados > 0) {
+    const lineaEscudo = document.createElement('p');
+    lineaEscudo.className = 'resumen-premio';
+    lineaEscudo.dataset.test = 'escudo-gastado';
+    lineaEscudo.textContent = `🧊 Escudo de racha: tu racha sigue (−${escudosGastados})`;
+    nodos.push(lineaEscudo);
   }
   nodos.push(pie);
   contenido.append(...nodos);
@@ -4518,7 +4596,11 @@ function montarTarjetasHub() {
   nodoMarcadorTienda = document.createElement('span');
   nodoMarcadorTienda.className = 'hub-modo-marcador';
   nodoMarcadorTienda.dataset.test = 'marcador-tienda';
-  textos.append(nombre, nodoMarcadorTienda);
+  nodoTituloTienda = document.createElement('span'); // el título equipado, bajo «Tienda»
+  nodoTituloTienda.className = 'hub-modo-titulo';
+  nodoTituloTienda.dataset.test = 'titulo-tienda';
+  nodoTituloTienda.hidden = true;
+  textos.append(nombre, nodoTituloTienda, nodoMarcadorTienda);
   tienda.append(crearImagenTarjetaHub(TIENDA.imagen), lienzo, textos);
   tienda.addEventListener('click', () => {
     // Misma guardia que las tarjetas de modo: un segundo toque rápido no reabre la vista.
@@ -4578,6 +4660,11 @@ function actualizarTarjetasHub(datos) {
     if (curva && datos.ordago) pintarMinicurva(curva, datos.ordago);
   }
   if (nodoMarcadorTienda) nodoMarcadorTienda.textContent = `🎒 ${datos.objetos}`;
+  if (nodoTituloTienda) {
+    nodoTituloTienda.hidden = !datos.titulo;
+    nodoTituloTienda.textContent = datos.titulo ? `${datos.titulo.icono} ${datos.titulo.nombre}` : '';
+    nodoTituloTienda.classList.toggle('hub-modo-titulo--leyenda', datos.titulo?.rareza === 'epico');
+  }
 }
 
 /** El HUB de v0.3 (spec §3): radar + 6 tarjetas (tocar una abre su modo). Ya no genera la misión del día. */
@@ -4591,6 +4678,7 @@ function renderHub() {
     respondidasHoy: resumen.hoy.respondidas,
     porRepasar: resumen.pendientes,
     objetos: contarObjetos(cargarMochila()),
+    titulo: TITULOS.find((t) => t.id === cargarMochila().titulo) ?? null,
     ordago,
     fondo: ordago.fondo,
     marca: marcaTextoContrarreloj(cargarRecordsContrarreloj()),
