@@ -2,6 +2,15 @@
 // Cascada: Cloudflare Workers AI (FLUX schnell, tramo gratis) -> Runware solo si Cloudflare agota el
 // tramo, hay RUNWARE_API_KEY y el gasto del día no pasa de 0,10 EUR. Cupo propio de 100 imágenes/día.
 // Las claves llegan por `entorno` (nunca se leen de disco ni se imprimen).
+//
+// POLLINATIONS NO SE INTEGRA (comprobado el 12-oct-2026, plan v0.3.4 punto 13): lo único sin clave es el
+// endpoint antiguo image.pollinations.ai, y con él (a) la imagen sale con la marca «pollinations.ai» pintada
+// abajo a la derecha aunque se pida nologo=true, (b) ignora model=flux y sirve «sana», (c) tras una imagen
+// responde 402 durante ~30-40 s (≈1 imagen cada 40 s) y (d) es un camino heredado: la API vigente
+// (gen.pollinations.ai, docs en github.com/pollinations/pollinations, APIDOCS.md) exige clave y saldo
+// «Pollen» de pago. Sus condiciones (pollinations.ai/terms) no dan derechos sobre las salidas («las
+// licencias de los modelos varían; verifica antes del uso comercial») y prohíben «evadir los límites de uso».
+// Servir imágenes con marca ajena dentro de las preguntas no cumple la regla de calidad de Esfinx.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { iaPermitida, MAX_PIXELES } from './politica-imagen.js';

@@ -13,7 +13,9 @@
 //        [--sin-ia] [--pausa 1200] [--candidatas 4] [--dry-run]
 //        [--juez <modelo de OpenRouter con visión>] [--tope-usd 0.5]   (juez de PAGO ultrabarato; ver abajo)
 //        [--liston 3] [--reintentar]   galerías con listón más bajo (nota >= 3 -> `revisar: true`), 4 términos por ítem; --reintentar ignora lo ya intentado
-//        [--flux] [--ia-max N]          IA GRATIS con el Space público de Hugging Face FLUX.1-schnell (tools/flux-space.py) en vez de Cloudflare
+//        [--flux] [--ia-max N]          IA GRATIS con el Space público de Hugging Face FLUX.1-schnell (tools/flux-space.py) en vez de Cloudflare;
+//                                       con HF_TOKEN en el entorno (token gratuito) usa el cupo ZeroGPU de la cuenta, mayor que el anónimo
+// Pollinations no está como opción (ver servidor/imagen-ia.js: marca de agua, sin FLUX y de pago con la API vigente).
 import { mkdir, readFile, writeFile, appendFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
