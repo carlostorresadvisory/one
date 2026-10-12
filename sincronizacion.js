@@ -720,3 +720,33 @@ export async function reportarAlServidor({ id, motivo, fetchImpl = fetch } = {})
     body: JSON.stringify({ id, motivo }),
   });
 }
+
+/**
+ * `GET /vapid` (v0.3.4 C): clave pública VAPID del servidor para crear la suscripción Web Push. `null` si no hay
+ * configuración, si falla la red o si el servidor no tiene avisos activados (`activa: false`).
+ * @param {{fetchImpl?: Function}} [opciones]
+ * @returns {Promise<string | null>}
+ */
+export async function pedirClaveVapid({ fetchImpl = fetch } = {}) {
+  const configuracion = leerConfiguracion();
+  if (!configuracion) return null;
+  const datos = await peticionJson(fetchImpl, `${configuracion.url}/vapid`, { headers: cabeceras(configuracion.token) });
+  return datos && datos.activa === true && typeof datos.publica === 'string' && datos.publica ? datos.publica : null;
+}
+
+/**
+ * `POST /suscribir` (v0.3.4 C): manda la suscripción Web Push de este dispositivo junto con el id de la tanda
+ * pedida (para que el aviso de fin de tanda llegue aquí), el tema para el texto y la URL que abrirá la
+ * notificación. `null` sin configuración o ante cualquier error; nunca lanza.
+ * @param {{suscripcion: object, trabajoId?: string, tema?: string, url?: string, fetchImpl?: Function}} params
+ * @returns {Promise<{ok: boolean, trabajo?: boolean} | null>}
+ */
+export async function registrarSuscripcion({ suscripcion, trabajoId, tema, url, fetchImpl = fetch } = {}) {
+  const configuracion = leerConfiguracion();
+  if (!configuracion || !suscripcion) return null;
+  return peticionJson(fetchImpl, `${configuracion.url}/suscribir`, {
+    method: 'POST',
+    headers: cabeceras(configuracion.token),
+    body: JSON.stringify({ suscripcion, trabajoId, tema, url }),
+  });
+}

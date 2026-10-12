@@ -262,6 +262,8 @@
            y la acción que decida app.js#actualizarEsperaAtomoConResultado ("Jugar la tanda" ->
            empezarPartida, o "Volver" -> irAlHub). -->
       <button type="button" class="boton boton-principal atomo-espera-resultado" data-test="atomo-espera-resultado" hidden></button>
+      <!-- v0.3.4 C: en Safari normal (app sin instalar) iOS no entrega avisos; la línea lo explica. Con la app instalada no sale. -->
+      <p class="atomo-espera-instalar" data-test="aviso-instalar" hidden>Para recibir avisos, añade Esfinx a la pantalla de inicio</p>
     </section>
   </main>
 

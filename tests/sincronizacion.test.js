@@ -20,6 +20,8 @@ import {
   consultarTrabajo,
   pedirSubtemas,
   reportarAlServidor,
+  pedirClaveVapid,
+  registrarSuscripcion,
 } from '../sincronizacion.js';
 
 const URL_SERVIDOR = 'https://servidor.prueba';
@@ -1011,4 +1013,55 @@ test('aplicarActualizaciones: migra el antiguo visualPendiente a imagenPendiente
   const [p] = JSON.parse(localStorage.getItem('one.bancoExtra'));
   assert.equal(p.imagenPendiente, true);
   assert.equal('visualPendiente' in p, false);
+});
+
+// === Avisos Web Push (v0.3.4 C): GET /vapid y POST /suscribir ======================================
+
+test('pedirClaveVapid: sin configuración null y cero peticiones; con servidor con avisos, la clave pública', async () => {
+  prepararGlobales();
+  const sin = crearFetchFalso([{ ok: true, cuerpo: { activa: true, publica: 'CLAVE' } }]);
+  assert.equal(await pedirClaveVapid({ fetchImpl: sin }), null);
+  assert.equal(sin.llamadas.length, 0);
+
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { activa: true, publica: 'CLAVE' } }]);
+  assert.equal(await pedirClaveVapid({ fetchImpl: fetchFalso }), 'CLAVE');
+  assert.equal(fetchFalso.llamadas[0].url, `${URL_SERVIDOR}/vapid`);
+  assert.equal(fetchFalso.llamadas[0].opciones.headers.Authorization, `Bearer ${TOKEN_VALIDO}`);
+});
+
+test('pedirClaveVapid: servidor sin avisos (activa:false), error o cuerpo raro → null', async () => {
+  for (const respuesta of [
+    { ok: true, cuerpo: { activa: false } },
+    { ok: true, cuerpo: { activa: true } },
+    { ok: true, cuerpo: { activa: true, publica: 42 } },
+    { ok: false, status: 503, cuerpo: {} },
+    { lanza: new TypeError('red') },
+  ]) {
+    prepararGlobales({ conConfiguracion: true });
+    // eslint-disable-next-line no-await-in-loop -- secuencial.
+    assert.equal(await pedirClaveVapid({ fetchImpl: crearFetchFalso([respuesta]) }), null);
+  }
+});
+
+test('registrarSuscripcion: POST /suscribir con la suscripción, el id de la tanda, el tema y la URL', async () => {
+  prepararGlobales({ conConfiguracion: true });
+  const fetchFalso = crearFetchFalso([{ ok: true, cuerpo: { ok: true, trabajo: true } }]);
+  const suscripcion = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', keys: { p256dh: 'p', auth: 'a' } };
+  const resultado = await registrarSuscripcion({ suscripcion, trabajoId: 't-1', tema: 'Roma', url: './?tema=x', fetchImpl: fetchFalso });
+  assert.deepEqual(resultado, { ok: true, trabajo: true });
+  const { url, opciones } = fetchFalso.llamadas[0];
+  assert.equal(url, `${URL_SERVIDOR}/suscribir`);
+  assert.equal(opciones.method, 'POST');
+  assert.deepEqual(JSON.parse(opciones.body), { suscripcion, trabajoId: 't-1', tema: 'Roma', url: './?tema=x' });
+});
+
+test('registrarSuscripcion: sin configuración, sin suscripción o con error del servidor → null', async () => {
+  prepararGlobales();
+  const sin = crearFetchFalso([{ ok: true, cuerpo: { ok: true } }]);
+  assert.equal(await registrarSuscripcion({ suscripcion: { endpoint: 'x' }, fetchImpl: sin }), null);
+  assert.equal(sin.llamadas.length, 0);
+  prepararGlobales({ conConfiguracion: true });
+  assert.equal(await registrarSuscripcion({ fetchImpl: sin }), null);
+  assert.equal(await registrarSuscripcion({ suscripcion: { endpoint: 'x' }, fetchImpl: crearFetchFalso([{ ok: false, status: 400, cuerpo: {} }]) }), null);
 });

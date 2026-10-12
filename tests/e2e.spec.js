@@ -9508,3 +9508,222 @@ test.describe('ONE · v0.3.4 B tanda de 10 o 100', () => {
     await pasar(1000, total);
   });
 });
+
+test.describe('ONE · v0.3.4 C avisos del iPhone (Web Push)', () => {
+  const URL_SERVIDOR = 'https://servidor.prueba';
+  const TOKEN = 'token-de-prueba-e2e-1234567890';
+  const URL_APP = `/?ejemplo=1&test=1&servidor=${encodeURIComponent(URL_SERVIDOR)}&token=${TOKEN}`;
+  const CORS = {
+    'Access-Control-Allow-Origin': 'http://localhost:8765',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+  const TEMA_ECONOMIA = encodeURIComponent(JSON.stringify(['economia', [], []]));
+
+  const preguntaAviso = (i) => ({
+    id: `srv-aviso-${i}`, area: 'economia', tipo: 'vf', nivel: 1,
+    enunciado: `Pregunta de la tanda avisada (${i}).`, explicacion: 'Explicación corta de prueba.', respuesta: true,
+  });
+  const listaDe = (n) => Array.from({ length: n }, (_, i) => preguntaAviso(i + 1));
+
+  /** Servidor simulado con /vapid y /suscribir: `suscripciones` y `generar` recogen los cuerpos recibidos. */
+  async function servidorAvisos(page, { respuestas, suscripciones = [], generar = [], vapid = [], conClave = true } = {}) {
+    let sondeos = 0;
+    await page.route(`${URL_SERVIDOR}/**`, async (ruta) => {
+      const peticion = ruta.request();
+      if (peticion.method() === 'OPTIONS') {
+        await ruta.fulfill({ status: 204, headers: CORS });
+        return;
+      }
+      const cabeceras = { ...CORS, 'Content-Type': 'application/json' };
+      const camino = new URL(peticion.url()).pathname;
+      if (camino === '/estado') {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: '{"preguntas":[],"enCola":0}' });
+      } else if (camino === '/subtemas') {
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ subtemas: [{ indice: 0, corto: 'Mercados y crisis', completo: 'Mercados y crisis financieras' }] }) });
+      } else if (camino === '/generar') {
+        generar.push(peticion.postDataJSON());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ trabajoId: 't-aviso', enCola: 1, estimadoSeg: 40 }) });
+      } else if (camino === '/vapid') {
+        vapid.push(Date.now());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify(conClave ? { activa: true, publica: 'BAUGBwgJ' } : { activa: false }) });
+      } else if (camino === '/suscribir') {
+        suscripciones.push(peticion.postDataJSON());
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: '{"ok":true,"trabajo":true}' });
+      } else if (camino.startsWith('/trabajo/')) {
+        const respuesta = respuestas[Math.min(sondeos, respuestas.length - 1)];
+        sondeos += 1;
+        await ruta.fulfill({ status: 200, headers: cabeceras, body: JSON.stringify({ motivo: null, segundosPorPregunta: 4, ...respuesta }) });
+      } else {
+        await ruta.fulfill({ status: 404, headers: cabeceras, body: '{}' });
+      }
+    });
+  }
+
+  /** Simula el entorno de la app instalada en el iPhone: `navigator.standalone`, `Notification` y `PushManager`
+   * (Chromium sin FCM no puede suscribirse de verdad). Cuenta cuántas veces se pide permiso y se suscribe. */
+  const simularAvisos = (page, { instalada = true, permiso = 'default', respuesta = 'granted', rechazado = false } = {}) =>
+    page.addInitScript((config) => {
+      window.__avisos = { permisos: 0, suscripciones: 0, claveBytes: 0 };
+      if (config.instalada) Object.defineProperty(navigator, 'standalone', { value: true, configurable: true });
+      let actual = config.permiso;
+      Object.defineProperty(Notification, 'permission', { get: () => actual, configurable: true });
+      Notification.requestPermission = () => {
+        window.__avisos.permisos += 1;
+        actual = config.respuesta;
+        return Promise.resolve(config.respuesta);
+      };
+      PushManager.prototype.getSubscription = async () => null;
+      PushManager.prototype.subscribe = async function subscribe(opciones) {
+        window.__avisos.suscripciones += 1;
+        window.__avisos.claveBytes = opciones.applicationServerKey.length;
+        return { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/e2e', keys: { p256dh: 'p256', auth: 'auth' } }) };
+      };
+      if (config.rechazado) localStorage.setItem('one.avisosPermiso', 'rechazado');
+    }, { instalada, permiso, respuesta, rechazado });
+
+  const contadores = (page) => page.evaluate(() => window.__avisos);
+  const generarEconomia = async (page) => {
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await abrirAtomoDesdeHub(page, 'economia');
+    await page.locator('[data-test="atomo-generar"]').click();
+  };
+
+  test('app instalada, primera tanda: pide el permiso en el toque, se suscribe y manda la suscripción con el id de la tanda, el tema y su URL; la línea de instalar no sale', async ({ page }) => {
+    const suscripciones = [];
+    const vapid = [];
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }], suscripciones, vapid });
+    await simularAvisos(page, { instalada: true, permiso: 'default', respuesta: 'granted' });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    await expect(page.locator('[data-test="atomo-espera"]')).toBeVisible();
+    await expect.poll(() => suscripciones.length).toBe(1);
+    expect(await contadores(page)).toEqual({ permisos: 1, suscripciones: 1, claveBytes: 6 });
+    expect(vapid.length).toBe(1);
+    const cuerpo = suscripciones[0];
+    expect(cuerpo.trabajoId).toBe('t-aviso');
+    expect(cuerpo.suscripcion).toEqual({ endpoint: 'https://fcm.googleapis.com/fcm/send/e2e', keys: { p256dh: 'p256', auth: 'auth' } });
+    expect(cuerpo.tema).toMatch(/^Econom/);
+    expect(cuerpo.url).toBe(`./?tema=${TEMA_ECONOMIA}`);
+    await expect(page.locator('[data-test="aviso-instalar"]')).toBeHidden();
+    await assertSinScroll(page);
+  });
+
+  test('app instalada con el permiso ya concedido: no vuelve a preguntar pero apunta el dispositivo a la tanda nueva', async ({ page }) => {
+    const suscripciones = [];
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }], suscripciones });
+    await simularAvisos(page, { instalada: true, permiso: 'granted' });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    await expect.poll(() => suscripciones.length).toBe(1);
+    expect((await contadores(page)).permisos).toBe(0);
+  });
+
+  test('si el jugador dice que no: no hay suscripción ni llamada al servidor, queda recordado y la tanda se puede jugar desde la espera de dentro', async ({ page }) => {
+    const suscripciones = [];
+    const vapid = [];
+    await servidorAvisos(page, {
+      respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }, { estado: 'lista', hechas: 10, pedidas: 10, preguntas: listaDe(10) }],
+      suscripciones, vapid,
+    });
+    await simularAvisos(page, { instalada: true, permiso: 'default', respuesta: 'denied' });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    await expect(page.locator('[data-test="atomo-espera-resultado"]')).toHaveText('Jugar la tanda', { timeout: 9000 });
+    expect(await contadores(page)).toEqual({ permisos: 1, suscripciones: 0, claveBytes: 0 });
+    expect(suscripciones).toEqual([]);
+    expect(vapid).toEqual([]);
+    expect(await page.evaluate(() => localStorage.getItem('one.avisosPermiso'))).toBe('rechazado');
+  });
+
+  test('con un «no» anterior recordado no se vuelve a pedir el permiso aunque el sistema siga en «default»', async ({ page }) => {
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }] });
+    await simularAvisos(page, { instalada: true, permiso: 'default', rechazado: true });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    await expect(page.locator('[data-test="atomo-espera"]')).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(await contadores(page)).toEqual({ permisos: 0, suscripciones: 0, claveBytes: 0 });
+  });
+
+  test('Safari normal (sin instalar): no se pide permiso ni se llama a /vapid; la espera enseña «Para recibir avisos, añade Esfinx a la pantalla de inicio» (captura 375×667)', async ({ page }) => {
+    const suscripciones = [];
+    const vapid = [];
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }], suscripciones, vapid });
+    await simularAvisos(page, { instalada: false, permiso: 'default' });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    const linea = page.locator('[data-test="aviso-instalar"]');
+    await expect(linea).toBeVisible();
+    await expect(linea).toHaveText('Para recibir avisos, añade Esfinx a la pantalla de inicio');
+    await assertSinScroll(page);
+    await page.screenshot({ path: `${CAPTURAS}/v0.3.4-aviso-instalar-375x667.png` });
+    await page.waitForTimeout(300);
+    expect(await contadores(page)).toEqual({ permisos: 0, suscripciones: 0, claveBytes: 0 });
+    expect(suscripciones).toEqual([]);
+    expect(vapid).toEqual([]);
+  });
+
+  test('servidor sin avisos activados (/vapid dice activa:false): la tanda va igual, sin suscripción', async ({ page }) => {
+    const suscripciones = [];
+    const vapid = [];
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }], suscripciones, vapid, conClave: false });
+    await simularAvisos(page, { instalada: true, permiso: 'granted' });
+    await page.goto(URL_APP);
+    await generarEconomia(page);
+    await expect(page.locator('[data-test="atomo-espera"]')).toBeVisible();
+    await expect.poll(() => vapid.length).toBe(1);
+    await page.waitForTimeout(300);
+    expect(suscripciones).toEqual([]);
+    expect((await contadores(page)).suscripciones).toBe(0);
+  });
+
+  test('abrir la app desde la notificación (`?tema=`): entra directo a jugar Clásico con el filtro del tema y limpia la URL', async ({ page }) => {
+    await servidorAvisos(page, { respuestas: [{ estado: 'generando', hechas: 0, pedidas: 10, preguntas: [] }] });
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto(`${URL_APP}&tema=${TEMA_ECONOMIA}`);
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.filtros')).clasico)).toEqual({ area: 'economia', ruta: [], etiquetas: [] });
+    expect(new URL(page.url()).searchParams.has('tema')).toBe(false);
+    expect(new URL(page.url()).searchParams.get('test')).toBe('1');
+  });
+
+  test('un `?tema=` roto o de un área que no existe se ignora: la app abre en el hub', async ({ page }) => {
+    for (const tema of ['%7Bmal', encodeURIComponent(JSON.stringify(['inventada', [], []]))]) {
+      await page.goto(`${URL_APP}&tema=${tema}`);
+      await page.waitForFunction(() => window.__one?.listo === true);
+      await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    }
+  });
+
+  test('con la app abierta, tocar la notificación (el service worker manda `abrir-tema`) abre Clásico con ese tema', async ({ page }) => {
+    await page.goto(URL_APP);
+    await page.waitForFunction(() => window.__one?.listo === true);
+    await expect(page.locator('[data-vista="progreso"]')).toBeVisible();
+    await page.evaluate((tema) => {
+      navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { tipo: 'abrir-tema', url: `${location.origin}/?tema=${tema}` } }));
+    }, TEMA_ECONOMIA);
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('one.filtros')).clasico.area)).toBe('economia');
+  });
+
+  test('abierta desde la notificación con la tanda aún sondeándose: espera a que llegue y entra a jugar sin enseñar el aviso grande', async ({ page }) => {
+    await servidorAvisos(page, {
+      respuestas: [{ estado: 'lista', hechas: 10, pedidas: 10, preguntas: listaDe(10) }],
+    });
+    await page.addInitScript(() => {
+      if (!localStorage.getItem('tanda-sembrada')) {
+        localStorage.setItem('tanda-sembrada', '1');
+        localStorage.setItem('one.atomoTrabajo', JSON.stringify({ id: 't-aviso', corto: 'Economía', inicio: Date.now() - 60000, pedidas: 10, area: 'economia', ruta: [], etiquetas: [] }));
+      }
+    });
+    await page.goto(`${URL_APP}&tema=${TEMA_ECONOMIA}`);
+    await expect(page.locator('[data-vista="pregunta"]')).toBeVisible({ timeout: 9000 });
+    await expect(avisoGeneradas(page)).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem('one.atomoTrabajo'))).toBe(null);
+    expect(await page.evaluate(() => localStorage.getItem('one.avisoGeneradas'))).toBe(null);
+  });
+});

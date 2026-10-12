@@ -44,6 +44,7 @@ import { efectoAcierto, efectoFallo, destelloPantalla, contarCifra, lanzarConfet
 import { exportarRespaldo, importarRespaldo, aplicarModos } from './respaldo.js';
 import { crearSonido } from './sonido.js';
 import { crearColaAviso, puedeMostrarse, montarAviso } from './aviso-generadas.js';
+import { pedirPermisoSiProcede, suscribirParaTanda, mostrarLineaInstalar, filtroDeUrl } from './avisos.js';
 import { crearAvatar, gestoParaEvento, crearVigiaPensando, GESTOS, rutaClip } from './avatar.js';
 import { elegirPreguntaOrdago, cargarOrdago, cargarOrdagoResuelto } from './ordago.js';
 import { montarOrdago, pintarMinicurva } from './ordago-ui.js';
@@ -204,6 +205,7 @@ let atomoSinNovedades = 0; // v0.3.4: sondeos SEGUIDOS sin preguntas nuevas (dec
 let atomoPreguntasVistas = 0; // v0.3.4: cuántas preguntas traía el último sondeo (para saber si llegan nuevas).
 let atomoTandaHechas = 0; // v0.3.4: «23» de «23 de 100», para repintar la tarjeta de espera.
 let atomoTandaLista = null; // {ids, corto} de la última tanda lista/parcial; null = sin tanda parcial que ofrecer.
+let abrirTemaAlTerminar = false; // v0.3.4 C: se tocó el aviso del iPhone con la tanda aún sondeándose: al llegar, abre Clásico en vez de enseñar el aviso grande.
 // Ronda 1 de revisión (Critical): true justo entre el click en Generar y que `pedirTanda` resuelve
 // -- `atomoTrabajoId` no sirve de guarda ahí porque solo se fija DESPUÉS del await, así que dos
 // toques rápidos alcanzaban a mandar dos POST /generar antes de que el primero volviera. Ver
@@ -325,6 +327,7 @@ const nodoAtomoAyuda = document.querySelector('[data-test="atomo-ayuda"]');
 const nodoAtomoEsperaTexto = document.querySelector('[data-test="atomo-espera-texto"]');
 const nodoAtomoEsperaAcciones = document.querySelector('[data-test="atomo-espera-acciones"]');
 const nodoAtomoEsperaResultado = document.querySelector('[data-test="atomo-espera-resultado"]');
+const nodoAvisoInstalar = document.querySelector('[data-test="aviso-instalar"]'); // v0.3.4 C: «añade Esfinx a la pantalla de inicio»
 const nodoAtomoEsperaProgreso = document.querySelector('[data-test="atomo-espera-progreso"]');
 const nodoAtomoEsperaProgresoTexto = document.querySelector('[data-test="atomo-espera-progreso-texto"]');
 const nodoAtomoEsperaProgresoBarra = document.querySelector('[data-test="atomo-espera-progreso-barra"]');
@@ -1827,6 +1830,7 @@ async function sondearTrabajoAtomo() {
     // 404: el trabajo YA NO EXISTE (p. ej. el servidor se reinició). Aquí sí es terminal.
     detenerSondeoAtomo();
     finalizarTrabajoAtomo();
+    abrirTemaAlTerminar = false;
     borrarTanda(); // spec §1: no reanudar en la próxima apertura algo que ya no existe
     mostrarIndicadorTandaFallida('La tanda se perdió, genera otra');
     actualizarEsperaAtomoConResultado({ ok: false, mensaje: 'La tanda se perdió, genera otra' });
@@ -1885,13 +1889,48 @@ async function sondearTrabajoAtomo() {
   registrarTandaEnIndice(ids);
   finalizarTrabajoAtomo();
   borrarTanda(); // spec §1: se borra en estado terminal, tras decidir qué mostrar
+  const abrirTema = abrirTemaAlTerminar;
+  abrirTemaAlTerminar = false;
   if (ids.length > 0) {
     mostrarIndicadorTandaLista(ids, corto);
     actualizarEsperaAtomoConResultado({ ok: true, ids, corto });
+    if (abrirTema) abrirTemaDeNotificacion(null); // el jugador ya tocó el aviso del iPhone: directo a jugar, sin aviso grande
   } else {
     mostrarIndicadorTandaFallida();
     actualizarEsperaAtomoConResultado({ ok: false });
   }
+}
+
+/** v0.3.4 C: el jugador tocó la notificación del iPhone («Preguntas listas · Roma · 100 ▶»). Deja Clásico con el filtro
+ * de ese tema y lo abre. Con la tanda todavía sondeándose, espera a que llegue (al terminar vuelve a entrar aquí
+ * con `filtro` null). En mitad de una partida no la interrumpe: el aviso grande ya queda esperando. */
+function abrirTemaDeNotificacion(filtro) {
+  if (filtro) guardarFiltroDeModo('clasico', filtro);
+  if (atomoTrabajoId) {
+    abrirTemaAlTerminar = true;
+    return;
+  }
+  // La espera de la propia tanda no cuenta como «partida»: el jugador la dejó atrás al tocar el aviso.
+  const vista = vistaActual() === 'atomo-espera' ? 'progreso' : vistaActual();
+  if (!puedeMostrarse({ vista, visible: true })) return;
+  colaAviso.descartar();
+  ocultarAviso();
+  arrancarModo('clasico');
+}
+
+/** Quita `?tema=` de la barra de direcciones (conserva el resto de parámetros) y devuelve el filtro que traía. */
+function leerTemaDeLaUrl() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has('tema')) return null;
+  const filtro = filtroDeUrl(location.href);
+  params.delete('tema');
+  const resto = params.toString();
+  try {
+    history.replaceState(null, '', `${location.pathname}${resto ? `?${resto}` : ''}${location.hash || ''}`);
+  } catch (err) {
+    /* sin history.replaceState: queda en la barra, sin más efecto */
+  }
+  return filtro;
 }
 
 function iniciarSondeoAtomo() {
@@ -1932,6 +1971,7 @@ function mostrarEsperaAtomo(rutaTexto, estimadoSeg) {
   const restante = Number.isInteger(estimadoSeg) && estimadoSeg > 0 ? formatearRestante(estimadoSeg) : '';
   const sufijoSeg = restante ? ` · ${restante}` : '';
   nodoAtomoEsperaTexto.textContent = `Generando ${atomoTandaPedidas} preguntas de ${rutaTexto}${sufijoSeg}`;
+  nodoAvisoInstalar.hidden = !mostrarLineaInstalar(); // v0.3.4 C: solo con la app sin instalar
   pintarProgresoEspera();
   mostrarVista('atomo-espera');
 }
@@ -2005,6 +2045,9 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   // 🔶 Provisional: el servidor toma un solo número; el cliente descarta igualmente lo de nivel < 3.
   // Contrarreloj usa todos los niveles (rampa 1-5): sin nivelObjetivo el servidor reparte los 5.
   const nivelObjetivo = modoActual === 'ordago' ? NIVEL_OBJETIVO_DIFICIL : undefined;
+  // v0.3.4 C: el permiso de avisos (solo con la app instalada y la primera vez) se pide AQUÍ, dentro del toque y
+  // antes de cualquier await (iOS lo exige); la petición de la tanda sigue en paralelo.
+  const permisoAvisos = pedirPermisoSiProcede();
   const resultado = await pedirTanda({ area, ruta, n, nivelObjetivo, fetchImpl: fetch });
   atomoGenerarEnVuelo = false;
 
@@ -2021,6 +2064,8 @@ async function generarTanda({ area, ruta = [], etiquetas = [] }, { origen = 'ato
   }
   atomoTrabajoId = resultado.trabajoId;
   atomoTrabajoInfo = { corto, rutaTexto, area, ruta: [...ruta], etiquetas: [...etiquetas] };
+  // Con permiso, este dispositivo se apunta al aviso de fin de ESTA tanda (sin esperar: no frena la espera).
+  suscribirParaTanda({ trabajoId: resultado.trabajoId, tema: corto, filtro: { area, ruta, etiquetas }, permisoPendiente: permisoAvisos });
   atomoTandaInicio = Date.now();
   atomoTandaPedidas = n;
   atomoTandaLista = null;
@@ -2118,6 +2163,9 @@ async function iniciar() {
   renderHub();
   mostrarVista('progreso');
   if (seGuardoConfiguracion) mostrarAvisoHub('Servidor conectado');
+  // v0.3.4 C: abierta desde la notificación del iPhone (`./?tema=...`): directo a jugar ese tema en Clásico.
+  const temaDeAviso = leerTemaDeLaUrl();
+  if (temaDeAviso) abrirTemaDeNotificacion(temaDeAviso);
   if (window.__one) window.__one.listo = true; // señal para los e2e: el arranque asíncrono terminó (si no, renderHub pisa una partida lanzada antes)
 
   // En segundo plano, nunca bloquea el arranque (spec: "al abrir... en segundo plano").
@@ -5117,6 +5165,12 @@ importarArchivo.addEventListener('change', (ev) => {
 });
 
 if ('serviceWorker' in navigator) {
+  // v0.3.4 C: con la app ya abierta, tocar la notificación enfoca la ventana y sw.js manda aquí el tema a abrir.
+  navigator.serviceWorker.addEventListener('message', (evento) => {
+    if (!evento.data || evento.data.tipo !== 'abrir-tema') return;
+    const filtro = filtroDeUrl(String(evento.data.url || ''), location.href);
+    if (filtro) abrirTemaDeNotificacion(filtro);
+  });
   navigator.serviceWorker.register('sw.js').catch(() => {
     // Sin service worker el juego sigue funcionando, solo sin caché offline.
   });
