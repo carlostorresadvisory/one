@@ -14,8 +14,12 @@ export const MODELOS_VISION = [
   'gemini:gemini-3.6-flash',
   'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
-  'thinkingmachines/inkling-small:free',
 ];
+
+// Respaldo de pago ultrabarato (~0,0002 EUR por imagen; 13-oct-2026: los cuatro gratis dan 429 y el juez caído
+// dejaba el relleno de imágenes parado). SOLO se añade a la cascada con `permitirPago` y `llamar` lo frena
+// con `topeEur` contra `rutaLog` (el mismo contador diario que la generación del servidor).
+export const MODELO_VISION_PAGO = 'google/gemini-2.5-flash-lite';
 
 export const PROMPT_NOTA =
   'Puntúas de 1 a 5 una imagen para ilustrar la pregunta de un quiz. Criterio: 5 = la imagen engancha ' +
@@ -68,7 +72,7 @@ function tipoPorBytes(buf) {
 }
 
 // Llamada real a un único modelo. Gemini no baja imágenes por URL: se le manda en base64.
-async function llamarModeloReal({ modelo, mensajes }) {
+async function llamarModeloReal({ modelo, mensajes, permitirPago = false, topeEur = 0, rutaLog = null }) {
   let enviados = mensajes;
   if (modelo.startsWith('gemini:')) {
     enviados = await Promise.all(
@@ -95,22 +99,40 @@ async function llamarModeloReal({ modelo, mensajes }) {
     extra: { reasoning: { enabled: false, exclude: true } },
     timeoutMs: 60000,
     reintentoMs: 1500,
+    permitirPago,
+    topeEur,
+    ...(rutaLog ? { rutaLog } : {}),
   });
   return salida.texto;
 }
 
-/** `{ url, pregunta }` -> `{ nota, motivo, modelo } | null` (null = ningún modelo supo puntuarla). */
-export async function puntuarImagen({ url, pregunta }, { llamarModelo = llamarModeloReal, modelos = MODELOS_VISION } = {}) {
+// Mensaje de error apto para el log: una línea corta y sin claves (por si algún proveedor las eco en la URL).
+function motivoBreve(err) {
+  return String(err?.message || err).replace(/(key|token)=[^&\s]+/gi, '$1=***').replace(/Bearer\s+\S+/gi, 'Bearer ***').replace(/\s+/g, ' ').slice(0, 200);
+}
+
+/**
+ * `{ url, pregunta }` -> `{ nota, motivo, modelo } | null` (null = ningún modelo supo puntuarla).
+ * Con `permitirPago` (y `topeEur` > 0) la cascada termina en `MODELO_VISION_PAGO`; sin ello no se llama nunca a un
+ * modelo de pago. `topeEur` y `rutaLog` viajan a `llamar`, que cuenta el gasto del día en ese log.
+ */
+export async function puntuarImagen(
+  { url, pregunta },
+  { llamarModelo = llamarModeloReal, modelos = MODELOS_VISION, permitirPago = false, topeEur = 0, rutaLog = null } = {},
+) {
   const mensajes = [
     { role: 'system', content: PROMPT_NOTA },
     { role: 'user', content: [{ type: 'text', text: textoPregunta(pregunta) }, { type: 'image_url', image_url: { url } }] },
   ];
-  for (const modelo of modelos) {
+  const cascada = permitirPago && topeEur > 0 && !modelos.includes(MODELO_VISION_PAGO) ? [...modelos, MODELO_VISION_PAGO] : modelos;
+  for (const modelo of cascada) {
     try {
-      const nota = parsearNota(await llamarModelo({ modelo, mensajes }));
+      const nota = parsearNota(await llamarModelo({ modelo, mensajes, permitirPago, topeEur, rutaLog }));
       if (nota) return { ...nota, modelo };
-    } catch {
-      // el modelo falló o está saturado: se prueba con el siguiente
+      console.error(`nota-imagen: ${modelo} respondió algo que no es una nota`);
+    } catch (err) {
+      // el modelo falló o está saturado: se prueba con el siguiente (queda dicho por qué, sin claves)
+      console.error(`nota-imagen: ${modelo} falló: ${motivoBreve(err)}`);
     }
   }
   return null;
