@@ -990,7 +990,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const push = crearPush({ almacen: almacenReal, vapidPublica, enviar: enviarPush });
   console.log(`ONE servidor: avisos Web Push ${push.activo ? 'activos' : 'desactivados (faltan VAPID_PUBLICA/VAPID_PRIVADA o web-push)'}.`);
   // v0.3 §7: búsqueda de imagen (Commons -> bancos libres -> IA) con las WebP en <RUTA_DATOS>/imagenes.
-  const resolverImagen = crearResolvedorReal({ rutaDatos });
+  const resolverImagen = crearResolvedorReal({ rutaDatos, permitirPago, topeEur });
   const colaReal = crearCola({
     almacen: almacenReal,
     producirTanda: (params, opcionesTanda) => producirTanda(params, { ...opcionesTanda, resolverImagen }),

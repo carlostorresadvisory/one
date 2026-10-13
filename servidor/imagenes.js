@@ -16,6 +16,12 @@ export const MAX_CANDIDATAS_POR_FUENTE = 6;
 const MODELOS_TEXTO = ['gemini:gemini-flash-lite-latest', 'groq:openai/gpt-oss-120b', 'groq:openai/gpt-oss-20b'];
 const USER_AGENT = 'ONE-app/0.3 (aprendizaje personal; contacto via GitHub)';
 
+// v0.3.5.1: ningún fallo de este camino se traga sin dejar rastro. Una línea corta y sin claves.
+function avisar(contexto, err) {
+  const motivo = String(err?.message || err).replace(/(key|token)=[^&\s]+/gi, '$1=***').replace(/Bearer\s+\S+/gi, 'Bearer ***').replace(/\s+/g, ' ').slice(0, 160);
+  console.error(`servidor/imagenes: ${contexto}: ${motivo}`);
+}
+
 /**
  * Busca la mejor imagen para `pregunta`. Todas las dependencias van inyectadas (los tests no tocan
  * la red). Nunca lanza.
@@ -57,7 +63,8 @@ export async function resolverImagen(pregunta, deps) {
         let r = null;
         try {
           r = await puntuar({ url: c.url, pregunta });
-        } catch {
+        } catch (err) {
+          avisar('la visión lanzó al puntuar', err);
           r = null;
         }
         if (!r) {
@@ -68,7 +75,8 @@ export async function resolverImagen(pregunta, deps) {
         try {
           const url = guardar ? await guardarArchivo(c, pregunta) : c.url;
           return { url, pagina: c.pagina ?? null, titulo: c.titulo ?? '', autor: c.autor ?? null, licencia: c.licencia ?? null, fuente: c.fuente, nota: r.nota };
-        } catch {
+        } catch (err) {
+          avisar('no se pudo guardar la imagen elegida', err);
           tecnico = true;
         }
       }
@@ -77,7 +85,8 @@ export async function resolverImagen(pregunta, deps) {
     const buscar = async (fuente, termino) => {
       try {
         return await fuente(termino, pregunta);
-      } catch {
+      } catch (err) {
+        avisar(`búsqueda caída (${termino})`, err);
         tecnico = true;
         return [];
       }
@@ -107,7 +116,8 @@ export async function resolverImagen(pregunta, deps) {
         return { imagen: { url, pagina: null, titulo: '', autor: CREDITO_IA.autor, licencia: CREDITO_IA.licencia, fuente: CREDITO_IA.fuente, nota: r.nota } };
       }
     }
-  } catch {
+  } catch (err) {
+    avisar('fallo inesperado al resolver la imagen', err);
     tecnico = true; // cualquier fallo de red o de modelo: la pregunta queda pendiente
   }
   return tecnico ? { imagen: null, tecnico: true } : { imagen: null };
@@ -117,11 +127,16 @@ export async function resolverImagen(pregunta, deps) {
  * Dependencias reales de `resolverImagen` para el servidor: las WebP de bancos distintos de Commons
  * y las de IA se guardan en `<rutaDatos>/imagenes/<id>.webp` y se sirven en `/imagenes/<id>.webp`.
  */
-export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImpl = fetch, cupo = null } = {}) {
+export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImpl = fetch, cupo = null, permitirPago = false, topeEur = 0, puntuarImpl = puntuarImagen } = {}) {
   const carpeta = path.join(rutaDatos, 'imagenes');
+  // v0.3.5.1: TODAS las llamadas a modelos (texto y juez de visión) se registran en <RUTA_DATOS>/llamadas.log, el
+  // mismo fichero que usa la generación (servidor/index.js) para contar el gasto de hoy contra TOPE_EUR_DIA. Sin
+  // esto `llamar` escribía en `datos/llamadas.log`, que en el contenedor no existe.
+  const rutaLog = path.join(rutaDatos, 'llamadas.log');
+  const pagoJuez = permitirPago === true && topeEur > 0; // el respaldo de pago del juez exige permiso Y tope
   const cupoIA = cupo ?? crearCupo({ ruta: path.join(rutaDatos, 'cupo-ia.json') });
   const llamarModelo = async ({ mensajes }) =>
-    (await llamar({ modelos: MODELOS_TEXTO, mensajes, temperatura: 0.4, maxTokens: 400, timeoutMs: 30000, reintentoMs: 1000 })).texto;
+    (await llamar({ modelos: MODELOS_TEXTO, mensajes, temperatura: 0.4, maxTokens: 400, timeoutMs: 30000, reintentoMs: 1000, rutaLog })).texto;
 
   async function guardarWebp(id, webp) {
     await mkdir(carpeta, { recursive: true });
@@ -144,8 +159,8 @@ export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImp
         });
         const t = extraerJson(texto)?.terminos;
         if (Array.isArray(t)) ingles.push(...t.filter((x) => typeof x === 'string').slice(0, 2));
-      } catch {
-        // sin modelo: se busca con el enunciado
+      } catch (err) {
+        avisar('sin modelo para proponer términos, se busca con el enunciado', err);
       }
       return [...ingles, enunciado];
     },
@@ -160,7 +175,7 @@ export function crearResolvedorReal({ rutaDatos, entorno = process.env, fetchImp
       return lista;
     },
     buscarBancos: (termino, area) => buscarEnBancos(termino, { area, fetchImpl }),
-    puntuar: (datos) => puntuarImagen(datos),
+    puntuar: (datos) => puntuarImpl(datos, { permitirPago: pagoJuez, topeEur: pagoJuez ? topeEur : 0, rutaLog }),
     async guardarArchivo(candidata, pregunta) {
       const bruto = await descargarAcotado(candidata.url, { fetchImpl, userAgent: USER_AGENT });
       return guardarWebp(pregunta.id, await aWebp(bruto));

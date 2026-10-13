@@ -1,7 +1,10 @@
 // Imagen de las preguntas generadas (servidor/imagenes.js): sin red, con dependencias simuladas.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolverImagen, MAX_CANDIDATAS_POR_FUENTE } from '../servidor/imagenes.js';
+import { mkdtemp, readFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { resolverImagen, crearResolvedorReal, MAX_CANDIDATAS_POR_FUENTE } from '../servidor/imagenes.js';
 
 const PREGUNTA = { id: 'srv-eco-1', area: 'historia', enunciado: '¿Quién pintó la Mona Lisa?', explicacion: 'Leonardo da Vinci.' };
 const cand = (url, extra = {}) => ({ url, pagina: `${url}#p`, titulo: 't', autor: 'A', licencia: 'CC BY 4.0', fuente: 'Commons', ...extra });
@@ -167,4 +170,52 @@ test('candidata CC BY sin autor: se salta sin gastar nota', async () => {
   const { imagen } = await resolverImagen(PREGUNTA, d);
   assert.equal(imagen, null);
   assert.equal(llamadas.puntuar.length, 0);
+});
+
+// v0.3.5.1: rutaLog explícito bajo RUTA_DATOS (en el contenedor `datos/llamadas.log` no existe) y juez con pago opcional.
+async function conRedFalsa(fn) {
+  const original = { fetch: globalThis.fetch, clave: process.env.GEMINI_API_KEY_GRATIS };
+  process.env.GEMINI_API_KEY_GRATIS = 'clave-falsa';
+  const falso = async (url) => {
+    if (String(url).includes('wikimedia')) {
+      const info = { thumburl: 'https://upload.wikimedia.org/x.jpg', descriptionurl: 'https://commons.wikimedia.org/wiki/File:x.jpg', width: 3000, height: 2000, extmetadata: { LicenseShortName: { value: 'CC BY 4.0' }, Artist: { value: 'Alguien' } } };
+      return new Response(JSON.stringify({ query: { pages: { 1: { index: 1, title: 'File:Mona.jpg', imageinfo: [info] } } } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"terminos":["mona lisa"]}' } }], usage: {} }), { status: 200 });
+  };
+  globalThis.fetch = falso;
+  try {
+    return await fn(falso);
+  } finally {
+    globalThis.fetch = original.fetch;
+    if (original.clave === undefined) delete process.env.GEMINI_API_KEY_GRATIS;
+    else process.env.GEMINI_API_KEY_GRATIS = original.clave;
+  }
+}
+
+test('crearResolvedorReal: todas las llamadas (texto y juez) usan <rutaDatos>/llamadas.log y el juez recibe el pago/tope', async () => {
+  const rutaDatos = await mkdtemp(path.join(os.tmpdir(), 'one-imagenes-'));
+  const recibidas = [];
+  const puntuarImpl = async (datos, opciones) => { recibidas.push(opciones); return { nota: 5, motivo: 'ok', modelo: 'm' }; };
+  await conRedFalsa(async (fetchImpl) => {
+    const resolver = crearResolvedorReal({ rutaDatos, fetchImpl, permitirPago: true, topeEur: 0.1, puntuarImpl });
+    const { imagen } = await resolver(PREGUNTA, { permitirIA: true });
+    assert.equal(imagen?.fuente, 'Commons');
+  });
+  const ruta = path.join(rutaDatos, 'llamadas.log');
+  assert.deepEqual(recibidas, [{ permitirPago: true, topeEur: 0.1, rutaLog: ruta }]);
+  const log = (await readFile(ruta, 'utf8')).trim().split('\n').map((l) => JSON.parse(l));
+  assert.ok(log.length >= 1 && log.every((l) => l.ok), 'la llamada de texto (términos) quedó registrada en RUTA_DATOS');
+});
+
+test('crearResolvedorReal: sin permitirPago o sin tope el juez nunca recibe pago', async () => {
+  for (const extra of [{}, { permitirPago: true }, { permitirPago: true, topeEur: 0 }, { permitirPago: false, topeEur: 0.1 }]) {
+    const rutaDatos = await mkdtemp(path.join(os.tmpdir(), 'one-imagenes-'));
+    const recibidas = [];
+    const puntuarImpl = async (datos, opciones) => { recibidas.push(opciones); return null; }; // juez caído
+    const salida = await conRedFalsa((fetchImpl) => crearResolvedorReal({ rutaDatos, fetchImpl, puntuarImpl, ...extra })(PREGUNTA, { permitirIA: true }));
+    assert.deepEqual(salida, { imagen: null, tecnico: true }, 'sin juez: fallo técnico, la IA no se toca');
+    assert.ok(recibidas.length > 0);
+    assert.ok(recibidas.every((o) => o.permitirPago === false && o.topeEur === 0));
+  }
 });
