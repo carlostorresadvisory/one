@@ -968,7 +968,7 @@ export async function completarImagen(pregunta, opciones = {}) {
     // Se pasan tal cual las señales que la cola necesita para decidir si espera, reintenta o se rinde.
     return { imagen: salida?.imagen ?? null, ...(tecnico && { tecnico: true }), ...(iaNoAplica && { iaNoAplica: true }), ...(sinIAHoy && { sinIAHoy: true }) };
   } catch (err) {
-    console.error(`servidor/generacion: completarImagen falló: ${String(err?.message || err).slice(0, 160)}`);
+    console.error(`servidor/generacion: completarImagen falló: ${String(err?.message || err).replace(/(key=|Bearer\s+|sk-[a-z]+-)[^\s&"']+/gi, '$1***').slice(0, 160)}`);
     return { imagen: null, tecnico: true }; // un fallo inesperado no es «no hay imagen»: no gasta intento
   }
 }

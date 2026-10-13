@@ -46,9 +46,11 @@ export async function resolverImagen(pregunta, deps) {
     generarIA,
     cupo,
   } = deps;
-  const cortada = () => signal?.aborted === true;
-  const vistas = new Set(descartadas);
   let tecnico = false;
+  // v0.3.5.1: un fallo técnico (juez caído, tope de pago agotado) corta también el resto de candidatas, fuentes
+  // y la IA: la pregunta espera su reintento en vez de martillear ~36 candidatas con el juez caído.
+  const cortada = () => signal?.aborted === true || tecnico;
+  const vistas = new Set(descartadas);
   try {
     const terminos = [...new Set((await proponerTerminos(pregunta)).filter(Boolean))].slice(0, 3);
     const probar = async (candidatas, guardar) => {
@@ -95,12 +97,12 @@ export async function resolverImagen(pregunta, deps) {
     for (const t of terminos) {
       const c = await probar(await buscar(buscarCommons, t), false);
       if (c) return { imagen: c };
-      if (cortada()) return { imagen: null };
+      if (cortada()) return tecnico ? { imagen: null, tecnico: true } : { imagen: null };
     }
     for (const t of terminos) {
       const c = await probar(await buscar((x, p) => buscarBancos(x, p.area), t), true);
       if (c) return { imagen: c };
-      if (cortada()) return { imagen: null };
+      if (cortada()) return tecnico ? { imagen: null, tecnico: true } : { imagen: null };
     }
     if (permitirIA && !tecnico && !cortada()) {
       // Galerías agotadas de verdad. Tres salidas distintas, para que la cola sepa si hay algo que esperar:
