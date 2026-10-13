@@ -51,6 +51,10 @@ const MAX_INTENTOS_IMAGEN = 3;
 // Sin IA hoy (cupo diario agotado o proveedor sin respuesta), las galerías de esa pregunta ya se
 // recorrieron: no se repite el recorrido hasta pasado este tiempo (el cupo se renueva a las 00:00 UTC).
 const ESPERA_SIN_IA_MS = 6 * 60 * 60 * 1000;
+// v0.3.5.1: cortacircuito del juez de visión. Un fallo técnico (visión caída, descarga fallida) termina la
+// pasada y la pregunta que lo sufrió espera esto antes de volver a elegirse: así la pasada siguiente coge otra
+// y no se martillean las APIs con las mismas diez de siempre.
+const ESPERA_TECNICO_MS = 30 * 60 * 1000;
 // Ola final v0.2b4.1 (M1): tope de lo que `actualizadas` puede devolver en UNA respuesta de
 // `POST /estado`. Un móvil que vuelve tras días fuera manda cientos de `idsConocidos`, y cada
 // elemento lleva una imagen entero: sin tope, esa respuesta se dispara de tamaño justo en la
@@ -591,6 +595,8 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
    * pasada. Si la IA no pudo hoy (`sinIAHoy`: cupo o proveedor), la pregunta espera
    * `ESPERA_SIN_IA_MS` antes de repetir el recorrido de galerías. Solo se rinde (`imagenRendida`)
    * la que la política no deja ilustrar con IA (`iaNoAplica`) tras `MAX_INTENTOS_IMAGEN` intentos.
+   * v0.3.5.1: cortacircuito -- el primer fallo técnico (juez de visión caído) termina la pasada y esa
+   * pregunta espera `ESPERA_TECNICO_MS` (sin gastar intento); lo resuelto antes en la pasada se guarda.
    * Sin `completarImagen` inyectado (crearCola sin esa opción) es un no-op: así los tests que no
    * necesitan el trabajo de fondo no tienen que simularla.
    * @param {{max?: number}} [params]
@@ -628,6 +634,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
       const elegidas = elegibles.slice(0, Math.max(0, max));
       const resueltas = new Map();
       const intentosFallidos = new Map(); // id -> { intentos, sinIAHoy, iaNoAplica }
+      const tecnicas = new Set(); // ids con fallo técnico: esperan ESPERA_TECNICO_MS, sin gastar intento
       for (const pregunta of elegidas) {
         try {
           const salida = await completarImagen(pregunta, opciones);
@@ -635,6 +642,9 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
             resueltas.set(pregunta.id, salida.imagen);
           } else if (salida?.tecnico) {
             // Fallo técnico (visión caída, descarga fallida): no es «no hay imagen buena», no gasta intento.
+            // Cortacircuito (v0.3.5.1): el primero termina la pasada y esta pregunta se aparta 30 min.
+            tecnicas.add(pregunta.id);
+            break;
           } else {
             intentosFallidos.set(pregunta.id, {
               intentos: (Number.isFinite(pregunta.intentosImagen) ? pregunta.intentosImagen : 0) + 1,
@@ -658,7 +668,7 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         // vuelta de su bucle exterior sin esperar a que esta pasada termine del todo.
         if (colaUrgente.length > 0) break;
       }
-      if (resueltas.size === 0 && intentosFallidos.size === 0) {
+      if (resueltas.size === 0 && intentosFallidos.size === 0 && tecnicas.size === 0) {
         return { completadas: 0, pendientes: pendientes.length };
       }
 
@@ -667,6 +677,9 @@ export function crearCola({ almacen, producirTanda, completarImagen = null, opci
         const ahora = new Date().toISOString();
         const actualizado = actual.map((p) => {
           if (!esPendienteDeImagen(p)) return p;
+          if (tecnicas.has(p.id)) {
+            return { ...p, imagenReintentarDesde: new Date(Date.now() + ESPERA_TECNICO_MS).toISOString() };
+          }
           if (resueltas.has(p.id)) {
             const { visualPendiente: _vieja, imagenReintentarDesde: _espera, ...resto } = p;
             return { ...resto, imagen: resueltas.get(p.id), imagenPendiente: false, actualizadaEn: ahora };

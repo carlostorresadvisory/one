@@ -74,10 +74,10 @@ test('rellenarColchon: se para solo cuando no queda nada elegible (todo en esper
   assert.equal(res.despues.enEspera, 3);
 });
 
-test('rellenarColchon: los fallos técnicos no cuentan como intento de la pregunta y se anotan', async () => {
+test('rellenarColchon: los fallos técnicos no cuentan como intento de la pregunta, se anotan y la apartan 30 min (cortacircuito)', async () => {
   const { almacen } = await almacenCon([sinImagen(1)]);
   const res = await rellenarColchon({ almacen, limite: 2, lote: 1, completarImagen: async () => ({ imagen: null, tecnico: true }) });
-  assert.equal(res.tecnicos, 2);
+  assert.equal(res.tecnicos, 1, 'tras el fallo la pregunta espera y ya no hay nada elegible');
   assert.equal(res.despues.porProcesar, 1);
   assert.equal((await almacen.leerColchon())[0].intentosImagen, 0, "solo la marca de la migración, ningún intento");
 });

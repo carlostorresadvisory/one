@@ -1874,3 +1874,65 @@ test('v0.3.5: las tandas de FONDO conservan su cuenta de siempre (n pedidas, no 
   assert.deepEqual(pedidas, [5, 5]);
   assert.equal(cola.estadoTrabajo(trabajoId).preguntas.length, 2);
 });
+
+// v0.3.5.1: cortacircuito del juez de visión. Con el juez caído, la primera pregunta con fallo técnico
+// termina la pasada y espera 30 min: la pasada siguiente coge OTRA, en vez de repetir las mismas diez.
+test('v0.3.5.1: juez caído -> una pregunta tocada por pasada, la siguiente pasada coge otra distinta', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const tres = [1, 2, 3].map((i) => ({
+    ...aprobada('economia', i, { imagen: null, imagenPendiente: true }),
+    servida: null,
+    creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(tres);
+  const tocadas = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async (p) => { tocadas.push(p.id); return { imagen: null, tecnico: true }; },
+  });
+  await cola.completarImagenesPendientes();
+  await cola.completarImagenesPendientes();
+  await cola.completarImagenesPendientes();
+  assert.deepEqual(tocadas, tres.map((p) => p.id), 'una por pasada, rotando por la lista');
+  const tras = await almacen.leerColchon();
+  for (const p of tras) {
+    assert.equal(p.imagenPendiente, true);
+    assert.ok(!p.intentosImagen, 'el fallo técnico no gasta intento');
+    assert.ok(Date.parse(p.imagenReintentarDesde) > Date.now() + 25 * 60 * 1000, 'espera de ~30 min');
+    assert.ok(Date.parse(p.imagenReintentarDesde) < Date.now() + 35 * 60 * 1000);
+  }
+  // Con las tres en espera, una pasada más no toca ninguna.
+  await cola.completarImagenesPendientes();
+  assert.equal(tocadas.length, 3);
+});
+
+test('v0.3.5.1: lo resuelto antes del fallo técnico se guarda y lo posterior ni se toca', async () => {
+  const dir = await carpetaTmp();
+  const almacen = crearAlmacen(dir);
+  const tres = [1, 2, 3].map((i) => ({
+    ...aprobada('economia', i, { imagen: null, imagenPendiente: true }),
+    servida: null,
+    creada: new Date(Date.UTC(2026, 8, 15, 10, 0, i)).toISOString(),
+  }));
+  await almacen.guardarColchon(tres);
+  const imagen = { url: 'https://upload.wikimedia.org/x.jpg', pagina: 'https://commons.wikimedia.org/wiki/File:x.jpg', fuente: 'Commons', licencia: 'CC BY 4.0', autor: 'Alguien', nota: 5 };
+  const tocadas = [];
+  const cola = crearCola({
+    almacen,
+    producirTanda: async () => resultadoVacio(0),
+    completarImagen: async (p) => {
+      tocadas.push(p.id);
+      return p.id === tres[0].id ? { imagen } : { imagen: null, tecnico: true };
+    },
+  });
+  const res = await cola.completarImagenesPendientes();
+  assert.deepEqual(tocadas, [tres[0].id, tres[1].id], 'la tercera no se toca');
+  assert.equal(res.completadas, 1);
+  const [a, b, c] = (await almacen.leerColchon()).sort((x, y) => x.creada.localeCompare(y.creada));
+  assert.equal(a.imagenPendiente, false);
+  assert.equal(a.imagen.url, imagen.url);
+  assert.ok(b.imagenReintentarDesde, 'la del fallo espera');
+  assert.equal(c.imagenReintentarDesde, undefined, 'la no tocada sigue elegible');
+});
